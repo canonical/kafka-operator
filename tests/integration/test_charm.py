@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pytest
 import yaml
-from kafka import KafkaConsumer, KafkaProducer
 from pytest_operator.plugin import OpsTest
 
 logger = logging.getLogger(__name__)

@@ -1,3 +1,9 @@
+#!/usr/bin/env python3
+# Copyright 2022 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+"""Collection of helper functions to be called by KafkaCharm event handlers."""
+
 import logging
 from typing import Dict
 
@@ -8,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 def install_packages():
+    """Loads the Kafka snap from LP."""
     apt.update()
     apt.add_package("snapd")
 
@@ -19,8 +26,7 @@ def install_packages():
 
 
 def get_config(path: str) -> Dict[str, str]:
-    """Grabs active config lines from *.properties"""
-    
+    """Grabs active config lines from *.properties."""
     with open(path, "r") as f:
         config = f.readlines()
 
@@ -35,8 +41,7 @@ def get_config(path: str) -> Dict[str, str]:
 
 
 def merge_config(default: str, override: str) -> str:
-    """Merges snap config overrides with default upstream *.properties"""
-    
+    """Merges snap config overrides with default upstream *.properties."""
     default_config = get_config(path=default)
 
     try:

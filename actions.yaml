@@ -1,4 +1,4 @@
-# In Juju 3 this will be eaiser to copy
+# In Juju 3 this will be easier to copy
 get-server-properties:
   description: |
     Action to retrieve the current server.properties

@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+# Copyright 2022 Canonical Ltd.
+# See LICENSE file for licensing details.
+
 import unittest
 
 from ops.testing import Harness
@@ -20,7 +24,9 @@ class TestCharm(unittest.TestCase):
         assert len(config) == 6
 
     def test_merge_config_fails_gracefully_on_bad_path(self):
-        assert merge_config(default="tests/fixtures/valid_server.properties", override="/tmp/badpath")
+        assert merge_config(
+            default="tests/fixtures/valid_server.properties", override="/tmp/badpath"
+        )
 
     def test_merge_config(self):
         config = merge_config(

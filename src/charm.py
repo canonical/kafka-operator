@@ -2,9 +2,13 @@
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+"""Charmed Machine Operator for Kafka."""
+
 import logging
 import subprocess
 
+from charms.operator_libs_linux.v0.apt import PackageNotFoundError
+from charms.operator_libs_linux.v1.snap import SnapError
 from ops.charm import CharmBase
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
@@ -15,6 +19,8 @@ logger = logging.getLogger(__name__)
 
 
 class KafkaCharm(CharmBase):
+    """Charmed Operator for Kafka."""
+
     def __init__(self, *args):
         super().__init__(*args)
         self.name = "kafka"
@@ -37,7 +43,7 @@ class KafkaCharm(CharmBase):
             self.unit.status = MaintenanceStatus("installing packages")
             install_packages()
             self.unit.status = ActiveStatus()
-        except:
+        except (SnapError, PackageNotFoundError):
             self.unit.status = BlockedStatus("failed to install packages")
 
     def _on_leader_elected(self, _):
@@ -63,8 +69,7 @@ class KafkaCharm(CharmBase):
         return proc.returncode == 0
 
     def _on_get_server_properties_action(self, event):
-        """Handler for users to copy currently active config for passing to `juju config`"""
-
+        """Handler for users to copy currently active config for passing to `juju config`."""
         # TODO: generalise this for arbitrary *.properties
         default_server_config_path = "/snap/kafka/current/opt/kafka/config/server.properties"
         snap_server_config_path = "/var/snap/kafka/common/server.properties"
