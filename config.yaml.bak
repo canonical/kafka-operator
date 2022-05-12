@@ -91,8 +91,6 @@ options:
       transaction.state.log.replication.factor=1
       transaction.state.log.min.isr=1
       group.initial.rebalance.delay.ms=0
-
-# broker.id=0
-# log.dirs=/tmp/kafka-logs
-# zookeeper.connect=localhost:2181
-# zookeeper.connection.timeout.ms=18000
+      # TODO: update after ZK charm
+      # zookeeper.connect=localhost:2181
+      # zookeeper.connection.timeout.ms=18000

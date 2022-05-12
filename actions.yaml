@@ -1,3 +1,5 @@
-get-server-config:
+# In Juju 3 this will be eaiser to copy
+get-server-properties:
   description: |
-    Stuff
+    Action to retrieve the current server.properties
+

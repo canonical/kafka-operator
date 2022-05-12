@@ -7,7 +7,8 @@ import subprocess
 
 from ops.charm import CharmBase
 from ops.main import main
-from ops.model import MaintenanceStatus, ActiveStatus, BlockedStatus
+from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
+
 from kafka_helpers import install_packages, merge_config
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ class KafkaCharm(CharmBase):
         )
         self.framework.observe(getattr(self.on, "leader_elected"), self._on_leader_elected)
         self.framework.observe(
-            getattr(self.on, "get_server_config_action"), self._on_get_server_config_action
+            getattr(self.on, "get_server_properties_action"), self._on_get_server_properties_action
         )
 
     @property
@@ -61,7 +62,7 @@ class KafkaCharm(CharmBase):
         proc.wait()
         return proc.returncode == 0
 
-    def _on_get_server_config_action(self, event):
+    def _on_get_server_properties_action(self, event):
         """Handler for users to copy currently active config for passing to `juju config`"""
 
         # TODO: generalise this for arbitrary *.properties
