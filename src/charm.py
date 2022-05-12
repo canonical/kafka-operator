@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
-#
-# Learn more at: https://juju.is/docs/sdk
 
 import logging
 import subprocess
@@ -10,7 +8,7 @@ import subprocess
 from ops.charm import CharmBase
 from ops.main import main
 from ops.model import MaintenanceStatus, ActiveStatus, BlockedStatus
-from kafka_helpers import install_packages
+from kafka_helpers import install_packages, merge_config
 
 logger = logging.getLogger(__name__)
 
@@ -21,8 +19,13 @@ class KafkaCharm(CharmBase):
         self.name = "kafka"
 
         self.framework.observe(getattr(self.on, "install"), self._on_install)
-        self.framework.observe(getattr(self.on, "cluster_relation_joined"), self._on_cluster_relation_joined)
+        self.framework.observe(
+            getattr(self.on, "cluster_relation_joined"), self._on_cluster_relation_joined
+        )
         self.framework.observe(getattr(self.on, "leader_elected"), self._on_leader_elected)
+        self.framework.observe(
+            getattr(self.on, "get_server_config_action"), self._on_get_server_config_action
+        )
 
     @property
     def _relation(self):
@@ -57,6 +60,17 @@ class KafkaCharm(CharmBase):
             logger.debug(line)
         proc.wait()
         return proc.returncode == 0
+
+    def _on_get_server_config_action(self, event):
+        """Handler for users to copy currently active config for passing to `juju config`"""
+
+        # TODO: generalise this for arbitrary *.properties
+        default_server_config_path = "/snap/kafka/current/opt/kafka/config/server.properties"
+        snap_server_config_path = "/var/snap/kafka/common/server.properties"
+
+        msg = merge_config(default=default_server_config_path, override=snap_server_config_path)
+
+        event.set_results({"server-properties": msg})
 
 
 if __name__ == "__main__":
