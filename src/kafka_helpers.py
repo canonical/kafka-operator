@@ -13,8 +13,14 @@ from charms.operator_libs_linux.v1 import snap
 logger = logging.getLogger(__name__)
 
 
-def install_packages():
-    """Loads the Kafka snap from LP."""
+def install_kafka_snap():
+    """Loads the Kafka snap from LP
+
+    Raises:
+        SnapError: Raised when there's an error installing or removing a snap
+        PackageNotFoundError: Raised when a requested package is not known to the system
+    """
+
     apt.update()
     apt.add_package("snapd")
 
