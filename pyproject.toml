@@ -20,7 +20,17 @@ target-version = ["py38"]
 [tool.isort]
 profile = "black"
 
+[tool.poetry]
+name = "kafka-operator"
+version = "1.0"
+description = "kafka-operator"
+authors = [""]
+
+[tool.poetry.dependencies]
+python = ">=3.8"
+
 # Linting tools configuration
+black = "^22.3.0"
 [tool.flake8]
 max-line-length = 99
 max-doc-length = 99
