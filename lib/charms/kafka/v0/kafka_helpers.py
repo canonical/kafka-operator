@@ -1,8 +1,12 @@
-#!/usr/bin/env python3
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-"""Collection of helper functions to be called by KafkaCharm event handlers."""
+"""## Overview
+
+`kafka_libs.py` provides a collection of common functions for managing snap installation and
+config parsing common to both the Kafka and ZooKeeper charms
+
+"""
 
 import logging
 from typing import Dict
@@ -11,6 +15,16 @@ from charms.operator_libs_linux.v0 import apt
 from charms.operator_libs_linux.v1 import snap
 
 logger = logging.getLogger(__name__)
+
+# The unique Charmhub library identifier, never change it
+LIBID = "73d0f23286dd469596d358905406dcab"
+
+# Increment this major API version when introducing breaking changes
+LIBAPI = 0
+
+# Increment this PATCH version before using `charmcraft publish-lib` or reset
+# to 0 if you are raising the major API version
+LIBPATCH = 1
 
 
 def install_kafka_snap():
@@ -61,3 +75,4 @@ def merge_config(default: str, override: str) -> str:
     for k, v in final_config.items():
         msg = f"{msg}{k}={v}\n"
     return msg
+

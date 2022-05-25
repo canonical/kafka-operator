@@ -13,7 +13,7 @@ from ops.charm import CharmBase
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, Relation
 
-from kafka_helpers import install_kafka_snap, merge_config
+from charms.kafka.v0.kafka_helpers import install_kafka_snap, merge_config
 
 logger = logging.getLogger(__name__)
 
