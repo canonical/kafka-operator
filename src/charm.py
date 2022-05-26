@@ -2,18 +2,14 @@
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-"""Charmed Machine Operator for Kafka."""
+"""Charmed Machine Operator for Apache Kafka."""
 
 import logging
-import subprocess
 
-from charms.operator_libs_linux.v0.apt import PackageNotFoundError
-from charms.operator_libs_linux.v1.snap import SnapError
+from charms.kafka.v0.kafka_snap import KafkaSnap
 from ops.charm import CharmBase
 from ops.main import main
-from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, Relation
-
-from charms.kafka.v0.kafka_helpers import install_kafka_snap, merge_config
+from ops.model import Relation
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +20,7 @@ class KafkaCharm(CharmBase):
     def __init__(self, *args):
         super().__init__(*args)
         self.name = "kafka"
+        self.snap = KafkaSnap()
 
         self.framework.observe(getattr(self.on, "install"), self._on_install)
         self.framework.observe(
@@ -31,8 +28,9 @@ class KafkaCharm(CharmBase):
         )
         self.framework.observe(getattr(self.on, "leader_elected"), self._on_leader_elected)
         self.framework.observe(
-            getattr(self.on, "get_server_properties_action"), self._on_get_server_properties_action
+            getattr(self.on, "get_server_properties_action"), self._on_get_properties_action
         )
+        self.framework.observe(getattr(self.on, "config_changed"), self._on_config_changed)
 
     @property
     def _relation(self) -> Relation:
@@ -40,12 +38,7 @@ class KafkaCharm(CharmBase):
 
     def _on_install(self, _) -> None:
         """Handler for on_install event."""
-        try:
-            self.unit.status = MaintenanceStatus("installing Kafka snap")
-            install_kafka_snap()
-            self.unit.status = ActiveStatus()
-        except (SnapError, PackageNotFoundError):
-            self.unit.status = BlockedStatus("failed to install Kakfa snap")
+        self.unit.status = self.snap.install_kafka_snap()
 
     def _on_leader_elected(self, _) -> None:
         return
@@ -55,23 +48,16 @@ class KafkaCharm(CharmBase):
 
     def _on_config_changed(self, _) -> None:
         """Handler for config_changed event."""
-        self._start_services()
+        self._start_service()
 
-        if not isinstance(self.unit.status, BlockedStatus):
-            self.unit.status = ActiveStatus()
+    def _start_service(self) -> None:
+        """Starts a service made available in the snap - `kafka` or `kafka.zookeeper`."""
+        self.unit.status = self.snap.start_snap_service(snap_service_cmd="kafka")
 
-    def _start_services(self) -> None:
-        return
-
-    def _on_get_server_properties_action(self, event) -> None:
+    def _on_get_properties_action(self, event) -> None:
         """Handler for users to copy currently active config for passing to `juju config`."""
-        # TODO: generalise this for arbitrary *.properties
-        default_server_config_path = "/snap/kafka/current/opt/kafka/config/server.properties"
-        snap_server_config_path = "/var/snap/kafka/common/server.properties"
-
-        msg = merge_config(default=default_server_config_path, override=snap_server_config_path)
-
-        event.set_results({"server-properties": msg})
+        msg = self.snap.get_merged_properties(property_label="server")
+        event.set_results({"properties": msg})
 
 
 if __name__ == "__main__":

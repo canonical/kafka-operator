@@ -4,35 +4,30 @@
 
 import unittest
 
-from ops.testing import Harness
-
-from charm import KafkaCharm
-from kafka_helpers import get_config, merge_config
+from charms.kafka.v0.kafka_snap import KafkaSnap
 
 
-class TestCharm(unittest.TestCase):
+class TestKafkaSnap(unittest.TestCase):
     def setUp(self):
-        self.harness = Harness(KafkaCharm)
-        self.addCleanup(self.harness.cleanup)
-        self.harness.begin()
-        self.charm = self.harness.charm
+        self.snap = KafkaSnap()
 
     def test_get_config_passes_valid_config(self):
-        config = get_config("tests/fixtures/valid_server.properties")
+        config = self.snap.get_properties("tests/fixtures/default/valid_server.properties")
         assert "\n" not in config.keys()
         assert "#" not in "".join(list(config.keys()))
         assert len(config) == 6
 
     def test_merge_config_fails_gracefully_on_bad_path(self):
-        assert merge_config(
-            default="tests/fixtures/valid_server.properties", override="/tmp/badpath"
-        )
+        self.snap.default_config_path = "tests/fixtures/default/"
+        self.snap.snap_config_path = "bad/path/"
+
+        assert self.snap.get_merged_properties(property_label="valid_server")
 
     def test_merge_config(self):
-        config = merge_config(
-            default="tests/fixtures/valid_server.properties",
-            override="tests/fixtures/valid_server_user.properties",
-        )
+        self.snap.default_config_path = "tests/fixtures/default/"
+        self.snap.snap_config_path = "tests/fixtures/user/"
+
+        config = self.snap.get_merged_properties(property_label="valid_server")
         lines = config.splitlines()
         assert len(lines) == 8
         assert "default.topic.enable=true" in lines
