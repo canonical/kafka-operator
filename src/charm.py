@@ -30,6 +30,9 @@ class KafkaCharm(CharmBase):
         self.framework.observe(
             getattr(self.on, "get_server_properties_action"), self._on_get_properties_action
         )
+        self.framework.observe(
+            getattr(self.on, "get_snap_apps_action"), self._on_get_snap_apps_action
+        )
         self.framework.observe(getattr(self.on, "config_changed"), self._on_config_changed)
 
     @property
@@ -51,13 +54,18 @@ class KafkaCharm(CharmBase):
         self._start_service()
 
     def _start_service(self) -> None:
-        """Starts a service made available in the snap - `kafka` or `kafka.zookeeper`."""
-        self.unit.status = self.snap.start_snap_service(snap_service_cmd="kafka")
+        """Starts a service made available in the snap - `kafka` or `zookeeper`."""
+        self.unit.status = self.snap.start_snap_service(snap_service="kafka")
 
     def _on_get_properties_action(self, event) -> None:
         """Handler for users to copy currently active config for passing to `juju config`."""
         msg = self.snap.get_merged_properties(property_label="server")
         event.set_results({"properties": msg})
+
+    def _on_get_snap_apps_action(self, event) -> None:
+        """Handler for users to retrieve the list of available Kafka snap commands."""
+        msg = self.snap.get_kafka_apps()
+        event.set_results({"apps": msg})
 
 
 if __name__ == "__main__":

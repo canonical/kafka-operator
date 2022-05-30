@@ -10,7 +10,7 @@ config parsing common to both the Kafka and ZooKeeper charms
 
 import subprocess
 import logging
-from typing import Dict
+from typing import Dict, List
 
 from ops.model import StatusBase
 from charms.operator_libs_linux.v0 import apt
@@ -27,16 +27,16 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 2
+LIBPATCH = 3
 
 
 class KafkaSnap:
     def __init__(self) -> None:
         self.default_config_path = "/snap/kafka/current/opt/kafka/config/"
         self.snap_config_path = "/var/snap/kafka/common/"
+        self.kafka = None
 
-    @staticmethod
-    def install_kafka_snap() -> StatusBase:
+    def install_kafka_snap(self) -> StatusBase:
         """Loads the Kafka snap from LP, returning a StatusBase for the Charm to set."""
 
         try:
@@ -48,26 +48,41 @@ class KafkaSnap:
             if not kafka.present:
                 kafka.ensure(snap.SnapState.Latest, channel="rock/edge")
 
+            self.kafka = kafka 
             return MaintenanceStatus("sucessfully installed kafka snap")
 
         except (snap.SnapError, apt.PackageNotFoundError):
             return BlockedStatus("failed to install kakfa snap")
 
-    def start_snap_service(self, snap_service_cmd: str) -> StatusBase:
+    def get_kafka_apps(self) -> List:
+        """Grabs apps from the snap property."""
+        if not self.kafka:
+            logger.warning("unable to retrive kafka snap apps: kafka snap not installed")
+            apps = []
+        else:
+            apps = self.kafka.apps
+
+        return apps
+
+
+    def start_snap_service(self, snap_service: str) -> StatusBase:
         """Starts snap service process
 
         Args:
-            snap_service_cmd (str): The desired service to run on the unit
-                `kafka` or `kafka.zookeeper`
+            snap_service (str): The desired service to run on the unit
+                `kafka` or `zookeeper`
         Returns:
-            ActiveStatus (StatusBase): If service starts successfully
+            MaintenanceStatus (StatusBase): If service starts successfully
             BlockedStatus (StatusBase): If service fails to start
         """
         try:
-            subprocess.check_call(snap_service_cmd)
+            self.kafka.start(services=[snap_service])
+            logger.info(f"successfully started snap service: {snap_service}")
             return ActiveStatus()
-        except subprocess.CalledProcessError:
-            return BlockedStatus("failed to start {service_cmd} service")
+        except snap.SnapError as e:
+            logger.error(e)
+            return BlockedStatus(f"failed starting snap service: {snap_service}")
+
 
     @staticmethod
     def get_properties(path: str) -> Dict[str, str]:
@@ -93,7 +108,6 @@ class KafkaSnap:
 
         Returns:
            str: The merged default and user config
-
         """
 
         default_path = self.default_config_path + f"{property_label}.properties"
