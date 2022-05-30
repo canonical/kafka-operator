@@ -31,9 +31,3 @@ class TestKafkaSnap(unittest.TestCase):
         lines = config.splitlines()
         self.assertEqual(len(lines), 8)
         self.assertIn("default.topic.enable=true", lines)
-
-    def test_get_kafka_apps_succeeds(self):
-        self.snap.get_kafka_apps()
-        self.snap.install_kafka_snap()
-
-        self.assertTrue(self.snap.get_kafka_apps())

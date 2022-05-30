@@ -8,7 +8,6 @@ config parsing common to both the Kafka and ZooKeeper charms
 
 """
 
-import subprocess
 import logging
 from typing import Dict, List
 
@@ -122,8 +121,4 @@ class KafkaSnap:
             logging.info("no manual config found")
             final_config = default_config
 
-        msg = ""
-        for k, v in final_config.items():
-            msg = f"{msg}{k}={v}\n"
-
-        return msg
+        return "\n".join([f"{k}={v}" for k,v in final_config.items()]) 
