@@ -26,14 +26,14 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 3
+LIBPATCH = 4
 
 
 class KafkaSnap:
     def __init__(self) -> None:
         self.default_config_path = "/snap/kafka/current/opt/kafka/config/"
         self.snap_config_path = "/var/snap/kafka/common/"
-        self.kafka = None
+        self.kafka = snap.SnapCache()["kafka"] 
 
     def install_kafka_snap(self) -> StatusBase:
         """Loads the Kafka snap from LP, returning a StatusBase for the Charm to set."""
@@ -48,6 +48,7 @@ class KafkaSnap:
                 kafka.ensure(snap.SnapState.Latest, channel="rock/edge")
 
             self.kafka = kafka 
+            logger.info("sucessfully installed kafka snap")
             return MaintenanceStatus("sucessfully installed kafka snap")
 
         except (snap.SnapError, apt.PackageNotFoundError):
@@ -55,11 +56,7 @@ class KafkaSnap:
 
     def get_kafka_apps(self) -> List:
         """Grabs apps from the snap property."""
-        if not self.kafka:
-            logger.warning("unable to retrive kafka snap apps: kafka snap not installed")
-            apps = []
-        else:
-            apps = self.kafka.apps
+        apps = self.kafka.apps
 
         return apps
 
@@ -71,7 +68,7 @@ class KafkaSnap:
             snap_service (str): The desired service to run on the unit
                 `kafka` or `zookeeper`
         Returns:
-            MaintenanceStatus (StatusBase): If service starts successfully
+            ActiveStatus (StatusBase): If service starts successfully
             BlockedStatus (StatusBase): If service fails to start
         """
         try:
