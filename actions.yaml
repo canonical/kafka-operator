@@ -2,4 +2,7 @@
 get-server-properties:
   description: |
     Action to retrieve the current server.properties
+get-snap-apps:
+  description: |
+    Action to retrieve the available commands within the kafka snap
 
