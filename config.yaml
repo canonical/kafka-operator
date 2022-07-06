@@ -6,31 +6,18 @@ options:
     description: kafka.properties configuration file.
     type: string
     default: |
-      # TODO: remove 
       clientPort=2181
-      # TODO: remove 
       broker.id.generation.enable=true
-      # TODO: set by charm
       listeners=PLAINTEXT://:9092
-      # TODO: set by charm
       advertised.listeners=PLAINTEXT://:9092
-      # TODO: discussion with snap team 
       log.dirs=/var/lib/kafka/data
-      # TODO: config 
       auto.create.topics.enable=false
-      # TODO: remove 
       background.threads=10
-      # TODO: config 
       compression.type=producer
-      # TODO: config 
       delete.topic.enable=true
-      # TODO: remove
       auto.leader.rebalance.enable=true
-      # TODO: remove
       leader.imbalance.check.interval.seconds=300
-      # TODO: remove
       leader.imbalance.per.broker.percentage=10
-      # TODO: set by charm with simple config
       log.flush.interval.messages=9223372036854775807
       log.flush.offset.checkpoint.interval.ms=60000
       log.flush.scheduler.interval.ms=9223372036854775807
@@ -40,14 +27,10 @@ options:
       log.roll.jitter.hours=0
       log.segment.bytes=1073741824
       log.segment.delete.delay.ms=60000
-      # TODO: config
       message.max.bytes=1000012
-      # TODO: config
       min.insync.replicas=1
-      # TODO: set by charm (i.e 8xdisks) 
       num.io.threads=8
       num.network.threads=3
-      # TODO: remove
       num.recovery.threads.per.data.dir=1
       num.replica.fetchers=1
       offset.metadata.max.bytes=4096
@@ -94,6 +77,5 @@ options:
       transaction.state.log.replication.factor=1
       transaction.state.log.min.isr=1
       group.initial.rebalance.delay.ms=0
-      # TODO: update after ZK charm
-      # zookeeper.connect=localhost:2181
-      # zookeeper.connection.timeout.ms=18000
+      zookeeper.connection.timeout.ms=18000
+      zookeeper.connect=localhost:2181
