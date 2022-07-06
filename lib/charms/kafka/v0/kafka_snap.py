@@ -44,14 +44,14 @@ from charms.operator_libs_linux.v1 import snap
 logger = logging.getLogger(__name__)
 
 # The unique Charmhub library identifier, never change it
-LIBID = "73d0f23286dd469596d358905406dcab"
+LIBID = "db3c8438a0fc435895a2f6a1cccf03a2"
 
 # Increment this major API version when introducing breaking changes
 LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 5
+LIBPATCH = 1
 
 
 SNAP_CONFIG_PATH = "/var/snap/kafka/common/"
