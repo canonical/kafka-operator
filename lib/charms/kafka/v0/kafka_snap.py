@@ -36,6 +36,7 @@ class KafkaCharm(CharmBase):
 """
 import logging
 import os
+import subprocess
 from typing import Dict, List
 
 from charms.operator_libs_linux.v0 import apt
@@ -51,11 +52,10 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 1
+LIBPATCH = 2
 
 
 SNAP_CONFIG_PATH = "/var/snap/kafka/common/"
-AUTH_CONFIG_PATH = f"{SNAP_CONFIG_PATH}/zookeeper-jaas.cfg"
 
 
 class ConfigError(Exception):
@@ -110,21 +110,8 @@ class KafkaSnap:
             logger.error(str(e))
             return False
 
-    def get_kafka_apps(self) -> List:
-        """Grabs apps from the snap property.
-
-        Returns:
-            List of apps declared by the installed snap
-        """
-        apps = self.kafka.apps
-
-        return apps
-
     def start_snap_service(self, snap_service: str) -> bool:
         """Starts snap service process.
-
-        If fails with expected errors, it will block the KafkaSnap instance from executing
-        additional non-idempotent methods.
 
         Args:
             snap_service: The desired service to run on the unit
@@ -136,16 +123,29 @@ class KafkaSnap:
         try:
             self.kafka.start(services=[snap_service])
             return True
-            # TODO: check if the service is actually running (i.e not failed silently)
         except snap.SnapError as e:
-            logger.error(str(e))
+            logger.exception(str(e))
+            return False
+
+    def stop_snap_service(self, snap_service: str) -> bool:
+        """Stops snap service process.
+
+        Args:
+            snap_service: The desired service to stop on the unit
+                `kafka` or `zookeeper`
+
+        Returns:
+            True if service successfully stops. False otherwise.
+        """
+        try:
+            self.kafka.stop(services=[snap_service])
+            return True
+        except snap.SnapError as e:
+            logger.exception(str(e))
             return False
 
     def restart_snap_service(self, snap_service: str) -> bool:
         """Restarts snap service process.
-
-        If fails with expected errors, it will block the KafkaSnap instance from executing
-        additional non-idempotent methods.
 
         Args:
             snap_service: The desired service to run on the unit
@@ -157,16 +157,12 @@ class KafkaSnap:
         try:
             self.kafka.restart(services=[snap_service])
             return True
-            # TODO: check if the service is actually running (i.e not failed silently)
         except snap.SnapError as e:
-            logger.error(str(e))
+            logger.exception(str(e))
             return False
 
-    def write_properties(self, properties: str, property_label: str) -> None:
+    def write_properties(self, properties: str, property_label: str, mode: str = "w") -> None:
         """Writes to the expected config file location for the Kafka Snap.
-
-        If fails with expected errors, it will block the KafkaSnap instance from executing
-        additional non-idempotent methods.
 
         Args:
             properties: A multiline string containing the properties to be set
@@ -175,15 +171,11 @@ class KafkaSnap:
             mode: The write mode. Usually "w" for write, or "a" for append. Default "w"
         """
 
-        # TODO: Check if required properties are not set, update BlockedStatus
         path = f"{SNAP_CONFIG_PATH}/{property_label}.properties"
-        safe_write_to_file(content=properties, path=path)
+        safe_write_to_file(content=properties, path=path, mode=mode)
 
     def write_zookeeper_myid(self, myid: int, property_label: str = "zookeeper") -> None:
         """Checks the *.properties file for dataDir, and writes ZooKeeper id to <data-dir>/myid.
-
-        If fails with expected errors, it will block the KafkaSnap instance from executing
-        additional non-idempotent methods.
 
         Args:
             myid: The desired ZooKeeper server id
@@ -204,9 +196,6 @@ class KafkaSnap:
 
     def get_properties(self, property_label: str) -> Dict[str, str]:
         """Grabs active config lines from *.properties.
-
-        If fails with expected errors, it will block the KafkaSnap instance from executing
-        additional non-idempotent methods.
 
         Returns:
             A mapping of config properties and their values
@@ -231,44 +220,32 @@ class KafkaSnap:
         return config_map
 
     @staticmethod
-    def set_zookeeper_auth_config(sync_password: str, super_password: str, users: str) -> None:
-        """Sets the content of the auth ZooKeeper JAAS file with passwords on the unit.
+    def run_bin_command(bin_keyword: str, bin_args: List[str], opts: List[str]) -> str:
+        """Runs kafka bin command with desired args.
 
         Args:
-            sync_password: the ZK server-server auth password
-            super_password: the ZK super user password
-            users: the users to give access to
-                Format `user_username="password"\\n`
+            bin_keyword: the kafka shell script to run
+                e.g `configs`, `topics` etc
+            bin_args: the shell command args
+            opts (optional): the desired `KAFKA_OPTS` env var values for the command
+
+        Returns:
+            String of kafka bin command output
+
+        Raises:
+            `subprocess.CalledProcessError`: if the error returned a non-zero exit code
         """
-        auth_config = f"""
-            QuorumServer {{
-                org.apache.zookeeper.server.auth.DigestLoginModule required
-                user_sync="{sync_password}";
-            }};
+        args_string = " ".join(bin_args)
+        opts_string = " ".join(opts)
+        command = f"KAFKA_OPTS={opts_string} kafka.{bin_keyword} {args_string}"
 
-            QuorumLearner {{
-                org.apache.zookeeper.server.auth.DigestLoginModule required
-                username="sync"
-                password="{sync_password}";
-            }};
-
-            Server {{
-                org.apache.zookeeper.server.auth.DigestLoginModule required
-                {users}
-                user_super="{super_password}";
-            }};
-        """
-        safe_write_to_file(content=str(auth_config), path=f"{AUTH_CONFIG_PATH}", mode="w")
-
-    def set_zookeeper_kafka_opts(self) -> None:
-        """Sets the env-vars needed for SASL auth to /etc/environment on the unit."""
-        opt_properties = " ".join(
-            [
-                "-Dzookeeper.requireClientAuthScheme=sasl",
-                "-Dzookeeper.superUser=super",
-                f"-Djava.security.auth.login.config={AUTH_CONFIG_PATH}",
-            ]
-        )
-        safe_write_to_file(
-            content=f"KAFKA_OPTS={opt_properties}", path="/etc/environment", mode="a"
-        )
+        try:
+            output = subprocess.check_output(
+                command, stderr=subprocess.PIPE, universal_newlines=True, shell=True
+            )
+            logger.debug(f"{output=}")
+            return output
+        except subprocess.CalledProcessError as e:
+            logger.exception(e)
+            logger.debug(f"cmd failed - cmd={e.cmd}, stdout={e.stdout}, stderr={e.stderr}")
+            raise e
