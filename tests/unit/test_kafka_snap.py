@@ -12,7 +12,7 @@ class TestKafkaSnap(unittest.TestCase):
     def setUp(self):
         self.snap = KafkaSnap()
 
-    @patch('charms.kafka.v0.kafka_snap.SNAP_CONFIG_PATH', "tests/fixtures/")
+    @patch("charms.kafka.v0.kafka_snap.SNAP_CONFIG_PATH", "tests/fixtures/")
     def test_get_config_passes_valid_config(self):
         config = self.snap.get_properties("valid_server")
         self.assertNotIn("\n", config.keys())
@@ -22,4 +22,3 @@ class TestKafkaSnap(unittest.TestCase):
     def test_get_config_raises_missing_config(self):
         with self.assertRaises(ConfigError):
             self.snap.get_properties("missing")
-
