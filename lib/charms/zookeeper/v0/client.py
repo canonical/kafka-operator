@@ -57,7 +57,7 @@ def update_cluster(new_members: List[str], event: EventBase) -> None:
 
 import logging
 import re
-from typing import Any, Dict, Iterable, List, Set, Tuple
+from typing import Any, Dict, Iterable, List, Set, Tuple, Union
 from kazoo.client import KazooClient
 from kazoo.handlers.threading import KazooTimeoutError
 from tenacity import RetryError, retry
@@ -239,6 +239,7 @@ class ZooKeeperManager:
                         raise MemberNotReadyError(f"Server is not ready: {host}")
             except KazooTimeoutError as e:  # for when units are departing
                 logger.warning(str(e))
+                logger.debug(str(e))
                 continue
 
             # specific connection to leader
@@ -339,6 +340,27 @@ class ZooKeeperManager:
         ) as zk:
             zk.delete_znode(path=path)
 
+    @property
+    def kafka_brokers(self) -> Iterable[str]:
+        """Gets all current kafka brokers connected to ZooKeeper.
+
+        Returns:
+            Iterable of broker ids connected to ZooKeeper
+        """
+        with ZooKeeperClient(
+            host=self.leader,
+            client_port=self.client_port,
+            username=self.username,
+            password=self.password,
+        ) as zk:
+            path = "/kafka/brokers/ids/"
+            broker_ids = set()
+            for child in zk.get_all_znode_children(path):
+                orphan = child.replace(path, "")
+                if orphan:
+                    broker_ids.add(orphan)
+
+            return broker_ids
 
 class ZooKeeperClient:
     """Handler for ZooKeeper connections and running 4lw client commands."""
@@ -385,7 +407,7 @@ class ZooKeeperClient:
         """Retrieves attributes returned from the 'srvr' 4lw command.
 
         Returns:
-            Mapping of field and setting returned from `mntr`
+            Mapping of field and setting returned from `srvr`
         """
         response = self._run_4lw_command("srvr")
 
@@ -396,6 +418,52 @@ class ZooKeeperClient:
             result[k] = v
 
         return result
+
+    @property
+    def dump(self) -> List[Dict[str, Union[str, List[str]]]]:
+        """Retrieves found session connections returned from the 'dump' 4lw command.
+
+        Will only run on quorum leader.
+
+        Returns:
+            List of connected sessions and their nodes
+        """
+        response: str = self._run_4lw_command("dump")
+
+        nodes = {}
+        sessions = []
+        node_session_id = None
+        for item in response.splitlines():
+            # temporarily store node_session_id when it's passed
+            if re.match(r"(0x[0-9a-z]{2,})\:", item):
+                node_session_id = item.replace(":", "")
+                nodes[node_session_id] = []
+                continue
+
+            # check if we're on a current node
+            if "/" in item and node_session_id:
+                nodes[node_session_id].append(item.strip())
+                continue
+            else:
+                # we're past nodes, don't check anymore
+                node_session_id = None
+
+            matches = re.match(
+                r"ip: \/([0-9.]+):([0-9]+) sessionId: (0x[0-9a-z]{2,})", item.strip()
+            )
+            if not matches:
+                continue
+
+            sessions.append(
+                {
+                    "ip": f"{matches.group(1)}:{matches.group(2)}",
+                    "host": matches.group(1),
+                    "port": matches.group(2),
+                    "nodes": nodes.get(matches.group(3), []),
+                }
+            )
+
+        return sessions
 
     @property
     def mntr(self) -> Dict[str, Any]:

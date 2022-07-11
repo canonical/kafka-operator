@@ -27,7 +27,7 @@ options:
       offsets.topic.num.partitions=50
       offsets.commit.required.acks=-1
       offsets.retention.minutes=10080
-  
+
       # topic
       auto.leader.rebalance.enable=true
       # to be changed when necessary
