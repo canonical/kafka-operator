@@ -13,3 +13,7 @@ maintainers:
 peers:
   cluster:
     interface: cluster
+
+requires:
+  zookeeper:
+    interface: zookeeper

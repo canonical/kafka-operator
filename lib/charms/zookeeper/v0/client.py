@@ -49,7 +49,7 @@ def update_cluster(new_members: List[str], event: EventBase) -> None:
         MemberNotReadyError,
         QuorumLeaderNotFoundError,
     ) as e:
-        logger.warning(str(e))
+        logger.info(str(e))
         event.defer()
         return
 ```
@@ -74,7 +74,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 1
+LIBPATCH = 2
 
 
 logger = logging.getLogger(__name__)
@@ -238,7 +238,7 @@ class ZooKeeperManager:
                     if not zk.is_ready:
                         raise MemberNotReadyError(f"Server is not ready: {host}")
             except KazooTimeoutError as e:  # for when units are departing
-                logger.warning(str(e))
+                logger.debug(str(e))
                 continue
 
             # specific connection to leader
@@ -385,7 +385,7 @@ class ZooKeeperClient:
         """Retrieves attributes returned from the 'srvr' 4lw command.
 
         Returns:
-            Mapping of field and setting returned from `mntr`
+            Mapping of field and setting returned from `srvr`
         """
         response = self._run_4lw_command("srvr")
 
