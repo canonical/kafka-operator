@@ -50,26 +50,22 @@ def broker_active(unit: Unit, zookeeper_config: Dict[str, str]) -> bool:
         data: the relation data provided by ZooKeeper
 
     Returns:
-        True if broker id is recognised as active by ZooKeeper.
-
-    Raises:
-        tenacity.RetryError: if unable to find unit as active
+        True if broker id is recognised as active by ZooKeeper. Otherwise False.
     """
     broker_id = unit.name.split("/")[1]
+    chroot = zookeeper_config.get("chroot", "")
     hosts = zookeeper_config.get("endpoints", "").split(",")
     username = zookeeper_config.get("username", "")
     password = zookeeper_config.get("password", "")
 
     zk = ZooKeeperManager(hosts=hosts, username=username, password=password)
+    path = f"{chroot}/brokers/ids/"
 
     try:
-        brokers = zk.kafka_brokers
+        brokers = zk.leader_znodes(path=path)
     # auth might not be ready with ZK after relation yet
     except (NoNodeError, AuthFailedError) as e:
         logger.debug(str(e))
         return False
 
-    if broker_id in brokers:
-        return True
-    else:
-        return False
+    return f"{chroot}/brokers/ids/{broker_id}" in brokers
