@@ -95,21 +95,32 @@ class KafkaConfig:
             content=properties, path=f"{SNAP_CONFIG_PATH}/server.properties", mode="w"
         )
 
-    def add_users_to_zookeeper(self) -> bool:
-        """Adds user credentials to ZooKeeper to support inter-broker auth.
+    def add_user_to_zookeeper(self, username: str, password: str) -> None:
+        """Adds user credentials to ZooKeeper for authorising clients and brokers.
 
-        Returns:
-            True if successful. False otherwise
+        Raises:
+            subprocess.CalledProcessError: If the command failed
         """
         command = [
             f"--zookeeper={self.zookeeper_config['connect']}",
             "--alter",
-            "--entity-type=users",
-            "--entity-name=sync",
-            f"--add-config=SCRAM-SHA-512=[password={self.sync_password}]",
+            f"--entity-type=users",
+            f"--entity-name={username}",
+            f"--add-config=SCRAM-SHA-512=[password={password}]",
         ]
-        try:
-            KafkaSnap.run_bin_command(bin_keyword="configs", bin_args=command, opts=OPTS)
-            return True
-        except subprocess.CalledProcessError:
-            return False
+        KafkaSnap.run_bin_command(bin_keyword="configs", bin_args=command, opts=OPTS)
+
+    def delete_user_from_zookeeper(self, username: str) -> None:
+        """Deletes user credentials from ZooKeeper for authorising clients and brokers.
+
+        Raises:
+            subprocess.CalledProcessError: If the command failed
+        """
+        command = [
+            f"--zookeeper={self.zookeeper_config['connect']}",
+            "--alter",
+            f"--entity-type=users",
+            f"--entity-name={username}",
+            f"--delete-config=SCRAM-SHA-512",
+        ]
+        KafkaSnap.run_bin_command(bin_keyword="configs", bin_args=command, opts=OPTS)

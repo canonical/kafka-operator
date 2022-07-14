@@ -43,8 +43,11 @@ options:
       security.inter.broker.protocol=SASL_PLAINTEXT
       authorizer.class.name=kafka.security.authorizer.AclAuthorizer
       allow.everyone.if.no.acl.found=false
-      super.users=User:sync
+      super.users=User:sync;User:super
       listener.name.sasl_plaintext.sasl.enabled.mechanisms=SCRAM-SHA-512
+      # zookeeper.set.acl=true
+
+
 
       ## Backup
       # background.threads=10
@@ -82,7 +85,6 @@ options:
       # socket.request.max.bytes=104857600
       # socket.send.buffer.bytes=102400
       # zookeeper.session.timeout.ms=6000
-      # zookeeper.set.acl=false
       # connections.max.idle.ms=600000
       # controlled.shutdown.enable=true
       # controlled.shutdown.max.retries=3
