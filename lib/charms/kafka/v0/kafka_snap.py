@@ -52,7 +52,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 2
+LIBPATCH = 3
 
 
 SNAP_CONFIG_PATH = "/var/snap/kafka/common/"
@@ -246,6 +246,5 @@ class KafkaSnap:
             logger.debug(f"{output=}")
             return output
         except subprocess.CalledProcessError as e:
-            logger.exception(e)
             logger.debug(f"cmd failed - cmd={e.cmd}, stdout={e.stdout}, stderr={e.stderr}")
             raise e
