@@ -42,7 +42,7 @@ async def test_deploy_charms_relate_active(ops_test: OpsTest, usernames):
     await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_1])
     assert ops_test.model.applications[APP_NAME].status == "active"
     assert ops_test.model.applications[DUMMY_NAME_1].status == "active"
-    
+
     # implicitly tests setting of kafka app data
     returned_usernames, zookeeper_uri = get_zookeeper_connection(
         unit_name="kafka/0", model_full_name=ops_test.model_full_name

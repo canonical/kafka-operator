@@ -12,17 +12,6 @@ options:
       clientPort=2181
       listeners=SASL_PLAINTEXT://:9092
 
-      # replication
-      # forces 3 node minimum to allow for rolling restarts
-      default.replication.factor=3
-      # sensible default
-      num.partitions=3
-      # replication.factor - 1
-      min.insync.replicas=2
-      transaction.state.log.replication.factor=3
-      transaction.state.log.min.isr=2
-      offsets.topic.replication.factor=3
-
       # offsets
       offsets.topic.num.partitions=50
       offsets.commit.required.acks=-1

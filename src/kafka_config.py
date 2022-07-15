@@ -5,7 +5,7 @@
 """Manager for handling Kafka configuration."""
 
 import logging
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from charms.kafka.v0.kafka_snap import SNAP_CONFIG_PATH, KafkaSnap, safe_write_to_file
 from ops.charm import CharmBase
@@ -75,23 +75,54 @@ class KafkaConfig:
         opts_string = " ".join(OPTS)
         safe_write_to_file(content=f"KAFKA_OPTS={opts_string}", path="/etc/environment", mode="a")
 
-    def set_server_properties(self) -> None:
-        """Sets all kafka config properties to the server.properties path."""
-        base_config = self.charm.config["server-properties"]
+    @property
+    def default_replication_properties(self) -> List[str]:
+        """Builds replication-related properties based on the expected app size.
+
+        Returns:
+            List of properties to be set
+        """
+        replication_factor = min([3, self.charm.app.planned_units()])
+        min_isr = max([1, replication_factor])
+
+        return [
+            f"default.replication.factor={replication_factor}",
+            f"num.partitions={replication_factor}",
+            f"transaction.state.log.replication.factor={replication_factor}",
+            f"offsets.topic.replication.factor={replication_factor}",
+            f"min.insync.replicas={min_isr}",
+            f"transaction.state.log.min.isr={min_isr}",
+        ]
+
+    @property
+    def auth_properties(self) -> List[str]:
+        """Builds properties necessary for inter-broker authorization through ZooKeeper.
+
+        Returns:
+            List of properties to be set
+        """
         broker_id = self.charm.unit.name.split("/")[1]
         host = (
             self.charm.model.get_relation(PEER).data[self.charm.unit].get("private-address", None)
         )
-        properties = (
-            f"{base_config}\n"
-            f"broker.id={broker_id}\n"
-            f"advertised.listeners=SASL_PLAINTEXT://{host}:9092\n"
-            f'zookeeper.connect={self.zookeeper_config["connect"]}\n'
-            f'listener.name.sasl_plaintext.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="sync" password="{self.sync_password}";'
+        return [
+            f"broker.id={broker_id}",
+            f"advertised.listeners=SASL_PLAINTEXT://{host}:9092",
+            f'zookeeper.connect={self.zookeeper_config["connect"]}',
+            f'listener.name.sasl_plaintext.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="sync" password="{self.sync_password}";',
+        ]
+
+    def set_server_properties(self) -> None:
+        """Sets all kafka config properties to the server.properties path."""
+        base_config = self.charm.config["server-properties"]
+        server_properties = (
+            [f"{base_config}"] + self.default_replication_properties + self.auth_properties
         )
 
         safe_write_to_file(
-            content=properties, path=f"{SNAP_CONFIG_PATH}/server.properties", mode="w"
+            content="\n".join(server_properties),
+            path=f"{SNAP_CONFIG_PATH}/server.properties",
+            mode="w",
         )
 
     def add_user_to_zookeeper(self, username: str, password: str) -> None:
