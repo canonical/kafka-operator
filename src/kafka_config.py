@@ -5,7 +5,6 @@
 """Manager for handling Kafka configuration."""
 
 import logging
-import subprocess
 from typing import Dict, Optional
 
 from charms.kafka.v0.kafka_snap import SNAP_CONFIG_PATH, KafkaSnap, safe_write_to_file
@@ -104,7 +103,7 @@ class KafkaConfig:
         command = [
             f"--zookeeper={self.zookeeper_config['connect']}",
             "--alter",
-            f"--entity-type=users",
+            "--entity-type=users",
             f"--entity-name={username}",
             f"--add-config=SCRAM-SHA-512=[password={password}]",
         ]
@@ -119,8 +118,8 @@ class KafkaConfig:
         command = [
             f"--zookeeper={self.zookeeper_config['connect']}",
             "--alter",
-            f"--entity-type=users",
+            "--entity-type=users",
             f"--entity-name={username}",
-            f"--delete-config=SCRAM-SHA-512",
+            "--delete-config=SCRAM-SHA-512",
         ]
         KafkaSnap.run_bin_command(bin_keyword="configs", bin_args=command, opts=OPTS)
