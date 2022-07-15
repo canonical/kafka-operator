@@ -43,7 +43,7 @@ options:
       security.inter.broker.protocol=SASL_PLAINTEXT
       authorizer.class.name=kafka.security.authorizer.AclAuthorizer
       allow.everyone.if.no.acl.found=false
-      super.users=User:sync;User:super
+      super.users=User:sync
       listener.name.sasl_plaintext.sasl.enabled.mechanisms=SCRAM-SHA-512
       # zookeeper.set.acl=true
 
