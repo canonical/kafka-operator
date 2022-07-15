@@ -63,13 +63,7 @@ class KafkaProvider(Object):
         relation_config = self.relation_config(relation=event.relation)
 
         self.add_user(username=relation_config["username"], password=relation_config["password"])
-        event.relation.data[self.charm.app].update(
-            {
-                "username": relation_config["username"],
-                "password": relation_config["password"],
-                "endpoints": relation_config["endpoints"],
-            }
-        )
+        event.relation.data[self.charm.app].update(relation_config)
 
     def _on_client_relation_broken(self, event: RelationBrokenEvent) -> None:
         """Handler for `relation_broken` events."""
