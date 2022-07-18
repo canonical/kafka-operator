@@ -17,3 +17,7 @@ peers:
 requires:
   zookeeper:
     interface: zookeeper
+
+provides:
+  kafka:
+    interface: kafka

@@ -12,17 +12,6 @@ options:
       clientPort=2181
       listeners=SASL_PLAINTEXT://:9092
 
-      # replication
-      # forces 3 node minimum to allow for rolling restarts
-      default.replication.factor=3
-      # sensible default
-      num.partitions=3
-      # replication.factor - 1
-      min.insync.replicas=2
-      transaction.state.log.replication.factor=3
-      transaction.state.log.min.isr=2
-      offsets.topic.replication.factor=3
-
       # offsets
       offsets.topic.num.partitions=50
       offsets.commit.required.acks=-1
@@ -45,6 +34,9 @@ options:
       allow.everyone.if.no.acl.found=false
       super.users=User:sync
       listener.name.sasl_plaintext.sasl.enabled.mechanisms=SCRAM-SHA-512
+      # zookeeper.set.acl=true
+
+
 
       ## Backup
       # background.threads=10
@@ -82,7 +74,6 @@ options:
       # socket.request.max.bytes=104857600
       # socket.send.buffer.bytes=102400
       # zookeeper.session.timeout.ms=6000
-      # zookeeper.set.acl=false
       # connections.max.idle.ms=600000
       # controlled.shutdown.enable=true
       # controlled.shutdown.max.retries=3

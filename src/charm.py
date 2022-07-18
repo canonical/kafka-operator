@@ -7,8 +7,10 @@
 import logging
 import secrets
 import string
+import subprocess
 
 from charms.kafka.v0.kafka_snap import KafkaSnap
+from kafka_provides import KafkaProvider
 from ops.charm import CharmBase, RelationEvent, RelationJoinedEvent
 from ops.framework import EventBase
 from ops.main import main
@@ -38,6 +40,7 @@ class KafkaCharm(CharmBase):
         self.name = CHARM_KEY
         self.snap = KafkaSnap()
         self.kafka_config = KafkaConfig(self)
+        self.client_relations = KafkaProvider(self)
 
         self.framework.observe(getattr(self.on, "install"), self._on_install)
         self.framework.observe(getattr(self.on, "leader_elected"), self._on_leader_elected)
@@ -108,10 +111,13 @@ class KafkaCharm(CharmBase):
         self.kafka_config.set_jaas_config()
 
         # do not start units until SCRAM users have been added to ZooKeeper for server-server auth
-        if self.unit.is_leader():
-            if self.kafka_config.add_users_to_zookeeper():
+        if self.unit.is_leader() and self.kafka_config.sync_password:
+            try:
+                self.kafka_config.add_user_to_zookeeper(
+                    username="sync", password=self.kafka_config.sync_password
+                )
                 self.peer_relation.data[self.app].update({"broker-creds": "added"})
-            else:
+            except subprocess.CalledProcessError:
                 # command to add users fails sometimes for unknown reasons. Retry seems to fix it.
                 event.defer()
                 return
