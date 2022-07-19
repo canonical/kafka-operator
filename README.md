@@ -17,7 +17,7 @@ $ juju relate kafka zookeeper
 
 ## A fast and fault-tolerant, real-time event streaming platform!
 
-Manual, Day 2 operations for deploying and operating Apache Kafka, topic creation, client authentication, ACL management and more are al handled automatically using the [Juju Operator Lifecycle Manager](https://juju.is/docs/olm).
+Manual, Day 2 operations for deploying and operating Apache Kafka, topic creation, client authentication, ACL management and more are all handled automatically using the [Juju Operator Lifecycle Manager](https://juju.is/docs/olm).
 
 ### Key Features
 - SASL/SCRAM auth for Broker-Broker and Client-Broker authenticaion enabled by default.

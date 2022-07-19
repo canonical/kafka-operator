@@ -19,25 +19,6 @@ To build the charm locally, you will need to install [Charmcraft](https://juju.i
 
 To run the charm locally with Juju, it is recommended to use [LXD](https://linuxcontainers.org/lxd/introduction/) as your virtual machine manager. Instructions for running Juju on LXD can be found [here](https://juju.is/docs/olm/lxd).
 
-## Developing
-
-You can use the environments created by `tox` for development:
-
-```shell
-tox --notest -e unit
-source .tox/unit/bin/activate
-```
-
-### Testing
-
-```shell
-tox -e fmt           # update your code according to linting rules
-tox -e lint          # code style
-tox -e unit          # unit tests
-tox -e integration   # integration tests
-tox                  # runs 'lint' and 'unit' environments
-```
-
 ## Build and Deploy
 
 To build the charm in this repository, from the root of the dir you can run:
@@ -68,3 +49,26 @@ juju deploy ./*.charm -n 3
 # After ZooKeeper has initialised, relate the applications
 juju relate kafka zookeeper
 ```
+
+## Developing
+
+You can use the environments created by `tox` for development:
+
+```shell
+tox --notest -e unit
+source .tox/unit/bin/activate
+```
+
+### Testing
+
+```shell
+tox -e fmt           # update your code according to linting rules
+tox -e lint          # code style
+tox -e unit          # unit tests
+tox -e integration   # integration tests
+tox                  # runs 'lint' and 'unit' environments
+```
+
+## Canonical Contributor Agreement
+
+Canonical welcomes contributions to the Charmed Kafka Operator. Please check out our [contributor agreement](https://ubuntu.com/legal/contributors) if you're interested in contributing to the solution.
