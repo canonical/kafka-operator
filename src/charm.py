@@ -10,7 +10,7 @@ import string
 import subprocess
 
 from charms.kafka.v0.kafka_snap import KafkaSnap
-from kafka_provides import KafkaProvider
+from kafka_provider import KafkaProvider
 from ops.charm import CharmBase, RelationEvent, RelationJoinedEvent
 from ops.framework import EventBase
 from ops.main import main
