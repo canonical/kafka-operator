@@ -30,9 +30,9 @@ async def test_deploy_charms_relate_active(ops_test: OpsTest, usernames):
 
     await asyncio.gather(
         ops_test.model.deploy(
-            "zookeeper", channel="edge", application_name="zookeeper", num_units=3
+            "zookeeper", channel="edge", application_name="zookeeper", num_units=1
         ),
-        ops_test.model.deploy(zk_charm, application_name=APP_NAME, num_units=3),
+        ops_test.model.deploy(zk_charm, application_name=APP_NAME, num_units=1),
         ops_test.model.deploy(app_charm, application_name=DUMMY_NAME_1, num_units=1),
     )
     await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_1, ZK])
