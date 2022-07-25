@@ -44,7 +44,7 @@ def get_zookeeper_connection(unit_name: str, model_full_name: str) -> Tuple[List
     for info in relations_info:
         if info["endpoint"] == "cluster":
             for key in info["application-data"].keys():
-                if re.match(r"(relation\-[/d]+)", key):
+                if re.match(r"(relation\-[\d]+)", key):
                     usernames.append(key)
         if info["endpoint"] == "zookeeper":
             zookeeper_uri = info["application-data"]["uris"]

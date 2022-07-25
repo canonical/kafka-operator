@@ -10,7 +10,6 @@ import string
 import subprocess
 
 from charms.kafka.v0.kafka_snap import KafkaSnap
-from kafka_provides import KafkaProvider
 from ops.charm import CharmBase, RelationEvent, RelationJoinedEvent
 from ops.framework import EventBase
 from ops.main import main
@@ -24,6 +23,7 @@ from ops.model import (
 
 from connection_check import broker_active, zookeeper_connected
 from kafka_config import KafkaConfig
+from kafka_provider import KafkaProvider
 
 logger = logging.getLogger(__name__)
 

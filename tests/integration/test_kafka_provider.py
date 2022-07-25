@@ -20,7 +20,7 @@ DUMMY_NAME_2 = "appii"
 
 @pytest.fixture(scope="module")
 def usernames():
-    return {}
+    return set()
 
 
 @pytest.mark.abort_on_fail
@@ -30,9 +30,9 @@ async def test_deploy_charms_relate_active(ops_test: OpsTest, usernames):
 
     await asyncio.gather(
         ops_test.model.deploy(
-            "zookeeper", channel="edge", application_name="zookeeper", num_units=3
+            "zookeeper", channel="edge", application_name="zookeeper", num_units=1
         ),
-        ops_test.model.deploy(zk_charm, application_name=APP_NAME, num_units=3),
+        ops_test.model.deploy(zk_charm, application_name=APP_NAME, num_units=1),
         ops_test.model.deploy(app_charm, application_name=DUMMY_NAME_1, num_units=1),
     )
     await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_1, ZK])
@@ -47,7 +47,7 @@ async def test_deploy_charms_relate_active(ops_test: OpsTest, usernames):
     returned_usernames, zookeeper_uri = get_zookeeper_connection(
         unit_name="kafka/0", model_full_name=ops_test.model_full_name
     )
-    usernames.add(returned_usernames)
+    usernames.update(returned_usernames)
 
     for username in usernames:
         check_user(
@@ -71,7 +71,7 @@ async def test_deploy_multiple_charms_relate_active(ops_test: OpsTest, usernames
     returned_usernames, zookeeper_uri = get_zookeeper_connection(
         unit_name="kafka/0", model_full_name=ops_test.model_full_name
     )
-    usernames.add(returned_usernames)
+    usernames.update(returned_usernames)
 
     for username in usernames:
         check_user(
@@ -87,7 +87,7 @@ async def test_remove_application_removes_user(ops_test: OpsTest, usernames):
     await ops_test.model.wait_for_idle(apps=[APP_NAME])
     assert ops_test.model.applications[APP_NAME].status == "active"
 
-    usernames, zookeeper_uri = get_zookeeper_connection(
+    _, zookeeper_uri = get_zookeeper_connection(
         unit_name="kafka/0", model_full_name=ops_test.model_full_name
     )
 

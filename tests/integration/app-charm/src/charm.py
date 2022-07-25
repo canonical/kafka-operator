@@ -42,11 +42,7 @@ class ApplicationCharm(CharmBase):
         self.unit.status = ActiveStatus()
 
     def _set_data(self, _) -> None:
-        if not self.unit.is_leader():
-            return
-
-        # reasonable confidence there won't be conflicting chroots
-        self.relation.data[self.app].update({"password": "thisisatestpassword"})
+        return
 
     def _log(self, event: RelationEvent):
         return
