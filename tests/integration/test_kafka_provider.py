@@ -20,7 +20,7 @@ DUMMY_NAME_2 = "appii"
 
 @pytest.fixture(scope="module")
 def usernames():
-    return {}
+    return set()
 
 
 @pytest.mark.abort_on_fail
@@ -47,7 +47,7 @@ async def test_deploy_charms_relate_active(ops_test: OpsTest, usernames):
     returned_usernames, zookeeper_uri = get_zookeeper_connection(
         unit_name="kafka/0", model_full_name=ops_test.model_full_name
     )
-    usernames.add(returned_usernames)
+    usernames.update(returned_usernames)
 
     for username in usernames:
         check_user(
@@ -71,7 +71,7 @@ async def test_deploy_multiple_charms_relate_active(ops_test: OpsTest, usernames
     returned_usernames, zookeeper_uri = get_zookeeper_connection(
         unit_name="kafka/0", model_full_name=ops_test.model_full_name
     )
-    usernames.add(returned_usernames)
+    usernames.update(returned_usernames)
 
     for username in usernames:
         check_user(
@@ -87,7 +87,7 @@ async def test_remove_application_removes_user(ops_test: OpsTest, usernames):
     await ops_test.model.wait_for_idle(apps=[APP_NAME])
     assert ops_test.model.applications[APP_NAME].status == "active"
 
-    usernames, zookeeper_uri = get_zookeeper_connection(
+    _, zookeeper_uri = get_zookeeper_connection(
         unit_name="kafka/0", model_full_name=ops_test.model_full_name
     )
 
