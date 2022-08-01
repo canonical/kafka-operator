@@ -83,7 +83,7 @@ class KafkaConfig:
             List of properties to be set
         """
         replication_factor = min([3, self.charm.app.planned_units()])
-        min_isr = max([1, replication_factor])
+        min_isr = max([1, replication_factor - 1])
 
         return [
             f"default.replication.factor={replication_factor}",
