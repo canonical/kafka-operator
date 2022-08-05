@@ -4,7 +4,7 @@
 import re
 from pathlib import Path
 from subprocess import PIPE, check_output
-from typing import Any, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 import yaml
 
@@ -53,3 +53,18 @@ def get_zookeeper_connection(unit_name: str, model_full_name: str) -> Tuple[List
         return usernames, zookeeper_uri
     else:
         raise Exception("config not found")
+
+
+def get_kafka_zk_relation_data(unit_name: str, model_full_name: str) -> Dict[str, str]:
+    result = show_unit(unit_name=unit_name, model_full_name=model_full_name)
+    relations_info = result[unit_name]["relation-info"]
+
+    zk_relation_data = {}
+    for info in relations_info:
+        if info["endpoint"] == "zookeeper":
+            zk_relation_data["chroot"] = info["application-data"]["chroot"]
+            zk_relation_data["endpoints"] = info["application-data"]["endpoints"]
+            zk_relation_data["password"] = info["application-data"]["password"]
+            zk_relation_data["uris"] = info["application-data"]["uris"]
+            zk_relation_data["username"] = info["application-data"]["username"]
+    return zk_relation_data
