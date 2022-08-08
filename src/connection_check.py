@@ -5,7 +5,7 @@
 """Collection of helper methods for checking active connections between ZK and Kafka."""
 
 import logging
-from typing import Dict
+from typing import Dict, List
 
 from charms.zookeeper.v0.client import ZooKeeperManager
 from kazoo.exceptions import AuthFailedError, NoNodeError
@@ -38,7 +38,7 @@ def zookeeper_connected(charm: CharmBase) -> bool:
 @retry(
     # retry to give ZK time to update its broker zNodes before failing
     wait=wait_fixed(5),
-    stop=stop_after_attempt(3),
+    stop=stop_after_attempt(6),
     retry_error_callback=(lambda state: state.outcome.result()),
     retry=retry_if_not_result(lambda result: True if result else False),
 )
@@ -53,6 +53,20 @@ def broker_active(unit: Unit, zookeeper_config: Dict[str, str]) -> bool:
         True if broker id is recognised as active by ZooKeeper. Otherwise False.
     """
     broker_id = unit.name.split("/")[1]
+    brokers = brokers_active_get(zookeeper_config=zookeeper_config)
+    chroot = zookeeper_config.get("chroot", "")
+    return f"{chroot}/brokers/ids/{broker_id}" in brokers
+
+
+def brokers_active_get(zookeeper_config: Dict[str, str]) -> List[str]:
+    """Checks ZooKeeper for client connections, checks for specific broker id.
+
+    Args:
+        zookeeper_config: the relation data provided by ZooKeeper
+
+    Returns:
+        List of broker relation data which is intended to be inspected.
+    """
     chroot = zookeeper_config.get("chroot", "")
     hosts = zookeeper_config.get("endpoints", "").split(",")
     username = zookeeper_config.get("username", "")
@@ -66,6 +80,6 @@ def broker_active(unit: Unit, zookeeper_config: Dict[str, str]) -> bool:
     # auth might not be ready with ZK after relation yet
     except (NoNodeError, AuthFailedError) as e:
         logger.debug(str(e))
-        return False
+        return []
 
-    return f"{chroot}/brokers/ids/{broker_id}" in brokers
+    return brokers
