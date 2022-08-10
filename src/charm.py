@@ -83,7 +83,7 @@ class KafkaCharm(CharmBase):
             )
 
     def _on_config_changed(self, event: EventBase):
-        """Handler for 'config_changed' event"""
+        """Handler for 'config_changed' event."""
         self.kafka_config.set_server_properties()
 
         self.on[self.restart.name].acquire_lock.emit()
@@ -156,6 +156,7 @@ class KafkaCharm(CharmBase):
 
     def _on_restart(self, event):
         self.snap.restart_snap_service("kafka")
+
 
 if __name__ == "__main__":
     main(KafkaCharm)
