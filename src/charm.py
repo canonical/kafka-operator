@@ -10,6 +10,7 @@ import string
 import subprocess
 
 from charms.kafka.v0.kafka_snap import KafkaSnap
+from charms.rolling_ops.v0.rollingops import RollingOpsManager
 from ops.charm import CharmBase, RelationEvent, RelationJoinedEvent
 from ops.framework import EventBase
 from ops.main import main
@@ -41,9 +42,11 @@ class KafkaCharm(CharmBase):
         self.snap = KafkaSnap()
         self.kafka_config = KafkaConfig(self)
         self.client_relations = KafkaProvider(self)
+        self.restart = RollingOpsManager(self, relation="restart", callback=self._on_restart)
 
         self.framework.observe(getattr(self.on, "install"), self._on_install)
         self.framework.observe(getattr(self.on, "leader_elected"), self._on_leader_elected)
+        self.framework.observe(getattr(self.on, "config_changed"), self._on_config_changed)
         self.framework.observe(self.on[REL_NAME].relation_created, self._on_zookeeper_created)
         self.framework.observe(self.on[REL_NAME].relation_joined, self._on_zookeeper_joined)
         self.framework.observe(self.on[REL_NAME].relation_departed, self._on_zookeeper_broken)
@@ -78,6 +81,12 @@ class KafkaCharm(CharmBase):
                     )
                 }
             )
+
+    def _on_config_changed(self, event: EventBase):
+        """Handler for 'config_changed' event"""
+        self.kafka_config.set_server_properties()
+
+        self.on[self.restart.name].acquire_lock.emit()
 
     def _on_zookeeper_joined(self, event: RelationJoinedEvent) -> None:
         """Handler for `zookeeper_relation_joined` event, ensuring chroot gets set."""
@@ -145,6 +154,8 @@ class KafkaCharm(CharmBase):
             self.unit.status = BlockedStatus("kafka unit not connected to ZooKeeper")
             return
 
+    def _on_restart(self, event):
+        self.snap.restart_snap_service("kafka")
 
 if __name__ == "__main__":
     main(KafkaCharm)
