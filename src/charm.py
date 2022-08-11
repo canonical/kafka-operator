@@ -84,6 +84,10 @@ class KafkaCharm(CharmBase):
 
     def _on_config_changed(self, event: EventBase):
         """Handler for 'config_changed' event."""
+        if not zookeeper_connected(charm=self):
+            event.defer()
+            return
+
         self.kafka_config.set_server_properties()
 
         self.on[self.restart.name].acquire_lock.emit()
