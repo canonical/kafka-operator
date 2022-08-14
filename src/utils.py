@@ -5,11 +5,13 @@
 """Collection of helper methods for checking active connections between ZK and Kafka."""
 
 import logging
-from typing import Dict, List
+import os
+import secrets
+import string
+from typing import Dict, List, Optional, Set
 
 from charms.zookeeper.v0.client import ZooKeeperManager
 from kazoo.exceptions import AuthFailedError, NoNodeError
-from ops.charm import CharmBase
 from ops.model import Unit
 from tenacity import retry
 from tenacity.retry import retry_if_not_result
@@ -17,22 +19,6 @@ from tenacity.stop import stop_after_attempt
 from tenacity.wait import wait_fixed
 
 logger = logging.getLogger(__name__)
-
-CHARM_KEY = "kafka"
-PEER = "cluster"
-REL_NAME = "zookeeper"
-
-
-def zookeeper_connected(charm: CharmBase) -> bool:
-    """Flag for if required zookeeper config exists in the relation data.
-
-    Returns:
-        True if config exits i.e successful relation. False otherwise
-    """
-    if not getattr(charm, "kafka_config").zookeeper_config:
-        return False
-
-    return True
 
 
 @retry(
@@ -53,12 +39,12 @@ def broker_active(unit: Unit, zookeeper_config: Dict[str, str]) -> bool:
         True if broker id is recognised as active by ZooKeeper. Otherwise False.
     """
     broker_id = unit.name.split("/")[1]
-    brokers = brokers_active_get(zookeeper_config=zookeeper_config)
+    brokers = get_active_brokers(zookeeper_config=zookeeper_config)
     chroot = zookeeper_config.get("chroot", "")
     return f"{chroot}/brokers/ids/{broker_id}" in brokers
 
 
-def brokers_active_get(zookeeper_config: Dict[str, str]) -> List[str]:
+def get_active_brokers(zookeeper_config: Dict[str, str]) -> Set[str]:
     """Checks ZooKeeper for client connections, checks for specific broker id.
 
     Args:
@@ -80,6 +66,40 @@ def brokers_active_get(zookeeper_config: Dict[str, str]) -> List[str]:
     # auth might not be ready with ZK after relation yet
     except (NoNodeError, AuthFailedError) as e:
         logger.debug(str(e))
-        return []
+        return set()
 
     return brokers
+
+
+def safe_get_file(filepath: str) -> Optional[List[str]]:
+    if not os.path.exists(filepath):
+        return None
+    else:
+        with open(filepath) as f:
+            content = f.read().split("\n")
+
+    return content
+
+
+def safe_write_to_file(content: str, path: str, mode: str = "w") -> None:
+    """Ensures destination filepath exists before writing.
+
+    args:
+        content: The content to be written to a file
+        path: The full destination filepath
+        mode: The write mode. Usually "w" for write, or "a" for append. Default "w"
+    """
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, mode) as f:
+        f.write(content)
+
+    return
+
+
+def generate_password():
+    """Creates randomized string for use as app passwords.
+
+    Returns:
+        String of 32 randomized letter+digit characters
+    """
+    return "".join([secrets.choice(string.ascii_letters + string.digits) for _ in range(32)])
