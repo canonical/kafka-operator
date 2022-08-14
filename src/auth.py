@@ -43,7 +43,8 @@ class KafkaAuth:
 
         return acls
 
-    def _parse_acls(self, acls: str) -> Set[Acl]:
+    @staticmethod
+    def _parse_acls(acls: str) -> Set[Acl]:
         """Parses output from raw ACLs provided by the cluster."""
         current_acls = set()
         resource_type, name, user, operation = None, None, None, None
@@ -90,7 +91,8 @@ class KafkaAuth:
 
         self.current_acls = self._parse_acls(acls=acls)
 
-    def _generate_producer_acls(self, topic: str, username: str, **_) -> Set[Acl]:
+    @staticmethod
+    def _generate_producer_acls(topic: str, username: str, **_) -> Set[Acl]:
         """Generates expected set of `Acl`s for a producer client application."""
         producer_acls = set()
         for operation in ["CREATE", "WRITE", "DESCRIBE"]:
@@ -105,8 +107,9 @@ class KafkaAuth:
 
         return producer_acls
 
+    @staticmethod
     def _generate_consumer_acls(
-        self, topic: str, username: str, group: Optional[str] = None
+        topic: str, username: str, group: Optional[str] = None
     ) -> Set[Acl]:
         """Generates expected set of `Acl`s for a consumer client application."""
         group = group or f"{username}-"  # not needed, just for safety
