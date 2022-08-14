@@ -2,6 +2,8 @@
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+"""Supporting objects for Kafka user and ACL management."""
+
 import logging
 import re
 from dataclasses import asdict, dataclass
@@ -14,6 +16,8 @@ logger = logging.getLogger(__name__)
 
 @dataclass(unsafe_hash=True)
 class Acl:
+    """Convenience object for representing a Kafka ACL."""
+
     resource_name: str
     resource_type: str
     operation: str
@@ -21,43 +25,44 @@ class Acl:
 
 
 class KafkaAuth:
+    """Object for updating Kafka users and ACLs."""
+
     def __init__(self, opts: List[str], zookeeper: str):
         self.opts = opts
         self.zookeeper = zookeeper
         self.current_acls: Set[Acl] = set()
         self.new_user_acls: Set[Acl] = set()
 
-    def load_current_acls(self) -> None:
-        """Gets the bin command for listing topic ACLs.
-
-        Returns:
-            List of bin command items
-        """
+    def _get_acls_from_cluster(self) -> str:
+        """Loads the currently active ACLs from the Kafka cluster."""
         command = [
             f"--authorizer-properties zookeeper.connect={self.zookeeper}",
             "--list",
         ]
-
         acls = KafkaSnap.run_bin_command(bin_keyword="acls", bin_args=command, opts=self.opts)
 
+        return acls
+
+    def _parse_acls(self, acls: str) -> Set[Acl]:
+        """Parses output from raw ACLs provided by the cluster."""
         current_acls = set()
         resource_type, name, user, operation = None, None, None, None
         for line in acls.splitlines():
-            search = re.search(r"resourceType=([^\,]+),", line)
-            if search:
-                resource_type = search[1]
+            resource_search = re.search(r"resourceType=([^\,]+),", line)
+            if resource_search:
+                resource_type = resource_search[1]
 
-            search = re.search(r"name=([^\,]+),", line)
-            if search:
-                name = search[1]
+            name_search = re.search(r"name=([^\,]+),", line)
+            if name_search:
+                name = name_search[1]
 
-            search = re.search(r"principal=User\:([^\,]+),", line)
-            if search:
-                user = search[1]
+            user_search = re.search(r"principal=User\:([^\,]+),", line)
+            if user_search:
+                user = user_search[1]
 
-            search = re.search(r"operation=([^\,]+),", line)
-            if search:
-                operation = search[1]
+            operation_search = re.search(r"operation=([^\,]+),", line)
+            if operation_search:
+                operation = operation_search[1]
             else:
                 continue
 
@@ -71,9 +76,22 @@ class KafkaAuth:
                     )
                 )
 
-        self.current_acls = current_acls
+        return current_acls
+
+    def load_current_acls(self) -> None:
+        """Sets the current cluster ACLs to the instance state.
+
+        State is set to `KafkaAuth.current_acls`.
+
+        Raises:
+            `subprocess.CalledProcessError`: if the error returned a non-zero exit code
+        """
+        acls = self._get_acls_from_cluster()
+
+        self.current_acls = self._parse_acls(acls=acls)
 
     def _generate_producer_acls(self, topic: str, username: str, **_) -> Set[Acl]:
+        """Generates expected set of `Acl`s for a producer client application."""
         producer_acls = set()
         for operation in ["CREATE", "WRITE", "DESCRIBE"]:
             producer_acls.add(
@@ -90,7 +108,8 @@ class KafkaAuth:
     def _generate_consumer_acls(
         self, topic: str, username: str, group: Optional[str] = None
     ) -> Set[Acl]:
-        group = group or f"{username}-"
+        """Generates expected set of `Acl`s for a consumer client application."""
+        group = group or f"{username}-"  # not needed, just for safety
 
         consumer_acls = set()
         for operation in ["READ", "DESCRIBE"]:
@@ -114,10 +133,14 @@ class KafkaAuth:
         return consumer_acls
 
     def add_user(self, username: str, password: str) -> None:
-        """Gets the bin command for adding user credentials to ZooKeeper.
+        """Adds new user credentials to ZooKeeper.
 
-        Returns:
-            List of bin command items
+        Args:
+            username: the user name to add
+            password: the user password
+
+        Raises:
+            `subprocess.CalledProcessError`: if the error returned a non-zero exit code
         """
         command = [
             f"--zookeeper={self.zookeeper}",
@@ -129,10 +152,13 @@ class KafkaAuth:
         KafkaSnap.run_bin_command(bin_keyword="configs", bin_args=command, opts=self.opts)
 
     def delete_user(self, username: str) -> None:
-        """Gets the bin command for deleting user credentials to ZooKeeper.
+        """Deletes user credentials from ZooKeeper.
 
-        Returns:
-            List of bin command items
+        Args:
+            username: the user name to delete
+
+        Raises:
+            `subprocess.CalledProcessError`: if the error returned a non-zero exit code
         """
         command = [
             f"--zookeeper={self.zookeeper}",
@@ -146,10 +172,21 @@ class KafkaAuth:
     def add_acl(
         self, username: str, operation: str, resource_type: str, resource_name: str
     ) -> None:
-        """Gets the bin command for adding topic ACLs for a given user.
+        """Adds new ACL rule for the cluster.
 
-        Returns:
-            List of bin command items
+        Consumer Group READ permissions are granted to a prefixed group based on the
+        given `username`. e.g `<username>-`
+
+        Args:
+            username: the user name to add ACLs for
+            operation: the operation to grant
+                e.g `READ`, `WRITE`, `DESCRIBE`
+            resource_type: the resource type to grant ACLs for
+                e.g `GROUP`, `TOPIC`
+            resource_name: the name of the resource to grant ACLs for
+
+        Raises:
+            `subprocess.CalledProcessError`: if the error returned a non-zero exit code
         """
         if resource_type == "TOPIC":
             command = [
@@ -175,10 +212,18 @@ class KafkaAuth:
     def remove_acl(
         self, username: str, operation: str, resource_type: str, resource_name: str
     ) -> None:
-        """Gets the bin command for removing topic ACLs for a given user.
+        """Removes ACL rule for the cluster.
 
-        Returns:
-            List of bin command items
+        Args:
+            username: the user name to remove ACLs for
+            operation: the operation to remove
+                e.g `READ`, `WRITE`, `DESCRIBE`
+            resource_type: the resource type to remove ACLs for
+                e.g `GROUP`, `TOPIC`
+            resource_name: the name of the resource to remove ACLs for
+
+        Raises:
+            `subprocess.CalledProcessError`: if the error returned a non-zero exit code
         """
         if resource_type == "TOPIC":
             command = [
@@ -203,7 +248,27 @@ class KafkaAuth:
             ]
             KafkaSnap.run_bin_command(bin_keyword="acls", bin_args=command, opts=self.opts)
 
-    def update_user_acls(self, username: str, topic: str, extra_user_roles: str, group: str, **_):
+    def update_user_acls(
+        self, username: str, topic: str, extra_user_roles: str, group: Optional[str], **_
+    ) -> None:
+        """Compares data passed from the client relation, and updating cluster ACLs to match.
+
+        `producer`s are granted READ, DESCRIBE and WRITE access for a given topic
+        `consumer`s are granted READ, DESCRIBE access for a given topic, and READ access for a
+            generated consumer group
+
+        If new ACLs provided do not match existing ACLs set for the cluster, existing ACLs will
+            be revoked
+
+        Args:
+            username: the user name to update ACLs for
+            topic: the topic to update ACLs for
+            extra_user_roles: the `extra-user-roles` for the user
+            group: the consumer group
+
+        Raises:
+            `subprocess.CalledProcessError`: if the error returned a non-zero exit code
+        """
         if "producer" in extra_user_roles:
             self.new_user_acls.update(self._generate_producer_acls(topic=topic, username=username))
         if "consumer" in extra_user_roles:
@@ -211,6 +276,7 @@ class KafkaAuth:
                 self._generate_consumer_acls(topic=topic, username=username, group=group)
             )
 
+        # getting subset of all cluster ACLs for only the provided user
         current_user_acls = {acl for acl in self.current_acls if acl.username == username}
 
         acls_to_add = self.new_user_acls - current_user_acls
