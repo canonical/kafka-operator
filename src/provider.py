@@ -97,7 +97,7 @@ class KafkaProvider(Object):
 
         self.kafka_auth.update_user_acls(
             username=provider_relation_config["username"],
-            group=provider_relation_config["consumer-group-prefix"],
+            group=provider_relation_config.get("consumer-group-prefix", None),
             **requirer_relation_config,
         )
 
