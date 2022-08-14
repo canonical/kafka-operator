@@ -5,7 +5,7 @@
 """KafkaSnap class and methods
 
 `KafkaSnap` provides a collection of common functions for managing the Kafka Snap and
-config management common to both the Kafka and ZooKeeper charms.
+running bin commands common to both the Kafka and ZooKeeper charms.
 
 The [Kafka Snap](https://snapcraft.io/kafka) tracks the upstream binaries released by
 The Apache Software Foundation that comes with [Apache Kafka](https://github.com/apache/kafka).
@@ -68,9 +68,6 @@ class KafkaSnap:
 
     def install(self) -> bool:
         """Loads the Kafka snap from LP, returning a StatusBase for the Charm to set.
-
-        If fails with expected errors, it will block the KafkaSnap instance from executing
-        additional non-idempotent methods.
 
         Returns:
             True if successfully installed. False otherwise.
