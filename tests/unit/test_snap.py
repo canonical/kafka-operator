@@ -2,23 +2,19 @@
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-import unittest
+import subprocess
+import pytest
 from unittest.mock import patch
 
-from charms.kafka.v0.kafka_snap import ConfigError, KafkaSnap
+from charms.kafka.v0.kafka_snap import KafkaSnap
 
 
-class TestKafkaSnap(unittest.TestCase):
-    def setUp(self):
-        self.snap = KafkaSnap()
+def test_run_bin_command_raises():
+    with pytest.raises(subprocess.CalledProcessError):
+        KafkaSnap.run_bin_command("stuff", ["to"], ["fail"])
 
-    @patch("charms.kafka.v0.kafka_snap.SNAP_CONFIG_PATH", "tests/fixtures/")
-    def test_get_config_passes_valid_config(self):
-        config = self.snap.get_properties("valid_server")
-        self.assertNotIn("\n", config.keys())
-        self.assertNotIn("#", "".join(list(config.keys())))
-        self.assertEqual(len(config), 6)
-
-    def test_get_config_raises_missing_config(self):
-        with self.assertRaises(ConfigError):
-            self.snap.get_properties("missing")
+def test_run_bin_command_args():
+    with patch("subprocess.check_output") as patched:
+        KafkaSnap.run_bin_command("configs", ["--list"], ["-Djava"])
+    
+    assert ('KAFKA_OPTS=-Djava kafka.configs --list',) in list(patched.call_args)

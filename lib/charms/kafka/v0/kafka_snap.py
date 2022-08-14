@@ -53,12 +53,6 @@ LIBPATCH = 4
 SNAP_CONFIG_PATH = "/var/snap/kafka/common/"
 
 
-class ConfigError(Exception):
-    """Required field is missing from the config."""
-
-    pass
-
-
 class KafkaSnap:
     """Wrapper for performing common operations specific to the Kafka Snap."""
 
