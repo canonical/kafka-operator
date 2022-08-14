@@ -46,10 +46,10 @@ class KafkaConfig:
 
     @property
     def zookeeper_config(self) -> Dict[str, str]:
-        """Checks the zookeeper relations for data necessary to connect to ZooKeeper.
+        """The config from current ZooKeeper relations for data necessary for broker connection.
 
         Returns:
-            Dict with zookeeper username, password, endpoints, chroot and uris
+            Dict of ZooKeeeper `username`, `password`, `endpoints`, `chroot`, `connect` and `uris`
         """
         zookeeper_config = {}
         for relation in self.charm.model.relations[ZK]:
@@ -75,6 +75,12 @@ class KafkaConfig:
 
     @property
     def zookeeper_connected(self) -> bool:
+        """Checks if there is an active ZooKeeper relation.
+
+        Returns:
+            True if ZooKeeper is currently related with sufficient relation data
+                for a broker to connect with. False otherwise.
+        """
         if self.zookeeper_config.get("connect", None):
             return True
 
@@ -82,10 +88,20 @@ class KafkaConfig:
 
     @property
     def extra_args(self) -> List[str]:
+        """The necessary Java config options for SASL/SCRAM auth.
+
+        Returns:
+            List of Java config options
+        """
         return [f"-Djava.security.auth.login.config={self.jaas_filepath}"]
 
     @property
     def bootstrap_server(self) -> List[str]:
+        """The current Kafka uris formatted for the `bootstrap-server` command flag.
+
+        Returns:
+            List of `bootstrap-server` servers
+        """
         units: List[Unit] = list(
             set([self.charm.unit] + list(self.charm.model.get_relation(PEER).units))
         )
@@ -133,20 +149,23 @@ class KafkaConfig:
 
     @property
     def super_users(self) -> str:
-        """Builds all users with super/admin permissions for the cluster.
+        """Generates all users with super/admin permissions for the cluster from relations.
+
+        Formatting allows passing to the `super.users` property.
 
         Returns:
-            Semi-colon delimited list of super users
+            Semi-colon delimited string of current super users
         """
         super_users = ["sync"]
         for relation in self.charm.model.relations[REL_NAME]:
             extra_user_roles = relation.data[relation.app].get("extra-user-roles", "")
-            username = (
+            password = (
                 self.charm.model.get_relation(PEER)
                 .data[self.charm.app]
                 .get(f"relation-{relation.id}", None)
             )
-            if "admin" in extra_user_roles and username is not None:
+            # if passwords are set for client admins, they're good to load
+            if "admin" in extra_user_roles and password is not None:
                 super_users.append(f"relation-{relation.id}")
 
         super_users_arg = [f"User:{user}" for user in super_users]
@@ -155,6 +174,13 @@ class KafkaConfig:
 
     @property
     def server_properties(self) -> List[str]:
+        """Builds all properties necessary for starting Kafka service.
+
+        This includes charm config, replication, SASL/SCRAM auth and default properties.
+
+        Returns:
+            List of properties to be set
+        """
         return (
             [
                 f"offsets.retention.minutes={self.charm.config['offsets-retention-minutes']}",
@@ -168,7 +194,7 @@ class KafkaConfig:
         )
 
     def set_jaas_config(self) -> None:
-        """Sets the Kafka JAAS config using zookeeper relation data."""
+        """Writes the Kafka JAAS config using ZooKeeper relation data."""
         jaas_config = f"""
             Client {{
                 org.apache.zookeeper.server.auth.DigestLoginModule required
@@ -179,7 +205,7 @@ class KafkaConfig:
         safe_write_to_file(content=jaas_config, path=self.jaas_filepath, mode="w")
 
     def set_server_properties(self) -> None:
-        """Sets all kafka config properties to the server.properties path."""
+        """Writes all Kafka config properties to the `server.properties` path."""
         safe_write_to_file(
             content="\n".join(self.server_properties),
             path=self.properties_filepath,
@@ -187,7 +213,7 @@ class KafkaConfig:
         )
 
     def set_kafka_opts(self) -> None:
-        """Sets the env-vars needed for SASL auth to /etc/environment on the unit."""
+        """Writes the env-vars needed for SASL/SCRAM auth to `/etc/environment` on the unit."""
         opts_string = " ".join(self.extra_args)
         safe_write_to_file(
             content=f"KAFKA_OPTS={opts_string}",
