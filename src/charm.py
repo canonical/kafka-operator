@@ -43,7 +43,6 @@ class KafkaCharm(CharmBase):
 
         self.framework.observe(self.on[ZK].relation_joined, self._on_zookeeper_joined)
         self.framework.observe(self.on[ZK].relation_changed, self._on_config_changed)
-        self.framework.observe(self.on[ZK].relation_departed, self._on_zookeeper_broken)
         self.framework.observe(self.on[ZK].relation_broken, self._on_zookeeper_broken)
 
     @property
@@ -72,8 +71,7 @@ class KafkaCharm(CharmBase):
             event.relation.data[self.app].update({"chroot": "/" + self.app.name})
 
     def _on_zookeeper_broken(self, _: RelationEvent) -> None:
-        """Handler for `zookeeper_relation_departed/broken` events."""
-        # if missing zookeeper_config, there is no required ZooKeeper relation, block
+        """Handler for `zookeeper_relation_broken` event, ensuring charm blocks."""
         self.snap.stop_snap_service(snap_service=CHARM_KEY)
         logger.info(f'Broker {self.unit.name.split("/")[1]} disconnected')
         self.unit.status = BlockedStatus("missing required zookeeper relation")
@@ -101,8 +99,8 @@ class KafkaCharm(CharmBase):
                 )
                 self.peer_relation.data[self.app].update({"broker-creds": "added"})
             except subprocess.CalledProcessError as e:
-                # command to add users fails sometimes for unknown reasons. Retry seems to fix it.
-                logger.info(str(e))
+                # command to add users fails if attempted too early
+                logger.debug(str(e))
                 event.defer()
                 return
 
@@ -129,24 +127,32 @@ class KafkaCharm(CharmBase):
             return
 
     def _on_config_changed(self, event: ConfigChangedEvent) -> None:
+        """Generic handler for most `config_changed` events across relations."""
         if not self.ready_to_start:
             event.defer()
             return
 
+        # Load current properties set in the charm workload
         properties = safe_get_file(self.kafka_config.properties_filepath)
         if not properties:
+            # Event fired before charm has properly started
             event.defer()
             return
 
         if set(properties) ^ set(self.kafka_config.server_properties):
             logger.info(
-                f"RESTARTING - {set(properties) ^ set(self.kafka_config.server_properties)} are different"
+                (
+                    'Broker {self.unit.name.split("/")[1]} updating config - '
+                    "OLD PROPERTIES = {set(properties) - set(self.kafka_config.server_properties)}, "
+                    "NEW PROPERTIES = {set(self.kafka_config.server_properties) - set(properties)}"
+                )
             )
             self.kafka_config.set_server_properties()
 
             self.on[self.restart.name].acquire_lock.emit()
 
     def _restart(self, event: EventBase) -> None:
+        """Handler for `rolling_ops` restart events."""
         if not self.ready_to_start:
             event.defer()
             return
@@ -154,7 +160,12 @@ class KafkaCharm(CharmBase):
         self.snap.restart_snap_service("kafka")
 
     @property
-    def ready_to_start(self):
+    def ready_to_start(self) -> bool:
+        """Check for active ZooKeeper relation and adding of inter-broker auth username.
+
+        Returns:
+            True if ZK is related and `sync` user has been added. False otherwise.
+        """
         if not self.kafka_config.zookeeper_connected or not self.peer_relation.data[self.app].get(
             "broker-creds", None
         ):
