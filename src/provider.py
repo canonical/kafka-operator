@@ -45,14 +45,22 @@ class KafkaProvider(Object):
         """The Kafka cluster's peer relation."""
         return self.charm.model.get_relation(PEER)
 
-    def requirer_relation_config(self, event: RelationEvent):
+    def requirer_relation_config(self, event: RelationEvent) -> Dict[str, str]:
+        """Builds necessary client relation data for a given relation event.
+
+        Args:
+            event: the event needing config
+
+        Returns:
+            Dict with keys `topic` and `extra_user_roles`
+        """
         return {
             "extra_user_roles": event.relation.data[event.app].get("extra-user-roles", ""),
             "topic": event.relation.data[event.app].get("topic"),
         }
 
     def provider_relation_config(self, event: RelationEvent) -> Dict[str, str]:
-        """Builds necessary relation data for a given relation.
+        """Builds necessary provider relation data for a given relation event.
 
         Args:
             event: the event needing config
@@ -76,17 +84,23 @@ class KafkaProvider(Object):
             "zookeeper-uris": zookeeper_uris,
         }
 
+        # only set this if `consumer` is set to avoid missing information
         if "consumer" in event.relation.data[event.app].get("extra-user-roles", ""):
             relation_config["consumer-group-prefix"] = f"{username}-"
 
         return relation_config
 
     def update_acls(self, event: RelationChangedEvent) -> None:
+        """Updates cluster ACLs for a given event relation to match client relation data.
+
+        Args:
+            event: the event from a related client application needing ACLs
+        """
         if not self.charm.unit.is_leader():
             return
 
         if not self.charm.kafka_config.zookeeper_connected:
-            logger.debug("kafka not yet related to zookeeper")
+            logger.debug("cannot update ACLs, ZooKeeper not yet connected")
             event.defer()
             return
 
@@ -101,6 +115,7 @@ class KafkaProvider(Object):
             **requirer_relation_config,
         )
 
+        # non-leader units need cluster_config_changed event to update their super.users
         if "admin" in requirer_relation_config["extra_user_roles"]:
             self.charm.model.get_relation(PEER).data[self.charm.app].update(
                 {"super-users": self.kafka_config.super_users}
@@ -109,33 +124,55 @@ class KafkaProvider(Object):
         event.relation.data[self.charm.app].update(provider_relation_config)
 
     def _on_relation_created(self, event: RelationCreatedEvent) -> None:
+        """Handler for `kafka-client-relation-created` event.
+
+        Adds new relation users to ZooKeeper.
+
+        Args:
+            event: the event from a related client application needing a user
+        """
         if not self.charm.unit.is_leader():
             return
 
         if not self.charm.ready_to_start:
+            logger.debug("cannot add user, ZooKeeper not yet connected")
             event.defer()
             return
 
         provider_relation_config = self.provider_relation_config(event=event)
+
         self.kafka_auth.add_user(
             username=provider_relation_config["username"],
             password=provider_relation_config["password"],
         )
+
+        # non-leader units need cluster_config_changed event to update their super.users
         self.charm.model.get_relation(PEER).data[self.charm.app].update(
             {provider_relation_config["username"]: provider_relation_config["password"]}
         )
 
     def _on_relation_broken(self, event: RelationBrokenEvent) -> None:
+        """Handler for `kafka-client-relation-broken` event.
+
+        Removes relation users from ZooKeeper.
+
+        Args:
+            event: the event from a related client application needing a user
+        """
         if not self.charm.unit.is_leader():
             return
 
         if not self.charm.ready_to_start:
+            logger.debug("cannot remove user, ZooKeeper not yet connected")
             event.defer()
             return
 
-        if event.relation.app != self.charm.app:
+        if event.relation.app != self.charm.app:  # avoid on own charm during teardown
             provider_relation_config = self.provider_relation_config(event=event)
+
             self.kafka_auth.delete_user(username=provider_relation_config["username"])
+
+            # non-leader units need cluster_config_changed event to update their super.users
             self.charm.model.get_relation(PEER).data[self.charm.app].update(
                 {provider_relation_config["username"]: ""}
             )
