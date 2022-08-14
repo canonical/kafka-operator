@@ -33,7 +33,7 @@ def broker_active(unit: Unit, zookeeper_config: Dict[str, str]) -> bool:
 
     Args:
         unit: the `Unit` to check connection of
-        data: the relation data provided by ZooKeeper
+        zookeeper_config: the relation provided by ZooKeeper
 
     Returns:
         True if broker id is recognised as active by ZooKeeper. Otherwise False.
@@ -45,13 +45,13 @@ def broker_active(unit: Unit, zookeeper_config: Dict[str, str]) -> bool:
 
 
 def get_active_brokers(zookeeper_config: Dict[str, str]) -> Set[str]:
-    """Checks ZooKeeper for client connections, checks for specific broker id.
+    """Gets all brokers currently connected to ZooKeeper.
 
     Args:
         zookeeper_config: the relation data provided by ZooKeeper
 
     Returns:
-        List of broker relation data which is intended to be inspected.
+        Set of active broker ids
     """
     chroot = zookeeper_config.get("chroot", "")
     hosts = zookeeper_config.get("endpoints", "").split(",")
@@ -72,6 +72,15 @@ def get_active_brokers(zookeeper_config: Dict[str, str]) -> Set[str]:
 
 
 def safe_get_file(filepath: str) -> Optional[List[str]]:
+    """Load file contents from charm workload.
+
+    Args:
+        filepath: the filepath to load data from
+
+    Returns:
+        List of file content lines
+        None if file does not exist
+    """
     if not os.path.exists(filepath):
         return None
     else:
@@ -84,10 +93,10 @@ def safe_get_file(filepath: str) -> Optional[List[str]]:
 def safe_write_to_file(content: str, path: str, mode: str = "w") -> None:
     """Ensures destination filepath exists before writing.
 
-    args:
-        content: The content to be written to a file
-        path: The full destination filepath
-        mode: The write mode. Usually "w" for write, or "a" for append. Default "w"
+    Args:
+        content: the content to be written to a file
+        path: the full destination filepath
+        mode: the write mode. Usually "w" for write, or "a" for append. Default "w"
     """
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, mode) as f:
@@ -96,7 +105,7 @@ def safe_write_to_file(content: str, path: str, mode: str = "w") -> None:
     return
 
 
-def generate_password():
+def generate_password() -> str:
     """Creates randomized string for use as app passwords.
 
     Returns:
