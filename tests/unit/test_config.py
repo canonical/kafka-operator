@@ -4,10 +4,9 @@
 
 import unittest
 
+from kafka_config import KafkaConfig
 from ops.charm import CharmBase
 from ops.testing import Harness
-
-from kafka_config import KafkaConfig
 
 METADATA = """
     name: kafka
