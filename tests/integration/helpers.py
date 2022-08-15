@@ -4,12 +4,41 @@
 import re
 from pathlib import Path
 from subprocess import PIPE, check_output
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 import yaml
 
+from auth import Acl, KafkaAuth
+
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 APP_NAME = METADATA["name"]
+
+
+def load_acls(model_full_name: str, zookeeper_uri: str) -> Set[Acl]:
+    result = check_output(
+        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 'kafka.acls --authorizer-properties zookeeper.connect={zookeeper_uri} --list'",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+
+    return KafkaAuth._parse_acls(acls=result)
+
+
+def load_super_users(model_full_name: str) -> List[str]:
+    result = check_output(
+        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 'cat /var/snap/kafka/common/server.properties'",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+    properties = result.splitlines()
+
+    for prop in properties:
+        if "super.users" in prop:
+            return prop.split("=")[1].split(";")
+
+    return []
 
 
 def check_user(model_full_name: str, username: str, zookeeper_uri: str) -> None:
