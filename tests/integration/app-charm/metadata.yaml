@@ -15,5 +15,3 @@ peers:
 requires:
   kafka-client:
     interface: kafka_client
-  zookeeper:
-    interface: zookeeper
