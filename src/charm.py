@@ -143,8 +143,8 @@ class KafkaCharm(CharmBase):
             logger.info(
                 (
                     'Broker {self.unit.name.split("/")[1]} updating config - '
-                    "OLD PROPERTIES = {set(properties) - set(self.kafka_config.server_properties)}, "
-                    "NEW PROPERTIES = {set(self.kafka_config.server_properties) - set(properties)}"
+                    "OLD PROPERTIES = {set(properties) - set(self.kafka_config.server_properties)=}, "
+                    "NEW PROPERTIES = {set(self.kafka_config.server_properties) - set(properties)=}"
                 )
             )
             self.kafka_config.set_server_properties()
