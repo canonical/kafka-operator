@@ -251,6 +251,21 @@ class KafkaAuth:
             ]
             KafkaSnap.run_bin_command(bin_keyword="acls", bin_args=command, opts=self.opts)
 
+    def remove_all_user_acls(self, username: str) -> None:
+        """Removes all active ACLs for a given user.
+
+        Args:
+            username: the user name to remove ACLs for
+
+        Raises:
+            `subprocess.CalledProcessError`: if the error returned a non-zero exit code
+        """
+        # getting subset of all cluster ACLs for only the provided user
+        current_user_acls = {acl for acl in self.current_acls if acl.username == username}
+
+        for acl in current_user_acls:
+            self.remove_acl(**asdict(acl))
+
     def update_user_acls(
         self, username: str, topic: str, extra_user_roles: str, group: Optional[str], **_
     ) -> None:

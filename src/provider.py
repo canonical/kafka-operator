@@ -82,6 +82,7 @@ class KafkaProvider(Object):
             "endpoints": ",".join(endpoints),
             "uris": ",".join(bootstrap_server),
             "zookeeper-uris": zookeeper_uris,
+            "consumer-group-prefix": "",
         }
 
         # only set this if `consumer` is set to avoid missing information
@@ -111,15 +112,14 @@ class KafkaProvider(Object):
 
         self.kafka_auth.update_user_acls(
             username=provider_relation_config["username"],
-            group=provider_relation_config.get("consumer-group-prefix", None),
+            group=provider_relation_config.get("consumer-group-prefix"),
             **requirer_relation_config,
         )
 
         # non-leader units need cluster_config_changed event to update their super.users
-        if "admin" in requirer_relation_config["extra_user_roles"]:
-            self.charm.model.get_relation(PEER).data[self.charm.app].update(
-                {"super-users": self.kafka_config.super_users}
-            )
+        self.charm.model.get_relation(PEER).data[self.charm.app].update(
+            {"super-users": self.kafka_config.super_users}
+        )
 
         event.relation.data[self.charm.app].update(provider_relation_config)
 
@@ -167,9 +167,16 @@ class KafkaProvider(Object):
             event.defer()
             return
 
-        if event.relation.app != self.charm.app:  # avoid on own charm during teardown
+        if (
+            event.relation.app != self.charm.app or not self.charm.app.planned_units() == 0
+        ):  # avoid on own charm during teardown
             provider_relation_config = self.provider_relation_config(event=event)
 
+            self.kafka_auth.load_current_acls()
+
+            self.kafka_auth.remove_all_user_acls(
+                username=provider_relation_config["username"],
+            )
             self.kafka_auth.delete_user(username=provider_relation_config["username"])
 
             # non-leader units need cluster_config_changed event to update their super.users
