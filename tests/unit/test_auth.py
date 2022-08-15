@@ -6,8 +6,8 @@ from auth import Acl, KafkaAuth
 
 
 def test_acl():
-    assert sorted(Acl.__match_args__) == sorted(
-        ("operation", "resource_name", "resource_type", "username")
+    assert sorted(list(Acl.__annotations__.keys())) == sorted(
+        ["operation", "resource_name", "resource_type", "username"]
     )
     assert Acl.__hash__
 
