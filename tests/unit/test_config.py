@@ -162,4 +162,8 @@ def test_super_users(harness):
     harness.update_relation_data(
         peer_relation_id, harness.charm.app.name, {"relation-2": "mellon"}
     )
-    assert len(harness.charm.kafka_config.super_users.split(";")) == 3
+
+    harness.update_relation_data(
+        client_relation_id, "appii", {"extra-user-roles": "consumer"}
+    )
+    assert len(harness.charm.kafka_config.super_users.split(";")) == 2
