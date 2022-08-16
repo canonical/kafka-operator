@@ -58,16 +58,16 @@ class KafkaConfig:
             missing_config = any(
                 relation.data[relation.app].get(key, None) is None for key in zk_keys
             )
-            
+
             # skip if config is missing
             if missing_config:
                 continue
-            
+
             # set if exists
             zookeeper_config.update(relation.data[relation.app])
             break
-        
-        # 
+
+        #
         if zookeeper_config:
             sorted_uris = sorted(
                 zookeeper_config["uris"].replace(zookeeper_config["chroot"], "").split(",")
