@@ -103,10 +103,7 @@ async def test_deploy_multiple_charms_same_topic_relate_active(ops_test: OpsTest
 
 @pytest.mark.abort_on_fail
 async def test_remove_application_removes_user_and_acls(ops_test: OpsTest, usernames):
-    await ops_test.model.applications[DUMMY_NAME_1].remove()
-
-    time.sleep(20)
-
+    await ops_test.model.remove_application(DUMMY_NAME_1, block_until_done=True)
     await ops_test.model.wait_for_idle(apps=[APP_NAME])
     assert ops_test.model.applications[APP_NAME].status == "active"
 
@@ -134,10 +131,8 @@ async def test_remove_application_removes_user_and_acls(ops_test: OpsTest, usern
 
 @pytest.mark.abort_on_fail
 async def test_change_client_topic(ops_test: OpsTest):
-    await ops_test.model.units.get(f"{DUMMY_NAME_2}/0").run_action("change-topic")
-
-    time.sleep(20)
-
+    action = await ops_test.model.units.get(f"{DUMMY_NAME_2}/0").run_action("change-topic")
+    await action.wait()
     assert ops_test.model.applications[APP_NAME].status == "active"
     await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_2])
 

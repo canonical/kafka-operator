@@ -52,18 +52,22 @@ class KafkaConfig:
             Dict of ZooKeeeper `username`, `password`, `endpoints`, `chroot`, `connect` and `uris`
         """
         zookeeper_config = {}
+        # loop through all relations to ZK, attempt to find all needed config
         for relation in self.charm.model.relations[ZK]:
             zk_keys = ["username", "password", "endpoints", "chroot", "uris"]
             missing_config = any(
                 relation.data[relation.app].get(key, None) is None for key in zk_keys
             )
-
+            
+            # skip if config is missing
             if missing_config:
                 continue
-
+            
+            # set if exists
             zookeeper_config.update(relation.data[relation.app])
             break
-
+        
+        # 
         if zookeeper_config:
             sorted_uris = sorted(
                 zookeeper_config["uris"].replace(zookeeper_config["chroot"], "").split(",")
@@ -154,7 +158,7 @@ class KafkaConfig:
         Formatting allows passing to the `super.users` property.
 
         Returns:
-            Semi-colon delimited string of current super users
+            Semicolon delimited string of current super users
         """
         super_users = ["sync"]
         for relation in self.charm.model.relations[REL_NAME]:
