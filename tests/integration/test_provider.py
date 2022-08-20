@@ -4,7 +4,6 @@
 
 import asyncio
 import logging
-import time
 
 import pytest
 from pytest_operator.plugin import OpsTest
@@ -151,9 +150,8 @@ async def test_admin_added_to_super_users(ops_test: OpsTest):
     super_users = load_super_users(model_full_name=ops_test.model_full_name)
     assert len(super_users) == 1
 
-    await ops_test.model.units.get(f"{DUMMY_NAME_2}/0").run_action("make-admin")
-
-    time.sleep(20)
+    action = await ops_test.model.units.get(f"{DUMMY_NAME_2}/0").run_action("make-admin")
+    await action.wait()
 
     await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_2])
     assert ops_test.model.applications[APP_NAME].status == "active"
@@ -164,9 +162,8 @@ async def test_admin_added_to_super_users(ops_test: OpsTest):
 
 @pytest.mark.abort_on_fail
 async def test_admin_removed_from_super_users(ops_test: OpsTest):
-    await ops_test.model.units.get(f"{DUMMY_NAME_2}/0").run_action("remove-admin")
-
-    time.sleep(20)
+    action = await ops_test.model.units.get(f"{DUMMY_NAME_2}/0").run_action("remove-admin")
+    await action.wait()
 
     await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_2])
     assert ops_test.model.applications[APP_NAME].status == "active"
