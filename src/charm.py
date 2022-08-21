@@ -5,31 +5,22 @@
 """Charmed Machine Operator for Apache Kafka."""
 
 import logging
-import secrets
-import string
 import subprocess
 
 from charms.kafka.v0.kafka_snap import KafkaSnap
-from ops.charm import CharmBase, RelationEvent, RelationJoinedEvent
+from charms.rolling_ops.v0.rollingops import RollingOpsManager
+from ops.charm import CharmBase, ConfigChangedEvent, RelationEvent, RelationJoinedEvent
 from ops.framework import EventBase
 from ops.main import main
-from ops.model import (
-    ActiveStatus,
-    BlockedStatus,
-    MaintenanceStatus,
-    Relation,
-    WaitingStatus,
-)
+from ops.model import ActiveStatus, BlockedStatus, Relation, WaitingStatus
 
-from connection_check import broker_active, zookeeper_connected
-from kafka_config import KafkaConfig
-from kafka_provider import KafkaProvider
+from auth import KafkaAuth
+from config import KafkaConfig
+from literals import CHARM_KEY, PEER, ZK
+from provider import KafkaProvider
+from utils import broker_active, generate_password, safe_get_file
 
 logger = logging.getLogger(__name__)
-
-CHARM_KEY = "kafka"
-PEER = "cluster"
-REL_NAME = "zookeeper"
 
 
 class KafkaCharm(CharmBase):
@@ -40,23 +31,23 @@ class KafkaCharm(CharmBase):
         self.name = CHARM_KEY
         self.snap = KafkaSnap()
         self.kafka_config = KafkaConfig(self)
-        self.client_relations = KafkaProvider(self)
+        self.provider = KafkaProvider(self)
+        self.restart = RollingOpsManager(self, relation="restart", callback=self._restart)
 
+        self.framework.observe(getattr(self.on, "start"), self._on_start)
         self.framework.observe(getattr(self.on, "install"), self._on_install)
         self.framework.observe(getattr(self.on, "leader_elected"), self._on_leader_elected)
-        self.framework.observe(self.on[REL_NAME].relation_created, self._on_zookeeper_created)
-        self.framework.observe(self.on[REL_NAME].relation_joined, self._on_zookeeper_joined)
-        self.framework.observe(self.on[REL_NAME].relation_departed, self._on_zookeeper_broken)
-        self.framework.observe(self.on[REL_NAME].relation_broken, self._on_zookeeper_broken)
+        self.framework.observe(getattr(self.on, "config_changed"), self._on_config_changed)
 
-    # TODO: possibly add a 'zookeeper units changed, do something' handler
-    # this is because we don't want to restart all Kafka units every time ZK changes units
-    # but we do want to ensure Kafka has sufficient ZK connections in config in case of a failure
-    # maybe manual action?
+        self.framework.observe(self.on[PEER].relation_changed, self._on_config_changed)
+
+        self.framework.observe(self.on[ZK].relation_joined, self._on_zookeeper_joined)
+        self.framework.observe(self.on[ZK].relation_changed, self._on_config_changed)
+        self.framework.observe(self.on[ZK].relation_broken, self._on_zookeeper_broken)
 
     @property
     def peer_relation(self) -> Relation:
-        """The Kafka peer relation."""
+        """The cluster peer relation."""
         return self.model.get_relation(PEER)
 
     def _on_install(self, _) -> None:
@@ -69,62 +60,52 @@ class KafkaCharm(CharmBase):
 
     def _on_leader_elected(self, _) -> None:
         """Handler for `leader_elected` event, ensuring sync_passwords gets set."""
-        sync_password = self.kafka_config.sync_password
-        if not sync_password:
-            self.peer_relation.data[self.app].update(
-                {
-                    "sync_password": "".join(
-                        [secrets.choice(string.ascii_letters + string.digits) for _ in range(32)]
-                    )
-                }
-            )
+        current_sync_password = self.peer_relation.data[self.app].get("sync_password", None)
+        self.peer_relation.data[self.app].update(
+            {"sync_password": current_sync_password or generate_password()}
+        )
 
     def _on_zookeeper_joined(self, event: RelationJoinedEvent) -> None:
         """Handler for `zookeeper_relation_joined` event, ensuring chroot gets set."""
         if self.unit.is_leader():
             event.relation.data[self.app].update({"chroot": "/" + self.app.name})
 
-    def _on_zookeeper_created(self, event: EventBase) -> None:
-        """Handler for `zookeeper_relation_created` event."""
-        # if missing zookeeper_config, required data might not be set yet
-        if not zookeeper_connected(charm=self):
-            event.defer()
-            return
-
-        # for every new ZK relation, start kafka service
-        self._on_start(event=event)
-
     def _on_zookeeper_broken(self, _: RelationEvent) -> None:
-        """Handler for `zookeeper_relation_departed/broken` events."""
-        # if missing zookeeper_config, there is no required ZooKeeper relation, block
-        if not zookeeper_connected(charm=self):
-            logger.info("stopping snap service")
-            self.snap.stop_snap_service(snap_service=CHARM_KEY)
-            self.unit.status = BlockedStatus("missing required zookeeper relation")
+        """Handler for `zookeeper_relation_broken` event, ensuring charm blocks."""
+        self.snap.stop_snap_service(snap_service=CHARM_KEY)
+        logger.info(f'Broker {self.unit.name.split("/")[1]} disconnected')
+        self.unit.status = BlockedStatus("missing required zookeeper relation")
 
     def _on_start(self, event: EventBase) -> None:
         """Handler for `start` event."""
-        self.unit.status = MaintenanceStatus("starting kafka unit")
+        if not self.kafka_config.zookeeper_connected:
+            event.defer()
+            return
 
         # required settings given zookeeper connection config has been created
-        self.kafka_config.set_server_properties()
         self.kafka_config.set_jaas_config()
+        self.kafka_config.set_server_properties()
 
         # do not start units until SCRAM users have been added to ZooKeeper for server-server auth
         if self.unit.is_leader() and self.kafka_config.sync_password:
+            kafka_auth = KafkaAuth(
+                opts=self.kafka_config.extra_args,
+                zookeeper=self.kafka_config.zookeeper_config.get("connect", ""),
+            )
             try:
-                self.kafka_config.add_user_to_zookeeper(
-                    username="sync", password=self.kafka_config.sync_password
+                kafka_auth.add_user(
+                    username="sync",
+                    password=self.kafka_config.sync_password,
                 )
                 self.peer_relation.data[self.app].update({"broker-creds": "added"})
-            except subprocess.CalledProcessError:
-                # command to add users fails sometimes for unknown reasons. Retry seems to fix it.
+            except subprocess.CalledProcessError as e:
+                # command to add users fails if attempted too early
+                logger.debug(str(e))
                 event.defer()
                 return
 
         # for non-leader units
-        if not self.peer_relation.data[self.app].get("broker-creds", None):
-            logger.debug("broker-creds not yet added to zookeeper")
+        if not self.ready_to_start:
             event.defer()
             return
 
@@ -144,6 +125,53 @@ class KafkaCharm(CharmBase):
         else:
             self.unit.status = BlockedStatus("kafka unit not connected to ZooKeeper")
             return
+
+    def _on_config_changed(self, event: ConfigChangedEvent) -> None:
+        """Generic handler for most `config_changed` events across relations."""
+        if not self.ready_to_start:
+            event.defer()
+            return
+
+        # Load current properties set in the charm workload
+        properties = safe_get_file(self.kafka_config.properties_filepath)
+        if not properties:
+            # Event fired before charm has properly started
+            event.defer()
+            return
+
+        if set(properties) ^ set(self.kafka_config.server_properties):
+            logger.info(
+                (
+                    'Broker {self.unit.name.split("/")[1]} updating config - '
+                    "OLD PROPERTIES = {set(properties) - set(self.kafka_config.server_properties)=}, "
+                    "NEW PROPERTIES = {set(self.kafka_config.server_properties) - set(properties)=}"
+                )
+            )
+            self.kafka_config.set_server_properties()
+
+            self.on[self.restart.name].acquire_lock.emit()
+
+    def _restart(self, event: EventBase) -> None:
+        """Handler for `rolling_ops` restart events."""
+        if not self.ready_to_start:
+            event.defer()
+            return
+
+        self.snap.restart_snap_service("kafka")
+
+    @property
+    def ready_to_start(self) -> bool:
+        """Check for active ZooKeeper relation and adding of inter-broker auth username.
+
+        Returns:
+            True if ZK is related and `sync` user has been added. False otherwise.
+        """
+        if not self.kafka_config.zookeeper_connected or not self.peer_relation.data[self.app].get(
+            "broker-creds", None
+        ):
+            return False
+
+        return True
 
 
 if __name__ == "__main__":

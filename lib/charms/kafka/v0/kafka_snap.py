@@ -5,14 +5,14 @@
 """KafkaSnap class and methods
 
 `KafkaSnap` provides a collection of common functions for managing the Kafka Snap and
-config management common to both the Kafka and ZooKeeper charms.
+running bin commands common to both the Kafka and ZooKeeper charms.
 
 The [Kafka Snap](https://snapcraft.io/kafka) tracks the upstream binaries released by
 The Apache Software Foundation that comes with [Apache Kafka](https://github.com/apache/kafka).
 Currently the snap channel is hard-coded to `rock/edge`.
 
-Exposed methods includes snap installation, starting/restarting the snap service, writing properties and JAAS files
-to the machines, setting KAFKA_OPTS env-vars to be loaded at runtime.
+Exposed methods includes snap installation, starting/restarting the snap service, and running
+bin commands exposed in the snap services
 
 Example usage for `KafkaSnap`:
 
@@ -27,17 +27,12 @@ class KafkaCharm(CharmBase):
 
     def _on_start(self, event):
         self.snap.install()
-        self.snap.write_properties(
-            properties=self.config["server-properties"],
-            property_label="server"
-        )
         self.snap.start_snap_service(snap_service="kafka")
 ```
 """
 import logging
-import os
 import subprocess
-from typing import Dict, List
+from typing import List
 
 from charms.operator_libs_linux.v0 import apt
 from charms.operator_libs_linux.v1 import snap
@@ -52,31 +47,10 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 3
+LIBPATCH = 4
 
 
 SNAP_CONFIG_PATH = "/var/snap/kafka/common/"
-
-
-class ConfigError(Exception):
-    """Required field is missing from the config."""
-
-    pass
-
-
-def safe_write_to_file(content: str, path: str, mode: str = "w") -> None:
-    """Ensures destination filepath exists before writing.
-
-    args:
-        content: The content to be written to a file
-        path: The full destination filepath
-        mode: The write mode. Usually "w" for write, or "a" for append. Default "w"
-    """
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, mode) as f:
-        f.write(content)
-
-    return
 
 
 class KafkaSnap:
@@ -88,9 +62,6 @@ class KafkaSnap:
 
     def install(self) -> bool:
         """Loads the Kafka snap from LP, returning a StatusBase for the Charm to set.
-
-        If fails with expected errors, it will block the KafkaSnap instance from executing
-        additional non-idempotent methods.
 
         Returns:
             True if successfully installed. False otherwise.
@@ -160,64 +131,6 @@ class KafkaSnap:
         except snap.SnapError as e:
             logger.exception(str(e))
             return False
-
-    def write_properties(self, properties: str, property_label: str, mode: str = "w") -> None:
-        """Writes to the expected config file location for the Kafka Snap.
-
-        Args:
-            properties: A multiline string containing the properties to be set
-            property_label: The file prefix for the config file
-                `server` for Kafka, `zookeeper` or `zookeeper-dynamic` for ZooKeeper
-            mode: The write mode. Usually "w" for write, or "a" for append. Default "w"
-        """
-
-        path = f"{SNAP_CONFIG_PATH}/{property_label}.properties"
-        safe_write_to_file(content=properties, path=path, mode=mode)
-
-    def write_zookeeper_myid(self, myid: int, property_label: str = "zookeeper") -> None:
-        """Checks the *.properties file for dataDir, and writes ZooKeeper id to <data-dir>/myid.
-
-        Args:
-            myid: The desired ZooKeeper server id
-                Expected to be (unit id + 1) to index from 1
-            property_label: The file prefix for the config file. Default "zookeeper"
-
-        Raises:
-            ConfigError: If the dataDir property is not set in the charm config
-        """
-        properties = self.get_properties(property_label=property_label)
-        try:
-            myid_path = f"{properties['dataDir']}/myid"
-        except KeyError as e:
-            logger.error(str(e))
-            raise ConfigError("dataDir is not set in the config")
-
-        safe_write_to_file(content=str(myid), path=myid_path, mode="w")
-
-    def get_properties(self, property_label: str) -> Dict[str, str]:
-        """Grabs active config lines from *.properties.
-
-        Returns:
-            A mapping of config properties and their values
-
-        Raises:
-            ConfigError: If the properties file cannot be found in the unit
-        """
-        path = f"{SNAP_CONFIG_PATH}/{property_label}.properties"
-        config_map = {}
-
-        try:
-            with open(path, "r") as f:
-                config = f.readlines()
-        except FileNotFoundError as e:
-            logger.error(str(e))
-            raise ConfigError(f"missing properties file: {path}")
-
-        for conf in config:
-            if conf[0] != "#" and not conf.isspace():
-                config_map[str(conf.split("=")[0])] = str(conf.split("=")[1].strip())
-
-        return config_map
 
     @staticmethod
     def run_bin_command(bin_keyword: str, bin_args: List[str], opts: List[str]) -> str:

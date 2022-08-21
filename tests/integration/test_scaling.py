@@ -11,8 +11,8 @@ import pytest
 import yaml
 from pytest_operator.plugin import OpsTest
 
-from connection_check import brokers_active_get
 from tests.integration.helpers import get_kafka_zk_relation_data
+from utils import get_active_brokers
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ async def test_kafka_simple_scale_up(ops_test: OpsTest):
     kafka_zk_relation_data = get_kafka_zk_relation_data(
         unit_name="kafka/2", model_full_name=ops_test.model_full_name
     )
-    active_brokers = brokers_active_get(zookeeper_config=kafka_zk_relation_data)
+    active_brokers = get_active_brokers(zookeeper_config=kafka_zk_relation_data)
     chroot = kafka_zk_relation_data.get("chroot", "")
     assert f"{chroot}/brokers/ids/0" in active_brokers
     assert f"{chroot}/brokers/ids/1" in active_brokers
@@ -64,7 +64,7 @@ async def test_kafka_simple_scale_down(ops_test: OpsTest):
     kafka_zk_relation_data = get_kafka_zk_relation_data(
         unit_name="kafka/2", model_full_name=ops_test.model_full_name
     )
-    active_brokers = brokers_active_get(zookeeper_config=kafka_zk_relation_data)
+    active_brokers = get_active_brokers(zookeeper_config=kafka_zk_relation_data)
     chroot = kafka_zk_relation_data.get("chroot", "")
     assert f"{chroot}/brokers/ids/0" in active_brokers
     assert f"{chroot}/brokers/ids/1" not in active_brokers

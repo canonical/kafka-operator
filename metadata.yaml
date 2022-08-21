@@ -13,11 +13,13 @@ maintainers:
 peers:
   cluster:
     interface: cluster
+  restart:
+    interface: rolling_op
 
 requires:
   zookeeper:
     interface: zookeeper
 
 provides:
-  kafka:
-    interface: kafka
+  kafka-client:
+    interface: kafka_client
