@@ -60,7 +60,7 @@ class KafkaSnap:
         self.snap_config_path = SNAP_CONFIG_PATH
         self.kafka = snap.SnapCache()["kafka"]
 
-    def install(self) -> bool:
+    def install(self, channel="rock/edge") -> bool:
         """Loads the Kafka snap from LP, returning a StatusBase for the Charm to set.
 
         Returns:
@@ -73,7 +73,7 @@ class KafkaSnap:
             kafka = cache["kafka"]
 
             if not kafka.present:
-                kafka.ensure(snap.SnapState.Latest, channel="rock/edge")
+                kafka.ensure(snap.SnapState.Latest, channel=channel)
 
             self.kafka = kafka
             return True
