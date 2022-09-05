@@ -7,11 +7,13 @@ from subprocess import PIPE, check_output
 from typing import Any, Dict, List, Set, Tuple
 
 import yaml
+from pytest_operator.plugin import OpsTest
 
 from auth import Acl, KafkaAuth
 
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 APP_NAME = METADATA["name"]
+ZK_NAME = "zookeeper"
 
 
 def load_acls(model_full_name: str, zookeeper_uri: str) -> Set[Acl]:
@@ -50,6 +52,17 @@ def check_user(model_full_name: str, username: str, zookeeper_uri: str) -> None:
     )
 
     assert "SCRAM-SHA-512" in result
+
+
+def get_user(model_full_name: str, username: str, zookeeper_uri: str) -> None:
+    result = check_output(
+        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 'kafka.configs --zookeeper {zookeeper_uri} --describe --entity-type users --entity-name {username}'",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+
+    return result
 
 
 def show_unit(unit_name: str, model_full_name: str) -> Any:
@@ -97,3 +110,16 @@ def get_kafka_zk_relation_data(unit_name: str, model_full_name: str) -> Dict[str
             zk_relation_data["uris"] = info["application-data"]["uris"]
             zk_relation_data["username"] = info["application-data"]["username"]
     return zk_relation_data
+
+
+async def set_password(ops_test: OpsTest, username="sync", password=None, num_unit=0) -> str:
+    """Use the charm action to start a password rotation."""
+    params = {"username": username}
+    if password:
+        params["password"] = password
+
+    action = await ops_test.model.units.get(f"{APP_NAME}/{num_unit}").run_action(
+        "set-password", **params
+    )
+    password = await action.wait()
+    return password.results
