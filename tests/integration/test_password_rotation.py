@@ -6,13 +6,14 @@ import asyncio
 import logging
 
 import pytest
-from helpers import APP_NAME, ZK_NAME, get_user, get_zookeeper_connection, set_password
+from helpers import APP_NAME, ZK_NAME, get_user, get_kafka_zk_relation_data, set_password
 from pytest_operator.plugin import OpsTest
 
 logger = logging.getLogger(__name__)
 
 
 @pytest.mark.abort_on_fail
+@pytest.mark.skip_if_deployed
 async def test_build_and_deploy(ops_test: OpsTest):
     kafka_charm = await ops_test.build_charm(".")
     await asyncio.gather(
@@ -35,13 +36,14 @@ async def test_build_and_deploy(ops_test: OpsTest):
 
 async def test_password_rotation(ops_test: OpsTest):
     """Check that password stored on ZK has changed after a password rotation."""
-    _, zookeeper_uri = get_zookeeper_connection(
+    relation_data = get_kafka_zk_relation_data(
         unit_name=f"{APP_NAME}/0", model_full_name=ops_test.model_full_name
     )
+    uri = relation_data["uris"].split(',')[-1]
 
     initial_sync_user = get_user(
         username="sync",
-        zookeeper_uri=zookeeper_uri,
+        zookeeper_uri=uri,
         model_full_name=ops_test.model_full_name,
     )
 
@@ -52,7 +54,7 @@ async def test_password_rotation(ops_test: OpsTest):
 
     new_sync_user = get_user(
         username="sync",
-        zookeeper_uri=zookeeper_uri,
+        zookeeper_uri=uri,
         model_full_name=ops_test.model_full_name,
     )
 
