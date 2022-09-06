@@ -23,8 +23,8 @@ logger = logging.getLogger(__name__)
 
 @retry(
     # retry to give ZK time to update its broker zNodes before failing
-    wait=wait_fixed(5),
-    stop=stop_after_attempt(6),
+    wait=wait_fixed(6),
+    stop=stop_after_attempt(10),
     retry_error_callback=(lambda state: state.outcome.result()),
     retry=retry_if_not_result(lambda result: True if result else False),
 )

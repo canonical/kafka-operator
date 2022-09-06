@@ -9,14 +9,20 @@ import subprocess
 
 from charms.kafka.v0.kafka_snap import KafkaSnap
 from charms.rolling_ops.v0.rollingops import RollingOpsManager
-from ops.charm import CharmBase, ConfigChangedEvent, RelationEvent, RelationJoinedEvent
+from ops.charm import (
+    ActionEvent,
+    CharmBase,
+    ConfigChangedEvent,
+    RelationEvent,
+    RelationJoinedEvent,
+)
 from ops.framework import EventBase
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, Relation, WaitingStatus
 
 from auth import KafkaAuth
 from config import KafkaConfig
-from literals import CHARM_KEY, PEER, ZK
+from literals import CHARM_KEY, CHARM_USERS, PEER, ZK
 from provider import KafkaProvider
 from utils import broker_active, generate_password, safe_get_file
 
@@ -44,6 +50,8 @@ class KafkaCharm(CharmBase):
         self.framework.observe(self.on[ZK].relation_joined, self._on_zookeeper_joined)
         self.framework.observe(self.on[ZK].relation_changed, self._on_config_changed)
         self.framework.observe(self.on[ZK].relation_broken, self._on_zookeeper_broken)
+
+        self.framework.observe(self.on.set_password_action, self._set_password_action)
 
     @property
     def peer_relation(self) -> Relation:
@@ -158,6 +166,47 @@ class KafkaCharm(CharmBase):
             return
 
         self.snap.restart_snap_service("kafka")
+
+    def _set_password_action(self, event: ActionEvent):
+        """Handler for set-password action.
+
+        Set the password for a specific user, if no passwords are passed, generate them.
+        """
+        if not self.unit.is_leader():
+            msg = "Password rotation must be called on leader unit"
+            logger.error(msg)
+            event.fail(msg)
+            return
+
+        username = event.params.get("username", "sync")
+        if username not in CHARM_USERS:
+            msg = f"The action can be run only for users used by the charm: {CHARM_USERS} not {username}."
+            logger.error(msg)
+            event.fail(msg)
+            return
+
+        new_password = event.params.get("password", generate_password())
+        if new_password == self.kafka_config.sync_password:
+            event.log("The old and new passwords are equal.")
+            event.set_results({f"{username}-password": new_password})
+            return
+
+        # Update the user
+        kafka_auth = KafkaAuth(
+            opts=self.kafka_config.extra_args,
+            zookeeper=self.kafka_config.zookeeper_config.get("connect", ""),
+        )
+        try:
+            kafka_auth.add_user(username=username, password=new_password)
+        except subprocess.CalledProcessError as e:
+            # command to add users fails if attempted too early
+            logger.debug(str(e))
+            event.fail(str(e))
+            return
+
+        # Store the password on application databag
+        self.peer_relation.data[self.app].update({f"{username}_password": new_password})
+        event.set_results({f"{username}-password": new_password})
 
     @property
     def ready_to_start(self) -> bool:
