@@ -6,7 +6,13 @@ import asyncio
 import logging
 
 import pytest
-from helpers import APP_NAME, ZK_NAME, get_user, get_kafka_zk_relation_data, set_password
+from helpers import (
+    APP_NAME,
+    ZK_NAME,
+    get_kafka_zk_relation_data,
+    get_user,
+    set_password,
+)
 from pytest_operator.plugin import OpsTest
 
 logger = logging.getLogger(__name__)
@@ -39,7 +45,7 @@ async def test_password_rotation(ops_test: OpsTest):
     relation_data = get_kafka_zk_relation_data(
         unit_name=f"{APP_NAME}/0", model_full_name=ops_test.model_full_name
     )
-    uri = relation_data["uris"].split(',')[-1]
+    uri = relation_data["uris"].split(",")[-1]
 
     initial_sync_user = get_user(
         username="sync",
