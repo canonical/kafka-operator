@@ -54,7 +54,7 @@ def check_user(model_full_name: str, username: str, zookeeper_uri: str) -> None:
     assert "SCRAM-SHA-512" in result
 
 
-def get_user(model_full_name: str, username: str, zookeeper_uri: str) -> None:
+def get_user(model_full_name: str, username: str, zookeeper_uri: str) -> str:
     result = check_output(
         f"JUJU_MODEL={model_full_name} juju ssh kafka/0 'kafka.configs --zookeeper {zookeeper_uri} --describe --entity-type users --entity-name {username}'",
         stderr=PIPE,
