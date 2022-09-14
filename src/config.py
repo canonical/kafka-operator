@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_CONFIG_OPTIONS = """
 log.dirs=/var/snap/kafka/common/log
-clientPort=2181
 listeners=SASL_PLAINTEXT://:9092
 sasl.enabled.mechanisms=SCRAM-SHA-512
 sasl.mechanism.inter.broker.protocol=SCRAM-SHA-512
@@ -38,6 +37,8 @@ class KafkaConfig:
         self.default_config_path = SNAP_CONFIG_PATH
         self.properties_filepath = f"{self.default_config_path}/server.properties"
         self.jaas_filepath = f"{self.default_config_path}/kafka-jaas.cfg"
+        self.keystore_filepath = f"{self.default_config_path}/keystore.p12"
+        self.truststore_filepath = f"{self.default_config_path}/truststore.jks"
 
     @property
     def sync_password(self) -> Optional[str]:
@@ -152,6 +153,38 @@ class KafkaConfig:
         ]
 
     @property
+    def tls_properties(self) -> List[str]:
+        """Builds the properties necessary for TLS authentication.
+
+        Returns:
+            list of properties to be set
+        """
+        host = (
+            self.charm.model.get_relation(PEER).data[self.charm.unit].get("private-address", None)
+        )
+
+        f"zookeeper.connect={host}:"
+        return [
+            f'listener.name.sasl_ssl.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="sync" password="{self.sync_password}";',
+            "listeners=SASL_SSL://:9093",
+            f"advertised.listeners=SASL_SSL://{host}:9093",
+            "zookeeper.ssl.client.enable=true",
+            f"zookeeper.ssl.truststore.location={self.truststore_filepath}",
+            f"zookeeper.ssl.truststore.password={self.charm.tls.truststore_password}",
+            "zookeeper.clientCnxnSocket=org.apache.zookeeper.ClientCnxnSocketNetty",
+            "security.inter.broker.protocol=SASL_SSL",
+            "security.protocol=SASL_SSL",
+            f"ssl.truststore.location={self.truststore_filepath}",
+            f"ssl.truststore.password={self.charm.tls.truststore_password}",
+            f"ssl.keystore.location={self.keystore_filepath}",
+            f"ssl.keystore.password={self.charm.tls.keystore_password}",
+            f"ssl.key.password={self.charm.tls.keystore_password}",
+            "zookeeper.ssl.endpoint.identification.algorithm=",
+            "ssl.endpoint.identification.algorithm=",
+            "ssl.client.auth=none",
+        ]
+
+    @property
     def super_users(self) -> str:
         """Generates all users with super/admin permissions for the cluster from relations.
 
@@ -185,17 +218,31 @@ class KafkaConfig:
         Returns:
             List of properties to be set
         """
-        return (
-            [
-                f"offsets.retention.minutes={self.charm.config['offsets-retention-minutes']}",
-                f"log.retention.hours={self.charm.config['log-retention-hours']}",
-                f"auto.create.topics={self.charm.config['auto-create-topics']}",
-                f"super.users={self.super_users}",
+        properties = [
+            f"offsets.retention.minutes={self.charm.config['offsets-retention-minutes']}",
+            f"log.retention.hours={self.charm.config['log-retention-hours']}",
+            f"auto.create.topics={self.charm.config['auto-create-topics']}",
+            f"super.users={self.super_users}",
+        ] + self.default_replication_properties + self.auth_properties + DEFAULT_CONFIG_OPTIONS.split("\n")
+
+        if self.charm.tls.enabled:
+            # Remove Non-SSL specific ports and config
+            properties = [
+                p
+                for p in properties
+                if not p.startswith(
+                    (
+                        "listeners=",
+                        "advertised.listeners=",
+                        "listener.name.sasl_plaintext.",
+                        "security.inter.broker.protocol=",
+                        "security.protocol=",
+                    )
+                )
             ]
-            + self.default_replication_properties
-            + self.auth_properties
-            + DEFAULT_CONFIG_OPTIONS.split("\n")
-        )
+            properties += self.tls_properties
+
+        return properties
 
     def set_jaas_config(self) -> None:
         """Writes the Kafka JAAS config using ZooKeeper relation data."""

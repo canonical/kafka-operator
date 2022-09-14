@@ -6,6 +6,7 @@
 
 import logging
 import subprocess
+from typing import Dict, Optional
 
 from charms.kafka.v0.kafka_snap import KafkaSnap
 from charms.rolling_ops.v0.rollingops import RollingOpsManager
@@ -24,6 +25,7 @@ from auth import KafkaAuth
 from config import KafkaConfig
 from literals import CHARM_KEY, CHARM_USERS, PEER, ZK
 from provider import KafkaProvider
+from tls import KafkaTLS
 from utils import broker_active, generate_password, safe_get_file
 
 logger = logging.getLogger(__name__)
@@ -38,6 +40,7 @@ class KafkaCharm(CharmBase):
         self.snap = KafkaSnap()
         self.kafka_config = KafkaConfig(self)
         self.provider = KafkaProvider(self)
+        self.tls = KafkaTLS(self)
         self.restart = RollingOpsManager(self, relation="restart", callback=self._restart)
 
         self.framework.observe(getattr(self.on, "start"), self._on_start)
@@ -57,6 +60,16 @@ class KafkaCharm(CharmBase):
     def peer_relation(self) -> Relation:
         """The cluster peer relation."""
         return self.model.get_relation(PEER)
+
+    @property
+    def app_peer_data(self) -> Dict:
+        """Application peer relation data object."""
+        return self.peer_relation[self.app]
+
+    @property
+    def unit_peer_data(self) -> Dict:
+        """Unit peer relation data object."""
+        return self.peer_relation[self.unit]
 
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
@@ -221,6 +234,30 @@ class KafkaCharm(CharmBase):
             return False
 
         return True
+
+    def get_secret(self, scope: str, key: str) -> Optional[str]:
+        """Get TLS secret from the secret storage."""
+        if scope == "unit":
+            return self.unit_peer_data.get(key, None)
+        elif scope == "app":
+            return self.app_peer_data.get(key, None)
+        else:
+            raise RuntimeError("Unknown secret scope.")
+
+    def set_secret(self, scope: str, key: str, value: Optional[str]) -> None:
+        """Get TLS secret from the secret storage."""
+        if scope == "unit":
+            if not value:
+                del self.unit_peer_data[key]
+                return
+            self.unit_peer_data.update({key: value})
+        elif scope == "app":
+            if not value:
+                del self.app_peer_data[key]
+                return
+            self.app_peer_data.update({key: value})
+        else:
+            raise RuntimeError("Unknown secret scope.")
 
 
 if __name__ == "__main__":
