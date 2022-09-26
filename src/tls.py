@@ -112,7 +112,13 @@ class KafkaTLS(Object):
         Returns:
             True if TLS encryption should be active. Otherwise False
         """
-        return self.peer_relation.data[self.charm.app].get("tls", None) == "enabled"
+        enabled = False
+        try:
+            enabled = self.peer_relation.data[self.charm.app].get("tls", None) == "enabled"
+        except AttributeError:
+            logger.info("Peer relation not initialized")
+
+        return enabled
 
     @property
     def private_key(self) -> Optional[str]:

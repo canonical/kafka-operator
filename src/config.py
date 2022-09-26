@@ -18,15 +18,12 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_CONFIG_OPTIONS = """
 log.dirs=/var/snap/kafka/common/log
-listeners=SASL_PLAINTEXT://:9092
 sasl.enabled.mechanisms=SCRAM-SHA-512
 sasl.mechanism.inter.broker.protocol=SCRAM-SHA-512
-security.inter.broker.protocol=SASL_PLAINTEXT
-security.protocol=SASL_PLAINTEXT
 authorizer.class.name=kafka.security.authorizer.AclAuthorizer
 allow.everyone.if.no.acl.found=false
-listener.name.sasl_plaintext.sasl.enabled.mechanisms=SCRAM-SHA-512
 """
+# listener.name.sasl_plaintext.sasl.enabled.mechanisms=SCRAM-SHA-512
 
 
 class KafkaConfig:
@@ -50,12 +47,13 @@ class KafkaConfig:
         """The config from current ZooKeeper relations for data necessary for broker connection.
 
         Returns:
-            Dict of ZooKeeeper `username`, `password`, `endpoints`, `chroot`, `connect` and `uris`
+            Dict of ZooKeeeper:
+            `username`, `password`, `endpoints`, `chroot`, `connect`, `uris` and `ssl`
         """
         zookeeper_config = {}
         # loop through all relations to ZK, attempt to find all needed config
         for relation in self.charm.model.relations[ZK]:
-            zk_keys = ["username", "password", "endpoints", "chroot", "uris"]
+            zk_keys = ["username", "password", "endpoints", "chroot", "uris", "ssl"]
             missing_config = any(
                 relation.data[relation.app].get(key, None) is None for key in zk_keys
             )
@@ -142,14 +140,9 @@ class KafkaConfig:
             List of properties to be set
         """
         broker_id = self.charm.unit.name.split("/")[1]
-        host = (
-            self.charm.model.get_relation(PEER).data[self.charm.unit].get("private-address", None)
-        )
         return [
             f"broker.id={broker_id}",
-            f"advertised.listeners=SASL_PLAINTEXT://{host}:9092",
             f'zookeeper.connect={self.zookeeper_config["connect"]}',
-            f'listener.name.sasl_plaintext.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="sync" password="{self.sync_password}";',
         ]
 
     @property
@@ -165,20 +158,14 @@ class KafkaConfig:
 
         f"zookeeper.connect={host}:"
         return [
-            f'listener.name.sasl_ssl.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="sync" password="{self.sync_password}";',
-            "listeners=SASL_SSL://:9093",
-            f"advertised.listeners=SASL_SSL://{host}:9093",
             "zookeeper.ssl.client.enable=true",
             f"zookeeper.ssl.truststore.location={self.truststore_filepath}",
             f"zookeeper.ssl.truststore.password={self.charm.tls.truststore_password}",
             "zookeeper.clientCnxnSocket=org.apache.zookeeper.ClientCnxnSocketNetty",
-            "security.inter.broker.protocol=SASL_SSL",
-            "security.protocol=SASL_SSL",
             f"ssl.truststore.location={self.truststore_filepath}",
             f"ssl.truststore.password={self.charm.tls.truststore_password}",
             f"ssl.keystore.location={self.keystore_filepath}",
             f"ssl.keystore.password={self.charm.tls.keystore_password}",
-            f"ssl.key.password={self.charm.tls.keystore_password}",
             "zookeeper.ssl.endpoint.identification.algorithm=",
             "ssl.endpoint.identification.algorithm=",
             "ssl.client.auth=none",
@@ -218,27 +205,37 @@ class KafkaConfig:
         Returns:
             List of properties to be set
         """
-        properties = [
-            f"offsets.retention.minutes={self.charm.config['offsets-retention-minutes']}",
-            f"log.retention.hours={self.charm.config['log-retention-hours']}",
-            f"auto.create.topics={self.charm.config['auto-create-topics']}",
-            f"super.users={self.super_users}",
-        ] + self.default_replication_properties + self.auth_properties + DEFAULT_CONFIG_OPTIONS.split("\n")
+        host = (
+            self.charm.model.get_relation(PEER).data[self.charm.unit].get("private-address", None)
+        )
 
-        if self.charm.tls.enabled:
-            # Remove Non-SSL specific ports and config
-            properties = [
-                p
-                for p in properties
-                if not p.startswith(
-                    (
-                        "listeners=",
-                        "advertised.listeners=",
-                        "listener.name.sasl_plaintext.",
-                        "security.inter.broker.protocol=",
-                        "security.protocol=",
-                    )
-                )
+        properties = (
+            [
+                f"offsets.retention.minutes={self.charm.config['offsets-retention-minutes']}",
+                f"log.retention.hours={self.charm.config['log-retention-hours']}",
+                f"auto.create.topics={self.charm.config['auto-create-topics']}",
+                f"super.users={self.super_users}",
+            ]
+            + self.default_replication_properties
+            + self.auth_properties
+            + DEFAULT_CONFIG_OPTIONS.split("\n")
+        )
+
+        if not self.charm.tls.enabled:
+            properties += [
+                "listeners=SASL_PLAINTEXT://:9092",
+                f"advertised.listeners=SASL_PLAINTEXT://{host}:9092",
+                f'listener.name.sasl_plaintext.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="sync" password="{self.sync_password}";',
+                "security.inter.broker.protocol=SASL_PLAINTEXT",
+                "security.protocol=SASL_PLAINTEXT",
+            ]
+        else:
+            properties += [
+                "listeners=SASL_SSL://:9093",
+                f"advertised.listeners=SASL_SSL://{host}:9093",
+                f'listener.name.sasl_ssl.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="sync" password="{self.sync_password}";',
+                "security.inter.broker.protocol=SASL_SSL",
+                "security.protocol=SASL_SSL",
             ]
             properties += self.tls_properties
 

@@ -39,8 +39,8 @@ class KafkaCharm(CharmBase):
         self.name = CHARM_KEY
         self.snap = KafkaSnap()
         self.kafka_config = KafkaConfig(self)
-        self.provider = KafkaProvider(self)
         self.tls = KafkaTLS(self)
+        self.provider = KafkaProvider(self)
         self.restart = RollingOpsManager(self, relation="restart", callback=self._restart)
 
         self.framework.observe(getattr(self.on, "start"), self._on_start)
@@ -112,6 +112,7 @@ class KafkaCharm(CharmBase):
             kafka_auth = KafkaAuth(
                 opts=self.kafka_config.extra_args,
                 zookeeper=self.kafka_config.zookeeper_config.get("connect", ""),
+                ssl=self.tls.enabled,
             )
             try:
                 kafka_auth.add_user(
@@ -208,6 +209,7 @@ class KafkaCharm(CharmBase):
         kafka_auth = KafkaAuth(
             opts=self.kafka_config.extra_args,
             zookeeper=self.kafka_config.zookeeper_config.get("connect", ""),
+            ssl=self.tls.enabled,
         )
         try:
             kafka_auth.add_user(username=username, password=new_password)
@@ -228,6 +230,13 @@ class KafkaCharm(CharmBase):
         Returns:
             True if ZK is related and `sync` user has been added. False otherwise.
         """
+        # SSL must be enabled for Kafka and ZK or disabled for both
+        if self.tls.enabled ^ (
+            self.kafka_config.zookeeper_config.get("ssl", "disabled") == "enabled"
+        ):
+            logger.error("SSL must be enabled for Zookeeper and Kafka, or disabled for both")
+            return False
+
         if not self.kafka_config.zookeeper_connected or not self.peer_relation.data[self.app].get(
             "broker-creds", None
         ):
