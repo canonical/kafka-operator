@@ -57,7 +57,7 @@ def update_cluster(new_members: List[str], event: EventBase) -> None:
 
 import logging
 import re
-from typing import Any, Dict, Iterable, List, Set, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 from kazoo.client import KazooClient
 from kazoo.handlers.threading import KazooTimeoutError
 from tenacity import RetryError, retry
@@ -65,6 +65,8 @@ from tenacity.retry import retry_if_not_result
 from tenacity.stop import stop_after_attempt
 from tenacity.wait import wait_fixed
 from kazoo.client import ACL, KazooClient
+
+from charms.kafka.v0.kafka_snap import SNAP_CONFIG_PATH
 
 # The unique Charmhub library identifier, never change it
 LIBID = "4dc4430e6e5d492699391f57bd697fce"
@@ -74,7 +76,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 2
+LIBPATCH = 3
 
 
 logger = logging.getLogger(__name__)
@@ -109,12 +111,16 @@ class ZooKeeperManager:
         hosts: List[str],
         username: str,
         password: str,
-        client_port: int = 2181,
+        client_port: int = 2181, 
+        use_ssl: bool = False,
+        keystore_password: str = ""
     ):
         self.hosts = hosts
         self.username = username
         self.password = password
         self.client_port = client_port
+        self.use_ssl = use_ssl
+        self.keystore_password = keystore_password
         self.leader = ""
 
         try:
@@ -147,6 +153,8 @@ class ZooKeeperManager:
                     client_port=self.client_port,
                     username=self.username,
                     password=self.password,
+                    use_ssl=self.use_ssl,
+                    keystore_password=self.keystore_password,
                 ) as zk:
                     response = zk.srvr
                     if response.get("Mode") == "leader":
@@ -171,6 +179,8 @@ class ZooKeeperManager:
             client_port=self.client_port,
             username=self.username,
             password=self.password,
+            use_ssl=self.use_ssl,
+            keystore_password=self.keystore_password,
         ) as zk:
             members, _ = zk.config
 
@@ -188,6 +198,8 @@ class ZooKeeperManager:
             client_port=self.client_port,
             username=self.username,
             password=self.password,
+            use_ssl=self.use_ssl,
+            keystore_password=self.keystore_password,
         ) as zk:
             _, version = zk.config
 
@@ -205,6 +217,8 @@ class ZooKeeperManager:
             client_port=self.client_port,
             username=self.username,
             password=self.password,
+            use_ssl=self.use_ssl,
+            keystore_password=self.keystore_password,
         ) as zk:
             result = zk.mntr
         if (
@@ -234,6 +248,8 @@ class ZooKeeperManager:
                     client_port=self.client_port,
                     username=self.username,
                     password=self.password,
+                    use_ssl=self.use_ssl,
+                    keystore_password=self.keystore_password,
                 ) as zk:
                     if not zk.is_ready:
                         raise MemberNotReadyError(f"Server is not ready: {host}")
@@ -247,6 +263,8 @@ class ZooKeeperManager:
                 client_port=self.client_port,
                 username=self.username,
                 password=self.password,
+                use_ssl=self.use_ssl,
+                keystore_password=self.keystore_password,
             ) as zk:
                 zk.client.reconfig(
                     joining=member, leaving=None, new_members=None, from_config=self.config_version
@@ -262,12 +280,14 @@ class ZooKeeperManager:
             raise MembersSyncingError("Unable to remove members - some members are syncing")
 
         for member in members:
-            member_id = re.findall(r"server.([1-9]+)", member)[0]
+            member_id = re.findall(r"server.([0-9]+)", member)[0]
             with ZooKeeperClient(
                 host=self.leader,
                 client_port=self.client_port,
                 username=self.username,
                 password=self.password,
+                use_ssl=self.use_ssl,
+                keystore_password=self.keystore_password,
             ) as zk:
                 zk.client.reconfig(
                     joining=None,
@@ -290,6 +310,8 @@ class ZooKeeperManager:
             client_port=self.client_port,
             username=self.username,
             password=self.password,
+            use_ssl=self.use_ssl,
+            keystore_password=self.keystore_password,
         ) as zk:
             all_znode_children = zk.get_all_znode_children(path=path)
 
@@ -307,6 +329,8 @@ class ZooKeeperManager:
             client_port=self.client_port,
             username=self.username,
             password=self.password,
+            use_ssl=self.use_ssl,
+            keystore_password=self.keystore_password,
         ) as zk:
             zk.create_znode(path=path, acls=acls)
 
@@ -322,6 +346,8 @@ class ZooKeeperManager:
             client_port=self.client_port,
             username=self.username,
             password=self.password,
+            use_ssl=self.use_ssl,
+            keystore_password=self.keystore_password,
         ) as zk:
             zk.set_acls(path=path, acls=acls)
 
@@ -336,6 +362,8 @@ class ZooKeeperManager:
             client_port=self.client_port,
             username=self.username,
             password=self.password,
+            use_ssl=self.use_ssl,
+            keystore_password=self.keystore_password,
         ) as zk:
             zk.delete_znode(path=path)
 
@@ -343,7 +371,7 @@ class ZooKeeperManager:
 class ZooKeeperClient:
     """Handler for ZooKeeper connections and running 4lw client commands."""
 
-    def __init__(self, host: str, client_port: int, username: str, password: str):
+    def __init__(self, host: str, client_port: int, username: str, password: str, use_ssl: bool = False, keystore_password: str = ""):
         self.host = host
         self.client_port = client_port
         self.username = username
@@ -352,6 +380,11 @@ class ZooKeeperClient:
             hosts=f"{host}:{client_port}",
             timeout=1.0,
             sasl_options={"mechanism": "DIGEST-MD5", "username": username, "password": password},
+            keyfile=f"{SNAP_CONFIG_PATH}/server.key",
+            keyfile_password=keystore_password,
+            certfile=f"{SNAP_CONFIG_PATH}/server.pem",
+            verify_certs=False,
+            use_ssl=use_ssl,
         )
         self.client.start()
 

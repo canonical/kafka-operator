@@ -19,6 +19,9 @@ peers:
 requires:
   zookeeper:
     interface: zookeeper
+  certificates:
+    interface: tls-certificates
+    limit: 1
 
 provides:
   kafka-client:

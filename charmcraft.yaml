@@ -2,6 +2,13 @@
 # See LICENSE file for licensing details.
 
 type: charm
+parts:
+  charm:
+    build-packages:
+      - libffi-dev
+      - libssl-dev
+      - rustc
+      - cargo
 bases:
   - build-on:
       - name: "ubuntu"
