@@ -32,9 +32,9 @@ class KafkaProvider(Object):
         self.charm = charm
         self.kafka_config = KafkaConfig(self.charm)
         self.kafka_auth = KafkaAuth(
+            charm,
             opts=self.kafka_config.extra_args,
             zookeeper=self.kafka_config.zookeeper_config.get("connect", ""),
-            ssl=self.charm.tls.enabled,
         )
 
         self.framework.observe(self.charm.on[REL_NAME].relation_created, self._on_relation_created)

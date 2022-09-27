@@ -64,12 +64,16 @@ class KafkaCharm(CharmBase):
     @property
     def app_peer_data(self) -> Dict:
         """Application peer relation data object."""
-        return self.peer_relation[self.app]
+        if self.peer_relation is None:
+            return {}
+        return self.peer_relation.data[self.app]
 
     @property
     def unit_peer_data(self) -> Dict:
         """Unit peer relation data object."""
-        return self.peer_relation[self.unit]
+        if self.peer_relation is None:
+            return {}
+        return self.peer_relation.data[self.unit]
 
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
@@ -110,9 +114,9 @@ class KafkaCharm(CharmBase):
         # do not start units until SCRAM users have been added to ZooKeeper for server-server auth
         if self.unit.is_leader() and self.kafka_config.sync_password:
             kafka_auth = KafkaAuth(
+                self,
                 opts=self.kafka_config.extra_args,
                 zookeeper=self.kafka_config.zookeeper_config.get("connect", ""),
-                ssl=self.tls.enabled,
             )
             try:
                 kafka_auth.add_user(
@@ -207,9 +211,9 @@ class KafkaCharm(CharmBase):
 
         # Update the user
         kafka_auth = KafkaAuth(
+            self,
             opts=self.kafka_config.extra_args,
             zookeeper=self.kafka_config.zookeeper_config.get("connect", ""),
-            ssl=self.tls.enabled,
         )
         try:
             kafka_auth.add_user(username=username, password=new_password)

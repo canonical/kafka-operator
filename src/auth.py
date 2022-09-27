@@ -10,6 +10,7 @@ from dataclasses import asdict, dataclass
 from typing import List, Optional, Set
 
 from charms.kafka.v0.kafka_snap import SNAP_CONFIG_PATH, KafkaSnap
+from ops.charm import CharmBase
 
 logger = logging.getLogger(__name__)
 
@@ -27,10 +28,10 @@ class Acl:
 class KafkaAuth:
     """Object for updating Kafka users and ACLs."""
 
-    def __init__(self, opts: List[str], zookeeper: str, ssl=False):
+    def __init__(self, charm: CharmBase, opts: List[str], zookeeper: str):
+        self.charm = charm
         self.opts = opts
         self.zookeeper = zookeeper
-        self.ssl = ssl
         self.current_acls: Set[Acl] = set()
         self.new_user_acls: Set[Acl] = set()
 
@@ -40,7 +41,7 @@ class KafkaAuth:
             f"--authorizer-properties zookeeper.connect={self.zookeeper}",
             "--list",
         ]
-        if self.ssl:
+        if self.charm.tls.enabled:
             command += [f"--zk-tls-config-file={SNAP_CONFIG_PATH}server.properties"]
         acls = KafkaSnap.run_bin_command(bin_keyword="acls", bin_args=command, opts=self.opts)
 
@@ -155,7 +156,7 @@ class KafkaAuth:
             f"--entity-name={username}",
             f"--add-config=SCRAM-SHA-512=[password={password}]",
         ]
-        if self.ssl:
+        if self.charm.tls.enabled:
             command += [f"--zk-tls-config-file={SNAP_CONFIG_PATH}server.properties"]
         KafkaSnap.run_bin_command(bin_keyword="configs", bin_args=command, opts=self.opts)
 
@@ -175,7 +176,7 @@ class KafkaAuth:
             f"--entity-name={username}",
             "--delete-config=SCRAM-SHA-512",
         ]
-        if self.ssl:
+        if self.charm.tls.enabled:
             command += [f"--zk-tls-config-file={SNAP_CONFIG_PATH}server.properties"]
         KafkaSnap.run_bin_command(bin_keyword="configs", bin_args=command, opts=self.opts)
 
@@ -204,7 +205,7 @@ class KafkaAuth:
             f"--allow-principal=User:{username}",
             f"--operation={operation}",
         ]
-        if self.ssl:
+        if self.charm.tls.enabled:
             command += [f"--zk-tls-config-file={SNAP_CONFIG_PATH}server.properties"]
 
         if resource_type == "TOPIC":
@@ -239,7 +240,7 @@ class KafkaAuth:
             f"--operation={operation}",
             "--force",
         ]
-        if self.ssl:
+        if self.charm.tls.enabled:
             command += [f"--zk-tls-config-file={SNAP_CONFIG_PATH}server.properties"]
 
         if resource_type == "TOPIC":

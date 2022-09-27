@@ -46,34 +46,28 @@ class KafkaTLS(Object):
         self.framework.observe(self.charm.on.set_tls_private_key_action, self._set_tls_private_key)
 
     def _on_certificates_created(self, _):
-        """"""
+        """Handler for `certificates_relation_created` event."""
         if not self.charm.unit.is_leader():
             return
 
         self.peer_relation.data[self.charm.app].update({"tls": "enabled"})
 
     def _on_certificates_joined(self, event: RelationJoinedEvent) -> None:
-        """"""
+        """Handler for `certificates_relation_joined` event."""
         # generate unit private key if not already created by action
         if not self.private_key:
-            self.peer_relation.data[self.charm.unit].update(
-                {"private-key": generate_private_key().decode("utf-8")}
-            )
+            self.charm.set_secret("unit", "private-key", generate_private_key().decode("utf-8"))
 
         # generate unit private key if not already created by action
         if not self.keystore_password:
-            self.peer_relation.data[self.charm.unit].update(
-                {"keystore-password": generate_password()}
-            )
+            self.charm.set_secret("unit", "keystore-password", generate_password())
         if not self.truststore_password:
-            self.peer_relation.data[self.charm.unit].update(
-                {"truststore-password": generate_password()}
-            )
+            self.charm.set_secret("unit", "truststore-password", generate_password())
 
         self._request_certificate()
 
     def _on_certificate_available(self, event):
-        """"""
+        """Handler for `certificates_available` event after provider updates signed certs."""
         if not self.peer_relation:
             event.defer()
             return
@@ -83,9 +77,8 @@ class KafkaTLS(Object):
             logger.error("Can't use certificate, found unknown CSR")
             return
 
-        self.peer_relation.data[self.charm.unit].update(
-            {"certificate": event.certificate, "ca": event.ca}
-        )
+        self.charm.set_secret("unit", "certificate", event.certificate)
+        self.charm.set_secret("unit", "ca", event.ca)
 
         self.set_server_key()
         self.set_ca()
@@ -96,7 +89,7 @@ class KafkaTLS(Object):
     def _set_tls_private_key(self, event: ActionEvent) -> None:
         """Handler for `set_tls_private_key` action."""
         private_key = self._parse_tls_file(event.params.get("internal-key", None))
-        self.peer_relation.data[self.charm.unit].update({"private-key": private_key})
+        self.charm.set_secret("unit", "private-key", private_key)
 
         self._on_certificate_expiring(event)
 
@@ -112,13 +105,7 @@ class KafkaTLS(Object):
         Returns:
             True if TLS encryption should be active. Otherwise False
         """
-        enabled = False
-        try:
-            enabled = self.peer_relation.data[self.charm.app].get("tls", None) == "enabled"
-        except AttributeError:
-            logger.info("Peer relation not initialized")
-
-        return enabled
+        return self.peer_relation.data[self.charm.app].get("tls", None) == "enabled"
 
     @property
     def private_key(self) -> Optional[str]:
@@ -128,7 +115,7 @@ class KafkaTLS(Object):
             String of key contents
             None if key not yet generated
         """
-        return self.peer_relation.data[self.charm.unit].get("private-key", None)
+        return self.charm.get_secret("unit", "private-key")
 
     @property
     def csr(self) -> Optional[str]:
@@ -138,7 +125,7 @@ class KafkaTLS(Object):
             String of csr contents
             None if csr not yet generated
         """
-        return self.peer_relation.data[self.charm.unit].get("csr", None)
+        return self.charm.get_secret("unit", "csr")
 
     @property
     def certificate(self) -> Optional[str]:
@@ -148,7 +135,7 @@ class KafkaTLS(Object):
             String of cert contents in PEM format
             None if cert not yet generated/signed
         """
-        return self.peer_relation.data[self.charm.unit].get("certificate", None)
+        return self.charm.get_secret("unit", "certificate")
 
     @property
     def ca(self) -> Optional[str]:
@@ -158,7 +145,7 @@ class KafkaTLS(Object):
             String of ca contents in PEM format
             None if cert not yet generated/signed
         """
-        return self.peer_relation.data[self.charm.unit].get("ca", None)
+        return self.charm.get_secret("unit", "ca")
 
     @property
     def keystore_password(self) -> Optional[str]:
@@ -168,7 +155,7 @@ class KafkaTLS(Object):
             String of password
             None if password not yet generated
         """
-        return self.peer_relation.data[self.charm.unit].get("keystore-password", None)
+        return self.charm.get_secret("unit", "keystore-password")
 
     @property
     def truststore_password(self) -> Optional[str]:
@@ -178,7 +165,7 @@ class KafkaTLS(Object):
             String of password
             None if password not yet generated
         """
-        return self.peer_relation.data[self.charm.unit].get("truststore-password", None)
+        return self.charm.get_secret("unit", "truststore-password")
 
     def _request_certificate(self):
         """Generates and submits CSR to provider."""
@@ -191,7 +178,7 @@ class KafkaTLS(Object):
             subject=os.uname()[1],
             sans=self._get_sans(),
         )
-        self.peer_relation.data[self.charm.unit].update({"csr": csr.decode("utf-8").strip()})
+        self.charm.set_secret("unit", "csr", csr.decode("utf-8").strip())
 
         self.certificates.request_certificate_creation(certificate_signing_request=csr)
 

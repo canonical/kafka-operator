@@ -152,11 +152,6 @@ class KafkaConfig:
         Returns:
             list of properties to be set
         """
-        host = (
-            self.charm.model.get_relation(PEER).data[self.charm.unit].get("private-address", None)
-        )
-
-        f"zookeeper.connect={host}:"
         return [
             "zookeeper.ssl.client.enable=true",
             f"zookeeper.ssl.truststore.location={self.truststore_filepath}",
