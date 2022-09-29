@@ -21,7 +21,7 @@ from ops.framework import Object
 from ops.model import Relation
 
 from literals import TLS_RELATION
-from utils import generate_password, safe_write_to_file
+from utils import generate_password, parse_tls_file, safe_write_to_file
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,13 @@ class KafkaTLS(Object):
             self.charm.on[TLS_RELATION].relation_joined, self._on_certificates_joined
         )
         self.framework.observe(
+            self.charm.on[TLS_RELATION].relation_broken, self._on_certificates_broken
+        )
+        self.framework.observe(
             self.certificates.on.certificate_available, self._on_certificate_available
+        )
+        self.framework.observe(
+            self.certificates.on.certificate_expiring, self._on_certificate_expiring
         )
         self.framework.observe(self.charm.on.set_tls_private_key_action, self._set_tls_private_key)
 
@@ -56,15 +62,33 @@ class KafkaTLS(Object):
         """Handler for `certificates_relation_joined` event."""
         # generate unit private key if not already created by action
         if not self.private_key:
-            self.charm.set_secret("unit", "private-key", generate_private_key().decode("utf-8"))
+            self.charm.set_secret(
+                scope="unit", key="private-key", value=generate_private_key().decode("utf-8")
+            )
 
         # generate unit private key if not already created by action
         if not self.keystore_password:
-            self.charm.set_secret("unit", "keystore-password", generate_password())
+            self.charm.set_secret(scope="unit", key="keystore-password", value=generate_password())
         if not self.truststore_password:
-            self.charm.set_secret("unit", "truststore-password", generate_password())
+            self.charm.set_secret(
+                scope="unit", key="truststore-password", value=generate_password()
+            )
 
         self._request_certificate()
+
+    def _on_certificates_broken(self, _) -> None:
+        """Handler for `certificates_relation_broken` event."""
+        self.charm.set_secret(scope="unit", key="csr", value="")
+        self.charm.set_secret(scope="unit", key="certificate", value="")
+        self.charm.set_secret(scope="unit", key="ca", value="")
+
+        # remove all existing keystores from the unit so we don't preserve certs
+        self.remove_stores()
+
+        if not self.charm.unit.is_leader():
+            return
+
+        self.peer_relation.data[self.charm.app].update({"tls": ""})
 
     def _on_certificate_available(self, event):
         """Handler for `certificates_available` event after provider updates signed certs."""
@@ -77,8 +101,8 @@ class KafkaTLS(Object):
             logger.error("Can't use certificate, found unknown CSR")
             return
 
-        self.charm.set_secret("unit", "certificate", event.certificate)
-        self.charm.set_secret("unit", "ca", event.ca)
+        self.charm.set_secret(scope="unit", key="certificate", value=event.certificate)
+        self.charm.set_secret(scope="unit", key="ca", value=event.ca)
 
         self.set_server_key()
         self.set_ca()
@@ -86,10 +110,28 @@ class KafkaTLS(Object):
         self.set_truststore()
         self.set_keystore()
 
+    def _on_certificate_expiring(self, _) -> None:
+        """Handler for `certificate_expiring` event."""
+        if not self.private_key or not self.csr:
+            logger.error("Missing unit private key and/or old csr")
+            return
+        new_csr = generate_csr(
+            private_key=self.private_key.encode("utf-8"),
+            subject=os.uname()[1],
+            sans=self._get_sans(),
+        )
+
+        self.certificates.request_certificate_renewal(
+            old_certificate_signing_request=self.csr.encode("utf-8"),
+            new_certificate_signing_request=new_csr,
+        )
+
+        self.charm.set_secret(scope="unit", key="csr", value=new_csr.decode("utf-8").strip())
+
     def _set_tls_private_key(self, event: ActionEvent) -> None:
         """Handler for `set_tls_private_key` action."""
-        private_key = self._parse_tls_file(event.params.get("internal-key", None))
-        self.charm.set_secret("unit", "private-key", private_key)
+        private_key = parse_tls_file(event.params.get("internal-key", None))
+        self.charm.set_secret(scope="unit", key="private-key", value=private_key)
 
         self._on_certificate_expiring(event)
 
@@ -115,7 +157,7 @@ class KafkaTLS(Object):
             String of key contents
             None if key not yet generated
         """
-        return self.charm.get_secret("unit", "private-key")
+        return self.charm.get_secret(scope="unit", key="private-key")
 
     @property
     def csr(self) -> Optional[str]:
@@ -125,7 +167,7 @@ class KafkaTLS(Object):
             String of csr contents
             None if csr not yet generated
         """
-        return self.charm.get_secret("unit", "csr")
+        return self.charm.get_secret(scope="unit", key="csr")
 
     @property
     def certificate(self) -> Optional[str]:
@@ -135,7 +177,7 @@ class KafkaTLS(Object):
             String of cert contents in PEM format
             None if cert not yet generated/signed
         """
-        return self.charm.get_secret("unit", "certificate")
+        return self.charm.get_secret(scope="unit", key="certificate")
 
     @property
     def ca(self) -> Optional[str]:
@@ -145,7 +187,7 @@ class KafkaTLS(Object):
             String of ca contents in PEM format
             None if cert not yet generated/signed
         """
-        return self.charm.get_secret("unit", "ca")
+        return self.charm.get_secret(scope="unit", key="ca")
 
     @property
     def keystore_password(self) -> Optional[str]:
@@ -155,7 +197,7 @@ class KafkaTLS(Object):
             String of password
             None if password not yet generated
         """
-        return self.charm.get_secret("unit", "keystore-password")
+        return self.charm.get_secret(scope="unit", key="keystore-password")
 
     @property
     def truststore_password(self) -> Optional[str]:
@@ -165,7 +207,7 @@ class KafkaTLS(Object):
             String of password
             None if password not yet generated
         """
-        return self.charm.get_secret("unit", "truststore-password")
+        return self.charm.get_secret(scope="unit", key="truststore-password")
 
     def _request_certificate(self):
         """Generates and submits CSR to provider."""
@@ -178,7 +220,7 @@ class KafkaTLS(Object):
             subject=os.uname()[1],
             sans=self._get_sans(),
         )
-        self.charm.set_secret("unit", "csr", csr.decode("utf-8").strip())
+        self.charm.set_secret(scope="unit", key="csr", value=csr.decode("utf-8").strip())
 
         self.certificates.request_certificate_creation(certificate_signing_request=csr)
 
@@ -237,6 +279,20 @@ class KafkaTLS(Object):
         try:
             subprocess.check_output(
                 f"openssl pkcs12 -export -in server.pem -inkey server.key -passin pass:{self.keystore_password} -certfile server.pem -out keystore.p12 -password pass:{self.keystore_password}",
+                stderr=subprocess.PIPE,
+                shell=True,
+                universal_newlines=True,
+                cwd=SNAP_CONFIG_PATH,
+            )
+        except subprocess.CalledProcessError as e:
+            logger.error(e.output)
+            raise e
+
+    def remove_stores(self) -> None:
+        """Cleans up all keys/certs/stores on a unit."""
+        try:
+            subprocess.check_output(
+                "rm -r *.pem *.key *.p12 *.jks",
                 stderr=subprocess.PIPE,
                 shell=True,
                 universal_newlines=True,
