@@ -51,7 +51,7 @@ class KafkaTLS(Object):
         )
         self.framework.observe(self.charm.on.set_tls_private_key_action, self._set_tls_private_key)
 
-    def _tls_relation_created(self, _):
+    def _tls_relation_created(self, _) -> None:
         """Handler for `certificates_relation_created` event."""
         if not self.charm.unit.is_leader():
             return
@@ -90,10 +90,10 @@ class KafkaTLS(Object):
 
         self.peer_relation.data[self.charm.app].update({"tls": ""})
 
-    def _on_certificate_available(self, event):
+    def _on_certificate_available(self, event) -> None:
         """Handler for `certificates_available` event after provider updates signed certs."""
         if not self.peer_relation:
-            logger.info("No peer relation on certificate available")
+            logger.warning("No peer relation on certificate available")
             event.defer()
             return
 
