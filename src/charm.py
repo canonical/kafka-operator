@@ -239,6 +239,7 @@ class KafkaCharm(CharmBase):
             self.kafka_config.zookeeper_config.get("ssl", "disabled") == "enabled"
         ):
             logger.error("SSL must be enabled for Zookeeper and Kafka, or disabled for both")
+            self.unit.status = BlockedStatus("TLS needs to be active for Zookeeper and Kafka")
             return False
 
         if not self.kafka_config.zookeeper_connected or not self.peer_relation.data[self.app].get(

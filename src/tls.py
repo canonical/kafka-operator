@@ -35,13 +35,13 @@ class KafkaTLS(Object):
         self.certificates = TLSCertificatesRequiresV1(self.charm, TLS_RELATION)
 
         self.framework.observe(
-            self.charm.on[TLS_RELATION].relation_created, self._on_certificates_created
+            self.charm.on[TLS_RELATION].relation_created, self._tls_relation_created
         )
         self.framework.observe(
-            self.charm.on[TLS_RELATION].relation_joined, self._on_certificates_joined
+            self.charm.on[TLS_RELATION].relation_joined, self._tls_relation_joined
         )
         self.framework.observe(
-            self.charm.on[TLS_RELATION].relation_broken, self._on_certificates_broken
+            self.charm.on[TLS_RELATION].relation_broken, self._tls_relation_broken
         )
         self.framework.observe(
             self.certificates.on.certificate_available, self._on_certificate_available
@@ -51,14 +51,14 @@ class KafkaTLS(Object):
         )
         self.framework.observe(self.charm.on.set_tls_private_key_action, self._set_tls_private_key)
 
-    def _on_certificates_created(self, _):
+    def _tls_relation_created(self, _):
         """Handler for `certificates_relation_created` event."""
         if not self.charm.unit.is_leader():
             return
 
         self.peer_relation.data[self.charm.app].update({"tls": "enabled"})
 
-    def _on_certificates_joined(self, event: RelationJoinedEvent) -> None:
+    def _tls_relation_joined(self, _) -> None:
         """Handler for `certificates_relation_joined` event."""
         # generate unit private key if not already created by action
         if not self.private_key:
@@ -76,7 +76,7 @@ class KafkaTLS(Object):
 
         self._request_certificate()
 
-    def _on_certificates_broken(self, _) -> None:
+    def _tls_relation_broken(self, _) -> None:
         """Handler for `certificates_relation_broken` event."""
         self.charm.set_secret(scope="unit", key="csr", value="")
         self.charm.set_secret(scope="unit", key="certificate", value="")
@@ -93,6 +93,7 @@ class KafkaTLS(Object):
     def _on_certificate_available(self, event):
         """Handler for `certificates_available` event after provider updates signed certs."""
         if not self.peer_relation:
+            logger.info("No peer relation on certificate available")
             event.defer()
             return
 

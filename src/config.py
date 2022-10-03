@@ -23,7 +23,6 @@ sasl.mechanism.inter.broker.protocol=SCRAM-SHA-512
 authorizer.class.name=kafka.security.authorizer.AclAuthorizer
 allow.everyone.if.no.acl.found=false
 """
-# listener.name.sasl_plaintext.sasl.enabled.mechanisms=SCRAM-SHA-512
 
 
 class KafkaConfig:
