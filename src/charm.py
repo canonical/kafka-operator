@@ -234,11 +234,11 @@ class KafkaCharm(CharmBase):
         Returns:
             True if ZK is related and `sync` user has been added. False otherwise.
         """
-        # SSL must be enabled for Kafka and ZK or disabled for both
+        # TLS must be enabled for Kafka and ZK or disabled for both
         if self.tls.enabled ^ (
-            self.kafka_config.zookeeper_config.get("ssl", "disabled") == "enabled"
+            self.kafka_config.zookeeper_config.get("tls", "disabled") == "enabled"
         ):
-            logger.error("SSL must be enabled for Zookeeper and Kafka, or disabled for both")
+            logger.error("TLS must be enabled for Zookeeper and Kafka, or disabled for both")
             self.unit.status = BlockedStatus("TLS needs to be active for Zookeeper and Kafka")
             return False
 
