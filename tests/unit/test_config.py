@@ -50,6 +50,7 @@ def test_zookeeper_config_succeeds_fails_config(zk_relation_id, harness):
             "username": "moria",
             "endpoints": "1.1.1.1,2.2.2.2",
             "uris": "1.1.1.1:2181,2.2.2.2:2181/kafka",
+            "tls": "disabled",
         },
     )
     assert harness.charm.kafka_config.zookeeper_config == {}
@@ -66,6 +67,7 @@ def test_zookeeper_config_succeeds_valid_config(zk_relation_id, harness):
             "password": "mellon",
             "endpoints": "1.1.1.1,2.2.2.2",
             "uris": "1.1.1.1:2181/kafka,2.2.2.2:2181/kafka",
+            "tls": "disabled",
         },
     )
     assert "connect" in harness.charm.kafka_config.zookeeper_config
@@ -128,16 +130,13 @@ def test_auth_properties(zk_relation_id, harness):
             "password": "mellon",
             "endpoints": "1.1.1.1,2.2.2.2",
             "uris": "1.1.1.1:2181/kafka,2.2.2.2:2181/kafka",
+            "tls": "disabled",
         },
     )
 
     assert "broker.id=0" in harness.charm.kafka_config.auth_properties
     assert (
         f"zookeeper.connect={harness.charm.kafka_config.zookeeper_config['connect']}"
-        in harness.charm.kafka_config.auth_properties
-    )
-    assert (
-        'listener.name.sasl_plaintext.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="sync" password="mellon";'
         in harness.charm.kafka_config.auth_properties
     )
 
