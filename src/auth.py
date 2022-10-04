@@ -9,7 +9,8 @@ import re
 from dataclasses import asdict, dataclass
 from typing import List, Optional, Set
 
-from charms.kafka.v0.kafka_snap import KafkaSnap
+from charms.kafka.v0.kafka_snap import SNAP_CONFIG_PATH, KafkaSnap
+from ops.charm import CharmBase
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,8 @@ class Acl:
 class KafkaAuth:
     """Object for updating Kafka users and ACLs."""
 
-    def __init__(self, opts: List[str], zookeeper: str):
+    def __init__(self, charm: CharmBase, opts: List[str], zookeeper: str):
+        self.charm = charm
         self.opts = opts
         self.zookeeper = zookeeper
         self.current_acls: Set[Acl] = set()
@@ -39,6 +41,8 @@ class KafkaAuth:
             f"--authorizer-properties zookeeper.connect={self.zookeeper}",
             "--list",
         ]
+        if self.charm.tls.enabled:
+            command += [f"--zk-tls-config-file={SNAP_CONFIG_PATH}server.properties"]
         acls = KafkaSnap.run_bin_command(bin_keyword="acls", bin_args=command, opts=self.opts)
 
         return acls
@@ -152,6 +156,8 @@ class KafkaAuth:
             f"--entity-name={username}",
             f"--add-config=SCRAM-SHA-512=[password={password}]",
         ]
+        if self.charm.tls.enabled:
+            command += [f"--zk-tls-config-file={SNAP_CONFIG_PATH}server.properties"]
         KafkaSnap.run_bin_command(bin_keyword="configs", bin_args=command, opts=self.opts)
 
     def delete_user(self, username: str) -> None:
@@ -170,6 +176,8 @@ class KafkaAuth:
             f"--entity-name={username}",
             "--delete-config=SCRAM-SHA-512",
         ]
+        if self.charm.tls.enabled:
+            command += [f"--zk-tls-config-file={SNAP_CONFIG_PATH}server.properties"]
         KafkaSnap.run_bin_command(bin_keyword="configs", bin_args=command, opts=self.opts)
 
     def add_acl(
@@ -191,26 +199,23 @@ class KafkaAuth:
         Raises:
             `subprocess.CalledProcessError`: if the error returned a non-zero exit code
         """
-        if resource_type == "TOPIC":
-            command = [
-                f"--authorizer-properties zookeeper.connect={self.zookeeper}",
-                "--add",
-                f"--allow-principal=User:{username}",
-                f"--operation={operation}",
-                f"--topic={resource_name}",
-            ]
-            KafkaSnap.run_bin_command(bin_keyword="acls", bin_args=command, opts=self.opts)
+        command = [
+            f"--authorizer-properties zookeeper.connect={self.zookeeper}",
+            "--add",
+            f"--allow-principal=User:{username}",
+            f"--operation={operation}",
+        ]
+        if self.charm.tls.enabled:
+            command += [f"--zk-tls-config-file={SNAP_CONFIG_PATH}server.properties"]
 
+        if resource_type == "TOPIC":
+            command += [f"--topic={resource_name}"]
         if resource_type == "GROUP":
-            command = [
-                f"--authorizer-properties zookeeper.connect={self.zookeeper}",
-                "--add",
-                f"--allow-principal=User:{username}",
-                f"--operation={operation}",
+            command += [
                 f"--group={resource_name}",
                 "--resource-pattern-type=PREFIXED",
             ]
-            KafkaSnap.run_bin_command(bin_keyword="acls", bin_args=command, opts=self.opts)
+        KafkaSnap.run_bin_command(bin_keyword="acls", bin_args=command, opts=self.opts)
 
     def remove_acl(
         self, username: str, operation: str, resource_type: str, resource_name: str
@@ -228,28 +233,25 @@ class KafkaAuth:
         Raises:
             `subprocess.CalledProcessError`: if the error returned a non-zero exit code
         """
-        if resource_type == "TOPIC":
-            command = [
-                f"--authorizer-properties zookeeper.connect={self.zookeeper}",
-                "--remove",
-                f"--allow-principal=User:{username}",
-                f"--operation={operation}",
-                f"--topic={resource_name}",
-                "--force",
-            ]
-            KafkaSnap.run_bin_command(bin_keyword="acls", bin_args=command, opts=self.opts)
+        command = [
+            f"--authorizer-properties zookeeper.connect={self.zookeeper}",
+            "--remove",
+            f"--allow-principal=User:{username}",
+            f"--operation={operation}",
+            "--force",
+        ]
+        if self.charm.tls.enabled:
+            command += [f"--zk-tls-config-file={SNAP_CONFIG_PATH}server.properties"]
 
+        if resource_type == "TOPIC":
+            command += [f"--topic={resource_name}"]
         if resource_type == "GROUP":
-            command = [
-                f"--authorizer-properties zookeeper.connect={self.zookeeper}",
-                "--remove",
-                f"--allow-principal=User:{username}",
-                f"--operation={operation}",
+            command += [
                 f"--group={resource_name}",
                 "--resource-pattern-type=PREFIXED",
-                "--force",
             ]
-            KafkaSnap.run_bin_command(bin_keyword="acls", bin_args=command, opts=self.opts)
+
+        KafkaSnap.run_bin_command(bin_keyword="acls", bin_args=command, opts=self.opts)
 
     def remove_all_user_acls(self, username: str) -> None:
         """Removes all active ACLs for a given user.

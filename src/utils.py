@@ -4,8 +4,10 @@
 
 """Collection of helper methods for checking active connections between ZK and Kafka."""
 
+import base64
 import logging
 import os
+import re
 import secrets
 import string
 from typing import Dict, List, Optional, Set
@@ -112,3 +114,10 @@ def generate_password() -> str:
         String of 32 randomized letter+digit characters
     """
     return "".join([secrets.choice(string.ascii_letters + string.digits) for _ in range(32)])
+
+
+def parse_tls_file(raw_content: str) -> str:
+    """Parse TLS files from both plain text or base64 format."""
+    if re.match(r"(-+(BEGIN|END) [A-Z ]+-+)", raw_content):
+        return raw_content
+    return base64.b64decode(raw_content).decode("utf-8")
