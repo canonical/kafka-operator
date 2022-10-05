@@ -8,7 +8,6 @@ import logging
 from typing import Dict, List, Optional
 
 from charms.kafka.v0.kafka_snap import SNAP_CONFIG_PATH
-from ops.charm import CharmBase
 from ops.model import Unit
 
 from literals import PEER, REL_NAME, ZK
@@ -28,7 +27,7 @@ allow.everyone.if.no.acl.found=false
 class KafkaConfig:
     """Manager for handling Kafka configuration."""
 
-    def __init__(self, charm: CharmBase):
+    def __init__(self, charm):
         self.charm = charm
         self.default_config_path = SNAP_CONFIG_PATH
         self.properties_filepath = f"{self.default_config_path}/server.properties"
@@ -47,12 +46,12 @@ class KafkaConfig:
 
         Returns:
             Dict of ZooKeeeper:
-            `username`, `password`, `endpoints`, `chroot`, `connect`, `uris` and `ssl`
+            `username`, `password`, `endpoints`, `chroot`, `connect`, `uris` and `tls`
         """
         zookeeper_config = {}
         # loop through all relations to ZK, attempt to find all needed config
         for relation in self.charm.model.relations[ZK]:
-            zk_keys = ["username", "password", "endpoints", "chroot", "uris", "ssl"]
+            zk_keys = ["username", "password", "endpoints", "chroot", "uris", "tls"]
             missing_config = any(
                 relation.data[relation.app].get(key, None) is None for key in zk_keys
             )
