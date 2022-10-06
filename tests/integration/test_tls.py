@@ -51,6 +51,11 @@ async def test_deploy_tls(ops_test: OpsTest):
 
 @pytest.mark.abort_on_fail
 async def test_kafka_tls(ops_test: OpsTest):
+    """Tests TLS on Kafka.
+
+    Relates Zookeper[TLS] with Kakfa[Non-TLS]. This leads to a blocked status.
+    Afterwards, relate Kafka to TLS operator, which unblocks the application.
+    """
     # Relate Zookeeper[TLS] to Kafka[Non-TLS]
     await ops_test.model.add_relation(ZK_NAME, APP_NAME)
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], idle_period=60, timeout=1000)
@@ -72,6 +77,7 @@ async def test_kafka_tls(ops_test: OpsTest):
 
 
 async def test_kafka_tls_scaling(ops_test: OpsTest):
+    """Scale the application while using TLS to check that new units will configure correctly."""
     await ops_test.model.applications[APP_NAME].add_units(count=2)
     logger.info("Scaling Kafka to 3 units")
     await ops_test.model.block_until(
