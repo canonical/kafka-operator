@@ -109,7 +109,15 @@ def get_kafka_zk_relation_data(unit_name: str, model_full_name: str) -> Dict[str
             zk_relation_data["password"] = info["application-data"]["password"]
             zk_relation_data["uris"] = info["application-data"]["uris"]
             zk_relation_data["username"] = info["application-data"]["username"]
+            zk_relation_data["tls"] = info["application-data"]["tls"]
     return zk_relation_data
+
+
+async def get_address(ops_test: OpsTest, app_name=APP_NAME, unit_num=0) -> str:
+    """Get the address for a unit."""
+    status = await ops_test.model.get_status()  # noqa: F821
+    address = status["applications"][app_name]["units"][f"{app_name}/{unit_num}"]["public-address"]
+    return address
 
 
 async def set_password(ops_test: OpsTest, username="sync", password=None, num_unit=0) -> str:
@@ -123,3 +131,17 @@ async def set_password(ops_test: OpsTest, username="sync", password=None, num_un
     )
     password = await action.wait()
     return password.results
+
+
+def check_tls(ip: str, port: int) -> bool:
+    result = check_output(
+        f"echo | openssl s_client -connect {ip}:{port}",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+
+    # FIXME: The server cannot be validated, we would need to try to connect using the CA
+    # from self-signed certificates. This is indication enough that the server is sending a
+    # self-signed key.
+    assert "CN = kafka" in result
