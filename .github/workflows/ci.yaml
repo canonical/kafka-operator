@@ -29,6 +29,9 @@ jobs:
 
   integration-test-lxd:
     name: Integration tests for (lxd)
+    needs:
+      - lint
+      - unit-test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
