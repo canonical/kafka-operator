@@ -29,9 +29,6 @@ jobs:
 
   integration-charm:
     name: Integration tests for (lxd)
-    needs:
-      - lint
-      - unit-test
     runs-on: ubuntu-latest
     needs:
       - lint
