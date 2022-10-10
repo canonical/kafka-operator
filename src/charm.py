@@ -64,14 +64,14 @@ class KafkaCharm(CharmBase):
     @property
     def app_peer_data(self) -> Dict:
         """Application peer relation data object."""
-        if self.peer_relation is None:
+        if not self.peer_relation:
             return {}
         return self.peer_relation.data[self.app]
 
     @property
     def unit_peer_data(self) -> Dict:
         """Unit peer relation data object."""
-        if self.peer_relation is None:
+        if not self.peer_relation:
             return {}
         return self.peer_relation.data[self.unit]
 
@@ -239,7 +239,7 @@ class KafkaCharm(CharmBase):
             self.kafka_config.zookeeper_config.get("tls", "disabled") == "enabled"
         ):
             msg = "TLS must be enabled for Zookeeper and Kafka"
-            logger.error(msg)
+            logger.debug(msg)
             self.unit.status = BlockedStatus(msg)
             return False
 

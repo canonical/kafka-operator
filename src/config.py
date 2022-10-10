@@ -201,6 +201,8 @@ class KafkaConfig:
         host = (
             self.charm.model.get_relation(PEER).data[self.charm.unit].get("private-address", None)
         )
+        port = 9093 if self.charm.tls.enabled else 9092
+        protocol = "SASL_SSL" if self.charm.tls.enabled else "SASL_PLAINTEXT"
 
         properties = (
             [
@@ -208,28 +210,18 @@ class KafkaConfig:
                 f"log.retention.hours={self.charm.config['log-retention-hours']}",
                 f"auto.create.topics={self.charm.config['auto-create-topics']}",
                 f"super.users={self.super_users}",
+                f"listeners={protocol}://:{port}",
+                f"advertised.listeners={protocol}://{host}:{port}",
+                f'listener.name.{(protocol).lower()}.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="sync" password="{self.sync_password}";',
+                f"security.inter.broker.protocol={protocol}",
+                f"security.protocol={protocol}",
             ]
             + self.default_replication_properties
             + self.auth_properties
             + DEFAULT_CONFIG_OPTIONS.split("\n")
         )
 
-        if not self.charm.tls.enabled:
-            properties += [
-                "listeners=SASL_PLAINTEXT://:9092",
-                f"advertised.listeners=SASL_PLAINTEXT://{host}:9092",
-                f'listener.name.sasl_plaintext.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="sync" password="{self.sync_password}";',
-                "security.inter.broker.protocol=SASL_PLAINTEXT",
-                "security.protocol=SASL_PLAINTEXT",
-            ]
-        else:
-            properties += [
-                "listeners=SASL_SSL://:9093",
-                f"advertised.listeners=SASL_SSL://{host}:9093",
-                f'listener.name.sasl_ssl.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="sync" password="{self.sync_password}";',
-                "security.inter.broker.protocol=SASL_SSL",
-                "security.protocol=SASL_SSL",
-            ]
+        if self.charm.tls.enabled:
             properties += self.tls_properties
 
         return properties
