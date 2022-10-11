@@ -10,7 +10,6 @@ from dataclasses import asdict, dataclass
 from typing import List, Optional, Set
 
 from charms.kafka.v0.kafka_snap import SNAP_CONFIG_PATH, KafkaSnap
-from ops.charm import CharmBase
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +27,7 @@ class Acl:
 class KafkaAuth:
     """Object for updating Kafka users and ACLs."""
 
-    def __init__(self, charm: CharmBase, opts: List[str], zookeeper: str):
+    def __init__(self, charm, opts: List[str], zookeeper: str):
         self.charm = charm
         self.opts = opts
         self.zookeeper = zookeeper
