@@ -23,7 +23,7 @@ from ops.model import ActiveStatus, BlockedStatus, Relation, WaitingStatus
 
 from auth import KafkaAuth
 from config import KafkaConfig
-from literals import CHARM_KEY, CHARM_USERS, PEER, ZK
+from literals import CHARM_KEY, CHARM_USERS, PEER, REL_NAME, ZK
 from provider import KafkaProvider
 from tls import KafkaTLS
 from utils import broker_active, generate_password, safe_get_file
@@ -176,6 +176,9 @@ class KafkaCharm(CharmBase):
             self.kafka_config.set_server_properties()
 
             self.on[self.restart.name].acquire_lock.emit()
+
+        if self.model.get_relation(REL_NAME):
+            self.provider.update_connection_info()
 
     def _restart(self, event: EventBase) -> None:
         """Handler for `rolling_ops` restart events."""

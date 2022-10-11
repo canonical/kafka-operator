@@ -109,7 +109,8 @@ class KafkaConfig:
         hosts = [
             self.charm.model.get_relation(PEER).data[unit].get("private-address") for unit in units
         ]
-        return [f"{host}:9092" for host in hosts]
+        port = 9093 if self.charm.tls.enabled else 9092
+        return [f"{host}:{port}" for host in hosts]
 
     @property
     def default_replication_properties(self) -> List[str]:
