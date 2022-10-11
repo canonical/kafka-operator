@@ -177,7 +177,7 @@ class KafkaCharm(CharmBase):
 
             self.on[self.restart.name].acquire_lock.emit()
 
-        if self.model.relations.get(REL_NAME, None):
+        if self.model.relations.get(REL_NAME, None) and self.unit.is_leader():
             self.provider.update_connection_info()
 
     def _restart(self, event: EventBase) -> None:
