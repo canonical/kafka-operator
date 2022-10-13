@@ -76,7 +76,7 @@ class KafkaProvider(Object):
         bootstrap_server = self.charm.kafka_config.bootstrap_server
         endpoints = [server.split(":")[0] for server in bootstrap_server]
         zookeeper_uris = self.charm.kafka_config.zookeeper_config.get("connect", "")
-        tls = str(self.charm.tls.enabled)
+        tls = "enabled" if self.charm.tls.enabled else "disabled"
 
         relation_config = {
             "username": username,
