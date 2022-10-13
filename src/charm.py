@@ -177,6 +177,7 @@ class KafkaCharm(CharmBase):
 
             self.on[self.restart.name].acquire_lock.emit()
 
+        # If Kafka is related to client charms, update their information.
         if self.model.relations.get(REL_NAME, None) and self.unit.is_leader():
             self.provider.update_connection_info()
 
