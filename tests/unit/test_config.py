@@ -2,58 +2,30 @@
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+from pathlib import Path
 import pytest
-from ops.charm import CharmBase
-from ops.framework import Object
 from ops.testing import Harness
+import yaml
+from charm import KafkaCharm
 
-from config import KafkaConfig
-
-METADATA = """
-    name: kafka
-    peers:
-        cluster:
-            interface: cluster
-    requires:
-        zookeeper:
-            interface: zookeeper
-    provides:
-        kafka-client:
-            interface: client
-"""
+from literals import CHARM_KEY, ZK, PEER
 
 
-class KafkaTLS(Object):
-    def __init__(self, charm):
-        super().__init__(charm, "tls")
-        self.charm = charm
+CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
+ACTIONS = str(yaml.safe_load(Path("./actions.yaml").read_text()))
+METADATA = str(yaml.safe_load(Path("./metadata.yaml").read_text()))
 
-    @property
-    def enabled(self) -> bool:
-        return False
-
-
-class DummyKafkaCharm(CharmBase):
-    def __init__(self, *args):
-        super().__init__(*args)
-        self.kafka_config = KafkaConfig(self)
-        self.tls = KafkaTLS(self)
-
-
-@pytest.fixture(scope="function")
+@pytest.fixture
 def harness():
-    harness = Harness(DummyKafkaCharm, meta=METADATA)
-    harness.begin_with_initial_hooks()
+    harness = Harness(KafkaCharm, meta=METADATA)
+    harness.add_relation("restart", CHARM_KEY)
+    harness._update_config({"offsets-retention-minutes": 10080, "log-retention-hours": 168, "auto-create-topics": False})
+    harness.begin()
     return harness
 
 
-@pytest.fixture(scope="function")
-def zk_relation_id(harness):
-    relation_id = harness.add_relation("zookeeper", "kafka")
-    return relation_id
-
-
-def test_zookeeper_config_succeeds_fails_config(zk_relation_id, harness):
+def test_zookeeper_config_succeeds_fails_config(harness):
+    zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
     harness.update_relation_data(
         zk_relation_id,
         harness.charm.app.name,
@@ -69,7 +41,8 @@ def test_zookeeper_config_succeeds_fails_config(zk_relation_id, harness):
     assert not harness.charm.kafka_config.zookeeper_connected
 
 
-def test_zookeeper_config_succeeds_valid_config(zk_relation_id, harness):
+def test_zookeeper_config_succeeds_valid_config(harness):
+    zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
     harness.update_relation_data(
         zk_relation_id,
         harness.charm.app.name,
@@ -95,7 +68,7 @@ def test_extra_args(harness):
 
 
 def test_bootstrap_server(harness):
-    peer_relation_id = harness.charm.model.get_relation("cluster").id
+    peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
     harness.add_relation_unit(peer_relation_id, "kafka/1")
     harness.update_relation_data(peer_relation_id, "kafka/0", {"private-address": "treebeard"})
     harness.update_relation_data(peer_relation_id, "kafka/1", {"private-address": "shelob"})
@@ -114,7 +87,7 @@ def test_default_replication_properties_less_than_three(harness):
 
 
 def test_default_replication_properties_more_than_three(harness):
-    peer_relation_id = harness.charm.model.get_relation("cluster").id
+    peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
     harness.add_relation_unit(peer_relation_id, "kafka/1")
     harness.add_relation_unit(peer_relation_id, "kafka/2")
     harness.add_relation_unit(peer_relation_id, "kafka/3")
@@ -128,8 +101,9 @@ def test_default_replication_properties_more_than_three(harness):
     assert "min.insync.replicas=2" in harness.charm.kafka_config.default_replication_properties
 
 
-def test_auth_properties(zk_relation_id, harness):
-    peer_relation_id = harness.charm.model.get_relation("cluster").id
+def test_auth_properties(harness):
+    zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
+    peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
     harness.update_relation_data(
         peer_relation_id, harness.charm.app.name, {"sync_password": "mellon"}
     )
@@ -163,7 +137,7 @@ def test_super_users(harness):
         client_relation_id, "appii", {"extra-user-roles": "admin,consumer"}
     )
 
-    peer_relation_id = harness.charm.model.get_relation("cluster").id
+    peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
 
     harness.update_relation_data(
         peer_relation_id, harness.charm.app.name, {"relation-1": "mellon"}
