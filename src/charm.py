@@ -291,7 +291,7 @@ class KafkaCharm(CharmBase):
 
         Returns:
             String of key value.
-            None if non-existant key
+            None if non-existent key
         """
         if not self.app_peer_data or not self.unit_peer_data:
             return None
