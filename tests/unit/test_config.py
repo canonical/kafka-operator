@@ -4,6 +4,7 @@
 
 import pytest
 from ops.charm import CharmBase
+from ops.framework import Object
 from ops.testing import Harness
 
 from config import KafkaConfig
@@ -22,10 +23,21 @@ METADATA = """
 """
 
 
+class KafkaTLS(Object):
+    def __init__(self, charm):
+        super().__init__(charm, "tls")
+        self.charm = charm
+
+    @property
+    def enabled(self) -> bool:
+        return False
+
+
 class DummyKafkaCharm(CharmBase):
     def __init__(self, *args):
         super().__init__(*args)
         self.kafka_config = KafkaConfig(self)
+        self.tls = KafkaTLS(self)
 
 
 @pytest.fixture(scope="function")

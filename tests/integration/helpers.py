@@ -113,6 +113,22 @@ def get_kafka_zk_relation_data(unit_name: str, model_full_name: str) -> Dict[str
     return zk_relation_data
 
 
+def get_provider_data(unit_name: str, model_full_name: str) -> Dict[str, str]:
+    result = show_unit(unit_name=unit_name, model_full_name=model_full_name)
+    relations_info = result[unit_name]["relation-info"]
+
+    provider_relation_data = {}
+    for info in relations_info:
+        if info["endpoint"] == "kafka-client":
+            provider_relation_data["username"] = info["application-data"]["username"]
+            provider_relation_data["password"] = info["application-data"]["password"]
+            provider_relation_data["endpoints"] = info["application-data"]["endpoints"]
+            provider_relation_data["uris"] = info["application-data"]["uris"]
+            provider_relation_data["zookeeper-uris"] = info["application-data"]["zookeeper-uris"]
+            provider_relation_data["tls"] = info["application-data"]["tls"]
+    return provider_relation_data
+
+
 async def get_address(ops_test: OpsTest, app_name=APP_NAME, unit_num=0) -> str:
     """Get the address for a unit."""
     status = await ops_test.model.get_status()  # noqa: F821
