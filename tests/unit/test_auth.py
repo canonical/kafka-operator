@@ -5,12 +5,13 @@
 import logging
 from pathlib import Path
 from unittest.mock import patch
-import pytest
-from ops.testing import Harness
-import yaml
-from charm import KafkaCharm
-from auth import Acl, KafkaAuth
 
+import pytest
+import yaml
+from ops.testing import Harness
+
+from auth import Acl, KafkaAuth
+from charm import KafkaCharm
 from literals import CHARM_KEY, PEER
 
 logger = logging.getLogger(__name__)
@@ -19,15 +20,23 @@ CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
 ACTIONS = str(yaml.safe_load(Path("./actions.yaml").read_text()))
 METADATA = str(yaml.safe_load(Path("./metadata.yaml").read_text()))
 
+
 @pytest.fixture
 def harness():
     harness = Harness(KafkaCharm, meta=METADATA)
     harness.add_relation("restart", CHARM_KEY)
     harness.add_relation(PEER, CHARM_KEY)
-    harness._update_config({"offsets-retention-minutes": 10080, "log-retention-hours": 168, "auto-create-topics": False})
+    harness._update_config(
+        {
+            "offsets-retention-minutes": 10080,
+            "log-retention-hours": 168,
+            "auto-create-topics": False,
+        }
+    )
 
     harness.begin()
     return harness
+
 
 def test_acl():
     assert sorted(list(Acl.__annotations__.keys())) == sorted(
@@ -67,6 +76,7 @@ def test_generate_producer_acls():
     assert sorted(operations) == sorted(set(["CREATE", "WRITE", "DESCRIBE"]))
     assert resource_types == {"TOPIC"}
 
+
 def test_generate_consumer_acls():
     generated_acls = KafkaAuth._generate_consumer_acls(topic="theonering", username="frodo")
     assert len(generated_acls) == 3
@@ -83,8 +93,9 @@ def test_generate_consumer_acls():
     assert sorted(operations) == sorted(set(["READ", "DESCRIBE"]))
     assert sorted(resource_types) == sorted(set(["TOPIC", "GROUP"]))
 
+
 def test_tls_adds_zk_tls_flag(harness):
     with patch("charms.kafka.v0.kafka_snap.KafkaSnap.run_bin_command") as patched_bin:
         auth = KafkaAuth(harness, opts=["mordor"], zookeeper="server.1:gandalf.the.grey")
-        
+
         print()

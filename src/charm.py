@@ -6,7 +6,8 @@
 
 import logging
 import subprocess
-from typing import Dict, Optional
+from collections.abc import MutableMapping
+from typing import Optional
 
 from charms.kafka.v0.kafka_snap import KafkaSnap
 from charms.rolling_ops.v0.rollingops import RollingOpsManager
@@ -14,6 +15,7 @@ from ops.charm import (
     ActionEvent,
     CharmBase,
     ConfigChangedEvent,
+    LeaderElectedEvent,
     RelationEvent,
     RelationJoinedEvent,
 )
@@ -54,25 +56,27 @@ class KafkaCharm(CharmBase):
         self.framework.observe(self.on[ZK].relation_changed, self._on_config_changed)
         self.framework.observe(self.on[ZK].relation_broken, self._on_zookeeper_broken)
 
-        self.framework.observe(self.on.set_password_action, self._set_password_action)
+        self.framework.observe(getattr(self.on, "set_password_action"), self._set_password_action)
 
     @property
-    def peer_relation(self) -> Relation:
+    def peer_relation(self) -> Optional[Relation]:
         """The cluster peer relation."""
         return self.model.get_relation(PEER)
 
     @property
-    def app_peer_data(self) -> Dict:
+    def app_peer_data(self) -> MutableMapping[str, str]:
         """Application peer relation data object."""
         if not self.peer_relation:
             return {}
+
         return self.peer_relation.data[self.app]
 
     @property
-    def unit_peer_data(self) -> Dict:
+    def unit_peer_data(self) -> MutableMapping[str, str]:
         """Unit peer relation data object."""
         if not self.peer_relation:
             return {}
+
         return self.peer_relation.data[self.unit]
 
     def _on_install(self, _) -> None:
@@ -83,11 +87,21 @@ class KafkaCharm(CharmBase):
         else:
             self.unit.status = BlockedStatus("unable to install kafka snap")
 
-    def _on_leader_elected(self, _) -> None:
+    def _on_leader_elected(self, event: LeaderElectedEvent) -> None:
         """Handler for `leader_elected` event, ensuring sync_passwords gets set."""
+        if not self.peer_relation:
+            logger.debug("no peer relation")
+            event.defer()
+            return
+
         current_sync_password = self.get_secret(scope="app", key="sync_password")
         self.set_secret(
             scope="app", key="sync_password", value=(current_sync_password or generate_password())
+        )
+
+        current_sync_password = self.peer_relation.data[self.app].get("sync_password", None)
+        self.peer_relation.data[self.app].update(
+            {"sync_password": current_sync_password or generate_password()}
         )
 
     def _on_zookeeper_joined(self, event: RelationJoinedEvent) -> None:
@@ -104,6 +118,11 @@ class KafkaCharm(CharmBase):
     def _on_start(self, event: EventBase) -> None:
         """Handler for `start` event."""
         if not self.kafka_config.zookeeper_connected:
+            event.defer()
+            return
+
+        if not self.peer_relation:
+            logger.debug("no peer relation")
             event.defer()
             return
 
@@ -175,7 +194,7 @@ class KafkaCharm(CharmBase):
             )
             self.kafka_config.set_server_properties()
 
-            self.on[self.restart.name].acquire_lock.emit()
+            self.on[f"{self.restart.name}"].acquire_lock.emit()
 
         # If Kafka is related to client charms, update their information.
         if self.model.relations.get(REL_NAME, None) and self.unit.is_leader():
@@ -189,11 +208,16 @@ class KafkaCharm(CharmBase):
 
         self.snap.restart_snap_service("kafka")
 
-    def _set_password_action(self, event: ActionEvent):
+    def _set_password_action(self, event: ActionEvent) -> None:
         """Handler for set-password action.
 
         Set the password for a specific user, if no passwords are passed, generate them.
         """
+        if not self.peer_relation:
+            logger.debug("no peer relation")
+            event.defer()
+            return
+
         if not self.unit.is_leader():
             msg = "Password rotation must be called on leader unit"
             logger.error(msg)
@@ -238,6 +262,10 @@ class KafkaCharm(CharmBase):
         Returns:
             True if ZK is related and `sync` user has been added. False otherwise.
         """
+        if not self.peer_relation:
+            logger.debug("no peer relation")
+            return False
+
         # TLS must be enabled for Kafka and ZK or disabled for both
         if self.tls.enabled ^ (
             self.kafka_config.zookeeper_config.get("tls", "disabled") == "enabled"
@@ -255,7 +283,19 @@ class KafkaCharm(CharmBase):
         return True
 
     def get_secret(self, scope: str, key: str) -> Optional[str]:
-        """Get TLS secret from the secret storage."""
+        """Get TLS secret from the secret storage.
+
+        Args:
+            scope: whether this secret is for a `unit` or `app`
+            key: the secret key name
+
+        Returns:
+            String of key value.
+            None if non-existant key
+        """
+        if not self.app_peer_data or not self.unit_peer_data:
+            return None
+
         if scope == "unit":
             return self.unit_peer_data.get(key, None)
         elif scope == "app":
@@ -264,15 +304,21 @@ class KafkaCharm(CharmBase):
             raise RuntimeError("Unknown secret scope.")
 
     def set_secret(self, scope: str, key: str, value: Optional[str]) -> None:
-        """Get TLS secret from the secret storage."""
+        """Get TLS secret from the secret storage.
+
+        Args:
+            scope: whether this secret is for a `unit` or `app`
+            key: the secret key name
+            value: the value for the secret key
+        """
         if scope == "unit":
             if not value:
-                del self.unit_peer_data[key]
+                self.unit_peer_data.update({key: ""})
                 return
             self.unit_peer_data.update({key: value})
         elif scope == "app":
             if not value:
-                del self.app_peer_data[key]
+                self.app_peer_data.update({key: ""})
                 return
             self.app_peer_data.update({key: value})
         else:
