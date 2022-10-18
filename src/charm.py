@@ -9,7 +9,6 @@ import subprocess
 from collections.abc import MutableMapping
 from typing import Optional
 
-from charms.kafka.v0.kafka_snap import KafkaSnap
 from charms.rolling_ops.v0.rollingops import RollingOpsManager
 from ops.charm import (
     ActionEvent,
@@ -27,6 +26,7 @@ from auth import KafkaAuth
 from config import KafkaConfig
 from literals import CHARM_KEY, CHARM_USERS, PEER, REL_NAME, ZK
 from provider import KafkaProvider
+from snap import KafkaSnap
 from tls import KafkaTLS
 from utils import broker_active, generate_password, safe_get_file
 

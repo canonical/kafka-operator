@@ -7,10 +7,10 @@
 import logging
 from typing import Dict, List, Optional
 
-from charms.kafka.v0.kafka_snap import SNAP_CONFIG_PATH
 from ops.model import Unit
 
 from literals import PEER, REL_NAME, ZK
+from snap import SNAP_CONFIG_PATH
 from utils import safe_write_to_file
 
 logger = logging.getLogger(__name__)
