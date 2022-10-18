@@ -6,8 +6,7 @@
 
 import logging
 import subprocess
-from collections.abc import MutableMapping
-from typing import Optional
+from typing import MutableMapping, Optional
 
 from charms.rolling_ops.v0.rollingops import RollingOpsManager
 from ops.charm import (
