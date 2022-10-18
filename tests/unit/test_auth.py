@@ -12,7 +12,7 @@ from ops.testing import Harness
 
 from auth import Acl, KafkaAuth
 from charm import KafkaCharm
-from literals import CHARM_KEY, PEER
+from literals import CHARM_KEY, PEER, ZK
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,6 @@ METADATA = str(yaml.safe_load(Path("./metadata.yaml").read_text()))
 def harness():
     harness = Harness(KafkaCharm, meta=METADATA)
     harness.add_relation("restart", CHARM_KEY)
-    harness.add_relation(PEER, CHARM_KEY)
     harness._update_config(
         {
             "offsets-retention-minutes": 10080,
@@ -94,8 +93,91 @@ def test_generate_consumer_acls():
     assert sorted(resource_types) == sorted(set(["TOPIC", "GROUP"]))
 
 
-def test_tls_adds_zk_tls_flag(harness):
-    with patch("charms.kafka.v0.kafka_snap.KafkaSnap.run_bin_command") as patched_bin:
-        auth = KafkaAuth(harness, opts=["mordor"], zookeeper="server.1:gandalf.the.grey")
+def test_get_acls_tls_adds_zk_tls_flag(harness):
+    peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
+    zk_rel_id = harness.add_relation(ZK, ZK)
+    harness.add_relation_unit(zk_rel_id, "zookeeper/0")
+    harness.update_relation_data(
+        zk_rel_id,
+        ZK,
+        {
+            "username": "relation-1",
+            "password": "mellon",
+            "endpoints": "123.123.123",
+            "chroot": "/kafka",
+            "uris": "123.123.123/kafka",
+            "tls": "enabled",
+        },
+    )
+    harness.update_relation_data(peer_rel_id, CHARM_KEY, {"tls": "enabled"})
+    auth = KafkaAuth(harness.charm, opts=["mordor"], zookeeper="server.1:gandalf.the.grey")
 
-        print()
+    with patch("snap.KafkaSnap.run_bin_command") as patched_bin:
+        auth._get_acls_from_cluster()
+
+        found = False
+        for arg in patched_bin.call_args.kwargs.get("bin_args", []):
+            if "--zk-tls-config-file" in arg:
+                found = True
+
+        assert not found, "--zk-tls-config-file flag not found"
+
+
+def test_add_user_adds_zk_tls_flag(harness):
+    peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
+    zk_rel_id = harness.add_relation(ZK, ZK)
+    harness.add_relation_unit(zk_rel_id, "zookeeper/0")
+    harness.update_relation_data(
+        zk_rel_id,
+        ZK,
+        {
+            "username": "relation-1",
+            "password": "mellon",
+            "endpoints": "123.123.123",
+            "chroot": "/kafka",
+            "uris": "123.123.123/kafka",
+            "tls": "enabled",
+        },
+    )
+    harness.update_relation_data(peer_rel_id, CHARM_KEY, {"tls": "enabled"})
+    auth = KafkaAuth(harness.charm, opts=["mordor"], zookeeper="server.1:gandalf.the.grey")
+
+    with patch("subprocess.check_output") as patched:
+        auth.add_user("samwise", "gamgee")
+
+        found = False
+        for arg in patched.call_args.args:
+            if "--zk-tls-config-file" in arg:
+                found = True
+
+        assert found, "--zk-tls-config-file flag not found"
+
+
+def test_delete_user_adds_zk_tls_flag(harness):
+    peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
+    zk_rel_id = harness.add_relation(ZK, ZK)
+    harness.add_relation_unit(zk_rel_id, "zookeeper/0")
+    harness.update_relation_data(
+        zk_rel_id,
+        ZK,
+        {
+            "username": "relation-1",
+            "password": "mellon",
+            "endpoints": "123.123.123",
+            "chroot": "/kafka",
+            "uris": "123.123.123/kafka",
+            "tls": "enabled",
+        },
+    )
+    harness.update_relation_data(peer_rel_id, CHARM_KEY, {"tls": "enabled"})
+    auth = KafkaAuth(harness.charm, opts=["mordor"], zookeeper="server.1:gandalf.the.grey")
+
+    with patch("subprocess.check_output") as patched:
+        auth.delete_user("samwise")
+
+        found = False
+        for arg in patched.call_args.args:
+            if "--zk-tls-config-file" in arg:
+                found = True
+
+        assert found, "--zk-tls-config-file flag not found"
