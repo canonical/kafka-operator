@@ -9,7 +9,7 @@ import re
 from dataclasses import asdict, dataclass
 from typing import List, Optional, Set
 
-from charms.kafka.v0.kafka_snap import SNAP_CONFIG_PATH, KafkaSnap
+from snap import KafkaSnap
 
 logger = logging.getLogger(__name__)
 
@@ -40,8 +40,6 @@ class KafkaAuth:
             f"--authorizer-properties zookeeper.connect={self.zookeeper}",
             "--list",
         ]
-        if self.charm.tls.enabled:
-            command += [f"--zk-tls-config-file={SNAP_CONFIG_PATH}server.properties"]
         acls = KafkaSnap.run_bin_command(bin_keyword="acls", bin_args=command, opts=self.opts)
 
         return acls
@@ -155,8 +153,6 @@ class KafkaAuth:
             f"--entity-name={username}",
             f"--add-config=SCRAM-SHA-512=[password={password}]",
         ]
-        if self.charm.tls.enabled:
-            command += [f"--zk-tls-config-file={SNAP_CONFIG_PATH}server.properties"]
         KafkaSnap.run_bin_command(bin_keyword="configs", bin_args=command, opts=self.opts)
 
     def delete_user(self, username: str) -> None:
@@ -175,8 +171,6 @@ class KafkaAuth:
             f"--entity-name={username}",
             "--delete-config=SCRAM-SHA-512",
         ]
-        if self.charm.tls.enabled:
-            command += [f"--zk-tls-config-file={SNAP_CONFIG_PATH}server.properties"]
         KafkaSnap.run_bin_command(bin_keyword="configs", bin_args=command, opts=self.opts)
 
     def add_acl(
@@ -204,8 +198,6 @@ class KafkaAuth:
             f"--allow-principal=User:{username}",
             f"--operation={operation}",
         ]
-        if self.charm.tls.enabled:
-            command += [f"--zk-tls-config-file={SNAP_CONFIG_PATH}server.properties"]
 
         if resource_type == "TOPIC":
             command += [f"--topic={resource_name}"]
@@ -239,8 +231,6 @@ class KafkaAuth:
             f"--operation={operation}",
             "--force",
         ]
-        if self.charm.tls.enabled:
-            command += [f"--zk-tls-config-file={SNAP_CONFIG_PATH}server.properties"]
 
         if resource_type == "TOPIC":
             command += [f"--topic={resource_name}"]
