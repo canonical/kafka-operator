@@ -42,22 +42,22 @@ def test_client_relation_created_defers_if_not_ready(harness):
 
     with patch(
         "charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=False
-    ), patch("auth.KafkaAuth.add_user") as patched:
+    ), patch("auth.KafkaAuth.add_user") as patched_add_user:
         harness.set_leader(True)
         harness.add_relation(REL_NAME, "app")
 
-        patched.assert_not_called()
+        patched_add_user.assert_not_called()
 
 
 def test_client_relation_created_adds_user(harness):
     harness.add_relation(PEER, CHARM_KEY)
     with patch(
         "charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=True
-    ), patch("auth.KafkaAuth.add_user") as patched:
+    ), patch("auth.KafkaAuth.add_user") as patched_add_user:
         harness.set_leader(True)
         client_rel_id = harness.add_relation(REL_NAME, "app")
 
-        patched.assert_called_once()
+        patched_add_user.assert_called_once()
 
         assert harness.charm.peer_relation.data[harness.charm.app].get(f"relation-{client_rel_id}")
 
@@ -68,7 +68,7 @@ def test_client_relation_broken_removes_user(harness):
         "charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=True
     ), patch("auth.KafkaAuth.add_user"), patch(
         "auth.KafkaAuth.delete_user"
-    ) as patched_delete, patch(
+    ) as patched_delete_user, patch(
         "auth.KafkaAuth.remove_all_user_acls"
     ) as patched_remove_acls, patch(
         "snap.KafkaSnap.run_bin_command"
@@ -86,7 +86,7 @@ def test_client_relation_broken_removes_user(harness):
             f"relation-{client_rel_id}"
         )
         patched_remove_acls.assert_called_once()
-        patched_delete.assert_called_once()
+        patched_delete_user.assert_called_once()
 
 
 def test_client_relation_joined_sets_necessary_relation_data(harness):

@@ -142,11 +142,11 @@ def test_add_user_adds_zk_tls_flag(harness):
     harness.update_relation_data(peer_rel_id, CHARM_KEY, {"tls": "enabled"})
     auth = KafkaAuth(harness.charm, opts=["mordor"], zookeeper="server.1:gandalf.the.grey")
 
-    with patch("subprocess.check_output") as patched:
+    with patch("subprocess.check_output") as patched_check_output:
         auth.add_user("samwise", "gamgee")
 
         found = False
-        for arg in patched.call_args.args:
+        for arg in patched_check_output.call_args.args:
             if "--zk-tls-config-file" in arg:
                 found = True
 
@@ -172,11 +172,11 @@ def test_delete_user_adds_zk_tls_flag(harness):
     harness.update_relation_data(peer_rel_id, CHARM_KEY, {"tls": "enabled"})
     auth = KafkaAuth(harness.charm, opts=["mordor"], zookeeper="server.1:gandalf.the.grey")
 
-    with patch("subprocess.check_output") as patched:
+    with patch("subprocess.check_output") as patched_check_output:
         auth.delete_user("samwise")
 
         found = False
-        for arg in patched.call_args.args:
+        for arg in patched_check_output.call_args.args:
             if "--zk-tls-config-file" in arg:
                 found = True
 

@@ -40,10 +40,10 @@ def harness():
 def test_install_sets_opts(harness):
     with patch("snap.KafkaSnap.install"), patch(
         "config.KafkaConfig.set_kafka_opts"
-    ) as patched_opts:
+    ) as patched_kafka_opts:
         harness.charm.on.install.emit()
 
-        patched_opts.assert_called_once()
+        patched_kafka_opts.assert_called_once()
 
 
 def test_install_waits_until_zookeeper_relation(harness):
@@ -83,18 +83,18 @@ def test_zookeeper_broken_stops_service(harness):
     harness.add_relation(PEER, CHARM_KEY)
     zk_rel_id = harness.add_relation(ZK, ZK)
 
-    with patch("snap.KafkaSnap.stop_snap_service") as patched:
+    with patch("snap.KafkaSnap.stop_snap_service") as patched_stop_snap_service:
         harness.remove_relation(zk_rel_id)
 
-        patched.assert_called_once()
+        patched_stop_snap_service.assert_called_once()
         assert isinstance(harness.charm.unit.status, BlockedStatus)
 
 
 def test_start_defers_without_zookeeper(harness):
-    with patch("ops.framework.EventBase.defer") as patched:
+    with patch("ops.framework.EventBase.defer") as patched_defer:
         harness.charm.on.start.emit()
 
-        patched.assert_called_once()
+        patched_defer.assert_called_once()
 
 
 def test_start_sets_necessary_config(harness):
@@ -140,18 +140,18 @@ def test_start_sets_auth_and_broker_creds_on_leader(harness):
     )
     harness.update_relation_data(peer_rel_id, CHARM_KEY, {"sync-password": "mellon"})
 
-    with patch("auth.KafkaAuth.add_user") as patched, patch(
+    with patch("auth.KafkaAuth.add_user") as patched_add_user, patch(
         "config.KafkaConfig.set_jaas_config"
     ), patch("config.KafkaConfig.set_server_properties"), patch(
         "charm.broker_active"
-    ) as patched_active:
-        patched_active.retry.wait = wait_none
+    ) as patched_broker_active:
+        patched_broker_active.retry.wait = wait_none
         harness.charm.on.start.emit()
-        patched.assert_not_called()
+        patched_add_user.assert_not_called()
 
         harness.set_leader(True)
         harness.charm.on.start.emit()
-        patched.assert_called_once()
+        patched_add_user.assert_called_once()
 
 
 def test_start_does_not_start_if_not_ready(harness):
@@ -178,10 +178,10 @@ def test_start_does_not_start_if_not_ready(harness):
         "charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=False
     ), patch(
         "snap.KafkaSnap.start_snap_service"
-    ) as patched_service:
+    ) as patched_start_snap_service:
         harness.charm.on.start.emit()
 
-        patched_service.assert_not_called()
+        patched_start_snap_service.assert_not_called()
 
 
 def test_start_does_not_start_if_not_same_tls_as_zk(harness):
@@ -204,10 +204,10 @@ def test_start_does_not_start_if_not_same_tls_as_zk(harness):
 
     with patch("auth.KafkaAuth.add_user"), patch("config.KafkaConfig.set_jaas_config"), patch(
         "config.KafkaConfig.set_server_properties"
-    ), patch("snap.KafkaSnap.start_snap_service") as patched_service:
+    ), patch("snap.KafkaSnap.start_snap_service") as patched_start_snap_service:
         harness.charm.on.start.emit()
 
-        patched_service.assert_not_called()
+        patched_start_snap_service.assert_not_called()
         assert isinstance(harness.charm.unit.status, BlockedStatus)
 
 
@@ -231,10 +231,10 @@ def test_start_does_not_start_if_leader_has_not_set_creds(harness):
 
     with patch("config.KafkaConfig.set_jaas_config"), patch(
         "config.KafkaConfig.set_server_properties"
-    ), patch("snap.KafkaSnap.start_snap_service") as patched_service:
+    ), patch("snap.KafkaSnap.start_snap_service") as patched_start_snap_service:
         harness.charm.on.start.emit()
 
-        patched_service.assert_not_called()
+        patched_start_snap_service.assert_not_called()
         assert isinstance(harness.charm.unit.status, BlockedStatus)
 
 
@@ -259,13 +259,13 @@ def test_start_blocks_if_service_failed_silently(harness):
 
     with patch("auth.KafkaAuth.add_user"), patch("config.KafkaConfig.set_jaas_config"), patch(
         "config.KafkaConfig.set_server_properties"
-    ), patch("snap.KafkaSnap.start_snap_service") as patched_service, patch(
+    ), patch("snap.KafkaSnap.start_snap_service") as patched_start_snap_service, patch(
         "charm.broker_active", return_value=False
-    ) as patched_active:
-        patched_active.retry.wait = wait_none
+    ) as patched_broker_active:
+        patched_broker_active.retry.wait = wait_none
         harness.charm.on.start.emit()
 
-        patched_service.assert_called_once()
+        patched_start_snap_service.assert_called_once()
         assert isinstance(harness.charm.unit.status, BlockedStatus)
 
 
@@ -304,11 +304,11 @@ def test_config_changed_updates_client_data(harness):
         "charm.safe_get_file", return_value=["gandalf=white"]
     ), patch(
         "provider.KafkaProvider.update_connection_info"
-    ) as patched:
+    ) as patched_update_connection_info:
         harness.set_leader(True)
         harness.charm.on.config_changed.emit()
 
-        patched.assert_called_once()
+        patched_update_connection_info.assert_called_once()
 
 
 def test_config_changed_restarts(harness):
@@ -327,8 +327,8 @@ def test_config_changed_restarts(harness):
         "config.safe_write_to_file", return_value=None
     ), patch(
         "snap.KafkaSnap.restart_snap_service"
-    ) as patched:
+    ) as patched_restart_snap_service:
         harness.set_leader(True)
         harness.charm.on.config_changed.emit()
 
-        patched.assert_called_once()
+        patched_restart_snap_service.assert_called_once()
