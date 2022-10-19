@@ -145,13 +145,17 @@ def test_start_sets_auth_and_broker_creds_on_leader(harness):
     ), patch("config.KafkaConfig.set_server_properties"), patch(
         "charm.broker_active"
     ) as patched_broker_active:
+        # verify non-leader does not set creds
         patched_broker_active.retry.wait = wait_none
         harness.charm.on.start.emit()
         patched_add_user.assert_not_called()
+        assert not harness.charm.app_peer_data.get("broker-creds", None)
 
+        # verify leader sets creds
         harness.set_leader(True)
         harness.charm.on.start.emit()
         patched_add_user.assert_called_once()
+        assert harness.charm.app_peer_data.get("broker-creds", None)
 
 
 def test_start_does_not_start_if_not_ready(harness):
@@ -178,10 +182,13 @@ def test_start_does_not_start_if_not_ready(harness):
         "charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=False
     ), patch(
         "snap.KafkaSnap.start_snap_service"
-    ) as patched_start_snap_service:
+    ) as patched_start_snap_service, patch(
+        "ops.framework.EventBase.defer"
+    ) as patched_defer:
         harness.charm.on.start.emit()
 
         patched_start_snap_service.assert_not_called()
+        patched_defer.assert_called()
 
 
 def test_start_does_not_start_if_not_same_tls_as_zk(harness):
