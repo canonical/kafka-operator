@@ -38,7 +38,7 @@ class KafkaConfig:
     @property
     def sync_password(self) -> Optional[str]:
         """Returns charm-set sync_password for server-server auth between brokers."""
-        return self.charm.model.get_relation(PEER).data[self.charm.app].get("sync_password", None)
+        return self.charm.get_secret(scope="app", key="sync_password")
 
     @property
     def zookeeper_config(self) -> Dict[str, str]:
@@ -64,7 +64,6 @@ class KafkaConfig:
             zookeeper_config.update(relation.data[relation.app])
             break
 
-        #
         if zookeeper_config:
             sorted_uris = sorted(
                 zookeeper_config["uris"].replace(zookeeper_config["chroot"], "").split(",")
