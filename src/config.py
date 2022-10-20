@@ -38,7 +38,7 @@ class KafkaConfig:
     @property
     def sync_password(self) -> Optional[str]:
         """Returns charm-set sync_password for server-server auth between brokers."""
-        return self.charm.get_secret(scope="app", key="sync_password")
+        return self.charm.get_secret(scope="app", key="sync-password")
 
     @property
     def zookeeper_config(self) -> Dict[str, str]:

@@ -69,7 +69,7 @@ def test_leader_elected_sets_passwords(harness):
     harness.add_relation_unit(peer_rel_id, f"{CHARM_KEY}/0")
     harness.set_leader(True)
 
-    assert harness.charm.app_peer_data.get("sync_password", None)
+    assert harness.charm.app_peer_data.get("sync-password", None)
 
 
 def test_zookeeper_joined_sets_chroot(harness):

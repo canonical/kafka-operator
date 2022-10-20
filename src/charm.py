@@ -93,14 +93,9 @@ class KafkaCharm(CharmBase):
             event.defer()
             return
 
-        current_sync_password = self.get_secret(scope="app", key="sync_password")
+        current_sync_password = self.get_secret(scope="app", key="sync-password")
         self.set_secret(
-            scope="app", key="sync_password", value=(current_sync_password or generate_password())
-        )
-
-        current_sync_password = self.peer_relation.data[self.app].get("sync_password", None)
-        self.peer_relation.data[self.app].update(
-            {"sync_password": current_sync_password or generate_password()}
+            scope="app", key="sync-password", value=(current_sync_password or generate_password())
         )
 
     def _on_zookeeper_joined(self, event: RelationJoinedEvent) -> None:
@@ -292,9 +287,6 @@ class KafkaCharm(CharmBase):
             String of key value.
             None if non-existent key
         """
-        if not self.app_peer_data or not self.unit_peer_data:
-            return None
-
         if scope == "unit":
             return self.unit_peer_data.get(key, None)
         elif scope == "app":
