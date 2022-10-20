@@ -45,6 +45,7 @@ def test_acl():
 
 
 def test_parse_acls():
+    """Checks that returned ACL message is parsed correctly into Acl object."""
     acls = """
     Current ACLs for resource `ResourcePattern(resourceType=GROUP, name=relation-81-*, patternType=LITERAL)`:
         (principal=User:relation-81, host=*, operation=READ, permissionType=ALLOW)
@@ -63,6 +64,7 @@ def test_parse_acls():
 
 
 def test_generate_producer_acls():
+    """Checks correct resourceType for producer ACLs."""
     generated_acls = KafkaAuth._generate_producer_acls(topic="theonering", username="frodo")
     assert len(generated_acls) == 3
 
@@ -77,6 +79,7 @@ def test_generate_producer_acls():
 
 
 def test_generate_consumer_acls():
+    """Checks correct resourceType for consumer ACLs."""
     generated_acls = KafkaAuth._generate_consumer_acls(topic="theonering", username="frodo")
     assert len(generated_acls) == 3
 
@@ -94,6 +97,7 @@ def test_generate_consumer_acls():
 
 
 def test_get_acls_tls_adds_zk_tls_flag(harness):
+    """Checks zk-tls-config-file flag is called for acls bin command."""
     peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
     zk_rel_id = harness.add_relation(ZK, ZK)
     harness.add_relation_unit(zk_rel_id, "zookeeper/0")
@@ -124,6 +128,7 @@ def test_get_acls_tls_adds_zk_tls_flag(harness):
 
 
 def test_add_user_adds_zk_tls_flag(harness):
+    """Checks zk-tls-config-file flag is called for configs bin command."""
     peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
     zk_rel_id = harness.add_relation(ZK, ZK)
     harness.add_relation_unit(zk_rel_id, "zookeeper/0")
@@ -154,6 +159,7 @@ def test_add_user_adds_zk_tls_flag(harness):
 
 
 def test_delete_user_adds_zk_tls_flag(harness):
+    """Checks zk-tls-config-file flag is called for configs bin command."""
     peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
     zk_rel_id = harness.add_relation(ZK, ZK)
     harness.add_relation_unit(zk_rel_id, "zookeeper/0")

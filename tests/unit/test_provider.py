@@ -37,19 +37,24 @@ def harness():
 
 
 def test_client_relation_created_defers_if_not_ready(harness):
+    """Checks event is deferred if not ready on clientrelationcreated hook."""
     with harness.hooks_disabled():
         harness.add_relation(PEER, CHARM_KEY)
 
     with patch(
         "charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=False
-    ), patch("auth.KafkaAuth.add_user") as patched_add_user:
+    ), patch("auth.KafkaAuth.add_user") as patched_add_user, patch(
+        "ops.framework.EventBase.defer"
+    ) as patched_defer:
         harness.set_leader(True)
         harness.add_relation(REL_NAME, "app")
 
         patched_add_user.assert_not_called()
+        patched_defer.assert_called()
 
 
 def test_client_relation_created_adds_user(harness):
+    """Checks if new users are added on clientrelationcreated hook."""
     harness.add_relation(PEER, CHARM_KEY)
     with patch(
         "charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=True
@@ -63,6 +68,7 @@ def test_client_relation_created_adds_user(harness):
 
 
 def test_client_relation_broken_removes_user(harness):
+    """Checks if users are removed on clientrelationbroken hook."""
     harness.add_relation(PEER, CHARM_KEY)
     with patch(
         "charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=True
@@ -90,6 +96,7 @@ def test_client_relation_broken_removes_user(harness):
 
 
 def test_client_relation_joined_sets_necessary_relation_data(harness):
+    """Checks if all needed provider relation data is set on clientrelationjoined hook."""
     harness.add_relation(PEER, CHARM_KEY)
     with patch(
         "charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=True

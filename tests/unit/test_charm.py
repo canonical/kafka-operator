@@ -38,6 +38,7 @@ def harness():
 
 
 def test_install_sets_opts(harness):
+    """Checks KAFKA_OPTS is written to /etc/environment on install hook."""
     with patch("snap.KafkaSnap.install"), patch(
         "config.KafkaConfig.set_kafka_opts"
     ) as patched_kafka_opts:
@@ -47,12 +48,14 @@ def test_install_sets_opts(harness):
 
 
 def test_install_waits_until_zookeeper_relation(harness):
+    """Checks unit goes to WaitingStatus without ZK relation on install hook."""
     with patch("snap.KafkaSnap.install"), patch("config.KafkaConfig.set_kafka_opts"):
         harness.charm.on.install.emit()
         assert isinstance(harness.charm.unit.status, WaitingStatus)
 
 
 def test_install_blocks_snap_install_failure(harness):
+    """Checks unit goes to BlockedStatus after snap failure on install hook."""
     with patch("snap.KafkaSnap.install", return_value=False), patch(
         "config.KafkaConfig.set_kafka_opts"
     ):
@@ -61,6 +64,7 @@ def test_install_blocks_snap_install_failure(harness):
 
 
 def test_leader_elected_sets_passwords(harness):
+    """Checks inter-broker passwords are created on leaderelected hook."""
     peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
     harness.add_relation_unit(peer_rel_id, f"{CHARM_KEY}/0")
     harness.set_leader(True)
@@ -69,6 +73,7 @@ def test_leader_elected_sets_passwords(harness):
 
 
 def test_zookeeper_joined_sets_chroot(harness):
+    """Checks chroot is added to ZK relation data on ZKrelationjoined hook."""
     harness.add_relation(PEER, CHARM_KEY)
     harness.set_leader(True)
     zk_rel_id = harness.add_relation(ZK, ZK)
@@ -80,6 +85,7 @@ def test_zookeeper_joined_sets_chroot(harness):
 
 
 def test_zookeeper_broken_stops_service(harness):
+    """Checks chroot is added to ZK relation data on ZKrelationjoined hook."""
     harness.add_relation(PEER, CHARM_KEY)
     zk_rel_id = harness.add_relation(ZK, ZK)
 
@@ -91,6 +97,7 @@ def test_zookeeper_broken_stops_service(harness):
 
 
 def test_start_defers_without_zookeeper(harness):
+    """Checks event deferred and not lost without ZK relation on start hook."""
     with patch("ops.framework.EventBase.defer") as patched_defer:
         harness.charm.on.start.emit()
 
@@ -98,6 +105,7 @@ def test_start_defers_without_zookeeper(harness):
 
 
 def test_start_sets_necessary_config(harness):
+    """Checks event writes all needed config to unit on start hook."""
     harness.add_relation(PEER, CHARM_KEY)
     zk_rel_id = harness.add_relation(ZK, ZK)
     harness.add_relation_unit(zk_rel_id, "zookeeper/0")
@@ -123,6 +131,7 @@ def test_start_sets_necessary_config(harness):
 
 
 def test_start_sets_auth_and_broker_creds_on_leader(harness):
+    """Checks inter-broker user is created on leader on start hook."""
     peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
     zk_rel_id = harness.add_relation(ZK, ZK)
     harness.add_relation_unit(zk_rel_id, "zookeeper/0")
@@ -159,6 +168,7 @@ def test_start_sets_auth_and_broker_creds_on_leader(harness):
 
 
 def test_start_does_not_start_if_not_ready(harness):
+    """Checks snap service does not start before ready on start hook."""
     peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
     zk_rel_id = harness.add_relation(ZK, ZK)
     harness.add_relation_unit(zk_rel_id, "zookeeper/0")
@@ -192,6 +202,7 @@ def test_start_does_not_start_if_not_ready(harness):
 
 
 def test_start_does_not_start_if_not_same_tls_as_zk(harness):
+    """Checks snap service does not start if mismatch Kafka+ZK TLS on start hook."""
     peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
     zk_rel_id = harness.add_relation(ZK, ZK)
     harness.add_relation_unit(zk_rel_id, "zookeeper/0")
@@ -219,6 +230,7 @@ def test_start_does_not_start_if_not_same_tls_as_zk(harness):
 
 
 def test_start_does_not_start_if_leader_has_not_set_creds(harness):
+    """Checks snap service does not start without inter-broker creds on start hook."""
     peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
     zk_rel_id = harness.add_relation(ZK, ZK)
     harness.add_relation_unit(zk_rel_id, "zookeeper/0")
@@ -246,6 +258,7 @@ def test_start_does_not_start_if_leader_has_not_set_creds(harness):
 
 
 def test_start_blocks_if_service_failed_silently(harness):
+    """Checks unit is not ActiveStatus if snap service start failed silently on start hook."""
     peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
     zk_rel_id = harness.add_relation(ZK, ZK)
     harness.add_relation_unit(zk_rel_id, "zookeeper/0")
@@ -277,6 +290,7 @@ def test_start_blocks_if_service_failed_silently(harness):
 
 
 def test_config_changed_updates_properties(harness):
+    """Checks that new charm/unit config writes config to unit on config changed hook."""
     peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
     harness.add_relation_unit(peer_rel_id, f"{CHARM_KEY}/0")
 
@@ -297,6 +311,7 @@ def test_config_changed_updates_properties(harness):
 
 
 def test_config_changed_updates_client_data(harness):
+    """Checks that provided relation data updates on config changed hook."""
     peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
     harness.add_relation_unit(peer_rel_id, f"{CHARM_KEY}/0")
     harness.add_relation(REL_NAME, "app")
@@ -319,6 +334,7 @@ def test_config_changed_updates_client_data(harness):
 
 
 def test_config_changed_restarts(harness):
+    """Checks units rolling-restat on config changed hook."""
     peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
     harness.add_relation_unit(peer_rel_id, f"{CHARM_KEY}/0")
 

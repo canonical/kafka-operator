@@ -11,11 +11,13 @@ from snap import KafkaSnap
 
 
 def test_run_bin_command_raises():
+    """Checks failed snap command raises CalledProcessError."""
     with pytest.raises(subprocess.CalledProcessError):
         KafkaSnap.run_bin_command("stuff", ["to"], ["fail"])
 
 
 def test_run_bin_command_args():
+    """Checks KAFKA_OPTS env-var and zk-tls flag present in all snap commands."""
     with patch("subprocess.check_output") as patched:
         KafkaSnap.run_bin_command("configs", ["--list"], ["-Djava"])
 

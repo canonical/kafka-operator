@@ -32,6 +32,7 @@ def harness():
 
 
 def test_zookeeper_config_succeeds_fails_config(harness):
+    """Checks that no ZK config is returned if missing field."""
     zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
     harness.update_relation_data(
         zk_relation_id,
@@ -49,6 +50,7 @@ def test_zookeeper_config_succeeds_fails_config(harness):
 
 
 def test_zookeeper_config_succeeds_valid_config(harness):
+    """Checks that ZK config is returned if all fields."""
     zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
     harness.update_relation_data(
         zk_relation_id,
@@ -70,11 +72,13 @@ def test_zookeeper_config_succeeds_valid_config(harness):
 
 
 def test_extra_args(harness):
+    """Checks necessary args in extra-args for KAFKA_OPTS."""
     args = "".join(harness.charm.kafka_config.extra_args)
     assert "-Djava.security.auth.login.config" in args
 
 
 def test_bootstrap_server(harness):
+    """Checks the bootstrap-server property setting."""
     peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
     harness.add_relation_unit(peer_relation_id, "kafka/1")
     harness.update_relation_data(peer_relation_id, "kafka/0", {"private-address": "treebeard"})
@@ -86,6 +90,7 @@ def test_bootstrap_server(harness):
 
 
 def test_default_replication_properties_less_than_three(harness):
+    """Checks replication property defaults updates with units < 3."""
     assert "num.partitions=1" in harness.charm.kafka_config.default_replication_properties
     assert (
         "default.replication.factor=1" in harness.charm.kafka_config.default_replication_properties
@@ -94,6 +99,7 @@ def test_default_replication_properties_less_than_three(harness):
 
 
 def test_default_replication_properties_more_than_three(harness):
+    """Checks replication property defaults updates with units > 3."""
     peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
     harness.add_relation_unit(peer_relation_id, "kafka/1")
     harness.add_relation_unit(peer_relation_id, "kafka/2")
@@ -109,6 +115,7 @@ def test_default_replication_properties_more_than_three(harness):
 
 
 def test_auth_properties(harness):
+    """Checks necessary auth properties are present."""
     zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
     peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
     harness.update_relation_data(
@@ -135,6 +142,7 @@ def test_auth_properties(harness):
 
 
 def test_super_users(harness):
+    """Checks super-users property is updated for new admin clients."""
     assert len(harness.charm.kafka_config.super_users.split(";")) == 1
 
     client_relation_id = harness.add_relation("kafka-client", "app")
