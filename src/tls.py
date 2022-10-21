@@ -10,7 +10,6 @@ import socket
 import subprocess
 from typing import List, Optional
 
-from charms.kafka.v0.kafka_snap import SNAP_CONFIG_PATH
 from charms.tls_certificates_interface.v1.tls_certificates import (
     TLSCertificatesRequiresV1,
     generate_csr,
@@ -21,6 +20,7 @@ from ops.framework import Object
 from ops.model import Relation
 
 from literals import TLS_RELATION
+from snap import SNAP_CONFIG_PATH
 from utils import generate_password, parse_tls_file, safe_write_to_file
 
 logger = logging.getLogger(__name__)

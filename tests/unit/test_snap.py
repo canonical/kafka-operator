@@ -6,16 +6,28 @@ import subprocess
 from unittest.mock import patch
 
 import pytest
-from charms.kafka.v0.kafka_snap import KafkaSnap
+
+from snap import KafkaSnap
 
 
 def test_run_bin_command_raises():
+    """Checks failed snap command raises CalledProcessError."""
     with pytest.raises(subprocess.CalledProcessError):
         KafkaSnap.run_bin_command("stuff", ["to"], ["fail"])
 
 
 def test_run_bin_command_args():
+    """Checks KAFKA_OPTS env-var and zk-tls flag present in all snap commands."""
     with patch("subprocess.check_output") as patched:
         KafkaSnap.run_bin_command("configs", ["--list"], ["-Djava"])
 
-    assert ("KAFKA_OPTS=-Djava kafka.configs --list",) in list(patched.call_args)
+        found_tls = False
+        found_opts = False
+        for arg in patched.call_args.args:
+            if "--zk-tls-config-file" in arg:
+                found_tls = True
+            if "KAFKA_OPTS=" in arg:
+                found_opts = True
+
+        assert found_tls, "--zk-tls-config-file flag not found"
+        assert found_opts, "KAFKA_OPTS not found"
