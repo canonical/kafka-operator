@@ -5,7 +5,6 @@
 """Charmed Machine Operator for Apache Kafka."""
 
 import logging
-import os
 import subprocess
 from typing import MutableMapping, Optional
 
@@ -64,20 +63,6 @@ class KafkaCharm(CharmBase):
             getattr(self.on, "logs_storage_attached"), self._on_storage_attached
         )
 
-    def _on_storage_attached(self, event: StorageAttachedEvent) -> None:
-        path = event.storage.location if event.storage else None
-        if not path:
-            logger.error("Unable to find storage in StorageAttachedEvent")
-            return
-
-        os.makedirs(os.path.dirname(str(path)), exist_ok=True)
-        logger.info(f"Created directory at path - {str(path)=}")
-
-        self.unit_peer_data.update({"logs": "attached"})
-
-    def _on_storage_detatched(self, _: StorageDetachingEvent) -> None:
-        self.unit_peer_data.update({"logs": ""})
-
     @property
     def peer_relation(self) -> Optional[Relation]:
         """The cluster peer relation."""
@@ -98,6 +83,21 @@ class KafkaCharm(CharmBase):
             return {}
 
         return self.peer_relation.data[self.unit]
+
+    def _on_storage_attached(self, event: StorageAttachedEvent) -> None:
+        path = event.storage.location if event.storage else None
+        if not path:
+            logger.error("Unable to find storage in StorageAttachedEvent")
+            event.defer()
+            return
+
+        # os.makedirs(os.path.dirname(str(path)), exist_ok=True)
+        # logger.info(f"Created directory at path - {str(path)}")
+        #
+        self.unit_peer_data.update({"logs": "attached"})
+
+    def _on_storage_detatched(self, _: StorageDetachingEvent) -> None:
+        self.unit_peer_data.update({"logs": ""})
 
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
@@ -140,13 +140,6 @@ class KafkaCharm(CharmBase):
             logger.debug("no peer relation")
             event.defer()
             return
-
-        if not self.model.storages.get("logs", None):
-            logger.error("Unable to find storage in StartEvent")
-            return
-
-        logger.warning("Exiting")
-        return
 
         # required settings given zookeeper connection config has been created
         self.kafka_config.set_jaas_config()
@@ -209,9 +202,9 @@ class KafkaCharm(CharmBase):
         if set(properties) ^ set(self.kafka_config.server_properties):
             logger.info(
                 (
-                    'Broker {self.unit.name.split("/")[1]} updating config - '
-                    "OLD PROPERTIES = {set(properties) - set(self.kafka_config.server_properties)=}, "
-                    "NEW PROPERTIES = {set(self.kafka_config.server_properties) - set(properties)=}"
+                    f'Broker {self.unit.name.split("/")[1]} updating config - '
+                    f"OLD PROPERTIES = {set(properties) - set(self.kafka_config.server_properties)=}, "
+                    f"NEW PROPERTIES = {set(self.kafka_config.server_properties) - set(properties)=}"
                 )
             )
             self.kafka_config.set_server_properties()
@@ -300,7 +293,7 @@ class KafkaCharm(CharmBase):
         if (
             not self.kafka_config.zookeeper_connected
             or not self.peer_relation.data[self.app].get("broker-creds", None)
-            or not self.model.storages.get("logs", None)
+            or not len(self.model.storages["logs"]) == 12
         ):
             return False
 
