@@ -6,6 +6,7 @@
 
 import logging
 import subprocess
+import os
 from typing import MutableMapping, Optional
 
 from charms.rolling_ops.v0.rollingops import RollingOpsManager
@@ -16,6 +17,8 @@ from ops.charm import (
     LeaderElectedEvent,
     RelationEvent,
     RelationJoinedEvent,
+    StorageAttachedEvent,
+    StorageDetachingEvent,
 )
 from ops.framework import EventBase
 from ops.main import main
@@ -56,6 +59,23 @@ class KafkaCharm(CharmBase):
         self.framework.observe(self.on[ZK].relation_broken, self._on_zookeeper_broken)
 
         self.framework.observe(getattr(self.on, "set_password_action"), self._set_password_action)
+
+        self.framework.observe(getattr(self.on, "logs_storage_attached"), self._on_storage_attached)
+
+    def _on_storage_attached(self, event: StorageAttachedEvent) -> None:
+        path = event.storage.location if event.storage else None
+        if not path:
+            logger.error("Unable to find storage in StorageAttachedEvent")
+            return
+
+        logger.info(path)
+
+        os.makedirs(os.path.dirname(str(path)), exist_ok=True)
+
+        self.unit_peer_data.update({"logs": "attached"})
+
+    def _on_storage_detatched(self, _: StorageDetachingEvent) -> None:
+        self.unit_peer_data.update({"logs": ""})
 
     @property
     def peer_relation(self) -> Optional[Relation]:
@@ -118,6 +138,10 @@ class KafkaCharm(CharmBase):
         if not self.peer_relation:
             logger.debug("no peer relation")
             event.defer()
+            return
+
+        if not self.model.storages.get("logs", None):
+            logger.error("Unable to find storage in StartEvent")
             return
 
         # required settings given zookeeper connection config has been created
