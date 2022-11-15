@@ -5,8 +5,8 @@
 """Charmed Machine Operator for Apache Kafka."""
 
 import logging
-import subprocess
 import os
+import subprocess
 from typing import MutableMapping, Optional
 
 from charms.rolling_ops.v0.rollingops import RollingOpsManager
@@ -60,7 +60,9 @@ class KafkaCharm(CharmBase):
 
         self.framework.observe(getattr(self.on, "set_password_action"), self._set_password_action)
 
-        self.framework.observe(getattr(self.on, "logs_storage_attached"), self._on_storage_attached)
+        self.framework.observe(
+            getattr(self.on, "logs_storage_attached"), self._on_storage_attached
+        )
 
     def _on_storage_attached(self, event: StorageAttachedEvent) -> None:
         path = event.storage.location if event.storage else None
@@ -68,9 +70,8 @@ class KafkaCharm(CharmBase):
             logger.error("Unable to find storage in StorageAttachedEvent")
             return
 
-        logger.info(path)
-
         os.makedirs(os.path.dirname(str(path)), exist_ok=True)
+        logger.info(f"Created directory at path - {str(path)=}")
 
         self.unit_peer_data.update({"logs": "attached"})
 
@@ -143,6 +144,9 @@ class KafkaCharm(CharmBase):
         if not self.model.storages.get("logs", None):
             logger.error("Unable to find storage in StartEvent")
             return
+
+        logger.warning("Exiting")
+        return
 
         # required settings given zookeeper connection config has been created
         self.kafka_config.set_jaas_config()
@@ -293,8 +297,10 @@ class KafkaCharm(CharmBase):
             self.unit.status = BlockedStatus(msg)
             return False
 
-        if not self.kafka_config.zookeeper_connected or not self.peer_relation.data[self.app].get(
-            "broker-creds", None
+        if (
+            not self.kafka_config.zookeeper_connected
+            or not self.peer_relation.data[self.app].get("broker-creds", None)
+            or not self.model.storages.get("logs", None)
         ):
             return False
 

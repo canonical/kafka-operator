@@ -16,7 +16,6 @@ from utils import safe_write_to_file
 logger = logging.getLogger(__name__)
 
 DEFAULT_CONFIG_OPTIONS = """
-log.dirs=/var/snap/kafka/common/log
 sasl.enabled.mechanisms=SCRAM-SHA-512
 sasl.mechanism.inter.broker.protocol=SCRAM-SHA-512
 authorizer.class.name=kafka.security.authorizer.AclAuthorizer
@@ -190,6 +189,11 @@ class KafkaConfig:
         return ";".join(super_users_arg)
 
     @property
+    def log_dirs(self) -> List[str]:
+        log_dirs = [storage.location for storage in self.charm.model.storages.get("logs")]
+        return [f"log.dirs={log_dirs}"]
+
+    @property
     def server_properties(self) -> List[str]:
         """Builds all properties necessary for starting Kafka service.
 
@@ -218,6 +222,7 @@ class KafkaConfig:
             ]
             + self.default_replication_properties
             + self.auth_properties
+            + self.log_dirs
             + DEFAULT_CONFIG_OPTIONS.split("\n")
         )
 
