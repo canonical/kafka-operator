@@ -32,5 +32,6 @@ storage:
     type: filesystem
     description: Directories where the log data is stored
     minimum-size: 50M
-    location: /var/snap/kafka/common/log
-    multiple: 12+
+    location: /var/snap/kafka/common
+    multiple:
+      range: "12"
