@@ -5,6 +5,7 @@
 """Manager for handling Kafka configuration."""
 
 import logging
+import os
 from typing import Dict, List, Optional
 
 from ops.model import Unit
@@ -190,7 +191,14 @@ class KafkaConfig:
 
     @property
     def log_dirs(self) -> List[str]:
-        log_dirs = [storage.location for storage in self.charm.model.storages.get("logs")]
+        """Builds the necessary log.dirs based on mounted storage volumes.
+
+        Returns:
+            List of property log.dirs to be set
+        """
+        log_dirs = ",".join(
+            [os.fspath(storage.location) for storage in self.charm.model.storages["logs"]]
+        )
         return [f"log.dirs={log_dirs}"]
 
     @property
