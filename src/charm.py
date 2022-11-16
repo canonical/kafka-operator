@@ -60,7 +60,7 @@ class KafkaCharm(CharmBase):
         self.framework.observe(getattr(self.on, "set_password_action"), self._set_password_action)
 
         self.framework.observe(
-            getattr(self.on, "logs_storage_attached"), self._on_storage_attached
+            getattr(self.on, "log_data_storage_attached"), self._on_storage_attached
         )
 
     @property
@@ -91,9 +91,6 @@ class KafkaCharm(CharmBase):
             event.defer()
             return
 
-        # os.makedirs(os.path.dirname(str(path)), exist_ok=True)
-        # logger.info(f"Created directory at path - {str(path)}")
-        #
         self.unit_peer_data.update({"logs": "attached"})
 
     def _on_storage_detatched(self, _: StorageDetachingEvent) -> None:
@@ -286,14 +283,21 @@ class KafkaCharm(CharmBase):
             self.kafka_config.zookeeper_config.get("tls", "disabled") == "enabled"
         ):
             msg = "TLS must be enabled for Zookeeper and Kafka"
-            logger.debug(msg)
+            logger.error(msg)
+            self.unit.status = BlockedStatus(msg)
+            return False
+
+        storage_metadata = self.meta.storages["log-data"]
+        min_storages = storage_metadata.multiple_range[0] if storage_metadata.multiple_range else 0
+        if len(self.model.storages["log-data"]) < min_storages:
+            msg = f"Storage volumes lower than minimum"
+            logger.error(msg)
             self.unit.status = BlockedStatus(msg)
             return False
 
         if (
             not self.kafka_config.zookeeper_connected
             or not self.peer_relation.data[self.app].get("broker-creds", None)
-            or not len(self.model.storages["logs"]) == 12
         ):
             return False
 
