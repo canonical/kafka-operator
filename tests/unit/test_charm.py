@@ -34,6 +34,11 @@ def harness():
         }
     )
     harness.begin()
+    storage_metadata = getattr(harness.charm, "meta").storages["log-data"]
+    min_storages = storage_metadata.multiple_range[0] if storage_metadata.multiple_range else 0
+    with harness.hooks_disabled():
+        harness.add_storage(storage_name="log-data", count=min_storages, attach=True)
+
     return harness
 
 
@@ -286,6 +291,42 @@ def test_start_blocks_if_service_failed_silently(harness):
         harness.charm.on.start.emit()
 
         patched_start_snap_service.assert_called_once()
+        assert isinstance(harness.charm.unit.status, BlockedStatus)
+
+
+def test_start_blocks_if_missing_storage(harness):
+    """Checks unit is not ActiveStatus if missing storage mount."""
+    # removing single storage, less than minimum present
+    harness.detach_storage(storage_id="log-data/0")
+    harness.remove_storage(storage_id="log-data/0")
+
+    peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
+    zk_rel_id = harness.add_relation(ZK, ZK)
+    harness.add_relation_unit(zk_rel_id, "zookeeper/0")
+    harness.update_relation_data(
+        zk_rel_id,
+        ZK,
+        {
+            "username": "relation-1",
+            "password": "mellon",
+            "endpoints": "123.123.123",
+            "chroot": "/kafka",
+            "uris": "123.123.123/kafka",
+            "tls": "disabled",
+        },
+    )
+    harness.update_relation_data(peer_rel_id, CHARM_KEY, {"sync-password": "mellon"})
+    harness.set_leader(True)
+
+    with patch("auth.KafkaAuth.add_user"), patch("config.KafkaConfig.set_jaas_config"), patch(
+        "config.KafkaConfig.set_server_properties"
+    ), patch("snap.KafkaSnap.start_snap_service") as patched_start_snap_service, patch(
+        "charm.broker_active", return_value=False
+    ) as patched_broker_active:
+        patched_broker_active.retry.wait = wait_none
+        harness.charm.on.start.emit()
+
+        patched_start_snap_service.assert_not_called()
         assert isinstance(harness.charm.unit.status, BlockedStatus)
 
 

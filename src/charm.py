@@ -94,6 +94,7 @@ class KafkaCharm(CharmBase):
         self.unit_peer_data.update({"logs": "attached"})
 
     def _on_storage_detatched(self, _: StorageDetachingEvent) -> None:
+        # TODO: handle gracefully
         self.unit_peer_data.update({"logs": ""})
 
     def _on_install(self, _) -> None:
@@ -290,7 +291,7 @@ class KafkaCharm(CharmBase):
         storage_metadata = self.meta.storages["log-data"]
         min_storages = storage_metadata.multiple_range[0] if storage_metadata.multiple_range else 0
         if len(self.model.storages["log-data"]) < min_storages:
-            msg = f"Storage volumes lower than minimum"
+            msg = f"Storage volumes lower than minimum of {min_storages}"
             logger.error(msg)
             self.unit.status = BlockedStatus(msg)
             return False
