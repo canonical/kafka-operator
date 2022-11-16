@@ -31,6 +31,13 @@ def harness():
     return harness
 
 
+def test_all_storages_in_server_properties_log_dirs(harness):
+    """Checks that the log.dirs property updates with all available storages."""
+    assert len(harness.charm.kafka_config.log_dirs) == len(
+        harness.charm.model.storages["log-data"]
+    )
+
+
 def test_zookeeper_config_succeeds_fails_config(harness):
     """Checks that no ZK config is returned if missing field."""
     zk_relation_id = harness.add_relation(ZK, CHARM_KEY)

@@ -295,9 +295,8 @@ class KafkaCharm(CharmBase):
             self.unit.status = BlockedStatus(msg)
             return False
 
-        if (
-            not self.kafka_config.zookeeper_connected
-            or not self.peer_relation.data[self.app].get("broker-creds", None)
+        if not self.kafka_config.zookeeper_connected or not self.peer_relation.data[self.app].get(
+            "broker-creds", None
         ):
             return False
 

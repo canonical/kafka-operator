@@ -190,16 +190,15 @@ class KafkaConfig:
         return ";".join(super_users_arg)
 
     @property
-    def log_dirs(self) -> List[str]:
+    def log_dirs(self) -> str:
         """Builds the necessary log.dirs based on mounted storage volumes.
 
         Returns:
-            List of property log.dirs to be set
+            String of log.dirs property value to be set
         """
-        log_dirs = ",".join(
+        return ",".join(
             [os.fspath(storage.location) for storage in self.charm.model.storages["log-data"]]
         )
-        return [f"log.dirs={log_dirs}"]
 
     @property
     def server_properties(self) -> List[str]:
@@ -222,6 +221,7 @@ class KafkaConfig:
                 f"log.retention.hours={self.charm.config['log-retention-hours']}",
                 f"auto.create.topics={self.charm.config['auto-create-topics']}",
                 f"super.users={self.super_users}",
+                f"log.dirs={self.log_dirs}",
                 f"listeners={protocol}://:{port}",
                 f"advertised.listeners={protocol}://{host}:{port}",
                 f'listener.name.{(protocol).lower()}.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="sync" password="{self.sync_password}";',
@@ -230,7 +230,6 @@ class KafkaConfig:
             ]
             + self.default_replication_properties
             + self.auth_properties
-            + self.log_dirs
             + DEFAULT_CONFIG_OPTIONS.split("\n")
         )
 
