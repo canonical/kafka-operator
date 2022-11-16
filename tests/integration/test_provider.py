@@ -37,10 +37,12 @@ async def test_deploy_charms_relate_active(ops_test: OpsTest, usernames):
 
     await asyncio.gather(
         ops_test.model.deploy(
-            "zookeeper", channel="edge", application_name="zookeeper", num_units=3
+            "zookeeper", channel="edge", application_name="zookeeper", num_units=3, series="focal"
         ),
-        ops_test.model.deploy(charm, application_name=APP_NAME, num_units=1),
-        ops_test.model.deploy(app_charm, application_name=DUMMY_NAME_1, num_units=1),
+        ops_test.model.deploy(charm, application_name=APP_NAME, num_units=1, series="focal"),
+        ops_test.model.deploy(
+            app_charm, application_name=DUMMY_NAME_1, num_units=1, series="focal"
+        ),
     )
     await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_1, ZK])
     await ops_test.model.add_relation(APP_NAME, ZK)
@@ -177,7 +179,7 @@ async def test_admin_removed_from_super_users(ops_test: OpsTest):
 @pytest.mark.abort_on_fail
 async def test_connection_updated_on_tls_enabled(ops_test: OpsTest):
     tls_config = {"generate-self-signed-certificates": "true", "ca-common-name": "kafka"}
-    await ops_test.model.deploy(TLS_NAME, channel="edge", config=tls_config)
+    await ops_test.model.deploy(TLS_NAME, channel="edge", config=tls_config, series="focal")
     await ops_test.model.add_relation(TLS_NAME, ZK)
     await ops_test.model.add_relation(TLS_NAME, APP_NAME)
 
