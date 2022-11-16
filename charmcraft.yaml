@@ -4,6 +4,8 @@
 type: charm
 parts:
   charm:
+    charm-binary-python-packages:
+      - setuptools
     build-packages:
       - libffi-dev
       - libssl-dev
@@ -12,7 +14,7 @@ parts:
 bases:
   - build-on:
       - name: "ubuntu"
-        channel: "20.04"
+        channel: "22.04"
     run-on:
       - name: "ubuntu"
-        channel: "20.04"
+        channel: "22.04"

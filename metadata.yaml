@@ -9,6 +9,8 @@ description: |
   ""
 maintainers:
   - Marc Oppenheimer <marc.oppenheimer@canonical.com>
+series:
+  - jammy
 
 peers:
   cluster:
