@@ -197,7 +197,7 @@ class KafkaConfig:
             List of property log.dirs to be set
         """
         log_dirs = ",".join(
-            [os.fspath(storage.location) for storage in self.charm.model.storages["logs"]]
+            [os.fspath(storage.location) for storage in self.charm.model.storages["log-data"]]
         )
         return [f"log.dirs={log_dirs}"]
 

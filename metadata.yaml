@@ -28,7 +28,7 @@ provides:
     interface: kafka_client
 
 storage:
-  logs:
+  log-data:
     type: filesystem
     description: Directories where the log data is stored
     minimum-size: 50M
