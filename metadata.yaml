@@ -9,6 +9,8 @@ description: |
   ""
 maintainers:
   - Marc Oppenheimer <marc.oppenheimer@canonical.com>
+series:
+  - jammy
 
 peers:
   cluster:
@@ -26,3 +28,12 @@ requires:
 provides:
   kafka-client:
     interface: kafka_client
+
+storage:
+  log-data:
+    type: filesystem
+    description: Directories where the log data is stored
+    minimum-size: 50M
+    location: /var/snap/kafka/common
+    multiple:
+      range: "12"

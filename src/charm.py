@@ -16,6 +16,8 @@ from ops.charm import (
     LeaderElectedEvent,
     RelationEvent,
     RelationJoinedEvent,
+    StorageAttachedEvent,
+    StorageDetachingEvent,
 )
 from ops.framework import EventBase
 from ops.main import main
@@ -57,6 +59,10 @@ class KafkaCharm(CharmBase):
 
         self.framework.observe(getattr(self.on, "set_password_action"), self._set_password_action)
 
+        self.framework.observe(
+            getattr(self.on, "log_data_storage_attached"), self._on_storage_attached
+        )
+
     @property
     def peer_relation(self) -> Optional[Relation]:
         """The cluster peer relation."""
@@ -77,6 +83,19 @@ class KafkaCharm(CharmBase):
             return {}
 
         return self.peer_relation.data[self.unit]
+
+    def _on_storage_attached(self, event: StorageAttachedEvent) -> None:
+        path = event.storage.location if event.storage else None
+        if not path:
+            logger.error("Unable to find storage in StorageAttachedEvent")
+            event.defer()
+            return
+
+        self.unit_peer_data.update({"logs": "attached"})
+
+    def _on_storage_detatched(self, _: StorageDetachingEvent) -> None:
+        # TODO: handle gracefully
+        self.unit_peer_data.update({"logs": ""})
 
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
@@ -181,9 +200,9 @@ class KafkaCharm(CharmBase):
         if set(properties) ^ set(self.kafka_config.server_properties):
             logger.info(
                 (
-                    'Broker {self.unit.name.split("/")[1]} updating config - '
-                    "OLD PROPERTIES = {set(properties) - set(self.kafka_config.server_properties)=}, "
-                    "NEW PROPERTIES = {set(self.kafka_config.server_properties) - set(properties)=}"
+                    f'Broker {self.unit.name.split("/")[1]} updating config - '
+                    f"OLD PROPERTIES = {set(properties) - set(self.kafka_config.server_properties)=}, "
+                    f"NEW PROPERTIES = {set(self.kafka_config.server_properties) - set(properties)=}"
                 )
             )
             self.kafka_config.set_server_properties()
@@ -265,7 +284,15 @@ class KafkaCharm(CharmBase):
             self.kafka_config.zookeeper_config.get("tls", "disabled") == "enabled"
         ):
             msg = "TLS must be enabled for Zookeeper and Kafka"
-            logger.debug(msg)
+            logger.error(msg)
+            self.unit.status = BlockedStatus(msg)
+            return False
+
+        storage_metadata = self.meta.storages["log-data"]
+        min_storages = storage_metadata.multiple_range[0] if storage_metadata.multiple_range else 0
+        if len(self.model.storages["log-data"]) < min_storages:
+            msg = f"Storage volumes lower than minimum of {min_storages}"
+            logger.error(msg)
             self.unit.status = BlockedStatus(msg)
             return False
 
