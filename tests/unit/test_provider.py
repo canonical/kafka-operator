@@ -41,11 +41,11 @@ def test_client_relation_created_defers_if_not_ready(harness):
     with harness.hooks_disabled():
         harness.add_relation(PEER, CHARM_KEY)
 
-    with patch(
-        "charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=False
-    ), patch("auth.KafkaAuth.add_user") as patched_add_user, patch(
-        "ops.framework.EventBase.defer"
-    ) as patched_defer:
+    with (
+        patch("charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=False),
+        patch("auth.KafkaAuth.add_user") as patched_add_user,
+        patch("ops.framework.EventBase.defer") as patched_defer,
+    ):
         harness.set_leader(True)
         harness.add_relation(REL_NAME, "app")
 
@@ -56,9 +56,10 @@ def test_client_relation_created_defers_if_not_ready(harness):
 def test_client_relation_created_adds_user(harness):
     """Checks if new users are added on clientrelationcreated hook."""
     harness.add_relation(PEER, CHARM_KEY)
-    with patch(
-        "charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=True
-    ), patch("auth.KafkaAuth.add_user") as patched_add_user:
+    with (
+        patch("charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=True),
+        patch("auth.KafkaAuth.add_user") as patched_add_user,
+    ):
         harness.set_leader(True)
         client_rel_id = harness.add_relation(REL_NAME, "app")
 
@@ -70,14 +71,12 @@ def test_client_relation_created_adds_user(harness):
 def test_client_relation_broken_removes_user(harness):
     """Checks if users are removed on clientrelationbroken hook."""
     harness.add_relation(PEER, CHARM_KEY)
-    with patch(
-        "charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=True
-    ), patch("auth.KafkaAuth.add_user"), patch(
-        "auth.KafkaAuth.delete_user"
-    ) as patched_delete_user, patch(
-        "auth.KafkaAuth.remove_all_user_acls"
-    ) as patched_remove_acls, patch(
-        "snap.KafkaSnap.run_bin_command"
+    with (
+        patch("charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=True),
+        patch("auth.KafkaAuth.add_user"),
+        patch("auth.KafkaAuth.delete_user") as patched_delete_user,
+        patch("auth.KafkaAuth.remove_all_user_acls") as patched_remove_acls,
+        patch("snap.KafkaSnap.run_bin_command"),
     ):
         harness.set_leader(True)
         client_rel_id = harness.add_relation(REL_NAME, "app")
@@ -98,14 +97,18 @@ def test_client_relation_broken_removes_user(harness):
 def test_client_relation_joined_sets_necessary_relation_data(harness):
     """Checks if all needed provider relation data is set on clientrelationjoined hook."""
     harness.add_relation(PEER, CHARM_KEY)
-    with patch(
-        "charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=True
-    ), patch("auth.KafkaAuth.add_user"), patch("snap.KafkaSnap.run_bin_command"), patch(
-        "config.KafkaConfig.zookeeper_connected", new_callable=PropertyMock, return_value=True
-    ), patch(
-        "config.KafkaConfig.zookeeper_config",
-        new_callable=PropertyMock,
-        return_value={"connect": "yes"},
+    with (
+        patch("charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=True),
+        patch("auth.KafkaAuth.add_user"),
+        patch("snap.KafkaSnap.run_bin_command"),
+        patch(
+            "config.KafkaConfig.zookeeper_connected", new_callable=PropertyMock, return_value=True
+        ),
+        patch(
+            "config.KafkaConfig.zookeeper_config",
+            new_callable=PropertyMock,
+            return_value={"connect": "yes"},
+        ),
     ):
         harness.set_leader(True)
         client_rel_id = harness.add_relation(REL_NAME, "app")
