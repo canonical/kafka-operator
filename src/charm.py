@@ -12,7 +12,6 @@ from charms.rolling_ops.v0.rollingops import RollingOpsManager
 from ops.charm import (
     ActionEvent,
     CharmBase,
-    ConfigChangedEvent,
     LeaderElectedEvent,
     RelationEvent,
     RelationJoinedEvent,
@@ -62,6 +61,9 @@ class KafkaCharm(CharmBase):
         self.framework.observe(
             getattr(self.on, "log_data_storage_attached"), self._on_storage_attached
         )
+        self.framework.observe(
+            getattr(self.on, "log_data_storage_detaching"), self._on_storage_detaching
+        )
 
     @property
     def peer_relation(self) -> Optional[Relation]:
@@ -85,17 +87,36 @@ class KafkaCharm(CharmBase):
         return self.peer_relation.data[self.unit]
 
     def _on_storage_attached(self, event: StorageAttachedEvent) -> None:
-        path = event.storage.location if event.storage else None
-        if not path:
-            logger.error("Unable to find storage in StorageAttachedEvent")
-            event.defer()
-            return
+        """Handler for `storage_attached` events."""
+        # checks first whether the broker is active before warning
+        if self.kafka_config.zookeeper_connected and broker_active(
+            unit=self.unit, zookeeper_config=self.kafka_config.zookeeper_config
+        ):
+            # new dirs won't be used until topic partitions are assigned to it
+            # either automatically for new topics, or manually for existing
+            message = "manual partition reassignment needed to use new storage"
+            logger.warning(f"Attaching storage - {message}")
+            self.unit.status = ActiveStatus(message)
 
-        self.unit_peer_data.update({"logs": "attached"})
+        self._on_config_changed(event)
 
-    def _on_storage_detatched(self, _: StorageDetachingEvent) -> None:
-        # TODO: handle gracefully
-        self.unit_peer_data.update({"logs": ""})
+    def _on_storage_detaching(self, event: StorageDetachingEvent) -> None:
+        """Handler for `storage_detaching` events."""
+        # checks first whether the broker is active before warning
+        if self.kafka_config.zookeeper_connected and broker_active(
+            unit=self.unit, zookeeper_config=self.kafka_config.zookeeper_config
+        ):
+            # in the case where there may be replication recovery may be possible
+            if self.peer_relation and len(self.peer_relation.units):
+                message = "manual partition reassignment suggested due to potential log data loss"
+                logger.warning(f"Removing storage - {message}")
+                self.unit.status = BlockedStatus(message)
+            else:
+                message = "potential log-data loss"
+                logger.error(f"Removing storage - {message}")
+                self.unit.status = BlockedStatus(message)
+
+        self._on_config_changed(event)
 
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
@@ -184,7 +205,7 @@ class KafkaCharm(CharmBase):
             self.unit.status = BlockedStatus("kafka unit not connected to ZooKeeper")
             return
 
-    def _on_config_changed(self, event: ConfigChangedEvent) -> None:
+    def _on_config_changed(self, event: EventBase) -> None:
         """Generic handler for most `config_changed` events across relations."""
         if not self.ready_to_start:
             event.defer()
@@ -201,8 +222,8 @@ class KafkaCharm(CharmBase):
             logger.info(
                 (
                     f'Broker {self.unit.name.split("/")[1]} updating config - '
-                    f"OLD PROPERTIES = {set(properties) - set(self.kafka_config.server_properties)=}, "
-                    f"NEW PROPERTIES = {set(self.kafka_config.server_properties) - set(properties)=}"
+                    f"OLD PROPERTIES = {set(properties) - set(self.kafka_config.server_properties)}, "
+                    f"NEW PROPERTIES = {set(self.kafka_config.server_properties) - set(properties)}"
                 )
             )
             self.kafka_config.set_server_properties()
