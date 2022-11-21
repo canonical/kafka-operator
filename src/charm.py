@@ -89,32 +89,36 @@ class KafkaCharm(CharmBase):
     def _on_storage_attached(self, event: StorageAttachedEvent) -> None:
         """Handler for `storage_attached` events."""
         # checks first whether the broker is active before warning
-        if self.kafka_config.zookeeper_connected and broker_active(
+        if not self.kafka_config.zookeeper_connected or not broker_active(
             unit=self.unit, zookeeper_config=self.kafka_config.zookeeper_config
         ):
-            # new dirs won't be used until topic partitions are assigned to it
-            # either automatically for new topics, or manually for existing
-            message = "manual partition reassignment needed to use new storage"
-            logger.warning(f"Attaching storage - {message}")
-            self.unit.status = ActiveStatus(message)
+            return
+
+        # new dirs won't be used until topic partitions are assigned to it
+        # either automatically for new topics, or manually for existing
+        message = "manual partition reassignment needed to use new storage"
+        logger.warning(f"Attaching storage - {message}")
+        self.unit.status = ActiveStatus(message)
 
         self._on_config_changed(event)
 
     def _on_storage_detaching(self, event: StorageDetachingEvent) -> None:
         """Handler for `storage_detaching` events."""
         # checks first whether the broker is active before warning
-        if self.kafka_config.zookeeper_connected and broker_active(
+        if not self.kafka_config.zookeeper_connected or not broker_active(
             unit=self.unit, zookeeper_config=self.kafka_config.zookeeper_config
         ):
-            # in the case where there may be replication recovery may be possible
-            if self.peer_relation and len(self.peer_relation.units):
-                message = "manual partition reassignment suggested due to potential log data loss"
-                logger.warning(f"Removing storage - {message}")
-                self.unit.status = BlockedStatus(message)
-            else:
-                message = "potential log-data loss"
-                logger.error(f"Removing storage - {message}")
-                self.unit.status = BlockedStatus(message)
+            return
+
+        # in the case where there may be replication recovery may be possible
+        if self.peer_relation and len(self.peer_relation.units):
+            message = "manual partition reassignment suggested due to potential log data loss"
+            logger.warning(f"Removing storage - {message}")
+            self.unit.status = BlockedStatus(message)
+        else:
+            message = "potential log-data loss"
+            logger.error(f"Removing storage - {message}")
+            self.unit.status = BlockedStatus(message)
 
         self._on_config_changed(event)
 
