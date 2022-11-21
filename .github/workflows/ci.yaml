@@ -7,7 +7,7 @@ on:
 jobs:
   lint:
     name: Lint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -18,7 +18,7 @@ jobs:
 
   unit-test:
     name: Unit tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -29,7 +29,7 @@ jobs:
 
   integration-charm:
     name: Integration tests for (lxd)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs:
       - lint
       - unit-test
@@ -46,7 +46,7 @@ jobs:
 
   integration-provider:
     name: Integration tests for provider (lxd)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs:
       - lint
       - unit-test
@@ -63,7 +63,7 @@ jobs:
 
   integration-scaling:
     name: Integration tests for scaling (lxd)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs:
       - lint
       - unit-test
@@ -80,7 +80,7 @@ jobs:
 
   integration-password-rotation:
     name: Integration tests for password rotation (lxd)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs:
       - lint
       - unit-test
@@ -97,7 +97,7 @@ jobs:
 
   integration-tls:
     name: Integration tests for TLS (lxd)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs:
       - lint
       - unit-test

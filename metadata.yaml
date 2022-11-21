@@ -36,4 +36,4 @@ storage:
     minimum-size: 50M
     location: /var/snap/kafka/common
     multiple:
-      range: "12"
+      range: 1-12
