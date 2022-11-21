@@ -61,6 +61,11 @@ class ApplicationCharm(CharmBase):
             {"extra-user-roles": "admin,consumer"}
         )
 
+    def _make_producer(self, _):
+        self.model.get_relation(REL_NAME).data[self.app].update(
+            {"extra-user-roles": "admin,consumer,producer"}
+        )
+
     def _remove_admin(self, _):
         self.model.get_relation(REL_NAME).data[self.app].update({"extra-user-roles": "producer"})
 
