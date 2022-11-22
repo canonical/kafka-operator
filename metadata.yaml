@@ -24,6 +24,7 @@ requires:
   certificates:
     interface: tls-certificates
     limit: 1
+    optional: true
 
 provides:
   kafka-client:
@@ -33,7 +34,7 @@ storage:
   log-data:
     type: filesystem
     description: Directories where the log data is stored
-    minimum-size: 50M
+    minimum-size: 10G
     location: /var/snap/kafka/common
     multiple:
-      range: 1-12
+      range: 1-

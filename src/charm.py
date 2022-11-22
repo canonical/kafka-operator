@@ -96,8 +96,10 @@ class KafkaCharm(CharmBase):
 
         # new dirs won't be used until topic partitions are assigned to it
         # either automatically for new topics, or manually for existing
-        message = "manual partition reassignment needed to use new storage"
-        logger.warning(f"Attaching storage - {message}")
+        message = (
+            "manual partition reassignment may be needed for Kafka to utilize new storage volumes"
+        )
+        logger.warning(f"attaching storage - {message}")
         self.unit.status = ActiveStatus(message)
 
         self._on_config_changed(event)
@@ -112,12 +114,12 @@ class KafkaCharm(CharmBase):
 
         # in the case where there may be replication recovery may be possible
         if self.peer_relation and len(self.peer_relation.units):
-            message = "manual partition reassignment suggested due to potential log data loss"
-            logger.warning(f"Removing storage - {message}")
+            message = "manual partition reassignment from replicated brokers recommended due to lost partitions on removed storage volumes"
+            logger.warning(f"removing storage - {message}")
             self.unit.status = BlockedStatus(message)
         else:
-            message = "potential log-data loss"
-            logger.error(f"Removing storage - {message}")
+            message = "potential log-data loss due to storage removal without replication"
+            logger.error(f"removing storage - {message}")
             self.unit.status = BlockedStatus(message)
 
         self._on_config_changed(event)
