@@ -100,3 +100,34 @@ async def test_logs_write_to_storage(ops_test: OpsTest):
             passed = True
 
     assert passed, "logs not written to log directory"
+
+    topic = "brand-new-topic"
+    client = KafkaClient(
+        servers=servers,
+        username=username,
+        password=password,
+        topic=topic,
+        consumer_group_prefix=None,
+        security_protocol=security_protocol,
+    )
+
+    client.create_topic()
+    client.run_producer()
+
+    logs = check_output(
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 'find /var/snap/kafka/common/log-data'",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    ).splitlines()
+
+    logger.debug(f"{logs=}")
+
+    passed = False
+    for log in logs:
+        if topic and "index" in log:
+            passed = True
+
+    assert passed, "new logs not written to new log directory"
+
+
