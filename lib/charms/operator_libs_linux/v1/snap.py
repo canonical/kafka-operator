@@ -67,6 +67,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from collections.abc import Mapping
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from subprocess import CalledProcessError, CompletedProcess
 from typing import Any, Dict, Iterable, List, Optional, Union
@@ -81,7 +82,7 @@ LIBAPI = 1
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 3
+LIBPATCH = 6
 
 
 def _cache_init(func):
@@ -283,6 +284,15 @@ class Snap(object):
         command: List[str],
         services: Optional[List[str]] = None,
     ) -> CompletedProcess:
+        """Perform snap app commands.
+
+        Args:
+          command: the snap command to execute
+          services: the snap service to execute command on
+
+        Raises:
+          SnapError if there is a problem encountered
+        """
 
         if services:
             # an attempt to keep the command constrained to the snap instance's services
@@ -353,6 +363,32 @@ class Snap(object):
         """
         args = ["logs", "-n={}".format(num_lines)] if num_lines else ["logs"]
         return self._snap_daemons(args, services).stdout
+
+    def connect(
+        self, plug: Optional[str] = None, service: Optional[str] = None, slot: Optional[str] = None
+    ) -> None:
+        """Connects a plug to a slot.
+
+        Args:
+            plug (str): the plug to connect
+            service (str): (optional) the snap service name to plug into
+            slot (str): (optional) the snap service slot to plug in to
+
+        Raises:
+            SnapError if there is a problem encountered
+        """
+        command = ["connect", "{}:{}".format(self._name, plug)]
+
+        if service and slot:
+            command = command + ["{}:{}".format(service, slot)]
+        elif slot:
+            command = command + [slot]
+
+        _cmd = ["snap", *command]
+        try:
+            subprocess.run(_cmd, universal_newlines=True, check=True, capture_output=True)
+        except CalledProcessError as e:
+            raise SnapError("Could not {} for snap [{}]: {}".format(_cmd, self._name, e.stderr))
 
     def restart(
         self, services: Optional[List[str]] = None, reload: Optional[bool] = False
@@ -884,7 +920,7 @@ def _wrap_snap_operations(
 
 
 def install_local(
-    self, filename: str, classic: Optional[bool] = False, dangerous: Optional[bool] = False
+    filename: str, classic: Optional[bool] = False, dangerous: Optional[bool] = False
 ) -> Snap:
     """Perform a snap operation.
 
@@ -900,9 +936,11 @@ def install_local(
         "snap",
         "install",
         filename,
-        "--classic" if classic else "",
-        "--dangerous" if dangerous else "",
     ]
+    if classic:
+        _cmd.append("--classic")
+    if dangerous:
+        _cmd.append("--dangerous")
     try:
         result = subprocess.check_output(_cmd, universal_newlines=True).splitlines()[0]
         snap_name, _ = result.split(" ", 1)
@@ -912,3 +950,41 @@ def install_local(
         return c[snap_name]
     except CalledProcessError as e:
         raise SnapError("Could not install snap {}: {}".format(filename, e.output))
+
+
+def _system_set(config_item: str, value: str) -> None:
+    """Helper for setting snap system config values.
+
+    Args:
+        config_item: name of snap system setting. E.g. 'refresh.hold'
+        value: value to assign
+    """
+    _cmd = ["snap", "set", "system", "{}={}".format(config_item, value)]
+    try:
+        subprocess.check_call(_cmd, universal_newlines=True)
+    except CalledProcessError:
+        raise SnapError("Failed setting system config '{}' to '{}'".format(config_item, value))
+
+
+def hold_refresh(days: int = 90) -> bool:
+    """Set the system-wide snap refresh hold.
+
+    Args:
+        days: number of days to hold system refreshes for. Maximum 90. Set to zero to remove hold.
+    """
+    # Currently the snap daemon can only hold for a maximum of 90 days
+    if not isinstance(days, int) or days > 90:
+        raise ValueError("days must be an int between 1 and 90")
+    elif days == 0:
+        _system_set("refresh.hold", "")
+        logger.info("Removed system-wide snap refresh hold")
+    else:
+        # Add the number of days to current time
+        target_date = datetime.now(timezone.utc).astimezone() + timedelta(days=days)
+        # Format for the correct datetime format
+        hold_date = target_date.strftime("%Y-%m-%dT%H:%M:%S%z")
+        # Python dumps the offset in format '+0100', we need '+01:00'
+        hold_date = "{0}:{1}".format(hold_date[:-2], hold_date[-2:])
+        # Actually set the hold date
+        _system_set("refresh.hold", hold_date)
+        logger.info("Set system-wide snap refresh hold to: %s", hold_date)
