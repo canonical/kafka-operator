@@ -102,6 +102,7 @@ class KafkaCharm(CharmBase):
         logger.warning(f"attaching storage - {message}")
         self.unit.status = ActiveStatus(message)
 
+        self.unit_peer_data.update({"storage-changed": "true"})
         self._on_config_changed(event)
 
     def _on_storage_detaching(self, event: StorageDetachingEvent) -> None:
@@ -122,6 +123,7 @@ class KafkaCharm(CharmBase):
             logger.error(f"removing storage - {message}")
             self.unit.status = BlockedStatus(message)
 
+        self.unit_peer_data.update({"storage-changed": "true"})
         self._on_config_changed(event)
 
     def _on_install(self, _) -> None:
@@ -234,7 +236,16 @@ class KafkaCharm(CharmBase):
             )
             self.kafka_config.set_server_properties()
 
-            self.on[f"{self.restart.name}"].acquire_lock.emit()
+            if self.unit_peer_data.get("storage-changed", None):
+                # calling override restart to see new storage mounts
+                self.on[f"{self.restart.name}"].acquire_lock.emit(
+                    callback_override="_disable_enable_snap"
+                )
+                self.unit_peer_data.update(
+                    {"storage-changed": ""}
+                )  # unsetting after restart event called
+            else:
+                self.on[f"{self.restart.name}"].acquire_lock.emit()
 
         # If Kafka is related to client charms, update their information.
         if self.model.relations.get(REL_NAME, None) and self.unit.is_leader():
@@ -247,6 +258,24 @@ class KafkaCharm(CharmBase):
             return
 
         self.snap.restart_snap_service("kafka")
+
+    def _disable_enable_snap(self, event: EventBase) -> None:
+        """Callback override for `rolling_ops` restart events.
+
+        This is needed as standard `restart snap` does not re-load mounted volumes
+        We instead have to `stop`+`disable` then `enable`+`start`
+        """
+        if not self.ready_to_start:
+            event.defer()
+            return
+
+        # FIXME: there is probably a smart snap plug for fixing this
+        subprocess.check_output(
+            "snap disable kafka && snap enable kafka",
+            stderr=subprocess.PIPE,
+            shell=True,
+            universal_newlines=True,
+        )
 
     def _set_password_action(self, event: ActionEvent) -> None:
         """Handler for set-password action.
