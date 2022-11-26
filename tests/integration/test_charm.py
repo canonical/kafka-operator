@@ -5,15 +5,13 @@
 import asyncio
 import logging
 import time
-from asyncio.subprocess import PIPE
-from subprocess import check_output
+from subprocess import PIPE, check_output
 
 import pytest
-from client import KafkaClient
 from pytest_operator.plugin import OpsTest
 
 from literals import CHARM_KEY
-from tests.integration.helpers import get_provider_data
+from tests.integration.helpers import produce_and_check_logs
 
 logger = logging.getLogger(__name__)
 
@@ -59,44 +57,28 @@ async def test_logs_write_to_storage(ops_test: OpsTest):
     assert ops_test.model.applications[CHARM_KEY].status == "active"
     assert ops_test.model.applications[DUMMY_NAME].status == "active"
 
-    relation_data = get_provider_data(
-        unit_name=f"{DUMMY_NAME}/0", model_full_name=ops_test.model_full_name
-    )
-    logger.debug(f"{relation_data=}")
-
-    topic = "new-topic"
-    username = relation_data.get("username", None)
-    password = relation_data.get("password", None)
-    servers = relation_data.get("uris", "").split(",")
-    security_protocol = "SASL_PLAINTEXT"
-
-    if not (username and password and servers):
-        pytest.fail("missing relation data from app charm")
-
-    client = KafkaClient(
-        servers=servers,
-        username=username,
-        password=password,
-        topic=topic,
-        consumer_group_prefix=None,
-        security_protocol=security_protocol,
+    produce_and_check_logs(
+        model_full_name=ops_test.model_full_name,
+        kafka_unit_name="kafka/0",
+        provider_unit_name=f"{DUMMY_NAME}/0",
+        topic="hot-topic",
     )
 
-    client.create_topic()
-    client.run_producer()
 
-    logs = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 'find /var/snap/kafka/common/log-data'",
+@pytest.mark.abort_on_fail
+@pytest.mark.skip  # skipping as we can't add storage without losing Juju conn
+async def test_logs_write_to_new_storage(ops_test: OpsTest):
+    check_output(
+        f"JUJU_MODEL={ops_test.model_full_name} juju add-storage kafka/0 log-data",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
-    ).splitlines()
+    )
+    time.sleep(5)  # to give time for storage to complete
 
-    logger.debug(f"{logs=}")
-
-    passed = False
-    for log in logs:
-        if topic and "index" in log:
-            passed = True
-
-    assert passed, "logs not written to log directory"
+    produce_and_check_logs(
+        model_full_name=ops_test.model_full_name,
+        kafka_unit_name="kafka/0",
+        provider_unit_name=f"{DUMMY_NAME}/0",
+        topic="cold-topic",
+    )

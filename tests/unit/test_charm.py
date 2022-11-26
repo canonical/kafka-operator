@@ -325,21 +325,22 @@ def test_storage_add_remove_triggers_restart(harness):
     harness.set_leader(True)
 
     with (
-        patch("snap.KafkaSnap.restart_snap_service") as patched_restart_snap_service,
+        patch("snap.KafkaSnap.restart_snap_service") as patched_disable_enable,
         patch("charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=True),
         patch("charm.safe_get_file", return_value=["log.dirs=/var/snap/kafka/common/logs/0"]),
         patch("config.KafkaConfig.set_server_properties"),
         patch("charm.broker_active", return_value=True),
+        patch("snap.KafkaSnap.disable_enable") as patched_disable_enable,
     ):
         harness.add_storage(storage_name="log-data", count=2)
         harness.attach_storage(storage_id="log-data/1")
-        patched_restart_snap_service.assert_called_once()
+        patched_disable_enable.assert_called_once()
         assert not isinstance(harness.charm.unit.status, BlockedStatus)
 
-        patched_restart_snap_service.reset_mock()
+        patched_disable_enable.reset_mock()
 
         harness.remove_storage(storage_id="log-data/1")
-        patched_restart_snap_service.assert_called_once()
+        patched_disable_enable.assert_called_once()
 
 
 def test_config_changed_updates_properties(harness):

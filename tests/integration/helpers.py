@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
+import logging
 import re
 from pathlib import Path
 from subprocess import PIPE, check_output
 from typing import Any, Dict, List, Set, Tuple
 
 import yaml
+from client import KafkaClient
 from pytest_operator.plugin import OpsTest
 
 from auth import Acl, KafkaAuth
@@ -14,6 +16,8 @@ from auth import Acl, KafkaAuth
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 APP_NAME = METADATA["name"]
 ZK_NAME = "zookeeper"
+
+logger = logging.getLogger(__name__)
 
 
 def load_acls(model_full_name: str, zookeeper_uri: str) -> Set[Acl]:
@@ -161,3 +165,61 @@ def check_tls(ip: str, port: int) -> bool:
     # from self-signed certificates. This is indication enough that the server is sending a
     # self-signed key.
     assert "CN = kafka" in result
+
+
+def produce_and_check_logs(
+    model_full_name: str, kafka_unit_name: str, provider_unit_name: str, topic: str
+) -> None:
+    """Produces messages from HN to chosen Kafka topic.
+
+    Args:
+        model_full_name: the full name of the model
+        kafka_unit_name: the kafka unit to checks logs on
+        proider_unit_name: the app to grab credentials from
+        topic: the desired topic to produce to
+
+    Raises:
+        KeyError: if missing relation data
+        AssertionError: if logs aren't found for desired topic
+    """
+    relation_data = get_provider_data(
+        unit_name=provider_unit_name, model_full_name=model_full_name
+    )
+
+    topic = topic
+    username = relation_data.get("username", None)
+    password = relation_data.get("password", None)
+    servers = relation_data.get("uris", "").split(",")
+    security_protocol = "SASL_PLAINTEXT"
+
+    if not (username and password and servers):
+        raise KeyError("missing relation data from app charm")
+
+    client = KafkaClient(
+        servers=servers,
+        username=username,
+        password=password,
+        topic=topic,
+        consumer_group_prefix=None,
+        security_protocol=security_protocol,
+    )
+
+    client.create_topic()
+    client.run_producer()
+
+    logs = check_output(
+        f"JUJU_MODEL={model_full_name} juju ssh {kafka_unit_name} 'find /var/snap/kafka/common/log-data'",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    ).splitlines()
+
+    logger.debug(f"{logs=}")
+
+    passed = False
+    for log in logs:
+        if topic and "index" in log:
+            passed = True
+            break
+
+    assert passed, "logs not found"
