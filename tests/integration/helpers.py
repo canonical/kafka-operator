@@ -185,7 +185,6 @@ def produce_and_check_logs(
     relation_data = get_provider_data(
         unit_name=provider_unit_name, model_full_name=model_full_name
     )
-    logger.debug(f"{relation_data=}")
 
     topic = topic
     username = relation_data.get("username", None)
@@ -221,5 +220,3 @@ def produce_and_check_logs(
     for log in logs:
         if topic and "index" in log:
             passed = True
-
-    assert passed, "logs not written to log directory"

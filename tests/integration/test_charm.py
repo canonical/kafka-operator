@@ -5,7 +5,7 @@
 import asyncio
 import logging
 import time
-from subprocess import check_output
+from subprocess import PIPE, check_output
 
 import pytest
 from pytest_operator.plugin import OpsTest
@@ -66,9 +66,15 @@ async def test_logs_write_to_storage(ops_test: OpsTest):
 
 
 @pytest.mark.abort_on_fail
+@pytest.mark.skip  # skipping as we can't add storage without losing Juju conn
 async def test_logs_write_to_new_storage(ops_test: OpsTest):
-    check_output(f"JUJU_MODEL={ops_test.model_full_name} juju add-storage kafka/0 log-data")
-    time.sleep(10)  # to give time for storage to complete
+    check_output(
+        f"JUJU_MODEL={ops_test.model_full_name} juju add-storage kafka/0 log-data",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+    time.sleep(5)  # to give time for storage to complete
 
     produce_and_check_logs(
         model_full_name=ops_test.model_full_name,

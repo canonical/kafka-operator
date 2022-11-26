@@ -17,6 +17,7 @@ from ops.charm import (
     RelationJoinedEvent,
     StorageAttachedEvent,
     StorageDetachingEvent,
+    StorageEvent,
 )
 from ops.framework import EventBase
 from ops.main import main
@@ -234,7 +235,12 @@ class KafkaCharm(CharmBase):
             )
             self.kafka_config.set_server_properties()
 
-            self.on[f"{self.restart.name}"].acquire_lock.emit()
+            if isinstance(event, StorageEvent):  # to get new storages
+                subprocess.run(["snap", "disable", "kafka"], shell=True)
+                subprocess.run(["snap", "enable", "kafka"], shell=True)
+                return
+            else:
+                self.on[f"{self.restart.name}"].acquire_lock.emit()
 
         # If Kafka is related to client charms, update their information.
         if self.model.relations.get(REL_NAME, None) and self.unit.is_leader():
