@@ -236,8 +236,7 @@ class KafkaCharm(CharmBase):
             self.kafka_config.set_server_properties()
 
             if isinstance(event, StorageEvent):  # to get new storages
-                subprocess.run(["snap", "disable", "kafka"], shell=True)
-                subprocess.run(["snap", "enable", "kafka"], shell=True)
+                self.snap.disable_enable("kafka")
                 return
             else:
                 self.on[f"{self.restart.name}"].acquire_lock.emit()

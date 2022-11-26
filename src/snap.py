@@ -97,6 +97,20 @@ class KafkaSnap:
             logger.exception(str(e))
             return False
 
+    def disable_enable(self, snap_service: str) -> None:
+        """Disables then enables snap service.
+
+        Necessary for snap services to recognise new storage mounts
+
+        Args:
+            snap_service: The desired service to disable+enable
+
+        Raises:
+            subprocess.CalledProcessError if error occurs
+        """
+        subprocess.run(f"snap disable {snap_service}", shell=True)
+        subprocess.run(f"snap enable {snap_service}", shell=True)
+
     @staticmethod
     def run_bin_command(bin_keyword: str, bin_args: List[str], opts: List[str]) -> str:
         """Runs kafka bin command with desired args.

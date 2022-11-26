@@ -220,3 +220,5 @@ def produce_and_check_logs(
     for log in logs:
         if topic and "index" in log:
             passed = True
+
+    assert passed, "logs not found"
