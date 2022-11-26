@@ -365,7 +365,7 @@ class Snap(object):
         return self._snap_daemons(args, services).stdout
 
     def connect(
-        self, plug: Optional[str] = None, service: Optional[str] = None, slot: Optional[str] = None
+        self, plug: str, service: Optional[str] = None, slot: Optional[str] = None
     ) -> None:
         """Connects a plug to a slot.
 
