@@ -12,10 +12,12 @@ from charms.rolling_ops.v0.rollingops import RollingOpsManager
 from ops.charm import (
     ActionEvent,
     CharmBase,
-    ConfigChangedEvent,
     LeaderElectedEvent,
     RelationEvent,
     RelationJoinedEvent,
+    StorageAttachedEvent,
+    StorageDetachingEvent,
+    StorageEvent,
 )
 from ops.framework import EventBase
 from ops.main import main
@@ -57,6 +59,13 @@ class KafkaCharm(CharmBase):
 
         self.framework.observe(getattr(self.on, "set_password_action"), self._set_password_action)
 
+        self.framework.observe(
+            getattr(self.on, "log_data_storage_attached"), self._on_storage_attached
+        )
+        self.framework.observe(
+            getattr(self.on, "log_data_storage_detaching"), self._on_storage_detaching
+        )
+
     @property
     def peer_relation(self) -> Optional[Relation]:
         """The cluster peer relation."""
@@ -77,6 +86,44 @@ class KafkaCharm(CharmBase):
             return {}
 
         return self.peer_relation.data[self.unit]
+
+    def _on_storage_attached(self, event: StorageAttachedEvent) -> None:
+        """Handler for `storage_attached` events."""
+        # checks first whether the broker is active before warning
+        if not self.kafka_config.zookeeper_connected or not broker_active(
+            unit=self.unit, zookeeper_config=self.kafka_config.zookeeper_config
+        ):
+            return
+
+        # new dirs won't be used until topic partitions are assigned to it
+        # either automatically for new topics, or manually for existing
+        message = (
+            "manual partition reassignment may be needed for Kafka to utilize new storage volumes"
+        )
+        logger.warning(f"attaching storage - {message}")
+        self.unit.status = ActiveStatus(message)
+
+        self._on_config_changed(event)
+
+    def _on_storage_detaching(self, event: StorageDetachingEvent) -> None:
+        """Handler for `storage_detaching` events."""
+        # checks first whether the broker is active before warning
+        if not self.kafka_config.zookeeper_connected or not broker_active(
+            unit=self.unit, zookeeper_config=self.kafka_config.zookeeper_config
+        ):
+            return
+
+        # in the case where there may be replication recovery may be possible
+        if self.peer_relation and len(self.peer_relation.units):
+            message = "manual partition reassignment from replicated brokers recommended due to lost partitions on removed storage volumes"
+            logger.warning(f"removing storage - {message}")
+            self.unit.status = BlockedStatus(message)
+        else:
+            message = "potential log-data loss due to storage removal without replication"
+            logger.error(f"removing storage - {message}")
+            self.unit.status = BlockedStatus(message)
+
+        self._on_config_changed(event)
 
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
@@ -165,7 +212,7 @@ class KafkaCharm(CharmBase):
             self.unit.status = BlockedStatus("kafka unit not connected to ZooKeeper")
             return
 
-    def _on_config_changed(self, event: ConfigChangedEvent) -> None:
+    def _on_config_changed(self, event: EventBase) -> None:
         """Generic handler for most `config_changed` events across relations."""
         if not self.ready_to_start:
             event.defer()
@@ -181,14 +228,18 @@ class KafkaCharm(CharmBase):
         if set(properties) ^ set(self.kafka_config.server_properties):
             logger.info(
                 (
-                    'Broker {self.unit.name.split("/")[1]} updating config - '
-                    "OLD PROPERTIES = {set(properties) - set(self.kafka_config.server_properties)=}, "
-                    "NEW PROPERTIES = {set(self.kafka_config.server_properties) - set(properties)=}"
+                    f'Broker {self.unit.name.split("/")[1]} updating config - '
+                    f"OLD PROPERTIES = {set(properties) - set(self.kafka_config.server_properties)}, "
+                    f"NEW PROPERTIES = {set(self.kafka_config.server_properties) - set(properties)}"
                 )
             )
             self.kafka_config.set_server_properties()
 
-            self.on[f"{self.restart.name}"].acquire_lock.emit()
+            if isinstance(event, StorageEvent):  # to get new storages
+                self.snap.disable_enable("kafka")
+                return
+            else:
+                self.on[f"{self.restart.name}"].acquire_lock.emit()
 
         # If Kafka is related to client charms, update their information.
         if self.model.relations.get(REL_NAME, None) and self.unit.is_leader():
@@ -265,7 +316,15 @@ class KafkaCharm(CharmBase):
             self.kafka_config.zookeeper_config.get("tls", "disabled") == "enabled"
         ):
             msg = "TLS must be enabled for Zookeeper and Kafka"
-            logger.debug(msg)
+            logger.error(msg)
+            self.unit.status = BlockedStatus(msg)
+            return False
+
+        storage_metadata = self.meta.storages["log-data"]
+        min_storages = storage_metadata.multiple_range[0] if storage_metadata.multiple_range else 0
+        if len(self.model.storages["log-data"]) < min_storages:
+            msg = f"Storage volumes lower than minimum of {min_storages}"
+            logger.error(msg)
             self.unit.status = BlockedStatus(msg)
             return False
 

@@ -31,6 +31,45 @@ def harness():
     return harness
 
 
+def test_all_storages_in_log_dirs(harness):
+    """Checks that the log.dirs property updates with all available storages."""
+    storage_metadata = harness.charm.meta.storages["log-data"]
+    min_storages = storage_metadata.multiple_range[0] if storage_metadata.multiple_range else 0
+    with harness.hooks_disabled():
+        harness.add_storage(storage_name="log-data", count=min_storages, attach=True)
+
+    assert len(harness.charm.kafka_config.log_dirs.split(",")) == len(
+        harness.charm.model.storages["log-data"]
+    )
+
+
+def test_log_dirs_in_server_properties(harness):
+    """Checks that log.dirs are added to server_properties."""
+    zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
+    harness.update_relation_data(
+        zk_relation_id,
+        harness.charm.app.name,
+        {
+            "chroot": "/kafka",
+            "username": "moria",
+            "password": "mellon",
+            "endpoints": "1.1.1.1,2.2.2.2",
+            "uris": "1.1.1.1:2181/kafka,2.2.2.2:2181/kafka",
+            "tls": "disabled",
+        },
+    )
+    peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
+    harness.add_relation_unit(peer_relation_id, "kafka/1")
+    harness.update_relation_data(peer_relation_id, "kafka/0", {"private-address": "treebeard"})
+
+    found_log_dirs = False
+    for prop in harness.charm.kafka_config.server_properties:
+        if "log.dirs" in prop:
+            found_log_dirs = True
+
+    assert found_log_dirs
+
+
 def test_zookeeper_config_succeeds_fails_config(harness):
     """Checks that no ZK config is returned if missing field."""
     zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
