@@ -1,13 +1,6 @@
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
 # In Juju 3 this will be easier to copy
-get-server-properties:
-  description: |
-    Action to retrieve the current server.properties
-get-snap-apps:
-  description: |
-    Action to retrieve the available commands within the kafka snap
-
 set-password:
   description: Change the system user's password, which is used by the charm.
     It is for internal charm users and SHOULD NOT be used by applications.
@@ -22,10 +15,13 @@ set-password:
       description: The password will be auto-generated if this option is not specified.
 
 set-tls-private-key:
-  description: Set the privates key, which will be used for certificate signing
+  description: Set the private key, which will be used for certificate signing
     requests (CSR). Run for each unit separately.
   params:
     internal-key:
       type: string
       description: The content of private key for internal communications with clients.
         Content will be auto-generated if this option is not specified.
+
+rolling-restart-unit:
+  description: Manually triggers a rolling restart for specified units.
