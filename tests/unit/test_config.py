@@ -204,3 +204,29 @@ def test_super_users(harness):
 
     harness.update_relation_data(client_relation_id, "appii", {"extra-user-roles": "consumer"})
     assert len(harness.charm.kafka_config.super_users.split(";")) == 2
+
+def test_rack_awareness_config(harness):
+    """Checks the bootstrap-server property setting."""
+    zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
+    peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
+    harness.update_relation_data(
+        peer_relation_id, harness.charm.app.name, {"sync_password": "mellon"}
+    )
+    harness.update_relation_data(
+        zk_relation_id,
+        harness.charm.app.name,
+        {
+            "chroot": "/kafka",
+            "username": "moria",
+            "password": "mellon",
+            "endpoints": "1.1.1.1,2.2.2.2",
+            "uris": "1.1.1.1:2181/kafka,2.2.2.2:2181/kafka",
+            "tls": "disabled",
+        },
+    )
+
+    assert all(["rack.id" not in prop for prop in harness.charm.kafka_config.server_properties])
+
+    harness.update_relation_data(peer_relation_id, "kafka/0", {"rack-id": "my-rack-0"})
+
+    assert any(["rack.id" in prop for prop in harness.charm.kafka_config.server_properties])

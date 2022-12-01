@@ -60,6 +60,8 @@ class KafkaCharm(CharmBase):
         self.framework.observe(getattr(self.on, "set_password_action"), self._set_password_action)
         self.framework.observe(getattr(self.on, "rolling_restart_unit_action"), self._restart)
 
+        self.framework.observe(getattr(self.on, "set_rack_id_action"), self._set_rack_id)
+
         self.framework.observe(
             getattr(self.on, "log_data_storage_attached"), self._on_storage_attached
         )
@@ -125,6 +127,19 @@ class KafkaCharm(CharmBase):
             self.unit.status = BlockedStatus(message)
 
         self._on_config_changed(event)
+
+    def _set_rack_id(self, event: ActionEvent) -> None:
+        # Set the databag
+        self.kafka_config.set_rack_id(event.params["rack-id"])
+
+        # Push the server properties to disk
+        self.kafka_config.set_server_properties()
+
+        # Restart the unit
+        self._restart(event)
+
+        event.set_results(event.params)
+
 
     def _on_install(self, _) -> None:
         """Handler for `install` event."""

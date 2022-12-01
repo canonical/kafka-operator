@@ -5,13 +5,14 @@ import logging
 import re
 from pathlib import Path
 from subprocess import PIPE, check_output
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any, Dict, List, Set, Tuple, Optional
 
 import yaml
-from client import KafkaClient
-from pytest_operator.plugin import OpsTest
-
 from auth import Acl, KafkaAuth
+from pytest_operator.plugin import OpsTest
+from snap import SNAP_CONFIG_PATH
+
+from client import KafkaClient
 
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 APP_NAME = METADATA["name"]
@@ -168,7 +169,7 @@ def check_tls(ip: str, port: int) -> bool:
 
 
 def produce_and_check_logs(
-    model_full_name: str, kafka_unit_name: str, provider_unit_name: str, topic: str
+        model_full_name: str, kafka_unit_name: str, provider_unit_name: str, topic: str
 ) -> None:
     """Produces messages from HN to chosen Kafka topic.
 
@@ -223,3 +224,30 @@ def produce_and_check_logs(
             break
 
     assert passed, "logs not found"
+
+
+async def set_rack_id(ops_test: OpsTest, num_unit=0, rack_id: str = "my-rack-id") -> str:
+    """Use the charm action to set the rack id."""
+    action = await ops_test.model.units.get(f"{APP_NAME}/{num_unit}").run_action(
+        "set-rack-id", **{"rack-id": rack_id}
+    )
+    output = await action.wait()
+    return output.results["rack-id"]
+
+
+def get_rack_id(model_full_name: str) -> Optional[str]:
+    result = check_output(
+        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 'cat {SNAP_CONFIG_PATH}/server.properties'",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+
+    print("#".join(result.split("\n")))
+
+    rows = [row for row in result.split("\n") if "rack.id" in row]
+
+    if len(rows) == 0:
+        return None
+    else:
+        return rows[0].split("=")[1]

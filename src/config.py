@@ -23,6 +23,8 @@ authorizer.class.name=kafka.security.authorizer.AclAuthorizer
 allow.everyone.if.no.acl.found=false
 """
 
+RACK_ID_KEY = "rack-id"
+
 
 class KafkaConfig:
     """Manager for handling Kafka configuration."""
@@ -215,28 +217,37 @@ class KafkaConfig:
         port = 9093 if self.charm.tls.enabled else 9092
         protocol = "SASL_SSL" if self.charm.tls.enabled else "SASL_PLAINTEXT"
 
+        rack_id = self.charm.model.get_relation(PEER).data[self.charm.unit].get(RACK_ID_KEY, None)
+
         properties = (
-            [
-                f"offsets.retention.minutes={self.charm.config['offsets-retention-minutes']}",
-                f"log.retention.hours={self.charm.config['log-retention-hours']}",
-                f"auto.create.topics={self.charm.config['auto-create-topics']}",
-                f"super.users={self.super_users}",
-                f"log.dirs={self.log_dirs}",
-                f"listeners={protocol}://:{port}",
-                f"advertised.listeners={protocol}://{host}:{port}",
-                f'listener.name.{(protocol).lower()}.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="sync" password="{self.sync_password}";',
-                f"security.inter.broker.protocol={protocol}",
-                f"security.protocol={protocol}",
-            ]
-            + self.default_replication_properties
-            + self.auth_properties
-            + DEFAULT_CONFIG_OPTIONS.split("\n")
+                [
+                    f"offsets.retention.minutes={self.charm.config['offsets-retention-minutes']}",
+                    f"log.retention.hours={self.charm.config['log-retention-hours']}",
+                    f"auto.create.topics={self.charm.config['auto-create-topics']}",
+                    f"super.users={self.super_users}",
+                    f"log.dirs={self.log_dirs}",
+                    f"listeners={protocol}://:{port}",
+                    f"advertised.listeners={protocol}://{host}:{port}",
+                    f'listener.name.{(protocol).lower()}.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="sync" password="{self.sync_password}";',
+                    f"security.inter.broker.protocol={protocol}",
+                    f"security.protocol={protocol}",
+                ]
+                + ([f"rack.id={rack_id}"] if rack_id is not None else [])
+                + self.default_replication_properties
+                + self.auth_properties
+                + DEFAULT_CONFIG_OPTIONS.split("\n")
         )
 
         if self.charm.tls.enabled:
             properties += self.tls_properties
 
         return properties
+
+    def set_rack_id(self, rack_id: str) -> 'KafkaConfig':
+        relation = self.charm.peer_relation
+        if relation is not None:
+            relation.data[self.charm.unit].update({RACK_ID_KEY: rack_id})
+        return self
 
     def set_jaas_config(self) -> None:
         """Writes the Kafka JAAS config using ZooKeeper relation data."""
