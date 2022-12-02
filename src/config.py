@@ -92,7 +92,10 @@ class KafkaConfig:
         Returns:
             List of Java config options
         """
-        return [f"-Djava.security.auth.login.config={self.jaas_filepath}"]
+        return [
+            f"-Djava.security.auth.login.config={self.jaas_filepath}",
+            f"-javaagent:{self.default_config_path}/jmx-exporter.jar=9150:{self.default_config_path}/exporter.yml",
+        ]
 
     @property
     def bootstrap_server(self) -> List[str]:

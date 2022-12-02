@@ -9,9 +9,9 @@ import subprocess
 from typing import MutableMapping, Optional
 
 from auth import KafkaAuth
-from charms.rolling_ops.v0.rollingops import RollingOpsManager
 from config import KafkaConfig
-from literals import CHARM_KEY, CHARM_USERS, PEER, REL_NAME, ZK
+from literals import CHARM_KEY, CHARM_USERS, EXPORTER, PEER, REL_NAME, ZK
+from charms.rolling_ops.v0.rollingops import RollingOpsManager
 from ops.charm import (
     ActionEvent,
     CharmBase,
@@ -28,7 +28,7 @@ from ops.model import ActiveStatus, BlockedStatus, Relation, WaitingStatus
 from provider import KafkaProvider
 from snap import KafkaSnap
 from tls import KafkaTLS
-from utils import broker_active, generate_password, safe_get_file
+from utils import broker_active, generate_password, safe_get_file, safe_write_to_file
 
 logger = logging.getLogger(__name__)
 
@@ -128,6 +128,7 @@ class KafkaCharm(CharmBase):
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
         if self.snap.install():
+            self.install_exporter()
             self.kafka_config.set_kafka_opts()
             self.unit.status = WaitingStatus("waiting for zookeeper relation")
         else:
@@ -407,6 +408,18 @@ class KafkaCharm(CharmBase):
         else:
             raise RuntimeError("Unknown secret scope.")
 
+    def install_exporter(self) -> None:
+        """Install JMX exporter."""
+        subprocess.run(
+            f"wget -P {self.kafka_config.default_config_path} -O jmx-exporter.jar https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.17.2/jmx_prometheus_javaagent-0.17.2.jar",
+            shell=True,
+        )
+
+        safe_write_to_file(
+            EXPORTER,
+            path=f"{self.kafka_config.default_config_path}/exporter.yml",
+            mode="w",
+        )
 
 if __name__ == "__main__":
     main(KafkaCharm)
