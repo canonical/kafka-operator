@@ -237,8 +237,9 @@ class KafkaCharm(CharmBase):
             self.kafka_config.set_server_properties()
 
             if isinstance(event, StorageEvent):  # to get new storages
-                self.snap.disable_enable("kafka")
-                return
+                self.on[f"{self.restart.name}"].acquire_lock.emit(
+                    callback_override="_disable_enable_restart"
+                )
             else:
                 self.on[f"{self.restart.name}"].acquire_lock.emit()
 
@@ -253,6 +254,38 @@ class KafkaCharm(CharmBase):
             return
 
         self.snap.restart_snap_service("kafka")
+
+        if broker_active(
+            unit=self.unit,
+            zookeeper_config=self.kafka_config.zookeeper_config,
+        ):
+            logger.info(f'Broker {self.unit.name.split("/")[1]} restarted')
+            self.unit.status = ActiveStatus()
+        else:
+            self.unit.status = BlockedStatus(
+                f"Broker {self.unit.name.split('/')[1]} failed to restart"
+            )
+            return
+
+    def _disable_enable_restart(self, event: EventBase) -> None:
+        """Handler for `rolling_ops` disable_enable restart events."""
+        if not self.ready_to_start:
+            event.defer()
+            return
+
+        self.snap.disable_enable("kafka")
+
+        if broker_active(
+            unit=self.unit,
+            zookeeper_config=self.kafka_config.zookeeper_config,
+        ):
+            logger.info(f'Broker {self.unit.name.split("/")[1]} restarted')
+            self.unit.status = ActiveStatus()
+        else:
+            self.unit.status = BlockedStatus(
+                f"Broker {self.unit.name.split('/')[1]} failed to restart"
+            )
+            return
 
     def _set_password_action(self, event: ActionEvent) -> None:
         """Handler for set-password action.
