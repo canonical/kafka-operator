@@ -267,10 +267,10 @@ class KafkaCharm(CharmBase):
             )
             return
 
-    def _disable_enable_restart(self, event: EventBase) -> None:
+    def _disable_enable_restart(self, event: ActionEvent) -> None:
         """Handler for `rolling_ops` disable_enable restart events."""
         if not self.ready_to_start:
-            event.defer()
+            event.fail(message=f"Broker {self.unit.name.split('/')[1]} is not ready restart")
             return
 
         self.snap.disable_enable("kafka")
@@ -282,9 +282,9 @@ class KafkaCharm(CharmBase):
             logger.info(f'Broker {self.unit.name.split("/")[1]} restarted')
             self.unit.status = ActiveStatus()
         else:
-            self.unit.status = BlockedStatus(
-                f"Broker {self.unit.name.split('/')[1]} failed to restart"
-            )
+            msg = f"Broker {self.unit.name.split('/')[1]} failed to restart"
+            event.fail(message=msg)
+            self.unit.status = BlockedStatus(msg)
             return
 
     def _set_password_action(self, event: ActionEvent) -> None:
