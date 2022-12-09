@@ -53,7 +53,7 @@ def check_user(model_full_name: str, username: str, zookeeper_uri: str) -> None:
         shell=True,
         universal_newlines=True,
     )
-
+    logger.info(f"check-user: {result}")
     assert "SCRAM-SHA-512" in result
 
 
@@ -126,7 +126,6 @@ def get_provider_data(unit_name: str, model_full_name: str) -> Dict[str, str]:
             provider_relation_data["username"] = info["application-data"]["username"]
             provider_relation_data["password"] = info["application-data"]["password"]
             provider_relation_data["endpoints"] = info["application-data"]["endpoints"]
-            provider_relation_data["uris"] = info["application-data"]["uris"]
             provider_relation_data["zookeeper-uris"] = info["application-data"]["zookeeper-uris"]
             provider_relation_data["tls"] = info["application-data"]["tls"]
     return provider_relation_data
@@ -188,7 +187,7 @@ def produce_and_check_logs(
     topic = topic
     username = relation_data.get("username", None)
     password = relation_data.get("password", None)
-    servers = relation_data.get("uris", "").split(",")
+    servers = relation_data.get("endpoints", "").split(",")
     security_protocol = "SASL_PLAINTEXT"
 
     if not (username and password and servers):

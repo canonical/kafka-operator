@@ -15,5 +15,9 @@ peers:
     interface: cluster
 
 requires:
-  kafka-client:
+  kafka-client-consumer:
+    interface: kafka_client
+  kafka-client-producer:
+    interface: kafka_client
+  kafka-client-admin:
     interface: kafka_client

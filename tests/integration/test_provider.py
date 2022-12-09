@@ -24,6 +24,10 @@ DUMMY_NAME_1 = "app"
 DUMMY_NAME_2 = "appii"
 TLS_NAME = "tls-certificates-operator"
 
+REL_NAME_CONSUMER = "kafka-client-consumer"
+REL_NAME_PRODUCER = "kafka-client-producer"
+REL_NAME_ADMIN = "kafka-client-admin"
+
 
 @pytest.fixture(scope="module")
 def usernames():
@@ -47,7 +51,7 @@ async def test_deploy_charms_relate_active(ops_test: OpsTest, usernames):
     await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_1, ZK])
     await ops_test.model.add_relation(APP_NAME, ZK)
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK])
-    await ops_test.model.add_relation(APP_NAME, DUMMY_NAME_1)
+    await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_CONSUMER}")
     await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_1])
     assert ops_test.model.applications[APP_NAME].status == "active"
     assert ops_test.model.applications[DUMMY_NAME_1].status == "active"
@@ -78,7 +82,7 @@ async def test_deploy_multiple_charms_same_topic_relate_active(ops_test: OpsTest
     appii_charm = await ops_test.build_charm("tests/integration/app-charm")
     await ops_test.model.deploy(appii_charm, application_name=DUMMY_NAME_2, num_units=1),
     await ops_test.model.wait_for_idle(apps=[DUMMY_NAME_2])
-    await ops_test.model.add_relation(APP_NAME, DUMMY_NAME_2)
+    await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_2}:{REL_NAME_CONSUMER}")
     await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_2])
     assert ops_test.model.applications[APP_NAME].status == "active"
     assert ops_test.model.applications[DUMMY_NAME_1].status == "active"
@@ -133,41 +137,72 @@ async def test_remove_application_removes_user_and_acls(ops_test: OpsTest, usern
 
 
 @pytest.mark.abort_on_fail
-async def test_change_client_topic(ops_test: OpsTest):
-    action = await ops_test.model.units.get(f"{DUMMY_NAME_2}/0").run_action("change-topic")
-    await action.wait()
-    assert ops_test.model.applications[APP_NAME].status == "active"
-    await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_2])
+async def test_deploy_producer_same_topic(ops_test: OpsTest, usernames):
+    app_charm = await ops_test.build_charm("tests/integration/app-charm")
 
-    _, zookeeper_uri = get_zookeeper_connection(
+    await asyncio.gather(
+        ops_test.model.deploy(
+            app_charm, application_name=DUMMY_NAME_1, num_units=1, series="focal"
+        )
+    )
+    await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_1, ZK])
+    await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_PRODUCER}")
+    await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_1])
+
+    assert ops_test.model.applications[APP_NAME].status == "active"
+    assert ops_test.model.applications[DUMMY_NAME_1].status == "active"
+
+    returned_usernames, zookeeper_uri = get_zookeeper_connection(
         unit_name="kafka/0", model_full_name=ops_test.model_full_name
     )
 
+    acls = load_acls(model_full_name=ops_test.model_full_name, zookeeper_uri=zookeeper_uri)
+    acl_usernames = set()
+    for acl in acls:
+        acl_usernames.add(acl.username)
+    usernames.update(returned_usernames)
     for acl in load_acls(model_full_name=ops_test.model_full_name, zookeeper_uri=zookeeper_uri):
+        assert acl.username in usernames
+        assert acl.operation in ["READ", "DESCRIBE", "CREATE", "WRITE"]
+        assert acl.resource_type in ["GROUP", "TOPIC"]
         if acl.resource_type == "TOPIC":
-            assert acl.resource_name == "test-topic-changed"
+            assert acl.resource_name == "test-topic"
+
+    # remove application
+    await ops_test.model.remove_application(DUMMY_NAME_1, block_until_done=True)
+    await ops_test.model.wait_for_idle(apps=[APP_NAME])
+    assert ops_test.model.applications[APP_NAME].status == "active"
 
 
 @pytest.mark.abort_on_fail
 async def test_admin_added_to_super_users(ops_test: OpsTest):
-    # ensures only broker user for now
+    """Test relation with admin privileges."""
     super_users = load_super_users(model_full_name=ops_test.model_full_name)
     assert len(super_users) == 1
 
-    action = await ops_test.model.units.get(f"{DUMMY_NAME_2}/0").run_action("make-admin")
-    await action.wait()
+    app_charm = await ops_test.build_charm("tests/integration/app-charm")
+    await asyncio.gather(
+        ops_test.model.deploy(
+            app_charm, application_name=DUMMY_NAME_1, num_units=1, series="focal"
+        )
+    )
+    await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_1, ZK])
+    await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_ADMIN}")
+    await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_1])
 
-    await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_2])
     assert ops_test.model.applications[APP_NAME].status == "active"
-
+    assert ops_test.model.applications[DUMMY_NAME_1].status == "active"
+    # check the correct addition of super-users
     super_users = load_super_users(model_full_name=ops_test.model_full_name)
     assert len(super_users) == 2
 
 
 @pytest.mark.abort_on_fail
 async def test_admin_removed_from_super_users(ops_test: OpsTest):
-    action = await ops_test.model.units.get(f"{DUMMY_NAME_2}/0").run_action("remove-admin")
-    await action.wait()
+    """Test that removal of the relation with admin privileges."""
+    await ops_test.model.remove_application(DUMMY_NAME_1, block_until_done=True)
+    await ops_test.model.wait_for_idle(apps=[APP_NAME])
+    assert ops_test.model.applications[APP_NAME].status == "active"
 
     await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_2])
     assert ops_test.model.applications[APP_NAME].status == "active"
@@ -178,6 +213,12 @@ async def test_admin_removed_from_super_users(ops_test: OpsTest):
 
 @pytest.mark.abort_on_fail
 async def test_connection_updated_on_tls_enabled(ops_test: OpsTest):
+    """Test relation when TLS is enabled."""
+    appii_charm = await ops_test.build_charm("tests/integration/app-charm")
+    await ops_test.model.deploy(appii_charm, application_name=DUMMY_NAME_2, num_units=1),
+    await ops_test.model.wait_for_idle(apps=[DUMMY_NAME_2])
+    await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_2}:{REL_NAME_CONSUMER}")
+    await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_2])
     tls_config = {"generate-self-signed-certificates": "true", "ca-common-name": "kafka"}
     await ops_test.model.deploy(TLS_NAME, channel="beta", config=tls_config, series="focal")
     await ops_test.model.add_relation(TLS_NAME, ZK)
@@ -193,7 +234,7 @@ async def test_connection_updated_on_tls_enabled(ops_test: OpsTest):
     provider_data = get_provider_data(
         unit_name="appii/0", model_full_name=ops_test.model_full_name
     )
-
+    logger.info(f"Application data: {provider_data}")
     assert provider_data["tls"] == "enabled"
-    assert "9093" in provider_data["uris"]
+    assert "9093" in provider_data["endpoints"]
     assert "2182" in provider_data["zookeeper-uris"]

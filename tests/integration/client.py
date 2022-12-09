@@ -3,13 +3,11 @@
 # See LICENSE file for licensing details.
 
 import argparse
-import json
 import logging
 import sys
 import time
 from typing import List, Optional
 
-import requests
 from kafka import KafkaAdminClient, KafkaConsumer, KafkaProducer
 from kafka.admin import NewTopic
 
@@ -96,44 +94,17 @@ class KafkaClient:
         )
 
         for _ in range(3):
-            logger.info("Requesting NewStories from HN...")
-            response = requests.get(
-                url="https://hacker-news.firebaseio.com/v0/newstories.json?print=pretty"
-            )
-            content = json.loads(response._content.decode("utf-8")) if response._content else {}
+            logger.info("Generating messages to send... ")
+            for i in range(5):
 
-            if content:
-                logger.info("Successfully retrieved NewStories...")
-            else:
-                logger.warning("Failed retrieving NewStories...")
+                item_content = f"Message #{i}"
+
+                future = producer.send(self.topic, str.encode(item_content))
+                future.get(timeout=60)
+                logger.info(
+                    f"Message published to topic={self.topic}, message content: {item_content}"
+                )
                 time.sleep(5)
-                continue
-
-            for i, content_id in enumerate(content):
-                if i <= 5:
-                    response = requests.get(
-                        url=f"https://hacker-news.firebaseio.com/v0/item/{content_id}.json"
-                    )
-                    item_content = response._content or b""
-                    item_id = json.loads(item_content.decode("utf-8")).get("id", None)
-                    title = json.loads(item_content.decode("utf-8")).get("title", None)
-                    url = json.loads(item_content.decode("utf-8")).get("url", None)
-
-                    if item_id:
-                        future = producer.send(self.topic, item_content)
-                        future.get(timeout=60)
-                        logger.info(
-                            f"Message published to topic={self.topic}, item_id={item_id}, title={title}, url={url}"
-                        )
-                    else:
-                        logger.warning(f"Missing item_id for content_id={content_id}")
-
-                    time.sleep(5)
-
-                    continue
-                else:
-                    break
-
             break
 
 
