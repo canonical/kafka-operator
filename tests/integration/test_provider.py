@@ -179,7 +179,7 @@ async def test_admin_removed_from_super_users(ops_test: OpsTest):
 @pytest.mark.abort_on_fail
 async def test_connection_updated_on_tls_enabled(ops_test: OpsTest):
     tls_config = {"generate-self-signed-certificates": "true", "ca-common-name": "kafka"}
-    await ops_test.model.deploy(TLS_NAME, channel="edge", config=tls_config, series="focal")
+    await ops_test.model.deploy(TLS_NAME, channel="beta", config=tls_config, series="focal")
     await ops_test.model.add_relation(TLS_NAME, ZK)
     await ops_test.model.add_relation(TLS_NAME, APP_NAME)
 
