@@ -8,9 +8,8 @@ import logging
 import os
 from typing import Dict, List, Optional
 
-from ops.model import Unit
-
 from literals import PEER, REL_NAME, ZK
+from ops.model import Unit
 from snap import SNAP_CONFIG_PATH
 from utils import safe_write_to_file
 

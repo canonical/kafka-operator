@@ -8,9 +8,9 @@ import time
 from subprocess import PIPE, check_output
 
 import pytest
+from literals import CHARM_KEY
 from pytest_operator.plugin import OpsTest
 
-from literals import CHARM_KEY
 from tests.integration.helpers import produce_and_check_logs
 
 logger = logging.getLogger(__name__)

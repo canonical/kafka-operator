@@ -8,7 +8,10 @@ import logging
 import subprocess
 from typing import MutableMapping, Optional
 
+from auth import KafkaAuth
 from charms.rolling_ops.v0.rollingops import RollingOpsManager
+from config import KafkaConfig
+from literals import CHARM_KEY, CHARM_USERS, PEER, REL_NAME, ZK
 from ops.charm import (
     ActionEvent,
     CharmBase,
@@ -22,10 +25,6 @@ from ops.charm import (
 from ops.framework import EventBase
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, Relation, WaitingStatus
-
-from auth import KafkaAuth
-from config import KafkaConfig
-from literals import CHARM_KEY, CHARM_USERS, PEER, REL_NAME, ZK
 from provider import KafkaProvider
 from snap import KafkaSnap
 from tls import KafkaTLS

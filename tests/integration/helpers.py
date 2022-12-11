@@ -8,10 +8,9 @@ from subprocess import PIPE, check_output
 from typing import Any, Dict, List, Set, Tuple
 
 import yaml
+from auth import Acl, KafkaAuth
 from client import KafkaClient
 from pytest_operator.plugin import OpsTest
-
-from auth import Acl, KafkaAuth
 
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 APP_NAME = METADATA["name"]

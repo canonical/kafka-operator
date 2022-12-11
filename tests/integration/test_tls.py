@@ -6,15 +6,8 @@ import asyncio
 import logging
 
 import pytest
-from helpers import (
-    APP_NAME,
-    ZK_NAME,
-    check_tls,
-    get_address,
-    get_kafka_zk_relation_data,
-)
+from helpers import APP_NAME, ZK_NAME, check_tls, get_address, get_kafka_zk_relation_data
 from pytest_operator.plugin import OpsTest
-
 from utils import get_active_brokers
 
 logger = logging.getLogger(__name__)

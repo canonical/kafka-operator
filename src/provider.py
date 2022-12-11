@@ -7,6 +7,9 @@
 import logging
 from typing import Dict
 
+from auth import KafkaAuth
+from config import KafkaConfig
+from literals import PEER, REL_NAME
 from ops.charm import (
     RelationBrokenEvent,
     RelationChangedEvent,
@@ -15,10 +18,6 @@ from ops.charm import (
 )
 from ops.framework import Object
 from ops.model import Relation
-
-from auth import KafkaAuth
-from config import KafkaConfig
-from literals import PEER, REL_NAME
 from utils import generate_password
 
 logger = logging.getLogger(__name__)
