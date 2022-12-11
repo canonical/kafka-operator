@@ -53,7 +53,6 @@ def check_user(model_full_name: str, username: str, zookeeper_uri: str) -> None:
         shell=True,
         universal_newlines=True,
     )
-    logger.info(f"check-user: {result}")
     assert "SCRAM-SHA-512" in result
 
 
@@ -116,13 +115,16 @@ def get_kafka_zk_relation_data(unit_name: str, model_full_name: str) -> Dict[str
     return zk_relation_data
 
 
-def get_provider_data(unit_name: str, model_full_name: str) -> Dict[str, str]:
+def get_provider_data(
+    unit_name: str, model_full_name: str, endpoint: str = "kafka-client"
+) -> Dict[str, str]:
     result = show_unit(unit_name=unit_name, model_full_name=model_full_name)
     relations_info = result[unit_name]["relation-info"]
-
+    logger.info(f"Relation info: {relations_info}")
     provider_relation_data = {}
     for info in relations_info:
-        if info["endpoint"] == "kafka-client":
+        if info["endpoint"] == endpoint:
+            logger.info(f"Relation data: {info}")
             provider_relation_data["username"] = info["application-data"]["username"]
             provider_relation_data["password"] = info["application-data"]["password"]
             provider_relation_data["endpoints"] = info["application-data"]["endpoints"]
@@ -181,9 +183,10 @@ def produce_and_check_logs(
         AssertionError: if logs aren't found for desired topic
     """
     relation_data = get_provider_data(
-        unit_name=provider_unit_name, model_full_name=model_full_name
+        unit_name=provider_unit_name,
+        model_full_name=model_full_name,
+        endpoint="kafka-client-admin",
     )
-
     topic = topic
     username = relation_data.get("username", None)
     password = relation_data.get("password", None)

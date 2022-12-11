@@ -56,46 +56,8 @@ class ApplicationCharm(CharmBase):
             self.kafka_requirer_admin.on.topic_created, self.on_topic_created_admin
         )
 
-        # self.framework.observe(self.on[REL_NAME].relation_created, self._set_data)
-        # self.framework.observe(self.on[REL_NAME].relation_changed, self._log)
-        # self.framework.observe(self.on[REL_NAME].relation_broken, self._log)
-
-        # self.framework.observe(getattr(self.on, "make_admin_action"), self._make_admin)
-        # self.framework.observe(getattr(self.on, "remove_admin_action"), self._remove_admin)
-        # self.framework.observe(getattr(self.on, "change_topic_action"), self._change_topic)
-
-    # @property
-    # def relation(self):
-    #     return self.model.get_relation(REL_NAME)
-
     def _on_start(self, _) -> None:
         self.unit.status = ActiveStatus()
-
-    def _set_data(self, event: RelationEvent) -> None:
-
-        event.relation.data[self.unit].update({"group": self.unit.name.split("/")[1]})
-
-        if not self.unit.is_leader():
-            return
-        event.relation.data[self.app].update(
-            {"extra-user-roles": "consumer", "topic": "test-topic"}
-        )
-
-    # def _make_admin(self, _):
-    #     self.model.get_relation(REL_NAME).data[self.app].update(
-    #         {"extra-user-roles": "admin,consumer"}
-    #     )
-
-    # def _make_producer(self, _):
-    #     self.model.get_relation(REL_NAME).data[self.app].update(
-    #         {"extra-user-roles": "admin,consumer,producer"}
-    #     )
-
-    # def _remove_admin(self, _):
-    #     self.model.get_relation(REL_NAME).data[self.app].update({"extra-user-roles": "producer"})
-
-    # def _change_topic(self, _):
-    #     self.model.get_relation(REL_NAME).data[self.app].update({"topic": "test-topic-changed"})
 
     def _log(self, event: RelationEvent):
         return
