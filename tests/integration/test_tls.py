@@ -6,15 +6,8 @@ import asyncio
 import logging
 
 import pytest
-from helpers import (
-    APP_NAME,
-    ZK_NAME,
-    check_tls,
-    get_address,
-    get_kafka_zk_relation_data,
-)
+from helpers import APP_NAME, ZK_NAME, check_tls, get_address, get_kafka_zk_relation_data
 from pytest_operator.plugin import OpsTest
-
 from utils import get_active_brokers
 
 logger = logging.getLogger(__name__)
@@ -29,7 +22,7 @@ async def test_deploy_tls(ops_test: OpsTest):
     tls_config = {"generate-self-signed-certificates": "true", "ca-common-name": "kafka"}
 
     await asyncio.gather(
-        ops_test.model.deploy(TLS_NAME, channel="edge", config=tls_config, series="focal"),
+        ops_test.model.deploy(TLS_NAME, channel="beta", config=tls_config, series="focal"),
         ops_test.model.deploy(ZK_NAME, channel="edge", num_units=3, series="focal"),
         ops_test.model.deploy(kafka_charm, application_name=APP_NAME, series="jammy"),
     )

@@ -8,7 +8,10 @@ import logging
 import subprocess
 from typing import MutableMapping, Optional
 
+from auth import KafkaAuth
 from charms.rolling_ops.v0.rollingops import RollingOpsManager
+from config import KafkaConfig
+from literals import CHARM_KEY, CHARM_USERS, PEER, REL_NAME, ZK
 from ops.charm import (
     ActionEvent,
     CharmBase,
@@ -22,10 +25,6 @@ from ops.charm import (
 from ops.framework import EventBase
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, Relation, WaitingStatus
-
-from auth import KafkaAuth
-from config import KafkaConfig
-from literals import CHARM_KEY, CHARM_USERS, PEER, REL_NAME, ZK
 from provider import KafkaProvider
 from snap import KafkaSnap
 from tls import KafkaTLS
@@ -237,8 +236,9 @@ class KafkaCharm(CharmBase):
             self.kafka_config.set_server_properties()
 
             if isinstance(event, StorageEvent):  # to get new storages
-                self.snap.disable_enable("kafka")
-                return
+                self.on[f"{self.restart.name}"].acquire_lock.emit(
+                    callback_override="_disable_enable_restart"
+                )
             else:
                 self.on[f"{self.restart.name}"].acquire_lock.emit()
 
@@ -253,6 +253,38 @@ class KafkaCharm(CharmBase):
             return
 
         self.snap.restart_snap_service("kafka")
+
+        if broker_active(
+            unit=self.unit,
+            zookeeper_config=self.kafka_config.zookeeper_config,
+        ):
+            logger.info(f'Broker {self.unit.name.split("/")[1]} restarted')
+            self.unit.status = ActiveStatus()
+        else:
+            self.unit.status = BlockedStatus(
+                f"Broker {self.unit.name.split('/')[1]} failed to restart"
+            )
+            return
+
+    def _disable_enable_restart(self, event: ActionEvent) -> None:
+        """Handler for `rolling_ops` disable_enable restart events."""
+        if not self.ready_to_start:
+            event.fail(message=f"Broker {self.unit.name.split('/')[1]} is not ready restart")
+            return
+
+        self.snap.disable_enable("kafka")
+
+        if broker_active(
+            unit=self.unit,
+            zookeeper_config=self.kafka_config.zookeeper_config,
+        ):
+            logger.info(f'Broker {self.unit.name.split("/")[1]} restarted')
+            self.unit.status = ActiveStatus()
+        else:
+            msg = f"Broker {self.unit.name.split('/')[1]} failed to restart"
+            event.fail(message=msg)
+            self.unit.status = BlockedStatus(msg)
+            return
 
     def _set_password_action(self, event: ActionEvent) -> None:
         """Handler for set-password action.

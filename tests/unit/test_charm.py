@@ -325,7 +325,6 @@ def test_storage_add_remove_triggers_restart(harness):
     harness.set_leader(True)
 
     with (
-        patch("snap.KafkaSnap.restart_snap_service") as patched_disable_enable,
         patch("charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=True),
         patch("charm.safe_get_file", return_value=["log.dirs=/var/snap/kafka/common/logs/0"]),
         patch("config.KafkaConfig.set_server_properties"),
@@ -400,6 +399,7 @@ def test_config_changed_restarts(harness):
         patch("charm.safe_get_file", return_value=["gandalf=white"]),
         patch("config.safe_write_to_file", return_value=None),
         patch("snap.KafkaSnap.restart_snap_service") as patched_restart_snap_service,
+        patch("charm.broker_active", return_value=True),
     ):
         harness.set_leader(True)
         harness.charm.on.config_changed.emit()
