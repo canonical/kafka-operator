@@ -10,10 +10,7 @@ of the libraries in this repository.
 
 import logging
 
-from charms.data_platform_libs.v0.data_interfaces import (
-    KafkaRequires,
-    TopicCreatedEvent,
-)
+from charms.data_platform_libs.v0.data_interfaces import KafkaRequires, TopicCreatedEvent
 from ops.charm import CharmBase, RelationEvent
 from ops.main import main
 from ops.model import ActiveStatus

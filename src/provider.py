@@ -7,12 +7,9 @@
 import logging
 
 from auth import KafkaAuth
+from charms.data_platform_libs.v0.data_interfaces import KafkaProvides, TopicRequestedEvent
 from config import KafkaConfig
 from literals import PEER, REL_NAME
-from charms.data_platform_libs.v0.data_interfaces import (
-    KafkaProvides,
-    TopicRequestedEvent,
-)
 from ops.charm import RelationBrokenEvent, RelationCreatedEvent
 from ops.framework import Object
 from ops.model import Relation
