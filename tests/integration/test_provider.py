@@ -224,8 +224,13 @@ async def test_connection_updated_on_tls_enabled(ops_test: OpsTest):
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_CONSUMER}")
     await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_1])
     tls_config = {"generate-self-signed-certificates": "true", "ca-common-name": "kafka"}
+
     await ops_test.model.deploy(TLS_NAME, channel="beta", config=tls_config, series="focal")
     await ops_test.model.add_relation(TLS_NAME, ZK)
+    
+    await ops_test.model.wait_for_idle(
+        apps=[APP_NAME, ZK, TLS_NAME, DUMMY_NAME_1], timeout=1000, idle_period=40
+    )
     await ops_test.model.add_relation(TLS_NAME, APP_NAME)
 
     await ops_test.model.wait_for_idle(
@@ -238,7 +243,7 @@ async def test_connection_updated_on_tls_enabled(ops_test: OpsTest):
 
     # Check that related application has updated information
     provider_data = get_provider_data(
-        unit_name="app/3",
+        unit_name=f"{DUMMY_NAME_1}/3",
         model_full_name=ops_test.model_full_name,
         endpoint="kafka-client-consumer",
     )
