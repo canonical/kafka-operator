@@ -227,7 +227,7 @@ async def test_connection_updated_on_tls_enabled(ops_test: OpsTest):
 
     await ops_test.model.deploy(TLS_NAME, channel="beta", config=tls_config, series="focal")
     await ops_test.model.add_relation(TLS_NAME, ZK)
-    
+
     await ops_test.model.wait_for_idle(
         apps=[APP_NAME, ZK, TLS_NAME, DUMMY_NAME_1], timeout=1000, idle_period=40
     )
