@@ -176,7 +176,7 @@ class KafkaCharm(CharmBase):
         if self.unit.is_leader() and self.kafka_config.sync_password:
             kafka_auth = KafkaAuth(
                 self,
-                opts=self.kafka_config.extra_args,
+                opts=self.kafka_config.auth_args,
                 zookeeper=self.kafka_config.zookeeper_config.get("connect", ""),
             )
             try:
@@ -319,7 +319,7 @@ class KafkaCharm(CharmBase):
         # Update the user
         kafka_auth = KafkaAuth(
             self,
-            opts=self.kafka_config.extra_args,
+            opts=self.kafka_config.auth_args,
             zookeeper=self.kafka_config.zookeeper_config.get("connect", ""),
         )
         try:
@@ -411,7 +411,7 @@ class KafkaCharm(CharmBase):
     def install_exporter(self) -> None:
         """Install JMX exporter."""
         subprocess.run(
-            f"wget -P {self.kafka_config.default_config_path} -O jmx-exporter.jar https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.17.2/jmx_prometheus_javaagent-0.17.2.jar",
+            f"wget -O {self.kafka_config.default_config_path}/jmx-exporter.jar https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.17.2/jmx_prometheus_javaagent-0.17.2.jar",
             shell=True,
         )
 
@@ -420,6 +420,7 @@ class KafkaCharm(CharmBase):
             path=f"{self.kafka_config.default_config_path}/exporter.yml",
             mode="w",
         )
+
 
 if __name__ == "__main__":
     main(KafkaCharm)

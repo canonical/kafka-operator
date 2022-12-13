@@ -40,6 +40,11 @@ class KafkaConfig:
         return self.charm.get_secret(scope="app", key="sync-password")
 
     @property
+    def exporter_port(self) -> int:
+        """The port used for JMX exporter."""
+        return 9150
+
+    @property
     def zookeeper_config(self) -> Dict[str, str]:
         """The config from current ZooKeeper relations for data necessary for broker connection.
 
@@ -86,16 +91,26 @@ class KafkaConfig:
         return False
 
     @property
-    def extra_args(self) -> List[str]:
+    def auth_args(self) -> List[str]:
         """The necessary Java config options for SASL/SCRAM auth.
 
         Returns:
+            List of Java config auth options
+        """
+        return [f"-Djava.security.auth.login.config={self.jaas_filepath}"]
+    
+    @property
+    def extra_args(self) -> List[str]:
+        """The necessary Java config options.
+        Returns:
             List of Java config options
         """
-        return [
-            f"-Djava.security.auth.login.config={self.jaas_filepath}",
-            f"-javaagent:{self.default_config_path}/jmx-exporter.jar=9150:{self.default_config_path}/exporter.yml",
-        ]
+        return (
+            [
+                f"-javaagent:{self.default_config_path}/jmx-exporter.jar={self.exporter_port}:{self.default_config_path}/exporter.yml",
+            ]
+            + self.auth_args
+        )
 
     @property
     def bootstrap_server(self) -> List[str]:

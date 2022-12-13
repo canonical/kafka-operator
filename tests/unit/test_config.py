@@ -112,7 +112,9 @@ def test_zookeeper_config_succeeds_valid_config(harness):
 def test_extra_args(harness):
     """Checks necessary args in extra-args for KAFKA_OPTS."""
     args = "".join(harness.charm.kafka_config.extra_args)
+    print(f"ASD: {args}")
     assert "-Djava.security.auth.login.config" in args
+    assert "-javaagent:" in args
 
 
 def test_bootstrap_server(harness):
