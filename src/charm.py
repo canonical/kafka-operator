@@ -9,9 +9,9 @@ import subprocess
 from typing import MutableMapping, Optional
 
 from auth import KafkaAuth
+from charms.rolling_ops.v0.rollingops import RollingOpsManager
 from config import KafkaConfig
 from literals import CHARM_KEY, CHARM_USERS, EXPORTER, PEER, REL_NAME, ZK
-from charms.rolling_ops.v0.rollingops import RollingOpsManager
 from ops.charm import (
     ActionEvent,
     CharmBase,
