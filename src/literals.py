@@ -11,7 +11,7 @@ REL_NAME = "kafka-client"
 CHARM_USERS = ["sync"]
 TLS_RELATION = "certificates"
 
-EXPORTER="""lowercaseOutputName: true
+EXPORTER = """lowercaseOutputName: true
 
 rules:
 # Special cases and very specific rules
