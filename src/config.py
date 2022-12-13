@@ -40,9 +40,9 @@ class KafkaConfig:
         return self.charm.get_secret(scope="app", key="sync-password")
 
     @property
-    def exporter_port(self) -> int:
+    def exporter_address(self) -> str:
         """The port used for JMX exporter."""
-        return 9150
+        return "0.0.0.0:9150"
 
     @property
     def zookeeper_config(self) -> Dict[str, str]:
@@ -107,7 +107,7 @@ class KafkaConfig:
             List of Java config options
         """
         return [
-            f"-javaagent:{self.default_config_path}/jmx-exporter.jar={self.exporter_port}:{self.default_config_path}/exporter.yml",
+            f"-javaagent:{self.default_config_path}/jmx-exporter.jar={self.exporter_address}:{self.default_config_path}/exporter.yml",
         ] + self.auth_args
 
     @property
