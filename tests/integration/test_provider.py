@@ -32,7 +32,9 @@ REL_NAME_ADMIN = "kafka-client-admin"
 
 
 @pytest.mark.abort_on_fail
-async def test_deploy_charms_relate_active(ops_test: OpsTest, app_charm: PosixPath, usernames: Set[str]):
+async def test_deploy_charms_relate_active(
+    ops_test: OpsTest, app_charm: PosixPath, usernames: Set[str]
+):
     """Test deploy and relate operations."""
     charm = await ops_test.build_charm(".")
     await asyncio.gather(
@@ -136,7 +138,9 @@ async def test_remove_application_removes_user_and_acls(ops_test: OpsTest, usern
 
 
 @pytest.mark.abort_on_fail
-async def test_deploy_producer_same_topic(ops_test: OpsTest, app_charm: PosixPath, usernames: Set[str]):
+async def test_deploy_producer_same_topic(
+    ops_test: OpsTest, app_charm: PosixPath, usernames: Set[str]
+):
     """Test the correct deployment and relation with role producer."""
     await asyncio.gather(
         ops_test.model.deploy(
