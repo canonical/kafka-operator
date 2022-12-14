@@ -4,6 +4,7 @@
 
 import asyncio
 import logging
+from typing import Set
 
 import pytest
 from pytest_operator.plugin import OpsTest
@@ -29,13 +30,8 @@ REL_NAME_PRODUCER = "kafka-client-producer"
 REL_NAME_ADMIN = "kafka-client-admin"
 
 
-@pytest.fixture(scope="module")
-def usernames():
-    return set()
-
-
 @pytest.mark.abort_on_fail
-async def test_deploy_charms_relate_active(ops_test: OpsTest, usernames):
+async def test_deploy_charms_relate_active(ops_test: OpsTest, usernames: Set[str]):
     """Test deploy and relate operations."""
     charm = await ops_test.build_charm(".")
     app_charm = await ops_test.build_charm("tests/integration/app-charm")
@@ -79,10 +75,12 @@ async def test_deploy_charms_relate_active(ops_test: OpsTest, usernames):
 
 
 @pytest.mark.abort_on_fail
-async def test_deploy_multiple_charms_same_topic_relate_active(ops_test: OpsTest, usernames):
+async def test_deploy_multiple_charms_same_topic_relate_active(
+    ops_test: OpsTest, usernames: Set[str]
+):
     """Test relation with multiple applications."""
-    appii_charm = await ops_test.build_charm("tests/integration/app-charm")
-    await ops_test.model.deploy(appii_charm, application_name=DUMMY_NAME_2, num_units=1),
+    app_charm = await ops_test.build_charm("tests/integration/app-charm")
+    await ops_test.model.deploy(app_charm, application_name=DUMMY_NAME_2, num_units=1),
     await ops_test.model.wait_for_idle(apps=[DUMMY_NAME_2])
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_2}:{REL_NAME_CONSUMER}")
     await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_2])
@@ -111,7 +109,7 @@ async def test_deploy_multiple_charms_same_topic_relate_active(ops_test: OpsTest
 
 
 @pytest.mark.abort_on_fail
-async def test_remove_application_removes_user_and_acls(ops_test: OpsTest, usernames):
+async def test_remove_application_removes_user_and_acls(ops_test: OpsTest, usernames: Set[str]):
     """Test the correct removal of user and permission after relation removal."""
     await ops_test.model.remove_application(DUMMY_NAME_1, block_until_done=True)
     await ops_test.model.wait_for_idle(apps=[APP_NAME])
@@ -140,7 +138,7 @@ async def test_remove_application_removes_user_and_acls(ops_test: OpsTest, usern
 
 
 @pytest.mark.abort_on_fail
-async def test_deploy_producer_same_topic(ops_test: OpsTest, usernames):
+async def test_deploy_producer_same_topic(ops_test: OpsTest, usernames: Set[str]):
     """Test the correct deployment and relation with role producer."""
     app_charm = await ops_test.build_charm("tests/integration/app-charm")
 
@@ -185,6 +183,7 @@ async def test_admin_added_to_super_users(ops_test: OpsTest):
     assert len(super_users) == 1
 
     app_charm = await ops_test.build_charm("tests/integration/app-charm")
+
     await asyncio.gather(
         ops_test.model.deploy(
             app_charm, application_name=DUMMY_NAME_1, num_units=1, series="focal"
@@ -218,8 +217,8 @@ async def test_admin_removed_from_super_users(ops_test: OpsTest):
 @pytest.mark.abort_on_fail
 async def test_connection_updated_on_tls_enabled(ops_test: OpsTest):
     """Test relation when TLS is enabled."""
-    appii_charm = await ops_test.build_charm("tests/integration/app-charm")
-    await ops_test.model.deploy(appii_charm, application_name=DUMMY_NAME_1, num_units=1),
+    app_charm = await ops_test.build_charm("tests/integration/app-charm")
+    await ops_test.model.deploy(app_charm, application_name=DUMMY_NAME_1, num_units=1),
     await ops_test.model.wait_for_idle(apps=[DUMMY_NAME_1])
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_CONSUMER}")
     await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_1])

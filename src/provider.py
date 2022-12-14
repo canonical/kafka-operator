@@ -10,7 +10,7 @@ from auth import KafkaAuth
 from charms.data_platform_libs.v0.data_interfaces import KafkaProvides, TopicRequestedEvent
 from config import KafkaConfig
 from literals import PEER, REL_NAME
-from ops.charm import RelationBrokenEvent, RelationCreatedEvent
+from ops.charm import RelationBrokenEvent
 from ops.framework import Object
 from ops.model import Relation
 from utils import generate_password
@@ -62,10 +62,8 @@ class KafkaProvider(Object):
         bootstrap_server = self.charm.kafka_config.bootstrap_server
         zookeeper_uris = self.charm.kafka_config.zookeeper_config.get("connect", "")
         tls = "enabled" if self.charm.tls.enabled else "disabled"
-        consumer_group_prefix = ""
 
-        if "consumer" in extra_user_roles:
-            consumer_group_prefix = f"{username}-"
+        consumer_group_prefix = f"{username}-" if "consumer" in extra_user_roles else ""
 
         self.kafka_auth.add_user(
             username=username,
@@ -73,7 +71,7 @@ class KafkaProvider(Object):
         )
 
         # non-leader units need cluster_config_changed event to update their super.users
-        self.charm.model.get_relation(PEER).data[self.charm.app].update({username: password})
+        self.peer_relation.data[self.charm.app].update({username: password})
 
         self.kafka_auth.load_current_acls()
 
@@ -85,7 +83,7 @@ class KafkaProvider(Object):
         )
 
         # non-leader units need cluster_config_changed event to update their super.users
-        self.charm.model.get_relation(PEER).data[self.charm.app].update(
+        self.peer_relation.data[self.charm.app].update(
             {"super-users": self.kafka_config.super_users}
         )
 
@@ -99,34 +97,6 @@ class KafkaProvider(Object):
     def peer_relation(self) -> Relation:
         """The Kafka cluster's peer relation."""
         return self.charm.model.get_relation(PEER)
-
-    def _on_relation_created(self, event: RelationCreatedEvent) -> None:
-        """Handler for `kafka-client-relation-created` event.
-
-        Adds new relation users to ZooKeeper.
-
-        Args:
-            event: the event from a related client application needing a user
-        """
-        if not self.charm.unit.is_leader():
-            return
-
-        if not self.charm.ready_to_start:
-            logger.debug("cannot add user, ZooKeeper not yet connected")
-            event.defer()
-            return
-
-        provider_relation_config = self.provider_relation_config(event=event)
-
-        self.kafka_auth.add_user(
-            username=provider_relation_config["username"],
-            password=provider_relation_config["password"],
-        )
-
-        # non-leader units need cluster_config_changed event to update their super.users
-        self.charm.model.get_relation(PEER).data[self.charm.app].update(
-            {provider_relation_config["username"]: provider_relation_config["password"]}
-        )
 
     def _on_relation_broken(self, event: RelationBrokenEvent) -> None:
         """Handler for `kafka-client-relation-broken` event.
@@ -153,10 +123,10 @@ class KafkaProvider(Object):
             )
             self.kafka_auth.delete_user(username=username)
             # non-leader units need cluster_config_changed event to update their super.users
-            self.charm.model.get_relation(PEER).data[self.charm.app].update({username: ""})
+            self.peer_relation.data[self.charm.app].update({username: ""})
 
     def update_connection_info(self):
-        """Updates all relations with current uri, endpoints and tls data.
+        """Updates all relations with current endpoints, bootstrap-server and tls data.
 
         If information didn't change, no events will trigger.
         """
