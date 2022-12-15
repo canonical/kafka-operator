@@ -107,7 +107,7 @@ class KafkaConfig:
             List of Java config options
         """
         return [
-            f"-javaagent:{self.default_config_path}/jmx-exporter.jar={self.exporter_address}:{self.default_config_path}/exporter.yml",
+            f"-javaagent:{self.default_config_path}/jmx-exporter.jar={self.exporter_address}:{self.default_config_path}/jmx-exporter.yml",
         ] + self.auth_args
 
     @property

@@ -5,13 +5,15 @@
 """Charmed Machine Operator for Apache Kafka."""
 
 import logging
+import shutil
 import subprocess
 from typing import MutableMapping, Optional
 
+import requests
 from auth import KafkaAuth
 from charms.rolling_ops.v0.rollingops import RollingOpsManager
 from config import KafkaConfig
-from literals import CHARM_KEY, CHARM_USERS, EXPORTER, PEER, REL_NAME, ZK
+from literals import CHARM_KEY, CHARM_USERS, PEER, REL_NAME, ZK
 from ops.charm import (
     ActionEvent,
     CharmBase,
@@ -410,16 +412,12 @@ class KafkaCharm(CharmBase):
 
     def install_exporter(self) -> None:
         """Install JMX exporter."""
-        subprocess.run(
-            f"wget -O {self.kafka_config.default_config_path}/jmx-exporter.jar https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.17.2/jmx_prometheus_javaagent-0.17.2.jar",
-            shell=True,
-        )
-
+        url = "https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.17.2/jmx_prometheus_javaagent-0.17.2.jar"
+        r = requests.get(url, allow_redirects=True)
         safe_write_to_file(
-            EXPORTER,
-            path=f"{self.kafka_config.default_config_path}/exporter.yml",
-            mode="w",
+            r.content, path=f"{self.kafka_config.default_config_path}/jmx-exporter.jar", mode="wb"
         )
+        shutil.copy(src="templates/jmx-exporter.yml", dst=self.kafka_config.default_config_path)
 
 
 if __name__ == "__main__":
