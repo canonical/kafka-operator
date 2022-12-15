@@ -35,12 +35,25 @@ class KafkaSnap:
             apt.add_package(["snapd", "openjdk-17-jre-headless"])
             cache = snap.SnapCache()
             kafka = cache["kafka"]
+            node_exporter = cache["node-exporter"]
 
             if not kafka.present:
                 kafka.ensure(snap.SnapState.Latest, channel="rock/edge")
+            if not node_exporter.present:
+                node_exporter.ensure(snap.SnapState.Latest, channel="edge")
 
             self.kafka = kafka
             self.kafka.connect(plug="removable-media")
+
+            node_exporter_plugs = [
+                "hardware-observe",
+                "network-observe",
+                "mount-observe",
+                "system-observe",
+            ]
+            for plug in node_exporter_plugs:
+                node_exporter.connect(plug=plug)
+
             return True
         except (snap.SnapError, apt.PackageNotFoundError) as e:
             logger.error(str(e))
