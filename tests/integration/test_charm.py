@@ -16,6 +16,7 @@ from tests.integration.helpers import produce_and_check_logs
 logger = logging.getLogger(__name__)
 
 DUMMY_NAME = "app"
+REL_NAME_ADMIN = "kafka-client-admin"
 
 
 @pytest.mark.abort_on_fail
@@ -44,19 +45,11 @@ async def test_logs_write_to_storage(ops_test: OpsTest):
         ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series="jammy"),
     )
     await ops_test.model.wait_for_idle(apps=[CHARM_KEY, DUMMY_NAME])
-    await ops_test.model.add_relation(CHARM_KEY, DUMMY_NAME)
+    await ops_test.model.add_relation(CHARM_KEY, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
     time.sleep(10)
     assert ops_test.model.applications[CHARM_KEY].status == "active"
     assert ops_test.model.applications[DUMMY_NAME].status == "active"
-
-    # run action to enable producer
-    action = await ops_test.model.units.get(f"{DUMMY_NAME}/0").run_action("make-admin")
-    await action.wait()
-    time.sleep(10)
-    await ops_test.model.wait_for_idle(apps=[CHARM_KEY, DUMMY_NAME])
-    assert ops_test.model.applications[CHARM_KEY].status == "active"
-    assert ops_test.model.applications[DUMMY_NAME].status == "active"
-
+    await ops_test.model.wait_for_idle(apps=["kafka", "zookeeper", DUMMY_NAME])
     produce_and_check_logs(
         model_full_name=ops_test.model_full_name,
         kafka_unit_name="kafka/0",
