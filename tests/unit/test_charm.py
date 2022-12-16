@@ -47,15 +47,21 @@ def test_install_sets_opts(harness):
     with (
         patch("snap.KafkaSnap.install"),
         patch("config.KafkaConfig.set_kafka_opts") as patched_kafka_opts,
+        patch("charm.KafkaCharm.install_exporter") as patched_install_exporter,
     ):
         harness.charm.on.install.emit()
 
+        patched_install_exporter.assert_called_once()
         patched_kafka_opts.assert_called_once()
 
 
 def test_install_waits_until_zookeeper_relation(harness):
     """Checks unit goes to WaitingStatus without ZK relation on install hook."""
-    with (patch("snap.KafkaSnap.install"), patch("config.KafkaConfig.set_kafka_opts")):
+    with (
+        patch("snap.KafkaSnap.install"),
+        patch("config.KafkaConfig.set_kafka_opts"),
+        patch("charm.KafkaCharm.install_exporter"),
+    ):
         harness.charm.on.install.emit()
         assert isinstance(harness.charm.unit.status, WaitingStatus)
 

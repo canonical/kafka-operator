@@ -121,6 +121,11 @@ class KafkaConfig:
         }
 
     @property
+    def exporter_address(self) -> str:
+        """The port used for JMX exporter."""
+        return "0.0.0.0:9150"
+
+    @property
     def zookeeper_config(self) -> Dict[str, str]:
         """The config from current ZooKeeper relations for data necessary for broker connection.
 
@@ -167,15 +172,22 @@ class KafkaConfig:
         return False
 
     @property
-    def extra_args(self) -> List[str]:
+    def auth_args(self) -> List[str]:
         """The necessary Java config options for SASL/SCRAM auth.
+
+        Returns:
+            List of Java config auth options
+        """
+        return [f"-Djava.security.auth.login.config={self.zk_jaas_filepath}"]
+
+    @property
+    def extra_args(self) -> List[str]:
+        """The necessary Java config options.
 
         Returns:
             List of Java config options
         """
-        return [
-            f"-Djava.security.auth.login.config={self.zk_jaas_filepath}",
-        ]
+        return self.auth_args
 
     @property
     def bootstrap_server(self) -> List[str]:

@@ -5,6 +5,7 @@
 """Charmed Machine Operator for Apache Kafka."""
 
 import logging
+import shutil
 import subprocess
 from typing import MutableMapping, Optional
 
@@ -29,7 +30,7 @@ from literals import ADMIN_USER, CHARM_KEY, INTER_BROKER_USER, PEER, REL_NAME, Z
 from provider import KafkaProvider
 from snap import KafkaSnap
 from tls import KafkaTLS
-from utils import broker_active, generate_password, safe_get_file
+from utils import broker_active, generate_password, safe_get_file, safe_write_to_file
 
 logger = logging.getLogger(__name__)
 
@@ -137,6 +138,7 @@ class KafkaCharm(CharmBase):
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
         if self.snap.install():
+            self.install_exporter()
             self.kafka_config.set_kafka_opts()
             self.unit.status = WaitingStatus("waiting for zookeeper relation")
         else:
