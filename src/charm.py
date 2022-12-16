@@ -46,6 +46,10 @@ class KafkaCharm(CharmBase):
         self.tls = KafkaTLS(self)
         self.provider = KafkaProvider(self)
         self.restart = RollingOpsManager(self, relation="restart", callback=self._restart)
+        self.grafana_dashboards = GrafanaDashboardProvider(self)
+        self.metrics_endpoint = MetricsEndpointProvider(
+            self, jobs=[{"static_configs": [{"targets": ["*:9100"]}]}]
+        )
 
         self.framework.observe(getattr(self.on, "start"), self._on_start)
         self.framework.observe(getattr(self.on, "install"), self._on_install)
