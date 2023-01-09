@@ -11,7 +11,7 @@ import pytest
 from literals import CHARM_KEY
 from pytest_operator.plugin import OpsTest
 
-from tests.integration.helpers import produce_and_check_logs
+from tests.integration.helpers import check_socket, get_address, produce_and_check_logs
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +36,13 @@ async def test_build_and_deploy(ops_test: OpsTest):
     await ops_test.model.wait_for_idle(apps=["kafka", "zookeeper"])
     assert ops_test.model.applications["kafka"].status == "active"
     assert ops_test.model.applications["zookeeper"].status == "active"
+
+
+@pytest.mark.abort_on_fail
+async def test_listeners(ops_test: OpsTest):
+    address = await get_address(ops_test=ops_test)
+    check_socket(address, 9092)  # Internal listener
+    check_socket(address, 19092)  # External listener
 
 
 @pytest.mark.abort_on_fail

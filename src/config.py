@@ -40,6 +40,32 @@ class KafkaConfig:
         return self.charm.get_secret(scope="app", key="sync-password")
 
     @property
+    def internal_port(self) -> int:
+        """Returns the port used for INTERNAL listener."""
+        return 9093 if self.charm.tls.enabled else 9092
+
+    @property
+    def external_port(self) -> int:
+        """Returns the port used for EXTERNAL listener."""
+        return 19092
+
+    @property
+    def external_listener(self) -> str:
+        """Return the external listener name to be used.
+
+        If the config has been set, use that one, otherwise use the own hostname.
+        """
+        external_listener = self.charm.config["external-listener"]
+        if not external_listener:
+            external_listener = (
+                self.charm.model.get_relation(PEER)
+                .data[self.charm.unit]
+                .get("private-address", None)
+            )
+
+        return external_listener
+
+    @property
     def zookeeper_config(self) -> Dict[str, str]:
         """The config from current ZooKeeper relations for data necessary for broker connection.
 
@@ -211,7 +237,6 @@ class KafkaConfig:
         host = (
             self.charm.model.get_relation(PEER).data[self.charm.unit].get("private-address", None)
         )
-        port = 9093 if self.charm.tls.enabled else 9092
         protocol = "SASL_SSL" if self.charm.tls.enabled else "SASL_PLAINTEXT"
 
         properties = (
@@ -221,11 +246,12 @@ class KafkaConfig:
                 f"auto.create.topics={self.charm.config['auto-create-topics']}",
                 f"super.users={self.super_users}",
                 f"log.dirs={self.log_dirs}",
-                f"listeners={protocol}://:{port}",
-                f"advertised.listeners={protocol}://{host}:{port}",
-                f'listener.name.{(protocol).lower()}.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="sync" password="{self.sync_password}";',
-                f"security.inter.broker.protocol={protocol}",
-                f"security.protocol={protocol}",
+                f"listener.security.protocol.map=INTERNAL:{protocol},EXTERNAL:{protocol}",
+                f"listeners=INTERNAL://:{self.internal_port},EXTERNAL://:{self.external_port}",
+                f"advertised.listeners=INTERNAL://{host}:{self.internal_port},EXTERNAL://{self.external_listener}:{self.external_port}",
+                "inter.broker.listener.name=INTERNAL",
+                f'listener.name.internal.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="sync" password="{self.sync_password}";',
+                f'listener.name.external.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="sync" password="{self.sync_password}";',
             ]
             + self.default_replication_properties
             + self.auth_properties

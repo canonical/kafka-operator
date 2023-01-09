@@ -3,6 +3,8 @@
 # See LICENSE file for licensing details.
 import logging
 import re
+import socket
+from contextlib import closing
 from pathlib import Path
 from subprocess import PIPE, check_output
 from typing import Any, Dict, List, Set, Tuple
@@ -151,6 +153,11 @@ async def set_password(ops_test: OpsTest, username="sync", password=None, num_un
     )
     password = await action.wait()
     return password.results
+
+
+def check_socket(host: str, port: int) -> bool:
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
+        assert sock.connect_ex((host, port)) == 0
 
 
 def check_tls(ip: str, port: int) -> bool:
