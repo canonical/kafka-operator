@@ -223,10 +223,16 @@ class KafkaConfig:
         Returns:
             list of scram properties to be set
         """
-        scram_properties = [f'listener.name.internal.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="sync" password="{self.sync_password}";']        
-        external_scram = [auth for auth in self.auth_mechanisms if auth.startswith("SASL_")]
-        for ext in external_scram:
-            scram_properties.append(f'listener.name.{ext.lower()}.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="sync" password="{self.sync_password}";')
+        scram_properties = [
+            f'listener.name.{self.internal_listener.name.lower()}.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="sync" password="{self.sync_password}";'
+        ]
+        external_scram = [
+            auth.name for auth in self.extra_listeners if auth.protocol.startswith("SASL_")
+        ]
+        for name in external_scram:
+            scram_properties.append(
+                f'listener.name.{name.lower()}.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="sync" password="{self.sync_password}";'
+            )
 
         return scram_properties
 
