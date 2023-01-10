@@ -88,9 +88,9 @@ def test_listeners_in_server_properties(harness):
     harness.add_relation_unit(peer_relation_id, "kafka/1")
     harness.update_relation_data(peer_relation_id, "kafka/0", {"private-address": "treebeard"})
 
-    expected_listeners = "listeners=INTERNAL://:9092,EXTERNAL://:19092"
+    expected_listeners = "listeners=INTERNAL_SASL_PLAINTEXT://:19092,EXTERNAL_SASL_PLAINTEXT://:9092"
     expected_advertised_listeners = (
-        "advertised.listeners=INTERNAL://treebeard:9092,EXTERNAL://treebeard:19092"
+        "advertised.listeners=INTERNAL_SASL_PLAINTEXT://treebeard:19092,EXTERNAL_SASL_PLAINTEXT://treebeard:9092"
     )
 
     assert expected_listeners in harness.charm.kafka_config.server_properties

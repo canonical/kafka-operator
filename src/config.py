@@ -8,7 +8,7 @@ import logging
 import os
 from typing import Dict, List, Optional
 
-from literals import PEER, REL_NAME, ZK
+from literals import PEER, REL_NAME, SECURITY_PROTOCOL_PORTS, ZK
 from ops.model import Unit
 from snap import SNAP_CONFIG_PATH
 from utils import safe_write_to_file
@@ -21,6 +21,58 @@ sasl.mechanism.inter.broker.protocol=SCRAM-SHA-512
 authorizer.class.name=kafka.security.authorizer.AclAuthorizer
 allow.everyone.if.no.acl.found=false
 """
+
+
+class Listener:
+    """Definition of a listener.
+
+    Args:
+        host: string with the host that will be announced
+        protocol: auth protocol to be used
+        scope: scope of the listener, EXTERNAL or INTERNAL
+    """
+
+    def __init__(self, host: str, protocol: str, scope: str):
+        self.protocol = protocol
+        self.host = host
+        self.scope = scope
+
+    @property
+    def scope(self) -> str:
+        """Internal scope validator."""
+        return self._scope
+
+    @scope.setter
+    def scope(self, value):
+        """Internal scope validator."""
+        if value not in ["EXTERNAL", "INTERNAL"]:
+            raise ValueError("Only EXTERNAL and INTERNAL scopes are accepted")
+        self._scope = value
+
+    @property
+    def port(self) -> int:
+        """Port associated with the protocol/scope."""
+        if self.scope == "INTERNAL":
+            return SECURITY_PROTOCOL_PORTS[self.protocol][1]
+        elif self.scope == "EXTERNAL":
+            return SECURITY_PROTOCOL_PORTS[self.protocol][0]
+
+    @property
+    def name(self) -> str:
+        """Name of the listener."""
+        return f"{self.scope}_{self.protocol}"
+
+    def protocol_map(self) -> str:
+        """Return `name:protocol`."""
+        return f"{self.name}:{self.protocol}"
+
+    def listener(self) -> str:
+        """Return `name://:port`."""
+        return f"{self.name}://:{self.port}"
+
+    def advertised_listener(self) -> str:
+        """Return `name://host:port`."""
+        return f"{self.name}://{self.host}:{self.port}"
 
 
 class KafkaConfig:
@@ -38,32 +90,6 @@ class KafkaConfig:
     def sync_password(self) -> Optional[str]:
         """Returns charm-set sync_password for server-server auth between brokers."""
         return self.charm.get_secret(scope="app", key="sync-password")
-
-    @property
-    def internal_port(self) -> int:
-        """Returns the port used for INTERNAL listener."""
-        return 9093 if self.charm.tls.enabled else 9092
-
-    @property
-    def external_port(self) -> int:
-        """Returns the port used for EXTERNAL listener."""
-        return 19092
-
-    @property
-    def external_listener(self) -> str:
-        """Return the external listener name to be used.
-
-        If the config has been set, use that one, otherwise use the own hostname.
-        """
-        external_listener = self.charm.config["external-listener"]
-        if not external_listener:
-            external_listener = (
-                self.charm.model.get_relation(PEER)
-                .data[self.charm.unit]
-                .get("private-address", None)
-            )
-
-        return external_listener
 
     @property
     def zookeeper_config(self) -> Dict[str, str]:
@@ -133,7 +159,8 @@ class KafkaConfig:
         hosts = [
             self.charm.model.get_relation(PEER).data[unit].get("private-address") for unit in units
         ]
-        port = 9093 if self.charm.tls.enabled else 9092
+        # FIXME: Bootstrap from listener info?
+        port = 19093 if self.charm.tls.enabled else 19092
         return [f"{host}:{port}" for host in hosts]
 
     @property
@@ -190,6 +217,42 @@ class KafkaConfig:
         ]
 
     @property
+    def scram_properties(self) -> List[str]:
+        """Builds the properties for each scram listener.
+
+        Returns:
+            list of scram properties to be set
+        """
+        scram_properties = [f'listener.name.internal.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="sync" password="{self.sync_password}";']        
+        external_scram = [auth for auth in self.auth_mechanisms if auth.startswith("SASL_")]
+        for ext in external_scram:
+            scram_properties.append(f'listener.name.{ext.lower()}.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="sync" password="{self.sync_password}";')
+
+        return scram_properties
+
+    @property
+    def auth_mechanisms(self) -> List[str]:
+        """Return a list of enabled auth mechanisms."""
+        # TODO: At the moment only one mechanism for extra listeners. Will need to be
+        # extended with more depending on configuration settings.
+        protocol = "SASL_SSL" if self.charm.tls.enabled else "SASL_PLAINTEXT"
+        return [protocol]
+
+    @property
+    def internal_listener(self) -> Listener:
+        """Return the internal listener."""
+        protocol = "SASL_SSL" if self.charm.tls.enabled else "SASL_PLAINTEXT"
+        return Listener(host=self.charm.unit_host, protocol=protocol, scope="INTERNAL")
+
+    @property
+    def extra_listeners(self) -> List[Listener]:
+        """Return a list of extra listeners."""
+        listeners = []
+        for auth in self.auth_mechanisms:
+            listeners.append(Listener(host=self.charm.unit_host, protocol=auth, scope="EXTERNAL"))
+        return listeners
+
+    @property
     def super_users(self) -> str:
         """Generates all users with super/admin permissions for the cluster from relations.
 
@@ -234,10 +297,13 @@ class KafkaConfig:
         Returns:
             List of properties to be set
         """
-        host = (
-            self.charm.model.get_relation(PEER).data[self.charm.unit].get("private-address", None)
-        )
-        protocol = "SASL_SSL" if self.charm.tls.enabled else "SASL_PLAINTEXT"
+        protocol_map = [self.internal_listener.protocol_map()]
+        listeners_repr = [self.internal_listener.listener()]
+        advertised_listeners = [self.internal_listener.advertised_listener()]
+        for listener in self.extra_listeners:
+            protocol_map.append(listener.protocol_map())
+            listeners_repr.append(listener.listener())
+            advertised_listeners.append(listener.advertised_listener())
 
         properties = (
             [
@@ -246,13 +312,12 @@ class KafkaConfig:
                 f"auto.create.topics={self.charm.config['auto-create-topics']}",
                 f"super.users={self.super_users}",
                 f"log.dirs={self.log_dirs}",
-                f"listener.security.protocol.map=INTERNAL:{protocol},EXTERNAL:{protocol}",
-                f"listeners=INTERNAL://:{self.internal_port},EXTERNAL://:{self.external_port}",
-                f"advertised.listeners=INTERNAL://{host}:{self.internal_port},EXTERNAL://{self.external_listener}:{self.external_port}",
-                "inter.broker.listener.name=INTERNAL",
-                f'listener.name.internal.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="sync" password="{self.sync_password}";',
-                f'listener.name.external.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="sync" password="{self.sync_password}";',
+                f"listener.security.protocol.map={','.join(protocol_map)}",
+                f"listeners={','.join(listeners_repr)}",
+                f"advertised.listeners={','.join(advertised_listeners)}",
+                f"inter.broker.listener.name={self.internal_listener.name}",
             ]
+            + self.scram_properties
             + self.default_replication_properties
             + self.auth_properties
             + DEFAULT_CONFIG_OPTIONS.split("\n")

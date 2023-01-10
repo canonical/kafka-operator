@@ -14,7 +14,3 @@ options:
     description: enables auto creation of topic on the server
     type: boolean
     default: false
-  external-listener:
-    description: host where to announce an external listener
-    type: string
-    default: ""
