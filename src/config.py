@@ -227,22 +227,32 @@ class KafkaConfig:
         ]
 
     @property
-    def tls_properties(self) -> List[str]:
-        """Builds the properties necessary for TLS authentication.
+    def zookeeper_tls_properties(self) -> List[str]:
+        """Builds the properties necessary for SSL connections to ZooKeeper.
 
         Returns:
-            list of properties to be set
+            List of properties to be set
         """
         return [
             "zookeeper.ssl.client.enable=true",
             f"zookeeper.ssl.truststore.location={self.truststore_filepath}",
             f"zookeeper.ssl.truststore.password={self.charm.tls.truststore_password}",
             "zookeeper.clientCnxnSocket=org.apache.zookeeper.ClientCnxnSocketNetty",
+            "zookeeper.ssl.endpoint.identification.algorithm=",
+        ]
+
+    @property
+    def tls_properties(self) -> List[str]:
+        """Builds the properties necessary for TLS authentication.
+
+        Returns:
+            List of properties to be set
+        """
+        return [
             f"ssl.truststore.location={self.truststore_filepath}",
             f"ssl.truststore.password={self.charm.tls.truststore_password}",
             f"ssl.keystore.location={self.keystore_filepath}",
             f"ssl.keystore.password={self.charm.tls.keystore_password}",
-            "zookeeper.ssl.endpoint.identification.algorithm=",
             "ssl.endpoint.identification.algorithm=",
             "ssl.client.auth=none",
         ]
@@ -386,7 +396,7 @@ class KafkaConfig:
         )
 
         if self.charm.tls.enabled:
-            properties += self.tls_properties
+            properties += self.tls_properties + self.zookeeper_tls_properties
 
         return properties
 
