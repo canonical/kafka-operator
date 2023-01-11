@@ -12,7 +12,8 @@ CHARM_KEY = "kafka"
 PEER = "cluster"
 ZK = "zookeeper"
 REL_NAME = "kafka-client"
-CHARM_USERS = ["sync"]
+INTER_BROKER_USER = "sync"
+ADMIN_USER = "admin"
 TLS_RELATION = "certificates"
 
 AuthMechanism = Literal["SASL_PLAINTEXT", "SASL_SSL", "SSL"]

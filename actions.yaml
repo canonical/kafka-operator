@@ -8,11 +8,12 @@ set-password:
   params:
     username:
       type: string
-      description: The username, the default value 'operator'.
-        Possible values - operator
+      description: The internal username to set password for.
+      enum: [admin, sync]
     password:
       type: string
       description: The password will be auto-generated if this option is not specified.
+  required: [username]
 
 set-tls-private-key:
   description: Set the private key, which will be used for certificate signing
@@ -25,3 +26,8 @@ set-tls-private-key:
 
 rolling-restart-unit:
   description: Manually triggers a rolling restart for specified units.
+
+get-admin-credentials:
+  description: Get administrator authentication credentials for client commands
+    The returned client_properties can be used for Kafka bin commands using `--bootstrap-server` and `--command-config` for admin level administration
+    This action must be called on the leader unit.
