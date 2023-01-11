@@ -11,7 +11,7 @@ from typing import MutableMapping, Optional
 from auth import KafkaAuth
 from charms.rolling_ops.v0.rollingops import RollingOpsManager
 from config import KafkaConfig
-from literals import CHARM_KEY, CHARM_USERS, PEER, REL_NAME, ZK
+from literals import ADMIN_USER, CHARM_KEY, INTER_BROKER_USER, PEER, REL_NAME, ZK
 from ops.charm import (
     ActionEvent,
     CharmBase,
@@ -58,6 +58,9 @@ class KafkaCharm(CharmBase):
 
         self.framework.observe(getattr(self.on, "set_password_action"), self._set_password_action)
         self.framework.observe(getattr(self.on, "rolling_restart_unit_action"), self._restart)
+        self.framework.observe(
+            getattr(self.on, "get_admin_credentials_action"), self._get_admin_credentials_action
+        )
 
         self.framework.observe(
             getattr(self.on, "log_data_storage_attached"), self._on_storage_attached
@@ -139,16 +142,13 @@ class KafkaCharm(CharmBase):
             self.unit.status = BlockedStatus("unable to install kafka snap")
 
     def _on_leader_elected(self, event: LeaderElectedEvent) -> None:
-        """Handler for `leader_elected` event, ensuring sync_passwords gets set."""
+        """Handler for `leader_elected` event, ensuring internal user passwords get set."""
         if not self.peer_relation:
             logger.debug("no peer relation")
             event.defer()
             return
 
-        current_sync_password = self.get_secret(scope="app", key="sync-password")
-        self.set_secret(
-            scope="app", key="sync-password", value=(current_sync_password or generate_password())
-        )
+        self.set_internal_passwords()
 
     def _on_zookeeper_joined(self, event: RelationJoinedEvent) -> None:
         """Handler for `zookeeper_relation_joined` event, ensuring chroot gets set."""
@@ -173,27 +173,21 @@ class KafkaCharm(CharmBase):
             return
 
         # required settings given zookeeper connection config has been created
-        self.kafka_config.set_jaas_config()
+        self.kafka_config.set_zk_jaas_config()
         self.kafka_config.set_server_properties()
+        self.kafka_config.set_client_properties()
 
-        # do not start units until SCRAM users have been added to ZooKeeper for server-server auth
-        if self.unit.is_leader() and self.kafka_config.sync_password:
-            kafka_auth = KafkaAuth(
-                self,
-                opts=self.kafka_config.extra_args,
-                zookeeper=self.kafka_config.zookeeper_config.get("connect", ""),
-            )
-            try:
-                kafka_auth.add_user(
-                    username="sync",
-                    password=self.kafka_config.sync_password,
-                )
-                self.peer_relation.data[self.app].update({"broker-creds": "added"})
-            except subprocess.CalledProcessError as e:
-                # command to add users fails if attempted too early
-                logger.debug(str(e))
-                event.defer()
-                return
+        # set internal passwords
+        if self.unit.is_leader():
+            for username, password in self.kafka_config.internal_user_credentials.items():
+                updated_user = self.update_internal_user(username=username, password=password)
+                # do not continue until both internal users are updated
+                if not updated_user:
+                    event.defer()
+                    return
+
+            # updating non-leader units of creation of internal users
+            self.peer_relation.data[self.app].update({"broker-creds": "added"})
 
         # for non-leader units
         if not self.ready_to_start:
@@ -224,7 +218,7 @@ class KafkaCharm(CharmBase):
             return
 
         # Load current properties set in the charm workload
-        properties = safe_get_file(self.kafka_config.properties_filepath)
+        properties = safe_get_file(self.kafka_config.server_properties_filepath)
         if not properties:
             # Event fired before charm has properly started
             event.defer()
@@ -239,6 +233,7 @@ class KafkaCharm(CharmBase):
                 )
             )
             self.kafka_config.set_server_properties()
+            self.kafka_config.set_client_properties()
 
             if isinstance(event, StorageEvent):  # to get new storages
                 self.on[f"{self.restart.name}"].acquire_lock.emit(
@@ -307,35 +302,22 @@ class KafkaCharm(CharmBase):
             event.fail(msg)
             return
 
-        username = event.params.get("username", "sync")
-        if username not in CHARM_USERS:
-            msg = f"The action can be run only for users used by the charm: {CHARM_USERS} not {username}."
+        username = event.params.get("username", "")
+        new_password = event.params.get("password", generate_password())
+
+        if new_password in self.kafka_config.internal_user_credentials.values():
+            msg = "Password already exists, please choose a different password."
             logger.error(msg)
             event.fail(msg)
             return
 
-        new_password = event.params.get("password", generate_password())
-        if new_password == self.kafka_config.sync_password:
-            event.log("The old and new passwords are equal.")
-            event.set_results({f"{username}-password": new_password})
-            return
-
-        # Update the user
-        kafka_auth = KafkaAuth(
-            self,
-            opts=self.kafka_config.extra_args,
-            zookeeper=self.kafka_config.zookeeper_config.get("connect", ""),
-        )
-        try:
-            kafka_auth.add_user(username=username, password=new_password)
-        except subprocess.CalledProcessError as e:
-            # command to add users fails if attempted too early
-            logger.debug(str(e))
-            event.fail(str(e))
+        user_updated = self.update_internal_user(username=username, password=new_password)
+        if not user_updated:
+            event.fail("Unable to update user.")
             return
 
         # Store the password on application databag
-        self.set_secret(scope="app", key=f"{username}_password", value=new_password)
+        self.set_secret(scope="app", key=f"{username}-password", value=new_password)
         event.set_results({f"{username}-password": new_password})
 
     @property
@@ -372,6 +354,63 @@ class KafkaCharm(CharmBase):
             return False
 
         return True
+
+    def _get_admin_credentials_action(self, event: ActionEvent) -> None:
+        client_properties = safe_get_file(self.kafka_config.client_properties_filepath)
+
+        if not client_properties:
+            msg = "client.properties file not found on target unit."
+            logger.error(msg)
+            event.fail(msg)
+            return
+
+        event.set_results(
+            {
+                "username": ADMIN_USER,
+                "password": self.kafka_config.internal_user_credentials[ADMIN_USER],
+                "client-properties": "\n".join(client_properties),
+            }
+        )
+
+    def update_internal_user(self, username: str, password: str) -> bool:
+        """Updates internal SCRAM usernames and passwords."""
+        if not self.unit.is_leader():
+            logger.debug("Cannot update internal user from non-leader unit.")
+            return False
+
+        if username not in [INTER_BROKER_USER, ADMIN_USER]:
+            msg = f"Can only update internal charm users: {INTER_BROKER_USER} or {ADMIN_USER}, not {username}."
+            logger.error(msg)
+            return False
+
+        # do not start units until SCRAM users have been added to ZooKeeper for server-server auth
+        kafka_auth = KafkaAuth(
+            self,
+            opts=self.kafka_config.extra_args,
+            zookeeper=self.kafka_config.zookeeper_config.get("connect", ""),
+        )
+        try:
+            kafka_auth.add_user(
+                username=username,
+                password=password,
+            )
+            return True
+
+        except subprocess.CalledProcessError as e:
+            # command to add users fails if attempted too early
+            logger.debug(str(e))
+            return False
+
+    def set_internal_passwords(self) -> None:
+        """Sets inter-broker and admin user passwords to app relation data."""
+        if not self.unit.is_leader():
+            return
+
+        for password in [f"{INTER_BROKER_USER}-password", f"{ADMIN_USER}-password"]:
+            current_password = self.get_secret(scope="app", key=password)
+            self.set_secret(
+                scope="app", key=password, value=(current_password or generate_password())
+            )
 
     def get_secret(self, scope: str, key: str) -> Optional[str]:
         """Get TLS secret from the secret storage.

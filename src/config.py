@@ -6,9 +6,18 @@
 
 import logging
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List
 
-from literals import PEER, REL_NAME, SECURITY_PROTOCOL_PORTS, ZK, AuthMechanism, Scope
+from literals import (
+    ADMIN_USER,
+    INTER_BROKER_USER,
+    PEER,
+    REL_NAME,
+    SECURITY_PROTOCOL_PORTS,
+    ZK,
+    AuthMechanism,
+    Scope,
+)
 from ops.model import Unit
 from snap import SNAP_CONFIG_PATH
 from utils import safe_write_to_file
@@ -33,7 +42,7 @@ class Listener:
     """
 
     def __init__(self, host: str, protocol: AuthMechanism, scope: Scope):
-        self.protocol = protocol
+        self.protocol: AuthMechanism = protocol
         self.host = host
         self.scope = scope
 
@@ -47,6 +56,7 @@ class Listener:
         """Internal scope validator."""
         if value not in ["EXTERNAL", "INTERNAL"]:
             raise ValueError("Only EXTERNAL and INTERNAL scopes are accepted")
+
         self._scope = value
 
     @property
@@ -56,6 +66,8 @@ class Listener:
             return SECURITY_PROTOCOL_PORTS[self.protocol].internal
         elif self.scope == "EXTERNAL":
             return SECURITY_PROTOCOL_PORTS[self.protocol].external
+        else:
+            raise ValueError("Only EXTERNAL and INTERNAL scopes are accepted")
 
     @property
     def name(self) -> str:
@@ -84,15 +96,26 @@ class KafkaConfig:
     def __init__(self, charm):
         self.charm = charm
         self.default_config_path = SNAP_CONFIG_PATH
-        self.properties_filepath = f"{self.default_config_path}/server.properties"
-        self.jaas_filepath = f"{self.default_config_path}/kafka-jaas.cfg"
+        self.server_properties_filepath = f"{self.default_config_path}/server.properties"
+        self.client_properties_filepath = f"{self.default_config_path}/client.properties"
+        self.zk_jaas_filepath = f"{self.default_config_path}/zookeeper-jaas.cfg"
         self.keystore_filepath = f"{self.default_config_path}/keystore.p12"
         self.truststore_filepath = f"{self.default_config_path}/truststore.jks"
 
     @property
-    def sync_password(self) -> Optional[str]:
-        """Returns charm-set sync_password for server-server auth between brokers."""
-        return self.charm.get_secret(scope="app", key="sync-password")
+    def internal_user_credentials(self) -> Dict[str, str]:
+        """The charm internal usernames and passwords, e.g `sync` and `admin`.
+
+        Returns:
+            Dict of usernames and passwords
+        """
+        internal_user_credentials = {}
+        for user in [INTER_BROKER_USER, ADMIN_USER]:
+            password = self.charm.get_secret(scope="app", key=f"{user}-password")
+            if password:
+                internal_user_credentials[user] = password
+
+        return internal_user_credentials
 
     @property
     def zookeeper_config(self) -> Dict[str, str]:
@@ -147,7 +170,9 @@ class KafkaConfig:
         Returns:
             List of Java config options
         """
-        return [f"-Djava.security.auth.login.config={self.jaas_filepath}"]
+        return [
+            f"-Djava.security.auth.login.config={self.zk_jaas_filepath}",
+        ]
 
     @property
     def bootstrap_server(self) -> List[str]:
@@ -230,30 +255,36 @@ class KafkaConfig:
             list of scram properties to be set
         """
         scram_properties = [
-            f'listener.name.{self.internal_listener.name.lower()}.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="sync" password="{self.sync_password}";'
+            f'listener.name.{self.internal_listener.name.lower()}.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{INTER_BROKER_USER}" password="{self.internal_user_credentials[INTER_BROKER_USER]}";'
         ]
         external_scram = [
             auth.name for auth in self.extra_listeners if auth.protocol.startswith("SASL_")
         ]
         for name in external_scram:
             scram_properties.append(
-                f'listener.name.{name.lower()}.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="sync" password="{self.sync_password}";'
+                f'listener.name.{name.lower()}.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{INTER_BROKER_USER}" password="{self.internal_user_credentials[INTER_BROKER_USER]}";'
             )
 
         return scram_properties
+
+    @property
+    def security_protocol(self) -> AuthMechanism:
+        """Infers current charm security.protocol based on current relations."""
+        # FIXME: When we have multiple auth_mechanims/listeners, remove this method
+        return "SASL_SSL" if self.charm.tls.enabled else "SASL_PLAINTEXT"
 
     @property
     def auth_mechanisms(self) -> List[AuthMechanism]:
         """Return a list of enabled auth mechanisms."""
         # TODO: At the moment only one mechanism for extra listeners. Will need to be
         # extended with more depending on configuration settings.
-        protocol = "SASL_SSL" if self.charm.tls.enabled else "SASL_PLAINTEXT"
+        protocol = self.security_protocol
         return [protocol]
 
     @property
     def internal_listener(self) -> Listener:
         """Return the internal listener."""
-        protocol = "SASL_SSL" if self.charm.tls.enabled else "SASL_PLAINTEXT"
+        protocol = self.security_protocol
         return Listener(host=self.charm.unit_host, protocol=protocol, scope="INTERNAL")
 
     @property
@@ -278,7 +309,7 @@ class KafkaConfig:
         Returns:
             Semicolon delimited string of current super users
         """
-        super_users = ["sync"]
+        super_users = [INTER_BROKER_USER, ADMIN_USER]
         for relation in self.charm.model.relations[REL_NAME]:
             extra_user_roles = relation.data[relation.app].get("extra-user-roles", "")
             password = (
@@ -306,6 +337,21 @@ class KafkaConfig:
         )
 
     @property
+    def client_properties(self) -> List[str]:
+        """Builds all properties necessary for running an admin Kafka client.
+
+        This includes SASL/SCRAM auth and security mechanisms.
+
+        Returns:
+            List of properties to be set
+        """
+        return [
+            f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{ADMIN_USER}" password="{self.internal_user_credentials[ADMIN_USER]}";',
+            "sasl.mechanism=SCRAM-SHA-512",
+            f"security.protocol={self.security_protocol}",  # FIXME: will need changing once multiple listener auth schemes
+        ]
+
+    @property
     def server_properties(self) -> List[str]:
         """Builds all properties necessary for starting Kafka service.
 
@@ -313,6 +359,9 @@ class KafkaConfig:
 
         Returns:
             List of properties to be set
+
+        Raises:
+            KeyError if inter-broker username and password not set to relation data
         """
         protocol_map = [listener.protocol_map for listener in self.all_listeners]
         listeners_repr = [listener.listener for listener in self.all_listeners]
@@ -341,8 +390,8 @@ class KafkaConfig:
 
         return properties
 
-    def set_jaas_config(self) -> None:
-        """Writes the Kafka JAAS config using ZooKeeper relation data."""
+    def set_zk_jaas_config(self) -> None:
+        """Writes the ZooKeeper JAAS config using ZooKeeper relation data."""
         jaas_config = f"""
             Client {{
                 org.apache.zookeeper.server.auth.DigestLoginModule required
@@ -350,13 +399,21 @@ class KafkaConfig:
                 password="{self.zookeeper_config['password']}";
             }};
         """
-        safe_write_to_file(content=jaas_config, path=self.jaas_filepath, mode="w")
+        safe_write_to_file(content=jaas_config, path=self.zk_jaas_filepath, mode="w")
 
     def set_server_properties(self) -> None:
         """Writes all Kafka config properties to the `server.properties` path."""
         safe_write_to_file(
             content="\n".join(self.server_properties),
-            path=self.properties_filepath,
+            path=self.server_properties_filepath,
+            mode="w",
+        )
+
+    def set_client_properties(self) -> None:
+        """Writes all client config properties to the `client.properties` path."""
+        safe_write_to_file(
+            content="\n".join(self.client_properties),
+            path=self.client_properties_filepath,
             mode="w",
         )
 
