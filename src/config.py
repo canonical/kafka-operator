@@ -355,11 +355,16 @@ class KafkaConfig:
         Returns:
             List of properties to be set
         """
-        return [
+        client_properties = [
             f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{ADMIN_USER}" password="{self.internal_user_credentials[ADMIN_USER]}";',
             "sasl.mechanism=SCRAM-SHA-512",
             f"security.protocol={self.security_protocol}",  # FIXME: will need changing once multiple listener auth schemes
         ]
+
+        if self.charm.tls.enabled:
+            client_properties += self.tls_properties
+
+        return client_properties
 
     @property
     def server_properties(self) -> List[str]:

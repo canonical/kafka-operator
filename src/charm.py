@@ -364,11 +364,13 @@ class KafkaCharm(CharmBase):
             event.fail(msg)
             return
 
+        admin_properties = set(client_properties) - set(self.kafka_config.tls_properties)
+
         event.set_results(
             {
                 "username": ADMIN_USER,
                 "password": self.kafka_config.internal_user_credentials[ADMIN_USER],
-                "client-properties": "\n".join(client_properties),
+                "client-properties": "\n".join(admin_properties),
             }
         )
 
