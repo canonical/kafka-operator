@@ -13,6 +13,7 @@ import yaml
 from auth import Acl, KafkaAuth
 from client import KafkaClient
 from pytest_operator.plugin import OpsTest
+from snap import SNAP_CONFIG_PATH
 
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 APP_NAME = METADATA["name"]
@@ -231,3 +232,16 @@ def produce_and_check_logs(
             break
 
     assert passed, "logs not found"
+
+
+def run_client_properties(ops_test: OpsTest, unit_name: str) -> str:
+    """Runs command requiring admin permissions, authenticated with bootstrap-server."""
+    bootstrap_server = ops_test.model.units[unit_name].public_address + ":9092"
+    result = check_output(
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 'kafka.configs --bootstrap-server {bootstrap_server} --describe --all --command-config {SNAP_CONFIG_PATH}/client.properties --entity-type users'",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+
+    return result
