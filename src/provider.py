@@ -35,7 +35,9 @@ class KafkaProvider(Object):
 
         self.framework.observe(self.charm.on[REL_NAME].relation_broken, self._on_relation_broken)
 
-        self.framework.observe(self.kafka_provider.on.topic_requested, self.on_topic_requested)
+        self.framework.observe(
+            getattr(self.kafka_provider.on, "topic_requested"), self.on_topic_requested
+        )
 
     def on_topic_requested(self, event: TopicRequestedEvent):
         """Handle the on topic requested event."""
@@ -52,8 +54,8 @@ class KafkaProvider(Object):
             event.defer()
             return
 
-        extra_user_roles = event.extra_user_roles
-        topic = event.topic
+        extra_user_roles = event.extra_user_roles or ""
+        topic = event.topic or ""
 
         relation = event.relation
 

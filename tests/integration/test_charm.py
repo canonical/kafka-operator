@@ -50,8 +50,9 @@ async def test_listeners(ops_test: OpsTest):
     check_socket(address, 9092)  # External listener
 
 
-def test_client_properties_makes_admin_connection(ops_test: OpsTest):
-    result = run_client_properties(ops_test=ops_test, unit_name=f"{CHARM_KEY}/0")
+@pytest.mark.abort_on_fail
+async def test_client_properties_makes_admin_connection(ops_test: OpsTest):
+    result = await run_client_properties(ops_test=ops_test)
     assert result
     assert len(result.strip().split("\n")) == 2
 

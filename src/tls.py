@@ -43,10 +43,10 @@ class KafkaTLS(Object):
             self.charm.on[TLS_RELATION].relation_broken, self._tls_relation_broken
         )
         self.framework.observe(
-            self.certificates.on.certificate_available, self._on_certificate_available
+            getattr(self.certificates.on, "certificate_available"), self._on_certificate_available
         )
         self.framework.observe(
-            self.certificates.on.certificate_expiring, self._on_certificate_expiring
+            getattr(self.certificates.on, "certificate_expiring"), self._on_certificate_expiring
         )
         self.framework.observe(self.charm.on.set_tls_private_key_action, self._set_tls_private_key)
 
@@ -130,7 +130,7 @@ class KafkaTLS(Object):
 
     def _set_tls_private_key(self, event: ActionEvent) -> None:
         """Handler for `set_tls_private_key` action."""
-        private_key = parse_tls_file(event.params.get("internal-key", None))
+        private_key = parse_tls_file(event.params.get("internal-key", ""))
         self.charm.set_secret(scope="unit", key="private-key", value=private_key)
 
         self._on_certificate_expiring(event)
@@ -230,7 +230,7 @@ class KafkaTLS(Object):
         return [
             f"{self.charm.app.name}-{unit_id}",
             socket.getfqdn(),
-            self.peer_relation.data[self.charm.unit].get("private-address", None),
+            self.peer_relation.data[self.charm.unit].get("private-address", ""),
         ]
 
     def set_server_key(self) -> None:
