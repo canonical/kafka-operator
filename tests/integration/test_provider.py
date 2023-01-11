@@ -180,7 +180,7 @@ async def test_deploy_producer_same_topic(
 async def test_admin_added_to_super_users(ops_test: OpsTest):
     """Test relation with admin privileges."""
     super_users = load_super_users(model_full_name=ops_test.model_full_name)
-    assert len(super_users) == 1
+    assert len(super_users) == 2
 
     app_charm = await ops_test.build_charm("tests/integration/app-charm")
 
@@ -197,7 +197,7 @@ async def test_admin_added_to_super_users(ops_test: OpsTest):
     assert ops_test.model.applications[DUMMY_NAME_1].status == "active"
     # check the correct addition of super-users
     super_users = load_super_users(model_full_name=ops_test.model_full_name)
-    assert len(super_users) == 2
+    assert len(super_users) == 3
 
 
 @pytest.mark.abort_on_fail
@@ -211,7 +211,7 @@ async def test_admin_removed_from_super_users(ops_test: OpsTest):
     assert ops_test.model.applications[APP_NAME].status == "active"
 
     super_users = load_super_users(model_full_name=ops_test.model_full_name)
-    assert len(super_users) == 1
+    assert len(super_users) == 2
 
 
 @pytest.mark.abort_on_fail
