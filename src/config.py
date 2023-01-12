@@ -8,7 +8,7 @@ import logging
 import os
 from typing import Dict, List, Optional
 
-from literals import PEER, REL_NAME, SECURITY_PROTOCOL_PORTS, ZK
+from literals import PEER, REL_NAME, SECURITY_PROTOCOL_PORTS, ZK, AuthMechanism, Scope
 from ops.model import Unit
 from snap import SNAP_CONFIG_PATH
 from utils import safe_write_to_file
@@ -32,13 +32,13 @@ class Listener:
         scope: scope of the listener, EXTERNAL or INTERNAL
     """
 
-    def __init__(self, host: str, protocol: str, scope: str):
+    def __init__(self, host: str, protocol: AuthMechanism, scope: Scope):
         self.protocol = protocol
         self.host = host
         self.scope = scope
 
     @property
-    def scope(self) -> str:
+    def scope(self) -> Scope:
         """Internal scope validator."""
         return self._scope
 
@@ -53,23 +53,26 @@ class Listener:
     def port(self) -> int:
         """Port associated with the protocol/scope."""
         if self.scope == "INTERNAL":
-            return SECURITY_PROTOCOL_PORTS[self.protocol][1]
+            return SECURITY_PROTOCOL_PORTS[self.protocol].internal
         elif self.scope == "EXTERNAL":
-            return SECURITY_PROTOCOL_PORTS[self.protocol][0]
+            return SECURITY_PROTOCOL_PORTS[self.protocol].external
 
     @property
     def name(self) -> str:
         """Name of the listener."""
         return f"{self.scope}_{self.protocol}"
 
+    @property
     def protocol_map(self) -> str:
         """Return `name:protocol`."""
         return f"{self.name}:{self.protocol}"
 
+    @property
     def listener(self) -> str:
         """Return `name://:port`."""
         return f"{self.name}://:{self.port}"
 
+    @property
     def advertised_listener(self) -> str:
         """Return `name://host:port`."""
         return f"{self.name}://{self.host}:{self.port}"
@@ -159,8 +162,11 @@ class KafkaConfig:
         hosts = [
             self.charm.model.get_relation(PEER).data[unit].get("private-address") for unit in units
         ]
-        # FIXME: Bootstrap from listener info?
-        port = 19093 if self.charm.tls.enabled else 19092
+        port = (
+            SECURITY_PROTOCOL_PORTS["SASL_SSL"].internal
+            if self.charm.tls.enabled
+            else SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].internal
+        )
         return [f"{host}:{port}" for host in hosts]
 
     @property
@@ -237,7 +243,7 @@ class KafkaConfig:
         return scram_properties
 
     @property
-    def auth_mechanisms(self) -> List[str]:
+    def auth_mechanisms(self) -> List[AuthMechanism]:
         """Return a list of enabled auth mechanisms."""
         # TODO: At the moment only one mechanism for extra listeners. Will need to be
         # extended with more depending on configuration settings.
@@ -253,10 +259,15 @@ class KafkaConfig:
     @property
     def extra_listeners(self) -> List[Listener]:
         """Return a list of extra listeners."""
-        listeners = []
-        for auth in self.auth_mechanisms:
-            listeners.append(Listener(host=self.charm.unit_host, protocol=auth, scope="EXTERNAL"))
-        return listeners
+        return [
+            Listener(host=self.charm.unit_host, protocol=auth, scope="EXTERNAL")
+            for auth in self.auth_mechanisms
+        ]
+
+    @property
+    def all_listeners(self) -> List[Listener]:
+        """Return a list with all expected listeners."""
+        return [self.internal_listener] + self.extra_listeners
 
     @property
     def super_users(self) -> str:
@@ -303,13 +314,13 @@ class KafkaConfig:
         Returns:
             List of properties to be set
         """
-        protocol_map = [self.internal_listener.protocol_map()]
-        listeners_repr = [self.internal_listener.listener()]
-        advertised_listeners = [self.internal_listener.advertised_listener()]
-        for listener in self.extra_listeners:
-            protocol_map.append(listener.protocol_map())
-            listeners_repr.append(listener.listener())
-            advertised_listeners.append(listener.advertised_listener())
+        protocol_map = []
+        listeners_repr = []
+        advertised_listeners = []
+        for listener in self.all_listeners:
+            protocol_map.append(listener.protocol_map)
+            listeners_repr.append(listener.listener)
+            advertised_listeners.append(listener.advertised_listener)
 
         properties = (
             [
