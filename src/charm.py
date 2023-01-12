@@ -87,6 +87,11 @@ class KafkaCharm(CharmBase):
 
         return self.peer_relation.data[self.unit]
 
+    @property
+    def unit_host(self) -> str:
+        """Return the own host."""
+        return self.unit_peer_data.get("private-address", None)
+
     def _on_storage_attached(self, event: StorageAttachedEvent) -> None:
         """Handler for `storage_attached` events."""
         # checks first whether the broker is active before warning
