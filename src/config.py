@@ -314,13 +314,9 @@ class KafkaConfig:
         Returns:
             List of properties to be set
         """
-        protocol_map = []
-        listeners_repr = []
-        advertised_listeners = []
-        for listener in self.all_listeners:
-            protocol_map.append(listener.protocol_map)
-            listeners_repr.append(listener.listener)
-            advertised_listeners.append(listener.advertised_listener)
+        protocol_map = [listener.protocol_map for listener in self.all_listeners]
+        listeners_repr = [listener.listener for listener in self.all_listeners]
+        advertised_listeners = [listener.advertised_listener for listener in self.all_listeners]
 
         properties = (
             [
