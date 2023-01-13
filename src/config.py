@@ -109,13 +109,11 @@ class KafkaConfig:
         Returns:
             Dict of usernames and passwords
         """
-        internal_user_credentials = {}
-        for user in [INTER_BROKER_USER, ADMIN_USER]:
-            password = self.charm.get_secret(scope="app", key=f"{user}-password")
-            if password:
-                internal_user_credentials[user] = password
-
-        return internal_user_credentials
+        return {
+            user: password
+            for user in [INTER_BROKER_USER, ADMIN_USER]
+            if (password := self.charm.get_secret(scope="app", key=f"{user}-password"))
+        }
 
     @property
     def zookeeper_config(self) -> Dict[str, str]:
