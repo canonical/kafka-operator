@@ -101,8 +101,15 @@ def test_listeners_in_server_properties(harness):
     )
     expected_advertised_listeners = "advertised.listeners=INTERNAL_SASL_PLAINTEXT://treebeard:19092,EXTERNAL_SASL_PLAINTEXT://treebeard:9092"
 
-    assert expected_listeners in harness.charm.kafka_config.server_properties
-    assert expected_advertised_listeners in harness.charm.kafka_config.server_properties
+    with (
+        patch(
+            "config.KafkaConfig.internal_user_credentials",
+            new_callable=PropertyMock,
+            return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
+        )
+    ):
+        assert expected_listeners in harness.charm.kafka_config.server_properties
+        assert expected_advertised_listeners in harness.charm.kafka_config.server_properties
 
 
 def test_zookeeper_config_succeeds_fails_config(harness):
