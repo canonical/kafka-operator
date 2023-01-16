@@ -61,13 +61,17 @@ class Listener:
 
     @property
     def port(self) -> int:
-        """Port associated with the protocol/scope."""
-        if self.scope == "INTERNAL":
-            return SECURITY_PROTOCOL_PORTS[self.protocol].internal
-        elif self.scope == "EXTERNAL":
+        """Port associated with the protocol/scope.
+
+        Defaults to internal port.
+
+        Returns:
+            Integer of port number
+        """
+        if self.scope == "EXTERNAL":
             return SECURITY_PROTOCOL_PORTS[self.protocol].external
-        else:
-            raise ValueError("Only EXTERNAL and INTERNAL scopes are accepted")
+
+        return SECURITY_PROTOCOL_PORTS[self.protocol].internal
 
     @property
     def name(self) -> str:
