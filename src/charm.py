@@ -302,7 +302,7 @@ class KafkaCharm(CharmBase):
             event.fail(msg)
             return
 
-        username = event.params.get("username", "")
+        username = event.params["username"]
         new_password = event.params.get("password", generate_password())
 
         if new_password in self.kafka_config.internal_user_credentials.values():
