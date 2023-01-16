@@ -22,73 +22,23 @@ Manual, Day 2 operations for deploying and operating Apache Kafka, topic creatio
 - Fault-tolerance, replication and high-availability out-of-the-box.
 - Smooth topic-creation through [Juju Actions](https://juju.is/docs/olm/working-with-actions) and [application relations](https://juju.is/docs/olm/relations)
 
-#### **rolling-restart-unit Action**
-Manually triggers a rolling restart for specified units. The unit that this action runs on will be restarted, ensuring that no other application units are restarting at the same time. 
+### Secure-by-default, authenticated cluster administration
+Apache Kafka ships with `bin/*.sh` commands to do various administrative tasks, e.g `bin/kafka-config.sh` to update cluster configuration, `bin/kafka-topics.sh` for topic management, and many more! The Kafka Charmed Operator provides these commands to administrators to easily run their desired cluster configurations securely with SASL authentication, either from within the cluster or as an external client.
 
-Must be ran on each unit separately.
-
-##### Example Usage
-To restart the current Kafka Leader, run:
+To run commands from within the cluster, the charm makes available a `client.properties` file with all the necessary configuration to run a `KafkaClient`. One can retrieve `admin` credentials with:
 ```
-juju run-action kafka/leader rolling-restart-unit
+juju run-action kafka/leader get-admin-credentials
 ```
 
-#### **set-password Action**
-Change an internal system user's password. It is for internal charm users and SHOULD NOT be used by applications.
-
-This action must be called on the leader unit.
-
-##### Params
-- **password** string
-    The password will be auto-generated if this option is not specified.
-- **username** string
-    The username, the default value 'operator'. Possible values - `admin`, `sync`
-
-##### Example Usage
-To update the `admin` user password, run:
+If you wish to run a command from the cluster, in order to (for example) list the current topics on the Kafka cluster, you can run:
 ```
-juju run-action kafka/leader set-password --params username=admin --params password=thisisapassword --wait
+BOOTSTRAP_SERVERS=$(juju run-action kafka/leader get-admin-credentials --wait | grep "bootstrap.servers" | cut -d "=" -f 2)
+juju ssh kafka/leader 'kafka.topics --bootstrap-server $BOOTSTRAP_SERVERS --list --command-config /var/snap/kafka/common/client.properties'
 ```
 
-#### **set-tls-private-key Action**
-Sets the private key identifying the target unit, which will be used for certificate signing requests (CSR). When updated, certificates will be reissued to the unit.
-
-Must be ran on each unit separately.
-Requires a valid relation to an application providing the [`certificates`](https://github.com/canonical/charm-relation-interfaces/tree/main/interfaces/tls_certificates/v1) relation interface. 
-
-##### Params
-- **internal-key** string
-    The content of private key for internal communications with clients. Content will be auto-generated if this option is not specified.
-    Can be raw string, or base64 encoded.
-
-##### Example Usage
-To update the private-key for the leader unit to a specific key, run:
+Available Kafka bin commands can be found with:
 ```
-juju run-action kafka/leader set-tls-private-key --params internal-key=<BASE64 STRING> --wait
-```
-
-#### **get-admin-credentials Action**
-Gets administrator authentication credentials for client commands.
-
-Kafka ships with `bin/*.sh` commands to do various administrative tasks. The returned `client_properties`, `username` and `password` can be used to run Kafka bin commands using `--bootstrap-server` and `--command-config` for admin level administration.
-
-This action must be called on the leader unit.
-
-##### Example Usage
-To get the current `admin` SASL credentials, run:
-```
-juju run-action kafka/leader get-admin-credentials --wait
-```
-This will return something similar to:
-```
-results:
-  client-properties: |-
-    sasl.mechanism=SCRAM-SHA-512
-    security.protocol=SASL_SSL
-    sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="admin" password="E1RbjO78TUX5L3M428BTpdbEyJb1pqTJ";
-    bootstrap.servers=10.3.238.51:9092
-  password: E1RbjO78TUX5L3M428BTpdbEyJb1pqTJ
-  username: admin
+snap info kafka --channel rock/edge
 ```
 
 ### Checklist
