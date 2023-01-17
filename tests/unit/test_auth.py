@@ -8,10 +8,11 @@ from unittest.mock import patch
 
 import pytest
 import yaml
+from ops.testing import Harness
+
 from auth import Acl, KafkaAuth
 from charm import KafkaCharm
 from literals import CHARM_KEY, PEER, ZK
-from ops.testing import Harness
 
 logger = logging.getLogger(__name__)
 

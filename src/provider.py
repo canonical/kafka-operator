@@ -6,13 +6,14 @@
 
 import logging
 
-from auth import KafkaAuth
 from charms.data_platform_libs.v0.data_interfaces import KafkaProvides, TopicRequestedEvent
-from config import KafkaConfig
-from literals import PEER, REL_NAME
 from ops.charm import RelationBrokenEvent
 from ops.framework import Object
 from ops.model import Relation
+
+from auth import KafkaAuth
+from config import KafkaConfig
+from literals import PEER, REL_NAME
 from utils import generate_password
 
 logger = logging.getLogger(__name__)

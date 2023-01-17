@@ -6,6 +6,7 @@ import subprocess
 from unittest.mock import patch
 
 import pytest
+
 from snap import KafkaSnap
 
 

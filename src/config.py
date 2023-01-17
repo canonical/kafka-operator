@@ -8,6 +8,8 @@ import logging
 import os
 from typing import Dict, List
 
+from ops.model import Unit
+
 from literals import (
     ADMIN_USER,
     INTER_BROKER_USER,
@@ -18,7 +20,6 @@ from literals import (
     AuthMechanism,
     Scope,
 )
-from ops.model import Unit
 from snap import SNAP_CONFIG_PATH
 from utils import safe_write_to_file
 

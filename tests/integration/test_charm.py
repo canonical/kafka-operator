@@ -8,15 +8,15 @@ import time
 from subprocess import PIPE, check_output
 
 import pytest
-from literals import CHARM_KEY
 from pytest_operator.plugin import OpsTest
-
 from tests.integration.helpers import (
     check_socket,
     get_address,
     produce_and_check_logs,
     run_client_properties,
 )
+
+from literals import CHARM_KEY
 
 logger = logging.getLogger(__name__)
 
