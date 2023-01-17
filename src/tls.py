@@ -15,10 +15,11 @@ from charms.tls_certificates_interface.v1.tls_certificates import (
     generate_csr,
     generate_private_key,
 )
-from literals import TLS_RELATION
 from ops.charm import ActionEvent
 from ops.framework import Object
 from ops.model import Relation
+
+from literals import TLS_RELATION
 from snap import SNAP_CONFIG_PATH
 from utils import generate_password, parse_tls_file, safe_write_to_file
 
