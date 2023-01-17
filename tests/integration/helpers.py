@@ -13,6 +13,7 @@ import yaml
 from auth import Acl, KafkaAuth
 from client import KafkaClient
 from pytest_operator.plugin import OpsTest
+from snap import SNAP_CONFIG_PATH
 
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 APP_NAME = METADATA["name"]
@@ -142,7 +143,7 @@ async def get_address(ops_test: OpsTest, app_name=APP_NAME, unit_num=0) -> str:
     return address
 
 
-async def set_password(ops_test: OpsTest, username="sync", password=None, num_unit=0) -> str:
+async def set_password(ops_test: OpsTest, username="sync", password=None, num_unit=0) -> Any:
     """Use the charm action to start a password rotation."""
     params = {"username": username}
     if password:
@@ -155,12 +156,12 @@ async def set_password(ops_test: OpsTest, username="sync", password=None, num_un
     return password.results
 
 
-def check_socket(host: str, port: int) -> bool:
+def check_socket(host: str, port: int) -> None:
     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
         assert sock.connect_ex((host, port)) == 0
 
 
-def check_tls(ip: str, port: int) -> bool:
+def check_tls(ip: str, port: int) -> None:
     result = check_output(
         f"echo | openssl s_client -connect {ip}:{port}",
         stderr=PIPE,
@@ -231,3 +232,16 @@ def produce_and_check_logs(
             break
 
     assert passed, "logs not found"
+
+
+async def run_client_properties(ops_test: OpsTest) -> str:
+    """Runs command requiring admin permissions, authenticated with bootstrap-server."""
+    bootstrap_server = await get_address(ops_test=ops_test) + ":9092"
+    result = check_output(
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 'kafka.configs --bootstrap-server {bootstrap_server} --describe --all --command-config {SNAP_CONFIG_PATH}/client.properties --entity-type users'",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+
+    return result

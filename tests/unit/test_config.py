@@ -3,11 +3,12 @@
 # See LICENSE file for licensing details.
 
 from pathlib import Path
+from unittest.mock import PropertyMock, patch
 
 import pytest
 import yaml
 from charm import KafkaCharm
-from literals import CHARM_KEY, PEER, ZK
+from literals import ADMIN_USER, CHARM_KEY, INTER_BROKER_USER, PEER, ZK
 from ops.testing import Harness
 
 CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
@@ -62,11 +63,18 @@ def test_log_dirs_in_server_properties(harness):
     harness.update_relation_data(peer_relation_id, "kafka/0", {"private-address": "treebeard"})
 
     found_log_dirs = False
-    for prop in harness.charm.kafka_config.server_properties:
-        if "log.dirs" in prop:
-            found_log_dirs = True
+    with (
+        patch(
+            "config.KafkaConfig.internal_user_credentials",
+            new_callable=PropertyMock,
+            return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
+        )
+    ):
+        for prop in harness.charm.kafka_config.server_properties:
+            if "log.dirs" in prop:
+                found_log_dirs = True
 
-    assert found_log_dirs
+        assert found_log_dirs
 
 
 def test_listeners_in_server_properties(harness):
@@ -93,8 +101,15 @@ def test_listeners_in_server_properties(harness):
     )
     expected_advertised_listeners = "advertised.listeners=INTERNAL_SASL_PLAINTEXT://treebeard:19092,EXTERNAL_SASL_PLAINTEXT://treebeard:9092"
 
-    assert expected_listeners in harness.charm.kafka_config.server_properties
-    assert expected_advertised_listeners in harness.charm.kafka_config.server_properties
+    with (
+        patch(
+            "config.KafkaConfig.internal_user_credentials",
+            new_callable=PropertyMock,
+            return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
+        )
+    ):
+        assert expected_listeners in harness.charm.kafka_config.server_properties
+        assert expected_advertised_listeners in harness.charm.kafka_config.server_properties
 
 
 def test_zookeeper_config_succeeds_fails_config(harness):
@@ -209,7 +224,7 @@ def test_auth_properties(harness):
 
 def test_super_users(harness):
     """Checks super-users property is updated for new admin clients."""
-    assert len(harness.charm.kafka_config.super_users.split(";")) == 1
+    assert len(harness.charm.kafka_config.super_users.split(";")) == 2
 
     client_relation_id = harness.add_relation("kafka-client", "app")
     harness.update_relation_data(client_relation_id, "app", {"extra-user-roles": "admin,producer"})
@@ -223,11 +238,11 @@ def test_super_users(harness):
     harness.update_relation_data(
         peer_relation_id, harness.charm.app.name, {"relation-1": "mellon"}
     )
-    assert len(harness.charm.kafka_config.super_users.split(";")) == 2
+    assert len(harness.charm.kafka_config.super_users.split(";")) == 3
 
     harness.update_relation_data(
         peer_relation_id, harness.charm.app.name, {"relation-2": "mellon"}
     )
 
     harness.update_relation_data(client_relation_id, "appii", {"extra-user-roles": "consumer"})
-    assert len(harness.charm.kafka_config.super_users.split(";")) == 2
+    assert len(harness.charm.kafka_config.super_users.split(";")) == 3

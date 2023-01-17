@@ -2,26 +2,34 @@
 # See LICENSE file for licensing details.
 # In Juju 3 this will be easier to copy
 set-password:
-  description: Change the system user's password, which is used by the charm.
+  description: Change an internal system user's password.
     It is for internal charm users and SHOULD NOT be used by applications.
     This action must be called on the leader unit.
   params:
     username:
       type: string
-      description: The username, the default value 'operator'.
-        Possible values - operator
+      description: The internal username to set password for.
+      enum: [admin, sync]
     password:
       type: string
       description: The password will be auto-generated if this option is not specified.
+  required: [username]
 
 set-tls-private-key:
-  description: Set the private key, which will be used for certificate signing
-    requests (CSR). Run for each unit separately.
+  description: Sets the private key identifying the target unit, which will be used for certificate signing requests (CSR).
+    When updated, certificates will be reissued to the unit.
+    Run for each unit separately. Requires a valid relation to an application providing the `certificates` relation interface. 
   params:
     internal-key:
       type: string
       description: The content of private key for internal communications with clients.
         Content will be auto-generated if this option is not specified.
+        Can be raw-string, or base64 encoded.
 
 rolling-restart-unit:
   description: Manually triggers a rolling restart for specified units.
+
+get-admin-credentials:
+  description: Get administrator authentication credentials for client commands
+    The returned client_properties can be used for Kafka bin commands using `--bootstrap-server` and `--command-config` for admin level administration
+    This action must be called on the leader unit.

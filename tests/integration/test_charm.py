@@ -11,7 +11,12 @@ import pytest
 from literals import CHARM_KEY
 from pytest_operator.plugin import OpsTest
 
-from tests.integration.helpers import check_socket, get_address, produce_and_check_logs
+from tests.integration.helpers import (
+    check_socket,
+    get_address,
+    produce_and_check_logs,
+    run_client_properties,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +48,13 @@ async def test_listeners(ops_test: OpsTest):
     address = await get_address(ops_test=ops_test)
     check_socket(address, 19092)  # Internal listener
     check_socket(address, 9092)  # External listener
+
+
+@pytest.mark.abort_on_fail
+async def test_client_properties_makes_admin_connection(ops_test: OpsTest):
+    result = await run_client_properties(ops_test=ops_test)
+    assert result
+    assert len(result.strip().split("\n")) == 2
 
 
 @pytest.mark.abort_on_fail

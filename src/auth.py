@@ -33,6 +33,8 @@ class KafkaAuth:
         self.zookeeper = zookeeper
         self.current_acls: Set[Acl] = set()
         self.new_user_acls: Set[Acl] = set()
+        # TODO: when we need to have --bootstrap-server bin commands, don't default to --zookeeper
+        # pass auth provider via command argument and handle it in run_bin_command
 
     def _get_acls_from_cluster(self) -> str:
         """Loads the currently active ACLs from the Kafka cluster."""
