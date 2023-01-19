@@ -2,10 +2,66 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+"""KafkaClient class library for basic client connections to a Kafka Charm cluster.
+
+`KafkaClient` provides an interface from which to make generic client connections
+to a running Kafka Charm cluster. This can be as an administrator, producer or consumer,
+provided that the necessary ACLs and user credentials have already been created.
+
+Charms using this library are expected to have related to the target Kafka cluster,
+and can use this library to streamline basic use-cases, e.g 'create a topic', 'produce a message
+to a topic' or 'consume all messages from a topic'.
+
+Example usage for charms using `KafkaClient`:
+
+```python
+# for a producer application
+
+def on_kafka_relation_created(self, event: RelationCreatedEvent):
+    client = KafkaClient(
+        servers=event.relation.data[self.app].get("bootstrap-server", "").split(","),
+        username=event.relation.data[self.app].get("username", ""),
+        password=event.relation.data[self.app].get("password", ""),
+        topic=event.relation.data[event.app].get("topic", ""),
+        consumer_group_prefix=event.relation.data[event.app].get("consumer-group-prefix", None),
+        security_protocol="SASL_PLAINTEXT",  # SASL_SSL for TLS enabled Kafka clusters
+        replication_factor=3,
+    )
+
+    if "admin" in event.relation.data[event.app].get("extra-user-roles", ""):
+        topic = NewTopic(
+            name=client.topic,
+            num_partitions=5,
+            replication_factor=3,
+        )
+        client.create_topic(topic=topic)
+
+    for message in some_iterable:
+        client.produce_message(message_content=message)
+
+# OR
+# for a consumer application
+
+def on_kafka_relation_created(self, event: RelationCreatedEvent):
+    client = KafkaClient(
+        servers=event.relation.data[self.app].get("bootstrap-server", "").split(","),
+        username=event.relation.data[self.app].get("username", ""),
+        password=event.relation.data[self.app].get("password", ""),
+        topic=event.relation.data[event.app].get("topic", ""),
+        consumer_group_prefix=event.relation.data[event.app].get("consumer-group-prefix", None),
+        security_protocol="SASL_PLAINTEXT",  # SASL_SSL for TLS enabled Kafka clusters
+        replication_factor=3,
+    )
+
+    for message in client.messages:
+        logger.info(message)
+```
+"""
+
 import argparse
-from functools import cached_property
 import logging
 import sys
+from functools import cached_property
 from typing import Generator, List, Optional
 
 from kafka import KafkaAdminClient, KafkaConsumer, KafkaProducer
@@ -16,6 +72,7 @@ logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 
 class KafkaClient:
+    """Simplistic KafkaClient built on top of kafka-python."""
 
     API_VERSION = (2, 5, 0)
 
@@ -49,6 +106,7 @@ class KafkaClient:
 
     @cached_property
     def _admin_client(self) -> KafkaAdminClient:
+        """Initialises and caches a `KafkaAdminClient`."""
         return KafkaAdminClient(
             client_id=self.username,
             bootstrap_servers=self.servers,
@@ -65,6 +123,7 @@ class KafkaClient:
 
     @cached_property
     def _producer_client(self) -> KafkaProducer:
+        """Initialises and caches a `KafkaProducer`."""
         return KafkaProducer(
             bootstrap_servers=self.servers,
             ssl_check_hostname=False,
@@ -80,6 +139,7 @@ class KafkaClient:
 
     @cached_property
     def _consumer_client(self) -> KafkaConsumer:
+        """Initialises and caches a `KafkaConsumer`."""
         return KafkaConsumer(
             self.topic,
             bootstrap_servers=self.servers,
@@ -99,12 +159,27 @@ class KafkaClient:
         )
 
     def create_topic(self, topic: NewTopic) -> None:
+        """Creates a new topic on the Kafka cluster.
+
+        Args:
+            topic: the configuration of the topic to create
+        """
         self._admin_client.create_topics(new_topics=[topic], validate_only=False)
 
     def messages(self) -> Generator:
+        """Iterable of consumer messages.
+
+        Returns:
+            Generator of messages
+        """
         yield from self._consumer_client
 
     def produce_message(self, message_content: str) -> None:
+        """Sends message to target topic on the cluster.
+
+        Args:
+            message_content: the content of the message to send
+        """
         item_content = f"Message #{message_content}"
         future = self._producer_client.send(self.topic, str.encode(item_content))
         future.get(timeout=60)
