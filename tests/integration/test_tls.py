@@ -6,7 +6,14 @@ import asyncio
 import logging
 
 import pytest
-from helpers import APP_NAME, ZK_NAME, check_tls, get_address, get_kafka_zk_relation_data
+from helpers import (
+    APP_NAME,
+    ZK_NAME,
+    check_tls,
+    get_address,
+    get_kafka_zk_relation_data,
+    set_tls_private_key,
+)
 from pytest_operator.plugin import OpsTest
 
 from utils import get_active_brokers
@@ -55,6 +62,8 @@ async def test_kafka_tls(ops_test: OpsTest):
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], idle_period=60, timeout=1000)
 
     assert ops_test.model.applications[APP_NAME].status == "blocked"
+
+    await set_tls_private_key(ops_test)
 
     await ops_test.model.add_relation(APP_NAME, TLS_NAME)
     logger.info("Relate Kafka to TLS")
