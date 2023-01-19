@@ -3,10 +3,10 @@
 # See LICENSE file for licensing details.
 
 import argparse
+from functools import cached_property
 import logging
 import sys
-import time
-from typing import List, Optional
+from typing import Generator, List, Optional
 
 from kafka import KafkaAdminClient, KafkaConsumer, KafkaProducer
 from kafka.admin import NewTopic
@@ -47,8 +47,9 @@ class KafkaClient:
         self.ssl = "SSL" in self.security_protocol
         self.mtls = self.security_protocol == "SSL"
 
-    def create_topic(self):
-        admin_client = KafkaAdminClient(
+    @cached_property
+    def _admin_client(self) -> KafkaAdminClient:
+        return KafkaAdminClient(
             client_id=self.username,
             bootstrap_servers=self.servers,
             ssl_check_hostname=False,
@@ -62,13 +63,24 @@ class KafkaClient:
             api_version=KafkaClient.API_VERSION if self.mtls else None,
         )
 
-        topic_list = [
-            NewTopic(name=self.topic, num_partitions=5, replication_factor=self.replication_factor)
-        ]
-        admin_client.create_topics(new_topics=topic_list, validate_only=False)
+    @cached_property
+    def _producer_client(self) -> KafkaProducer:
+        return KafkaProducer(
+            bootstrap_servers=self.servers,
+            ssl_check_hostname=False,
+            security_protocol=self.security_protocol,
+            sasl_plain_username=self.username if self.sasl else None,
+            sasl_plain_password=self.password if self.sasl else None,
+            sasl_mechanism="SCRAM-SHA-512" if self.sasl else None,
+            ssl_cafile=self.cafile_path if self.ssl else None,
+            ssl_certfile=self.certfile_path if self.ssl else None,
+            ssl_keyfile=self.keyfile_path if self.mtls else None,
+            api_version=KafkaClient.API_VERSION if self.mtls else None,
+        )
 
-    def run_consumer(self):
-        consumer = KafkaConsumer(
+    @cached_property
+    def _consumer_client(self) -> KafkaConsumer:
+        return KafkaConsumer(
             self.topic,
             bootstrap_servers=self.servers,
             ssl_check_hostname=False,
@@ -86,32 +98,17 @@ class KafkaClient:
             consumer_timeout_ms=15000,
         )
 
-        for message in consumer:
-            logger.info(str(message))
+    def create_topic(self, topic: NewTopic) -> None:
+        self._admin_client.create_topics(new_topics=[topic], validate_only=False)
 
-    def run_producer(self, num_messages: Optional[int] = 15):
-        producer = KafkaProducer(
-            bootstrap_servers=self.servers,
-            ssl_check_hostname=False,
-            security_protocol=self.security_protocol,
-            sasl_plain_username=self.username if self.sasl else None,
-            sasl_plain_password=self.password if self.sasl else None,
-            sasl_mechanism="SCRAM-SHA-512" if self.sasl else None,
-            ssl_cafile=self.cafile_path if self.ssl else None,
-            ssl_certfile=self.certfile_path if self.ssl else None,
-            ssl_keyfile=self.keyfile_path if self.mtls else None,
-            api_version=KafkaClient.API_VERSION if self.mtls else None,
-        )
+    def messages(self) -> Generator:
+        yield from self._consumer_client
 
-        num_messages = num_messages or 15
-        for i in range(num_messages):
-            item_content = f"Message #{i}"
-            future = producer.send(self.topic, str.encode(item_content))
-            future.get(timeout=60)
-            logger.info(
-                f"Message published to topic={self.topic}, message content: {item_content}"
-            )
-            time.sleep(1)
+    def produce_message(self, message_content: str) -> None:
+        item_content = f"Message #{message_content}"
+        future = self._producer_client.send(self.topic, str.encode(item_content))
+        future.get(timeout=60)
+        logger.info(f"Message published to topic={self.topic}, message content: {item_content}")
 
 
 if __name__ == "__main__":
@@ -121,7 +118,7 @@ if __name__ == "__main__":
         "--topic",
         help="Kafka topic provided by Kafka Charm",
         type=str,
-        default="demo",
+        default="hot-topic",
     )
     parser.add_argument(
         "-u",
@@ -185,19 +182,31 @@ if __name__ == "__main__":
         topic=args.topic,
         consumer_group_prefix=args.consumer_group_prefix,
         security_protocol=args.security_protocol,
-        replication_factor=args.replication_factor,
         cafile_path=args.cafile_path,
         certfile_path=args.certfile_path,
         keyfile_path=args.keyfile_path,
+        replication_factor=args.replication_factor,
     )
 
     if args.producer:
         logger.info(f"Creating new topic - {args.topic}")
-        client.create_topic()
+
+        topic = NewTopic(
+            name=args.topic,
+            num_partitions=args.num_partitions,
+            replication_factor=args.replication_factor,
+        )
+        client.create_topic(topic=topic)
+
         logger.info("--producer - Starting...")
-        producer = client.run_producer(num_messages=args.num_messages)
+        for i in range(args.num_messages):
+            client.produce_message(message_content=str(i))
+
     if args.consumer:
         logger.info("--consumer - Starting...")
-        consumer = client.run_consumer()
+        for message in client.messages():
+            logger.info(message)
+
     else:
         logger.info("No client type args found. Exiting...")
+        exit(1)
