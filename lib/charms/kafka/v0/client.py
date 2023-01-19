@@ -71,6 +71,16 @@ from kafka.admin import NewTopic
 logger = logging.getLogger(__name__)
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
+# The unique Charmhub library identifier, never change it
+LIBID = "67b2f3f3cefa49e9b225346049625251"
+
+# Increment this major API version when introducing breaking changes
+LIBAPI = 0
+
+# Increment this PATCH version before using `charmcraft publish-lib` or reset
+# to 0 if you are raising the major API version
+LIBPATCH = 1
+
 
 class KafkaClient:
     """Simplistic KafkaClient built on top of kafka-python."""

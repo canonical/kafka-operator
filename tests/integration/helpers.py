@@ -10,7 +10,7 @@ from subprocess import PIPE, check_output
 from typing import Any, Dict, List, Set, Tuple
 
 import yaml
-from client import KafkaClient
+from charms.kafka.v0.client import KafkaClient
 from kafka.admin import NewTopic
 from pytest_operator.plugin import OpsTest
 
