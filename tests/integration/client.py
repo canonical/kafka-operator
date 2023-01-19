@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2022 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 import argparse
@@ -27,6 +27,10 @@ class KafkaClient:
         topic: str,
         consumer_group_prefix: Optional[str],
         security_protocol: str,
+        cafile_path: Optional[str],
+        certfile_path: Optional[str],
+        keyfile_path: Optional[str],
+        replication_factor: int,
     ) -> None:
         self.servers = servers
         self.username = username
@@ -34,6 +38,10 @@ class KafkaClient:
         self.topic = topic
         self.consumer_group_prefix = consumer_group_prefix
         self.security_protocol = security_protocol
+        self.cafile_path = cafile_path
+        self.certfile_path = certfile_path
+        self.keyfile_path = keyfile_path
+        self.replication_factor = replication_factor
 
         self.sasl = "SASL" in self.security_protocol
         self.ssl = "SSL" in self.security_protocol
@@ -48,13 +56,15 @@ class KafkaClient:
             sasl_plain_username=self.username if self.sasl else None,
             sasl_plain_password=self.password if self.sasl else None,
             sasl_mechanism="SCRAM-SHA-512" if self.sasl else None,
-            ssl_cafile="certs/ca.pem" if self.ssl else None,
-            ssl_certfile="certs/cert.pem" if self.ssl else None,
-            ssl_keyfile="certs/key.pem" if self.mtls else None,
+            ssl_cafile=self.cafile_path if self.ssl else None,
+            ssl_certfile=self.certfile_path if self.ssl else None,
+            ssl_keyfile=self.keyfile_path if self.mtls else None,
             api_version=KafkaClient.API_VERSION if self.mtls else None,
         )
 
-        topic_list = [NewTopic(name=self.topic, num_partitions=5, replication_factor=1)]
+        topic_list = [
+            NewTopic(name=self.topic, num_partitions=5, replication_factor=self.replication_factor)
+        ]
         admin_client.create_topics(new_topics=topic_list, validate_only=False)
 
     def run_consumer(self):
@@ -66,9 +76,9 @@ class KafkaClient:
             sasl_plain_username=self.username if self.sasl else None,
             sasl_plain_password=self.password if self.sasl else None,
             sasl_mechanism="SCRAM-SHA-512" if self.sasl else None,
-            ssl_cafile="certs/ca.pem" if self.ssl else None,
-            ssl_certfile="certs/cert.pem" if self.ssl else None,
-            ssl_keyfile="certs/key.pem" if self.mtls else None,
+            ssl_cafile=self.cafile_path if self.ssl else None,
+            ssl_certfile=self.certfile_path if self.ssl else None,
+            ssl_keyfile=self.keyfile_path if self.mtls else None,
             api_version=KafkaClient.API_VERSION if self.mtls else None,
             group_id=self.consumer_group_prefix + "1" if self.consumer_group_prefix else None,
             enable_auto_commit=True,
@@ -79,7 +89,7 @@ class KafkaClient:
         for message in consumer:
             logger.info(str(message))
 
-    def run_producer(self):
+    def run_producer(self, num_messages: Optional[int] = 15):
         producer = KafkaProducer(
             bootstrap_servers=self.servers,
             ssl_check_hostname=False,
@@ -87,25 +97,21 @@ class KafkaClient:
             sasl_plain_username=self.username if self.sasl else None,
             sasl_plain_password=self.password if self.sasl else None,
             sasl_mechanism="SCRAM-SHA-512" if self.sasl else None,
-            ssl_cafile="certs/ca.pem" if self.ssl else None,
-            ssl_certfile="certs/cert.pem" if self.ssl else None,
-            ssl_keyfile="certs/key.pem" if self.mtls else None,
+            ssl_cafile=self.cafile_path if self.ssl else None,
+            ssl_certfile=self.certfile_path if self.ssl else None,
+            ssl_keyfile=self.keyfile_path if self.mtls else None,
             api_version=KafkaClient.API_VERSION if self.mtls else None,
         )
 
-        for _ in range(3):
-            logger.info("Generating messages to send... ")
-            for i in range(5):
-
-                item_content = f"Message #{i}"
-
-                future = producer.send(self.topic, str.encode(item_content))
-                future.get(timeout=60)
-                logger.info(
-                    f"Message published to topic={self.topic}, message content: {item_content}"
-                )
-                time.sleep(5)
-            break
+        num_messages = num_messages or 15
+        for i in range(num_messages):
+            item_content = f"Message #{i}"
+            future = producer.send(self.topic, str.encode(item_content))
+            future.get(timeout=60)
+            logger.info(
+                f"Message published to topic={self.topic}, message content: {item_content}"
+            )
+            time.sleep(1)
 
 
 if __name__ == "__main__":
@@ -148,9 +154,24 @@ if __name__ == "__main__":
         type=str,
         default="SASL_PLAINTEXT",
     )
-
+    parser.add_argument(
+        "-n",
+        "--num-messages",
+        help="number of messages to send from a producer",
+        type=int,
+        default=15,
+    )
+    parser.add_argument(
+        "-r",
+        "--replication-factor",
+        help="replcation.factor for created topics",
+        type=int,
+    )
     parser.add_argument("--producer", action="store_true", default=False)
     parser.add_argument("--consumer", action="store_true", default=False)
+    parser.add_argument("--cafile-path", type=str)
+    parser.add_argument("--certfile-path", type=str)
+    parser.add_argument("--keyfile-path", type=str)
 
     args = parser.parse_args()
     servers = args.servers.split(",")
@@ -164,13 +185,17 @@ if __name__ == "__main__":
         topic=args.topic,
         consumer_group_prefix=args.consumer_group_prefix,
         security_protocol=args.security_protocol,
+        replication_factor=args.replication_factor,
+        cafile_path=args.cafile_path,
+        certfile_path=args.certfile_path,
+        keyfile_path=args.keyfile_path,
     )
 
     if args.producer:
         logger.info(f"Creating new topic - {args.topic}")
         client.create_topic()
         logger.info("--producer - Starting...")
-        producer = client.run_producer()
+        producer = client.run_producer(num_messages=args.num_messages)
     if args.consumer:
         logger.info("--consumer - Starting...")
         consumer = client.run_consumer()
