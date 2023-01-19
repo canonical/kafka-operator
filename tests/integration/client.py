@@ -28,6 +28,7 @@ def on_kafka_relation_created(self, event: RelationCreatedEvent):
         replication_factor=3,
     )
 
+    # if topic has not yet been created
     if "admin" in event.relation.data[event.app].get("extra-user-roles", ""):
         topic = NewTopic(
             name=client.topic,
@@ -36,7 +37,7 @@ def on_kafka_relation_created(self, event: RelationCreatedEvent):
         )
         client.create_topic(topic=topic)
 
-    for message in some_iterable:
+    for message in SOME_ITERABLE:
         client.produce_message(message_content=message)
 
 # OR
@@ -84,10 +85,10 @@ class KafkaClient:
         topic: str,
         consumer_group_prefix: Optional[str],
         security_protocol: str,
-        cafile_path: Optional[str],
-        certfile_path: Optional[str],
-        keyfile_path: Optional[str],
-        replication_factor: int,
+        cafile_path: Optional[str] = None,
+        certfile_path: Optional[str] = None,
+        keyfile_path: Optional[str] = None,
+        replication_factor: int = 3,
     ) -> None:
         self.servers = servers
         self.username = username
