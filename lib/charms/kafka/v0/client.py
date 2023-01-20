@@ -74,6 +74,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import time
 import sys
 from functools import cached_property
 from typing import Generator, List, Optional
@@ -330,6 +331,7 @@ if __name__ == "__main__":
         logger.info("--producer - Starting...")
         for i in range(args.num_messages):
             client.produce_message(topic_name=topic.name, message_content=str(i))
+            time.sleep(2)
 
     if args.consumer:
         logger.info("--consumer - Starting...")
