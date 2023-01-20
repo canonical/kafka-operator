@@ -70,13 +70,13 @@ def on_kafka_relation_created(self, event: RelationCreatedEvent):
         logger.info(message)
 ```
 """
+from __future__ import annotations
 
 import argparse
 import logging
 import sys
 from functools import cached_property
 from typing import Generator, List, Optional
-from __future__ import annotations
 
 from kafka import KafkaAdminClient, KafkaConsumer, KafkaProducer
 from kafka.admin import NewTopic
@@ -114,8 +114,6 @@ class KafkaClient:
         self.servers = servers
         self.username = username
         self.password = password
-        self.topic = topic
-        self.consumer_group_prefix = consumer_group_prefix
         self.security_protocol = security_protocol
         self.cafile_path = cafile_path
         self.certfile_path = certfile_path
@@ -165,7 +163,6 @@ class KafkaClient:
     def _consumer_client(self) -> KafkaConsumer:
         """Initialises and caches a `KafkaConsumer`."""
         return KafkaConsumer(
-            self.topic,
             bootstrap_servers=self.servers,
             ssl_check_hostname=False,
             security_protocol=self.security_protocol,
@@ -325,7 +322,7 @@ if __name__ == "__main__":
 
         topic = NewTopic(
             name=args.topic,
-            num_partitions=args.num_partitions,
+            num_partitions=5,
             replication_factor=args.replication_factor,
         )
         client.create_topic(topic=topic)
