@@ -14,47 +14,59 @@ to a topic' or 'consume all messages from a topic'.
 
 Example usage for charms using `KafkaClient`:
 
+For a produer application
 ```python
-# for a producer application
 
 def on_kafka_relation_created(self, event: RelationCreatedEvent):
+    bootstrap_servers = event.relation.data[self.app].get("bootstrap-server", "").split(",")
+    num_brokers = len(bootstrap_servers)
+    username = event.relation.data[self.app].get("username", ""),
+    password = event.relation.data[self.app].get("password", ""),
+    roles = event.relation.data[event.app].get("extra-user-roles", "").split(",")
+    topic = event.relation.data[event.app].get("topic", "")
+
     client = KafkaClient(
-        servers=event.relation.data[self.app].get("bootstrap-server", "").split(","),
-        username=event.relation.data[self.app].get("username", ""),
-        password=event.relation.data[self.app].get("password", ""),
-        topic=event.relation.data[event.app].get("topic", ""),
-        consumer_group_prefix=event.relation.data[event.app].get("consumer-group-prefix", None),
+        servers=bootstrap_servers,
+        username=username,
+        password=password,
         security_protocol="SASL_PLAINTEXT",  # SASL_SSL for TLS enabled Kafka clusters
-        replication_factor=3,
     )
 
     # if topic has not yet been created
-    if "admin" in event.relation.data[event.app].get("extra-user-roles", ""):
-        topic = NewTopic(
-            name=client.topic,
+    if "admin" in roles:
+        topic_config = NewTopic(
+            name=topic,
             num_partitions=5,
-            replication_factor=3,
+            replication_factor=len(num_brokers)-1
         )
-        client.create_topic(topic=topic)
 
+        logger.info(f"Creating new topic - {topic}")
+        client.create_topic(topic=topic_config)
+
+    logger.info("Producer - Starting...")
     for message in SOME_ITERABLE:
-        client.produce_message(message_content=message)
+        client.produce_message(topic_name=topic, message_content=message)
+```
 
-# OR
-# for a consumer application
-
+Or, for a consumer application
+```python
 def on_kafka_relation_created(self, event: RelationCreatedEvent):
+    bootstrap_servers = event.relation.data[self.app].get("bootstrap-server", "").split(",")
+    username = event.relation.data[self.app].get("username", ""),
+    password = event.relation.data[self.app].get("password", ""),
+    consumer_group_prefix = event.relation.data[self.app].get("consumer-group-prefix", "")
+    topic = event.relation.data[event.app].get("topic", "")
+
     client = KafkaClient(
-        servers=event.relation.data[self.app].get("bootstrap-server", "").split(","),
-        username=event.relation.data[self.app].get("username", ""),
-        password=event.relation.data[self.app].get("password", ""),
-        topic=event.relation.data[event.app].get("topic", ""),
-        consumer_group_prefix=event.relation.data[event.app].get("consumer-group-prefix", None),
+        servers=bootstrap_servers,
+        username=username,
+        password=password,
         security_protocol="SASL_PLAINTEXT",  # SASL_SSL for TLS enabled Kafka clusters
-        replication_factor=3,
     )
 
-    for message in client.messages:
+    logger.info("Consumer - Starting...")
+    client.subscribe_to_topic(topic_name=topic, consumer_group_prefix=consumer_group_prefix)
+    for message in client.messages():
         logger.info(message)
 ```
 """
@@ -64,6 +76,7 @@ import logging
 import sys
 from functools import cached_property
 from typing import Generator, List, Optional
+from __future__ import annotations
 
 from kafka import KafkaAdminClient, KafkaConsumer, KafkaProducer
 from kafka.admin import NewTopic
@@ -92,8 +105,6 @@ class KafkaClient:
         servers: List[str],
         username: Optional[str],
         password: Optional[str],
-        topic: str,
-        consumer_group_prefix: Optional[str],
         security_protocol: str,
         cafile_path: Optional[str] = None,
         certfile_path: Optional[str] = None,
@@ -114,6 +125,8 @@ class KafkaClient:
         self.sasl = "SASL" in self.security_protocol
         self.ssl = "SSL" in self.security_protocol
         self.mtls = self.security_protocol == "SSL"
+
+        self._subscription = None
 
     @cached_property
     def _admin_client(self) -> KafkaAdminClient:
@@ -163,7 +176,7 @@ class KafkaClient:
             ssl_certfile=self.certfile_path if self.ssl else None,
             ssl_keyfile=self.keyfile_path if self.mtls else None,
             api_version=KafkaClient.API_VERSION if self.mtls else None,
-            group_id=self.consumer_group_prefix + "1" if self.consumer_group_prefix else None,
+            group_id=self._consumer_group_prefix or None,
             enable_auto_commit=True,
             auto_offset_reset="earliest",
             consumer_timeout_ms=15000,
@@ -172,29 +185,65 @@ class KafkaClient:
     def create_topic(self, topic: NewTopic) -> None:
         """Creates a new topic on the Kafka cluster.
 
+        Requires `KafkaClient` username to have `TOPIC CREATE` ACL permissions
+            for desired topic.
+
         Args:
             topic: the configuration of the topic to create
+
         """
         self._admin_client.create_topics(new_topics=[topic], validate_only=False)
+
+    def subscribe_to_topic(
+        self, topic_name: str, consumer_group_prefix: Optional[str] = None
+    ) -> None:
+        """Subscribes client to a specific topic, called when wishing to run a Consumer client.
+
+        Requires `KafkaClient` username to have `TOPIC READ` ACL permissions
+            for desired topic.
+        Optionally requires `KafkaClient` username to have `GROUP READ` ACL permissions
+            for desired consumer-group id.
+
+        Args:
+            topic_name: the topic to subscribe to
+            consumer_group_prefix: (optional) the consumer group_id prefix to join
+        """
+        self._consumer_group_prefix = (
+            consumer_group_prefix + "1" if consumer_group_prefix else None
+        )
+        self._subscription = topic_name
+        self._consumer_client.subscribe(topics=[topic_name])
 
     def messages(self) -> Generator:
         """Iterable of consumer messages.
 
         Returns:
             Generator of messages
+
+        Raises:
+            AttributeError: if topic not yet subscribed to
         """
+        if not self._subscription:
+            msg = "Client not yet subscribed to a topic, cannot provide messages"
+            logger.error(msg)
+            raise AttributeError(msg)
+
         yield from self._consumer_client
 
-    def produce_message(self, message_content: str) -> None:
+    def produce_message(self, topic_name: str, message_content: str) -> None:
         """Sends message to target topic on the cluster.
 
+        Requires `KafkaClient` username to have `TOPIC WRITE` ACL permissions
+            for desired topic.
+
         Args:
+            topic_name: the topic to send messages to
             message_content: the content of the message to send
         """
         item_content = f"Message #{message_content}"
-        future = self._producer_client.send(self.topic, str.encode(item_content))
+        future = self._producer_client.send(topic_name, str.encode(item_content))
         future.get(timeout=60)
-        logger.info(f"Message published to topic={self.topic}, message content: {item_content}")
+        logger.info(f"Message published to topic={topic_name}, message content: {item_content}")
 
 
 if __name__ == "__main__":
@@ -265,13 +314,10 @@ if __name__ == "__main__":
         servers=servers,
         username=args.username,
         password=args.password,
-        topic=args.topic,
-        consumer_group_prefix=args.consumer_group_prefix,
         security_protocol=args.security_protocol,
         cafile_path=args.cafile_path,
         certfile_path=args.certfile_path,
         keyfile_path=args.keyfile_path,
-        replication_factor=args.replication_factor,
     )
 
     if args.producer:
@@ -286,10 +332,13 @@ if __name__ == "__main__":
 
         logger.info("--producer - Starting...")
         for i in range(args.num_messages):
-            client.produce_message(message_content=str(i))
+            client.produce_message(topic_name=topic.name, message_content=str(i))
 
     if args.consumer:
         logger.info("--consumer - Starting...")
+        client.subscribe_to_topic(
+            topic_name=args.topic, consumer_group_prefix=args.consumer_group_prefix
+        )
         for message in client.messages():
             logger.info(message)
 
