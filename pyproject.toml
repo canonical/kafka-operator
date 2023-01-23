@@ -34,6 +34,7 @@ kazoo = ">=2.8.0"
 tenacity = ">=8.0.1"
 pure-sasl = ">=0.6.2"
 jsonschema = ">=4.10"
+cryptography = "^39.0.0"
 
 [tool.poetry.group.fmt]
 optional = true
@@ -56,7 +57,6 @@ optional = true
 [tool.poetry.group.unit.dependencies]
 pytest = ">=7.2"
 coverage = {extras = ["toml"], version = ">7.0"}
-cryptography = ">=38.0"
 
 [tool.poetry.group.integration]
 optional = true
@@ -65,7 +65,6 @@ optional = true
 pytest = ">=7.2"
 juju = "==2.9.11"
 coverage = {extras = ["toml"], version = ">7.0"}
-cryptography = ">=38.0"
 pytest-operator = ">0.20"
 kazoo = ">=2.8"
 tenacity = ">=7.0"
