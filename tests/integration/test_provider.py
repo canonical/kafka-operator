@@ -38,11 +38,11 @@ async def test_deploy_charms_relate_active(
     charm = await ops_test.build_charm(".")
     await asyncio.gather(
         ops_test.model.deploy(
-            "zookeeper", channel="edge", application_name="zookeeper", num_units=3, series="focal"
+            "zookeeper", channel="edge", application_name="zookeeper", num_units=3, series="jammy"
         ),
         ops_test.model.deploy(charm, application_name=APP_NAME, num_units=1, series="jammy"),
         ops_test.model.deploy(
-            app_charm, application_name=DUMMY_NAME_1, num_units=1, series="focal"
+            app_charm, application_name=DUMMY_NAME_1, num_units=1, series="jammy"
         ),
     )
     await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_1, ZK])
@@ -143,7 +143,7 @@ async def test_deploy_producer_same_topic(
     """Test the correct deployment and relation with role producer."""
     await asyncio.gather(
         ops_test.model.deploy(
-            app_charm, application_name=DUMMY_NAME_1, num_units=1, series="focal"
+            app_charm, application_name=DUMMY_NAME_1, num_units=1, series="jammy"
         )
     )
     await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_1, ZK])
@@ -185,7 +185,7 @@ async def test_admin_added_to_super_users(ops_test: OpsTest):
 
     await asyncio.gather(
         ops_test.model.deploy(
-            app_charm, application_name=DUMMY_NAME_1, num_units=1, series="focal"
+            app_charm, application_name=DUMMY_NAME_1, num_units=1, series="jammy"
         )
     )
     await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_1, ZK])
