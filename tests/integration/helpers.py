@@ -160,12 +160,21 @@ async def set_password(ops_test: OpsTest, username="sync", password=None, num_un
 
 async def set_tls_private_key(ops_test: OpsTest, key: Optional[str] = None, num_unit=0):
     """Use the charm action to start a password rotation."""
-    params = {"internal_key": key} if key else {}
+    params = {"internal-key": key} if key else {}
 
     action = await ops_test.model.units.get(f"{APP_NAME}/{num_unit}").run_action(
         "set-tls-private-key", **params
     )
     return (await action.wait()).results
+
+
+def extract_private_key(data: dict, unit: int = 0) -> Optional[str]:
+    list_keys = [
+        element["local-unit"]["data"]["private-key"]
+        for element in data[f"{APP_NAME}/{unit}"]["relation-info"]
+        if element["endpoint"] == "cluster"
+    ]
+    return list_keys[0] if len(list_keys) else None
 
 
 def check_socket(host: str, port: int) -> None:

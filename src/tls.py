@@ -133,10 +133,10 @@ class KafkaTLS(Object):
         private_key = (
             parse_tls_file(key)
             if (key := event.params.get("internal-key"))
-            else generate_private_key()
+            else generate_private_key().decode("utf-8")
         )
 
-        self.charm.set_secret(scope="unit", key="private-key", value=private_key.decode("utf-8"))
+        self.charm.set_secret(scope="unit", key="private-key", value=private_key)
 
         self._on_certificate_expiring(event)
 
