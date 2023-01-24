@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2022 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 from pathlib import Path
@@ -97,10 +97,10 @@ def test_listeners_in_server_properties(harness):
     harness.add_relation_unit(peer_relation_id, "kafka/1")
     harness.update_relation_data(peer_relation_id, "kafka/0", {"private-address": "treebeard"})
 
-    expected_listeners = (
-        "listeners=INTERNAL_SASL_PLAINTEXT://:19092,EXTERNAL_SASL_PLAINTEXT://:9092"
+    expected_listeners = "listeners=INTERNAL_SASL_PLAINTEXT://:19092"
+    expected_advertised_listeners = (
+        "advertised.listeners=INTERNAL_SASL_PLAINTEXT://treebeard:19092"
     )
-    expected_advertised_listeners = "advertised.listeners=INTERNAL_SASL_PLAINTEXT://treebeard:19092,EXTERNAL_SASL_PLAINTEXT://treebeard:9092"
 
     with (
         patch(

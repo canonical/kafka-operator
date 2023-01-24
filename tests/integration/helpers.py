@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-# Copyright 2022 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 import logging
 import re
 import socket
+import subprocess
 from contextlib import closing
 from pathlib import Path
 from subprocess import PIPE, check_output
@@ -15,11 +16,13 @@ from kafka.admin import NewTopic
 from pytest_operator.plugin import OpsTest
 
 from auth import Acl, KafkaAuth
+from literals import SECURITY_PROTOCOL_PORTS
 from snap import SNAP_CONFIG_PATH
 
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 APP_NAME = METADATA["name"]
 ZK_NAME = "zookeeper"
+REL_NAME_ADMIN = "kafka-client-admin"
 
 logger = logging.getLogger(__name__)
 
@@ -177,23 +180,26 @@ def extract_private_key(data: dict, unit: int = 0) -> Optional[str]:
     return list_keys[0] if len(list_keys) else None
 
 
-def check_socket(host: str, port: int) -> None:
+def check_socket(host: str, port: int) -> bool:
     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
-        assert sock.connect_ex((host, port)) == 0
+        return sock.connect_ex((host, port)) == 0
 
 
-def check_tls(ip: str, port: int) -> None:
-    result = check_output(
-        f"echo | openssl s_client -connect {ip}:{port}",
-        stderr=PIPE,
-        shell=True,
-        universal_newlines=True,
-    )
-
-    # FIXME: The server cannot be validated, we would need to try to connect using the CA
-    # from self-signed certificates. This is indication enough that the server is sending a
-    # self-signed key.
-    assert "CN = kafka" in result
+def check_tls(ip: str, port: int) -> bool:
+    try:
+        result = check_output(
+            f"echo | openssl s_client -connect {ip}:{port}",
+            stderr=PIPE,
+            shell=True,
+            universal_newlines=True,
+        )
+        # FIXME: The server cannot be validated, we would need to try to connect using the CA
+        # from self-signed certificates. This is indication enough that the server is sending a
+        # self-signed key.
+        return "CN = kafka" in result
+    except subprocess.CalledProcessError as e:
+        logger.error(f"command '{e.cmd}' return with error (code {e.returncode}): {e.output}")
+        return False
 
 
 def produce_and_check_logs(
@@ -262,7 +268,10 @@ def produce_and_check_logs(
 
 async def run_client_properties(ops_test: OpsTest) -> str:
     """Runs command requiring admin permissions, authenticated with bootstrap-server."""
-    bootstrap_server = await get_address(ops_test=ops_test) + ":9092"
+    bootstrap_server = (
+        await get_address(ops_test=ops_test)
+        + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT'].external}"
+    )
     result = check_output(
         f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 'kafka.configs --bootstrap-server {bootstrap_server} --describe --all --command-config {SNAP_CONFIG_PATH}/client.properties --entity-type users'",
         stderr=PIPE,

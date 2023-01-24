@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2022 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 """KafkaProvider class and methods."""
@@ -52,7 +52,7 @@ class KafkaProvider(Object):
             event.defer()
             return
 
-        # on all unit update the server configuration to enable external listener if neeeded
+        # on all unit update the server properties to enable external listener if needed
         self.charm._on_config_changed(event)
 
         bootstrap_server = self.charm.kafka_config.bootstrap_server
@@ -128,7 +128,7 @@ class KafkaProvider(Object):
             )
             self.kafka_auth.delete_user(username=username)
             # non-leader units need cluster_config_changed event to update their super.users
-            # update on the relation-peer data will trigger the update of server configuration on all unit
+            # update on the relation-peer data will trigger the update of server properties on all unit
             self.peer_relation.data[self.charm.app].update({username: ""})
 
     def update_connection_info(self):
