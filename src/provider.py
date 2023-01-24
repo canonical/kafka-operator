@@ -55,8 +55,6 @@ class KafkaProvider(Object):
         # on all unit update the server properties to enable external listener if needed
         self.charm._on_config_changed(event)
 
-        bootstrap_server = self.charm.kafka_config.bootstrap_server
-
         if not self.charm.unit.is_leader():
             return
 
@@ -65,6 +63,7 @@ class KafkaProvider(Object):
         relation = event.relation
         username = f"relation-{relation.id}"
         password = self.peer_relation.data[self.charm.app].get(username) or generate_password()
+        bootstrap_server = self.charm.kafka_config.bootstrap_server
         zookeeper_uris = self.charm.kafka_config.zookeeper_config.get("connect", "")
         tls = "enabled" if self.charm.tls.enabled else "disabled"
 
@@ -128,7 +127,7 @@ class KafkaProvider(Object):
             )
             self.kafka_auth.delete_user(username=username)
             # non-leader units need cluster_config_changed event to update their super.users
-            # update on the relation-peer data will trigger the update of server properties on all unit
+            # update on the peer relation data will trigger an update of server properties on all unit
             self.peer_relation.data[self.charm.app].update({username: ""})
 
     def update_connection_info(self):

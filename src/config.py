@@ -6,7 +6,7 @@
 
 import logging
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from ops.model import Unit
 
@@ -300,9 +300,9 @@ class KafkaConfig:
         return Listener(host=self.charm.unit_host, protocol=protocol, scope="INTERNAL")
 
     @property
-    def extra_listeners(self) -> List[Optional[Listener]]:
+    def extra_listeners(self) -> List[Listener | None]:
         """Return a list of extra listeners."""
-        # if there is a relation then add them otherwise empty list!
+        # if there is a relation with kafka then add external listener
         if self.charm.model.relations.get(REL_NAME, None):
             return [
                 Listener(host=self.charm.unit_host, protocol=auth, scope="EXTERNAL")
