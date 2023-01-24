@@ -6,7 +6,7 @@
 
 import logging
 import os
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from ops.model import Unit
 
@@ -191,9 +191,9 @@ class KafkaConfig:
             self.charm.model.get_relation(PEER).data[unit].get("private-address") for unit in units
         ]
         port = (
-            SECURITY_PROTOCOL_PORTS["SASL_SSL"].internal
+            SECURITY_PROTOCOL_PORTS["SASL_SSL"].external
             if self.charm.tls.enabled
-            else SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].internal
+            else SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].external
         )
         return [f"{host}:{port}" for host in hosts]
 
@@ -300,12 +300,15 @@ class KafkaConfig:
         return Listener(host=self.charm.unit_host, protocol=protocol, scope="INTERNAL")
 
     @property
-    def extra_listeners(self) -> List[Listener]:
+    def extra_listeners(self) -> List[Optional[Listener]]:
         """Return a list of extra listeners."""
-        return [
-            Listener(host=self.charm.unit_host, protocol=auth, scope="EXTERNAL")
-            for auth in self.auth_mechanisms
-        ]
+        # if there is a relation then add them otherwise empty list!
+        if self.charm.model.relations.get(REL_NAME, None):
+            return [
+                Listener(host=self.charm.unit_host, protocol=auth, scope="EXTERNAL")
+                for auth in self.auth_mechanisms
+            ]
+        return []
 
     @property
     def all_listeners(self) -> List[Listener]:
