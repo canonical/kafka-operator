@@ -10,7 +10,8 @@ from subprocess import PIPE, check_output
 from typing import Any, Dict, List, Set, Tuple
 
 import yaml
-from client import KafkaClient
+from charms.kafka.v0.client import KafkaClient
+from kafka.admin import NewTopic
 from pytest_operator.plugin import OpsTest
 
 from auth import Acl, KafkaAuth
@@ -209,13 +210,18 @@ def produce_and_check_logs(
         servers=servers,
         username=username,
         password=password,
-        topic=topic,
-        consumer_group_prefix=None,
         security_protocol=security_protocol,
     )
+    topic_config = NewTopic(
+        name=topic,
+        num_partitions=5,
+        replication_factor=1,
+    )
 
-    client.create_topic()
-    client.run_producer()
+    client.create_topic(topic=topic_config)
+    for i in range(15):
+        message = f"Message #{i}"
+        client.produce_message(topic_name=topic, message_content=message)
 
     logs = check_output(
         f"JUJU_MODEL={model_full_name} juju ssh {kafka_unit_name} 'find /var/snap/kafka/common/log-data'",
