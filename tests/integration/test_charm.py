@@ -29,7 +29,7 @@ async def test_build_and_deploy(ops_test: OpsTest):
     kafka_charm = await ops_test.build_charm(".")
     await asyncio.gather(
         ops_test.model.deploy(
-            "zookeeper", channel="edge", application_name="zookeeper", num_units=1, series="focal"
+            "zookeeper", channel="edge", application_name="zookeeper", num_units=1, series="jammy"
         ),
         ops_test.model.deploy(kafka_charm, application_name="kafka", num_units=1, series="jammy"),
     )

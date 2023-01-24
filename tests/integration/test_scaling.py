@@ -28,7 +28,7 @@ async def test_kafka_simple_scale_up(ops_test: OpsTest):
 
     await asyncio.gather(
         ops_test.model.deploy(
-            "zookeeper", channel="edge", application_name="zookeeper", num_units=3, series="focal"
+            "zookeeper", channel="edge", application_name="zookeeper", num_units=3, series="jammy"
         ),
         ops_test.model.deploy(kafka_charm, application_name=APP_NAME, num_units=1, series="jammy"),
     )
