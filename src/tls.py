@@ -5,10 +5,9 @@
 """Manager for handling Kafka TLS configuration."""
 
 import logging
-import os
 import socket
 import subprocess
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from charms.tls_certificates_interface.v1.tls_certificates import (
     TLSCertificatesRequiresV1,
@@ -118,8 +117,8 @@ class KafkaTLS(Object):
             return
         new_csr = generate_csr(
             private_key=self.private_key.encode("utf-8"),
-            subject=os.uname()[1],
-            sans=self._get_sans(),
+            subject=self.peer_relation.data[self.charm.unit].get("private-address", ""),
+            **self._sans,
         )
 
         self.certificates.request_certificate_renewal(
@@ -218,21 +217,23 @@ class KafkaTLS(Object):
 
         csr = generate_csr(
             private_key=self.private_key.encode("utf-8"),
-            subject=os.uname()[1],
-            sans=self._get_sans(),
+            subject=self.peer_relation.data[self.charm.unit].get("private-address", ""),
+            **self._sans,
         )
         self.charm.set_secret(scope="unit", key="csr", value=csr.decode("utf-8").strip())
 
         self.certificates.request_certificate_creation(certificate_signing_request=csr)
 
-    def _get_sans(self) -> List[str]:
-        """Create a list of DNS names for the unit."""
-        unit_id = self.charm.unit.name.split("/")[1]
-        return [
-            f"{self.charm.app.name}-{unit_id}",
-            socket.getfqdn(),
-            self.peer_relation.data[self.charm.unit].get("private-address", ""),
-        ]
+    @property
+    def _sans(self) -> Dict[str, List[str]]:
+        """Builds a SAN dict of DNS names and IPs for the unit."""
+        unit_host = self.peer_relation.data[self.charm.unit].get("private-address", "")
+        unit_name = self.charm.unit.name
+
+        return {
+            "sans_ip": [unit_host],
+            "sans_dns": [unit_name, socket.getfqdn()],
+        }
 
     def set_server_key(self) -> None:
         """Sets the unit private-key."""

@@ -256,7 +256,6 @@ class KafkaConfig:
             f"ssl.truststore.password={self.charm.tls.truststore_password}",
             f"ssl.keystore.location={self.keystore_filepath}",
             f"ssl.keystore.password={self.charm.tls.keystore_password}",
-            "ssl.endpoint.identification.algorithm=",
             "ssl.client.auth=none",
         ]
 
