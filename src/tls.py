@@ -130,7 +130,12 @@ class KafkaTLS(Object):
 
     def _set_tls_private_key(self, event: ActionEvent) -> None:
         """Handler for `set_tls_private_key` action."""
-        private_key = parse_tls_file(event.params.get("internal-key", ""))
+        private_key = (
+            parse_tls_file(key)
+            if (key := event.params.get("internal-key"))
+            else generate_private_key().decode("utf-8")
+        )
+
         self.charm.set_secret(scope="unit", key="private-key", value=private_key)
 
         self._on_certificate_expiring(event)
