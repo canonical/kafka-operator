@@ -9,6 +9,7 @@ from pathlib import PosixPath
 import pytest
 from helpers import (
     APP_NAME,
+    REL_NAME_ADMIN,
     ZK_NAME,
     check_tls,
     extract_private_key,
@@ -16,7 +17,6 @@ from helpers import (
     get_kafka_zk_relation_data,
     set_tls_private_key,
     show_unit,
-    REL_NAME_ADMIN,
 )
 from lib.charms.tls_certificates_interface.v1.tls_certificates import generate_private_key
 from pytest_operator.plugin import OpsTest
@@ -102,7 +102,7 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm: PosixPath):
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME, DUMMY_NAME])
 
     logger.info("Check for Kafka TLS")
-    assert check_tls(ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL"].external)
+    assert check_tls(ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL"].client)
 
     # Rotate credentials
     new_private_key = generate_private_key().decode("utf-8")
@@ -143,11 +143,11 @@ async def test_kafka_tls_scaling(ops_test: OpsTest):
     assert f"{chroot}/brokers/ids/2" in active_brokers
 
     kafka_address = await get_address(ops_test=ops_test, app_name=APP_NAME, unit_num=2)
-    assert check_tls(ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL"].external)
+    assert check_tls(ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL"].client)
 
     # remove relation and check connection again
     await ops_test.model.applications[APP_NAME].remove_relation(
         f"{APP_NAME}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_ADMIN}"
     )
     await ops_test.model.wait_for_idle(apps=[APP_NAME])
-    assert not check_tls(ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL"].external)
+    assert not check_tls(ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL"].client)

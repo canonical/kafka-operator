@@ -17,12 +17,12 @@ ADMIN_USER = "admin"
 TLS_RELATION = "certificates"
 
 AuthMechanism = Literal["SASL_PLAINTEXT", "SASL_SSL", "SSL"]
-Scope = Literal["INTERNAL", "EXTERNAL"]
+Scope = Literal["INTERNAL", "CLIENT"]
 
 
 @dataclass
 class Ports:
-    external: int
+    client: int
     internal: int
 
 
