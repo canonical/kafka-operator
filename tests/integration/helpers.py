@@ -270,7 +270,7 @@ async def run_client_properties(ops_test: OpsTest) -> str:
     """Runs command requiring admin permissions, authenticated with bootstrap-server."""
     bootstrap_server = (
         await get_address(ops_test=ops_test)
-        + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT'].external}"
+        + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT'].client}"
     )
     result = check_output(
         f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 'kafka.configs --bootstrap-server {bootstrap_server} --describe --all --command-config {SNAP_CONFIG_PATH}/client.properties --entity-type users'",

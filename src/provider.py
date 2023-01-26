@@ -52,7 +52,7 @@ class KafkaProvider(Object):
             event.defer()
             return
 
-        # on all unit update the server properties to enable external listener if needed
+        # on all unit update the server properties to enable client listener if needed
         self.charm._on_config_changed(event)
 
         if not self.charm.unit.is_leader():
