@@ -4,9 +4,7 @@
 
 import asyncio
 import logging
-import time
 from pathlib import PosixPath
-from subprocess import PIPE, check_output
 
 import pytest
 from pytest_operator.plugin import OpsTest
@@ -16,8 +14,6 @@ from tests.integration.helpers import (
     ZK_NAME,
     check_socket,
     get_address,
-    produce_and_check_logs,
-    run_client_properties,
 )
 
 from literals import REL_NAME, SECURITY_PROTOCOL_PORTS
