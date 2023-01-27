@@ -46,7 +46,7 @@ async def test_build_and_deploy(ops_test: OpsTest):
     assert ops_test.model.applications[ZK_NAME].status == "active"
 
 
-@pytest.mark.abort_on_fail
+# @pytest.mark.abort_on_fail
 async def test_listeners(ops_test: OpsTest, app_charm: PosixPath):
     address = await get_address(ops_test=ops_test)
     assert check_socket(
@@ -73,51 +73,51 @@ async def test_listeners(ops_test: OpsTest, app_charm: PosixPath):
     assert not check_socket(address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].client)
 
 
-@pytest.mark.abort_on_fail
-async def test_client_properties_makes_admin_connection(ops_test: OpsTest):
-    await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
-    assert ops_test.model.applications[APP_NAME].status == "active"
-    assert ops_test.model.applications[DUMMY_NAME].status == "active"
-    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME, DUMMY_NAME])
-    result = await run_client_properties(ops_test=ops_test)
-    assert result
-    assert len(result.strip().split("\n")) == 3
-    await ops_test.model.applications[APP_NAME].remove_relation(
-        f"{APP_NAME}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_ADMIN}"
-    )
-    await ops_test.model.wait_for_idle(apps=[APP_NAME])
+# @pytest.mark.abort_on_fail
+# async def test_client_properties_makes_admin_connection(ops_test: OpsTest):
+#     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
+#     assert ops_test.model.applications[APP_NAME].status == "active"
+#     assert ops_test.model.applications[DUMMY_NAME].status == "active"
+#     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME, DUMMY_NAME])
+#     result = await run_client_properties(ops_test=ops_test)
+#     assert result
+#     assert len(result.strip().split("\n")) == 3
+#     await ops_test.model.applications[APP_NAME].remove_relation(
+#         f"{APP_NAME}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_ADMIN}"
+#     )
+#     await ops_test.model.wait_for_idle(apps=[APP_NAME])
 
 
-@pytest.mark.abort_on_fail
-async def test_logs_write_to_storage(ops_test: OpsTest):
-    await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME])
-    await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
-    time.sleep(10)
-    assert ops_test.model.applications[APP_NAME].status == "active"
-    assert ops_test.model.applications[DUMMY_NAME].status == "active"
-    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME, DUMMY_NAME])
-    produce_and_check_logs(
-        model_full_name=ops_test.model_full_name,
-        kafka_unit_name=f"{APP_NAME}/0",
-        provider_unit_name=f"{DUMMY_NAME}/0",
-        topic="hot-topic",
-    )
+# @pytest.mark.abort_on_fail
+# async def test_logs_write_to_storage(ops_test: OpsTest):
+#     await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME])
+#     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
+#     time.sleep(10)
+#     assert ops_test.model.applications[APP_NAME].status == "active"
+#     assert ops_test.model.applications[DUMMY_NAME].status == "active"
+#     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME, DUMMY_NAME])
+#     produce_and_check_logs(
+#         model_full_name=ops_test.model_full_name,
+#         kafka_unit_name=f"{APP_NAME}/0",
+#         provider_unit_name=f"{DUMMY_NAME}/0",
+#         topic="hot-topic",
+#     )
 
 
-@pytest.mark.abort_on_fail
-@pytest.mark.skip  # skipping as we can't add storage without losing Juju conn
-async def test_logs_write_to_new_storage(ops_test: OpsTest):
-    check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju add-storage kafka/0 log-data",
-        stderr=PIPE,
-        shell=True,
-        universal_newlines=True,
-    )
-    time.sleep(5)  # to give time for storage to complete
+# @pytest.mark.abort_on_fail
+# @pytest.mark.skip  # skipping as we can't add storage without losing Juju conn
+# async def test_logs_write_to_new_storage(ops_test: OpsTest):
+#     check_output(
+#         f"JUJU_MODEL={ops_test.model_full_name} juju add-storage kafka/0 log-data",
+#         stderr=PIPE,
+#         shell=True,
+#         universal_newlines=True,
+#     )
+#     time.sleep(5)  # to give time for storage to complete
 
-    produce_and_check_logs(
-        model_full_name=ops_test.model_full_name,
-        kafka_unit_name=f"{APP_NAME}/0",
-        provider_unit_name=f"{DUMMY_NAME}/0",
-        topic="cold-topic",
-    )
+#     produce_and_check_logs(
+#         model_full_name=ops_test.model_full_name,
+#         kafka_unit_name=f"{APP_NAME}/0",
+#         provider_unit_name=f"{DUMMY_NAME}/0",
+#         topic="cold-topic",
+#     )

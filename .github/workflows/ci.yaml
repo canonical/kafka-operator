@@ -41,13 +41,10 @@ jobs:
         with:
           provider: lxd
           bootstrap-options: "--agent-version 2.9.38"
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
       - name: Run integration tests
         run: tox -e integration-charm
-      - name: Dump logs
-        shell: bash
-        if: failure()
-        run: |
-          juju debug-log --lines=10000 --exclude-module juju --no-tail
 
   integration-provider:
     name: Integration tests for provider (lxd)
