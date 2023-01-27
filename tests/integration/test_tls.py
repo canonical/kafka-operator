@@ -91,7 +91,7 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm: PosixPath):
 
     kafka_address = await get_address(ops_test=ops_test, app_name=APP_NAME)
     logger.info("Check for Kafka TLS")
-    assert not check_tls(ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL"].external)
+    assert not check_tls(ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL"].client)
     await asyncio.gather(
         ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series="jammy"),
     )
