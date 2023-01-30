@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2022 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 """Manager for handling Kafka configuration."""
@@ -39,7 +39,7 @@ class Listener:
     Args:
         host: string with the host that will be announced
         protocol: auth protocol to be used
-        scope: scope of the listener, EXTERNAL or INTERNAL
+        scope: scope of the listener, CLIENT or INTERNAL
     """
 
     def __init__(self, host: str, protocol: AuthMechanism, scope: Scope):
@@ -55,8 +55,8 @@ class Listener:
     @scope.setter
     def scope(self, value):
         """Internal scope validator."""
-        if value not in ["EXTERNAL", "INTERNAL"]:
-            raise ValueError("Only EXTERNAL and INTERNAL scopes are accepted")
+        if value not in ["CLIENT", "INTERNAL"]:
+            raise ValueError("Only CLIENT and INTERNAL scopes are accepted")
 
         self._scope = value
 
@@ -69,8 +69,8 @@ class Listener:
         Returns:
             Integer of port number
         """
-        if self.scope == "EXTERNAL":
-            return SECURITY_PROTOCOL_PORTS[self.protocol].external
+        if self.scope == "CLIENT":
+            return SECURITY_PROTOCOL_PORTS[self.protocol].client
 
         return SECURITY_PROTOCOL_PORTS[self.protocol].internal
 
@@ -191,9 +191,9 @@ class KafkaConfig:
             self.charm.model.get_relation(PEER).data[unit].get("private-address") for unit in units
         ]
         port = (
-            SECURITY_PROTOCOL_PORTS["SASL_SSL"].internal
+            SECURITY_PROTOCOL_PORTS["SASL_SSL"].client
             if self.charm.tls.enabled
-            else SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].internal
+            else SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].client
         )
         return [f"{host}:{port}" for host in hosts]
 
@@ -269,10 +269,10 @@ class KafkaConfig:
         scram_properties = [
             f'listener.name.{self.internal_listener.name.lower()}.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{INTER_BROKER_USER}" password="{self.internal_user_credentials[INTER_BROKER_USER]}";'
         ]
-        external_scram = [
-            auth.name for auth in self.extra_listeners if auth.protocol.startswith("SASL_")
+        client_scram = [
+            auth.name for auth in self.client_listeners if auth.protocol.startswith("SASL_")
         ]
-        for name in external_scram:
+        for name in client_scram:
             scram_properties.append(
                 f'listener.name.{name.lower()}.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{INTER_BROKER_USER}" password="{self.internal_user_credentials[INTER_BROKER_USER]}";'
             )
@@ -300,17 +300,21 @@ class KafkaConfig:
         return Listener(host=self.charm.unit_host, protocol=protocol, scope="INTERNAL")
 
     @property
-    def extra_listeners(self) -> List[Listener]:
+    def client_listeners(self) -> List[Listener]:
         """Return a list of extra listeners."""
+        # if there is a relation with kafka then add extra listener
+        if not self.charm.model.relations.get(REL_NAME, None):
+            return []
+
         return [
-            Listener(host=self.charm.unit_host, protocol=auth, scope="EXTERNAL")
+            Listener(host=self.charm.unit_host, protocol=auth, scope="CLIENT")
             for auth in self.auth_mechanisms
         ]
 
     @property
     def all_listeners(self) -> List[Listener]:
         """Return a list with all expected listeners."""
-        return [self.internal_listener] + self.extra_listeners
+        return [self.internal_listener] + self.client_listeners
 
     @property
     def super_users(self) -> str:

@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-# Copyright 2022 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 import asyncio
 import logging
+from pathlib import PosixPath
 
 import pytest
 from helpers import (
     APP_NAME,
+    REL_NAME_ADMIN,
     ZK_NAME,
     check_tls,
     extract_private_key,
@@ -18,7 +20,9 @@ from helpers import (
 )
 from lib.charms.tls_certificates_interface.v1.tls_certificates import generate_private_key
 from pytest_operator.plugin import OpsTest
+from tests.integration.test_charm import DUMMY_NAME
 
+from literals import REL_NAME, SECURITY_PROTOCOL_PORTS
 from utils import get_active_brokers
 
 logger = logging.getLogger(__name__)
@@ -54,7 +58,7 @@ async def test_deploy_tls(ops_test: OpsTest):
 
 
 @pytest.mark.abort_on_fail
-async def test_kafka_tls(ops_test: OpsTest):
+async def test_kafka_tls(ops_test: OpsTest, app_charm: PosixPath):
     """Tests TLS on Kafka.
 
     Relates Zookeper[TLS] with Kakfa[Non-TLS]. This leads to a blocked status.
@@ -87,7 +91,18 @@ async def test_kafka_tls(ops_test: OpsTest):
 
     kafka_address = await get_address(ops_test=ops_test, app_name=APP_NAME)
     logger.info("Check for Kafka TLS")
-    check_tls(ip=kafka_address, port=9093)
+    assert not check_tls(ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL"].client)
+    await asyncio.gather(
+        ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series="jammy"),
+    )
+    await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME, ZK_NAME])
+    await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
+    assert ops_test.model.applications[APP_NAME].status == "active"
+    assert ops_test.model.applications[DUMMY_NAME].status == "active"
+    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME, DUMMY_NAME])
+
+    logger.info("Check for Kafka TLS")
+    assert check_tls(ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL"].client)
 
     # Rotate credentials
     new_private_key = generate_private_key().decode("utf-8")
@@ -119,7 +134,7 @@ async def test_kafka_tls_scaling(ops_test: OpsTest):
     )
 
     kafka_zk_relation_data = get_kafka_zk_relation_data(
-        unit_name="kafka/2", model_full_name=ops_test.model_full_name
+        unit_name=f"{APP_NAME}/2", model_full_name=ops_test.model_full_name
     )
     active_brokers = get_active_brokers(zookeeper_config=kafka_zk_relation_data)
     chroot = kafka_zk_relation_data.get("chroot", "")
@@ -128,4 +143,11 @@ async def test_kafka_tls_scaling(ops_test: OpsTest):
     assert f"{chroot}/brokers/ids/2" in active_brokers
 
     kafka_address = await get_address(ops_test=ops_test, app_name=APP_NAME, unit_num=2)
-    check_tls(ip=kafka_address, port=9093)
+    assert check_tls(ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL"].client)
+
+    # remove relation and check connection again
+    await ops_test.model.applications[APP_NAME].remove_relation(
+        f"{APP_NAME}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_ADMIN}"
+    )
+    await ops_test.model.wait_for_idle(apps=[APP_NAME])
+    assert not check_tls(ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL"].client)

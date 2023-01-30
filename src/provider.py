@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2022 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 """KafkaProvider class and methods."""
@@ -42,9 +42,6 @@ class KafkaProvider(Object):
 
     def on_topic_requested(self, event: TopicRequestedEvent):
         """Handle the on topic requested event."""
-        if not self.charm.unit.is_leader():
-            return
-
         if not self.charm.ready_to_start:
             logger.debug("cannot add user, ZooKeeper not yet connected")
             event.defer()
@@ -55,11 +52,15 @@ class KafkaProvider(Object):
             event.defer()
             return
 
+        # on all unit update the server properties to enable client listener if needed
+        self.charm._on_config_changed(event)
+
+        if not self.charm.unit.is_leader():
+            return
+
         extra_user_roles = event.extra_user_roles or ""
         topic = event.topic or ""
-
         relation = event.relation
-
         username = f"relation-{relation.id}"
         password = self.peer_relation.data[self.charm.app].get(username) or generate_password()
         bootstrap_server = self.charm.kafka_config.bootstrap_server
@@ -126,6 +127,7 @@ class KafkaProvider(Object):
             )
             self.kafka_auth.delete_user(username=username)
             # non-leader units need cluster_config_changed event to update their super.users
+            # update on the peer relation data will trigger an update of server properties on all unit
             self.peer_relation.data[self.charm.app].update({username: ""})
 
     def update_connection_info(self):

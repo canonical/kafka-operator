@@ -1,4 +1,4 @@
-# Copyright 2022 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 import pytest
@@ -15,5 +15,4 @@ async def app_charm(ops_test: OpsTest):
     """Build the application charm."""
     charm_path = "tests/integration/app-charm"
     charm = await ops_test.build_charm(charm_path)
-    print(f"type: {type(charm)}")
     return charm
