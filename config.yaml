@@ -14,3 +14,76 @@ options:
     description: enables auto creation of topic on the server
     type: boolean
     default: false
+  compression.type:
+    description: Specify the final compression type for a given topic. This configuration accepts the standard compression codecs ('gzip', 'snappy', 'lz4', 'zstd'). It additionally accepts 'uncompressed' which is equivalent to no compression; and 'producer' which means retain the original compression codec set by the producer.
+    type: string
+    default: producer
+  log.flush.interval.messages:
+    description: The number of messages accumulated on a log partition before messages are flushed to disk.
+    type: long
+    default: 9223372036854775807
+  log.flush.interval.ms:
+    description: The maximum time in ms that a message in any topic is kept in memory before flushed to disk. If not set, the value in log.flush.scheduler.interval.ms is used.
+    type: long
+    default:
+  log.flush.offset.checkpoint.interval.ms:
+    description: The frequency with which we update the persistent record of the last flush which acts as the log recovery point.
+    type: int
+    default: 60000
+  log.retention.bytes:
+    description: The maximum size of the log before deleting it.
+    type: long
+    default: -1
+  log.retention.ms:
+    description: The number of milliseconds to keep a log file before deleting it (in milliseconds), If not set, the value in log.retention.minutes is used. If set to -1, no time limit is applied.
+    type: long
+    default: -1
+  log.segment.bytes:
+    description: The maximum size of a single log file.
+    type: int
+    default: 1073741824
+  message.max.bytes:
+    description: The largest record batch size allowed by Kafka (after compression if compression is enabled). If this is increased and there are consumers older than 0.10.2, the consumers' fetch size must also be increased so that they can fetch record batches this large. In the latest message format version, records are always grouped into batches for efficiency. In previous message format versions, uncompressed records are not grouped into batches and this limit only applies to a single record in that case.This can be set per topic with the topic level max.message.bytes config.
+    type: int
+    default: 1048588
+  offsets.topic.num.partitions:
+    description: The number of partitions for the offset commit topic (should not change after deployment).
+    type: int
+    default: 50
+  transaction.state.log.num.partitions:
+    description: The number of partitions for the transaction topic (should not change after deployment).
+    type: int
+    default: 50
+  unclean.leader.election.enable:
+    description: Indicates whether to enable replicas not in the ISR set to be elected as leader as a last resort, even though doing so may result in data loss.
+    type: bool
+    default: false
+  log.cleaner.delete.retention.ms:
+    description: How long are delete records retained.
+    type: long
+    default: 86400000
+  log.cleaner.min.compaction.lag.ms:
+    description: The minimum time a message will remain uncompacted in the log. Only applicable for logs that are being compacted.
+    type: long
+    default: 0
+  log.cleanup.policy:
+    description: "The default cleanup policy for segments beyond the retention window. A comma separated list of valid policies. Valid policies are: `delete` and `compact`".
+    type: string
+    default: delete
+  log.message.timestamp.type:
+    description: Define whether the timestamp in the message is message create time or log append time. The value should be either `CreateTime` or `LogAppendTime`.
+    type: string
+    default: CreateTime
+  ssl.cipher.suites:
+    description: A list of cipher suites. This is a named combination of authentication, encryption, MAC and key exchange algorithm used to negotiate the security settings for a network connection using TLS or SSL network protocol. By default all the available cipher suites are supported.
+    type: string
+    default: ""
+  replication.quota.window.num:
+    description: The number of samples to retain in memory for replication quotas.
+    type: int
+    default: 11
+  zookeeper.ssl.cipher.suites:
+    description: Specifies the enabled cipher suites to be used in ZooKeeper TLS negotiation (csv). Overrides any explicit value set via the zookeeper.ssl.ciphersuites system property (note the single word "ciphersuites"). The default value of null means the list of enabled cipher suites is determined by the Java runtime being used.
+    type: string
+    default: ""
+  
