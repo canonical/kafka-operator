@@ -27,7 +27,15 @@ from ops.model import ActiveStatus, BlockedStatus, Relation, WaitingStatus
 
 from auth import KafkaAuth
 from config import KafkaConfig
-from literals import CHARM_KEY, PEER, REL_NAME, SNAP_NAME, ZK
+from literals import (
+    ADMIN_USER,
+    CHARM_KEY,
+    INTER_BROKER_USER,
+    PEER,
+    REL_NAME,
+    SNAP_NAME,
+    ZK,
+)
 from provider import KafkaProvider
 from snap import KafkaSnap
 from tls import KafkaTLS
@@ -279,7 +287,7 @@ class KafkaCharm(CharmBase):
             event.fail(message=f"Broker {self.unit.name.split('/')[1]} is not ready restart")
             return
 
-        self.snap.disable_enable("kafka")
+        self.snap.disable_enable("charmed-kafka")
 
         if broker_active(
             unit=self.unit,

@@ -145,7 +145,7 @@ class KafkaSnap:
             f"{args_string} --zk-tls-config-file={SNAP_CONFIG_PATH}server.properties"
         )
         opts_string = " ".join(opts)
-        command = f"KAFKA_OPTS={opts_string} kafka.{bin_keyword} {args_string_appended}"
+        command = f"KAFKA_OPTS={opts_string} charmed-kafka.{bin_keyword} {args_string_appended}"
 
         try:
             output = subprocess.check_output(
