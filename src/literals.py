@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import Dict, Literal
 
 CHARM_KEY = "kafka"
+SNAP_NAME = "charmed-kafka"
 PEER = "cluster"
 ZK = "zookeeper"
 REL_NAME = "kafka-client"

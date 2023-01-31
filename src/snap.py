@@ -34,11 +34,11 @@ class KafkaSnap:
             apt.update()
             apt.add_package(["snapd", "openjdk-17-jre-headless"])
             cache = snap.SnapCache()
-            kafka = cache["kafka"]
+            kafka = cache["charmed-kafka"]
             node_exporter = cache["node-exporter"]
 
             if not kafka.present:
-                kafka.ensure(snap.SnapState.Latest, channel="rock/edge")
+                kafka.ensure(snap.SnapState.Latest, channel="latest/edge")
             if not node_exporter.present:
                 node_exporter.ensure(snap.SnapState.Latest, channel="edge")
 
@@ -64,7 +64,7 @@ class KafkaSnap:
 
         Args:
             snap_service: The desired service to run on the unit
-                `kafka` or `zookeeper`
+                `charmed-kafka` or `zookeeper`
 
         Returns:
             True if service successfully starts. False otherwise.
@@ -81,7 +81,7 @@ class KafkaSnap:
 
         Args:
             snap_service: The desired service to stop on the unit
-                `kafka` or `zookeeper`
+                `charmed-kafka` or `zookeeper`
 
         Returns:
             True if service successfully stops. False otherwise.

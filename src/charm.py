@@ -5,10 +5,11 @@
 """Charmed Machine Operator for Apache Kafka."""
 
 import logging
-import shutil
 import subprocess
 from typing import MutableMapping, Optional
 
+from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
+from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from charms.rolling_ops.v0.rollingops import RollingOpsManager
 from ops.charm import (
     ActionEvent,
@@ -26,11 +27,11 @@ from ops.model import ActiveStatus, BlockedStatus, Relation, WaitingStatus
 
 from auth import KafkaAuth
 from config import KafkaConfig
-from literals import ADMIN_USER, CHARM_KEY, INTER_BROKER_USER, PEER, REL_NAME, ZK
+from literals import CHARM_KEY, PEER, REL_NAME, SNAP_NAME, ZK
 from provider import KafkaProvider
 from snap import KafkaSnap
 from tls import KafkaTLS
-from utils import broker_active, generate_password, safe_get_file, safe_write_to_file
+from utils import broker_active, generate_password, safe_get_file
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,7 @@ class KafkaCharm(CharmBase):
         self.restart = RollingOpsManager(self, relation="restart", callback=self._restart)
         self.grafana_dashboards = GrafanaDashboardProvider(self)
         self.metrics_endpoint = MetricsEndpointProvider(
-            self, jobs=[{"static_configs": [{"targets": ["*:9100"]}]}]
+            self, jobs=[{"static_configs": [{"targets": ["*:9100", "*:9101"]}]}]
         )
 
         self.framework.observe(getattr(self.on, "start"), self._on_start)
@@ -142,7 +143,6 @@ class KafkaCharm(CharmBase):
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
         if self.snap.install():
-            self.install_exporter()
             self.kafka_config.set_kafka_opts()
             self.unit.status = WaitingStatus("waiting for zookeeper relation")
         else:
@@ -164,7 +164,7 @@ class KafkaCharm(CharmBase):
 
     def _on_zookeeper_broken(self, _: RelationEvent) -> None:
         """Handler for `zookeeper_relation_broken` event, ensuring charm blocks."""
-        self.snap.stop_snap_service(snap_service=CHARM_KEY)
+        self.snap.stop_snap_service(snap_service=SNAP_NAME)
         logger.info(f'Broker {self.unit.name.split("/")[1]} disconnected')
         self.unit.status = BlockedStatus("missing required zookeeper relation")
 
@@ -202,7 +202,7 @@ class KafkaCharm(CharmBase):
             return
 
         # start kafka service
-        start_snap = self.snap.start_snap_service(snap_service=CHARM_KEY)
+        start_snap = self.snap.start_snap_service(snap_service=SNAP_NAME)
         if not start_snap:
             self.unit.status = BlockedStatus("unable to start snap")
             return
