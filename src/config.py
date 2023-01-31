@@ -397,10 +397,12 @@ class KafkaConfig:
         advertised_listeners = [listener.advertised_listener for listener in self.all_listeners]
 
         properties = (
+            # read property from config!
             [
                 f"offsets.retention.minutes={self.charm.config['offsets-retention-minutes']}",
                 f"log.retention.hours={self.charm.config['log-retention-hours']}",
                 f"auto.create.topics={self.charm.config['auto-create-topics']}",
+                f"compression.type={self.charm.config['compression.type']}",
                 f"super.users={self.super_users}",
                 f"log.dirs={self.log_dirs}",
                 f"listener.security.protocol.map={','.join(protocol_map)}",
