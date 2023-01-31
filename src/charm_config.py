@@ -1,4 +1,5 @@
-from pydantic import BaseModel, ValidationError, validator
+from pydantic import BaseModel, validator
+
 
 class CharmConfig(BaseModel):
     offsets_retention_minutes: int
@@ -54,16 +55,16 @@ class CharmConfig(BaseModel):
             return value
         return ValueError("Value of of range.")
 
-    @validator("offsets_topic_num_partitions")
-    @validator("transaction_state_log_num_partitions")
+    # @validator("offsets_topic_num_partitions")
+    @validator("transaction_state_log_num_partitions","offsets_topic_num_partitions" )
     @classmethod
     def between_zero_and_10k(cls, value: int):
         if value >= 0 and value <= 10000:
             return value
         return ValueError("Value below zero or greater than 10000.")
 
-    @validator("log_retention_ms")
-    @validator("log_retention_bytes")
+    # @validator("log_retention_ms")
+    @validator("log_retention_bytes", "log_retention_ms")
     @classmethod
     def greater_minus_one(cls, value: int):
         if value < -1:
@@ -85,9 +86,9 @@ class CharmConfig(BaseModel):
             return value
         return ValueError("Value out of range")
     
-    @validator("log_segment_bytes")
-    @validator("message_max_bytes")
-    @validator("replication_quota_window_num")
+    # @validator("log_segment_bytes")
+    # @validator("message_max_bytes")
+    @validator("replication_quota_window_num", "log_segment_bytes", "message_max_bytes")
     @classmethod
     def greater_than_zero(cls, value: int):
         if value < 0:

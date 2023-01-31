@@ -16,11 +16,11 @@ options:
     default: producer
   log_flush_interval_messages:
     description: The number of messages accumulated on a log partition before messages are flushed to disk.
-    type: long
+    type: int #long
     default: 9223372036854775807
   log_flush_interval_ms:
     description: The maximum time in ms that a message in any topic is kept in memory before flushed to disk. If not set, the value in log.flush.scheduler.interval.ms is used.
-    type: long
+    type: int #long
     default:
   log_flush_offset_checkpoint_interval_ms:
     description: The frequency with which we update the persistent record of the last flush which acts as the log recovery point.
@@ -28,11 +28,11 @@ options:
     default: 60000
   log_retention_bytes:
     description: The maximum size of the log before deleting it.
-    type: long
+    type: int #long
     default: -1
   log_retention_ms:
     description: The number of milliseconds to keep a log file before deleting it (in milliseconds), If not set, the value in log.retention.minutes is used. If set to -1, no time limit is applied.
-    type: long
+    type: int #long
     default: -1
   log_segment_bytes:
     description: The maximum size of a single log file.
@@ -52,22 +52,22 @@ options:
     default: 50
   unclean_leader_election_enable:
     description: Indicates whether to enable replicas not in the ISR set to be elected as leader as a last resort, even though doing so may result in data loss.
-    type: bool
+    type: boolean
     default: false
   log_cleaner_delete_retention_ms:
     description: How long are delete records retained.
-    type: long
+    type: int #long
     default: 86400000
   log_cleaner_min_compaction_lag_ms:
     description: The minimum time a message will remain uncompacted in the log. Only applicable for logs that are being compacted.
-    type: long
+    type: int #long
     default: 0
   log_cleanup_policy:
-    description: "The default cleanup policy for segments beyond the retention window. A comma separated list of valid policies. Valid policies are: `delete` and `compact`".
+    description: "The default cleanup policy for segments beyond the retention window. A comma separated list of valid policies. Valid policies are: 'delete' and 'compact'"
     type: string
     default: delete
   log_message_timestamp_type:
-    description: Define whether the timestamp in the message is message create time or log append time. The value should be either `CreateTime` or `LogAppendTime`.
+    description: Define whether the timestamp in the message is message create time or log append time. The value should be either 'CreateTime' or 'LogAppendTime'.
     type: string
     default: CreateTime
   ssl_cipher_suites:

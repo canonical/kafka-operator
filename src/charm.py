@@ -11,9 +11,9 @@ from typing import MutableMapping, Optional
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from charms.rolling_ops.v0.rollingops import RollingOpsManager
+from lib.charms.data_platform_libs.v0.data_models import TypedCharmBase
 from ops.charm import (
     ActionEvent,
-    CharmBase,
     LeaderElectedEvent,
     RelationEvent,
     RelationJoinedEvent,
@@ -26,6 +26,7 @@ from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, Relation, WaitingStatus
 
 from auth import KafkaAuth
+from charm_config import CharmConfig
 from config import KafkaConfig
 from literals import (
     ADMIN_USER,
@@ -44,8 +45,10 @@ from utils import broker_active, generate_password, safe_get_file
 logger = logging.getLogger(__name__)
 
 
-class KafkaCharm(CharmBase):
+class KafkaCharm(TypedCharmBase[CharmConfig]):
     """Charmed Operator for Kafka."""
+
+    config_type = CharmConfig
 
     def __init__(self, *args):
         super().__init__(*args)
