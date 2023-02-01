@@ -1,12 +1,14 @@
+from typing import Optional
 from pydantic import BaseModel, validator
 
+from lib.charms.data_platform_libs.v0.data_models import BaseConfigModel
 
-class CharmConfig(BaseModel):
-    offsets_retention_minutes: int
-    auto_create_topics: bool
+
+class CharmConfig(BaseConfigModel):
+    # auto_create_topics: bool
     compression_type: str
     log_flush_interval_messages: int # long
-    log_flush_interval_ms: int # long
+    log_flush_interval_ms: Optional[int] # long
     log_flush_offset_checkpoint_interval_ms: int
     log_retention_bytes: int #long
     log_retention_ms: int #long
@@ -23,7 +25,8 @@ class CharmConfig(BaseModel):
     replication_quota_window_num: int
     zookeeper_ssl_cipher_suites: str
 
-
+    # def __getitem__(cls, x):
+    #     return getattr(cls, x)
 
     validator("log_message_timestamp_type")
     @classmethod

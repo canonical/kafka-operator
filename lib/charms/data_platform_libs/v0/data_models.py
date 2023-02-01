@@ -152,6 +152,7 @@ merged_data = get_relation_data_as(
 
 import json
 from functools import reduce, wraps
+import logging
 from typing import Callable, Generic, MutableMapping, Optional, Type, TypeVar, Union
 
 import pydantic
@@ -174,6 +175,13 @@ T = TypeVar("T", bound=BaseModel)
 AppModel = TypeVar("AppModel", bound=BaseModel)
 UnitModel = TypeVar("UnitModel", bound=BaseModel)
 
+logger = logging.getLogger(__name__)
+
+class BaseConfigModel(BaseModel):
+    """Class to be used for defining the structured configuration options."""
+    def __getitem__(cls, x):
+        return getattr(cls, x)
+
 
 class TypedCharmBase(CharmBase, Generic[T]):
     """Class to be used for extending config-typed charms."""
@@ -183,7 +191,8 @@ class TypedCharmBase(CharmBase, Generic[T]):
     @property
     def config(self) -> T:
         """Return a config instance validated and parsed using the provided pydantic class."""
-        translated_keys = {k.replace("-", "_"): v for k, v in self.model.config.items()}
+        translated_keys = {k.replace("-", "_"): v for k, v in self.model.config.items() if v is not None}
+        logger.info(translated_keys)
         return self.config_type(**translated_keys)
 
 
