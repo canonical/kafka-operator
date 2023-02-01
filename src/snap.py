@@ -11,10 +11,12 @@ from typing import List
 from charms.operator_libs_linux.v0 import apt
 from charms.operator_libs_linux.v1 import snap
 
+from literals import SNAP_NAME, NODE_EXPORTER_SNAP_NAME
+
 logger = logging.getLogger(__name__)
 
 
-SNAP_CONFIG_PATH = "/var/snap/kafka/common/"
+SNAP_CONFIG_PATH = "/var/snap/charmed-kafka/common"
 
 
 class KafkaSnap:
@@ -22,7 +24,7 @@ class KafkaSnap:
 
     def __init__(self) -> None:
         self.snap_config_path = SNAP_CONFIG_PATH
-        self.kafka = snap.SnapCache()["kafka"]
+        self.kafka = snap.SnapCache()[SNAP_NAME]
 
     def install(self) -> bool:
         """Loads the Kafka snap from LP, returning a StatusBase for the Charm to set.
@@ -34,8 +36,8 @@ class KafkaSnap:
             apt.update()
             apt.add_package(["snapd", "openjdk-17-jre-headless"])
             cache = snap.SnapCache()
-            kafka = cache["charmed-kafka"]
-            node_exporter = cache["node-exporter"]
+            kafka = cache[SNAP_NAME]
+            node_exporter = cache[NODE_EXPORTER_SNAP_NAME]
 
             if not kafka.present:
                 kafka.ensure(snap.SnapState.Latest, channel="latest/edge")
@@ -142,10 +144,10 @@ class KafkaSnap:
         """
         args_string = " ".join(bin_args)
         args_string_appended = (
-            f"{args_string} --zk-tls-config-file={SNAP_CONFIG_PATH}server.properties"
+            f"{args_string} --zk-tls-config-file={SNAP_CONFIG_PATH}/server.properties"
         )
         opts_string = " ".join(opts)
-        command = f"KAFKA_OPTS={opts_string} charmed-kafka.{bin_keyword} {args_string_appended}"
+        command = f"KAFKA_OPTS={opts_string} {SNAP_NAME}.{bin_keyword} {args_string_appended}"
 
         try:
             output = subprocess.check_output(

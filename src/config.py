@@ -121,11 +121,6 @@ class KafkaConfig:
         }
 
     @property
-    def exporter_address(self) -> str:
-        """The port used for JMX exporter."""
-        return "0.0.0.0:9150"
-
-    @property
     def zookeeper_config(self) -> Dict[str, str]:
         """The config from current ZooKeeper relations for data necessary for broker connection.
 

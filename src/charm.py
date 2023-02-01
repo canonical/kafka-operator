@@ -154,7 +154,7 @@ class KafkaCharm(CharmBase):
             self.kafka_config.set_kafka_opts()
             self.unit.status = WaitingStatus("waiting for zookeeper relation")
         else:
-            self.unit.status = BlockedStatus("unable to install kafka snap")
+            self.unit.status = BlockedStatus("unable to install charmed-kafka snap")
 
     def _on_leader_elected(self, event: LeaderElectedEvent) -> None:
         """Handler for `leader_elected` event, ensuring internal user passwords get set."""
@@ -267,7 +267,7 @@ class KafkaCharm(CharmBase):
             event.defer()
             return
 
-        self.snap.restart_snap_service("kafka")
+        self.snap.restart_snap_service(snap_service=SNAP_NAME)
 
         if broker_active(
             unit=self.unit,
@@ -287,7 +287,7 @@ class KafkaCharm(CharmBase):
             event.fail(message=f"Broker {self.unit.name.split('/')[1]} is not ready restart")
             return
 
-        self.snap.disable_enable("charmed-kafka")
+        self.snap.disable_enable(snap_service=SNAP_NAME)
 
         if broker_active(
             unit=self.unit,
