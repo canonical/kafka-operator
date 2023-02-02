@@ -10,8 +10,8 @@ from typing import MutableMapping, Optional
 
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
+from charms.data_platform_libs.v0.data_models import TypedCharmBase
 from charms.rolling_ops.v0.rollingops import RollingOpsManager
-from lib.charms.data_platform_libs.v0.data_models import TypedCharmBase
 from ops.charm import (
     ActionEvent,
     LeaderElectedEvent,
@@ -43,7 +43,6 @@ from tls import KafkaTLS
 from utils import broker_active, generate_password, safe_get_file
 
 logger = logging.getLogger(__name__)
-
 
 class KafkaCharm(TypedCharmBase[CharmConfig]):
     """Charmed Operator for Kafka."""

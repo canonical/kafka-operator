@@ -424,11 +424,7 @@ class KafkaConfig:
     @property
     def config_properties(self) -> List[str]:
         """Configure server properties from config."""
-        config_properties = []
-        for conf_key, value in vars(self.charm.config).items():
-            if value:
-                config_properties.append(f"{conf_key.replace('_', '.')}={value}")
-        return config_properties
+        return [f"{conf_key.replace('_', '.')}={value}" for conf_key, value in self.charm.config.dict().items() if value]
 
     def set_zk_jaas_config(self) -> None:
         """Writes the ZooKeeper JAAS config using ZooKeeper relation data."""

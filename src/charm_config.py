@@ -1,11 +1,10 @@
 from typing import Optional
-from pydantic import BaseModel, validator
 
-from lib.charms.data_platform_libs.v0.data_models import BaseConfigModel
+from charms.data_platform_libs.v0.data_models import BaseConfigModel
+from pydantic import validator
 
 
 class CharmConfig(BaseConfigModel):
-    # auto_create_topics: bool
     compression_type: str
     log_flush_interval_messages: int # long
     log_flush_interval_ms: Optional[int] # long
@@ -21,19 +20,23 @@ class CharmConfig(BaseConfigModel):
     log_cleaner_min_compaction_lag_ms: int #long
     log_cleanup_policy: str
     log_message_timestamp_type: str
-    ssl_cipher_suites: str
+    ssl_cipher_suites: Optional[str]
     replication_quota_window_num: int
-    zookeeper_ssl_cipher_suites: str
+    zookeeper_ssl_cipher_suites: Optional[str]
+    
+    @validator('*', pre=True)
+    @classmethod
+    def blank_string(cls, value):
+        if value == "":
+            return None
+        return value
 
-    # def __getitem__(cls, x):
-    #     return getattr(cls, x)
-
-    validator("log_message_timestamp_type")
+    @validator("log_message_timestamp_type")
     @classmethod
     def log_message_timestamp_type_validator(cls, value: str):
         accepted_values = ["CreateTime","LogAppendTime"]
         if value not in accepted_values:
-            return ValueError(f"Value out of the accepted values: {accepted_values}")
+            raise ValueError(f"Value out of the accepted values: {accepted_values}")
         return value
 
     @validator("log_cleanup_policy")
@@ -41,7 +44,7 @@ class CharmConfig(BaseConfigModel):
     def log_cleanup_policy_validator(cls, value:str):
         accepted_values = ["compact", "delete"]
         if value not in accepted_values:
-            return ValueError(f"Value out of the accepted values: {accepted_values}")
+            raise ValueError(f"Value out of the accepted values: {accepted_values}")
         return value
 
     @validator("log_cleaner_min_compaction_lag_ms")
@@ -49,24 +52,22 @@ class CharmConfig(BaseConfigModel):
     def log_cleaner_min_compaction_lag_ms_validator(cls, value:int):
         if value >= 0 and value <= 1000*60*60*24*7:
             return value
-        return ValueError("Value of of range.")
+        raise ValueError("Value of of range.")
     
     @validator("log_cleaner_delete_retention_ms")
     @classmethod
     def log_cleaner_delete_retention_ms_validator(cls, value: int):
         if value > 0 and value <= 1000*60*60*24*90:
             return value
-        return ValueError("Value of of range.")
+        raise ValueError("Value of of range.")
 
-    # @validator("offsets_topic_num_partitions")
     @validator("transaction_state_log_num_partitions","offsets_topic_num_partitions" )
     @classmethod
     def between_zero_and_10k(cls, value: int):
         if value >= 0 and value <= 10000:
             return value
-        return ValueError("Value below zero or greater than 10000.")
+        raise ValueError("Value below zero or greater than 10000.")
 
-    # @validator("log_retention_ms")
     @validator("log_retention_bytes", "log_retention_ms")
     @classmethod
     def greater_minus_one(cls, value: int):
@@ -78,19 +79,17 @@ class CharmConfig(BaseConfigModel):
     @classmethod
     def greater_than_one(cls, value: int):
         if value < 1:
-            raise ValueError("Value below -1. Accepted value are greater or equal than -1.")
+            raise ValueError("Value below 1. Accepted value are greater or equal than 1.")
         return value
 
     @validator("log_flush_interval_ms")
     @classmethod
     def flush_interval(cls, value: int):
         #1-(1000*60*60)
-        if value > 0 or value <=1000*60*60:
+        if value > 0 and value <=1000*60*60:
             return value
-        return ValueError("Value out of range")
+        raise ValueError(f"Value out of range [1 - {1000*60*60}]")
     
-    # @validator("log_segment_bytes")
-    # @validator("message_max_bytes")
     @validator("replication_quota_window_num", "log_segment_bytes", "message_max_bytes")
     @classmethod
     def greater_than_zero(cls, value: int):
@@ -103,5 +102,13 @@ class CharmConfig(BaseConfigModel):
     def value_compression_type(cls, value:str):
         accepted_values = ['gzip', 'snappy', 'lz4', 'zstd' 'uncompressed', 'producer']
         if value not in accepted_values:
-            raise 
+            raise ValueError(f"Value out of the accepted values: {accepted_values}")
         return value
+
+    @validator("log_flush_offset_checkpoint_interval_ms","log_segment_bytes", "message_max_bytes", "offsets_topic_num_partitions", "transaction_state_log_num_partitions", "replication_quota_window_num")
+    @classmethod
+    def integer_value(cls, value: int):
+        if value >= -2147483648 and value <= 2147483647:
+            return value
+        raise ValueError(f"Value is not an integer")
+        

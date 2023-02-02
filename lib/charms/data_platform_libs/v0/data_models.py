@@ -191,8 +191,7 @@ class TypedCharmBase(CharmBase, Generic[T]):
     @property
     def config(self) -> T:
         """Return a config instance validated and parsed using the provided pydantic class."""
-        translated_keys = {k.replace("-", "_"): v for k, v in self.model.config.items() if v is not None}
-        logger.info(translated_keys)
+        translated_keys = {k.replace("-", "_"): v for k, v in self.model.config.items()}
         return self.config_type(**translated_keys)
 
 

@@ -13,7 +13,6 @@ options:
   log_flush_interval_ms:
     description: The maximum time in ms that a message in any topic is kept in memory before flushed to disk. If not set, the value in log.flush.scheduler.interval.ms is used.
     type: int #long
-    default:
   log_flush_offset_checkpoint_interval_ms:
     description: The frequency with which we update the persistent record of the last flush which acts as the log recovery point.
     type: int
