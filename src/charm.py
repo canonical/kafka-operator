@@ -26,7 +26,6 @@ from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, Relation, WaitingStatus
 
 from auth import KafkaAuth
-from charm_config import CharmConfig
 from config import KafkaConfig
 from literals import (
     ADMIN_USER,
@@ -39,6 +38,7 @@ from literals import (
 )
 from provider import KafkaProvider
 from snap import KafkaSnap
+from structured_config import CharmConfig
 from tls import KafkaTLS
 from utils import broker_active, generate_password, safe_get_file
 
