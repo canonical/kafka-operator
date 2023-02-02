@@ -398,8 +398,8 @@ class KafkaConfig:
 
         properties = (
             # read property from config!
-            self.config_properties +
-            [
+            self.config_properties
+            + [
                 # f"log.retention.hours={self.charm.config['log_retention_hours']}",
                 # f"auto.create.topics={self.charm.config['auto_create_topics']}",
                 # f"compression.type={self.charm.config['compression_type']}",
@@ -424,7 +424,11 @@ class KafkaConfig:
     @property
     def config_properties(self) -> List[str]:
         """Configure server properties from config."""
-        return [f"{conf_key.replace('_', '.')}={value}" for conf_key, value in self.charm.config.dict().items() if value]
+        return [
+            f"{conf_key.replace('_', '.')}={value}"
+            for conf_key, value in self.charm.config.dict().items()
+            if value
+        ]
 
     def set_zk_jaas_config(self) -> None:
         """Writes the ZooKeeper JAAS config using ZooKeeper relation data."""

@@ -44,6 +44,7 @@ from utils import broker_active, generate_password, safe_get_file
 
 logger = logging.getLogger(__name__)
 
+
 class KafkaCharm(TypedCharmBase[CharmConfig]):
     """Charmed Operator for Kafka."""
 
