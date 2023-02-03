@@ -33,6 +33,7 @@ class TestStructuredConfig(unittest.TestCase):
         self.assertIsInstance(self.harness.charm, KafkaCharm)
 
     def test_config_parsing_parameters_integer_values(self) -> None:
+        """Check that integer fields are parsed correctly."""
         integer_fields = [
             "log_flush_offset_checkpoint_interval_ms",
             "log_segment_bytes",
@@ -137,6 +138,7 @@ class TestStructuredConfig(unittest.TestCase):
             self.check_valid_values(field, valid_values)
 
     def test_config_parsing_parameters_long_values(self) -> None:
+        """Check long fields are parsed correctly."""
         long_fields = [
             "log_flush_interval_messages",
             "log_flush_interval_ms",

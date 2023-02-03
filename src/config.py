@@ -397,12 +397,7 @@ class KafkaConfig:
         advertised_listeners = [listener.advertised_listener for listener in self.all_listeners]
 
         properties = (
-            # read property from config!
-            self.config_properties
-            + [
-                # f"log.retention.hours={self.charm.config['log_retention_hours']}",
-                # f"auto.create.topics={self.charm.config['auto_create_topics']}",
-                # f"compression.type={self.charm.config['compression_type']}",
+            [
                 f"super.users={self.super_users}",
                 f"log.dirs={self.log_dirs}",
                 f"listener.security.protocol.map={','.join(protocol_map)}",
@@ -410,6 +405,7 @@ class KafkaConfig:
                 f"advertised.listeners={','.join(advertised_listeners)}",
                 f"inter.broker.listener.name={self.internal_listener.name}",
             ]
+            + self.config_properties
             + self.scram_properties
             + self.default_replication_properties
             + self.auth_properties
@@ -424,11 +420,10 @@ class KafkaConfig:
     @property
     def config_properties(self) -> List[str]:
         """Configure server properties from config."""
-        logger.info(f"CONFIG: {self.charm.config.dict()}")
         return [
             f"{conf_key.replace('_', '.')}={str(value)}"
             for conf_key, value in self.charm.config.dict().items()
-            if value
+            if value is not None
         ]
 
     def set_zk_jaas_config(self) -> None:
