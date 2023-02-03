@@ -3,11 +3,13 @@
 # See LICENSE file for licensing details.
 
 """Structured configuration for the Kafka charm."""
-import math
+import logging
 from typing import Optional
 
 from charms.data_platform_libs.v0.data_models import BaseConfigModel
 from pydantic import validator
+
+logger = logging.getLogger(__name__)
 
 
 class CharmConfig(BaseConfigModel):
@@ -155,6 +157,6 @@ class CharmConfig(BaseConfigModel):
     def long_value(cls, value: str) -> Optional[int]:
         """Check that the value is a long (-2^63 , 2^63 -1)."""
         int_value = int(value)
-        if int_value >= -math.pow(2, 63) and int_value <= math.pow(2, 63) - 1:
+        if int_value >= -9223372036854775807 and int_value <= 9223372036854775808:
             return int_value
-        raise ValueError("Value is not an integer")
+        raise ValueError("Value is not a long")

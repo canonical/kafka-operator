@@ -3,7 +3,6 @@
 # See LICENSE file for licensing details.
 
 import logging
-import math
 import unittest
 from pathlib import Path
 
@@ -138,7 +137,7 @@ class TestStructuredConfig(unittest.TestCase):
             self.check_valid_values(field, valid_values)
 
     def test_config_parsing_parameters_long_values(self) -> None:
-        integer_fields = [
+        long_fields = [
             "log_flush_interval_messages",
             "log_flush_interval_ms",
             "log_retention_bytes",
@@ -146,8 +145,8 @@ class TestStructuredConfig(unittest.TestCase):
             "log_cleaner_delete_retention_ms",
             "log_cleaner_min_compaction_lag_ms",
         ]
-        erroneus_values = map(str, [int(-math.pow(2, 64)), int(math.pow(2, 63))])
-        valid_values = map(str, [42, 1000, int(math.pow(2, 63) - 1)])
-        for field in integer_fields:
+        erroneus_values = map(str, [-9223372036854775808, 9223372036854775809])
+        valid_values = map(str, [42, 1000, 9223372036854775808])
+        for field in long_fields:
             self.check_invalid_values(field, erroneus_values)
             self.check_valid_values(field, valid_values, is_long_field=True)
