@@ -3,6 +3,7 @@
 # See LICENSE file for licensing details.
 
 import logging
+import math
 import unittest
 from pathlib import Path
 
@@ -47,11 +48,13 @@ class TestStructuredConfig(unittest.TestCase):
             self.check_invalid_values(field, erroneus_values)
             self.check_valid_values(field, valid_values)
 
-    def check_valid_values(self, field: str, accepted_values: list) -> None:
+    def check_valid_values(self, field: str, accepted_values: list, is_long_field=False) -> None:
         """Check the correcteness of the passed values for a field."""
         for value in accepted_values:
             self.harness.update_config({field: value})
-            self.assertEqual(self.harness.charm.config[field], value)
+            self.assertEqual(
+                self.harness.charm.config[field], value if not is_long_field else int(value)
+            )
 
     def check_invalid_values(self, field: str, erroneus_values: list) -> None:
         """Check the incorrectness of the passed values for a field."""
@@ -81,11 +84,11 @@ class TestStructuredConfig(unittest.TestCase):
     def test_values_gt_zero(self) -> None:
         """Check fields greater than zero."""
         gt_zero_fields = ["log_flush_interval_messages"]
-        erroneus_values = [0, -2147483649, -34]
-        valid_values = [42, 1000, 1]
+        erroneus_values = map(str, [0, -2147483649, -34])
+        valid_values = map(str, [42, 1000, 1, 9223372036854775807])
         for field in gt_zero_fields:
             self.check_invalid_values(field, erroneus_values)
-            self.check_valid_values(field, valid_values)
+            self.check_valid_values(field, valid_values, is_long_field=True)
 
     def test_values_gteq_zero(self) -> None:
         """Check fields greater or equal than zero."""
@@ -103,22 +106,26 @@ class TestStructuredConfig(unittest.TestCase):
     def test_values_in_specific_intervals(self) -> None:
         """Check fields on prefdefined intervals."""
         # "log_flush_interval_ms"
-        erroneus_values = [0, -1, 1000 * 60 * 60 + 1]
-        valid_values = [42, 1000, 10000, 1]
+        erroneus_values = map(str, [0, -1, 1000 * 60 * 60 + 1])
+        valid_values = map(str, [42, 1000, 10000, 1])
         self.check_invalid_values("log_flush_interval_ms", erroneus_values)
-        self.check_valid_values("log_flush_interval_ms", valid_values)
+        self.check_valid_values("log_flush_interval_ms", valid_values, is_long_field=True)
 
         # "log_cleaner_delete_retention_ms"
-        erroneus_values = [-1, 0, 1000 * 60 * 60 * 24 * 90 + 1]
-        valid_values = [42, 1000, 10000, 1, 1000 * 60 * 60 * 24 * 90]
+        erroneus_values = map(str, [-1, 0, 1000 * 60 * 60 * 24 * 90 + 1])
+        valid_values = map(str, [42, 1000, 10000, 1, 1000 * 60 * 60 * 24 * 90])
         self.check_invalid_values("log_cleaner_delete_retention_ms", erroneus_values)
-        self.check_valid_values("log_cleaner_delete_retention_ms", valid_values)
+        self.check_valid_values(
+            "log_cleaner_delete_retention_ms", valid_values, is_long_field=True
+        )
 
         # "log_cleaner_min_compaction_lag_ms"
-        erroneus_values = [-1, 1000 * 60 * 60 * 24 * 7 + 1]
-        valid_values = [42, 1000, 10000, 1, 1000 * 60 * 60 * 24 * 7]
+        erroneus_values = map(str, [-1, 1000 * 60 * 60 * 24 * 7 + 1])
+        valid_values = map(str, [42, 1000, 10000, 1, 1000 * 60 * 60 * 24 * 7])
         self.check_invalid_values("log_cleaner_min_compaction_lag_ms", erroneus_values)
-        self.check_valid_values("log_cleaner_min_compaction_lag_ms", valid_values)
+        self.check_valid_values(
+            "log_cleaner_min_compaction_lag_ms", valid_values, is_long_field=True
+        )
 
         partititions_fields = [
             "transaction_state_log_num_partitions",
@@ -129,3 +136,18 @@ class TestStructuredConfig(unittest.TestCase):
         for field in partititions_fields:
             self.check_invalid_values(field, erroneus_values)
             self.check_valid_values(field, valid_values)
+
+    def test_config_parsing_parameters_long_values(self) -> None:
+        integer_fields = [
+            "log_flush_interval_messages",
+            "log_flush_interval_ms",
+            "log_retention_bytes",
+            "log_retention_ms",
+            "log_cleaner_delete_retention_ms",
+            "log_cleaner_min_compaction_lag_ms",
+        ]
+        erroneus_values = map(str, [int(-math.pow(2, 64)), int(math.pow(2, 63))])
+        valid_values = map(str, [42, 1000, int(math.pow(2, 63) - 1)])
+        for field in integer_fields:
+            self.check_invalid_values(field, erroneus_values)
+            self.check_valid_values(field, valid_values, is_long_field=True)

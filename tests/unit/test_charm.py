@@ -28,7 +28,7 @@ def harness():
     harness.add_relation("restart", CHARM_KEY)
     harness._update_config(
         {
-            "log_retention_ms": -1,
+            "log_retention_ms": "-1",
             "compression_type": "producer",
         }
     )

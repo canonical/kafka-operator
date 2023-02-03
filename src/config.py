@@ -418,14 +418,15 @@ class KafkaConfig:
 
         if self.charm.tls.enabled:
             properties += self.tls_properties + self.zookeeper_tls_properties
-
+        logger.info(f"server properties: {properties}")
         return properties
 
     @property
     def config_properties(self) -> List[str]:
         """Configure server properties from config."""
+        logger.info(f"CONFIG: {self.charm.config.dict()}")
         return [
-            f"{conf_key.replace('_', '.')}={value}"
+            f"{conf_key.replace('_', '.')}={str(value)}"
             for conf_key, value in self.charm.config.dict().items()
             if value
         ]

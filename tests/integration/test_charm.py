@@ -4,12 +4,13 @@
 
 import asyncio
 import logging
-import time
 from pathlib import PosixPath
-from subprocess import PIPE, check_output
+from subprocess import check_output
+import time
 
 import pytest
 import requests
+from literals import REL_NAME, SECURITY_PROTOCOL_PORTS
 from pytest_operator.plugin import OpsTest
 from tests.integration.helpers import (
     APP_NAME,
@@ -20,8 +21,6 @@ from tests.integration.helpers import (
     produce_and_check_logs,
     run_client_properties,
 )
-
-from literals import REL_NAME, SECURITY_PROTOCOL_PORTS
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +37,16 @@ async def test_build_and_deploy(ops_test: OpsTest):
         ops_test.model.deploy(kafka_charm, application_name=APP_NAME, num_units=1, series="jammy"),
     )
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME])
+
+    logger.info("HERE !!!!!")
+    value = 9223372036854775807
+    config = await ops_test.model.applications[APP_NAME].get_config()
+    logger.info(f"Config: {config}")
+    logger.info(f"config['log_flush_interval_messages'] :{config['log_flush_interval_messages']}")
+    # assert config["log_flush_interval_messages"] == value
+    await ops_test.model.applications[APP_NAME].set_config({"log_flush_interval_messages": value})
+    config = await ops_test.model.applications[APP_NAME].get_config()
+    logger.info(f"Config: {config}")
     assert ops_test.model.applications[APP_NAME].status == "waiting"
     assert ops_test.model.applications[ZK_NAME].status == "active"
 
@@ -45,6 +54,10 @@ async def test_build_and_deploy(ops_test: OpsTest):
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME])
     assert ops_test.model.applications[APP_NAME].status == "active"
     assert ops_test.model.applications[ZK_NAME].status == "active"
+
+    await ops_test.model.applications[APP_NAME].set_config({"log_flush_interval_messages": value})
+    config =  await ops_test.model.applications[APP_NAME].get_config()
+    assert config["log_flush_interval_messages"] == value
 
 
 @pytest.mark.abort_on_fail
@@ -105,6 +118,17 @@ async def test_logs_write_to_storage(ops_test: OpsTest):
     )
 
 
+async def test_exporter_endpoints(ops_test: OpsTest):
+    unit_address = await get_address(ops_test=ops_test)
+    node_exporter_url = f"http://{unit_address}:9100/metrics"
+    jmx_exporter_url = f"http://{unit_address}:9101/metrics"
+
+    node_resp = requests.get(node_exporter_url)
+    jmx_resp = requests.get(jmx_exporter_url)
+
+    assert node_resp.ok
+    assert jmx_resp.ok
+
 @pytest.mark.abort_on_fail
 @pytest.mark.skip  # skipping as we can't add storage without losing Juju conn
 async def test_logs_write_to_new_storage(ops_test: OpsTest):
@@ -122,15 +146,3 @@ async def test_logs_write_to_new_storage(ops_test: OpsTest):
         provider_unit_name=f"{DUMMY_NAME}/0",
         topic="cold-topic",
     )
-
-
-async def test_exporter_endpoints(ops_test: OpsTest):
-    unit_address = await get_address(ops_test=ops_test)
-    node_exporter_url = f"http://{unit_address}:9100/metrics"
-    jmx_exporter_url = f"http://{unit_address}:9101/metrics"
-
-    node_resp = requests.get(node_exporter_url)
-    jmx_resp = requests.get(jmx_exporter_url)
-
-    assert node_resp.ok
-    assert jmx_resp.ok
