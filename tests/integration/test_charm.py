@@ -4,13 +4,12 @@
 
 import asyncio
 import logging
+import time
 from pathlib import PosixPath
 from subprocess import PIPE, check_output
-import time
 from urllib import request
 
 import pytest
-from literals import REL_NAME, SECURITY_PROTOCOL_PORTS
 from pytest_operator.plugin import OpsTest
 from tests.integration.helpers import (
     APP_NAME,
@@ -21,6 +20,8 @@ from tests.integration.helpers import (
     produce_and_check_logs,
     run_client_properties,
 )
+
+from literals import REL_NAME, SECURITY_PROTOCOL_PORTS
 
 logger = logging.getLogger(__name__)
 
