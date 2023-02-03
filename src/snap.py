@@ -11,7 +11,7 @@ from typing import List
 from charms.operator_libs_linux.v0 import apt
 from charms.operator_libs_linux.v1 import snap
 
-from literals import SNAP_NAME, NODE_EXPORTER_SNAP_NAME
+from literals import NODE_EXPORTER_SNAP_NAME, SNAP_NAME
 
 logger = logging.getLogger(__name__)
 
