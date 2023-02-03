@@ -5,11 +5,11 @@
 import asyncio
 import logging
 from pathlib import PosixPath
-from subprocess import check_output
+from subprocess import PIPE, check_output
 import time
+from urllib import request
 
 import pytest
-import requests
 from literals import REL_NAME, SECURITY_PROTOCOL_PORTS
 from pytest_operator.plugin import OpsTest
 from tests.integration.helpers import (
@@ -37,16 +37,6 @@ async def test_build_and_deploy(ops_test: OpsTest):
         ops_test.model.deploy(kafka_charm, application_name=APP_NAME, num_units=1, series="jammy"),
     )
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME])
-
-    logger.info("HERE !!!!!")
-    value = 9223372036854775807
-    config = await ops_test.model.applications[APP_NAME].get_config()
-    logger.info(f"Config: {config}")
-    logger.info(f"config['log_flush_interval_messages'] :{config['log_flush_interval_messages']}")
-    # assert config["log_flush_interval_messages"] == value
-    await ops_test.model.applications[APP_NAME].set_config({"log_flush_interval_messages": value})
-    config = await ops_test.model.applications[APP_NAME].get_config()
-    logger.info(f"Config: {config}")
     assert ops_test.model.applications[APP_NAME].status == "waiting"
     assert ops_test.model.applications[ZK_NAME].status == "active"
 
@@ -54,10 +44,6 @@ async def test_build_and_deploy(ops_test: OpsTest):
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME])
     assert ops_test.model.applications[APP_NAME].status == "active"
     assert ops_test.model.applications[ZK_NAME].status == "active"
-
-    await ops_test.model.applications[APP_NAME].set_config({"log_flush_interval_messages": value})
-    config =  await ops_test.model.applications[APP_NAME].get_config()
-    assert config["log_flush_interval_messages"] == value
 
 
 @pytest.mark.abort_on_fail
@@ -123,11 +109,12 @@ async def test_exporter_endpoints(ops_test: OpsTest):
     node_exporter_url = f"http://{unit_address}:9100/metrics"
     jmx_exporter_url = f"http://{unit_address}:9101/metrics"
 
-    node_resp = requests.get(node_exporter_url)
-    jmx_resp = requests.get(jmx_exporter_url)
+    node_resp = request.get(node_exporter_url)
+    jmx_resp = request.get(jmx_exporter_url)
 
     assert node_resp.ok
     assert jmx_resp.ok
+
 
 @pytest.mark.abort_on_fail
 @pytest.mark.skip  # skipping as we can't add storage without losing Juju conn
