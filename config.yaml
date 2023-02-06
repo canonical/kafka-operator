@@ -11,7 +11,7 @@ options:
     type: string
     default: "9223372036854775807"
   log_flush_interval_ms:
-    description: The maximum time in ms that a message in any topic is kept in memory before flushed to disk. If not set, the value in log.flush.scheduler.interval.ms is used.
+    description: The maximum time in ms that a message in any topic is kept in memory before flushed to disk.
     type: string
   log_flush_offset_checkpoint_interval_ms:
     description: The frequency with which we update the persistent record of the last flush which acts as the log recovery point.
@@ -22,7 +22,7 @@ options:
     type: string
     default: "-1"
   log_retention_ms:
-    description: The number of milliseconds to keep a log file before deleting it (in milliseconds), If not set, the value in log.retention.minutes is used. If set to -1, no time limit is applied.
+    description: The number of milliseconds to keep a log file before deleting it (in milliseconds).
     type: string 
     default: "-1"
   log_segment_bytes:

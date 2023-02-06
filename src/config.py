@@ -414,7 +414,7 @@ class KafkaConfig:
 
         if self.charm.tls.enabled:
             properties += self.tls_properties + self.zookeeper_tls_properties
-        logger.info(f"server properties: {properties}")
+        logger.debug(f"server properties: {properties}")
         return properties
 
     @property

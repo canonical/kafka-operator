@@ -78,7 +78,7 @@ class TestStructuredConfig(unittest.TestCase):
 
         # compression_type field
         self.check_invalid_values("compression_type", erroneus_values)
-        accepted_values = ["gzip", "snappy", "lz4", "zstd" "uncompressed", "producer"]
+        accepted_values = ["gzip", "snappy", "lz4", "zstd", "uncompressed", "producer"]
         self.check_valid_values("compression_type", accepted_values)
 
     def test_values_gt_zero(self) -> None:

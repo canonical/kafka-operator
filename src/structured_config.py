@@ -4,12 +4,38 @@
 
 """Structured configuration for the Kafka charm."""
 import logging
+from enum import Enum
 from typing import Optional
 
 from charms.data_platform_libs.v0.data_models import BaseConfigModel
 from pydantic import validator
 
 logger = logging.getLogger(__name__)
+
+
+class LogMessageTimestampType(str, Enum):
+    """Enum for the `log_message_timestamp_type` field."""
+
+    CREATE_TIME = "CreateTime"
+    LOG_APPEND_TIME = "LogAppendTime"
+
+
+class LogCleanupPolicy(str, Enum):
+    """Enum for the `log_cleanup_policy` field."""
+
+    COMPACT = "compact"
+    DELETE = "delete"
+
+
+class CompressionType(str, Enum):
+    """Enum for the `compression_type` field."""
+
+    GZIP = "gzip"
+    SNAPPY = "snappy"
+    LZ4 = "lz4"
+    ZSTD = "zstd"
+    UNCOMPRESSED = "uncompressed"
+    PRODUCER = "producer"
 
 
 class CharmConfig(BaseConfigModel):
@@ -46,18 +72,24 @@ class CharmConfig(BaseConfigModel):
     @classmethod
     def log_message_timestamp_type_validator(cls, value: str) -> Optional[str]:
         """Check validity of `log_message_timestamp_type` field."""
-        accepted_values = ["CreateTime", "LogAppendTime"]
-        if value not in accepted_values:
-            raise ValueError(f"Value out of the accepted values: {accepted_values}")
+        try:
+            _log_message_timestap_type = LogMessageTimestampType(value)
+        except Exception as e:
+            raise ValueError(
+                f"Value out of the accepted values. Could not properly parsed the roles configuration: {e}"
+            )
         return value
 
     @validator("log_cleanup_policy")
     @classmethod
     def log_cleanup_policy_validator(cls, value: str) -> Optional[str]:
         """Check validity of `log_cleanup_policy` field."""
-        accepted_values = ["compact", "delete"]
-        if value not in accepted_values:
-            raise ValueError(f"Value out of the accepted values: {accepted_values}")
+        try:
+            _log_cleanup_policy = LogCleanupPolicy(value)
+        except Exception as e:
+            raise ValueError(
+                f"Value out of the accepted values. Could not properly parsed the roles configuration: {e}"
+            )
         return value
 
     @validator("log_cleaner_min_compaction_lag_ms")
@@ -67,7 +99,7 @@ class CharmConfig(BaseConfigModel):
         int_value = int(value)
         if int_value >= 0 and int_value <= 1000 * 60 * 60 * 24 * 7:
             return int_value
-        raise ValueError("Value of of range.")
+        raise ValueError("Value out of range.")
 
     @validator("log_cleaner_delete_retention_ms")
     @classmethod
@@ -76,7 +108,7 @@ class CharmConfig(BaseConfigModel):
         int_value = int(value)
         if int_value > 0 and int_value <= 1000 * 60 * 60 * 24 * 90:
             return int_value
-        raise ValueError("Value of of range.")
+        raise ValueError("Value out of range.")
 
     @validator("transaction_state_log_num_partitions", "offsets_topic_num_partitions")
     @classmethod
@@ -125,9 +157,12 @@ class CharmConfig(BaseConfigModel):
     @classmethod
     def value_compression_type(cls, value: str) -> Optional[str]:
         """Check validity of `compression_type` field."""
-        accepted_values = ["gzip", "snappy", "lz4", "zstd" "uncompressed", "producer"]
-        if value not in accepted_values:
-            raise ValueError(f"Value out of the accepted values: {accepted_values}")
+        try:
+            _compression_type = CompressionType(value)
+        except Exception as e:
+            raise ValueError(
+                f"Value out of the accepted values. Could not properly parsed the roles configuration: {e}"
+            )
         return value
 
     @validator(
