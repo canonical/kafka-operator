@@ -1,12 +1,11 @@
-# Copyright 2022 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 name: kafka
 display-name: Kafka
-summary: |
-  ""
 description: |
-  ""
+  Kafka is an event streaming platform. This charm deploys and operates Kafka.
+summary: The Charmed Kafka Operator
 maintainers:
   - Marc Oppenheimer <marc.oppenheimer@canonical.com>
 series:
