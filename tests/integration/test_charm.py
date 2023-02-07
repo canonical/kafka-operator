@@ -125,9 +125,9 @@ async def test_logs_write_to_new_storage(ops_test: OpsTest):
 
 
 async def test_exporter_endpoints(ops_test: OpsTest):
-    unit_address = get_address(ops_test=ops_test)
-    node_exporter_url = f"http:{unit_address}:9100/metrics"
-    jmx_exporter_url = f"http:{unit_address}:9101/metrics"
+    unit_address = await get_address(ops_test=ops_test)
+    node_exporter_url = f"http://{unit_address}:9100/metrics"
+    jmx_exporter_url = f"http://{unit_address}:9101/metrics"
 
     node_resp = requests.get(node_exporter_url)
     jmx_resp = requests.get(jmx_exporter_url)
