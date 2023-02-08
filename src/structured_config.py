@@ -127,7 +127,7 @@ class CharmConfig(BaseConfigModel):
             raise ValueError("Value below -1. Accepted value are greater or equal than -1.")
         return int_value
 
-    @validator("log_flush_interval_messages")
+    @validator("log_flush_interval_messages", "log_flush_interval_ms")
     @classmethod
     def greater_than_one(cls, value: str) -> Optional[int]:
         """Check value greater than one."""
@@ -135,15 +135,6 @@ class CharmConfig(BaseConfigModel):
         if int_value < 1:
             raise ValueError("Value below 1. Accepted value are greater or equal than 1.")
         return int_value
-
-    @validator("log_flush_interval_ms")
-    @classmethod
-    def flush_interval(cls, value: int) -> Optional[int]:
-        # 1-(1000*60*60)
-        """Check value between 1 and than 1000*60*60."""
-        if value > 0 and value <= 1000 * 60 * 60:
-            return value
-        raise ValueError(f"Value out of range [1 - {1000*60*60}]")
 
     @validator("replication_quota_window_num", "log_segment_bytes", "message_max_bytes")
     @classmethod

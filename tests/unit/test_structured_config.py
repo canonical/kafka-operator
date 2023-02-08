@@ -81,7 +81,7 @@ def test_product_related_values(harness) -> None:
 
 def test_values_gt_zero(harness) -> None:
     """Check fields greater than zero."""
-    gt_zero_fields = ["log_flush_interval_messages"]
+    gt_zero_fields = ["log_flush_interval_messages", "log_flush_interval_ms"]
     erroneus_values = map(str, [0, -2147483649, -34])
     valid_values = map(str, [42, 1000, 1, 9223372036854775807])
     for field in gt_zero_fields:
@@ -104,13 +104,7 @@ def test_values_gteq_zero(harness) -> None:
 
 
 def test_values_in_specific_intervals(harness) -> None:
-    """Check fields on prefdefined intervals."""
-    # "log_flush_interval_ms"
-    erroneus_values = map(str, [0, -1, 1000 * 60 * 60 + 1])
-    valid_values = map(str, [42, 1000, 10000, 1])
-    check_invalid_values(harness, "log_flush_interval_ms", erroneus_values)
-    check_valid_values(harness, "log_flush_interval_ms", valid_values, is_long_field=True)
-
+    """Check fields on predefined intervals."""
     # "log_cleaner_delete_retention_ms"
     erroneus_values = map(str, [-1, 0, 1000 * 60 * 60 * 24 * 90 + 1])
     valid_values = map(str, [42, 1000, 10000, 1, 1000 * 60 * 60 * 24 * 90])
