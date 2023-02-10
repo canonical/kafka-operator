@@ -39,9 +39,9 @@ also parsing and validation on standard dataclass implementation:
 
 ```python
 
-from pydantic import BaseModel
+from charms.data_platform_libs.v0.data_models import BaseConfigModel
 
-class MyConfig(BaseModel):
+class MyConfig(BaseConfigModel):
 
     my_key: int
 
@@ -59,6 +59,7 @@ created:
 dataclass = MyConfig(my_key="1")
 
 dataclass.my_key # this returns 1 (int)
+dataclass["my_key"] # this returns 1 (int)
 
 dataclass = MyConfig(my_key="102") # this returns a ValueError("Too High")
 ```
@@ -152,7 +153,6 @@ merged_data = get_relation_data_as(
 
 import json
 from functools import reduce, wraps
-import logging
 from typing import Callable, Generic, MutableMapping, Optional, Type, TypeVar, Union
 
 import pydantic
@@ -170,17 +170,20 @@ LIBAPI = 0
 # to 0 if you are raising the major API version
 LIBPATCH = 1
 
+PYDEPS = ["ops>=2.0.0", "pydantic>=1.10"]
+
 G = TypeVar("G")
 T = TypeVar("T", bound=BaseModel)
 AppModel = TypeVar("AppModel", bound=BaseModel)
 UnitModel = TypeVar("UnitModel", bound=BaseModel)
 
-logger = logging.getLogger(__name__)
 
 class BaseConfigModel(BaseModel):
     """Class to be used for defining the structured configuration options."""
-    def __getitem__(cls, x):
-        return getattr(cls, x)
+
+    def __getitem__(self, x):
+        """Return the item using the notation instance[key]."""
+        return getattr(self, x.replace("-", "_"))
 
 
 class TypedCharmBase(CharmBase, Generic[T]):
@@ -280,7 +283,6 @@ def parse_relation_data(
     ) -> Callable[[CharmBase, RelationEvent], G]:
         @wraps(f)
         def event_wrapper(self: CharmBase, event: RelationEvent):
-
             try:
                 app_data = (
                     read(event.relation.data[event.app], app_model)
