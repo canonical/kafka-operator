@@ -7,9 +7,9 @@ import logging
 import time
 from pathlib import PosixPath
 from subprocess import PIPE, check_output
-from urllib import request
 
 import pytest
+import requests
 from pytest_operator.plugin import OpsTest
 from tests.integration.helpers import (
     APP_NAME,
@@ -110,8 +110,8 @@ async def test_exporter_endpoints(ops_test: OpsTest):
     node_exporter_url = f"http://{unit_address}:9100/metrics"
     jmx_exporter_url = f"http://{unit_address}:9101/metrics"
 
-    node_resp = request.get(node_exporter_url)
-    jmx_resp = request.get(jmx_exporter_url)
+    node_resp = requests.get(node_exporter_url)
+    jmx_resp = requests.get(jmx_exporter_url)
 
     assert node_resp.ok
     assert jmx_resp.ok
