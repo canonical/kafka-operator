@@ -55,7 +55,10 @@ def test_install_sets_opts(harness):
 
 def test_install_waits_until_zookeeper_relation(harness):
     """Checks unit goes to WaitingStatus without ZK relation on install hook."""
-    with (patch("snap.KafkaSnap.install"), patch("config.KafkaConfig.set_kafka_opts")):
+    with (
+        patch("snap.KafkaSnap.install"),
+        patch("config.KafkaConfig.set_kafka_opts"),
+    ):
         harness.charm.on.install.emit()
         assert isinstance(harness.charm.unit.status, WaitingStatus)
 
@@ -337,7 +340,9 @@ def test_storage_add_remove_triggers_restart(harness):
 
     with (
         patch("charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=True),
-        patch("charm.safe_get_file", return_value=["log.dirs=/var/snap/kafka/common/logs/0"]),
+        patch(
+            "charm.safe_get_file", return_value=["log.dirs=/var/snap/charmed-kafka/common/logs/0"]
+        ),
         patch("config.KafkaConfig.set_server_properties"),
         patch("config.KafkaConfig.set_client_properties"),
         patch("charm.broker_active", return_value=True),

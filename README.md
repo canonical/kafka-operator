@@ -194,6 +194,41 @@ juju remove-relation zookeeper tls-certificates-operator
 Note: The TLS settings here are for self-signed-certificates which are not recommended for production clusters, the `tls-certificates-operator` charm offers a variety of configurations, read more on the TLS charm [here](https://charmhub.io/tls-certificates-operator)
 
 
+## Monitoring
+
+The Charmed Kafka Operator comes with several exporters by default. The metrics can be queried by accessing the following endpoints:
+
+- Node exporter: `http://<unit-ip>:9100/metrics`
+- JMX exporter: `http://<unit-ip>:9101/metrics`
+
+Additionally, the charm provides integration with the [Canonical Observability Stack](https://charmhub.io/topics/canonical-observability-stack).
+
+Deploy cos-lite bundle in a Kubernetes environment. This can be done by following the [deployment tutorial](https://charmhub.io/topics/canonical-observability-stack/tutorials/install-microk8s). Since the Charmed Kafka Operator is deployed on a machine environment, it is needed to offer the endpoints of the COS relations. The [offers-overlay](https://github.com/canonical/cos-lite-bundle/blob/main/overlays/offers-overlay.yaml) can be used, and this step is shown on the COS tutorial.
+
+Once COS is deployed, we can find the offers from the Kafka model:
+```shell
+# We are on the Kubernetes controller, for the cos model. Switch to kafka model
+juju switch <machine_controller_name>:<kafka_model_name>
+
+juju find-offers <k8s_controller_name>:
+```
+
+A similar output should appear, if `micro` is the k8s controller name and `cos` the model where `cos-lite` has been deployed:
+```
+Store  URL                   Access  Interfaces                         
+micro  admin/cos.grafana     admin   grafana_dashboard:grafana-dashboard
+micro  admin/cos.prometheus  admin   prometheus_scrape:metrics-endpoint
+. . .
+```
+
+Now, relate kafka with the `metrics-endpoint` and `grafana-dashboard` interfaces:
+```shell
+juju relate micro:admin/cos.prometheus kafka
+juju relate micro:admin/cos.grafana kafka
+```
+
+After this is complete, Grafana will show two new dashboards: `Kafka Metrics` and `Node Exporter Kafka`
+
 ## Security
 Security issues in the Charmed Kafka Operator can be reported through [LaunchPad](https://wiki.ubuntu.com/DebuggingSecurity#How%20to%20File). Please do not file GitHub issues about security issues.
 

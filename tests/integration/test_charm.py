@@ -9,6 +9,7 @@ from pathlib import PosixPath
 from subprocess import PIPE, check_output
 
 import pytest
+import requests
 from pytest_operator.plugin import OpsTest
 from tests.integration.helpers import (
     APP_NAME,
@@ -121,3 +122,15 @@ async def test_logs_write_to_new_storage(ops_test: OpsTest):
         provider_unit_name=f"{DUMMY_NAME}/0",
         topic="cold-topic",
     )
+
+
+async def test_exporter_endpoints(ops_test: OpsTest):
+    unit_address = await get_address(ops_test=ops_test)
+    node_exporter_url = f"http://{unit_address}:9100/metrics"
+    jmx_exporter_url = f"http://{unit_address}:9101/metrics"
+
+    node_resp = requests.get(node_exporter_url)
+    jmx_resp = requests.get(jmx_exporter_url)
+
+    assert node_resp.ok
+    assert jmx_resp.ok

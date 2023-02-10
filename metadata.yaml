@@ -28,12 +28,16 @@ requires:
 provides:
   kafka-client:
     interface: kafka_client
+  metrics-endpoint:
+    interface: prometheus_scrape
+  grafana-dashboard:
+    interface: grafana_dashboard
 
 storage:
   log-data:
     type: filesystem
     description: Directories where the log data is stored
     minimum-size: 10G
-    location: /var/snap/kafka/common
+    location: /var/snap/charmed-kafka/common
     multiple:
       range: 1-
