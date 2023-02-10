@@ -27,9 +27,8 @@ def harness():
     harness.add_relation("restart", CHARM_KEY)
     harness._update_config(
         {
-            "offsets-retention-minutes": 10080,
-            "log-retention-hours": 168,
-            "auto-create-topics": False,
+            "log_retention_ms": "-1",
+            "compression_type": "producer",
         }
     )
 

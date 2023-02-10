@@ -8,12 +8,12 @@ import logging
 import subprocess
 from typing import MutableMapping, Optional
 
+from charms.data_platform_libs.v0.data_models import TypedCharmBase
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from charms.rolling_ops.v0.rollingops import RollingOpsManager
 from ops.charm import (
     ActionEvent,
-    CharmBase,
     LeaderElectedEvent,
     RelationEvent,
     RelationJoinedEvent,
@@ -38,14 +38,17 @@ from literals import (
 )
 from provider import KafkaProvider
 from snap import KafkaSnap
+from structured_config import CharmConfig
 from tls import KafkaTLS
 from utils import broker_active, generate_password, safe_get_file
 
 logger = logging.getLogger(__name__)
 
 
-class KafkaCharm(CharmBase):
+class KafkaCharm(TypedCharmBase[CharmConfig]):
     """Charmed Operator for Kafka."""
+
+    config_type = CharmConfig
 
     def __init__(self, *args):
         super().__init__(*args)

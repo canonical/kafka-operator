@@ -398,9 +398,6 @@ class KafkaConfig:
 
         properties = (
             [
-                f"offsets.retention.minutes={self.charm.config['offsets-retention-minutes']}",
-                f"log.retention.hours={self.charm.config['log-retention-hours']}",
-                f"auto.create.topics={self.charm.config['auto-create-topics']}",
                 f"super.users={self.super_users}",
                 f"log.dirs={self.log_dirs}",
                 f"listener.security.protocol.map={','.join(protocol_map)}",
@@ -408,6 +405,7 @@ class KafkaConfig:
                 f"advertised.listeners={','.join(advertised_listeners)}",
                 f"inter.broker.listener.name={self.internal_listener.name}",
             ]
+            + self.config_properties
             + self.scram_properties
             + self.default_replication_properties
             + self.auth_properties
@@ -416,8 +414,17 @@ class KafkaConfig:
 
         if self.charm.tls.enabled:
             properties += self.tls_properties + self.zookeeper_tls_properties
-
+        logger.debug(f"server properties: {properties}")
         return properties
+
+    @property
+    def config_properties(self) -> List[str]:
+        """Configure server properties from config."""
+        return [
+            f"{conf_key.replace('_', '.')}={str(value)}"
+            for conf_key, value in self.charm.config.dict().items()
+            if value is not None
+        ]
 
     def set_zk_jaas_config(self) -> None:
         """Writes the ZooKeeper JAAS config using ZooKeeper relation data."""
