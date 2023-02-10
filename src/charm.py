@@ -8,9 +8,9 @@ import logging
 import subprocess
 from typing import MutableMapping, Optional
 
+from charms.data_platform_libs.v0.data_models import TypedCharmBase
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
-from charms.data_platform_libs.v0.data_models import TypedCharmBase
 from charms.rolling_ops.v0.rollingops import RollingOpsManager
 from ops.charm import (
     ActionEvent,
