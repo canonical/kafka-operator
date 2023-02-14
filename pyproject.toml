@@ -29,7 +29,7 @@ authors = [""]
 
 [tool.poetry.dependencies]
 python = ">=3.8"
-ops = ">=1.5.0"
+ops = ">=2.0.0"
 kazoo = ">=2.8.0"
 tenacity = ">=8.0.1"
 pure-sasl = ">=0.6.2"
