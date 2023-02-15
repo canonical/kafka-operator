@@ -109,7 +109,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         return self.peer_relation.data[self.unit]
 
     @property
-    def unit_host(self) -> str:
+    def unit_host(self) -> Optional[str]:
         """Return the own host."""
         return self.unit_peer_data.get("private-address", None)
 
