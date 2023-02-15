@@ -12,6 +12,7 @@ from ops.model import Unit
 
 from literals import (
     ADMIN_USER,
+    EXPORTER_USER,
     INTER_BROKER_USER,
     PEER,
     REL_NAME,
@@ -381,6 +382,27 @@ class KafkaConfig:
         return client_properties
 
     @property
+    def exporter_properties(self) -> List[str]:
+        """Builds all properties necessary for running a Kafka Exporter.
+
+        This includes SASL/SCRAM auth and security mechanisms.
+
+        Returns:
+            List of properties to be set
+        """
+        exporter_properties = [
+            f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{EXPORTER_USER}" password="{self.internal_user_credentials[EXPORTER_USER]}";',
+            "sasl.mechanism=SCRAM-SHA-512",
+            f"security.protocol={self.security_protocol}",  # FIXME: will need changing once multiple listener auth schemes
+            f"bootstrap.servers={','.join(self.bootstrap_server)}",
+        ]
+
+        if self.charm.tls.enabled:
+            exporter_properties += self.tls_properties
+
+        return exporter_properties
+
+    @property
     def server_properties(self) -> List[str]:
         """Builds all properties necessary for starting Kafka service.
 
@@ -449,6 +471,14 @@ class KafkaConfig:
         """Writes all client config properties to the `client.properties` path."""
         safe_write_to_file(
             content="\n".join(self.client_properties),
+            path=self.client_properties_filepath,
+            mode="w",
+        )
+
+    def set_exporter_properties(self) -> None:
+        """Writes all exporter config properties to the `exporter.properties` path."""
+        safe_write_to_file(
+            content="\n".join(self.exporter_properties),
             path=self.client_properties_filepath,
             mode="w",
         )

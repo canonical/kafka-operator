@@ -16,6 +16,7 @@ ZK = "zookeeper"
 REL_NAME = "kafka-client"
 INTER_BROKER_USER = "sync"
 ADMIN_USER = "admin"
+EXPORTER_USER = "exporter"
 TLS_RELATION = "certificates"
 
 AuthMechanism = Literal["SASL_PLAINTEXT", "SASL_SSL", "SSL"]
