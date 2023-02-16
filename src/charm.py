@@ -6,6 +6,7 @@
 
 import logging
 import subprocess
+from dataclasses import asdict
 from typing import MutableMapping, Optional
 
 from charms.data_platform_libs.v0.data_models import TypedCharmBase
@@ -30,6 +31,7 @@ from config import KafkaConfig
 from literals import (
     ADMIN_USER,
     CHARM_KEY,
+    EXPORTER_USER,
     INTER_BROKER_USER,
     PEER,
     REL_NAME,
@@ -203,6 +205,8 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
                 if not updated_user:
                     event.defer()
                     return
+
+            self.add_exporter_acls()
 
             # updating non-leader units of creation of internal users
             self.peer_relation.data[self.app].update({"broker-creds": "added"})
@@ -392,14 +396,28 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             }
         )
 
+    def add_exporter_acls(self) -> None:
+        """Sets necessary ACLs for exporter user."""
+        if not self.unit.is_leader():
+            logger.debug("Cannot update internal user from non-leader unit.")
+            return
+
+        kafka_auth = KafkaAuth(
+            self,
+            opts=self.kafka_config.extra_args,
+            zookeeper=self.kafka_config.zookeeper_config.get("connect", ""),
+        )
+        for acl in kafka_auth._generate_exporter_acls():
+            kafka_auth.add_acl(**asdict(acl))
+
     def update_internal_user(self, username: str, password: str) -> bool:
         """Updates internal SCRAM usernames and passwords."""
         if not self.unit.is_leader():
             logger.debug("Cannot update internal user from non-leader unit.")
             return False
 
-        if username not in [INTER_BROKER_USER, ADMIN_USER]:
-            msg = f"Can only update internal charm users: {INTER_BROKER_USER} or {ADMIN_USER}, not {username}."
+        if username not in [INTER_BROKER_USER, ADMIN_USER, EXPORTER_USER]:
+            msg = f"Can only update internal charm users: {INTER_BROKER_USER}, {ADMIN_USER} or {EXPORTER_USER}, not {username}."
             logger.error(msg)
             return False
 
@@ -426,7 +444,11 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         if not self.unit.is_leader():
             return
 
-        for password in [f"{INTER_BROKER_USER}-password", f"{ADMIN_USER}-password"]:
+        for password in [
+            f"{INTER_BROKER_USER}-password",
+            f"{ADMIN_USER}-password",
+            f"{EXPORTER_USER}-password",
+        ]:
             current_password = self.get_secret(scope="app", key=password)
             self.set_secret(
                 scope="app", key=password, value=(current_password or generate_password())

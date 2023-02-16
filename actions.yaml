@@ -9,7 +9,7 @@ set-password:
     username:
       type: string
       description: The internal username to set password for.
-      enum: [admin, sync]
+      enum: [admin, sync, exporter]
     password:
       type: string
       description: The password will be auto-generated if this option is not specified.

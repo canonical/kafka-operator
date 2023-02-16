@@ -9,6 +9,7 @@ import re
 from dataclasses import asdict, dataclass
 from typing import List, Optional, Set
 
+from literals import EXPORTER_USER
 from snap import KafkaSnap
 
 logger = logging.getLogger(__name__)
@@ -18,10 +19,10 @@ logger = logging.getLogger(__name__)
 class Acl:
     """Convenience object for representing a Kafka ACL."""
 
-    resource_name: str
     resource_type: str
     operation: str
     username: str
+    resource_name: Optional[str] = None
 
 
 class KafkaAuth:
@@ -138,7 +139,39 @@ class KafkaAuth:
 
         return consumer_acls
 
-    def add_user(self, username: str, password: str) -> None:
+    @staticmethod
+    def _generate_exporter_acls() -> Set[Acl]:
+        """Generates expected set of `Acl`s for an exporter application."""
+        exporter_acls = set()
+        exporter_acls.add(
+            Acl(
+                resource_type="TOPIC",
+                resource_name="*",
+                username=EXPORTER_USER,
+                operation="DESCRIBE",
+            )
+        )
+
+        exporter_acls.add(
+            Acl(
+                resource_type="GROUP",
+                resource_name="*",
+                username=EXPORTER_USER,
+                operation="DESCRIBE",
+            )
+        )
+
+        exporter_acls.add(
+            Acl(
+                resource_type="CLUSTER",
+                username=EXPORTER_USER,
+                operation="DESCRIBE",
+            )
+        )
+
+        return exporter_acls
+
+    def add_user(self, username: str, password: str, **_) -> None:
         """Adds new user credentials to ZooKeeper.
 
         Args:
@@ -157,7 +190,7 @@ class KafkaAuth:
         ]
         KafkaSnap.run_bin_command(bin_keyword="configs", bin_args=command, opts=self.opts)
 
-    def delete_user(self, username: str) -> None:
+    def delete_user(self, username: str, **_) -> None:
         """Deletes user credentials from ZooKeeper.
 
         Args:
@@ -176,7 +209,7 @@ class KafkaAuth:
         KafkaSnap.run_bin_command(bin_keyword="configs", bin_args=command, opts=self.opts)
 
     def add_acl(
-        self, username: str, operation: str, resource_type: str, resource_name: str
+        self, username: str, operation: str, resource_type: str, resource_name: Optional[str]
     ) -> None:
         """Adds new ACL rule for the cluster.
 
@@ -188,8 +221,8 @@ class KafkaAuth:
             operation: the operation to grant
                 e.g `READ`, `WRITE`, `DESCRIBE`
             resource_type: the resource type to grant ACLs for
-                e.g `GROUP`, `TOPIC`
-            resource_name: the name of the resource to grant ACLs for
+                e.g `GROUP`, `TOPIC` or `CLUSTER`
+            resource_name: (optional) the name of the resource to grant ACLs for
 
         Raises:
             `subprocess.CalledProcessError`: if the error returned a non-zero exit code
@@ -208,6 +241,10 @@ class KafkaAuth:
                 f"--group={resource_name}",
                 "--resource-pattern-type=PREFIXED",
             ]
+        if resource_type == "CLUSTER":
+            command += [
+                "--cluster",
+            ]
         KafkaSnap.run_bin_command(bin_keyword="acls", bin_args=command, opts=self.opts)
 
     def remove_acl(
@@ -220,7 +257,7 @@ class KafkaAuth:
             operation: the operation to remove
                 e.g `READ`, `WRITE`, `DESCRIBE`
             resource_type: the resource type to remove ACLs for
-                e.g `GROUP`, `TOPIC`
+                e.g `GROUP`, `TOPIC` or `CLUSTER`
             resource_name: the name of the resource to remove ACLs for
 
         Raises:
@@ -240,6 +277,10 @@ class KafkaAuth:
             command += [
                 f"--group={resource_name}",
                 "--resource-pattern-type=PREFIXED",
+            ]
+        if resource_type == "CLUSTER":
+            command += [
+                f"--cluster={resource_name}",
             ]
 
         KafkaSnap.run_bin_command(bin_keyword="acls", bin_args=command, opts=self.opts)
