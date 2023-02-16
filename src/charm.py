@@ -196,6 +196,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.kafka_config.set_zk_jaas_config()
         self.kafka_config.set_server_properties()
         self.kafka_config.set_client_properties()
+        self.kafka_config.set_exporter_properties()
 
         # set internal passwords
         if self.unit.is_leader():
