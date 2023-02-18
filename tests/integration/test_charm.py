@@ -21,7 +21,13 @@ from tests.integration.helpers import (
     run_client_properties,
 )
 
-from literals import REL_NAME, SECURITY_PROTOCOL_PORTS
+from literals import (
+    JMX_PORT,
+    KAFKA_EXPORTER_PORT,
+    NODE_EXPORTER_PORT,
+    REL_NAME,
+    SECURITY_PROTOCOL_PORTS,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -107,14 +113,17 @@ async def test_logs_write_to_storage(ops_test: OpsTest):
 
 async def test_exporter_endpoints(ops_test: OpsTest):
     unit_address = await get_address(ops_test=ops_test)
-    node_exporter_url = f"http://{unit_address}:9100/metrics"
-    jmx_exporter_url = f"http://{unit_address}:9101/metrics"
+    node_exporter_url = f"http://{unit_address}:{NODE_EXPORTER_PORT}/metrics"
+    jmx_exporter_url = f"http://{unit_address}:{JMX_PORT}/metrics"
+    kafka_exporter_url = f"http://{unit_address}:{KAFKA_EXPORTER_PORT}/metrics"
 
     node_resp = requests.get(node_exporter_url)
     jmx_resp = requests.get(jmx_exporter_url)
+    kafka_resp = requests.get(kafka_exporter_url)
 
     assert node_resp.ok
     assert jmx_resp.ok
+    assert kafka_resp.ok
 
 
 @pytest.mark.abort_on_fail
