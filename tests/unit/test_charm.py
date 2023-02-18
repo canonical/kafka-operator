@@ -13,7 +13,7 @@ from ops.testing import Harness
 from tenacity.wait import wait_none
 
 from charm import KafkaCharm
-from literals import ADMIN_USER, CHARM_KEY, INTER_BROKER_USER, PEER, REL_NAME, ZK
+from literals import ADMIN_USER, CHARM_KEY, EXPORTER_USER, INTER_BROKER_USER, PEER, REL_NAME, ZK
 
 logger = logging.getLogger(__name__)
 
@@ -135,14 +135,16 @@ def test_start_sets_necessary_config(harness):
         patch("config.KafkaConfig.set_zk_jaas_config") as patched_jaas,
         patch("config.KafkaConfig.set_server_properties") as patched_server_properties,
         patch("config.KafkaConfig.set_client_properties") as patched_client_properties,
+        patch("config.KafkaConfig.set_exporter_properties") as patched_exporter_properties,
     ):
         harness.charm.on.start.emit()
         patched_jaas.assert_called_once()
         patched_server_properties.assert_called_once()
         patched_client_properties.assert_called_once()
+        patched_exporter_properties.assert_called_once()
 
 
-def test_start_sets_auth_and_broker_creds_on_leader(harness):
+def test_start_sets_internal_creds_on_leader(harness):
     """Checks inter-broker user is created on leader on start hook."""
     peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
     zk_rel_id = harness.add_relation(ZK, ZK)
@@ -166,7 +168,9 @@ def test_start_sets_auth_and_broker_creds_on_leader(harness):
         patch("config.KafkaConfig.set_zk_jaas_config"),
         patch("config.KafkaConfig.set_server_properties"),
         patch("config.KafkaConfig.set_client_properties"),
+        patch("config.KafkaConfig.set_exporter_properties"),
         patch("charm.broker_active") as patched_broker_active,
+        patch("charm.KafkaCharm.add_exporter_acls"),
     ):
         # verify non-leader does not set creds
         patched_broker_active.retry.wait = wait_none
@@ -180,9 +184,52 @@ def test_start_sets_auth_and_broker_creds_on_leader(harness):
         patched_add_user.assert_called()
 
         for call in patched_add_user.call_args_list:
-            assert call.kwargs["username"] in [INTER_BROKER_USER, ADMIN_USER]
+            assert call.kwargs["username"] in [INTER_BROKER_USER, ADMIN_USER, EXPORTER_USER]
 
         assert harness.charm.app_peer_data.get("broker-creds", None)
+
+
+def test_exporter_acls_created_on_start(harness):
+    """Checks if exporter DESCRIBE acls are set."""
+    peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
+    zk_rel_id = harness.add_relation(ZK, ZK)
+    harness.add_relation_unit(zk_rel_id, "zookeeper/0")
+    harness.update_relation_data(
+        zk_rel_id,
+        ZK,
+        {
+            "username": "relation-1",
+            "password": "mellon",
+            "endpoints": "123.123.123",
+            "chroot": "/kafka",
+            "uris": "123.123.123/kafka",
+            "tls": "disabled",
+        },
+    )
+    harness.update_relation_data(peer_rel_id, CHARM_KEY, {"sync-password": "mellon"})
+
+    with (
+        patch("auth.KafkaAuth.add_user"),
+        patch("config.KafkaConfig.set_zk_jaas_config"),
+        patch("config.KafkaConfig.set_server_properties"),
+        patch("config.KafkaConfig.set_client_properties"),
+        patch("config.KafkaConfig.set_exporter_properties"),
+        patch("charm.broker_active"),
+        patch("snap.KafkaSnap.run_bin_command") as patched_run_bin_command,
+    ):
+        # verify leader sets creds
+        harness.set_leader(True)
+        harness.charm.on.start.emit()
+
+        # one for each exporter ACL
+        assert patched_run_bin_command.call_count == 3
+
+        for call in patched_run_bin_command.call_args_list:
+            assert call.kwargs["bin_keyword"] == "acls"
+            assert "--operation=DESCRIBE" in call.kwargs["bin_args"]
+            assert {"--topic=*", "--group=*", "--cluster"}.intersection(
+                set(call.kwargs["bin_args"])
+            )
 
 
 def test_start_does_not_start_if_not_ready(harness):
@@ -209,6 +256,7 @@ def test_start_does_not_start_if_not_ready(harness):
         patch("config.KafkaConfig.set_zk_jaas_config"),
         patch("config.KafkaConfig.set_server_properties"),
         patch("config.KafkaConfig.set_client_properties"),
+        patch("config.KafkaConfig.set_exporter_properties"),
         patch("charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=False),
         patch("snap.KafkaSnap.start_snap_service") as patched_start_snap_service,
         patch("ops.framework.EventBase.defer") as patched_defer,
@@ -243,6 +291,7 @@ def test_start_does_not_start_if_not_same_tls_as_zk(harness):
         patch("config.KafkaConfig.set_zk_jaas_config"),
         patch("config.KafkaConfig.set_server_properties"),
         patch("config.KafkaConfig.set_client_properties"),
+        patch("config.KafkaConfig.set_exporter_properties"),
         patch("snap.KafkaSnap.start_snap_service") as patched_start_snap_service,
     ):
         harness.charm.on.start.emit()
@@ -274,6 +323,7 @@ def test_start_does_not_start_if_leader_has_not_set_creds(harness):
         patch("config.KafkaConfig.set_zk_jaas_config"),
         patch("config.KafkaConfig.set_server_properties"),
         patch("config.KafkaConfig.set_client_properties"),
+        patch("config.KafkaConfig.set_exporter_properties"),
         patch("snap.KafkaSnap.start_snap_service") as patched_start_snap_service,
     ):
         harness.charm.on.start.emit()
@@ -307,8 +357,10 @@ def test_start_blocks_if_service_failed_silently(harness):
         patch("config.KafkaConfig.set_zk_jaas_config"),
         patch("config.KafkaConfig.set_server_properties"),
         patch("config.KafkaConfig.set_client_properties"),
+        patch("config.KafkaConfig.set_exporter_properties"),
         patch("snap.KafkaSnap.start_snap_service") as patched_start_snap_service,
         patch("charm.broker_active", return_value=False) as patched_broker_active,
+        patch("charm.KafkaCharm.add_exporter_acls"),
     ):
         patched_broker_active.retry.wait = wait_none
         harness.charm.on.start.emit()
@@ -344,6 +396,7 @@ def test_storage_add_remove_triggers_restart(harness):
         ),
         patch("config.KafkaConfig.set_server_properties"),
         patch("config.KafkaConfig.set_client_properties"),
+        patch("config.KafkaConfig.set_exporter_properties"),
         patch("charm.broker_active", return_value=True),
         patch("snap.KafkaSnap.disable_enable") as patched_disable_enable,
     ):
@@ -373,6 +426,7 @@ def test_config_changed_updates_server_properties(harness):
         patch("charm.safe_get_file", return_value=["gandalf=grey"]),
         patch("config.KafkaConfig.set_server_properties") as set_server_properties,
         patch("config.KafkaConfig.set_client_properties"),
+        patch("config.KafkaConfig.set_exporter_properties"),
     ):
         harness.charm.on.config_changed.emit()
 
@@ -399,6 +453,7 @@ def test_config_changed_updates_client_properties(harness):
         patch("charm.safe_get_file", return_value=["gandalf=grey"]),
         patch("config.KafkaConfig.set_server_properties"),
         patch("config.KafkaConfig.set_client_properties") as set_client_properties,
+        patch("config.KafkaConfig.set_exporter_properties"),
     ):
         harness.charm.on.config_changed.emit()
 
@@ -427,7 +482,7 @@ def test_config_changed_updates_client_data(harness):
         patched_update_connection_info.assert_called_once()
 
 
-def test_config_changed_restarts(harness):
+def test_config_changed_restarts_services(harness):
     """Checks units rolling-restat on config changed hook."""
     peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
     harness.add_relation_unit(peer_rel_id, f"{CHARM_KEY}/0")
@@ -447,4 +502,7 @@ def test_config_changed_restarts(harness):
         harness.set_leader(True)
         harness.charm.on.config_changed.emit()
 
-        patched_restart_snap_service.assert_called_once()
+        patched_restart_snap_service.assert_called()
+
+        # daemon + exporter
+        assert patched_restart_snap_service.call_count == 2
