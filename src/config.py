@@ -104,6 +104,7 @@ class KafkaConfig:
         self.default_config_path = SNAP_CONFIG_PATH
         self.server_properties_filepath = f"{self.default_config_path}/server.properties"
         self.client_properties_filepath = f"{self.default_config_path}/client.properties"
+        self.exporter_properties_filepath = f"{self.default_config_path}/exporter.properties"
         self.zk_jaas_filepath = f"{self.default_config_path}/zookeeper-jaas.cfg"
         self.keystore_filepath = f"{self.default_config_path}/keystore.p12"
         self.truststore_filepath = f"{self.default_config_path}/truststore.jks"
@@ -117,7 +118,7 @@ class KafkaConfig:
         """
         return {
             user: password
-            for user in [INTER_BROKER_USER, ADMIN_USER]
+            for user in [INTER_BROKER_USER, ADMIN_USER, EXPORTER_USER]
             if (password := self.charm.get_secret(scope="app", key=f"{user}-password"))
         }
 
@@ -479,7 +480,7 @@ class KafkaConfig:
         """Writes all exporter config properties to the `exporter.properties` path."""
         safe_write_to_file(
             content="\n".join(self.exporter_properties),
-            path=self.client_properties_filepath,
+            path=self.exporter_properties_filepath,
             mode="w",
         )
 
