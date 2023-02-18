@@ -18,6 +18,9 @@ INTER_BROKER_USER = "sync"
 ADMIN_USER = "admin"
 EXPORTER_USER = "exporter"
 TLS_RELATION = "certificates"
+JMX_PORT = 9101
+NODE_EXPORTER_PORT = 9100
+KAFKA_EXPORTER_PORT = 9308
 
 AuthMechanism = Literal["SASL_PLAINTEXT", "SASL_SSL", "SSL"]
 Scope = Literal["INTERNAL", "CLIENT"]

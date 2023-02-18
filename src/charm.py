@@ -33,6 +33,9 @@ from literals import (
     CHARM_KEY,
     EXPORTER_USER,
     INTER_BROKER_USER,
+    JMX_PORT,
+    KAFKA_EXPORTER_PORT,
+    NODE_EXPORTER_PORT,
     PEER,
     REL_NAME,
     SNAP_NAME,
@@ -62,7 +65,20 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.restart = RollingOpsManager(self, relation="restart", callback=self._restart)
         self.grafana_dashboards = GrafanaDashboardProvider(self)
         self.metrics_endpoint = MetricsEndpointProvider(
-            self, jobs=[{"static_configs": [{"targets": ["*:9100", "*:9101"]}]}]
+            self,
+            jobs=[
+                {
+                    "static_configs": [
+                        {
+                            "targets": [
+                                f"*:{NODE_EXPORTER_PORT}",
+                                f"*:{JMX_PORT}",
+                                f"*:{KAFKA_EXPORTER_PORT}",
+                            ]
+                        }
+                    ]
+                }
+            ],
         )
 
         self.framework.observe(getattr(self.on, "start"), self._on_start)
