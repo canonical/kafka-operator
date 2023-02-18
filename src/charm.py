@@ -224,15 +224,16 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             return
 
         # start_snap_service can fail silently, confirm with ZK if kafka is actually connected
-        if broker_active(
+        if not broker_active(
             unit=self.unit,
             zookeeper_config=self.kafka_config.zookeeper_config,
         ):
-            logger.info(f'Broker {self.unit.name.split("/")[1]} connected')
-            self.unit.status = ActiveStatus()
-        else:
             self.unit.status = BlockedStatus("kafka unit not connected to ZooKeeper")
             return
+
+        logger.info(f'Broker {self.unit.name.split("/")[1]} connected')
+        self.unit.status = ActiveStatus()
+        self.snap.start_snap_service(snap_service=EXPORTER_USER)
 
     def _on_config_changed(self, event: EventBase) -> None:
         """Generic handler for most `config_changed` events across relations."""
@@ -257,6 +258,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             )
             self.kafka_config.set_server_properties()
             self.kafka_config.set_client_properties()
+            self.kafka_config.set_exporter_properties()
 
             if isinstance(event, StorageEvent):  # to get new storages
                 self.on[f"{self.restart.name}"].acquire_lock.emit(
@@ -277,17 +279,18 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         self.snap.restart_snap_service(snap_service=SNAP_NAME)
 
-        if broker_active(
+        if not broker_active(
             unit=self.unit,
             zookeeper_config=self.kafka_config.zookeeper_config,
         ):
-            logger.info(f'Broker {self.unit.name.split("/")[1]} restarted')
-            self.unit.status = ActiveStatus()
-        else:
             self.unit.status = BlockedStatus(
                 f"Broker {self.unit.name.split('/')[1]} failed to restart"
             )
             return
+
+        logger.info(f'Broker {self.unit.name.split("/")[1]} restarted')
+        self.unit.status = ActiveStatus()
+        self.snap.restart_snap_service(snap_service=EXPORTER_USER)
 
     def _disable_enable_restart(self, event: ActionEvent) -> None:
         """Handler for `rolling_ops` disable_enable restart events."""
@@ -297,17 +300,17 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         self.snap.disable_enable(snap_service=SNAP_NAME)
 
-        if broker_active(
+        if not broker_active(
             unit=self.unit,
             zookeeper_config=self.kafka_config.zookeeper_config,
         ):
-            logger.info(f'Broker {self.unit.name.split("/")[1]} restarted')
-            self.unit.status = ActiveStatus()
-        else:
             msg = f"Broker {self.unit.name.split('/')[1]} failed to restart"
             event.fail(message=msg)
             self.unit.status = BlockedStatus(msg)
             return
+
+        logger.info(f'Broker {self.unit.name.split("/")[1]} restarted')
+        self.unit.status = ActiveStatus()
 
     def _set_password_action(self, event: ActionEvent) -> None:
         """Handler for set-password action.
