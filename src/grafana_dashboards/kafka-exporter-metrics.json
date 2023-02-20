@@ -596,7 +596,7 @@
     ]
   },
   "timezone": "browser",
-  "title": "Kafka Exporter Overview",
+  "title": "Kafka Metrics",
   "uid": "jwPKIsniz",
   "version": 50
 }

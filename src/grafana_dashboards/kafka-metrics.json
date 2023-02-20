@@ -5004,7 +5004,7 @@
     ]
   },
   "timezone": "",
-  "title": "Kafka Metrics",
+  "title": "Kafka JMX Metrics",
   "uid": "5nhADrDWk",
   "version": 10
 }
