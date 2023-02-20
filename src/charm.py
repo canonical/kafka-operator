@@ -35,6 +35,7 @@ from literals import (
     INTER_BROKER_USER,
     JMX_PORT,
     KAFKA_EXPORTER_PORT,
+    KAFKA_EXPORTER_SNAP_NAME,
     NODE_EXPORTER_PORT,
     PEER,
     REL_NAME,
@@ -249,7 +250,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         logger.info(f'Broker {self.unit.name.split("/")[1]} connected')
         self.unit.status = ActiveStatus()
-        self.snap.start_snap_service(snap_service=EXPORTER_USER)
+        self.snap.start_snap_service(snap_service=KAFKA_EXPORTER_SNAP_NAME)
 
     def _on_config_changed(self, event: EventBase) -> None:
         """Generic handler for most `config_changed` events across relations."""
@@ -306,7 +307,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         logger.info(f'Broker {self.unit.name.split("/")[1]} restarted')
         self.unit.status = ActiveStatus()
-        self.snap.restart_snap_service(snap_service=EXPORTER_USER)
+        self.snap.restart_snap_service(snap_service=KAFKA_EXPORTER_SNAP_NAME)
 
     def _disable_enable_restart(self, event: ActionEvent) -> None:
         """Handler for `rolling_ops` disable_enable restart events."""
