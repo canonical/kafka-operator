@@ -171,7 +171,7 @@ class KafkaAuth:
 
         return exporter_acls
 
-    def add_user(self, username: str, password: str, **_) -> None:
+    def add_user(self, username: str, password: str) -> None:
         """Adds new user credentials to ZooKeeper.
 
         Args:
@@ -190,7 +190,7 @@ class KafkaAuth:
         ]
         KafkaSnap.run_bin_command(bin_keyword="configs", bin_args=command, opts=self.opts)
 
-    def delete_user(self, username: str, **_) -> None:
+    def delete_user(self, username: str) -> None:
         """Deletes user credentials from ZooKeeper.
 
         Args:
