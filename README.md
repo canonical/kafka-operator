@@ -35,7 +35,7 @@ While the following requirements are meant to be for production, the charm can b
 - 12 storage devices
 - 10 GbE card
 
-The charm is meant to be deployed using juju 2.9.38 using jammy as a series. 
+The charm is meant to be deployed using `juju>=2.9.37`. 
 
 ## Usage
 
@@ -62,8 +62,10 @@ Apache Kafka ships with `bin/*.sh` commands to do various administrative tasks, 
 If you wish to run a command from the cluster, in order to (for example) list the current topics on the Kafka cluster, you can run:
 ```
 BOOTSTRAP_SERVERS=$(juju run-action kafka/leader get-admin-credentials --wait | grep "bootstrap.servers" | cut -d "=" -f 2)
-juju ssh kafka/leader 'kafka.topics --bootstrap-server $BOOTSTRAP_SERVERS --list --command-config /var/snap/kafka/common/client.properties'
+juju ssh kafka/leader 'charmed-kafka.topics --bootstrap-server $BOOTSTRAP_SERVERS --list --command-config /var/snap/charmed-kafka/common/client.properties'
 ```
+
+Note that when no other application is related to Kafka, the cluster is secured-by-default and listeners are disabled, thus preventing any incoming connection. However, even for running the commands above, listeners must be enable. If there is no other application, deploy a `data-integrator` charm and relate it to Kafka, as outlined in the Relation section to enable listeners.   
 
 Available Kafka bin commands can be found with:
 ```
