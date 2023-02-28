@@ -35,6 +35,8 @@ While the following requirements are meant to be for production, the charm can b
 - 12 storage devices
 - 10 GbE card
 
+The charm is meant to be deployed using juju 2.9.38 using jammy as a series. 
+
 ## Usage
 
 ### Basic usage
