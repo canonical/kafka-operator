@@ -5,7 +5,6 @@
 import asyncio
 import logging
 import time
-from pathlib import PosixPath
 from subprocess import PIPE, check_output
 
 import pytest
@@ -30,8 +29,7 @@ DUMMY_NAME = "app"
 
 
 @pytest.mark.abort_on_fail
-async def test_build_and_deploy(ops_test: OpsTest):
-    kafka_charm = await ops_test.build_charm(".")
+async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
     await asyncio.gather(
         ops_test.model.deploy(
             ZK_NAME, channel="edge", application_name=ZK_NAME, num_units=1, series="jammy"
@@ -49,7 +47,7 @@ async def test_build_and_deploy(ops_test: OpsTest):
 
 
 @pytest.mark.abort_on_fail
-async def test_listeners(ops_test: OpsTest, app_charm: PosixPath):
+async def test_listeners(ops_test: OpsTest, app_charm):
     address = await get_address(ops_test=ops_test)
     assert check_socket(
         address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].internal
