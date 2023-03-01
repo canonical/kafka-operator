@@ -160,6 +160,7 @@ def test_client_relation_joined_sets_necessary_relation_data(harness):
                 "zookeeper-uris",
                 "consumer-group-prefix",
                 "tls",
+                "topic",
             ]
         ) == sorted(client_relation.data[harness.charm.app].keys())
 

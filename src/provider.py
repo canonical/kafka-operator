@@ -67,7 +67,9 @@ class KafkaProvider(Object):
         zookeeper_uris = self.charm.kafka_config.zookeeper_config.get("connect", "")
         tls = "enabled" if self.charm.tls.enabled else "disabled"
 
-        consumer_group_prefix = f"{username}-" if "consumer" in extra_user_roles else ""
+        consumer_group_prefix = (
+            event.consumer_group_prefix or f"{username}-" if "consumer" in extra_user_roles else ""
+        )
 
         self.kafka_auth.add_user(
             username=username,
@@ -96,6 +98,7 @@ class KafkaProvider(Object):
         self.kafka_provider.set_credentials(relation.id, username, password)
         self.kafka_provider.set_tls(relation.id, tls)
         self.kafka_provider.set_zookeeper_uris(relation.id, zookeeper_uris)
+        self.kafka_provider.set_topic(relation.id, topic)
 
     @property
     def peer_relation(self) -> Relation:
