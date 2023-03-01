@@ -14,7 +14,7 @@ if $(groups | grep -q snap_microk8s); then microk8s_group="snap_microk8s"; else 
 # Assuming there isn't a k8s controller yet
 k8s_ctl="uk8s"
 k8s_mdl="cos"
-sg $microk8s_group -c "juju bootstrap --no-gui microk8s $k8s_ctl"
+#sg $microk8s_group -c "juju bootstrap --no-gui microk8s $k8s_ctl"
 sg $microk8s_group -c "juju add-model $k8s_mdl"
 
 sg $microk8s_group -c "juju deploy --channel=edge grafana-k8s grafana"
