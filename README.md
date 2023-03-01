@@ -131,7 +131,7 @@ Supported [relations](https://juju.is/docs/olm/relations):
 
 The `kafka_client` interface is used with the `data-integrator` charm. This charm allows to automatically create and manage product credentials needed to authenticate with different kinds of data platform charmed products:
 
-Deploy the data-integrator charm with the desired `topic-name` and user roles: 
+Deploy the data-integrator charm with the desired `topic-name` and user roles:
 ```shell
 juju deploy data-integrator --channel edge
 juju config data-integrator topic-name=test-topic extra-user-roles=producer,consumer
@@ -157,23 +157,23 @@ juju run data-integrator/leader get-credentials
 
 This should output something like:
 ```yaml
-unit-data-integrator-0:                                                         
-  UnitId: data-integrator/0                                                     
-  id: "4"                                                                       
-  results:                                                                      
-    kafka:                                                                      
-      consumer-group-prefix: relation-27-                                       
-      endpoints: 10.123.8.133:19092                                             
-      password: ejMp4SblzxkMCF0yUXjaspneflXqcyXK                                
-      tls: disabled                                                             
-      username: relation-27                                                     
+unit-data-integrator-0:
+  UnitId: data-integrator/0
+  id: "4"
+  results:
+    kafka:
+      consumer-group-prefix: relation-27-
+      endpoints: 10.123.8.133:19092
+      password: ejMp4SblzxkMCF0yUXjaspneflXqcyXK
+      tls: disabled
+      username: relation-27
       zookeeper-uris: 10.123.8.154:2181,10.123.8.181:2181,10.123.8.61:2181/kafka
-    ok: "True"                                                                  
-  status: completed                                                             
-  timing:                                                                       
-    completed: 2023-01-27 14:22:51 +0000 UTC                                    
-    enqueued: 2023-01-27 14:22:50 +0000 UTC                                     
-    started: 2023-01-27 14:22:51 +0000 UTC                                      
+    ok: "True"
+  status: completed
+  timing:
+    completed: 2023-01-27 14:22:51 +0000 UTC
+    enqueued: 2023-01-27 14:22:50 +0000 UTC
+    started: 2023-01-27 14:22:51 +0000 UTC
 ```
 
 #### `tls-certificates` interface:
@@ -266,7 +266,7 @@ juju find-offers <k8s_controller_name>:
 
 A similar output should appear, if `micro` is the k8s controller name and `cos` the model where `cos-lite` has been deployed:
 ```
-Store  URL                   Access  Interfaces                         
+Store  URL                   Access  Interfaces
 micro  admin/cos.grafana     admin   grafana_dashboard:grafana-dashboard
 micro  admin/cos.prometheus  admin   prometheus_scrape:metrics-endpoint
 . . .
