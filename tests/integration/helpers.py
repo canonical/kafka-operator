@@ -138,9 +138,10 @@ def get_provider_data(
             provider_relation_data["endpoints"] = info["application-data"]["endpoints"]
             provider_relation_data["zookeeper-uris"] = info["application-data"]["zookeeper-uris"]
             provider_relation_data["tls"] = info["application-data"]["tls"]
-            provider_relation_data["consumer-group-prefix"] = info["application-data"][
-                "consumer-group-prefix"
-            ]
+            if "consumer-group-prefix" in info["application-data"]:
+                provider_relation_data["consumer-group-prefix"] = info["application-data"][
+                    "consumer-group-prefix"
+                ]
             provider_relation_data["topic"] = info["application-data"]["topic"]
     return provider_relation_data
 
