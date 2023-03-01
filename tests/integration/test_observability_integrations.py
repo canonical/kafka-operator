@@ -25,6 +25,11 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
     try:
         result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-        logger.info(e.output)
+        for line in e.output.decode("utf-8").strip().split("\n"):
+            logger.info(line)
+        assert 0, "Test failed"
     else:
-        logger.info(result.stdout.decode("utf-8").strip())
+        for line in result.stdout.decode("utf-8").strip().split("\n"):
+            logger.info(line)
+
+    await ops_test.model.wait_for_idle()
