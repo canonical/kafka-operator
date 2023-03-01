@@ -46,3 +46,10 @@ async def app_charm(ops_test: OpsTest) -> Path:
     charm_path = "tests/integration/app-charm"
     charm = await ops_test.build_charm(charm_path)
     return charm
+
+
+@pytest.fixture(scope="module")
+async def kafka_charm(ops_test: OpsTest):
+    """Kafka charm used for integration testing."""
+    charm = await ops_test.build_charm(".")
+    return charm
