@@ -244,7 +244,7 @@ async def test_connection_updated_on_tls_enabled(ops_test: OpsTest, app_charm: P
         model_full_name=ops_test.model_full_name,
         endpoint="kafka-client-consumer",
     )
-    
+
     assert provider_data["tls"] == "enabled"
     assert "9093" in provider_data["endpoints"]
     assert "2182" in provider_data["zookeeper-uris"]
