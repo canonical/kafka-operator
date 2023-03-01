@@ -4,7 +4,6 @@
 
 import asyncio
 import logging
-from pathlib import PosixPath
 
 import pytest
 from charms.tls_certificates_interface.v1.tls_certificates import generate_private_key

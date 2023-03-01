@@ -4,7 +4,6 @@
 
 import asyncio
 import logging
-from pathlib import PosixPath
 from typing import Set
 
 import pytest
@@ -137,9 +136,7 @@ async def test_remove_application_removes_user_and_acls(ops_test: OpsTest, usern
 
 
 @pytest.mark.abort_on_fail
-async def test_deploy_producer_same_topic(
-    ops_test: OpsTest, app_charm, usernames: Set[str]
-):
+async def test_deploy_producer_same_topic(ops_test: OpsTest, app_charm, usernames: Set[str]):
     """Test the correct deployment and relation with role producer."""
     await asyncio.gather(
         ops_test.model.deploy(

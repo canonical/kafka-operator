@@ -8,7 +8,6 @@ from pathlib import Path
 
 import pytest
 from pytest_operator.plugin import OpsTest
-from pathlib import Path
 
 
 @pytest.fixture(scope="module")
