@@ -17,6 +17,8 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
     await asyncio.gather(
         ops_test.model.deploy(kafka_charm, application_name=APP_NAME, num_units=1, series="jammy"),
     )
+    # Do not wait for idle, otherwise:
+    # FAILED: kafka/0 [executing] waiting: waiting for zookeeper relation
     # await ops_test.model.wait_for_idle()
 
     cmd = "sh tests/integration/test_observability_integrations.sh".split(" ")

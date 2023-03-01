@@ -2,6 +2,8 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+set -eux
+
 # Assuming an lxd controller is already bootstrapped
 machine_ctl=$(juju controllers --format json | jq -r '."current-controller"')
 # Assuming this shell script is run as part of a pytest test with a model already set up
