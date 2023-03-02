@@ -34,7 +34,14 @@ def usernames():
 
 
 @pytest.fixture(scope="module")
-async def app_charm(ops_test: OpsTest):
+async def kafka_charm(ops_test: OpsTest) -> Path:
+    """Kafka charm used for integration testing."""
+    charm = await ops_test.build_charm(".")
+    return charm
+
+
+@pytest.fixture(scope="module")
+async def app_charm(ops_test: OpsTest) -> Path:
     """Build the application charm."""
     charm_path = "tests/integration/app-charm"
     charm = await ops_test.build_charm(charm_path)

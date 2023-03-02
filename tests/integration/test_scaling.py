@@ -24,9 +24,7 @@ DUMMY_NAME_1 = "app"
 
 
 @pytest.mark.abort_on_fail
-async def test_kafka_simple_scale_up(ops_test: OpsTest):
-    kafka_charm = await ops_test.build_charm(".")
-
+async def test_kafka_simple_scale_up(ops_test: OpsTest, kafka_charm):
     await asyncio.gather(
         ops_test.model.deploy(
             "zookeeper", channel="edge", application_name="zookeeper", num_units=3, series="jammy"

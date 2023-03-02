@@ -4,7 +4,6 @@
 
 import asyncio
 import logging
-from pathlib import PosixPath
 from typing import Set
 
 import pytest
@@ -33,15 +32,14 @@ REL_NAME_ADMIN = "kafka-client-admin"
 
 @pytest.mark.abort_on_fail
 async def test_deploy_charms_relate_active(
-    ops_test: OpsTest, app_charm: PosixPath, usernames: Set[str]
+    ops_test: OpsTest, kafka_charm, app_charm, usernames: Set[str]
 ):
     """Test deploy and relate operations."""
-    charm = await ops_test.build_charm(".")
     await asyncio.gather(
         ops_test.model.deploy(
             "zookeeper", channel="edge", application_name="zookeeper", num_units=3, series="jammy"
         ),
-        ops_test.model.deploy(charm, application_name=APP_NAME, num_units=1, series="jammy"),
+        ops_test.model.deploy(kafka_charm, application_name=APP_NAME, num_units=1, series="jammy"),
         ops_test.model.deploy(
             app_charm, application_name=DUMMY_NAME_1, num_units=1, series="jammy"
         ),
@@ -77,7 +75,7 @@ async def test_deploy_charms_relate_active(
 
 @pytest.mark.abort_on_fail
 async def test_deploy_multiple_charms_same_topic_relate_active(
-    ops_test: OpsTest, app_charm: PosixPath, usernames: Set[str]
+    ops_test: OpsTest, app_charm, usernames: Set[str]
 ):
     """Test relation with multiple applications."""
     await ops_test.model.deploy(app_charm, application_name=DUMMY_NAME_2, num_units=1),
@@ -138,9 +136,7 @@ async def test_remove_application_removes_user_and_acls(ops_test: OpsTest, usern
 
 
 @pytest.mark.abort_on_fail
-async def test_deploy_producer_same_topic(
-    ops_test: OpsTest, app_charm: PosixPath, usernames: Set[str]
-):
+async def test_deploy_producer_same_topic(ops_test: OpsTest, app_charm, usernames: Set[str]):
     """Test the correct deployment and relation with role producer."""
     await asyncio.gather(
         ops_test.model.deploy(
@@ -215,7 +211,7 @@ async def test_admin_removed_from_super_users(ops_test: OpsTest):
 
 
 @pytest.mark.abort_on_fail
-async def test_connection_updated_on_tls_enabled(ops_test: OpsTest, app_charm: PosixPath):
+async def test_connection_updated_on_tls_enabled(ops_test: OpsTest, app_charm):
     """Test relation when TLS is enabled."""
     await ops_test.model.deploy(app_charm, application_name=DUMMY_NAME_1, num_units=1),
     await ops_test.model.wait_for_idle(apps=[DUMMY_NAME_1])

@@ -4,7 +4,6 @@
 
 import asyncio
 import logging
-from pathlib import PosixPath
 
 import pytest
 from charms.tls_certificates_interface.v1.tls_certificates import generate_private_key
@@ -33,8 +32,7 @@ TLS_NAME = "tls-certificates-operator"
 
 @pytest.mark.abort_on_fail
 @pytest.mark.skip_if_deployed
-async def test_deploy_tls(ops_test: OpsTest):
-    kafka_charm = await ops_test.build_charm(".")
+async def test_deploy_tls(ops_test: OpsTest, kafka_charm):
     tls_config = {"generate-self-signed-certificates": "true", "ca-common-name": "kafka"}
 
     await asyncio.gather(
@@ -59,7 +57,7 @@ async def test_deploy_tls(ops_test: OpsTest):
 
 
 @pytest.mark.abort_on_fail
-async def test_kafka_tls(ops_test: OpsTest, app_charm: PosixPath):
+async def test_kafka_tls(ops_test: OpsTest, app_charm):
     """Tests TLS on Kafka.
 
     Relates Zookeper[TLS] with Kakfa[Non-TLS]. This leads to a blocked status.
