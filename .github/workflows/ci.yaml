@@ -54,6 +54,7 @@ jobs:
           - integration-scaling
           - integration-password-rotation
           - integration-tls
+          - integration-o11y
     name: ${{ matrix.tox-environments }}
     needs:
       - lint
@@ -64,9 +65,22 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Setup operator environment
+      - name: Setup k8s controller
         # TODO: Replace with custom image on self-hosted runner
-        uses: charmed-kubernetes/actions-operator@main
+        uses: sed-i/actions-operator@patch-1
+        with:
+          juju-channel: 2.9/stable
+          bootstrap-options: "--agent-version 2.9.38"
+          provider: microk8s
+          microk8s-addons: "hostpath-storage dns"
+      - name: Fix microk8s permissions
+        run: |
+          sudo usermod -a -G microk8s runner
+          sudo chown -R runner ~/.kube
+          newgrp microk8s
+      - name: Setup lxd controller
+        # TODO: Replace with custom image on self-hosted runner
+        uses: sed-i/actions-operator@patch-1
         with:
           provider: lxd
           bootstrap-options: "--agent-version 2.9.38"
