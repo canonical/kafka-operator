@@ -11,7 +11,10 @@ from subprocess import PIPE, check_output
 import pytest
 import requests
 from pytest_operator.plugin import OpsTest
-from tests.integration.helpers import (
+
+from literals import REL_NAME, SECURITY_PROTOCOL_PORTS
+
+from .helpers import (
     APP_NAME,
     REL_NAME_ADMIN,
     ZK_NAME,
@@ -20,8 +23,6 @@ from tests.integration.helpers import (
     produce_and_check_logs,
     run_client_properties,
 )
-
-from literals import REL_NAME, SECURITY_PROTOCOL_PORTS
 
 logger = logging.getLogger(__name__)
 

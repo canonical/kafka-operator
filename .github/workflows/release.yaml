@@ -9,9 +9,10 @@ jobs:
   lib-check:
     name: Check libraries
     runs-on: ubuntu-22.04
+    timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Check libs
@@ -19,133 +20,22 @@ jobs:
         with:
           credentials: "${{ secrets.CHARMHUB_TOKEN }}" # FIXME: current token will expire in 2023-07-04
           github-token: "${{ secrets.GITHUB_TOKEN }}"
-  lint:
-    name: Lint
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Install dependencies
-        run: python3 -m pip install tox
-      - name: Run linters
-        run: tox -e lint
 
-  unit-test:
-    name: Unit tests
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Install dependencies
-        run: python -m pip install tox
-      - name: Run tests
-        run: tox -e unit
-
-  integration-charm:
-    name: Integration tests for (lxd)
-    runs-on: ubuntu-22.04
+  ci-tests:
     needs:
-      - lint
-      - unit-test
       - lib-check
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Setup operator environment
-        uses: charmed-kubernetes/actions-operator@main
-        with:
-          provider: lxd
-          bootstrap-options: "--agent-version 2.9.29"
-      - name: Run integration tests
-        run: tox -e integration-charm
-
-  integration-provider:
-    name: Integration tests for provider (lxd)
-    runs-on: ubuntu-22.04
-    needs:
-      - lint
-      - unit-test
-      - lib-check
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Setup operator environment
-        uses: charmed-kubernetes/actions-operator@main
-        with:
-          provider: lxd
-          bootstrap-options: "--agent-version 2.9.29"
-      - name: Run integration tests
-        run: tox -e integration-provider
-
-  integration-scaling:
-    name: Integration tests for scaling (lxd)
-    runs-on: ubuntu-22.04
-    needs:
-      - lint
-      - unit-test
-      - lib-check
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Setup operator environment
-        uses: charmed-kubernetes/actions-operator@main
-        with:
-          provider: lxd
-          bootstrap-options: "--agent-version 2.9.29"
-      - name: Run integration tests
-        run: tox -e integration-scaling
-
-  integration-password-rotation:
-    name: Integration tests for password rotation (lxd)
-    runs-on: ubuntu-22.04
-    needs:
-      - lint
-      - unit-test
-      - lib-check
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Setup operator environment
-        uses: charmed-kubernetes/actions-operator@main
-        with:
-          provider: lxd
-          bootstrap-options: "--agent-version 2.9.29"
-      - name: Run integration tests
-        run: tox -e integration-password-rotation
-
-  integration-tls:
-    name: Integration tests for TLS (lxd)
-    runs-on: ubuntu-22.04
-    needs:
-      - lint
-      - unit-test
-      - lib-check
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Setup operator environment
-        uses: charmed-kubernetes/actions-operator@main
-        with:
-          provider: lxd
-          bootstrap-options: "--agent-version 2.9.29"
-      - name: Run integration tests
-        run: tox -e integration-tls
+    uses: ./.github/workflows/ci.yaml
 
   release-to-charmhub:
     name: Release to CharmHub
     needs:
       - lib-check
-      - lint
-      - unit-test
-      - integration-charm
-      - integration-provider
-      - integration-scaling
-      - integration-password-rotation
-      - integration-tls
+      - ci-test
     runs-on: ubuntu-22.04
+    timeout-minutes: 60
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Select charmhub channel

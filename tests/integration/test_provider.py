@@ -9,7 +9,8 @@ from typing import Set
 
 import pytest
 from pytest_operator.plugin import OpsTest
-from tests.integration.helpers import (
+
+from .helpers import (
     check_user,
     get_provider_data,
     get_zookeeper_connection,

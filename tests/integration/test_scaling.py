@@ -10,9 +10,10 @@ from pathlib import Path
 import pytest
 import yaml
 from pytest_operator.plugin import OpsTest
-from tests.integration.helpers import get_kafka_zk_relation_data
 
 from utils import get_active_brokers
+
+from .helpers import get_kafka_zk_relation_data
 
 logger = logging.getLogger(__name__)
 

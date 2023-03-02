@@ -7,7 +7,13 @@ import logging
 from pathlib import PosixPath
 
 import pytest
-from helpers import (
+from charms.tls_certificates_interface.v1.tls_certificates import generate_private_key
+from pytest_operator.plugin import OpsTest
+
+from literals import REL_NAME, SECURITY_PROTOCOL_PORTS
+from utils import get_active_brokers
+
+from .helpers import (
     APP_NAME,
     REL_NAME_ADMIN,
     ZK_NAME,
@@ -18,12 +24,7 @@ from helpers import (
     set_tls_private_key,
     show_unit,
 )
-from lib.charms.tls_certificates_interface.v1.tls_certificates import generate_private_key
-from pytest_operator.plugin import OpsTest
-from tests.integration.test_charm import DUMMY_NAME
-
-from literals import REL_NAME, SECURITY_PROTOCOL_PORTS
-from utils import get_active_brokers
+from .test_charm import DUMMY_NAME
 
 logger = logging.getLogger(__name__)
 
