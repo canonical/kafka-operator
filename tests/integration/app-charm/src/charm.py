@@ -24,7 +24,7 @@ REL_NAME_CONSUMER = "kafka-client-consumer"
 REL_NAME_PRODUCER = "kafka-client-producer"
 REL_NAME_ADMIN = "kafka-client-admin"
 ZK = "zookeeper"
-CONSUMER_GROUP_PREFIC = "test-prefix"
+CONSUMER_GROUP_PREFIX = "test-prefix"
 
 
 class ApplicationCharm(CharmBase):
@@ -40,7 +40,7 @@ class ApplicationCharm(CharmBase):
             relation_name=REL_NAME_CONSUMER,
             topic="test-topic",
             extra_user_roles="consumer",
-            consumer_group_prefix=CONSUMER_GROUP_PREFIC,
+            consumer_group_prefix=CONSUMER_GROUP_PREFIX,
         )
         self.kafka_requirer_producer = KafkaRequires(
             self, relation_name=REL_NAME_PRODUCER, topic="test-topic", extra_user_roles="producer"

@@ -72,6 +72,8 @@ async def test_deploy_charms_relate_active(
         assert acl.resource_type in ["GROUP", "TOPIC"]
         if acl.resource_type == "TOPIC":
             assert acl.resource_name == "test-topic"
+        if acl.resource_type == "GROUP":
+            assert acl.resource_name == "test-prefix"
 
 
 @pytest.mark.abort_on_fail
