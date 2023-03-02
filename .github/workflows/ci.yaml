@@ -70,18 +70,17 @@ jobs:
         uses: sed-i/actions-operator@patch-1
         with:
           juju-channel: 2.9/stable
-          bootstrap-options: "--agent-version 2.9.38"
           provider: microk8s
           microk8s-addons: "hostpath-storage dns"
+          bootstrap-options: "--agent-version 2.9.38"
       - name: Fix microk8s permissions
         run: |
-          sudo usermod -a -G microk8s runner
-          sudo chown -R runner ~/.kube
-          newgrp microk8s
+          chmod -R ugo+rwX ${GITHUB_WORKSPACE}/.kube
       - name: Setup lxd controller
         # TODO: Replace with custom image on self-hosted runner
         uses: sed-i/actions-operator@patch-1
         with:
+          juju-channel: 2.9/stable
           provider: lxd
           bootstrap-options: "--agent-version 2.9.38"
       - name: Download packed charm(s)
