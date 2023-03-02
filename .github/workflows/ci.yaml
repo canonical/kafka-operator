@@ -69,10 +69,10 @@ jobs:
         # TODO: Replace with custom image on self-hosted runner
         uses: sed-i/actions-operator@patch-1
         with:
-          juju-channel: 2.9/stable
+          juju-channel: 3.0/stable
           provider: microk8s
+          channel: 1.26-strict/stable
           microk8s-addons: "hostpath-storage dns"
-          bootstrap-options: "--agent-version 2.9.38"
       - name: Fix microk8s permissions
         run: |
           chmod -R ugo+rwX ~/.kube
@@ -80,9 +80,8 @@ jobs:
         # TODO: Replace with custom image on self-hosted runner
         uses: sed-i/actions-operator@patch-1
         with:
-          juju-channel: 2.9/stable
+          juju-channel: 3.0/stable
           provider: lxd
-          bootstrap-options: "--agent-version 2.9.38"
       - name: Download packed charm(s)
         uses: actions/download-artifact@v3
         with:
