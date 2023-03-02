@@ -75,7 +75,7 @@ jobs:
           bootstrap-options: "--agent-version 2.9.38"
       - name: Fix microk8s permissions
         run: |
-          chmod -R ugo+rwX ${GITHUB_WORKSPACE}/.kube
+          chmod -R ugo+rwX ~/.kube
       - name: Setup lxd controller
         # TODO: Replace with custom image on self-hosted runner
         uses: sed-i/actions-operator@patch-1
