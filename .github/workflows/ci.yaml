@@ -40,6 +40,20 @@ jobs:
       - name: Run tests
         run: tox run -e unit
 
+  lib-check:
+    name: Check libraries
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Check libs
+        uses: canonical/charming-actions/check-libraries@2.2.2
+        with:
+          credentials: "${{ secrets.CHARMHUB_TOKEN }}" # FIXME: current token will expire in 2023-07-04
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
   build:
     name: Build charms
     uses: canonical/data-platform-workflows/.github/workflows/build_charms_with_cache.yaml@v2
