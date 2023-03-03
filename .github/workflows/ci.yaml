@@ -119,8 +119,9 @@ jobs:
           channel: 1.26-strict/stable
           microk8s-addons: "hostpath-storage dns"
       - name: Save k8s controller name
+        id: k8s-controller
         # The `CONTROLLER_NAME` envvar is set by the actions-operator action
-        run: echo "K8S_CONTROLLER=$CONTROLLER_NAME" >> $GITHUB_OUTPUT
+        run: echo "name=$CONTROLLER_NAME" >> $GITHUB_OUTPUT
       - name: Fix microk8s permissions
         run: |
           chmod -R ugo+rwX ~/.kube
@@ -131,8 +132,9 @@ jobs:
           juju-channel: 3.0/stable
           provider: lxd
       - name: Save lxd controller name
+        id: lxd-controller
         # The `CONTROLLER_NAME` envvar is set by the actions-operator action
-        run: echo "LXD_CONTROLLER=$CONTROLLER_NAME" >> $GITHUB_OUTPUT
+        run: echo "name=$CONTROLLER_NAME" >> $GITHUB_OUTPUT
       - name: Download packed charm(s)
         uses: actions/download-artifact@v3
         with:
@@ -152,3 +154,5 @@ jobs:
         run: tox run -e ${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}'
         env:
           CI_PACKED_CHARMS: ${{ needs.build.outputs.charms }}
+          K8S_CONTROLLER: ${{ steps.k8s-controller.outputs.name }}
+          LXD_CONTROLLER: ${{ steps.lxd-controller.outputs.name }}
