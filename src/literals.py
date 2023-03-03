@@ -17,6 +17,8 @@ REL_NAME = "kafka-client"
 INTER_BROKER_USER = "sync"
 ADMIN_USER = "admin"
 TLS_RELATION = "certificates"
+TRUSTED_CERTIFICATES_RELATION = "trusted-certificates"
+TRUSTED_CA_RELATION = "trusted-ca"
 
 AuthMechanism = Literal["SASL_PLAINTEXT", "SASL_SSL", "SSL"]
 Scope = Literal["INTERNAL", "CLIENT"]

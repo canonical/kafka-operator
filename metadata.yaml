@@ -24,6 +24,14 @@ requires:
     interface: tls-certificates
     limit: 1
     optional: true
+  trusted-ca:
+    interface: tls-certificates
+    limit: 10
+    optional: true
+  trusted-certificates:
+    interface: tls-certificates
+    limit: 10
+    optional: true
 
 provides:
   kafka-client:

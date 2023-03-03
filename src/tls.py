@@ -10,15 +10,16 @@ import subprocess
 from typing import Dict, List, Optional
 
 from charms.tls_certificates_interface.v1.tls_certificates import (
+    CertificateAvailableEvent,
     TLSCertificatesRequiresV1,
     generate_csr,
     generate_private_key,
 )
-from ops.charm import ActionEvent
+from ops.charm import ActionEvent, RelationCreatedEvent
 from ops.framework import Object
-from ops.model import Relation
+from ops.model import ActiveStatus, BlockedStatus, Relation
 
-from literals import TLS_RELATION
+from literals import TLS_RELATION, TRUSTED_CA_RELATION, TRUSTED_CERTIFICATES_RELATION
 from snap import SNAP_CONFIG_PATH
 from utils import generate_password, parse_tls_file, safe_write_to_file
 
@@ -32,7 +33,12 @@ class KafkaTLS(Object):
         super().__init__(charm, "tls")
         self.charm = charm
         self.certificates = TLSCertificatesRequiresV1(self.charm, TLS_RELATION)
+        self.trusted_certificates = TLSCertificatesRequiresV1(
+            self.charm, TRUSTED_CERTIFICATES_RELATION
+        )
+        self.trusted_ca = TLSCertificatesRequiresV1(self.charm, TRUSTED_CA_RELATION)
 
+        # Own certificates handlers
         self.framework.observe(
             self.charm.on[TLS_RELATION].relation_created, self._tls_relation_created
         )
@@ -49,6 +55,24 @@ class KafkaTLS(Object):
             getattr(self.certificates.on, "certificate_expiring"), self._on_certificate_expiring
         )
         self.framework.observe(self.charm.on.set_tls_private_key_action, self._set_tls_private_key)
+
+        # External certificates handlers (for mTLS)
+        self.framework.observe(
+            self.charm.on[TRUSTED_CERTIFICATES_RELATION].relation_created,
+            self._trusted_relation_created,
+        )
+        self.framework.observe(
+            self.charm.on[TRUSTED_CA_RELATION].relation_created,
+            self._trusted_relation_created,
+        )
+        self.framework.observe(
+            getattr(self.trusted_certificates.on, "certificate_available"),
+            self._on_trusted_cert_available,
+        )
+        self.framework.observe(
+            getattr(self.trusted_ca.on, "certificate_available"),
+            self._on_trusted_cert_available,
+        )
 
     def _tls_relation_created(self, _) -> None:
         """Handler for `certificates_relation_created` event."""
@@ -87,9 +111,63 @@ class KafkaTLS(Object):
         if not self.charm.unit.is_leader():
             return
 
-        self.peer_relation.data[self.charm.app].update({"tls": ""})
+        self.charm.app_peer_data.update({"tls": ""})
 
-    def _on_certificate_available(self, event) -> None:
+    def _trusted_relation_created(self, event: RelationCreatedEvent) -> None:
+        """Relate to trusted tls charm."""
+        if not self.charm.unit.is_leader():
+            return
+
+        if not self.enabled:
+            msg = "Own certificates are not set. Please relate using 'certificates' relation first"
+            logger.error(msg)
+            self.charm.unit.status = BlockedStatus(msg)
+            return
+
+        self.charm.app_peer_data.update({"mtls": "enabled"})
+
+        alias = self.generate_alias(app_name=event.app.name, relation_id=event.relation.id)
+        ### CREATE CSR
+        csr = generate_csr(
+            add_unique_id_to_subject_name=alias,
+            private_key=self.private_key.encode("utf-8"),
+            subject=self.charm.unit_peer_data.get("private-address", ""),
+            **self._sans,
+        )
+        self.charm.set_secret(scope="app", key=f"csr-{alias}", value=csr.decode("utf-8").strip())
+
+        if event.relation.name == TRUSTED_CERTIFICATES_RELATION:
+            self.trusted_certificates.request_certificate_creation(certificate_signing_request=csr)
+        elif event.relation.name == TRUSTED_CA_RELATION:
+            self.trusted_ca.request_certificate_creation(certificate_signing_request=csr)
+        ###############
+
+        self.charm.unit.status = ActiveStatus()
+
+    def _on_trusted_cert_available(self, event: CertificateAvailableEvent):
+        """dsa."""
+        if not self.enabled:
+            msg = "Own certificates are not set. Please relate using 'certificates' relation first"
+            logger.error(msg)
+            self.charm.unit.status = BlockedStatus(msg)
+            event.defer()
+            return
+
+        relation = self.discover_relation(csr=event.certificate_signing_request)
+        alias = self.generate_alias(relation.app.name, relation.id)
+        content = event.certificate if relation.name == TRUSTED_CERTIFICATES_RELATION else event.ca
+        filename = (
+            f"{alias}_cert.crt"
+            if relation.name == TRUSTED_CERTIFICATES_RELATION
+            else f"{alias}_ca.crt"
+        )
+
+        safe_write_to_file(content=content, path=f"{SNAP_CONFIG_PATH}/{filename}")
+        self.import_cert(alias=f"{alias}", filename=filename)
+
+        self.charm.unit.status = ActiveStatus()
+
+    def _on_certificate_available(self, event: CertificateAvailableEvent) -> None:
         """Handler for `certificates_available` event after provider updates signed certs."""
         if not self.peer_relation:
             logger.warning("No peer relation on certificate available")
@@ -152,7 +230,16 @@ class KafkaTLS(Object):
         Returns:
             True if TLS encryption should be active. Otherwise False
         """
-        return self.peer_relation.data[self.charm.app].get("tls", "disabled") == "enabled"
+        return self.charm.app_peer_data.get("tls", "disabled") == "enabled"
+
+    @property
+    def mtls_enabled(self) -> bool:
+        """Flag to check if the cluster should run with mTLS.
+
+        Returns:
+            True if TLS encryption should be active. Otherwise False
+        """
+        return self.charm.app_peer_data.get("mtls", "disabled") == "enabled"
 
     @property
     def private_key(self) -> Optional[str]:
@@ -240,6 +327,10 @@ class KafkaTLS(Object):
             "sans_dns": [unit_name, socket.getfqdn()],
         }
 
+    def generate_alias(self, app_name: str, relation_id: int) -> str:
+        """Generate an alias from a relation. Used to identify ca certs."""
+        return f"{app_name}-{relation_id}"
+
     def set_server_key(self) -> None:
         """Sets the unit private-key."""
         if not self.private_key:
@@ -294,6 +385,34 @@ class KafkaTLS(Object):
         except subprocess.CalledProcessError as e:
             logger.error(e.output)
             raise e
+
+    def import_cert(self, alias: str, filename: str) -> None:
+        """Tries to add a certificate to the truststore."""
+        try:
+            subprocess.check_output(
+                f"keytool -import -v -alias {alias} -file {filename} -keystore truststore.jks -storepass {self.truststore_password} -noprompt",
+                stderr=subprocess.PIPE,
+                shell=True,
+                universal_newlines=True,
+                cwd=SNAP_CONFIG_PATH,
+            )
+        except subprocess.CalledProcessError as e:
+            logger.error(e.output)
+            raise e
+
+    def discover_relation(self, csr: str) -> Relation:
+        """Discover a relation matching the csr."""
+        all_relations = {
+            **self.model.relations[TRUSTED_CERTIFICATES_RELATION],
+            **self.model.relations[TRUSTED_CA_RELATION],
+        }
+        for rel in all_relations:
+            alias = self.generate_alias(rel.app.name, rel.id)
+            stored_csr = self.charm.get_secret(scope="app", key=f"csr-{alias}")
+            if stored_csr == csr:
+                return rel
+
+        return None
 
     def remove_stores(self) -> None:
         """Cleans up all keys/certs/stores on a unit."""
