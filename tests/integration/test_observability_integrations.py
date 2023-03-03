@@ -36,7 +36,9 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
 
     # TODO: parametrize the model name "cos"
     await ops_test.model.consume(
-        f"admin/cos.grafana", application_alias="grafana", controller_name=os.environ['K8S_CONTROLLER']
+        "admin/cos.grafana",
+        application_alias="grafana",
+        controller_name=os.environ["K8S_CONTROLLER"],
     )
     await ops_test.model.add_relation(APP_NAME, "grafana")
     await ops_test.model.wait_for_idle()
