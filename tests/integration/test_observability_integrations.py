@@ -7,7 +7,7 @@ import subprocess
 
 import pytest
 from pytest_operator.plugin import OpsTest
-from tests.integration.helpers import APP_NAME
+from helpers import APP_NAME
 
 logger = logging.getLogger(__name__)
 

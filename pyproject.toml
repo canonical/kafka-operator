@@ -65,7 +65,7 @@ optional = true
 
 [tool.poetry.group.integration.dependencies]
 pytest = ">=7.2"
-juju = "==2.9.11"
+juju = "<3.1"
 coverage = {extras = ["toml"], version = ">7.0"}
 pytest-operator = ">0.20"
 kazoo = ">=2.8"
