@@ -9,7 +9,8 @@ machine_ctl=$(juju controllers --format json | jq -r '."current-controller"')
 # Assuming this shell script is run as part of a pytest test with a model already set up
 machine_mdl=$(juju models --format json | jq -r '."current-model"')
 
-if $(groups | grep -q snap_microk8s); then microk8s_group="snap_microk8s"; else microk8s_group="microk8s"; fi
+#if $(groups | grep -q snap_microk8s); then microk8s_group="snap_microk8s"; else microk8s_group="microk8s"; fi
+microk8s_group="snap_microk8s"
 
 # Assuming there isn't a k8s controller yet
 k8s_ctl="uk8s"
