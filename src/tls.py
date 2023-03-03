@@ -4,18 +4,27 @@
 
 """Manager for handling Kafka TLS configuration."""
 
+import json
 import logging
 import socket
+import copy
 import subprocess
 from typing import Dict, List, Optional
 
 from charms.tls_certificates_interface.v1.tls_certificates import (
     CertificateAvailableEvent,
     TLSCertificatesRequiresV1,
+    _load_relation_data,
     generate_csr,
     generate_private_key,
 )
-from ops.charm import ActionEvent, RelationCreatedEvent
+from ops.charm import (
+    ActionEvent,
+    RelationBrokenEvent,
+    RelationChangedEvent,
+    RelationCreatedEvent,
+    RelationJoinedEvent,
+)
 from ops.framework import Object
 from ops.model import ActiveStatus, BlockedStatus, Relation
 
@@ -33,10 +42,10 @@ class KafkaTLS(Object):
         super().__init__(charm, "tls")
         self.charm = charm
         self.certificates = TLSCertificatesRequiresV1(self.charm, TLS_RELATION)
-        self.trusted_certificates = TLSCertificatesRequiresV1(
-            self.charm, TRUSTED_CERTIFICATES_RELATION
-        )
-        self.trusted_ca = TLSCertificatesRequiresV1(self.charm, TRUSTED_CA_RELATION)
+        # self.trusted_certificates = TLSCertificatesRequiresV1(
+        #     self.charm, TRUSTED_CERTIFICATES_RELATION
+        # )
+        # self.trusted_ca = TLSCertificatesRequiresV1(self.charm, TRUSTED_CA_RELATION)
 
         # Own certificates handlers
         self.framework.observe(
@@ -66,12 +75,28 @@ class KafkaTLS(Object):
             self._trusted_relation_created,
         )
         self.framework.observe(
-            getattr(self.trusted_certificates.on, "certificate_available"),
-            self._on_trusted_cert_available,
+            self.charm.on[TRUSTED_CERTIFICATES_RELATION].relation_joined,
+            self._trusted_relation_joined,
         )
         self.framework.observe(
-            getattr(self.trusted_ca.on, "certificate_available"),
-            self._on_trusted_cert_available,
+            self.charm.on[TRUSTED_CA_RELATION].relation_joined,
+            self._trusted_relation_joined,
+        )
+        self.framework.observe(
+            self.charm.on[TRUSTED_CERTIFICATES_RELATION].relation_changed,
+            self._trusted_relation_changed,
+        )
+        self.framework.observe(
+            self.charm.on[TRUSTED_CA_RELATION].relation_changed,
+            self._trusted_relation_changed,
+        )
+        self.framework.observe(
+            self.charm.on[TRUSTED_CA_RELATION].relation_broken,
+            self._trusted_relation_broken,
+        )
+        self.framework.observe(
+            self.charm.on[TRUSTED_CA_RELATION].relation_broken,
+            self._trusted_relation_broken,
         )
 
     def _tls_relation_created(self, _) -> None:
@@ -125,37 +150,41 @@ class KafkaTLS(Object):
             return
 
         self.charm.app_peer_data.update({"mtls": "enabled"})
+        self.charm.unit.status = ActiveStatus()
 
+    def _trusted_relation_joined(self, event: RelationJoinedEvent):
+        """Generate a CSR so the tls-certificates operator works as expected."""
         alias = self.generate_alias(app_name=event.app.name, relation_id=event.relation.id)
-        ### CREATE CSR
         csr = generate_csr(
             add_unique_id_to_subject_name=alias,
             private_key=self.private_key.encode("utf-8"),
             subject=self.charm.unit_peer_data.get("private-address", ""),
             **self._sans,
-        )
-        self.charm.set_secret(scope="app", key=f"csr-{alias}", value=csr.decode("utf-8").strip())
+        ).decode().strip()
 
-        if event.relation.name == TRUSTED_CERTIFICATES_RELATION:
-            self.trusted_certificates.request_certificate_creation(certificate_signing_request=csr)
-        elif event.relation.name == TRUSTED_CA_RELATION:
-            self.trusted_ca.request_certificate_creation(certificate_signing_request=csr)
-        ###############
+        relation = event.relation
+        csr_dict = [{"certificate_signing_request": csr}]
+        relation.data[self.model.unit]["certificate_signing_requests"] = json.dumps(csr_dict)
 
-        self.charm.unit.status = ActiveStatus()
+    def _trusted_relation_changed(self, event: RelationChangedEvent):
+        """Overrides the requirer logic of TLSInterface."""
+        relation = event.relation
+        relation_data = _load_relation_data(relation.data[relation.app])
+        provider_certificates = relation_data.get("certificates", [])
 
-    def _on_trusted_cert_available(self, event: CertificateAvailableEvent):
-        """dsa."""
-        if not self.enabled:
-            msg = "Own certificates are not set. Please relate using 'certificates' relation first"
-            logger.error(msg)
-            self.charm.unit.status = BlockedStatus(msg)
+        if not provider_certificates:
+            logger.warning("No certificates on provider side")
             event.defer()
             return
 
-        relation = self.discover_relation(csr=event.certificate_signing_request)
         alias = self.generate_alias(relation.app.name, relation.id)
-        content = event.certificate if relation.name == TRUSTED_CERTIFICATES_RELATION else event.ca
+        # NOTE: Relation should only be used with one set of certificates,
+        # hence using just the first item on the list.
+        content = (
+            provider_certificates[0]["certificate"]
+            if relation.name == TRUSTED_CERTIFICATES_RELATION
+            else provider_certificates[0]["ca"]
+        )
         filename = (
             f"{alias}_cert.crt"
             if relation.name == TRUSTED_CERTIFICATES_RELATION
@@ -166,6 +195,18 @@ class KafkaTLS(Object):
         self.import_cert(alias=f"{alias}", filename=filename)
 
         self.charm.unit.status = ActiveStatus()
+
+    def _trusted_relation_broken(self, event: RelationBrokenEvent):
+        """"""
+        if not self.charm.unit.is_leader():
+            return
+
+        relation = event.relation
+        alias = self.generate_alias(app_name=relation.app.name, relation_id=relation.id)
+        self.remove_cert(alias=alias)
+        
+        # TODO: CHECK IF BOTH RELATIONS ARE GONE
+        self.charm.app_peer_data.update({"mtls": ""})
 
     def _on_certificate_available(self, event: CertificateAvailableEvent) -> None:
         """Handler for `certificates_available` event after provider updates signed certs."""
@@ -387,7 +428,7 @@ class KafkaTLS(Object):
             raise e
 
     def import_cert(self, alias: str, filename: str) -> None:
-        """Tries to add a certificate to the truststore."""
+        """Add a certificate to the truststore."""
         try:
             subprocess.check_output(
                 f"keytool -import -v -alias {alias} -file {filename} -keystore truststore.jks -storepass {self.truststore_password} -noprompt",
@@ -397,22 +438,25 @@ class KafkaTLS(Object):
                 cwd=SNAP_CONFIG_PATH,
             )
         except subprocess.CalledProcessError as e:
+            # in case this reruns and fails
+            if "already exists" in e.output:
+                return
             logger.error(e.output)
             raise e
 
-    def discover_relation(self, csr: str) -> Relation:
-        """Discover a relation matching the csr."""
-        all_relations = {
-            **self.model.relations[TRUSTED_CERTIFICATES_RELATION],
-            **self.model.relations[TRUSTED_CA_RELATION],
-        }
-        for rel in all_relations:
-            alias = self.generate_alias(rel.app.name, rel.id)
-            stored_csr = self.charm.get_secret(scope="app", key=f"csr-{alias}")
-            if stored_csr == csr:
-                return rel
-
-        return None
+    def remove_cert(self, alias: str) -> None:
+        """Remove a cert from the truststore."""
+        try:
+            subprocess.check_output(
+                f"keytool -delete -v -alias {alias} -keystore truststore.jks -storepass {self.truststore_password} -noprompt",
+                stderr=subprocess.PIPE,
+                shell=True,
+                universal_newlines=True,
+                cwd=SNAP_CONFIG_PATH,
+            )
+        except subprocess.CalledProcessError as e:
+            logger.error(e.output)
+            raise e
 
     def remove_stores(self) -> None:
         """Cleans up all keys/certs/stores on a unit."""
