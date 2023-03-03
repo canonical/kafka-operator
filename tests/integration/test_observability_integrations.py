@@ -3,6 +3,7 @@
 
 import asyncio
 import logging
+import os
 import subprocess
 
 import pytest
@@ -33,4 +34,9 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
         for line in result.stdout.decode("utf-8").strip().split("\n"):
             logger.info(line)
 
+    # TODO: parametrize the model name "cos"
+    await ops_test.model.consume(
+        f"{os.environ['K8S_CONTROLLER']}:admin/cos.grafana", application_alias="grafana"
+    )
+    await ops_test.model.add_relation(APP_NAME, "grafana")
     await ops_test.model.wait_for_idle()

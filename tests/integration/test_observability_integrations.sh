@@ -24,12 +24,13 @@ sg $microk8s_group -c "juju add-model $k8s_mdl"
 sg $microk8s_group -c "juju deploy --channel=edge grafana-k8s grafana"
 sg $microk8s_group -c "juju offer $k8s_mdl.grafana:grafana-dashboard"
 
-sg $microk8s_group -c "juju switch $machine_ctl:$machine_mdl"
-sg $microk8s_group -c "juju consume $k8s_ctl:admin/$k8s_mdl.grafana"
+# Now hand over back to the python script
+
+#sg $microk8s_group -c "juju switch $machine_ctl:$machine_mdl"
+#sg $microk8s_group -c "juju consume $k8s_ctl:admin/$k8s_mdl.grafana"
 
 # Assuming kafka was already deployed as part of the pytest test
 #charmcraft pack
 #juju deploy ./kafka_ubuntu-22.04-amd64.charm kafka
-sg $microk8s_group -c "juju relate kafka grafana"
+#sg $microk8s_group -c "juju relate kafka grafana"
 
-# Now hand over back to the python script
