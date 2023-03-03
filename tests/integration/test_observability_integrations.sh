@@ -4,7 +4,7 @@
 
 set -eux
 
-# Assuming an lxd controller is already bootstrapped
+# Assuming an lxd controller is already bootstrapped and is the current controller
 machine_ctl=$(juju controllers --format json | jq -r '."current-controller"')
 # Assuming this shell script is run as part of a pytest test with a model already set up
 machine_mdl=$(juju models --format json | jq -r '."current-model"')
@@ -16,6 +16,9 @@ microk8s_group="snap_microk8s"
 k8s_ctl="uk8s"
 k8s_mdl="cos"
 #sg $microk8s_group -c "juju bootstrap --no-gui microk8s $k8s_ctl"
+
+k8s_ctl=$K8S_CONTROLLER  # thr script depends on this ENVVAR to be set
+sg $microk8s_group -c "juju switch $k8s_ctl"
 sg $microk8s_group -c "juju add-model $k8s_mdl"
 
 sg $microk8s_group -c "juju deploy --channel=edge grafana-k8s grafana"
