@@ -71,15 +71,7 @@ class KafkaTLS(Object):
             self._trusted_relation_created,
         )
         self.framework.observe(
-            self.charm.on[TRUSTED_CA_RELATION].relation_created,
-            self._trusted_relation_created,
-        )
-        self.framework.observe(
             self.charm.on[TRUSTED_CERTIFICATES_RELATION].relation_joined,
-            self._trusted_relation_joined,
-        )
-        self.framework.observe(
-            self.charm.on[TRUSTED_CA_RELATION].relation_joined,
             self._trusted_relation_joined,
         )
         self.framework.observe(
@@ -87,16 +79,20 @@ class KafkaTLS(Object):
             self._trusted_relation_changed,
         )
         self.framework.observe(
-            self.charm.on[TRUSTED_CA_RELATION].relation_changed,
-            self._trusted_relation_changed,
-        )
-        self.framework.observe(
-            self.charm.on[TRUSTED_CA_RELATION].relation_broken,
+            self.charm.on[TRUSTED_CERTIFICATES_RELATION].relation_broken,
             self._trusted_relation_broken,
         )
         self.framework.observe(
-            self.charm.on[TRUSTED_CA_RELATION].relation_broken,
-            self._trusted_relation_broken,
+            self.charm.on[TRUSTED_CA_RELATION].relation_created, self._trusted_relation_created
+        )
+        self.framework.observe(
+            self.charm.on[TRUSTED_CA_RELATION].relation_joined, self._trusted_relation_joined
+        )
+        self.framework.observe(
+            self.charm.on[TRUSTED_CA_RELATION].relation_changed, self._trusted_relation_changed
+        )
+        self.framework.observe(
+            self.charm.on[TRUSTED_CA_RELATION].relation_broken, self._trusted_relation_broken
         )
 
     def _tls_relation_created(self, _) -> None:
@@ -440,6 +436,7 @@ class KafkaTLS(Object):
         except subprocess.CalledProcessError as e:
             # in case this reruns and fails
             if "already exists" in e.output:
+                logger.warning(e.output)
                 return
             logger.error(e.output)
             raise e
@@ -455,6 +452,9 @@ class KafkaTLS(Object):
                 cwd=SNAP_CONFIG_PATH,
             )
         except subprocess.CalledProcessError as e:
+            if "does not exist" in e.output:
+                logger.warning(e.output)
+                return
             logger.error(e.output)
             raise e
 
