@@ -40,10 +40,6 @@ class KafkaTLS(Object):
         super().__init__(charm, "tls")
         self.charm = charm
         self.certificates = TLSCertificatesRequiresV1(self.charm, TLS_RELATION)
-        # self.trusted_certificates = TLSCertificatesRequiresV1(
-        #     self.charm, TRUSTED_CERTIFICATES_RELATION
-        # )
-        # self.trusted_ca = TLSCertificatesRequiresV1(self.charm, TRUSTED_CA_RELATION)
 
         # Own certificates handlers
         self.framework.observe(
@@ -98,7 +94,6 @@ class KafkaTLS(Object):
         if not self.charm.unit.is_leader():
             return
 
-        # Create a "mtls" flag so a new listener (CLIENT_SSL) is created
         self.peer_relation.data[self.charm.app].update({"tls": "enabled"})
 
     def _tls_relation_joined(self, _) -> None:
@@ -144,6 +139,7 @@ class KafkaTLS(Object):
             self.charm.unit.status = BlockedStatus(msg)
             return
 
+        # Create a "mtls" flag so a new listener (CLIENT_SSL) is created
         self.charm.app_peer_data.update({"mtls": "enabled"})
         self.charm.unit.status = ActiveStatus()
 
