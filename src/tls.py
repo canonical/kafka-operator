@@ -7,7 +7,6 @@
 import json
 import logging
 import socket
-import copy
 import subprocess
 from typing import Dict, List, Optional
 
@@ -22,7 +21,6 @@ from ops.charm import (
     ActionEvent,
     RelationBrokenEvent,
     RelationChangedEvent,
-    RelationCreatedEvent,
     RelationJoinedEvent,
 )
 from ops.framework import Object
@@ -134,8 +132,8 @@ class KafkaTLS(Object):
 
         self.charm.app_peer_data.update({"tls": ""})
 
-    def _trusted_relation_created(self, event: RelationCreatedEvent) -> None:
-        """Relate to trusted tls charm."""
+    def _trusted_relation_created(self, _) -> None:
+        """Handle relation created event to trusted tls charm."""
         if not self.charm.unit.is_leader():
             return
 
@@ -148,21 +146,24 @@ class KafkaTLS(Object):
         self.charm.app_peer_data.update({"mtls": "enabled"})
         self.charm.unit.status = ActiveStatus()
 
-    def _trusted_relation_joined(self, event: RelationJoinedEvent):
+    def _trusted_relation_joined(self, event: RelationJoinedEvent) -> None:
         """Generate a CSR so the tls-certificates operator works as expected."""
         alias = self.generate_alias(app_name=event.app.name, relation_id=event.relation.id)
-        csr = generate_csr(
-            add_unique_id_to_subject_name=alias,
-            private_key=self.private_key.encode("utf-8"),
-            subject=self.charm.unit_peer_data.get("private-address", ""),
-            **self._sans,
-        ).decode().strip()
+        csr = (
+            generate_csr(
+                add_unique_id_to_subject_name=alias,
+                private_key=self.private_key.encode("utf-8"),
+                subject=self.charm.unit_peer_data.get("private-address", ""),
+                **self._sans,
+            )
+            .decode()
+            .strip()
+        )
 
-        relation = event.relation
         csr_dict = [{"certificate_signing_request": csr}]
-        relation.data[self.model.unit]["certificate_signing_requests"] = json.dumps(csr_dict)
+        event.relation.data[self.model.unit]["certificate_signing_requests"] = json.dumps(csr_dict)
 
-    def _trusted_relation_changed(self, event: RelationChangedEvent):
+    def _trusted_relation_changed(self, event: RelationChangedEvent) -> None:
         """Overrides the requirer logic of TLSInterface."""
         relation = event.relation
         relation_data = _load_relation_data(relation.data[relation.app])
@@ -192,15 +193,15 @@ class KafkaTLS(Object):
 
         self.charm.unit.status = ActiveStatus()
 
-    def _trusted_relation_broken(self, event: RelationBrokenEvent):
-        """"""
+    def _trusted_relation_broken(self, event: RelationBrokenEvent) -> None:
+        """Handle relation broken for a trusted certificate/ca relation."""
         if not self.charm.unit.is_leader():
             return
 
         relation = event.relation
         alias = self.generate_alias(app_name=relation.app.name, relation_id=relation.id)
         self.remove_cert(alias=alias)
-        
+
         # TODO: CHECK IF BOTH RELATIONS ARE GONE
         self.charm.app_peer_data.update({"mtls": ""})
 
