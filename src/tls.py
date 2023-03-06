@@ -212,7 +212,7 @@ class KafkaTLS(Object):
         )
         all_relations.remove(relation)
         logger.debug(f"Remaining relations: {all_relations}")
-        
+
         # No relations means that there are no certificates left in the truststore
         if not all_relations:
             self.charm.app_peer_data.update({"mtls": ""})
