@@ -98,6 +98,7 @@ class KafkaTLS(Object):
         if not self.charm.unit.is_leader():
             return
 
+        # Create a "mtls" flag so a new listener (CLIENT_SSL) is created
         self.peer_relation.data[self.charm.app].update({"tls": "enabled"})
 
     def _tls_relation_joined(self, _) -> None:
@@ -183,9 +184,9 @@ class KafkaTLS(Object):
             else provider_certificates[0]["ca"]
         )
         filename = (
-            f"{alias}_cert.crt"
+            f"{alias}_cert.pem"
             if relation.name == TRUSTED_CERTIFICATES_RELATION
-            else f"{alias}_ca.crt"
+            else f"{alias}_ca.pem"
         )
 
         safe_write_to_file(content=content, path=f"{SNAP_CONFIG_PATH}/{filename}")
@@ -195,15 +196,26 @@ class KafkaTLS(Object):
 
     def _trusted_relation_broken(self, event: RelationBrokenEvent) -> None:
         """Handle relation broken for a trusted certificate/ca relation."""
-        if not self.charm.unit.is_leader():
-            return
-
+        # All units will need to remove the cert from their truststore
         relation = event.relation
         alias = self.generate_alias(app_name=relation.app.name, relation_id=relation.id)
         self.remove_cert(alias=alias)
 
-        # TODO: CHECK IF BOTH RELATIONS ARE GONE
-        self.charm.app_peer_data.update({"mtls": ""})
+        # The leader will also handle removing the "mtls" flag if needed
+        if not self.charm.unit.is_leader():
+            return
+
+        # Get all relations, and remove the one being broken
+        all_relations = (
+            self.model.relations[TRUSTED_CA_RELATION]
+            + self.model.relations[TRUSTED_CERTIFICATES_RELATION]
+        )
+        all_relations.remove(relation)
+        logger.debug(f"Remaining relations: {all_relations}")
+        
+        # No relations means that there are no certificates left in the truststore
+        if not all_relations:
+            self.charm.app_peer_data.update({"mtls": ""})
 
     def _on_certificate_available(self, event: CertificateAvailableEvent) -> None:
         """Handler for `certificates_available` event after provider updates signed certs."""
