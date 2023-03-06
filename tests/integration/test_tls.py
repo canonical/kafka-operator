@@ -28,6 +28,7 @@ from .test_charm import DUMMY_NAME
 logger = logging.getLogger(__name__)
 
 TLS_NAME = "tls-certificates-operator"
+REL_NAME_CERTIFICATES = "certificates"
 
 
 @pytest.mark.abort_on_fail
@@ -79,7 +80,7 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm):
         show_unit(f"{APP_NAME}/{num_unit}", model_full_name=ops_test.model_full_name), unit=0
     )
 
-    await ops_test.model.add_relation(APP_NAME, TLS_NAME)
+    await ops_test.model.add_relation(f"{APP_NAME}:{REL_NAME_CERTIFICATES}", TLS_NAME)
     logger.info("Relate Kafka to TLS")
     await ops_test.model.wait_for_idle(
         apps=[APP_NAME, ZK_NAME, TLS_NAME], idle_period=60, timeout=1000
