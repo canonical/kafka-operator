@@ -136,12 +136,12 @@ class KafkaTLS(Object):
         if not self.enabled:
             msg = "Own certificates are not set. Please relate using 'certificates' relation first"
             logger.error(msg)
-            self.charm.unit.status = BlockedStatus(msg)
+            self.charm.app.status = BlockedStatus(msg)
             return
 
         # Create a "mtls" flag so a new listener (CLIENT_SSL) is created
         self.charm.app_peer_data.update({"mtls": "enabled"})
-        self.charm.unit.status = ActiveStatus()
+        self.charm.app.status = ActiveStatus()
 
     def _trusted_relation_joined(self, event: RelationJoinedEvent) -> None:
         """Generate a CSR so the tls-certificates operator works as expected."""
@@ -187,8 +187,6 @@ class KafkaTLS(Object):
 
         safe_write_to_file(content=content, path=f"{SNAP_CONFIG_PATH}/{filename}")
         self.import_cert(alias=f"{alias}", filename=filename)
-
-        self.charm.unit.status = ActiveStatus()
 
     def _trusted_relation_broken(self, event: RelationBrokenEvent) -> None:
         """Handle relation broken for a trusted certificate/ca relation."""
