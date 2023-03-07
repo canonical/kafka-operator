@@ -220,7 +220,10 @@ def test_ssl_principal_mapping_rules(harness: Harness):
         )
     ):
         harness.update_config({"ssl_principal_mapping_rules": "erebor,DEFAULT"})
-        assert "ssl.principal.mapping.rules=erebor,DEFAULT" in harness.charm.kafka_config.server_properties
+        assert (
+            "ssl.principal.mapping.rules=erebor,DEFAULT"
+            in harness.charm.kafka_config.server_properties
+        )
 
 
 def test_auth_properties(harness):
