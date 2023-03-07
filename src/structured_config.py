@@ -57,6 +57,7 @@ class CharmConfig(BaseConfigModel):
     log_cleanup_policy: str
     log_message_timestamp_type: str
     ssl_cipher_suites: Optional[str]
+    ssl_principal_mapping_rules: Optional[str]
     replication_quota_window_num: int
     zookeeper_ssl_cipher_suites: Optional[str]
 

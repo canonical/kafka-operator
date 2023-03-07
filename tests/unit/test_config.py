@@ -195,6 +195,34 @@ def test_default_replication_properties_more_than_three(harness):
     assert "min.insync.replicas=2" in harness.charm.kafka_config.default_replication_properties
 
 
+def test_ssl_principal_mapping_rules(harness: Harness):
+    """Check that a change in ssl_principal_mapping_rules is reflected in server_properties."""
+    harness.add_relation(PEER, CHARM_KEY)
+    zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
+    harness.update_relation_data(
+        zk_relation_id,
+        harness.charm.app.name,
+        {
+            "chroot": "/kafka",
+            "username": "moria",
+            "password": "mellon",
+            "endpoints": "1.1.1.1,2.2.2.2",
+            "uris": "1.1.1.1:2181/kafka,2.2.2.2:2181/kafka",
+            "tls": "disabled",
+        },
+    )
+
+    with (
+        patch(
+            "config.KafkaConfig.internal_user_credentials",
+            new_callable=PropertyMock,
+            return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
+        )
+    ):
+        harness.update_config({"ssl_principal_mapping_rules": "erebor,DEFAULT"})
+        assert "ssl.principal.mapping.rules=erebor,DEFAULT" in harness.charm.kafka_config.server_properties
+
+
 def test_auth_properties(harness):
     """Checks necessary auth properties are present."""
     zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
