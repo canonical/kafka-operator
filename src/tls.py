@@ -299,7 +299,7 @@ class KafkaTLS(Object):
         """Cleans up all keys/certs/stores on a unit."""
         try:
             subprocess.check_output(
-                "rm -r *.pem *.key *.p12 *.jks",
+                "rm -rf *.pem *.key *.p12 *.jks",
                 stderr=subprocess.PIPE,
                 shell=True,
                 universal_newlines=True,
