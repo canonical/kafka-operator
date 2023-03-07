@@ -26,11 +26,9 @@ requires:
     optional: true
   trusted-ca:
     interface: tls-certificates
-    limit: 10
     optional: true
-  trusted-certificates:
+  trusted-certificate:
     interface: tls-certificates
-    limit: 10
     optional: true
 
 provides:

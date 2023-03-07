@@ -26,7 +26,7 @@ from ops.charm import (
 from ops.framework import Object
 from ops.model import ActiveStatus, BlockedStatus, Relation
 
-from literals import TLS_RELATION, TRUSTED_CA_RELATION, TRUSTED_CERTIFICATES_RELATION
+from literals import TLS_RELATION, TRUSTED_CA_RELATION, TRUSTED_CERTIFICATE_RELATION
 from snap import SNAP_CONFIG_PATH
 from utils import generate_password, parse_tls_file, safe_write_to_file
 
@@ -60,34 +60,23 @@ class KafkaTLS(Object):
         self.framework.observe(self.charm.on.set_tls_private_key_action, self._set_tls_private_key)
 
         # External certificates handlers (for mTLS)
-        self.framework.observe(
-            self.charm.on[TRUSTED_CERTIFICATES_RELATION].relation_created,
-            self._trusted_relation_created,
-        )
-        self.framework.observe(
-            self.charm.on[TRUSTED_CERTIFICATES_RELATION].relation_joined,
-            self._trusted_relation_joined,
-        )
-        self.framework.observe(
-            self.charm.on[TRUSTED_CERTIFICATES_RELATION].relation_changed,
-            self._trusted_relation_changed,
-        )
-        self.framework.observe(
-            self.charm.on[TRUSTED_CERTIFICATES_RELATION].relation_broken,
-            self._trusted_relation_broken,
-        )
-        self.framework.observe(
-            self.charm.on[TRUSTED_CA_RELATION].relation_created, self._trusted_relation_created
-        )
-        self.framework.observe(
-            self.charm.on[TRUSTED_CA_RELATION].relation_joined, self._trusted_relation_joined
-        )
-        self.framework.observe(
-            self.charm.on[TRUSTED_CA_RELATION].relation_changed, self._trusted_relation_changed
-        )
-        self.framework.observe(
-            self.charm.on[TRUSTED_CA_RELATION].relation_broken, self._trusted_relation_broken
-        )
+        for relation in [TRUSTED_CERTIFICATE_RELATION, TRUSTED_CA_RELATION]:
+            self.framework.observe(
+                self.charm.on[relation].relation_created,
+                self._trusted_relation_created,
+            )
+            self.framework.observe(
+                self.charm.on[relation].relation_joined,
+                self._trusted_relation_joined,
+            )
+            self.framework.observe(
+                self.charm.on[relation].relation_changed,
+                self._trusted_relation_changed,
+            )
+            self.framework.observe(
+                self.charm.on[relation].relation_broken,
+                self._trusted_relation_broken,
+            )
 
     def _tls_relation_created(self, _) -> None:
         """Handler for `certificates_relation_created` event."""
@@ -176,12 +165,12 @@ class KafkaTLS(Object):
         # hence using just the first item on the list.
         content = (
             provider_certificates[0]["certificate"]
-            if relation.name == TRUSTED_CERTIFICATES_RELATION
+            if relation.name == TRUSTED_CERTIFICATE_RELATION
             else provider_certificates[0]["ca"]
         )
         filename = (
             f"{alias}_cert.pem"
-            if relation.name == TRUSTED_CERTIFICATES_RELATION
+            if relation.name == TRUSTED_CERTIFICATE_RELATION
             else f"{alias}_ca.pem"
         )
 
@@ -202,7 +191,7 @@ class KafkaTLS(Object):
         # Get all relations, and remove the one being broken
         all_relations = (
             self.model.relations[TRUSTED_CA_RELATION]
-            + self.model.relations[TRUSTED_CERTIFICATES_RELATION]
+            + self.model.relations[TRUSTED_CERTIFICATE_RELATION]
         )
         all_relations.remove(relation)
         logger.debug(f"Remaining relations: {all_relations}")

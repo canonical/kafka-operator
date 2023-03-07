@@ -55,14 +55,14 @@ def harness():
     return harness
 
 
-def test_blocked_if_trusted_certificates_added_before_tls_relation(harness: Harness):
+def test_blocked_if_trusted_certificate_added_before_tls_relation(harness: Harness):
     # Create peer relation
     peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
     harness.add_relation_unit(peer_relation_id, "kafka/1")
     harness.update_relation_data(peer_relation_id, "kafka/0", {"private-address": "treebeard"})
 
     harness.set_leader(True)
-    harness.add_relation("trusted-certificates", "tls-one")
+    harness.add_relation("trusted-certificate", "tls-one")
 
     assert isinstance(harness.charm.app.status, BlockedStatus)
 
@@ -75,7 +75,7 @@ def test_mtls_flag_added(harness: Harness):
     harness.update_relation_data(peer_relation_id, "kafka", {"tls": "enabled"})
 
     harness.set_leader(True)
-    harness.add_relation("trusted-certificates", "tls-one")
+    harness.add_relation("trusted-certificate", "tls-one")
 
     peer_relation_data = harness.get_relation_data(peer_relation_id, "kafka")
     assert peer_relation_data.get("mtls", "disabled") == "enabled"
