@@ -9,8 +9,6 @@ import subprocess
 from typing import MutableMapping, Optional
 
 from charms.data_platform_libs.v0.data_models import TypedCharmBase
-from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
-from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from charms.rolling_ops.v0.rollingops import RollingOpsManager, RunWithLock
 from ops.charm import (
     ActionEvent,
@@ -60,12 +58,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.tls = KafkaTLS(self)
         self.provider = KafkaProvider(self)
         self.restart = RollingOpsManager(self, relation="restart", callback=self._restart)
-        self.grafana_dashboards = GrafanaDashboardProvider(self)
-        self.metrics_endpoint = MetricsEndpointProvider(
-            self,
-            refresh_event=self.on.start,
-            jobs=[{"static_configs": [{"targets": ["*:9100", "*:9101"]}]}],
-        )
 
         self.framework.observe(getattr(self.on, "start"), self._on_start)
         self.framework.observe(getattr(self.on, "install"), self._on_install)

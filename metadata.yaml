@@ -36,10 +36,6 @@ requires:
 provides:
   kafka-client:
     interface: kafka_client
-  metrics-endpoint:
-    interface: prometheus_scrape
-  grafana-dashboard:
-    interface: grafana_dashboard
 
 storage:
   log-data:
