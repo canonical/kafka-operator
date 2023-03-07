@@ -60,7 +60,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.restart = RollingOpsManager(self, relation="restart", callback=self._restart)
         self.grafana_dashboards = GrafanaDashboardProvider(self)
         self.metrics_endpoint = MetricsEndpointProvider(
-            self, jobs=[{"static_configs": [{"targets": ["*:9100", "*:9101"]}]}]
+            self,
+            refresh_event=self.on.start,
+            jobs=[{"static_configs": [{"targets": ["*:9100", "*:9101"]}]}],
         )
 
         self.framework.observe(getattr(self.on, "start"), self._on_start)
