@@ -44,13 +44,17 @@ async def test_deploy_charms_relate_active(
             app_charm, application_name=DUMMY_NAME_1, num_units=1, series="jammy"
         ),
     )
-    await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_1, ZK])
+    await ops_test.model.wait_for_idle(
+        apps=[APP_NAME, DUMMY_NAME_1, ZK], timeout=1800, idle_period=30
+    )
     await ops_test.model.add_relation(APP_NAME, ZK)
-    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK])
+    await ops_test.model.wait_for_idle(
+        apps=[APP_NAME, ZK], status="active", idle_period=30, timeout=1800
+    )
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_CONSUMER}")
-    await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_1])
-    assert ops_test.model.applications[APP_NAME].status == "active"
-    assert ops_test.model.applications[DUMMY_NAME_1].status == "active"
+    await ops_test.model.wait_for_idle(
+        apps=[APP_NAME, DUMMY_NAME_1], status="active", idle_period=30, timeout=1800
+    )
 
     # implicitly tests setting of kafka app data
     returned_usernames, zookeeper_uri = get_zookeeper_connection(
@@ -78,7 +82,7 @@ async def test_deploy_multiple_charms_same_topic_relate_active(
     ops_test: OpsTest, app_charm, usernames: Set[str]
 ):
     """Test relation with multiple applications."""
-    await ops_test.model.deploy(app_charm, application_name=DUMMY_NAME_2, num_units=1),
+    await ops_test.model.deploy(app_charm, application_name=DUMMY_NAME_2, num_units=1)
     await ops_test.model.wait_for_idle(apps=[DUMMY_NAME_2])
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_2}:{REL_NAME_CONSUMER}")
     await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_2])
@@ -213,7 +217,7 @@ async def test_admin_removed_from_super_users(ops_test: OpsTest):
 @pytest.mark.abort_on_fail
 async def test_connection_updated_on_tls_enabled(ops_test: OpsTest, app_charm):
     """Test relation when TLS is enabled."""
-    await ops_test.model.deploy(app_charm, application_name=DUMMY_NAME_1, num_units=1),
+    await ops_test.model.deploy(app_charm, application_name=DUMMY_NAME_1, num_units=1)
     await ops_test.model.wait_for_idle(apps=[DUMMY_NAME_1])
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_CONSUMER}")
     await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_1])

@@ -41,7 +41,7 @@ async def test_deploy_tls(ops_test: OpsTest, kafka_charm):
         ops_test.model.deploy(kafka_charm, application_name=APP_NAME, series="jammy"),
     )
     await ops_test.model.block_until(lambda: len(ops_test.model.applications[ZK_NAME].units) == 3)
-    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME, TLS_NAME], timeout=1000)
+    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME, TLS_NAME], timeout=1800)
 
     assert ops_test.model.applications[APP_NAME].status == "waiting"
     assert ops_test.model.applications[ZK_NAME].status == "active"
