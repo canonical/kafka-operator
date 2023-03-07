@@ -30,7 +30,7 @@ jobs:
     name: Release to CharmHub
     needs:
       - lib-check
-      - ci-test
+      - ci-tests
     runs-on: ubuntu-22.04
     timeout-minutes: 60
     steps:
