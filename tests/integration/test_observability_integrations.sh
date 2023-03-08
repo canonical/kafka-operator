@@ -21,8 +21,8 @@ k8s_ctl=$K8S_CONTROLLER  # thr script depends on this ENVVAR to be set
 sg $microk8s_group -c "juju switch $k8s_ctl"
 sg $microk8s_group -c "juju add-model $k8s_mdl"
 
-sg $microk8s_group -c "juju deploy --channel=edge grafana-k8s grafana"
-sg $microk8s_group -c "juju offer $k8s_mdl.grafana:grafana-dashboard"
+sg $microk8s_group -c "juju deploy --channel=edge prometheus-k8s prometheus"
+sg $microk8s_group -c "juju offer $k8s_mdl.prometheus:receive-remote-write"
 
 # Now hand over back to the python script
 

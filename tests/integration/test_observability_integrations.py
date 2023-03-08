@@ -36,9 +36,19 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
 
     # TODO: parametrize the model name "cos"
     await ops_test.model.consume(
-        "admin/cos.grafana",
-        application_alias="grafana",
+        "admin/cos.prometheus",
+        application_alias="prometheus",
         controller_name=os.environ["K8S_CONTROLLER"],
     )
-    await ops_test.model.add_relation(APP_NAME, "grafana")
+    # TODO:
+    #  - Enable metallb as part of CI
+    #  - Relate prom to traefik
+
+    await asyncio.gather(
+        ops_test.model.deploy("ch:grafana-agent-operator", application_name="agent", num_units=1, series="jammy"),
+    )
+    await ops_test.model.add_relation("agent", "prometheus")
+    await ops_test.model.add_relation(f"{APP_NAME}:cos-machine", "agent")
     await ops_test.model.wait_for_idle()
+
+    # TODO: Assert that kafka metrics appear in prometheus
