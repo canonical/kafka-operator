@@ -12,6 +12,7 @@ from typing import List, Optional
 
 logger = logging.getLogger(__name__)
 
+
 def safe_get_file(filepath: str) -> Optional[List[str]]:
     """Load file contents from charm workload.
 
