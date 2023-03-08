@@ -1,11 +1,12 @@
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-make-admin:
-  description: Adds admin to relation data
+create-keystore:
+  description: Creates JKS keystore on unit
 
-remove-admin:
-  description: Adds admin to relation data
-
-change-topic:
-  description: Changes topic
+create-truststore:
+  description: Creates JKS truststore on unit
+  params:
+    broker-ca:
+      type: string
+      description: The CA used for broker identity from certificates relation

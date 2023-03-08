@@ -151,3 +151,6 @@ async def test_kafka_tls_scaling(ops_test: OpsTest):
     )
     await ops_test.model.wait_for_idle(apps=[APP_NAME])
     assert not check_tls(ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL"].client)
+
+async def test_mtls(ops_test: OpsTest)
+      
