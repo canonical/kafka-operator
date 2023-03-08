@@ -185,6 +185,15 @@ def extract_private_key(data: dict, unit: int = 0) -> Optional[str]:
     return list_keys[0] if len(list_keys) else None
 
 
+def extract_ca(data: dict, unit: int = 0) -> Optional[str]:
+    list_keys = [
+        element["local-unit"]["data"]["ca"]
+        for element in data[f"{APP_NAME}/{unit}"]["relation-info"]
+        if element["endpoint"] == "cluster"
+    ]
+    return list_keys[0] if len(list_keys) else None
+
+
 def check_socket(host: str, port: int) -> bool:
     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
         return sock.connect_ex((host, port)) == 0
@@ -279,6 +288,18 @@ async def run_client_properties(ops_test: OpsTest) -> str:
     )
     result = check_output(
         f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 'charmed-kafka.configs --bootstrap-server {bootstrap_server} --describe --all --command-config {SNAP_CONFIG_PATH}/client.properties --entity-type users'",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+
+    return result
+
+
+async def set_mtls_client_acls(ops_test: OpsTest, bootstrap_server: str) -> str:
+    """Adds ACLs for principal `User:client` and `TEST-TOPIC`."""
+    result = check_output(
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.acls --bootstrap-server {bootstrap_server} --add --allow-principal=User:client --operation READ --operation WRITE --operation CREATE --topic TEST-TOPIC --command-config {SNAP_CONFIG_PATH}/client.properties'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
