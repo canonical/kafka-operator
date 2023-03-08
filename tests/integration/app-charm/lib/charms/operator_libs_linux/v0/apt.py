@@ -78,7 +78,6 @@ Keys are constructed as `{repo_type}-{}-{release}` in order to uniquely identify
 Repositories can be added with explicit values through a Python constructor.
 
 Example:
-
 ```python
 repositories = apt.RepositoryMapping()
 
@@ -91,7 +90,6 @@ Alternatively, any valid `sources.list` line may be used to construct a new
 `DebianRepository`.
 
 Example:
-
 ```python
 repositories = apt.RepositoryMapping()
 

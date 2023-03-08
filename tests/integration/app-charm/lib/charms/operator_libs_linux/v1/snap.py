@@ -113,7 +113,7 @@ class SnapService:
         enabled: bool = False,
         active: bool = False,
         activators: List[str] = [],
-        **kwargs
+        **kwargs,
     ):
         self.daemon = daemon
         self.daemon_scope = kwargs.get("daemon-scope", None) or daemon_scope
@@ -915,9 +915,7 @@ def _wrap_snap_operations(
 
     if len(snaps["failed"]):
         raise SnapError(
-            "Failed to install or refresh snap(s): {}".format(
-                ", ".join([s for s in snaps["failed"]])
-            )
+            "Failed to install or refresh snap(s): {}".format(", ".join(list(snaps["failed"])))
         )
 
     return snaps["success"] if len(snaps["success"]) > 1 else snaps["success"][0]
