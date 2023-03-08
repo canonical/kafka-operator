@@ -45,7 +45,9 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
     #  - Relate prom to traefik
 
     await asyncio.gather(
-        ops_test.model.deploy("ch:grafana-agent-operator", application_name="agent", num_units=1, series="jammy"),
+        ops_test.model.deploy(
+            "ch:grafana-agent-operator", application_name="agent", num_units=1, series="jammy"
+        ),
     )
     await ops_test.model.add_relation("agent", "prometheus")
     await ops_test.model.add_relation(f"{APP_NAME}:cos-machine", "agent")
