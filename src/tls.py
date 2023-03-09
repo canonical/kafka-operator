@@ -134,10 +134,18 @@ class KafkaTLS(Object):
 
     def _trusted_relation_joined(self, event: RelationJoinedEvent) -> None:
         """Generate a CSR so the tls-certificates operator works as expected."""
+        if not event.app:
+            return
+
+        if not self.private_key or self.keystore_password or self.truststore_password:
+            logger.debug("Missing TLS relation, deferring")
+            event.defer()
+            return
+
         alias = self.generate_alias(app_name=event.app.name, relation_id=event.relation.id)
         csr = (
             generate_csr(
-                add_unique_id_to_subject_name=alias,
+                add_unique_id_to_subject_name=bool(alias),
                 private_key=self.private_key.encode("utf-8"),
                 subject=self.charm.unit_peer_data.get("private-address", ""),
                 **self._sans,
@@ -151,8 +159,15 @@ class KafkaTLS(Object):
 
     def _trusted_relation_changed(self, event: RelationChangedEvent) -> None:
         """Overrides the requirer logic of TLSInterface."""
-        relation = event.relation
-        relation_data = _load_relation_data(relation.data[relation.app])
+        if not self.private_key or self.keystore_password or self.truststore_password:
+            logger.debug("Missing TLS relation, deferring")
+            event.defer()
+            return
+
+        if not event.relation or not event.relation.app:
+            return
+
+        relation_data = _load_relation_data(dict(event.relation.data[event.relation.app]))
         provider_certificates = relation_data.get("certificates", [])
 
         if not provider_certificates:
@@ -160,17 +175,17 @@ class KafkaTLS(Object):
             event.defer()
             return
 
-        alias = self.generate_alias(relation.app.name, relation.id)
+        alias = self.generate_alias(event.relation.app.name, event.relation.id)
         # NOTE: Relation should only be used with one set of certificates,
         # hence using just the first item on the list.
         content = (
             provider_certificates[0]["certificate"]
-            if relation.name == TRUSTED_CERTIFICATE_RELATION
+            if event.relation.name == TRUSTED_CERTIFICATE_RELATION
             else provider_certificates[0]["ca"]
         )
         filename = (
             f"{alias}_cert.pem"
-            if relation.name == TRUSTED_CERTIFICATE_RELATION
+            if event.relation.name == TRUSTED_CERTIFICATE_RELATION
             else f"{alias}_ca.pem"
         )
 
@@ -179,9 +194,13 @@ class KafkaTLS(Object):
 
     def _trusted_relation_broken(self, event: RelationBrokenEvent) -> None:
         """Handle relation broken for a trusted certificate/ca relation."""
+        if not event.relation or not event.relation.app:
+            return
+
         # All units will need to remove the cert from their truststore
-        relation = event.relation
-        alias = self.generate_alias(app_name=relation.app.name, relation_id=relation.id)
+        alias = self.generate_alias(
+            app_name=event.relation.app.name, relation_id=event.relation.id
+        )
         self.remove_cert(alias=alias)
 
         # The leader will also handle removing the "mtls" flag if needed
@@ -193,7 +212,7 @@ class KafkaTLS(Object):
             self.model.relations[TRUSTED_CA_RELATION]
             + self.model.relations[TRUSTED_CERTIFICATE_RELATION]
         )
-        all_relations.remove(relation)
+        all_relations.remove(event.relation)
         logger.debug(f"Remaining relations: {all_relations}")
 
         # No relations means that there are no certificates left in the truststore
