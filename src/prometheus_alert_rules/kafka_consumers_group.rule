@@ -1,0 +1,8 @@
+alert: KafkaConsumersGroup
+expr: sum(kafka_consumergroup_lag) by (consumergroup) > 50
+for: 1m
+labels:
+  severity: critical
+annotations:
+  summary: Kafka consumers group (instance {{ $labels.instance }})
+  description: "Kafka consumers group\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"

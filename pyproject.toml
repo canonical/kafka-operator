@@ -32,6 +32,7 @@ authors = [""]
 python = ">=3.8"
 ops = ">=2.0.0"
 kazoo = ">=2.8.0"
+cosl = ">= 0.0.5"
 tenacity = ">=8.0.1"
 pure-sasl = ">=0.6.2"
 jsonschema = ">=4.10"

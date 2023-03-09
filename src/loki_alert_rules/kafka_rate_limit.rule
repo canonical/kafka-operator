@@ -1,0 +1,8 @@
+alert: KafkaRateLimit
+expr: count_over_time({job=~".+"} |~ "(too many requests|rate.limit)" [1m]) > 10
+for: 0m
+labels:
+  severity: critical
+annotations:
+  summary: Kafka is rate limiting requests (instance {{ $labels.instance }})
+  description: "Kafka is rate limiting requests!\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
