@@ -13,6 +13,7 @@ from ops.model import Unit
 from literals import (
     ADMIN_USER,
     INTER_BROKER_USER,
+    INTERNAL_USERS,
     PEER,
     REL_NAME,
     SECURITY_PROTOCOL_PORTS,
@@ -114,11 +115,16 @@ class KafkaConfig:
         Returns:
             Dict of usernames and passwords
         """
-        return {
+        credentials = {
             user: password
-            for user in [INTER_BROKER_USER, ADMIN_USER]
+            for user in INTERNAL_USERS
             if (password := self.charm.get_secret(scope="app", key=f"{user}-password"))
         }
+
+        if not len(credentials) == len(INTERNAL_USERS):
+            return {}
+
+        return credentials
 
     @property
     def zookeeper_config(self) -> Dict[str, str]:
@@ -154,12 +160,21 @@ class KafkaConfig:
         return zookeeper_config
 
     @property
+    def zookeeper_related(self) -> bool:
+        """Checks if there is a relation with ZooKeeper.
+
+        Returns:
+            True if there is a ZooKeeper relation. Otherwise False
+        """
+        return bool(self.charm.model.relations[ZK])
+
+    @property
     def zookeeper_connected(self) -> bool:
-        """Checks if there is an active ZooKeeper relation.
+        """Checks if there is an active ZooKeeper relation with all necessary data.
 
         Returns:
             True if ZooKeeper is currently related with sufficient relation data
-                for a broker to connect with. False otherwise.
+                for a broker to connect with. Otherwise False
         """
         if self.zookeeper_config.get("connect", None):
             return True
@@ -335,7 +350,7 @@ class KafkaConfig:
         Returns:
             Semicolon delimited string of current super users
         """
-        super_users = [INTER_BROKER_USER, ADMIN_USER]
+        super_users = INTERNAL_USERS
         for relation in self.charm.model.relations[REL_NAME]:
             extra_user_roles = relation.data[relation.app].get("extra-user-roles", "")
             password = (
