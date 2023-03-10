@@ -366,12 +366,9 @@ class KafkaTLS(Object):
     @property
     def _sans(self) -> Dict[str, List[str]]:
         """Builds a SAN dict of DNS names and IPs for the unit."""
-        unit_host = self.peer_relation.data[self.charm.unit].get("private-address", "")
-        unit_name = self.charm.unit.name
-
         return {
-            "sans_ip": [unit_host],
-            "sans_dns": [unit_name, socket.getfqdn()],
+            "sans_ip": [self.charm.unit_host],
+            "sans_dns": [self.charm.unit.name, socket.getfqdn()],
         }
 
     def generate_alias(self, app_name: str, relation_id: int) -> str:
