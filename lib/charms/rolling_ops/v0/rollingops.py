@@ -72,7 +72,7 @@ omit the successful units from a subsequent run-action call.)
 """
 import logging
 from enum import Enum
-from typing import AnyStr, Callable
+from typing import AnyStr, Callable, Optional
 
 from ops.charm import ActionEvent, CharmBase, RelationChangedEvent
 from ops.framework import EventBase, Object
@@ -88,7 +88,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 2
+LIBPATCH = 3
 
 
 class LockNoRelationError(Exception):
@@ -261,7 +261,15 @@ class RunWithLock(EventBase):
 class AcquireLock(EventBase):
     """Signals that this unit wants to acquire a lock."""
 
-    pass
+    def __init__(self, handle, callback_override: Optional[str] = None):
+        super().__init__(handle)
+        self.callback_override = callback_override or ""
+
+    def snapshot(self):
+        return {"callback_override": self.callback_override}
+
+    def restore(self, snapshot):
+        self.callback_override = snapshot["callback_override"]
 
 
 class ProcessLocks(EventBase):
@@ -374,6 +382,9 @@ class RollingOpsManager(Object):
             Lock(self).acquire()  # Updates relation data
             # emit relation changed event in the edge case where aquire does not
             relation = self.model.get_relation(self.name)
+
+            # persist callback override for eventual run
+            relation.data[self.charm.unit].update({"callback_override": event.callback_override})
             self.charm.on[self.name].relation_changed.emit(relation)
         except LockNoRelationError:
             logger.debug("No {} peer relation yet. Delaying rolling op.".format(self.name))
@@ -382,9 +393,19 @@ class RollingOpsManager(Object):
     def _on_run_with_lock(self: CharmBase, event: RunWithLock):
         lock = Lock(self)
         self.model.unit.status = MaintenanceStatus("Executing {} operation".format(self.name))
-        self._callback(event)
+        relation = self.model.get_relation(self.name)
+
+        # default to instance callback if not set
+        callback_name = relation.data[self.charm.unit].get(
+            "callback_override", self._callback.__name__
+        )
+        callback = getattr(self.charm, callback_name)
+        callback(event)
+
         lock.release()  # Updates relation data
         if lock.unit == self.model.unit:
             self.charm.on[self.name].process_locks.emit()
 
+        # cleanup old callback overrides
+        relation.data[self.charm.unit].update({"callback_override": ""})
         self.model.unit.status = ActiveStatus()
