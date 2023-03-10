@@ -78,7 +78,6 @@ Keys are constructed as `{repo_type}-{}-{release}` in order to uniquely identify
 Repositories can be added with explicit values through a Python constructor.
 
 Example:
-
 ```python
 repositories = apt.RepositoryMapping()
 
@@ -91,7 +90,6 @@ Alternatively, any valid `sources.list` line may be used to construct a new
 `DebianRepository`.
 
 Example:
-
 ```python
 repositories = apt.RepositoryMapping()
 
@@ -124,7 +122,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 7
+LIBPATCH = 11
 
 
 VALID_SOURCE_TYPES = ("deb", "deb-src")
@@ -135,7 +133,7 @@ class Error(Exception):
     """Base class of most errors raised by this library."""
 
     def __repr__(self):
-        """String representation of Error."""
+        """Represent the Error."""
         return "<{}.{} {}>".format(type(self).__module__, type(self).__name__, self.args)
 
     @property
@@ -212,15 +210,15 @@ class DebianPackage:
         ) == (other._name, other._version.number)
 
     def __hash__(self):
-        """A basic hash so this class can be used in Mappings and dicts."""
+        """Return a hash of this package."""
         return hash((self._name, self._version.number))
 
     def __repr__(self):
-        """A representation of the package."""
+        """Represent the package."""
         return "<{}.{}: {}>".format(self.__module__, self.__class__.__name__, self.__dict__)
 
     def __str__(self):
-        """A human-readable representation of the package."""
+        """Return a human-readable representation of the package."""
         return "<{}: {}-{}.{} -- {}>".format(
             self.__class__.__name__,
             self._name,
@@ -250,7 +248,9 @@ class DebianPackage:
             package_names = [package_names]
         _cmd = ["apt-get", "-y", *optargs, command, *package_names]
         try:
-            check_call(_cmd, stderr=PIPE, stdout=PIPE)
+            env = os.environ.copy()
+            env["DEBIAN_FRONTEND"] = "noninteractive"
+            check_call(_cmd, env=env, stderr=PIPE, stdout=PIPE)
         except CalledProcessError as e:
             raise PackageError(
                 "Could not {} package(s) [{}]: {}".format(command, [*package_names], e.output)
@@ -265,7 +265,7 @@ class DebianPackage:
         )
 
     def _remove(self) -> None:
-        """Removes a package from the system. Implementation-specific."""
+        """Remove a package from the system. Implementation-specific."""
         return self._apt("remove", "{}={}".format(self.name, self.version))
 
     @property
@@ -274,7 +274,7 @@ class DebianPackage:
         return self._name
 
     def ensure(self, state: PackageState):
-        """Ensures that a package is in a given state.
+        """Ensure that a package is in a given state.
 
         Args:
           state: a `PackageState` to reconcile the package to
@@ -306,7 +306,7 @@ class DebianPackage:
 
     @state.setter
     def state(self, state: PackageState) -> None:
-        """Sets the package state to a given value.
+        """Set the package state to a given value.
 
         Args:
           state: a `PackageState` to reconcile the package to
@@ -355,7 +355,7 @@ class DebianPackage:
 
         Args:
             package: a string representing the package
-            version: an optional string if a specific version isr equested
+            version: an optional string if a specific version is requested
             arch: an optional architecture, defaulting to `dpkg --print-architecture`. If an
                 architecture is not specified, this will be used for selection.
 
@@ -388,7 +388,7 @@ class DebianPackage:
 
         Args:
             package: a string representing the package
-            version: an optional string if a specific version isr equested
+            version: an optional string if a specific version is requested
             arch: an optional architecture, defaulting to `dpkg --print-architecture`.
                 If an architecture is not specified, this will be used for selection.
         """
@@ -458,7 +458,7 @@ class DebianPackage:
 
         Args:
             package: a string representing the package
-            version: an optional string if a specific version isr equested
+            version: an optional string if a specific version is requested
             arch: an optional architecture, defaulting to `dpkg --print-architecture`.
                 If an architecture is not specified, this will be used for selection.
         """
@@ -514,7 +514,7 @@ class Version:
     """An abstraction around package versions.
 
     This seems like it should be strictly unnecessary, except that `apt_pkg` is not usable inside a
-    venv, and wedging version comparisions into `DebianPackage` would overcomplicate it.
+    venv, and wedging version comparisons into `DebianPackage` would overcomplicate it.
 
     This class implements the algorithm found here:
     https://www.debian.org/doc/debian-policy/ch-controlfields.html#version
@@ -525,11 +525,11 @@ class Version:
         self._epoch = epoch or ""
 
     def __repr__(self):
-        """A representation of the package."""
+        """Represent the package."""
         return "<{}.{}: {}>".format(self.__module__, self.__class__.__name__, self.__dict__)
 
     def __str__(self):
-        """A human-readable representation of the package."""
+        """Return human-readable representation of the package."""
         return "{}{}".format("{}:".format(self._epoch) if self._epoch else "", self._version)
 
     @property
@@ -730,13 +730,16 @@ def add_package(
     """Add a package or list of packages to the system.
 
     Args:
+        package_names: single package name, or list of package names
         name: the name(s) of the package(s)
         version: an (Optional) version as a string. Defaults to the latest known
         arch: an optional architecture for the package
         update_cache: whether or not to run `apt-get update` prior to operating
 
     Raises:
+        TypeError if no package name is given, or explicit version is set for multiple packages
         PackageNotFoundError if the package is not in the cache.
+        PackageError if packages fail to install
     """
     cache_refreshed = False
     if update_cache:
@@ -784,7 +787,7 @@ def _add(
     version: Optional[str] = "",
     arch: Optional[str] = "",
 ) -> Tuple[Union[DebianPackage, str], bool]:
-    """Adds a package.
+    """Add a package to the system.
 
     Args:
         name: the name(s) of the package(s)
@@ -805,7 +808,7 @@ def _add(
 def remove_package(
     package_names: Union[str, List[str]]
 ) -> Union[DebianPackage, List[DebianPackage]]:
-    """Removes a package from the system.
+    """Remove package(s) from the system.
 
     Args:
         package_names: the name of a package
@@ -833,8 +836,70 @@ def remove_package(
 
 
 def update() -> None:
-    """Updates the apt cache via `apt-get update`."""
+    """Update the apt cache via `apt-get update`."""
     check_call(["apt-get", "update"], stderr=PIPE, stdout=PIPE)
+
+
+def import_key(key: str) -> str:
+    """Import an ASCII Armor key.
+
+    A Radix64 format keyid is also supported for backwards
+    compatibility. In this case Ubuntu keyserver will be
+    queried for a key via HTTPS by its keyid. This method
+    is less preferable because https proxy servers may
+    require traffic decryption which is equivalent to a
+    man-in-the-middle attack (a proxy server impersonates
+    keyserver TLS certificates and has to be explicitly
+    trusted by the system).
+
+    Args:
+        key: A GPG key in ASCII armor format, including BEGIN
+            and END markers or a keyid.
+
+    Returns:
+        The GPG key filename written.
+
+    Raises:
+        GPGKeyError if the key could not be imported
+    """
+    key = key.strip()
+    if "-" in key or "\n" in key:
+        # Send everything not obviously a keyid to GPG to import, as
+        # we trust its validation better than our own. eg. handling
+        # comments before the key.
+        logger.debug("PGP key found (looks like ASCII Armor format)")
+        if (
+            "-----BEGIN PGP PUBLIC KEY BLOCK-----" in key
+            and "-----END PGP PUBLIC KEY BLOCK-----" in key
+        ):
+            logger.debug("Writing provided PGP key in the binary format")
+            key_bytes = key.encode("utf-8")
+            key_name = DebianRepository._get_keyid_by_gpg_key(key_bytes)
+            key_gpg = DebianRepository._dearmor_gpg_key(key_bytes)
+            gpg_key_filename = "/etc/apt/trusted.gpg.d/{}.gpg".format(key_name)
+            DebianRepository._write_apt_gpg_keyfile(
+                key_name=gpg_key_filename, key_material=key_gpg
+            )
+            return gpg_key_filename
+        else:
+            raise GPGKeyError("ASCII armor markers missing from GPG key")
+    else:
+        logger.warning(
+            "PGP key found (looks like Radix64 format). "
+            "SECURELY importing PGP key from keyserver; "
+            "full key not provided."
+        )
+        # as of bionic add-apt-repository uses curl with an HTTPS keyserver URL
+        # to retrieve GPG keys. `apt-key adv` command is deprecated as is
+        # apt-key in general as noted in its manpage. See lp:1433761 for more
+        # history. Instead, /etc/apt/trusted.gpg.d is used directly to drop
+        # gpg
+        key_asc = DebianRepository._get_key_by_keyid(key)
+        # write the key in GPG format so that apt-key list shows it
+        key_gpg = DebianRepository._dearmor_gpg_key(key_asc.encode("utf-8"))
+        gpg_key_filename = "/etc/apt/trusted.gpg.d/{}.gpg".format(key)
+        DebianRepository._write_apt_gpg_keyfile(key_name=gpg_key_filename, key_material=key_gpg)
+        return gpg_key_filename
 
 
 class InvalidSourceError(Error):
@@ -900,7 +965,7 @@ class DebianRepository:
 
     @filename.setter
     def filename(self, fname: str) -> None:
-        """Sets the filename used when a repo is written back to diskself.
+        """Set the filename used when a repo is written back to disk.
 
         Args:
             fname: a filename to write the repository information to.
@@ -1003,7 +1068,7 @@ class DebianRepository:
         A Radix64 format keyid is also supported for backwards
         compatibility. In this case Ubuntu keyserver will be
         queried for a key via HTTPS by its keyid. This method
-        is less preferrable because https proxy servers may
+        is less preferable because https proxy servers may
         require traffic decryption which is equivalent to a
         man-in-the-middle attack (a proxy server impersonates
         keyserver TLS certificates and has to be explicitly
@@ -1016,40 +1081,7 @@ class DebianRepository:
         Raises:
           GPGKeyError if the key could not be imported
         """
-        key = key.strip()
-        if "-" in key or "\n" in key:
-            # Send everything not obviously a keyid to GPG to import, as
-            # we trust its validation better than our own. eg. handling
-            # comments before the key.
-            logger.debug("PGP key found (looks like ASCII Armor format)")
-            if (
-                "-----BEGIN PGP PUBLIC KEY BLOCK-----" in key
-                and "-----END PGP PUBLIC KEY BLOCK-----" in key
-            ):
-                logger.debug("Writing provided PGP key in the binary format")
-                key_bytes = key.encode("utf-8")
-                key_name = self._get_keyid_by_gpg_key(key_bytes)
-                key_gpg = self._dearmor_gpg_key(key_bytes)
-                self._gpg_key_filename = "/etc/apt/trusted.gpg.d/{}.gpg".format(key_name)
-                self._write_apt_gpg_keyfile(key_name=self._gpg_key_filename, key_material=key_gpg)
-            else:
-                raise GPGKeyError("ASCII armor markers missing from GPG key")
-        else:
-            logger.warning(
-                "PGP key found (looks like Radix64 format). "
-                "SECURELY importing PGP key from keyserver; "
-                "full key not provided."
-            )
-            # as of bionic add-apt-repository uses curl with an HTTPS keyserver URL
-            # to retrieve GPG keys. `apt-key adv` command is deprecated as is
-            # apt-key in general as noted in its manpage. See lp:1433761 for more
-            # history. Instead, /etc/apt/trusted.gpg.d is used directly to drop
-            # gpg
-            key_asc = self._get_key_by_keyid(key)
-            # write the key in GPG format so that apt-key list shows it
-            key_gpg = self._dearmor_gpg_key(key_asc.encode("utf-8"))
-            self._gpg_key_filename = "/etc/apt/trusted.gpg.d/{}.gpg".format(key)
-            self._write_apt_gpg_keyfile(key_name=key, key_material=key_gpg)
+        self._gpg_key_filename = import_key(key)
 
     @staticmethod
     def _get_keyid_by_gpg_key(key_material: bytes) -> str:
@@ -1115,7 +1147,7 @@ class DebianRepository:
 
     @staticmethod
     def _dearmor_gpg_key(key_asc: bytes) -> bytes:
-        """Converts a GPG key in the ASCII armor format to the binary format.
+        """Convert a GPG key in the ASCII armor format to the binary format.
 
         Args:
           key_asc: A GPG key in ASCII armor format.
@@ -1139,7 +1171,7 @@ class DebianRepository:
 
     @staticmethod
     def _write_apt_gpg_keyfile(key_name: str, key_material: bytes) -> None:
-        """Writes GPG key material into a file at a provided path.
+        """Write GPG key material into a file at a provided path.
 
         Args:
           key_name: A key name to use for a key file (could be a fingerprint)
@@ -1187,7 +1219,7 @@ class RepositoryMapping(Mapping):
         return len(self._repository_map)
 
     def __iter__(self) -> Iterable[DebianRepository]:
-        """Iterator magic method for RepositoryMapping."""
+        """Return iterator for RepositoryMapping."""
         return iter(self._repository_map.values())
 
     def __getitem__(self, repository_uri: str) -> DebianRepository:
