@@ -12,7 +12,7 @@ import secrets
 import string
 from typing import Dict, List, Optional, Set
 
-from charms.zookeeper.v0.client import ZooKeeperManager
+from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManager
 from kazoo.exceptions import AuthFailedError, NoNodeError
 from ops.model import Unit
 from tenacity import retry
@@ -66,7 +66,7 @@ def get_active_brokers(zookeeper_config: Dict[str, str]) -> Set[str]:
     try:
         brokers = zk.leader_znodes(path=path)
     # auth might not be ready with ZK after relation yet
-    except (NoNodeError, AuthFailedError) as e:
+    except (NoNodeError, AuthFailedError, QuorumLeaderNotFoundError) as e:
         logger.debug(str(e))
         return set()
 

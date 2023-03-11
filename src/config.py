@@ -350,7 +350,7 @@ class KafkaConfig:
         Returns:
             Semicolon delimited string of current super users
         """
-        super_users = INTERNAL_USERS
+        super_users = set(INTERNAL_USERS)
         for relation in self.charm.model.relations[REL_NAME]:
             extra_user_roles = relation.data[relation.app].get("extra-user-roles", "")
             password = (
@@ -360,7 +360,7 @@ class KafkaConfig:
             )
             # if passwords are set for client admins, they're good to load
             if "admin" in extra_user_roles and password is not None:
-                super_users.append(f"relation-{relation.id}")
+                super_users.add(f"relation-{relation.id}")
 
         super_users_arg = [f"User:{user}" for user in super_users]
 
