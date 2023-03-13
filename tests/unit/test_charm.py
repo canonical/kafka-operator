@@ -13,7 +13,7 @@ from ops.testing import Harness
 from tenacity.wait import wait_none
 
 from charm import KafkaCharm
-from literals import ADMIN_USER, CHARM_KEY, INTER_BROKER_USER, INTERNAL_USERS, PEER, REL_NAME, ZK
+from literals import CHARM_KEY, INTERNAL_USERS, PEER, REL_NAME, ZK
 
 logger = logging.getLogger(__name__)
 
@@ -83,13 +83,18 @@ def test_zookeeper_changed_sets_passwords_and_creates_users(harness):
     with (
         patch("config.KafkaConfig.zookeeper_connected", return_value=True),
         patch("auth.KafkaAuth.add_user") as patched_add_user,
+        patch("config.KafkaConfig.set_zk_jaas_config") as patched_set_zk_jaas,
+        patch("config.KafkaConfig.set_server_properties") as patched_set_server_properties,
     ):
-
         harness.update_relation_data(zk_rel_id, ZK, {"username": "glorfindel"})
         for user in INTERNAL_USERS:
             assert harness.charm.app_peer_data.get(f"{user}-password", None)
 
-        logger.info(dir(patched_add_user))
+        patched_set_zk_jaas.assert_called_once()
+        patched_set_server_properties.assert_called_once()
+
+        for call in patched_add_user.kwargs.get("username", []):
+            assert call in INTERNAL_USERS
 
 
 def test_zookeeper_joined_sets_chroot(harness):
@@ -145,38 +150,6 @@ def test_start_sets_necessary_config(harness):
         patched_jaas.assert_called_once()
         patched_server_properties.assert_called_once()
         patched_client_properties.assert_called_once()
-
-
-def test_start_sets_auth_and_broker_creds_on_leader(harness):
-    """Checks inter-broker user is created on leader on start hook."""
-    harness.add_relation(PEER, CHARM_KEY)
-    zk_rel_id = harness.add_relation(ZK, ZK)
-    harness.add_relation_unit(zk_rel_id, "zookeeper/0")
-
-    with (
-        patch("auth.KafkaAuth.add_user") as patched_add_user,
-        patch("config.KafkaConfig.set_zk_jaas_config"),
-        patch("config.KafkaConfig.set_server_properties"),
-        patch("config.KafkaConfig.set_client_properties"),
-        patch("charm.broker_active"),
-        patch("snap.KafkaSnap.start_snap_service"),
-        patch("config.KafkaConfig.zookeeper_connected", return_value=True),
-        patch("charm.KafkaCharm.ready_to_start", return_value=True),
-    ):
-        # verify non-leader does not set creds
-        harness.update_relation_data(zk_rel_id, ZK, {"username": "glorfindel"})
-        harness.charm.on.start.emit()
-        patched_add_user.assert_not_called()
-        assert not harness.charm.kafka_config.internal_user_credentials
-
-        # verify leader sets creds
-        harness.set_leader(True)
-        harness.update_relation_data(zk_rel_id, ZK, {"username": "elrond"})
-        harness.charm.on.start.emit()
-        patched_add_user.assert_called()
-
-        for call in patched_add_user.call_args_list:
-            assert call.kwargs["username"] in [INTER_BROKER_USER, ADMIN_USER]
 
 
 def test_start_does_not_start_if_not_ready(harness):
@@ -264,7 +237,7 @@ def test_start_blocks_if_service_failed_silently(harness):
         assert isinstance(harness.charm.unit.status, BlockedStatus)
 
 
-def test_storage_add_remove_triggers_restart(harness):
+def test_storage_add_remove_triggers_restart_when_snap_active(harness):
     """Checks if unit restarts during storage events."""
     harness.add_relation(PEER, CHARM_KEY)
     zk_rel_id = harness.add_relation(ZK, ZK)
@@ -283,6 +256,7 @@ def test_storage_add_remove_triggers_restart(harness):
         patch("config.KafkaConfig.internal_user_credentials", return_value="orthanc"),
         patch("config.KafkaConfig.zookeeper_connected", return_value=True),
         patch("config.KafkaConfig.server_properties", return_value={}),
+        patch("snap.KafkaSnap.active", return_value=True),
     ):
         harness.add_storage(storage_name="log-data", count=2)
         harness.attach_storage(storage_id="log-data/1")
@@ -307,6 +281,7 @@ def test_config_changed_updates_server_properties(harness):
             return_value=["gandalf=white"],
         ),
         patch("charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=True),
+        patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
         patch("charm.safe_get_file", return_value=["gandalf=grey"]),
         patch("config.KafkaConfig.set_server_properties") as set_server_properties,
         patch("config.KafkaConfig.set_client_properties"),
@@ -333,6 +308,7 @@ def test_config_changed_updates_client_properties(harness):
             return_value=["sauron=bad"],
         ),
         patch("charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=True),
+        patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
         patch("charm.safe_get_file", return_value=["gandalf=grey"]),
         patch("config.KafkaConfig.set_server_properties"),
         patch("config.KafkaConfig.set_client_properties") as set_client_properties,
@@ -357,6 +333,7 @@ def test_config_changed_updates_client_data(harness):
         patch("charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=True),
         patch("charm.safe_get_file", return_value=["gandalf=white"]),
         patch("provider.KafkaProvider.update_connection_info") as patched_update_connection_info,
+        patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
     ):
         harness.set_leader(True)
         harness.charm.on.config_changed.emit()
@@ -385,6 +362,9 @@ def test_config_changed_restarts(harness):
         patch("charm.broker_active", return_value=True),
         patch("config.KafkaConfig.zookeeper_connected", return_value=True),
         patch("auth.KafkaAuth.add_user"),
+        patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
+        patch("config.KafkaConfig.set_zk_jaas_config"),
+        patch("config.KafkaConfig.set_server_properties"),
     ):
         harness.update_relation_data(zk_rel_id, ZK, {"username": "glorfindel"})
 

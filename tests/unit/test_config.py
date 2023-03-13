@@ -43,6 +43,21 @@ def test_all_storages_in_log_dirs(harness):
     )
 
 
+def test_internal_credentials_only_return_when_all_present(harness):
+    peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
+    harness.update_relation_data(
+        peer_rel_id, CHARM_KEY, {f"{INTERNAL_USERS[0]}-password": "mellon"}
+    )
+
+    assert not harness.charm.kafka_config.internal_user_credentials
+
+    for user in INTERNAL_USERS:
+        harness.update_relation_data(peer_rel_id, CHARM_KEY, {f"{user}-password": "mellon"})
+
+    assert harness.charm.kafka_config.internal_user_credentials
+    assert len(harness.charm.kafka_config.internal_user_credentials) == len(INTERNAL_USERS)
+
+
 def test_log_dirs_in_server_properties(harness):
     """Checks that log.dirs are added to server_properties."""
     zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
