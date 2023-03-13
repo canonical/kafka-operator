@@ -24,7 +24,7 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
     )
     await ops_test.model.block_until(lambda: len(ops_test.model.applications[ZK_NAME].units) == 3)
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME])
-    assert ops_test.model.applications[APP_NAME].status == "waiting"
+    assert ops_test.model.applications[APP_NAME].status == "blocked"
     assert ops_test.model.applications[ZK_NAME].status == "active"
 
     await ops_test.model.add_relation(APP_NAME, ZK_NAME)
