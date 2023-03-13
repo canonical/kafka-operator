@@ -15,8 +15,8 @@ from charms.rolling_ops.v0.rollingops import RollingOpsManager, RunWithLock
 from ops.charm import (
     ActionEvent,
     RelationChangedEvent,
+    RelationCreatedEvent,
     RelationEvent,
-    RelationJoinedEvent,
     StorageAttachedEvent,
     StorageDetachingEvent,
     StorageEvent,
@@ -74,7 +74,8 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         self.framework.observe(self.on[PEER].relation_changed, self._on_config_changed)
 
-        self.framework.observe(self.on[ZK].relation_joined, self._on_zookeeper_joined)
+        self.framework.observe(self.on[ZK].relation_created, self._on_zookeeper_created)
+        self.framework.observe(self.on[ZK].relation_joined, self._on_zookeeper_changed)
         self.framework.observe(self.on[ZK].relation_changed, self._on_zookeeper_changed)
         self.framework.observe(self.on[ZK].relation_broken, self._on_zookeeper_broken)
 
@@ -153,13 +154,15 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
     def healthy(self) -> bool:
         """Checks and updates various charm lifecycle states.
 
+        Is slow to fail due to retries, to be used sparingly.
+
         Returns:
             True if service is alive and active. Otherwise False
         """
         if not self.ready_to_start:
             return False
 
-        if not self.snap.active:
+        if not self.snap.active(snap_service=SNAP_NAME):
             self._set_status("SNAP_NOT_RUNNING")
             return False
 
@@ -184,10 +187,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         # new dirs won't be used until topic partitions are assigned to it
         # either automatically for new topics, or manually for existing
         # set status only for running services, not on startup
-        if self.snap.active:
+        if self.snap.active(snap_service=SNAP_NAME):
             self._set_status("ADDED_STORAGE")
-
-        self._on_config_changed(event)
+            self._on_config_changed(event)
 
     def _on_storage_detaching(self, event: StorageDetachingEvent) -> None:
         """Handler for `storage_detaching` events."""
@@ -207,15 +209,13 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         else:
             self._set_status("SNAP_NOT_INSTALLED")
 
-    def _on_zookeeper_joined(self, event: RelationJoinedEvent) -> None:
-        """Handler for `zookeeper_relation_joined` event, ensuring chroot gets set."""
+    def _on_zookeeper_created(self, event: RelationCreatedEvent) -> None:
+        """Handler for `zookeeper_relation_created` events."""
         if self.unit.is_leader():
             event.relation.data[self.app].update({"chroot": "/" + self.app.name})
 
-        self._set_status("ZK_NO_DATA")
-
     def _on_zookeeper_changed(self, event: RelationChangedEvent) -> None:
-        """Handler for `zookeeper_relation_changed` event, ensuring internal users get created."""
+        """Handler for `zookeeper_relation_created/joined/changed` events, ensuring internal users get created."""
         if not self.kafka_config.zookeeper_connected:
             self._set_status("ZK_NO_DATA")
             return
@@ -227,10 +227,22 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             self._set_status("ZK_TLS_MISMATCH")
             return
 
+        # do not create users until certificate + keystores created
+        # otherwise unable to authenticate to ZK
+        if self.tls.enabled and not self.tls.certificate:
+            event.defer()
+            self._set_status("NO_CERT")
+            return
+
         if not self.kafka_config.internal_user_credentials and self.unit.is_leader():
+            # loading the minimum config needed to authenticate to zookeeper
+            self.kafka_config.set_zk_jaas_config()
+            self.kafka_config.set_server_properties()
+
             try:
                 internal_user_credentials = self._create_internal_credentials()
-            except (KeyError, RuntimeError, subprocess.CalledProcessError):
+            except (KeyError, RuntimeError, subprocess.CalledProcessError) as e:
+                logger.info(str(e))
                 event.defer()
                 return
 
@@ -270,7 +282,8 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
     def _on_config_changed(self, event: EventBase) -> None:
         """Generic handler for most `config_changed` events across relations."""
-        if not self.ready_to_start:
+        # only overwrite properties if service is already active
+        if not self.healthy:
             event.defer()
             return
 
@@ -317,7 +330,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         else:
             logger.error(f"Broker {self.unit.name.split('/')[1]} failed to restart")
 
-    # FIXME: come back here
     def _disable_enable_restart(self, event: RunWithLock) -> None:
         """Handler for `rolling_ops` disable_enable restart events."""
         if not self.healthy:
@@ -326,8 +338,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             return
 
         self.snap.disable_enable(snap_service=SNAP_NAME)
+        self.snap.start_snap_service(snap_service=SNAP_NAME)
 
-        if isinstance(self.unit.status, ActiveStatus):
+        if self.healthy:
             logger.info(f'Broker {self.unit.name.split("/")[1]} restarted')
         else:
             logger.error(f"Broker {self.unit.name.split('/')[1]} failed to restart")

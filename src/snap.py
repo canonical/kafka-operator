@@ -142,8 +142,7 @@ class KafkaSnap:
         Args:
             snap_service: The desired service to check active
 
-        Returns:
-            True if service is active. Otherwise False
+        Returns: True if service is active. Otherwise False
 
         Raises:
             KeyError if service does not exist

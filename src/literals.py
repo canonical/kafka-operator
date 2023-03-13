@@ -52,6 +52,7 @@ AvailableStatuses = Literal[
     "NO_PEER_RELATION",
     "ZK_NO_DATA",
     "NO_BROKER_CREDS",
+    "NO_CERT",
 ]
 
 
@@ -74,4 +75,5 @@ STATUS: Dict[AvailableStatuses, StatusBase] = {
         "potential log-data loss due to storage removal without replication"
     ),
     "NO_BROKER_CREDS": WaitingStatus("internal broker credentials not yet added"),
+    "NO_CERT": WaitingStatus("unit waiting for signed certificates"),
 }
