@@ -42,13 +42,7 @@ class KafkaProvider(Object):
 
     def on_topic_requested(self, event: TopicRequestedEvent):
         """Handle the on topic requested event."""
-        if not self.charm.ready_to_start:
-            logger.debug("cannot add user, ZooKeeper not yet connected")
-            event.defer()
-            return
-
-        if not self.charm.kafka_config.zookeeper_connected:
-            logger.debug("cannot update ACLs, ZooKeeper not yet connected")
+        if not self.charm.healthy:
             event.defer()
             return
 
@@ -116,8 +110,7 @@ class KafkaProvider(Object):
         if not self.charm.unit.is_leader():
             return
 
-        if not self.charm.ready_to_start:
-            logger.debug("cannot remove user, ZooKeeper not yet connected")
+        if not self.charm.healthy:
             event.defer()
             return
 
