@@ -214,6 +214,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         if self.tls.enabled ^ (
             self.kafka_config.zookeeper_config.get("tls", "disabled") == "enabled"
         ):
+            event.defer()
             self._set_status(Status.ZK_TLS_MISMATCH)
             return
 
