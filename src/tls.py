@@ -198,10 +198,14 @@ class KafkaTLS(Object):
             return
 
         # All units will need to remove the cert from their truststore
-        alias = self.generate_alias(
-            app_name=event.relation.app.name, relation_id=event.relation.id
+        relation = event.relation
+        alias = self.generate_alias(app_name=relation.app.name, relation_id=relation.id)
+        filename = (
+            f"{alias}_cert.pem"
+            if relation.name == TRUSTED_CERTIFICATE_RELATION
+            else f"{alias}_ca.pem"
         )
-        self.remove_cert(alias=alias)
+        self.remove_cert(alias=alias, filename=filename)
 
         # The leader will also handle removing the "mtls" flag if needed
         if not self.charm.unit.is_leader():
@@ -456,11 +460,11 @@ class KafkaTLS(Object):
             logger.error(e.output)
             raise e
 
-    def remove_cert(self, alias: str) -> None:
+    def remove_cert(self, alias: str, filename: str) -> None:
         """Remove a cert from the truststore."""
         try:
             subprocess.check_output(
-                f"keytool -delete -v -alias {alias} -keystore truststore.jks -storepass {self.truststore_password} -noprompt",
+                f"keytool -delete -v -alias {alias} -keystore truststore.jks -storepass {self.truststore_password} -noprompt ; rm {filename}",
                 stderr=subprocess.PIPE,
                 shell=True,
                 universal_newlines=True,
