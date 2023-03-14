@@ -50,7 +50,7 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
         ),
     )
     await ops_test.model.add_relation("agent", "prometheus")
-    await ops_test.model.add_relation(f"{APP_NAME}:cos-machine", "agent")
+    await ops_test.model.add_relation(f"{APP_NAME}:cos-agent", "agent")
     await ops_test.model.wait_for_idle()
 
     # TODO: Assert that kafka metrics appear in prometheus

@@ -9,7 +9,7 @@ import subprocess
 from typing import MutableMapping, Optional
 
 from charms.data_platform_libs.v0.data_models import TypedCharmBase
-from charms.grafana_agent.v0.cos_machine import COSMachineProvider
+from charms.grafana_agent.v0.cos_agent import COSAgentProvider
 from charms.rolling_ops.v0.rollingops import RollingOpsManager, RunWithLock
 from ops.charm import (
     ActionEvent,
@@ -85,7 +85,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             getattr(self.on, "log_data_storage_detaching"), self._on_storage_detaching
         )
 
-        self._grafana_agent = COSMachineProvider(
+        self._grafana_agent = COSAgentProvider(
             self,
             metrics_endpoints=[
                 # Endpoint for the kafka and jmx exporters

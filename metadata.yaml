@@ -36,8 +36,8 @@ requires:
 provides:
   kafka-client:
     interface: kafka_client
-  cos-machine:
-    interface: cos_machine
+  cos-agent:
+    interface: cos_agent
 
 storage:
   log-data:
