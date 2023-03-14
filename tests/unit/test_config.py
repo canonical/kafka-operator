@@ -152,7 +152,11 @@ def test_ssl_listeners_in_server_properties(harness):
     )
     peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
     harness.add_relation_unit(peer_relation_id, "kafka/1")
-    harness.update_relation_data(peer_relation_id, "kafka/0", {"private-address": "treebeard"})
+    harness.update_relation_data(
+        peer_relation_id,
+        "kafka/0",
+        {"private-address": "treebeard", "certificate": "keepitsecret"},
+    )
     harness.update_relation_data(peer_relation_id, "kafka", {"tls": "enabled", "mtls": "enabled"})
 
     expected_listeners = (
@@ -165,7 +169,7 @@ def test_ssl_listeners_in_server_properties(harness):
             "config.KafkaConfig.internal_user_credentials",
             new_callable=PropertyMock,
             return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
-        ),
+        )
     ):
         assert expected_listeners in harness.charm.kafka_config.server_properties
         assert expected_advertised_listeners in harness.charm.kafka_config.server_properties
