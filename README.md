@@ -35,7 +35,7 @@ While the following requirements are meant to be for production, the charm can b
 - 12 storage devices
 - 10 GbE card
 
-The charm is meant to be deployed using `juju>=2.9.37`. 
+The charm is meant to be deployed using `juju>=2.9.37`.
 
 ## Usage
 
@@ -54,7 +54,7 @@ $ juju relate kafka zookeeper
 
 To watch the process, `juju status` can be used. Once all the units show as `active|idle` the credentials to access a broker can be queried with:
 ```shell
-juju run-action kafka/leader get-admin-credentials --wait 
+juju run-action kafka/leader get-admin-credentials --wait
 ```
 
 Apache Kafka ships with `bin/*.sh` commands to do various administrative tasks, e.g `bin/kafka-config.sh` to update cluster configuration, `bin/kafka-topics.sh` for topic management, and many more! The Kafka Charmed Operator provides these commands to administrators to easily run their desired cluster configurations securely with SASL authentication, either from within the cluster or as an external client.
@@ -65,7 +65,7 @@ BOOTSTRAP_SERVERS=$(juju run-action kafka/leader get-admin-credentials --wait | 
 juju ssh kafka/leader 'charmed-kafka.topics --bootstrap-server $BOOTSTRAP_SERVERS --list --command-config /var/snap/charmed-kafka/common/client.properties'
 ```
 
-Note that when no other application is related to Kafka, the cluster is secured-by-default and listeners are disabled, thus preventing any incoming connection. However, even for running the commands above, listeners must be enable. If there is no other application, deploy a `data-integrator` charm and relate it to Kafka, as outlined in the Relation section to enable listeners.   
+Note that when no other application is related to Kafka, the cluster is secured-by-default and listeners are disabled, thus preventing any incoming connection. However, even for running the commands above, listeners must be enable. If there is no other application, deploy a `data-integrator` charm and relate it to Kafka, as outlined in the Relation section to enable listeners.
 
 Available Kafka bin commands can be found with:
 ```
@@ -118,7 +118,7 @@ Supported [relations](https://juju.is/docs/olm/relations):
 
 The `kafka_client` interface is used with the `data-integrator` charm. This charm allows to automatically create and manage product credentials needed to authenticate with different kinds of data platform charmed products:
 
-Deploy the data-integrator charm with the desired `topic-name` and user roles: 
+Deploy the data-integrator charm with the desired `topic-name` and user roles:
 ```shell
 juju deploy data-integrator --channel edge
 juju config data-integrator topic-name=test-topic extra-user-roles=producer,consumer
@@ -136,23 +136,23 @@ juju run-action data-integrator/leader get-credentials --wait
 
 This should output something like:
 ```yaml
-unit-data-integrator-0:                                                         
-  UnitId: data-integrator/0                                                     
-  id: "4"                                                                       
-  results:                                                                      
-    kafka:                                                                      
-      consumer-group-prefix: relation-27-                                       
-      endpoints: 10.123.8.133:19092                                             
-      password: ejMp4SblzxkMCF0yUXjaspneflXqcyXK                                
-      tls: disabled                                                             
-      username: relation-27                                                     
+unit-data-integrator-0:
+  UnitId: data-integrator/0
+  id: "4"
+  results:
+    kafka:
+      consumer-group-prefix: relation-27-
+      endpoints: 10.123.8.133:19092
+      password: ejMp4SblzxkMCF0yUXjaspneflXqcyXK
+      tls: disabled
+      username: relation-27
       zookeeper-uris: 10.123.8.154:2181,10.123.8.181:2181,10.123.8.61:2181/kafka
-    ok: "True"                                                                  
-  status: completed                                                             
-  timing:                                                                       
-    completed: 2023-01-27 14:22:51 +0000 UTC                                    
-    enqueued: 2023-01-27 14:22:50 +0000 UTC                                     
-    started: 2023-01-27 14:22:51 +0000 UTC                                      
+    ok: "True"
+  status: completed
+  timing:
+    completed: 2023-01-27 14:22:51 +0000 UTC
+    enqueued: 2023-01-27 14:22:50 +0000 UTC
+    started: 2023-01-27 14:22:51 +0000 UTC
 ```
 
 #### `tls-certificates` interface:
@@ -162,11 +162,11 @@ The `tls-certificates` interface is used with the `tls-certificates-operator` ch
 To enable TLS:
 
 ```shell
-# deploy the TLS charm 
+# deploy the TLS charm
 juju deploy tls-certificates-operator --channel=edge
 # add the necessary configurations for TLS
-juju config tls-certificates-operator generate-self-signed-certificates="true" ca-common-name="Test CA" 
-# to enable TLS relate the two applications 
+juju config tls-certificates-operator generate-self-signed-certificates="true" ca-common-name="Test CA"
+# to enable TLS relate the two applications
 juju relate tls-certificates-operator zookeeper
 juju relate tls-certificates-operator kafka
 ```
@@ -200,10 +200,8 @@ Note: The TLS settings here are for self-signed-certificates which are not recom
 
 ## Monitoring
 
-The Charmed Kafka Operator comes with several exporters by default. The metrics can be queried by accessing the following endpoints:
-
-- Node exporter: `http://<unit-ip>:9100/metrics`
-- JMX exporter: `http://<unit-ip>:9101/metrics`
+The Charmed Kafka Operator comes with the [JMX exporter](https://github.com/prometheus/jmx_exporter/).
+The metrics can be queried by accessing the `http://<unit-ip>:9101/metrics` endpoints.
 
 Additionally, the charm provides integration with the [Canonical Observability Stack](https://charmhub.io/topics/canonical-observability-stack).
 
@@ -219,7 +217,7 @@ juju find-offers <k8s_controller_name>:
 
 A similar output should appear, if `micro` is the k8s controller name and `cos` the model where `cos-lite` has been deployed:
 ```
-Store  URL                   Access  Interfaces                         
+Store  URL                   Access  Interfaces
 micro  admin/cos.grafana     admin   grafana_dashboard:grafana-dashboard
 micro  admin/cos.prometheus  admin   prometheus_scrape:metrics-endpoint
 . . .

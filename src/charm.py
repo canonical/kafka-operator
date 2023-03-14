@@ -88,7 +88,8 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self._grafana_agent = COSMachineProvider(
             self,
             metrics_endpoints=[
-                {"path": "/metrics", "port": 9100},
+                # Endpoint for the kafka and jmx exporters
+                # See https://github.com/canonical/charmed-kafka-snap for details
                 {"path": "/metrics", "port": 9101},
             ],
         )
