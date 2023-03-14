@@ -117,6 +117,7 @@ class CharmConfig(BaseConfigModel):
     def ssl_principal_mapping_rules_validator(cls, value: str) -> Optional[str]:
         """Check that the list is formed by valid regex values."""
         # get all regex up until replacement position "/"
+        # TODO: check that there is a replacement as well, not: RULE:regex/
         pat = re.compile(r"RULE:([^/]+)(?:,RULE:[^/]+)*(?:DEFAULT){0,1}")
         matches = re.findall(pat, value)
         for match in matches:
