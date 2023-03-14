@@ -4,6 +4,7 @@
 
 """Structured configuration for the Kafka charm."""
 import logging
+import re
 from enum import Enum
 from typing import Optional
 
@@ -57,7 +58,7 @@ class CharmConfig(BaseConfigModel):
     log_cleanup_policy: str
     log_message_timestamp_type: str
     ssl_cipher_suites: Optional[str]
-    ssl_principal_mapping_rules: Optional[str]
+    ssl_principal_mapping_rules: str
     replication_quota_window_num: int
     zookeeper_ssl_cipher_suites: Optional[str]
 
@@ -110,6 +111,19 @@ class CharmConfig(BaseConfigModel):
         if int_value > 0 and int_value <= 1000 * 60 * 60 * 24 * 90:
             return int_value
         raise ValueError("Value out of range.")
+
+    @validator("ssl_principal_mapping_rules")
+    @classmethod
+    def ssl_principal_mapping_rules_validator(cls, value: str) -> Optional[str]:
+        """Check that the list is formed by valid regex values."""
+        # get all regex up until replacement position "/"
+        pat = re.compile(r"RULE:([^/]+)(?:,RULE:[^/]+)*(?:DEFAULT){0,1}")
+        matches = re.findall(pat, value)
+        for match in matches:
+            try:
+                re.compile(match)
+            except re.error:
+                raise ValueError("Non valid regex pattern")
 
     @validator("transaction_state_log_num_partitions", "offsets_topic_num_partitions")
     @classmethod
