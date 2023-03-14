@@ -46,7 +46,7 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
 
     await asyncio.gather(
         ops_test.model.deploy(
-            "ch:grafana-agent-operator", application_name="agent", num_units=1, series="jammy"
+            "ch:grafana-agent", application_name="agent", num_units=0, series="jammy"
         ),
     )
     await ops_test.model.add_relation("agent", "prometheus")
