@@ -124,6 +124,7 @@ class CharmConfig(BaseConfigModel):
                 re.compile(match)
             except re.error:
                 raise ValueError("Non valid regex pattern")
+        return value
 
     @validator("transaction_state_log_num_partitions", "offsets_topic_num_partitions")
     @classmethod
