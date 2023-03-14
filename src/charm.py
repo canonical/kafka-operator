@@ -267,7 +267,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self._on_update_status(event)
 
         # only log once on successful 'on-start' run
-        if not isinstance(self.unit.status, ActiveStatus):
+        if isinstance(self.unit.status, ActiveStatus):
             logger.info(f'Broker {self.unit.name.split("/")[1]} connected')
 
     def _on_config_changed(self, event: EventBase) -> None:
@@ -425,7 +425,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         """
         credentials = [(username, generate_password()) for username in INTERNAL_USERS]
         for username, password in credentials:
-            password = generate_password()
             self._update_internal_user(username=username, password=password)
 
         return credentials
