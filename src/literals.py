@@ -6,9 +6,10 @@
 """Collection of globals common to the KafkaCharm."""
 
 from dataclasses import dataclass
+from enum import Enum
 from typing import Dict, Literal
 
-from ops.model import ActiveStatus, BlockedStatus, StatusBase, WaitingStatus
+from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 
 CHARM_KEY = "kafka"
 SNAP_NAME = "charmed-kafka"
@@ -39,41 +40,24 @@ SECURITY_PROTOCOL_PORTS: Dict[AuthMechanism, Ports] = {
     "SSL": Ports(9094, 19094),
 }
 
-AvailableStatuses = Literal[
-    "ACTIVE",
-    "SNAP_NOT_INSTALLED",
-    "ZK_NOT_RELATED",
-    "ZK_NOT_CONNECTED",
-    "SNAP_NOT_RUNNING",
-    "ADDED_STORAGE",
-    "REMOVED_STORAGE",
-    "REMOVED_STORAGE_NO_REPL",
-    "ZK_TLS_MISMATCH",
-    "NO_PEER_RELATION",
-    "ZK_NO_DATA",
-    "NO_BROKER_CREDS",
-    "NO_CERT",
-]
 
-
-STATUS: Dict[AvailableStatuses, StatusBase] = {
-    "ACTIVE": ActiveStatus(),
-    "NO_PEER_RELATION": WaitingStatus("no peer relation yet"),
-    "SNAP_NOT_INSTALLED": BlockedStatus(f"unable to install {SNAP_NAME} snap"),
-    "SNAP_NOT_RUNNING": BlockedStatus("snap service not running"),
-    "ZK_NOT_RELATED": BlockedStatus("missing required zookeeper relation"),
-    "ZK_NOT_CONNECTED": BlockedStatus("unit not connected to zookeeper"),
-    "ZK_TLS_MISMATCH": BlockedStatus("tls must be enabled on both kafka and zookeeper"),
-    "ZK_NO_DATA": WaitingStatus("zookeeper credentials not created yet"),
-    "ADDED_STORAGE": ActiveStatus(
+class Status(Enum):
+    ACTIVE = ActiveStatus()
+    NO_PEER_RELATION = WaitingStatus("no peer relation yet")
+    SNAP_NOT_INSTALLED = BlockedStatus(f"unable to install {SNAP_NAME} snap")
+    SNAP_NOT_RUNNING = BlockedStatus("snap service not running")
+    ZK_NOT_RELATED = BlockedStatus("missing required zookeeper relation")
+    ZK_NOT_CONNECTED = BlockedStatus("unit not connected to zookeeper")
+    ZK_TLS_MISMATCH = BlockedStatus("tls must be enabled on both kafka and zookeeper")
+    ZK_NO_DATA = WaitingStatus("zookeeper credentials not created yet")
+    ADDED_STORAGE = ActiveStatus(
         "manual partition reassignment may be needed to utilize new storage volumes"
-    ),
-    "REMOVED_STORAGE": BlockedStatus(
+    )
+    REMOVED_STORAGE = BlockedStatus(
         "manual partition reassignment from replicated brokers recommended due to lost partitions on removed storage volumes"
-    ),
-    "REMOVED_STORAGE_NO_REPL": BlockedStatus(
+    )
+    REMOVED_STORAGE_NO_REPL = BlockedStatus(
         "potential log-data loss due to storage removal without replication"
-    ),
-    "NO_BROKER_CREDS": WaitingStatus("internal broker credentials not yet added"),
-    "NO_CERT": WaitingStatus("unit waiting for signed certificates"),
-}
+    )
+    NO_BROKER_CREDS = WaitingStatus("internal broker credentials not yet added")
+    NO_CERT = WaitingStatus("unit waiting for signed certificates")

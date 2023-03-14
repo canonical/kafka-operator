@@ -27,17 +27,7 @@ from ops.model import ActiveStatus, Relation
 
 from auth import KafkaAuth
 from config import KafkaConfig
-from literals import (
-    ADMIN_USER,
-    CHARM_KEY,
-    INTERNAL_USERS,
-    PEER,
-    REL_NAME,
-    SNAP_NAME,
-    STATUS,
-    ZK,
-    AvailableStatuses,
-)
+from literals import ADMIN_USER, CHARM_KEY, INTERNAL_USERS, PEER, REL_NAME, SNAP_NAME, ZK, Status
 from provider import KafkaProvider
 from snap import KafkaSnap
 from structured_config import CharmConfig
@@ -126,26 +116,26 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             True if ZK is related and `sync` user has been added. False otherwise.
         """
         if not self.peer_relation:
-            self._set_status("NO_PEER_RELATION")
+            self._set_status(Status.NO_PEER_RELATION)
             return False
 
         if not self.kafka_config.zookeeper_related:
-            self._set_status("ZK_NOT_RELATED")
+            self._set_status(Status.ZK_NOT_RELATED)
             return False
 
         if not self.kafka_config.zookeeper_connected:
-            self._set_status("ZK_NOT_CONNECTED")
+            self._set_status(Status.ZK_NO_DATA)
             return False
 
         if not self.kafka_config.internal_user_credentials:
-            self._set_status("NO_BROKER_CREDS")
+            self._set_status(Status.NO_BROKER_CREDS)
             return False
 
         # TLS must be enabled for Kafka and ZK or disabled for both
         if self.tls.enabled ^ (
             self.kafka_config.zookeeper_config.get("tls", "disabled") == "enabled"
         ):
-            self._set_status("ZK_TLS_MISMATCH")
+            self._set_status(Status.ZK_TLS_MISMATCH)
             return False
 
         return True
@@ -163,14 +153,14 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             return False
 
         if not self.snap.active(snap_service=SNAP_NAME):
-            self._set_status("SNAP_NOT_RUNNING")
+            self._set_status(Status.SNAP_NOT_RUNNING)
             return False
 
         if not broker_active(
             unit=self.unit,
             zookeeper_config=self.kafka_config.zookeeper_config,
         ):
-            self._set_status("ZK_NOT_CONNECTED")
+            self._set_status(Status.ZK_NOT_CONNECTED)
             return False
 
         return True
@@ -180,7 +170,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         if not self.healthy:
             return
 
-        self._set_status("ACTIVE")
+        self._set_status(Status.ACTIVE)
 
     def _on_storage_attached(self, event: StorageAttachedEvent) -> None:
         """Handler for `storage_attached` events."""
@@ -188,16 +178,16 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         # either automatically for new topics, or manually for existing
         # set status only for running services, not on startup
         if self.snap.active(snap_service=SNAP_NAME):
-            self._set_status("ADDED_STORAGE")
+            self._set_status(Status.ADDED_STORAGE)
             self._on_config_changed(event)
 
     def _on_storage_detaching(self, event: StorageDetachingEvent) -> None:
         """Handler for `storage_detaching` events."""
         # in the case where there may be replication recovery may be possible
         if self.peer_relation and len(self.peer_relation.units):
-            self._set_status("REMOVED_STORAGE")
+            self._set_status(Status.REMOVED_STORAGE)
         else:
-            self._set_status("REMOVED_STORAGE_NO_REPL")
+            self._set_status(Status.REMOVED_STORAGE_NO_REPL)
 
         self._on_config_changed(event)
 
@@ -205,9 +195,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         """Handler for `install` event."""
         if self.snap.install():
             self.kafka_config.set_kafka_opts()
-            self._set_status("ZK_NOT_RELATED")
+            self._set_status(Status.ZK_NOT_RELATED)
         else:
-            self._set_status("SNAP_NOT_INSTALLED")
+            self._set_status(Status.SNAP_NOT_INSTALLED)
 
     def _on_zookeeper_created(self, event: RelationCreatedEvent) -> None:
         """Handler for `zookeeper_relation_created` events."""
@@ -217,21 +207,21 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
     def _on_zookeeper_changed(self, event: RelationChangedEvent) -> None:
         """Handler for `zookeeper_relation_created/joined/changed` events, ensuring internal users get created."""
         if not self.kafka_config.zookeeper_connected:
-            self._set_status("ZK_NO_DATA")
+            self._set_status(Status.ZK_NO_DATA)
             return
 
         # TLS must be enabled for Kafka and ZK or disabled for both
         if self.tls.enabled ^ (
             self.kafka_config.zookeeper_config.get("tls", "disabled") == "enabled"
         ):
-            self._set_status("ZK_TLS_MISMATCH")
+            self._set_status(Status.ZK_TLS_MISMATCH)
             return
 
         # do not create users until certificate + keystores created
         # otherwise unable to authenticate to ZK
         if self.tls.enabled and not self.tls.certificate:
             event.defer()
-            self._set_status("NO_CERT")
+            self._set_status(Status.NO_CERT)
             return
 
         if not self.kafka_config.internal_user_credentials and self.unit.is_leader():
@@ -257,7 +247,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.snap.stop_snap_service(snap_service=SNAP_NAME)
 
         logger.info(f'Broker {self.unit.name.split("/")[1]} disconnected')
-        self._set_status("ZK_NOT_RELATED")
+        self._set_status(Status.ZK_NOT_RELATED)
 
     def _on_start(self, event: EventBase) -> None:
         """Handler for `start` event."""
@@ -479,9 +469,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         else:
             raise RuntimeError("Unknown secret scope.")
 
-    def _set_status(self, key: AvailableStatuses) -> None:
+    def _set_status(self, key: Status) -> None:
         """Sets charm status."""
-        self.unit.status = STATUS[key]
+        self.unit.status = key.value
 
 
 if __name__ == "__main__":
