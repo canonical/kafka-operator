@@ -127,15 +127,15 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             self._set_status(Status.ZK_NO_DATA)
             return False
 
-        if not self.kafka_config.internal_user_credentials:
-            self._set_status(Status.NO_BROKER_CREDS)
-            return False
-
         # TLS must be enabled for Kafka and ZK or disabled for both
         if self.tls.enabled ^ (
             self.kafka_config.zookeeper_config.get("tls", "disabled") == "enabled"
         ):
             self._set_status(Status.ZK_TLS_MISMATCH)
+            return False
+
+        if not self.kafka_config.internal_user_credentials:
+            self._set_status(Status.NO_BROKER_CREDS)
             return False
 
         return True
