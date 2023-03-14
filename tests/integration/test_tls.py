@@ -71,7 +71,7 @@ async def test_deploy_tls(ops_test: OpsTest, kafka_charm):
 async def test_kafka_tls(ops_test: OpsTest, app_charm):
     """Tests TLS on Kafka.
 
-    Relates Zookeper[TLS] with Kakfa[Non-TLS]. This leads to a blocked status.
+    Relates Zookeper[TLS] with Kafka[Non-TLS]. This leads to a blocked status.
     Afterwards, relate Kafka to TLS operator, which unblocks the application.
     """
     # Relate Zookeeper[TLS] to Kafka[Non-TLS]
