@@ -41,9 +41,10 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
     assert ops_test.model.applications[ZK_NAME].status == "active"
 
     await ops_test.model.add_relation(APP_NAME, ZK_NAME)
-    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME])
-    assert ops_test.model.applications[APP_NAME].status == "active"
-    assert ops_test.model.applications[ZK_NAME].status == "active"
+    async with ops_test.fast_forward():
+        await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], idle_period=30)
+        assert ops_test.model.applications[APP_NAME].status == "active"
+        assert ops_test.model.applications[ZK_NAME].status == "active"
 
 
 @pytest.mark.abort_on_fail
