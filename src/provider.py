@@ -107,6 +107,10 @@ class KafkaProvider(Object):
         Args:
             event: the event from a related client application needing a user
         """
+        # don't remove anything if app is going down
+        if self.charm.app.planned_units == 0:
+            return
+
         if not self.charm.unit.is_leader():
             return
 
