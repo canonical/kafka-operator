@@ -66,6 +66,10 @@ options:
     description: A list of cipher suites. This is a named combination of authentication, encryption, MAC and key exchange algorithm used to negotiate the security settings for a network connection using TLS or SSL network protocol. By default all the available cipher suites are supported.
     type: string
     default: ""
+  ssl_principal_mapping_rules:
+    description: A list of rules for mapping from distinguished name from the client certificate to short name. Each rule starts with "RULE:" and contains an expression as the following. "RULE:pattern/replacement/[LU]". A valid set of rules could look something like this "RULE:^.*[Cc][Nn]=([a-zA-Z0-9.]*).*$/$1/L,DEFAULT"
+    type: string
+    default: "DEFAULT"
   replication_quota_window_num:
     description: The number of samples to retain in memory for replication quotas.
     type: int
