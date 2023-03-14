@@ -28,6 +28,7 @@ TLS_NAME = "tls-certificates-operator"
 REL_NAME_CONSUMER = "kafka-client-consumer"
 REL_NAME_PRODUCER = "kafka-client-producer"
 REL_NAME_ADMIN = "kafka-client-admin"
+REL_NAME_CERTIFICATES = "certificates"
 
 
 @pytest.mark.abort_on_fail
@@ -231,7 +232,7 @@ async def test_connection_updated_on_tls_enabled(ops_test: OpsTest, app_charm):
     await ops_test.model.wait_for_idle(
         apps=[APP_NAME, ZK, TLS_NAME, DUMMY_NAME_1], timeout=1000, idle_period=40
     )
-    await ops_test.model.add_relation(TLS_NAME, APP_NAME)
+    await ops_test.model.add_relation(TLS_NAME, f"{APP_NAME}:{REL_NAME_CERTIFICATES}")
 
     await ops_test.model.wait_for_idle(
         apps=[APP_NAME, ZK, TLS_NAME, DUMMY_NAME_1], timeout=1000, idle_period=40

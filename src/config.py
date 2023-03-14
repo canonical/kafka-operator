@@ -258,12 +258,13 @@ class KafkaConfig:
         Returns:
             List of properties to be set
         """
+        mtls = "required" if self.charm.tls.mtls_enabled else "none"
         return [
             f"ssl.truststore.location={self.truststore_filepath}",
             f"ssl.truststore.password={self.charm.tls.truststore_password}",
             f"ssl.keystore.location={self.keystore_filepath}",
             f"ssl.keystore.password={self.charm.tls.keystore_password}",
-            "ssl.client.auth=none",
+            f"ssl.client.auth={mtls}",
         ]
 
     @property
@@ -297,8 +298,10 @@ class KafkaConfig:
         """Return a list of enabled auth mechanisms."""
         # TODO: At the moment only one mechanism for extra listeners. Will need to be
         # extended with more depending on configuration settings.
-        protocol = self.security_protocol
-        return [protocol]
+        protocol = [self.security_protocol]
+        if self.charm.tls.mtls_enabled:
+            protocol += ["SSL"]
+        return protocol
 
     @property
     def internal_listener(self) -> Listener:
