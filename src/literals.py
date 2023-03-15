@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, Literal
 
-from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
+from ops.model import ActiveStatus, BlockedStatus, StatusBase, WaitingStatus
 
 CHARM_KEY = "kafka"
 SNAP_NAME = "charmed-kafka"
@@ -26,6 +26,7 @@ INTERNAL_USERS = [INTER_BROKER_USER, ADMIN_USER]
 
 AuthMechanism = Literal["SASL_PLAINTEXT", "SASL_SSL", "SSL"]
 Scope = Literal["INTERNAL", "CLIENT"]
+DebugLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
 
 
 @dataclass
@@ -41,23 +42,38 @@ SECURITY_PROTOCOL_PORTS: Dict[AuthMechanism, Ports] = {
 }
 
 
+@dataclass
+class StatusLevel:
+    status: StatusBase
+    log_level: DebugLevel
+
+
 class Status(Enum):
-    ACTIVE = ActiveStatus()
-    NO_PEER_RELATION = WaitingStatus("no peer relation yet")
-    SNAP_NOT_INSTALLED = BlockedStatus(f"unable to install {SNAP_NAME} snap")
-    SNAP_NOT_RUNNING = BlockedStatus("snap service not running")
-    ZK_NOT_RELATED = BlockedStatus("missing required zookeeper relation")
-    ZK_NOT_CONNECTED = BlockedStatus("unit not connected to zookeeper")
-    ZK_TLS_MISMATCH = BlockedStatus("tls must be enabled on both kafka and zookeeper")
-    ZK_NO_DATA = WaitingStatus("zookeeper credentials not created yet")
-    ADDED_STORAGE = ActiveStatus(
-        "manual partition reassignment may be needed to utilize new storage volumes"
+    ACTIVE = StatusLevel(ActiveStatus(), "DEBUG")
+    NO_PEER_RELATION = StatusLevel(WaitingStatus("no peer relation yet"), "DEBUG")
+    SNAP_NOT_INSTALLED = StatusLevel(BlockedStatus(f"unable to install {SNAP_NAME} snap"), "INFO")
+    SNAP_NOT_RUNNING = StatusLevel(BlockedStatus("snap service not running"), "WARNING")
+    ZK_NOT_RELATED = StatusLevel(BlockedStatus("missing required zookeeper relation"), "WARNING")
+    ZK_NOT_CONNECTED = StatusLevel(BlockedStatus("unit not connected to zookeeper"), "ERROR")
+    ZK_TLS_MISMATCH = StatusLevel(
+        BlockedStatus("tls must be enabled on both kafka and zookeeper"), "ERROR"
     )
-    REMOVED_STORAGE = BlockedStatus(
-        "manual partition reassignment from replicated brokers recommended due to lost partitions on removed storage volumes"
+    ZK_NO_DATA = StatusLevel(WaitingStatus("zookeeper credentials not created yet"), "INFO")
+    ADDED_STORAGE = StatusLevel(
+        ActiveStatus("manual partition reassignment may be needed to utilize new storage volumes"),
+        "WARNING",
     )
-    REMOVED_STORAGE_NO_REPL = BlockedStatus(
-        "potential log-data loss due to storage removal without replication"
+    REMOVED_STORAGE = StatusLevel(
+        BlockedStatus(
+            "manual partition reassignment from replicated brokers recommended due to lost partitions on removed storage volumes"
+        ),
+        "ERROR",
     )
-    NO_BROKER_CREDS = WaitingStatus("internal broker credentials not yet added")
-    NO_CERT = WaitingStatus("unit waiting for signed certificates")
+    REMOVED_STORAGE_NO_REPL = StatusLevel(
+        BlockedStatus("potential log-data loss due to storage removal without replication"),
+        "ERROR",
+    )
+    NO_BROKER_CREDS = StatusLevel(
+        WaitingStatus("internal broker credentials not yet added"), "INFO"
+    )
+    NO_CERT = StatusLevel(WaitingStatus("unit waiting for signed certificates"), "INFO")

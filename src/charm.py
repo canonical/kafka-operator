@@ -23,11 +23,21 @@ from ops.charm import (
 )
 from ops.framework import EventBase
 from ops.main import main
-from ops.model import ActiveStatus, Relation
+from ops.model import ActiveStatus, Relation, StatusBase
 
 from auth import KafkaAuth
 from config import KafkaConfig
-from literals import ADMIN_USER, CHARM_KEY, INTERNAL_USERS, PEER, REL_NAME, SNAP_NAME, ZK, Status
+from literals import (
+    ADMIN_USER,
+    CHARM_KEY,
+    INTERNAL_USERS,
+    PEER,
+    REL_NAME,
+    SNAP_NAME,
+    ZK,
+    DebugLevel,
+    Status,
+)
 from provider import KafkaProvider
 from snap import KafkaSnap
 from structured_config import CharmConfig
@@ -233,7 +243,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             try:
                 internal_user_credentials = self._create_internal_credentials()
             except (KeyError, RuntimeError, subprocess.CalledProcessError) as e:
-                logger.info(str(e))
+                logger.warning(str(e))
                 event.defer()
                 return
 
@@ -477,7 +487,11 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
     def _set_status(self, key: Status) -> None:
         """Sets charm status."""
-        self.unit.status = key.value
+        status: StatusBase = key.value.status
+        log_level: DebugLevel = key.value.log_level
+
+        getattr(logger, log_level.lower())(status.message)
+        self.unit.status = status
 
 
 if __name__ == "__main__":
