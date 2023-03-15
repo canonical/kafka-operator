@@ -77,7 +77,9 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm):
     # Relate Zookeeper[TLS] to Kafka[Non-TLS]
     async with ops_test.fast_forward():
         await ops_test.model.add_relation(ZK, CHARM_KEY)
-        await ops_test.model.wait_for_idle(apps=[ZK], idle_period=15, timeout=1000, status="active")
+        await ops_test.model.wait_for_idle(
+            apps=[ZK], idle_period=15, timeout=1000, status="active"
+        )
         assert ops_test.model.applications[CHARM_KEY].status == "blocked"
 
     # Set a custom private key, by running set-tls-private-key action with no parameters,
@@ -147,7 +149,6 @@ async def test_mtls(ops_test: OpsTest):
         "utf-8"
     )
     encoded_client_ca = base64.b64encode(client_ca.encode("utf-8")).decode("utf-8")
-
 
     # deploying mtls operator with certs
     tls_config = {
