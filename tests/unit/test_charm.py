@@ -147,6 +147,7 @@ def test_healthy_succeeds(harness, zk_data, passwords_data):
     ):
         assert harness.charm.healthy
 
+
 def test_update_status_blocks_if_broker_not_active(harness, zk_data, passwords_data):
     with harness.hooks_disabled():
         peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
@@ -161,6 +162,7 @@ def test_update_status_blocks_if_broker_not_active(harness, zk_data, passwords_d
         harness.charm.on.update_status.emit()
         assert patched_broker_active.call_count == 1
         assert isinstance(harness.charm.unit.status, BlockedStatus)
+
 
 def test_update_status_sets_active(harness, zk_data, passwords_data):
     with harness.hooks_disabled():
