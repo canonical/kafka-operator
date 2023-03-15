@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, Literal
 
-from ops.model import ActiveStatus, BlockedStatus, StatusBase, WaitingStatus
+from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, StatusBase, WaitingStatus
 
 CHARM_KEY = "kafka"
 SNAP_NAME = "charmed-kafka"
@@ -50,10 +50,10 @@ class StatusLevel:
 
 class Status(Enum):
     ACTIVE = StatusLevel(ActiveStatus(), "DEBUG")
-    NO_PEER_RELATION = StatusLevel(WaitingStatus("no peer relation yet"), "DEBUG")
-    SNAP_NOT_INSTALLED = StatusLevel(BlockedStatus(f"unable to install {SNAP_NAME} snap"), "INFO")
+    NO_PEER_RELATION = StatusLevel(MaintenanceStatus("no peer relation yet"), "DEBUG")
+    SNAP_NOT_INSTALLED = StatusLevel(BlockedStatus(f"unable to install {SNAP_NAME} snap"), "ERROR")
     SNAP_NOT_RUNNING = StatusLevel(BlockedStatus("snap service not running"), "WARNING")
-    ZK_NOT_RELATED = StatusLevel(BlockedStatus("missing required zookeeper relation"), "WARNING")
+    ZK_NOT_RELATED = StatusLevel(BlockedStatus("missing required zookeeper relation"), "ERROR")
     ZK_NOT_CONNECTED = StatusLevel(BlockedStatus("unit not connected to zookeeper"), "ERROR")
     ZK_TLS_MISMATCH = StatusLevel(
         BlockedStatus("tls must be enabled on both kafka and zookeeper"), "ERROR"

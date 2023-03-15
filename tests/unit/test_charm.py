@@ -8,7 +8,7 @@ from unittest.mock import PropertyMock, patch
 
 import pytest
 import yaml
-from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
+from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 from ops.testing import Harness
 from tenacity.wait import wait_none
 
@@ -41,9 +41,9 @@ def harness():
     return harness
 
 
-def test_ready_to_start_waits_no_peer_relation(harness):
+def test_ready_to_start_maintenance_no_peer_relation(harness):
     assert not harness.charm.ready_to_start
-    assert isinstance(harness.charm.unit.status, WaitingStatus)
+    assert isinstance(harness.charm.unit.status, MaintenanceStatus)
 
 
 def test_ready_to_start_blocks_no_zookeeper_relation(harness):
