@@ -4,9 +4,9 @@
 import asyncio
 import logging
 import os
-import subprocess
 
 import pytest
+from juju.controller import Controller
 from pytest_operator.plugin import OpsTest
 
 from .helpers import APP_NAME
@@ -23,29 +23,29 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
     # FAILED: kafka/0 [executing] waiting: waiting for zookeeper relation
     # await ops_test.model.wait_for_idle()
 
-    cmd = "sh tests/integration/test_observability_integrations.sh".split(" ")
-    try:
-        result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    except subprocess.CalledProcessError as e:
-        for line in e.output.decode("utf-8").strip().split("\n"):
-            logger.info(line)
-        assert 0, "Test failed"
-    else:
-        for line in result.stdout.decode("utf-8").strip().split("\n"):
-            logger.info(line)
+    # Assuming the current controller is the lxd controller.
+    lxd_mdl = ops_test.model
 
-    # TODO: parametrize the model name "cos"
-    await ops_test.model.consume(
-        "admin/cos.prometheus",
+    # Assuming a k8s controller is ready and its name is stored in $K8S_CONTROLLER.
+    k8s_ctl = Controller()
+    await k8s_ctl.connect(os.environ["K8S_CONTROLLER"])
+    k8s_mdl_name = "cos"
+    k8s_mdl = await k8s_ctl.add_model(k8s_mdl_name)
+
+    await k8s_mdl.deploy("ch:prometheus-k8s", application_name="prometheus", channel="edge")
+    await k8s_mdl.create_offer("prometheus:receive-remote-write")
+
+    await lxd_mdl.consume(
+        f"admin/{k8s_mdl_name}.prometheus",
         application_alias="prometheus",
-        controller_name=os.environ["K8S_CONTROLLER"],
+        controller_name=k8s_ctl.controller_name,  # same as os.environ["K8S_CONTROLLER"]
     )
     # TODO:
     #  - Enable metallb as part of CI
     #  - Relate prom to traefik
 
     await asyncio.gather(
-        ops_test.model.deploy(
+        lxd_mdl.deploy(
             "ch:grafana-agent",
             channel="edge",
             application_name="agent",
@@ -53,8 +53,8 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
             series="jammy",
         ),
     )
-    await ops_test.model.add_relation("agent", "prometheus")
-    await ops_test.model.add_relation(f"{APP_NAME}:cos-agent", "agent")
-    await ops_test.model.wait_for_idle()
+    await lxd_mdl.add_relation("agent", "prometheus")
+    await lxd_mdl.add_relation(f"{APP_NAME}:cos-agent", "agent")
+    await lxd_mdl.wait_for_idle()
 
     # TODO: Assert that kafka metrics appear in prometheus
