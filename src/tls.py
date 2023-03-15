@@ -193,7 +193,9 @@ class KafkaTLS(Object):
             return
 
         # All units will need to remove the cert from their truststore
-        alias = self.generate_alias(app_name=event.relation.app.name, relation_id=event.relation.id)
+        alias = self.generate_alias(
+            app_name=event.relation.app.name, relation_id=event.relation.id
+        )
         self.remove_cert(alias=alias)
 
         # The leader will also handle removing the "mtls" flag if needed
