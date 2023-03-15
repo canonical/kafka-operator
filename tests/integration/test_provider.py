@@ -219,6 +219,7 @@ async def test_admin_removed_from_super_users(ops_test: OpsTest):
     # adding cleanup to save memory
     await ops_test.model.remove_application(DUMMY_NAME_2, block_until_done=True)
 
+
 @pytest.mark.abort_on_fail
 async def test_connection_updated_on_tls_enabled(ops_test: OpsTest, app_charm):
     """Test relation when TLS is enabled."""
@@ -238,7 +239,7 @@ async def test_connection_updated_on_tls_enabled(ops_test: OpsTest, app_charm):
     # relating tls with zookeeper
     await ops_test.model.add_relation(TLS_NAME, ZK)
     await ops_test.model.wait_for_idle(
-        apps=[ZK, TLS_NAME], idle_period=60, timeout=1800 status="active"
+        apps=[ZK, TLS_NAME], idle_period=60, timeout=1800, status="active"
     )
 
     # relating tls with kafka
