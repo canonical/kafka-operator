@@ -156,18 +156,18 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             self._set_status(Status.SNAP_NOT_RUNNING)
             return False
 
-        if not broker_active(
-            unit=self.unit,
-            zookeeper_config=self.kafka_config.zookeeper_config,
-        ):
-            self._set_status(Status.ZK_NOT_CONNECTED)
-            return False
-
         return True
 
     def _on_update_status(self, _: EventBase) -> None:
         """Handler for `update-status` events."""
         if not self.healthy:
+            return
+
+        if not broker_active(
+            unit=self.unit,
+            zookeeper_config=self.kafka_config.zookeeper_config,
+        ):
+            self._set_status(Status.ZK_NOT_CONNECTED)
             return
 
         self._set_status(Status.ACTIVE)
