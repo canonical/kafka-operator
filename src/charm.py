@@ -342,6 +342,12 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         Set the password for a specific user, if no passwords are passed, generate them.
         """
+        if not self.unit.is_leader():
+            msg = "Password rotation must be called on leader unit"
+            logger.error(msg)
+            event.fail(msg)
+            return
+
         if not self.healthy:
             event.defer()
             return
