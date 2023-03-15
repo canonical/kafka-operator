@@ -70,7 +70,7 @@ jobs:
         with:
           juju-channel: 2.9/stable
           provider: lxd
-          bootstrap-options: "--agent-version 2.9.38"
+          bootstrap-options: "--agent-version 2.9.42"
       - name: Download packed charm(s)
         uses: actions/download-artifact@v3
         with:
@@ -112,7 +112,7 @@ jobs:
         uses: actions/checkout@v3
       - name: Setup k8s controller
         # TODO: Replace with custom image on self-hosted runner
-        uses: sed-i/actions-operator@patch-1
+        uses: charmed-kubernetes/actions-operator@main
         with:
           juju-channel: 3.0/stable
           provider: microk8s
@@ -127,7 +127,7 @@ jobs:
           chmod -R ugo+rwX ~/.kube
       - name: Setup lxd controller
         # TODO: Replace with custom image on self-hosted runner
-        uses: sed-i/actions-operator@patch-1
+        uses: charmed-kubernetes/actions-operator@main
         with:
           juju-channel: 3.0/stable
           provider: lxd
