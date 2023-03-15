@@ -120,22 +120,6 @@ def test_healthy_fails_if_snap_not_active(harness, zk_data, passwords_data):
         assert isinstance(harness.charm.unit.status, BlockedStatus)
 
 
-def test_healthy_fails_if_broker_not_active(harness, zk_data, passwords_data):
-    with harness.hooks_disabled():
-        peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
-        zk_rel_id = harness.add_relation(ZK, ZK)
-        harness.update_relation_data(zk_rel_id, ZK, zk_data)
-        harness.update_relation_data(peer_rel_id, CHARM_KEY, passwords_data)
-
-    with (
-        patch("snap.KafkaSnap.active", return_value=True),
-        patch("charm.broker_active", return_value=False) as patched_broker_active,
-    ):
-        assert not harness.charm.healthy
-        assert patched_broker_active.call_count == 1
-        assert isinstance(harness.charm.unit.status, BlockedStatus)
-
-
 def test_healthy_does_not_ping_zk_if_snap_not_active(harness, zk_data, passwords_data):
     with harness.hooks_disabled():
         peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
@@ -163,6 +147,20 @@ def test_healthy_succeeds(harness, zk_data, passwords_data):
     ):
         assert harness.charm.healthy
 
+def test_update_status_blocks_if_broker_not_active(harness, zk_data, passwords_data):
+    with harness.hooks_disabled():
+        peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
+        zk_rel_id = harness.add_relation(ZK, ZK)
+        harness.update_relation_data(zk_rel_id, ZK, zk_data)
+        harness.update_relation_data(peer_rel_id, CHARM_KEY, passwords_data)
+
+    with (
+        patch("snap.KafkaSnap.active", return_value=True),
+        patch("charm.broker_active", return_value=False) as patched_broker_active,
+    ):
+        harness.charm.on.update_status.emit()
+        assert patched_broker_active.call_count == 1
+        assert isinstance(harness.charm.unit.status, BlockedStatus)
 
 def test_update_status_sets_active(harness, zk_data, passwords_data):
     with harness.hooks_disabled():
