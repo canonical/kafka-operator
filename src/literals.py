@@ -6,7 +6,10 @@
 """Collection of globals common to the KafkaCharm."""
 
 from dataclasses import dataclass
+from enum import Enum
 from typing import Dict, Literal
+
+from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, StatusBase, WaitingStatus
 
 CHARM_KEY = "kafka"
 SNAP_NAME = "charmed-kafka"
@@ -19,9 +22,11 @@ ADMIN_USER = "admin"
 TLS_RELATION = "certificates"
 TRUSTED_CERTIFICATE_RELATION = "trusted-certificate"
 TRUSTED_CA_RELATION = "trusted-ca"
+INTERNAL_USERS = [INTER_BROKER_USER, ADMIN_USER]
 
 AuthMechanism = Literal["SASL_PLAINTEXT", "SASL_SSL", "SSL"]
 Scope = Literal["INTERNAL", "CLIENT"]
+DebugLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
 
 
 @dataclass
@@ -35,3 +40,40 @@ SECURITY_PROTOCOL_PORTS: Dict[AuthMechanism, Ports] = {
     "SASL_SSL": Ports(9093, 19093),
     "SSL": Ports(9094, 19094),
 }
+
+
+@dataclass
+class StatusLevel:
+    status: StatusBase
+    log_level: DebugLevel
+
+
+class Status(Enum):
+    ACTIVE = StatusLevel(ActiveStatus(), "DEBUG")
+    NO_PEER_RELATION = StatusLevel(MaintenanceStatus("no peer relation yet"), "DEBUG")
+    SNAP_NOT_INSTALLED = StatusLevel(BlockedStatus(f"unable to install {SNAP_NAME} snap"), "ERROR")
+    SNAP_NOT_RUNNING = StatusLevel(BlockedStatus("snap service not running"), "WARNING")
+    ZK_NOT_RELATED = StatusLevel(BlockedStatus("missing required zookeeper relation"), "ERROR")
+    ZK_NOT_CONNECTED = StatusLevel(BlockedStatus("unit not connected to zookeeper"), "ERROR")
+    ZK_TLS_MISMATCH = StatusLevel(
+        BlockedStatus("tls must be enabled on both kafka and zookeeper"), "ERROR"
+    )
+    ZK_NO_DATA = StatusLevel(WaitingStatus("zookeeper credentials not created yet"), "INFO")
+    ADDED_STORAGE = StatusLevel(
+        ActiveStatus("manual partition reassignment may be needed to utilize new storage volumes"),
+        "WARNING",
+    )
+    REMOVED_STORAGE = StatusLevel(
+        ActiveStatus(
+            "manual partition reassignment from replicated brokers recommended due to lost partitions on removed storage volumes"
+        ),
+        "ERROR",
+    )
+    REMOVED_STORAGE_NO_REPL = StatusLevel(
+        ActiveStatus("potential log-data loss due to storage removal without replication"),
+        "ERROR",
+    )
+    NO_BROKER_CREDS = StatusLevel(
+        WaitingStatus("internal broker credentials not yet added"), "INFO"
+    )
+    NO_CERT = StatusLevel(WaitingStatus("unit waiting for signed certificates"), "INFO")

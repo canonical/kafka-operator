@@ -65,9 +65,7 @@ def test_client_relation_created_adds_user(harness):
         patch("charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=True),
         patch("auth.KafkaAuth.add_user") as patched_add_user,
         patch("snap.KafkaSnap.run_bin_command"),
-        patch(
-            "config.KafkaConfig.zookeeper_connected", new_callable=PropertyMock, return_value=True
-        ),
+        patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
         patch(
             "config.KafkaConfig.zookeeper_config",
             new_callable=PropertyMock,
@@ -96,9 +94,7 @@ def test_client_relation_broken_removes_user(harness):
         patch("auth.KafkaAuth.delete_user") as patched_delete_user,
         patch("auth.KafkaAuth.remove_all_user_acls") as patched_remove_acls,
         patch("snap.KafkaSnap.run_bin_command"),
-        patch(
-            "config.KafkaConfig.zookeeper_connected", new_callable=PropertyMock, return_value=True
-        ),
+        patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
         patch(
             "config.KafkaConfig.zookeeper_config",
             new_callable=PropertyMock,
@@ -133,9 +129,7 @@ def test_client_relation_joined_sets_necessary_relation_data(harness):
         patch("charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=True),
         patch("auth.KafkaAuth.add_user"),
         patch("snap.KafkaSnap.run_bin_command"),
-        patch(
-            "config.KafkaConfig.zookeeper_connected", new_callable=PropertyMock, return_value=True
-        ),
+        patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
         patch(
             "config.KafkaConfig.zookeeper_config",
             new_callable=PropertyMock,

@@ -54,7 +54,7 @@ async def test_deploy_tls(ops_test: OpsTest, kafka_charm):
         apps=[CHARM_KEY, ZK, TLS_NAME], idle_period=15, timeout=1800
     )
 
-    assert ops_test.model.applications[CHARM_KEY].status == "waiting"
+    assert ops_test.model.applications[CHARM_KEY].status == "blocked"
     assert ops_test.model.applications[ZK].status == "active"
     assert ops_test.model.applications[TLS_NAME].status == "active"
 
@@ -77,7 +77,9 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm):
     # Relate Zookeeper[TLS] to Kafka[Non-TLS]
     async with ops_test.fast_forward():
         await ops_test.model.add_relation(ZK, CHARM_KEY)
-        await ops_test.model.wait_for_idle(apps=[ZK], idle_period=15, timeout=1000)
+        await ops_test.model.wait_for_idle(
+            apps=[ZK], idle_period=15, timeout=1000, status="active"
+        )
         assert ops_test.model.applications[CHARM_KEY].status == "blocked"
 
     # Set a custom private key, by running set-tls-private-key action with no parameters,
@@ -94,7 +96,7 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm):
         await ops_test.model.add_relation(f"{CHARM_KEY}:{TLS_RELATION}", TLS_NAME)
         logger.info("Relate Kafka to TLS")
         await ops_test.model.wait_for_idle(
-            apps=[CHARM_KEY, ZK, TLS_NAME], idle_period=15, timeout=1000
+            apps=[CHARM_KEY, ZK, TLS_NAME], idle_period=30, timeout=1200, status="active"
         )
 
     assert ops_test.model.applications[CHARM_KEY].status == "active"
@@ -138,26 +140,17 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm):
 
 async def test_mtls(ops_test: OpsTest):
     # creating the signed external cert on the unit
-    logger.info("RUNNING ACTION - CREATE CERTIFICATE")
     action = await ops_test.model.units.get(f"{DUMMY_NAME}/0").run_action("create-certificate")
     response = await action.wait()
-    logger.info(f"{response=}")
     client_certificate = response.results["client-certificate"]
     client_ca = response.results["client-ca"]
-
-    logger.info(f"{client_certificate=}")
-    logger.info(f"{client_ca=}")
 
     encoded_client_certificate = base64.b64encode(client_certificate.encode("utf-8")).decode(
         "utf-8"
     )
     encoded_client_ca = base64.b64encode(client_ca.encode("utf-8")).decode("utf-8")
 
-    logger.info(f"{encoded_client_certificate=}")
-    logger.info(f"{encoded_client_ca=}")
-
     # deploying mtls operator with certs
-    logger.info("DEPLOYING - MTLS")
     tls_config = {
         "generate-self-signed-certificates": "false",
         "certificate": encoded_client_certificate,
@@ -168,7 +161,6 @@ async def test_mtls(ops_test: OpsTest):
     )
     await ops_test.model.wait_for_idle(apps=[MTLS_NAME], timeout=1000, idle_period=15)
     async with ops_test.fast_forward():
-        logger.info("RELATING - MTLS + KAFKA")
         await ops_test.model.add_relation(
             f"{CHARM_KEY}:{TRUSTED_CERTIFICATE_RELATION}", f"{MTLS_NAME}:{TLS_RELATION}"
         )
@@ -177,9 +169,7 @@ async def test_mtls(ops_test: OpsTest):
         )
 
     # getting kafka ca and address
-    logger.info("EXTRACTING CA FROM KAFKA")
     broker_ca = extract_ca(show_unit(f"{CHARM_KEY}/0", model_full_name=ops_test.model_full_name))
-    logger.info(f"{broker_ca=}")
     address = await get_address(ops_test, app_name=CHARM_KEY)
     ssl_port = SECURITY_PROTOCOL_PORTS["SSL"].client
     sasl_port = SECURITY_PROTOCOL_PORTS["SASL_SSL"].client
@@ -190,14 +180,11 @@ async def test_mtls(ops_test: OpsTest):
     await set_mtls_client_acls(ops_test, bootstrap_server=sasl_bootstrap_server)
 
     # running mtls producer
-    logger.info("RUNNING ACTION - MTLS PRODUCER")
     action = await ops_test.model.units.get(f"{DUMMY_NAME}/0").run_action(
         "run-mtls-producer", **{"bootstrap-server": ssl_bootstrap_server, "broker-ca": broker_ca}
     )
 
     response = await action.wait()
-
-    logger.info(f"{response=}")
 
     assert response.results.get("success", None) == "TRUE"
 
@@ -205,7 +192,6 @@ async def test_mtls(ops_test: OpsTest):
 async def test_kafka_tls_scaling(ops_test: OpsTest):
     """Scale the application while using TLS to check that new units will configure correctly."""
     await ops_test.model.applications[CHARM_KEY].add_units(count=2)
-    logger.info("Scaling Kafka to 3 units")
     await ops_test.model.block_until(
         lambda: len(ops_test.model.applications[CHARM_KEY].units) == 3, timeout=1000
     )

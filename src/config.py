@@ -13,6 +13,7 @@ from ops.model import Unit
 from literals import (
     ADMIN_USER,
     INTER_BROKER_USER,
+    INTERNAL_USERS,
     PEER,
     REL_NAME,
     SECURITY_PROTOCOL_PORTS,
@@ -114,11 +115,16 @@ class KafkaConfig:
         Returns:
             Dict of usernames and passwords
         """
-        return {
+        credentials = {
             user: password
-            for user in [INTER_BROKER_USER, ADMIN_USER]
+            for user in INTERNAL_USERS
             if (password := self.charm.get_secret(scope="app", key=f"{user}-password"))
         }
+
+        if not len(credentials) == len(INTERNAL_USERS):
+            return {}
+
+        return credentials
 
     @property
     def zookeeper_config(self) -> Dict[str, str]:
@@ -154,12 +160,21 @@ class KafkaConfig:
         return zookeeper_config
 
     @property
+    def zookeeper_related(self) -> bool:
+        """Checks if there is a relation with ZooKeeper.
+
+        Returns:
+            True if there is a ZooKeeper relation. Otherwise False
+        """
+        return bool(self.charm.model.relations[ZK])
+
+    @property
     def zookeeper_connected(self) -> bool:
-        """Checks if there is an active ZooKeeper relation.
+        """Checks if there is an active ZooKeeper relation with all necessary data.
 
         Returns:
             True if ZooKeeper is currently related with sufficient relation data
-                for a broker to connect with. False otherwise.
+                for a broker to connect with. Otherwise False
         """
         if self.zookeeper_config.get("connect", None):
             return True
@@ -199,7 +214,7 @@ class KafkaConfig:
         ]
         port = (
             SECURITY_PROTOCOL_PORTS["SASL_SSL"].client
-            if self.charm.tls.enabled
+            if (self.charm.tls.enabled and self.charm.tls.certificate)
             else SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].client
         )
         return [f"{host}:{port}" for host in hosts]
@@ -274,15 +289,18 @@ class KafkaConfig:
         Returns:
             list of scram properties to be set
         """
+        username = INTER_BROKER_USER
+        password = self.internal_user_credentials.get(INTER_BROKER_USER, "")
+
         scram_properties = [
-            f'listener.name.{self.internal_listener.name.lower()}.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{INTER_BROKER_USER}" password="{self.internal_user_credentials[INTER_BROKER_USER]}";'
+            f'listener.name.{self.internal_listener.name.lower()}.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";'
         ]
         client_scram = [
             auth.name for auth in self.client_listeners if auth.protocol.startswith("SASL_")
         ]
         for name in client_scram:
             scram_properties.append(
-                f'listener.name.{name.lower()}.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{INTER_BROKER_USER}" password="{self.internal_user_credentials[INTER_BROKER_USER]}";'
+                f'listener.name.{name.lower()}.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";'
             )
 
         return scram_properties
@@ -291,7 +309,11 @@ class KafkaConfig:
     def security_protocol(self) -> AuthMechanism:
         """Infers current charm security.protocol based on current relations."""
         # FIXME: When we have multiple auth_mechanims/listeners, remove this method
-        return "SASL_SSL" if self.charm.tls.enabled else "SASL_PLAINTEXT"
+        return (
+            "SASL_SSL"
+            if (self.charm.tls.enabled and self.charm.tls.certificate)
+            else "SASL_PLAINTEXT"
+        )
 
     @property
     def auth_mechanisms(self) -> List[AuthMechanism]:
@@ -335,7 +357,7 @@ class KafkaConfig:
         Returns:
             Semicolon delimited string of current super users
         """
-        super_users = [INTER_BROKER_USER, ADMIN_USER]
+        super_users = set(INTERNAL_USERS)
         for relation in self.charm.model.relations[REL_NAME]:
             extra_user_roles = relation.data[relation.app].get("extra-user-roles", "")
             password = (
@@ -345,9 +367,9 @@ class KafkaConfig:
             )
             # if passwords are set for client admins, they're good to load
             if "admin" in extra_user_roles and password is not None:
-                super_users.append(f"relation-{relation.id}")
+                super_users.add(f"relation-{relation.id}")
 
-        super_users_arg = [f"User:{user}" for user in super_users]
+        super_users_arg = sorted([f"User:{user}" for user in super_users])
 
         return ";".join(super_users_arg)
 
@@ -371,14 +393,17 @@ class KafkaConfig:
         Returns:
             List of properties to be set
         """
+        username = ADMIN_USER
+        password = self.internal_user_credentials.get(ADMIN_USER, "")
+
         client_properties = [
-            f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{ADMIN_USER}" password="{self.internal_user_credentials[ADMIN_USER]}";',
+            f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";',
             "sasl.mechanism=SCRAM-SHA-512",
             f"security.protocol={self.security_protocol}",  # FIXME: will need changing once multiple listener auth schemes
             f"bootstrap.servers={','.join(self.bootstrap_server)}",
         ]
 
-        if self.charm.tls.enabled:
+        if self.charm.tls.enabled and self.charm.tls.certificate:
             client_properties += self.tls_properties
 
         return client_properties
@@ -415,9 +440,9 @@ class KafkaConfig:
             + DEFAULT_CONFIG_OPTIONS.split("\n")
         )
 
-        if self.charm.tls.enabled:
+        if self.charm.tls.enabled and self.charm.tls.certificate:
             properties += self.tls_properties + self.zookeeper_tls_properties
-        logger.debug(f"server properties: {properties}")
+
         return properties
 
     @property

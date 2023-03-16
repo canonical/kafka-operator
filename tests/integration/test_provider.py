@@ -216,26 +216,36 @@ async def test_admin_removed_from_super_users(ops_test: OpsTest):
     super_users = load_super_users(model_full_name=ops_test.model_full_name)
     assert len(super_users) == 2
 
+    # adding cleanup to save memory
+    await ops_test.model.remove_application(DUMMY_NAME_2, block_until_done=True)
+
 
 @pytest.mark.abort_on_fail
 async def test_connection_updated_on_tls_enabled(ops_test: OpsTest, app_charm):
     """Test relation when TLS is enabled."""
+    # adding new app unit to validate
     await ops_test.model.deploy(app_charm, application_name=DUMMY_NAME_1, num_units=1)
     await ops_test.model.wait_for_idle(apps=[DUMMY_NAME_1])
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_CONSUMER}")
     await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME_1])
+
+    # deploying tls
     tls_config = {"generate-self-signed-certificates": "true", "ca-common-name": "kafka"}
-
     await ops_test.model.deploy(TLS_NAME, channel="beta", config=tls_config, series="jammy")
-    await ops_test.model.add_relation(TLS_NAME, ZK)
-
     await ops_test.model.wait_for_idle(
-        apps=[APP_NAME, ZK, TLS_NAME, DUMMY_NAME_1], timeout=1000, idle_period=40
+        apps=[TLS_NAME], idle_period=30, timeout=1800, status="active"
     )
-    await ops_test.model.add_relation(TLS_NAME, f"{APP_NAME}:{REL_NAME_CERTIFICATES}")
 
+    # relating tls with zookeeper
+    await ops_test.model.add_relation(TLS_NAME, ZK)
     await ops_test.model.wait_for_idle(
-        apps=[APP_NAME, ZK, TLS_NAME, DUMMY_NAME_1], timeout=1000, idle_period=40
+        apps=[ZK, TLS_NAME], idle_period=60, timeout=1800, status="active"
+    )
+
+    # relating tls with kafka
+    await ops_test.model.add_relation(TLS_NAME, f"{APP_NAME}:{REL_NAME_CERTIFICATES}")
+    await ops_test.model.wait_for_idle(
+        apps=[APP_NAME, ZK, TLS_NAME, DUMMY_NAME_1], timeout=1800, idle_period=60, status="active"
     )
 
     assert ops_test.model.applications[APP_NAME].status == "active"

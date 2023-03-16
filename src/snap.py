@@ -10,6 +10,10 @@ from typing import List
 
 from charms.operator_libs_linux.v0 import apt
 from charms.operator_libs_linux.v1 import snap
+from tenacity import retry
+from tenacity.retry import retry_if_not_result
+from tenacity.stop import stop_after_attempt
+from tenacity.wait import wait_fixed
 
 from literals import NODE_EXPORTER_SNAP_NAME, SNAP_NAME
 
@@ -27,7 +31,7 @@ class KafkaSnap:
         self.kafka = snap.SnapCache()[SNAP_NAME]
 
     def install(self) -> bool:
-        """Loads the Kafka snap from LP, returning a StatusBase for the Charm to set.
+        """Loads the Kafka snap from LP.
 
         Returns:
             True if successfully installed. False otherwise.
@@ -125,6 +129,29 @@ class KafkaSnap:
         """
         subprocess.run(f"snap disable {snap_service}", shell=True)
         subprocess.run(f"snap enable {snap_service}", shell=True)
+
+    @retry(
+        wait=wait_fixed(1),
+        stop=stop_after_attempt(5),
+        retry_error_callback=lambda state: state.outcome.result(),
+        retry=retry_if_not_result(lambda result: True if result else False),
+    )
+    def active(self, snap_service: str) -> bool:
+        """Checks if service is active.
+
+        Args:
+            snap_service: The desired service to check active
+
+        Returns:
+            True if service is active. Otherwise False
+
+        Raises:
+            KeyError if service does not exist
+        """
+        try:
+            return bool(self.kafka.services[snap_service]["active"])
+        except KeyError:
+            return False
 
     @staticmethod
     def run_bin_command(bin_keyword: str, bin_args: List[str], opts: List[str]) -> str:
