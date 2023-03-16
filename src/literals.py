@@ -22,6 +22,7 @@ TLS_RELATION = "certificates"
 TRUSTED_CERTIFICATE_RELATION = "trusted-certificate"
 TRUSTED_CA_RELATION = "trusted-ca"
 INTERNAL_USERS = [INTER_BROKER_USER, ADMIN_USER]
+JMX_EXPORTER_PORT = 9101
 
 AuthMechanism = Literal["SASL_PLAINTEXT", "SASL_SSL", "SSL"]
 Scope = Literal["INTERNAL", "CLIENT"]

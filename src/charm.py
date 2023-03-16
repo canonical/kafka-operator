@@ -30,6 +30,7 @@ from literals import (
     ADMIN_USER,
     CHARM_KEY,
     INTERNAL_USERS,
+    JMX_EXPORTER_PORT,
     PEER,
     REL_NAME,
     SNAP_NAME,
@@ -90,7 +91,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             metrics_endpoints=[
                 # Endpoint for the kafka and jmx exporters
                 # See https://github.com/canonical/charmed-kafka-snap for details
-                {"path": "/metrics", "port": 9101},
+                {"path": "/metrics", "port": f"{JMX_EXPORTER_PORT}"},
             ],
         )
 

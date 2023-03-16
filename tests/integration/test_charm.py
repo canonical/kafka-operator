@@ -12,7 +12,7 @@ import pytest
 import requests
 from pytest_operator.plugin import OpsTest
 
-from literals import REL_NAME, SECURITY_PROTOCOL_PORTS
+from literals import JMX_EXPORTER_PORT, REL_NAME, SECURITY_PROTOCOL_PORTS
 
 from .helpers import (
     APP_NAME,
@@ -108,7 +108,7 @@ async def test_logs_write_to_storage(ops_test: OpsTest):
 
 async def test_exporter_endpoints(ops_test: OpsTest):
     unit_address = await get_address(ops_test=ops_test)
-    jmx_exporter_url = f"http://{unit_address}:9101/metrics"
+    jmx_exporter_url = f"http://{unit_address}:{JMX_EXPORTER_PORT}/metrics"
     jmx_resp = requests.get(jmx_exporter_url)
     assert jmx_resp.ok
 
