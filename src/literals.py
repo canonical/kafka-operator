@@ -70,7 +70,7 @@ class Status(Enum):
         "ERROR",
     )
     REMOVED_STORAGE_NO_REPL = StatusLevel(
-        BlockedStatus("potential log-data loss due to storage removal without replication"),
+        ActiveStatus("potential log-data loss due to storage removal without replication"),
         "ERROR",
     )
     NO_BROKER_CREDS = StatusLevel(
