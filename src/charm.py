@@ -304,7 +304,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
                 )
             )
             self.kafka_config.set_server_properties()
-            self.kafka_config.set_client_properties()
 
             if isinstance(event, StorageEvent):  # to get new storages
                 self.on[f"{self.restart.name}"].acquire_lock.emit(
@@ -312,6 +311,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
                 )
             else:
                 self.on[f"{self.restart.name}"].acquire_lock.emit()
+
+        # update client_properties whenever possible
+        self.kafka_config.set_client_properties()
 
         # If Kafka is related to client charms, update their information.
         if self.model.relations.get(REL_NAME, None) and self.unit.is_leader():
