@@ -64,7 +64,7 @@ class Status(Enum):
         "WARNING",
     )
     REMOVED_STORAGE = StatusLevel(
-        BlockedStatus(
+        ActiveStatus(
             "manual partition reassignment from replicated brokers recommended due to lost partitions on removed storage volumes"
         ),
         "ERROR",
