@@ -6,7 +6,7 @@ import asyncio
 import logging
 import time
 from subprocess import PIPE, check_output
-from typing import Dict, List
+from typing import Dict
 
 import pytest
 import requests
@@ -151,14 +151,14 @@ async def test_observability_integration(ops_test: OpsTest):
     # "state" keys are updated from "unknown".
     await ops_test.model.wait_for_idle(status="active", idle_period=60)
 
-    machines: List[str] = await ops_test.model.get_machines()
+    agent_units = ops_test.model.applications["agent"].units
 
     # Get all the "targets" from all grafana-agent units
     machine_targets: Dict[str, str] = {
-        machine_id: await ops_test.model.machines[machine_id].ssh(
+        unit.machine.id: await unit.machine.ssh(
             "curl localhost:12345/agent/api/v1/metrics/targets"
         )
-        for machine_id in machines
+        for unit in agent_units
     }
     for targets in machine_targets.values():
         assert '"state":"up"' in targets
