@@ -12,8 +12,6 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 import yaml
 from charms.kafka.v0.client import KafkaClient
-from juju.controller import Controller
-from juju.model import Model
 from kafka.admin import NewTopic
 from pytest_operator.plugin import OpsTest
 
@@ -308,12 +306,3 @@ async def set_mtls_client_acls(ops_test: OpsTest, bootstrap_server: str) -> str:
     )
 
     return result
-
-
-async def get_or_add_model(controller: Controller, model_name: str) -> Model:
-    return (
-        controller.get_model(model_name)
-        if model_name in await controller.get_models()
-        else controller.add_model(model_name)
-    )
-

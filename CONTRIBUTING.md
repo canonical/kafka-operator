@@ -60,24 +60,13 @@ source venv/bin/activate
 ```
 
 ### Testing
-You should run the following pre-commit:
+
 ```shell
 tox run -e format        # update your code according to linting rules
 tox run -e lint          # code style
 tox run -e unit          # unit tests
+tox -e integration       # integration tests
 tox                      # runs 'lint' and 'unit' environments
-```
-
-To run the entire suite of integration tests you first need to have a k8s and
-a lxd controllers bootstrapped. The k8s controller is currently needed for only
-one of the integration tests:
-```shell
-K8S_CONTROLLER="k8s_ctl_name" LXD_CONTROLLER="lxd_ctl_name" tox -e integration -- -k test_observability_integrations
-```
-
-For all other integration tests, the environment variables are not needed:
-```shell
-tox -e integration -- -k "not test_observability_integrations"
 ```
 
 ## Canonical Contributor Agreement
