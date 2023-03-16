@@ -536,10 +536,12 @@ def test_config_changed_updates_client_data(harness):
         patch("charm.safe_get_file", return_value=["gandalf=white"]),
         patch("provider.KafkaProvider.update_connection_info") as patched_update_connection_info,
         patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
+        patch("config.KafkaConfig.set_client_properties") as patched_set_client_properties,
     ):
         harness.set_leader(True)
         harness.charm.on.config_changed.emit()
 
+        patched_set_client_properties.assert_called_once()
         patched_update_connection_info.assert_called_once()
 
 
