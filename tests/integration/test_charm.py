@@ -6,6 +6,7 @@ import asyncio
 import logging
 import time
 from subprocess import PIPE, check_output
+from typing import Dict, List
 
 import pytest
 import requests
@@ -53,7 +54,7 @@ async def test_listeners(ops_test: OpsTest, app_charm):
     assert check_socket(
         address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].internal
     )  # Internal listener
-    # Client listener should not be enable if there is no relations
+    # Client listener should not be enabled if there is no relations
     assert not check_socket(address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].client)
     # Add relation with dummy app
     await asyncio.gather(
@@ -66,7 +67,7 @@ async def test_listeners(ops_test: OpsTest, app_charm):
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME, DUMMY_NAME])
     # check that client listener is active
     assert check_socket(address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].client)
-    # remove relation and check that client listerner is not active
+    # remove relation and check that client listener is not active
     await ops_test.model.applications[APP_NAME].remove_relation(
         f"{APP_NAME}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_ADMIN}"
     )
@@ -129,3 +130,36 @@ async def test_logs_write_to_new_storage(ops_test: OpsTest):
         provider_unit_name=f"{DUMMY_NAME}/0",
         topic="cold-topic",
     )
+
+
+@pytest.mark.abort_on_fail
+async def test_observability_integration(ops_test: OpsTest):
+    await ops_test.model.deploy(
+        "ch:grafana-agent",
+        channel="edge",
+        application_name="agent",
+        num_units=0,
+        series="jammy",
+    )
+
+    await ops_test.model.add_relation(f"{APP_NAME}:cos-agent", "agent"),
+
+    # TODO uncomment once cos-agent is integrated in zookeeper
+    # await ops_test.model.add_relation(f"{ZK_NAME}:juju-info", "agent")
+
+    # Use the "idle_period" to have the scrape interval (60 sec) elapsed, to make sure all
+    # "state" keys are updated from "unknown".
+    await ops_test.model.wait_for_idle(status="active", idle_period=60)
+
+    machines: List[str] = await ops_test.model.get_machines()
+
+    # Get all the "targets" from all grafana-agent units
+    machine_targets: Dict[str, str] = {
+        machine_id: await ops_test.model.machines[machine_id].ssh(
+            "curl localhost:12345/agent/api/v1/metrics/targets"
+        )
+        for machine_id in machines
+    }
+    for targets in machine_targets.values():
+        assert '"state":"up"' in targets
+        assert '"state":"down"' not in targets

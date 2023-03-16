@@ -54,7 +54,6 @@ jobs:
           - integration-scaling
           - integration-password-rotation
           - integration-tls
-          - integration-o11y
     name: ${{ matrix.tox-environments }}
     needs:
       - lint
