@@ -15,7 +15,7 @@ from tenacity.retry import retry_if_not_result
 from tenacity.stop import stop_after_attempt
 from tenacity.wait import wait_fixed
 
-from literals import NODE_EXPORTER_SNAP_NAME, SNAP_NAME
+from literals import SNAP_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -41,24 +41,12 @@ class KafkaSnap:
             apt.add_package(["snapd", "openjdk-17-jre-headless"])
             cache = snap.SnapCache()
             kafka = cache[SNAP_NAME]
-            node_exporter = cache[NODE_EXPORTER_SNAP_NAME]
 
             if not kafka.present:
                 kafka.ensure(snap.SnapState.Latest, channel="latest/edge")
-            if not node_exporter.present:
-                node_exporter.ensure(snap.SnapState.Latest, channel="edge")
 
             self.kafka = kafka
             self.kafka.connect(plug="removable-media")
-
-            node_exporter_plugs = [
-                "hardware-observe",
-                "network-observe",
-                "mount-observe",
-                "system-observe",
-            ]
-            for plug in node_exporter_plugs:
-                node_exporter.connect(plug=plug)
 
             return True
         except (snap.SnapError, apt.PackageNotFoundError) as e:

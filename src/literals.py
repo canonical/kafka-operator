@@ -13,7 +13,6 @@ from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, StatusBase
 
 CHARM_KEY = "kafka"
 SNAP_NAME = "charmed-kafka"
-NODE_EXPORTER_SNAP_NAME = "node-exporter"
 PEER = "cluster"
 ZK = "zookeeper"
 REL_NAME = "kafka-client"
@@ -23,6 +22,7 @@ TLS_RELATION = "certificates"
 TRUSTED_CERTIFICATE_RELATION = "trusted-certificate"
 TRUSTED_CA_RELATION = "trusted-ca"
 INTERNAL_USERS = [INTER_BROKER_USER, ADMIN_USER]
+JMX_EXPORTER_PORT = 9101
 
 AuthMechanism = Literal["SASL_PLAINTEXT", "SASL_SSL", "SSL"]
 Scope = Literal["INTERNAL", "CLIENT"]

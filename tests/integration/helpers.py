@@ -224,7 +224,7 @@ def produce_and_check_logs(
     Args:
         model_full_name: the full name of the model
         kafka_unit_name: the kafka unit to checks logs on
-        proider_unit_name: the app to grab credentials from
+        provider_unit_name: the app to grab credentials from
         topic: the desired topic to produce to
 
     Raises:

@@ -9,8 +9,7 @@ import subprocess
 from typing import MutableMapping, Optional
 
 from charms.data_platform_libs.v0.data_models import TypedCharmBase
-from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
-from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
+from charms.grafana_agent.v0.cos_agent import COSAgentProvider
 from charms.rolling_ops.v0.rollingops import RollingOpsManager, RunWithLock
 from ops.charm import (
     ActionEvent,
@@ -31,6 +30,7 @@ from literals import (
     ADMIN_USER,
     CHARM_KEY,
     INTERNAL_USERS,
+    JMX_EXPORTER_PORT,
     PEER,
     REL_NAME,
     SNAP_NAME,
@@ -60,12 +60,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.tls = KafkaTLS(self)
         self.provider = KafkaProvider(self)
         self.restart = RollingOpsManager(self, relation="restart", callback=self._restart)
-        self.grafana_dashboards = GrafanaDashboardProvider(self)
-        self.metrics_endpoint = MetricsEndpointProvider(
-            self,
-            refresh_event=self.on.start,
-            jobs=[{"static_configs": [{"targets": ["*:9100", "*:9101"]}]}],
-        )
 
         self.framework.observe(getattr(self.on, "start"), self._on_start)
         self.framework.observe(getattr(self.on, "install"), self._on_install)
@@ -90,6 +84,15 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         )
         self.framework.observe(
             getattr(self.on, "log_data_storage_detaching"), self._on_storage_detaching
+        )
+
+        self._grafana_agent = COSAgentProvider(
+            self,
+            metrics_endpoints=[
+                # Endpoint for the kafka and jmx exporters
+                # See https://github.com/canonical/charmed-kafka-snap for details
+                {"path": "/metrics", "port": f"{JMX_EXPORTER_PORT}"},
+            ],
         )
 
     @property

@@ -6,12 +6,13 @@ import asyncio
 import logging
 import time
 from subprocess import PIPE, check_output
+from typing import Dict
 
 import pytest
 import requests
 from pytest_operator.plugin import OpsTest
 
-from literals import REL_NAME, SECURITY_PROTOCOL_PORTS
+from literals import JMX_EXPORTER_PORT, REL_NAME, SECURITY_PROTOCOL_PORTS
 
 from .helpers import (
     APP_NAME,
@@ -53,7 +54,7 @@ async def test_listeners(ops_test: OpsTest, app_charm):
     assert check_socket(
         address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].internal
     )  # Internal listener
-    # Client listener should not be enable if there is no relations
+    # Client listener should not be enabled if there is no relations
     assert not check_socket(address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].client)
     # Add relation with dummy app
     await asyncio.gather(
@@ -66,7 +67,7 @@ async def test_listeners(ops_test: OpsTest, app_charm):
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME, DUMMY_NAME])
     # check that client listener is active
     assert check_socket(address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].client)
-    # remove relation and check that client listerner is not active
+    # remove relation and check that client listener is not active
     await ops_test.model.applications[APP_NAME].remove_relation(
         f"{APP_NAME}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_ADMIN}"
     )
@@ -107,13 +108,8 @@ async def test_logs_write_to_storage(ops_test: OpsTest):
 
 async def test_exporter_endpoints(ops_test: OpsTest):
     unit_address = await get_address(ops_test=ops_test)
-    node_exporter_url = f"http://{unit_address}:9100/metrics"
-    jmx_exporter_url = f"http://{unit_address}:9101/metrics"
-
-    node_resp = requests.get(node_exporter_url)
+    jmx_exporter_url = f"http://{unit_address}:{JMX_EXPORTER_PORT}/metrics"
     jmx_resp = requests.get(jmx_exporter_url)
-
-    assert node_resp.ok
     assert jmx_resp.ok
 
 
@@ -134,3 +130,36 @@ async def test_logs_write_to_new_storage(ops_test: OpsTest):
         provider_unit_name=f"{DUMMY_NAME}/0",
         topic="cold-topic",
     )
+
+
+@pytest.mark.abort_on_fail
+async def test_observability_integration(ops_test: OpsTest):
+    await ops_test.model.deploy(
+        "ch:grafana-agent",
+        channel="edge",
+        application_name="agent",
+        num_units=0,
+        series="jammy",
+    )
+
+    await ops_test.model.add_relation(f"{APP_NAME}:cos-agent", "agent"),
+
+    # TODO uncomment once cos-agent is integrated in zookeeper
+    # await ops_test.model.add_relation(f"{ZK_NAME}:juju-info", "agent")
+
+    # Use the "idle_period" to have the scrape interval (60 sec) elapsed, to make sure all
+    # "state" keys are updated from "unknown".
+    await ops_test.model.wait_for_idle(status="active", idle_period=60)
+
+    agent_units = ops_test.model.applications["agent"].units
+
+    # Get all the "targets" from all grafana-agent units
+    machine_targets: Dict[str, str] = {
+        unit.machine.id: await unit.machine.ssh(
+            "curl localhost:12345/agent/api/v1/metrics/targets"
+        )
+        for unit in agent_units
+    }
+    for targets in machine_targets.values():
+        assert '"state":"up"' in targets
+        assert '"state":"down"' not in targets

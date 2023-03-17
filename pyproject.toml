@@ -32,6 +32,11 @@ authors = [""]
 python = ">=3.8"
 ops = ">=2.0.0"
 kazoo = ">=2.8.0"
+
+# The cosl dep could be removed from here once PYDEPS is released:
+# https://github.com/canonical/charmcraft/pull/1003
+cosl = ">= 0.0.5"
+
 tenacity = ">=8.0.1"
 pure-sasl = ">=0.6.2"
 jsonschema = ">=4.10"
@@ -65,7 +70,7 @@ optional = true
 
 [tool.poetry.group.integration.dependencies]
 pytest = ">=7.2"
-juju = "==2.9.11"
+juju = "<3.1"  # The latest python-libjuju that supports both juju 2.9 and 3.0
 coverage = {extras = ["toml"], version = ">7.0"}
 pytest-operator = ">0.20"
 kazoo = ">=2.8"
