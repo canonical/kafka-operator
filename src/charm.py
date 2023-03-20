@@ -93,9 +93,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
                 # See https://github.com/canonical/charmed-kafka-snap for details
                 {"path": "/metrics", "port": f"{JMX_EXPORTER_PORT}"},
             ],
-            log_slots=[
-                "charmed-kafka:logs"
-            ]
+            log_slots=["charmed-kafka:logs"],
         )
 
     @property
