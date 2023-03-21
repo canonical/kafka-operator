@@ -5,8 +5,9 @@
 """KafkaSnap class and methods."""
 
 import logging
+import re
 import subprocess
-from typing import List
+from typing import List, Optional
 
 from charms.operator_libs_linux.v0 import apt
 from charms.operator_libs_linux.v1 import snap
@@ -138,18 +139,16 @@ class KafkaSnap:
             Integer of pid
 
         Raises:
-            subprocessCalledProcessError if error occurs
+            KeyError if no pid string found in most recent log
+            SnapError if error occurs
         """
-        pid = subprocess.check_output(
-            rf'snap logs {SNAP_NAME}.{snap_service} | awk "{{print $2}}" | tail -n 1 | grep -o -e "[0-9]*"',
-            shell=True,
-            stderr=subprocess.PIPE,
-            universal_newlines=True,
-        )
+        last_log = self.kafka.logs(services=[snap_service], num_lines=1)
+        pid_string = re.search(rf"{SNAP_NAME}.{snap_service}\[([0-9]+)\]", last_log)
 
-        logger.info(f"{pid=}")
+        if not pid_string:
+            raise KeyError("pid not found in snap logs")
 
-        return int(pid)
+        return int(pid_string[0])
 
     @staticmethod
     def run_bin_command(bin_keyword: str, bin_args: List[str], opts: List[str] = []) -> str:
