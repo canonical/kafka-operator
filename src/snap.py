@@ -128,6 +128,29 @@ class KafkaSnap:
         except KeyError:
             return False
 
+    def get_service_pid(self, snap_service: str) -> int:
+        """Gets pid of a currently active snap service.
+
+        Args:
+            snap_service: The desired service to get the pid of
+
+        Returns:
+            Integer of pid
+
+        Raises:
+            subprocessCalledProcessError if error occurs
+        """
+        pid = subprocess.check_output(
+            rf'snap logs {SNAP_NAME}.{snap_service} | awk "{{print $2}}" | tail -n 1 | grep -o -e "[0-9]*"',
+            shell=True,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
+        )
+
+        logger.info(f"{pid=}")
+
+        return int(pid)
+
     @staticmethod
     def run_bin_command(bin_keyword: str, bin_args: List[str], opts: List[str] = []) -> str:
         """Runs kafka bin command with desired args.
