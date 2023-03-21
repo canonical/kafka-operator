@@ -93,6 +93,8 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
                 # See https://github.com/canonical/charmed-kafka-snap for details
                 {"path": "/metrics", "port": f"{JMX_EXPORTER_PORT}"},
             ],
+            metrics_rules_dir="./src/alert_rules/prometheus",
+            logs_rules_dir="./src/alert_rules/loki",
             log_slots=["charmed-kafka:logs"],
         )
 

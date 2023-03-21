@@ -1,0 +1,8 @@
+alert: JvmMemoryFillingUp
+expr: (sum by (instance)(jvm_memory_bytes_used{area="heap"}) / sum by (instance)(jvm_memory_bytes_max{area="heap"})) * 100 > 80
+for: 2m
+labels:
+    severity: warning
+annotations:
+    summary: JVM memory filling up (instance {{ $labels.instance }})
+    description: "JVM memory is filling up (> 80%)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
