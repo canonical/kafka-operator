@@ -240,10 +240,8 @@ vm.dirty_background_ratio=5
 ```
 
 #### Memory Maps - Recommended
-Each Kafka log segment requires an `index` file and a `timeindex` file, both requiring 1 map area. The default OS maximum number of memory map areas a process can have is set by `vm.max_map_count=65536`. For production deployments with a large number of partitions and log-segments, it is likely to exceed the maximum OS limit. One can retrieve the count of the majority of memory mapped `.index` files and compare to he current limit with:
-```bash
-find . -name '*index' | wc -l
-```
+Each Kafka log segment requires an `index` file and a `timeindex` file, both requiring 1 map area. The default OS maximum number of memory map areas a process can have is set by `vm.max_map_count=65536`. For production deployments with a large number of partitions and log-segments, it is likely to exceed the maximum OS limit.
+
 It is recommended to set the mmap number sufficiently higher than the number of memory mapped files. This can also be written to `/etc/sysctl.conf`:
 ```bash
 vm.max_map_count=<new_mmap_value>
