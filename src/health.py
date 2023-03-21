@@ -139,7 +139,7 @@ class KafkaHealth(Object):
 
         Returns:
             True if settings safely configured. Otherwise False
-        """ 
+        """
         if not self._check_memory_maps():
             return False
 
@@ -150,4 +150,3 @@ class KafkaHealth(Object):
             return False
 
         return True
-
