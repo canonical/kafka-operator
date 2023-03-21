@@ -26,6 +26,7 @@ from ops.model import ActiveStatus, Relation, StatusBase
 
 from auth import KafkaAuth
 from config import KafkaConfig
+from health import KafkaHealth
 from literals import (
     ADMIN_USER,
     CHARM_KEY,
@@ -58,6 +59,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.kafka_config = KafkaConfig(self)
         self.tls = KafkaTLS(self)
         self.provider = KafkaProvider(self)
+        self.health = KafkaHealth(self)
         self.restart = RollingOpsManager(self, relation="restart", callback=self._restart)
 
         self.framework.observe(getattr(self.on, "start"), self._on_start)
@@ -183,6 +185,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             zookeeper_config=self.kafka_config.zookeeper_config,
         ):
             self._set_status(Status.ZK_NOT_CONNECTED)
+            return
+
+        if not self.health.machine_configured():
             return
 
         self._set_status(Status.ACTIVE)
