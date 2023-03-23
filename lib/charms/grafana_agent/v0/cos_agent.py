@@ -171,12 +171,12 @@ from cosl import JujuTopology
 from cosl.rules import AlertRules
 from ops.charm import RelationEvent
 from ops.framework import EventBase, EventSource, Object, ObjectEvents
-from ops.model import Relation
+from ops.model import Relation, Unit
 from ops.testing import CharmType
 
 LIBID = "dc15fa84cef84ce58155fb84f6c6213a"
 LIBAPI = 0
-LIBPATCH = 1
+LIBPATCH = 2
 
 PYDEPS = ["cosl"]
 
@@ -248,25 +248,49 @@ class COSAgentProvider(Object):
 
         for relation in relations:
             if relation.data:
-                relation.data[self._charm.app].update({"config": self._generate_databag_content()})
+                if self._charm.unit.is_leader():
+                    relation.data[self._charm.app].update(
+                        {"config": self._generate_application_databag_content()}
+                    )
+                relation.data[self._charm.unit].update(
+                    {"config": self._generate_unit_databag_content()}
+                )
 
-    def _generate_databag_content(self) -> str:
-        """Collate the data for each nested databag and return it."""
-        # The databag is divided in three chunks: metrics, logs, and dashboards.
+    def _generate_application_databag_content(self) -> str:
+        """Collate the data for each nested app databag and return it."""
+        # The application databag is divided in three chunks: alert rules (metrics and logs) and
+        # dashboards.
+        # Scrape jobs and log slots are unit-dependent and are therefore stored in unit databag.
+
+        data = {
+            # primary key
+            "metrics": {
+                # secondary key
+                "alert_rules": self._metrics_alert_rules,
+            },
+            "logs": {
+                "alert_rules": self._log_alert_rules,
+            },
+            "dashboards": {
+                "dashboards": self._dashboards,
+            },
+        }
+
+        return json.dumps(data)
+
+    def _generate_unit_databag_content(self) -> str:
+        """Collate the data for each nested unit databag and return it."""
+        # The unit databag is divided in two chunks: metrics (scrape jobs only) and logs.
+        # Alert rules and dashboards are unit-independent and are therefore stored in app databag.
 
         data = {
             # primary key
             "metrics": {
                 # secondary key
                 "scrape_jobs": self._scrape_jobs,
-                "alert_rules": self._metrics_alert_rules,
             },
             "logs": {
                 "targets": self._log_slots,
-                "alert_rules": self._log_alert_rules,
-            },
-            "dashboards": {
-                "dashboards": self._dashboards,
             },
         }
 
@@ -361,6 +385,15 @@ class COSAgentRequirer(Object):
         # FIXME: Figure out what we should do here
         self.on.data_changed.emit()
 
+    @staticmethod
+    def _relation_unit(relation: Relation) -> Optional[Unit]:
+        """Return the principal unit for a relation."""
+        if relation and relation.units:
+            # With subordiante charms, relation.units is always either empty or has only the
+            # principal unit, so next(iter(...)) is fine.
+            return next(iter(relation.units))
+        return None
+
     @property
     def _relations(self):
         return self._charm.model.relations[self._relation_name]
@@ -372,7 +405,13 @@ class COSAgentRequirer(Object):
         if not relation.data or not relation.app:
             return None
 
-        config = json.loads(relation.data[relation.app].get("config", "{}"))
+        config = {}
+        if primary_key == "dashboards" or secondary_key == "alert_rules":
+            config = json.loads(relation.data[relation.app].get("config", "{}"))
+        else:
+            unit = COSAgentRequirer._relation_unit(relation)
+            if unit and relation.data[unit]:
+                config = json.loads(relation.data[unit].get("config", "{}"))
         return config.get(primary_key, {}).get(secondary_key, None)
 
     @property
@@ -380,6 +419,7 @@ class COSAgentRequirer(Object):
         """Fetch metrics alerts."""
         alert_rules = {}
         for relation in self._relations:
+            unit = self._relation_unit(relation)
             # This is only used for naming the file, so be as specific as we
             # can be, but it's ok if the unit name isn't exactly correct, so
             # long as we don't dedupe away the alerts, which will be
@@ -387,7 +427,7 @@ class COSAgentRequirer(Object):
                 model=self._charm.model.name,
                 model_uuid=self._charm.model.uuid,
                 application=relation.app.name if relation.app else "unknown",
-                unit=self._charm.unit.name,
+                unit=unit.name if unit else "unknown",
             ).identifier
             if data := self._fetch_data_from_relation(relation, "metrics", "alert_rules"):
                 alert_rules.update({identifier: data})
@@ -461,12 +501,15 @@ class COSAgentRequirer(Object):
                 relation, "dashboards", "dashboards"
             ):
                 for dashboard in dashboard_data:
+                    content = self._decode_dashboard_content(dashboard)
+                    title = json.loads(content).get("title", "no_title")
                     dashboards.append(
                         {
                             "relation_id": str(relation.id),
                             # We don't have the remote charm name, but give us an identifier
                             "charm": f"{relation.name}-{relation.app.name if relation.app else 'unknown'}",
-                            "content": self._decode_dashboard_content(dashboard),
+                            "content": content,
+                            "title": title,
                         }
                     )
         return dashboards
