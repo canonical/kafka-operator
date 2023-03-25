@@ -3,14 +3,22 @@
 # See LICENSE file for licensing details.
 
 from pathlib import Path
-from unittest.mock import PropertyMock, patch
+from unittest.mock import PropertyMock, mock_open, patch
 
 import pytest
 import yaml
 from ops.testing import Harness
 
 from charm import KafkaCharm
-from literals import ADMIN_USER, CHARM_KEY, INTER_BROKER_USER, INTERNAL_USERS, PEER, ZK
+from literals import (
+    ADMIN_USER,
+    CHARM_KEY,
+    INTER_BROKER_USER,
+    INTERNAL_USERS,
+    JMX_EXPORTER_PORT,
+    PEER,
+    ZK,
+)
 
 CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
 ACTIONS = str(yaml.safe_load(Path("./actions.yaml").read_text()))
@@ -33,13 +41,13 @@ def harness():
 
 def test_all_storages_in_log_dirs(harness):
     """Checks that the log.dirs property updates with all available storages."""
-    storage_metadata = harness.charm.meta.storages["log-data"]
+    storage_metadata = harness.charm.meta.storages["data"]
     min_storages = storage_metadata.multiple_range[0] if storage_metadata.multiple_range else 0
     with harness.hooks_disabled():
-        harness.add_storage(storage_name="log-data", count=min_storages, attach=True)
+        harness.add_storage(storage_name="data", count=min_storages, attach=True)
 
     assert len(harness.charm.kafka_config.log_dirs.split(",")) == len(
-        harness.charm.model.storages["log-data"]
+        harness.charm.model.storages["data"]
     )
 
 
@@ -215,10 +223,43 @@ def test_zookeeper_config_succeeds_valid_config(harness):
     assert harness.charm.kafka_config.zookeeper_connected
 
 
-def test_extra_args(harness):
-    """Checks necessary args in extra-args for KAFKA_OPTS."""
-    args = "".join(harness.charm.kafka_config.extra_args)
+def test_kafka_opts(harness):
+    """Checks necessary args for KAFKA_OPTS."""
+    args = harness.charm.kafka_config.kafka_opts
     assert "-Djava.security.auth.login.config" in args
+    assert "KAFKA_OPTS" in args
+
+
+def test_log4j_opts(harness):
+    """Checks necessary args for KAFKA_LOG4J_OPTS."""
+    args = harness.charm.kafka_config.log4j_opts
+    assert "-Dlog4j.configuration=file:" in args
+    assert "KAFKA_LOG4J_OPTS" in args
+
+
+def test_jmx_opts(harness):
+    """Checks necessary args for KAFKA_JMX_OPTS."""
+    args = harness.charm.kafka_config.jmx_opts
+    assert "-javaagent:" in args
+    assert len(args.split(":")) == 3
+    assert args.split(":")[1].split("=")[-1] == str(JMX_EXPORTER_PORT)
+    assert "KAFKA_JMX_OPTS" in args
+
+
+def test_set_environment(harness):
+    """Checks all necessary env-vars are written to /etc/environment."""
+    with (
+        patch("config.safe_write_to_file") as patched_write,
+        patch("builtins.open", mock_open()),
+        patch("shutil.chown"),
+    ):
+        harness.charm.kafka_config.set_environment()
+
+        for call in patched_write.call_args_list:
+            assert "KAFKA_OPTS" in call.kwargs.get("content", "")
+            assert "KAFKA_LOG4J_OPTS" in call.kwargs.get("content", "")
+            assert "KAFKA_JMX_OPTS" in call.kwargs.get("content", "")
+            assert "/etc/environment" == call.kwargs.get("path", "")
 
 
 def test_bootstrap_server(harness):

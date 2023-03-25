@@ -19,15 +19,8 @@ def test_run_bin_command_raises():
 def test_run_bin_command_args():
     """Checks KAFKA_OPTS env-var and zk-tls flag present in all snap commands."""
     with patch("subprocess.check_output") as patched:
-        KafkaSnap.run_bin_command("configs", ["--list"], ["-Djava"])
+        KafkaSnap.run_bin_command(bin_keyword="configs", bin_args=["--list"], opts=["-Djava"])
 
-        found_tls = False
-        found_opts = False
-        for arg in patched.call_args.args:
-            if "--zk-tls-config-file" in arg:
-                found_tls = True
-            if "KAFKA_OPTS=" in arg:
-                found_opts = True
-
-        assert found_tls, "--zk-tls-config-file flag not found"
-        assert found_opts, "KAFKA_OPTS not found"
+        assert "charmed-kafka.configs" in patched.call_args.args[0].split()
+        assert "-Djava" == patched.call_args.args[0].split()[0]
+        assert "--list" == patched.call_args.args[0].split()[-1]
