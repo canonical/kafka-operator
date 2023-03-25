@@ -5,6 +5,7 @@
 """KafkaProvider class and methods."""
 
 import logging
+from typing import TYPE_CHECKING, Optional
 
 from charms.data_platform_libs.v0.data_interfaces import KafkaProvides, TopicRequestedEvent
 from ops.charm import RelationBrokenEvent
@@ -16,6 +17,9 @@ from config import KafkaConfig
 from literals import PEER, REL_NAME
 from utils import generate_password
 
+if TYPE_CHECKING:
+    from charm import KafkaCharm
+
 logger = logging.getLogger(__name__)
 
 
@@ -24,13 +28,9 @@ class KafkaProvider(Object):
 
     def __init__(self, charm) -> None:
         super().__init__(charm, "kafka_client")
-        self.charm = charm
+        self.charm: "KafkaCharm" = charm
         self.kafka_config = KafkaConfig(self.charm)
-        self.kafka_auth = KafkaAuth(
-            charm,
-            opts=self.kafka_config.auth_args,
-            zookeeper=self.kafka_config.zookeeper_config.get("connect", ""),
-        )
+        self.kafka_auth = KafkaAuth(charm)
 
         self.kafka_provider = KafkaProvides(self.charm, REL_NAME)
 
@@ -49,7 +49,7 @@ class KafkaProvider(Object):
         # on all unit update the server properties to enable client listener if needed
         self.charm._on_config_changed(event)
 
-        if not self.charm.unit.is_leader():
+        if not self.charm.unit.is_leader() or not self.peer_relation:
             return
 
         extra_user_roles = event.extra_user_roles or ""
@@ -95,7 +95,7 @@ class KafkaProvider(Object):
         self.kafka_provider.set_topic(relation.id, topic)
 
     @property
-    def peer_relation(self) -> Relation:
+    def peer_relation(self) -> Optional[Relation]:
         """The Kafka cluster's peer relation."""
         return self.charm.model.get_relation(PEER)
 
@@ -111,7 +111,7 @@ class KafkaProvider(Object):
         if self.charm.app.planned_units == 0:
             return
 
-        if not self.charm.unit.is_leader():
+        if not self.charm.unit.is_leader() or not self.peer_relation:
             return
 
         if not self.charm.healthy:
