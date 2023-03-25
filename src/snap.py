@@ -147,12 +147,6 @@ class KafkaSnap:
         args_string = " ".join(bin_args)
         opts_string = " ".join(opts)
         command = f"{opts_string} {SNAP_NAME}.{bin_keyword} {args_string}"
-<<<<<<< HEAD
-=======
-
-        logger.info(f"{command=}")
->>>>>>> 190de12 (chore: use new snap layout, hard-code snap service)
-
         try:
             output = subprocess.check_output(
                 command, stderr=subprocess.PIPE, universal_newlines=True, shell=True
