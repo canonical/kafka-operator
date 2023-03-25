@@ -17,7 +17,7 @@ from pytest_operator.plugin import OpsTest
 
 from auth import Acl, KafkaAuth
 from literals import SECURITY_PROTOCOL_PORTS
-from snap import SNAP_CONFIG_PATH
+from snap import KafkaSnap
 
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 APP_NAME = METADATA["name"]
@@ -263,7 +263,7 @@ def produce_and_check_logs(
         client.produce_message(topic_name=topic, message_content=message)
 
     logs = check_output(
-        f"JUJU_MODEL={model_full_name} juju ssh {kafka_unit_name} 'find /var/snap/charmed-kafka/common/log-data'",
+        f"JUJU_MODEL={model_full_name} juju ssh {kafka_unit_name} 'find {KafkaSnap.data_path}/data'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -287,7 +287,7 @@ async def run_client_properties(ops_test: OpsTest) -> str:
         + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT'].client}"
     )
     result = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 'charmed-kafka.configs --bootstrap-server {bootstrap_server} --describe --all --command-config {SNAP_CONFIG_PATH}/client.properties --entity-type users'",
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 'charmed-kafka.configs --bootstrap-server {bootstrap_server} --describe --all --command-config {KafkaSnap.conf_path}/client.properties --entity-type users'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -299,7 +299,7 @@ async def run_client_properties(ops_test: OpsTest) -> str:
 async def set_mtls_client_acls(ops_test: OpsTest, bootstrap_server: str) -> str:
     """Adds ACLs for principal `User:client` and `TEST-TOPIC`."""
     result = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.acls --bootstrap-server {bootstrap_server} --add --allow-principal=User:client --operation READ --operation WRITE --operation CREATE --topic TEST-TOPIC --command-config {SNAP_CONFIG_PATH}/client.properties'",
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.acls --bootstrap-server {bootstrap_server} --add --allow-principal=User:client --operation READ --operation WRITE --operation CREATE --topic TEST-TOPIC --command-config {KafkaSnap.conf_path}/client.properties'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
