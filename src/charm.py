@@ -33,7 +33,6 @@ from literals import (
     JMX_EXPORTER_PORT,
     PEER,
     REL_NAME,
-    SNAP_NAME,
     ZK,
     DebugLevel,
     Status,
@@ -80,10 +79,10 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         )
 
         self.framework.observe(
-            getattr(self.on, "log_data_storage_attached"), self._on_storage_attached
+            getattr(self.on, "data_storage_attached"), self._on_storage_attached
         )
         self.framework.observe(
-            getattr(self.on, "log_data_storage_detaching"), self._on_storage_detaching
+            getattr(self.on, "data_storage_detaching"), self._on_storage_detaching
         )
 
         self._grafana_agent = COSAgentProvider(
@@ -168,7 +167,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         if not self.ready_to_start:
             return False
 
-        if not self.snap.active(snap_service=SNAP_NAME):
+        if not self.snap.active():
             self._set_status(Status.SNAP_NOT_RUNNING)
             return False
 
@@ -193,7 +192,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         # new dirs won't be used until topic partitions are assigned to it
         # either automatically for new topics, or manually for existing
         # set status only for running services, not on startup
-        if self.snap.active(snap_service=SNAP_NAME):
+        if self.snap.active():
             self._set_status(Status.ADDED_STORAGE)
             self._on_config_changed(event)
 
@@ -210,7 +209,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
         if self.snap.install():
-            self.kafka_config.set_kafka_opts()
+            self.kafka_config.set_environment()
             self._set_status(Status.ZK_NOT_RELATED)
         else:
             self._set_status(Status.SNAP_NOT_INSTALLED)
@@ -261,7 +260,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
     def _on_zookeeper_broken(self, _: RelationEvent) -> None:
         """Handler for `zookeeper_relation_broken` event, ensuring charm blocks."""
-        self.snap.stop_snap_service(snap_service=SNAP_NAME)
+        self.snap.stop_snap_service()
 
         logger.info(f'Broker {self.unit.name.split("/")[1]} disconnected')
         self._set_status(Status.ZK_NOT_RELATED)
@@ -278,7 +277,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.kafka_config.set_client_properties()
 
         # start kafka service
-        self.snap.start_snap_service(snap_service=SNAP_NAME)
+        self.snap.start_snap_service()
 
         # check for connection
         self._on_update_status(event)
@@ -332,7 +331,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             event.defer()
             return
 
-        self.snap.restart_snap_service(snap_service=SNAP_NAME)
+        self.snap.restart_snap_service()
 
         if self.healthy:
             logger.info(f'Broker {self.unit.name.split("/")[1]} restarted')
@@ -346,8 +345,8 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             event.defer()
             return
 
-        self.snap.disable_enable(snap_service=SNAP_NAME)
-        self.snap.start_snap_service(snap_service=SNAP_NAME)
+        self.snap.disable_enable()
+        self.snap.start_snap_service()
 
         if self.healthy:
             logger.info(f'Broker {self.unit.name.split("/")[1]} restarted')
@@ -425,15 +424,11 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             )
 
         # do not start units until SCRAM users have been added to ZooKeeper for server-server auth
-        kafka_auth = KafkaAuth(
-            self,
-            opts=self.kafka_config.extra_args,
-            zookeeper=self.kafka_config.zookeeper_config.get("connect", ""),
-        )
-
+        kafka_auth = KafkaAuth(self)
         kafka_auth.add_user(
             username=username,
             password=password,
+            zk_auth=True,
         )
 
     def _create_internal_credentials(self) -> list[tuple[str, str]]:
