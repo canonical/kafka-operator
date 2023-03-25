@@ -148,8 +148,6 @@ class KafkaSnap:
         opts_string = " ".join(opts)
         command = f"{opts_string} {SNAP_NAME}.{bin_keyword} {args_string}"
 
-        logger.info(f"{command=}")
-
         try:
             output = subprocess.check_output(
                 command, stderr=subprocess.PIPE, universal_newlines=True, shell=True
