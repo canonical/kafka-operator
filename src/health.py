@@ -33,7 +33,7 @@ class KafkaHealth(Object):
         """Gets the current number of memory maps for the Kafka process."""
         return int(
             subprocess.check_output(
-                f"sudo cat /proc/{self._service_pid}/maps | wc -l",
+                f"cat /proc/{self._service_pid}/maps | wc -l",
                 shell=True,
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
@@ -44,7 +44,7 @@ class KafkaHealth(Object):
         """Gets the current file descriptor limit for the Kafka process."""
         return int(
             subprocess.check_output(
-                rf"sudo cat /proc/{self._service_pid}/limits | grep files | awk '{{print $5}}'",
+                rf"cat /proc/{self._service_pid}/limits | grep files | awk '{{print $5}}'",
                 shell=True,
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
@@ -55,7 +55,7 @@ class KafkaHealth(Object):
         """Gets the current memory map limit for the machine."""
         return int(
             subprocess.check_output(
-                "sudo sysctl -n vm.max_map_count",
+                "sysctl -n vm.max_map_count",
                 shell=True,
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
@@ -66,7 +66,7 @@ class KafkaHealth(Object):
         """Gets the current vm.swappiness configured for the machine."""
         return int(
             subprocess.check_output(
-                "sudo sysctl -n vm.swappiness",
+                "sysctl -n vm.swappiness",
                 shell=True,
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
