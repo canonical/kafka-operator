@@ -103,16 +103,16 @@ class KafkaConfig:
 
     def __init__(self, charm):
         self.charm: "KafkaCharm" = charm
-        self.server_properties_filepath = f"{self.charm.snap.conf_path}/server.properties"
-        self.client_properties_filepath = f"{self.charm.snap.conf_path}/client.properties"
-        self.zk_jaas_filepath = f"{self.charm.snap.conf_path}/zookeeper-jaas.cfg"
-        self.keystore_filepath = f"{self.charm.snap.conf_path}/keystore.p12"
-        self.truststore_filepath = f"{self.charm.snap.conf_path}/truststore.jks"
-        self.log4j_properties_filepath = f"{self.charm.snap.conf_path}/log4j.properties"
+        self.server_properties_filepath = f"{self.charm.snap.CONF_PATH}/server.properties"
+        self.client_properties_filepath = f"{self.charm.snap.CONF_PATH}/client.properties"
+        self.zk_jaas_filepath = f"{self.charm.snap.CONF_PATH}/zookeeper-jaas.cfg"
+        self.keystore_filepath = f"{self.charm.snap.CONF_PATH}/keystore.p12"
+        self.truststore_filepath = f"{self.charm.snap.CONF_PATH}/truststore.jks"
+        self.log4j_properties_filepath = f"{self.charm.snap.CONF_PATH}/log4j.properties"
         self.jmx_prometheus_javaagent_filepath = (
-            f"{self.charm.snap.binaries_path}/jmx_prometheus_javaagent.jar"
+            f"{self.charm.snap.BINARIES_PATH}/jmx_prometheus_javaagent.jar"
         )
-        self.jmx_prometheus_config_filepath = f"{self.charm.snap.conf_path}/jmx_prometheus.yaml"
+        self.jmx_prometheus_config_filepath = f"{self.charm.snap.CONF_PATH}/jmx_prometheus.yaml"
 
     @property
     def internal_user_credentials(self) -> Dict[str, str]:

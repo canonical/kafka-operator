@@ -27,10 +27,10 @@ class KafkaSnap:
     COMPONENT = "kafka"
     SNAP_SERVICE = "daemon"
 
-    conf_path = f"/var/snap/{SNAP_NAME}/current/etc/{COMPONENT}"
-    logs_path = f"/var/snap/{SNAP_NAME}/common/var/log/{COMPONENT}"
-    data_path = f"/var/snap/{SNAP_NAME}/common/var/lib/{COMPONENT}"
-    binaries_path = f"/snap/{SNAP_NAME}/current/opt/{COMPONENT}"
+    CONF_PATH = f"/var/snap/{SNAP_NAME}/current/etc/{COMPONENT}"
+    LOGS_PATH = f"/var/snap/{SNAP_NAME}/common/var/log/{COMPONENT}"
+    DATA_PATH = f"/var/snap/{SNAP_NAME}/common/var/lib/{COMPONENT}"
+    BINARIES_PATH = f"/snap/{SNAP_NAME}/current/opt/{COMPONENT}"
 
     def __init__(self) -> None:
         self.kafka = snap.SnapCache()[SNAP_NAME]
