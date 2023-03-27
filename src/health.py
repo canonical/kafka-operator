@@ -12,7 +12,7 @@ from typing import Tuple
 
 from ops.framework import Object
 
-from literals import SNAP_NAME, Status
+from literals import Status
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ class KafkaHealth(Object):
     @property
     def _service_pid(self) -> int:
         """Gets most recent Kafka service pid from the snap logs."""
-        return self.charm.snap.get_service_pid(service_name=SNAP_NAME)
+        return self.charm.snap.get_service_pid()
 
     def _get_current_memory_maps(self) -> int:
         """Gets the current number of memory maps for the Kafka process."""
@@ -77,11 +77,11 @@ class KafkaHealth(Object):
         """Gets the number of partitions and their average size from the log dirs."""
         log_dirs_command = [
             "--describe",
-            f"--bootstrap-server {self.charm.kafka_config.bootstrap_server}",
+            f"--bootstrap-server {','.join(self.charm.kafka_config.bootstrap_server)}",
             f"--command-config {self.charm.kafka_config.client_properties_filepath}",
         ]
         log_dirs = json.loads(
-            self.charm.kafka.run_bin_command(bin_keyword="log-dirs", bin_args=log_dirs_command)
+            self.charm.snap.run_bin_command(bin_keyword="log-dirs", bin_args=log_dirs_command)
         )
 
         partitions = []

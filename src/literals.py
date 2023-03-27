@@ -78,7 +78,7 @@ class Status(Enum):
     )
     NO_CERT = StatusLevel(WaitingStatus("unit waiting for signed certificates"), "INFO")
     TOO_SWAPPY = StatusLevel(
-        BlockedStatus(
+        ActiveStatus(
             "machine vm.swappiness setting higher than 1, set /etc/syscl.conf vm.swappiness=1 and restart"
         ),
         "ERROR",

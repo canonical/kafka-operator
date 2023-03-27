@@ -129,7 +129,7 @@ class KafkaSnap:
         except KeyError:
             return False
 
-    def get_service_pid(self, snap_service: str) -> int:
+    def get_service_pid(self) -> int:
         """Gets pid of a currently active snap service.
 
         Args:
@@ -142,13 +142,13 @@ class KafkaSnap:
             KeyError if no pid string found in most recent log
             SnapError if error occurs
         """
-        last_log = self.kafka.logs(services=[snap_service], num_lines=1)
-        pid_string = re.search(rf"{SNAP_NAME}.{snap_service}\[([0-9]+)\]", last_log)
+        last_log = self.kafka.logs(services=[self.SNAP_SERVICE], num_lines=1)
+        pid_string = re.search(rf"{SNAP_NAME}.{self.SNAP_SERVICE}\[([0-9]+)\]", last_log)
 
         if not pid_string:
             raise KeyError("pid not found in snap logs")
 
-        return int(pid_string[0])
+        return int(pid_string[1])
 
     @staticmethod
     def run_bin_command(bin_keyword: str, bin_args: List[str], opts: List[str] = []) -> str:
