@@ -5,6 +5,7 @@
 """KafkaProvider class and methods."""
 
 import logging
+import subprocess
 from typing import TYPE_CHECKING, Optional
 
 from charms.data_platform_libs.v0.data_interfaces import KafkaProvides, TopicRequestedEvent
@@ -66,10 +67,16 @@ class KafkaProvider(Object):
             event.consumer_group_prefix or f"{username}-" if "consumer" in extra_user_roles else ""
         )
 
-        self.kafka_auth.add_user(
-            username=username,
-            password=password,
-        )
+        # catching error here in case listeners not established for bootstrap-server auth
+        try:
+            self.kafka_auth.add_user(
+                username=username,
+                password=password,
+            )
+        except subprocess.CalledProcessError:
+            logger.warning("unable to create internal user just yet")
+            event.defer()
+            return
 
         # non-leader units need cluster_config_changed event to update their super.users
         self.peer_relation.data[self.charm.app].update({username: password})
