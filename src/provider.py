@@ -8,7 +8,7 @@ import logging
 from typing import TYPE_CHECKING, Optional
 
 from charms.data_platform_libs.v0.data_interfaces import KafkaProvides, TopicRequestedEvent
-from ops.charm import RelationBrokenEvent
+from ops.charm import RelationBrokenEvent, RelationCreatedEvent
 from ops.framework import Object
 from ops.model import Relation
 
@@ -34,6 +34,7 @@ class KafkaProvider(Object):
 
         self.kafka_provider = KafkaProvides(self.charm, REL_NAME)
 
+        self.framework.observe(self.charm.on[REL_NAME].relation_created, self._on_relation_created)
         self.framework.observe(self.charm.on[REL_NAME].relation_broken, self._on_relation_broken)
 
         self.framework.observe(
@@ -98,6 +99,11 @@ class KafkaProvider(Object):
     def peer_relation(self) -> Optional[Relation]:
         """The Kafka cluster's peer relation."""
         return self.charm.model.get_relation(PEER)
+
+    def _on_relation_created(self, event: RelationCreatedEvent) -> None:
+        """Handler for `kafka-client-relation-created` event."""
+        logger.info("RELATION CREATED - CALLING CONFIG CHANGED")
+        self.charm._on_config_changed(event)
 
     def _on_relation_broken(self, event: RelationBrokenEvent) -> None:
         """Handler for `kafka-client-relation-broken` event.
