@@ -177,6 +177,44 @@ async def test_mtls(ops_test: OpsTest):
     ssl_bootstrap_server = f"{address}:{ssl_port}"
     sasl_bootstrap_server = f"{address}:{sasl_port}"
 
+    import subprocess
+
+    result = subprocess.check_output(
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'cat /var/snap/charmed-kafka/current/etc/kafka/server.properties'",
+        stderr=subprocess.PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+
+    print(result)
+
+    result = subprocess.check_output(
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'sudo cat /var/snap/charmed-kafka/current/etc/kafka/server.properties'",
+        stderr=subprocess.PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+
+    print(result)
+
+    result = subprocess.check_output(
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'cat /var/snap/charmed-kafka/current/etc/kafka/client.properties'",
+        stderr=subprocess.PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+
+    print(result)
+
+    result = subprocess.check_output(
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'sudo cat /var/snap/charmed-kafka/current/etc/kafka/client.properties'",
+        stderr=subprocess.PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+
+    print(result)
+
     # setting ACLs using normal sasl port
     await set_mtls_client_acls(ops_test, bootstrap_server=sasl_bootstrap_server)
 

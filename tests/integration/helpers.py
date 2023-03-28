@@ -315,7 +315,7 @@ async def set_mtls_client_acls(ops_test: OpsTest, bootstrap_server: str) -> str:
             print(e.stderr)
             print(e.stdout)
             print(str(e))
+            if _ == 2:
+                raise
             time.sleep(10)
             continue
-
-    raise
