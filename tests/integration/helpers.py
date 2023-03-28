@@ -302,7 +302,7 @@ async def set_mtls_client_acls(ops_test: OpsTest, bootstrap_server: str) -> str:
     for _ in range(3):
         try:
             result = check_output(
-                f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.acls --bootstrap-server {bootstrap_server} --add --allow-principal=User:client --operation READ --operation WRITE --operation CREATE --topic TEST-TOPIC --command-config {KafkaSnap.CONF_PATH}/client.properties'",
+                f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'sudo charmed-kafka.acls --bootstrap-server {bootstrap_server} --add --allow-principal=User:client --operation READ --operation WRITE --operation CREATE --topic TEST-TOPIC --command-config {KafkaSnap.CONF_PATH}/client.properties'",
                 stderr=PIPE,
                 shell=True,
                 universal_newlines=True,
