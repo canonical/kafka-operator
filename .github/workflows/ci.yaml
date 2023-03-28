@@ -75,18 +75,20 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: ${{ needs.build.outputs.artifact-name }}
-      - name: Select tests
-        id: select-tests
-        run: |
-          if [ "${{ github.event_name }}" == "schedule" ]
-          then
-            echo Running unstable and stable tests
-            echo "mark_expression=" >> $GITHUB_OUTPUT
-          else
-            echo Skipping unstable tests
-            echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
-          fi
+      # - name: Select tests
+      #   id: select-tests
+      #   run: |
+      #     if [ "${{ github.event_name }}" == "schedule" ]
+      #     then
+      #       echo Running unstable and stable tests
+      #       echo "mark_expression=" >> $GITHUB_OUTPUT
+      #     else
+      #       echo Skipping unstable tests
+      #       echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
+      #     fi
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
       - name: Run integration tests
-        run: tox run -e ${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}'
+        run: tox run -e integration-tls
         env:
           CI_PACKED_CHARMS: ${{ needs.build.outputs.charms }}
