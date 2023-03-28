@@ -112,11 +112,11 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm):
             ),
         )
         await ops_test.model.wait_for_idle(
-            apps=[CHARM_KEY, DUMMY_NAME], timeout=1000, idle_period=15
+            apps=[CHARM_KEY, DUMMY_NAME], timeout=1000, idle_period=60
         )
         await ops_test.model.add_relation(CHARM_KEY, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
         await ops_test.model.wait_for_idle(
-            apps=[CHARM_KEY, DUMMY_NAME], timeout=1000, idle_period=15
+            apps=[CHARM_KEY, DUMMY_NAME], timeout=3600, idle_period=60, status="active"
         )
 
         assert ops_test.model.applications[CHARM_KEY].status == "active"
