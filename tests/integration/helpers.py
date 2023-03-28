@@ -40,7 +40,7 @@ def load_acls(model_full_name: str, zookeeper_uri: str) -> Set[Acl]:
 
 def load_super_users(model_full_name: str) -> List[str]:
     result = check_output(
-        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'cat /var/snap/charmed-kafka/etc/kafka/server.properties'",
+        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'cat /var/snap/charmed-kafka/current/etc/kafka/server.properties'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
