@@ -55,10 +55,10 @@ jobs:
     #       - integration-password-rotation
     #       - integration-tls
     # name: ${{ matrix.tox-environments }}
-    # needs:
-    #   - lint
-    #   - unit-test
-    #   - build
+    needs:
+      - lint
+      - unit-test
+      - build
     runs-on: ubuntu-latest
     # timeout-minutes: 120
     steps:
