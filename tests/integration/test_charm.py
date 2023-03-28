@@ -83,7 +83,7 @@ async def test_client_properties_makes_admin_connection(ops_test: OpsTest):
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME, DUMMY_NAME])
     result = await run_client_properties(ops_test=ops_test)
     assert result
-    
+
     acls = 0
     for line in result.strip().split("\n"):
         if "SCRAM credential configs for user-principal" in line:
