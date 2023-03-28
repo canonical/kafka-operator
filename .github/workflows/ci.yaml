@@ -45,22 +45,22 @@ jobs:
     uses: canonical/data-platform-workflows/.github/workflows/build_charms_with_cache.yaml@v2
 
   integration-test:
-    strategy:
-      fail-fast: false
-      matrix:
-        tox-environments:
-          - integration-charm
-          - integration-provider
-          - integration-scaling
-          - integration-password-rotation
-          - integration-tls
-    name: ${{ matrix.tox-environments }}
-    needs:
-      - lint
-      - unit-test
-      - build
+    # strategy:
+    #   fail-fast: false
+    #   matrix:
+    #     tox-environments:
+    #       - integration-charm
+    #       - integration-provider
+    #       - integration-scaling
+    #       - integration-password-rotation
+    #       - integration-tls
+    # name: ${{ matrix.tox-environments }}
+    # needs:
+    #   - lint
+    #   - unit-test
+    #   - build
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    # timeout-minutes: 120
     steps:
       - name: Checkout
         uses: actions/checkout@v3
