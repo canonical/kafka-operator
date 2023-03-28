@@ -5,6 +5,7 @@ import logging
 import re
 import socket
 import subprocess
+import time
 from contextlib import closing
 from pathlib import Path
 from subprocess import PIPE, check_output
@@ -298,18 +299,23 @@ async def run_client_properties(ops_test: OpsTest) -> str:
 
 async def set_mtls_client_acls(ops_test: OpsTest, bootstrap_server: str) -> str:
     """Adds ACLs for principal `User:client` and `TEST-TOPIC`."""
-    try:
-        result = check_output(
-            f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.acls --bootstrap-server {bootstrap_server} --add --allow-principal=User:client --operation READ --operation WRITE --operation CREATE --topic TEST-TOPIC --command-config {KafkaSnap.CONF_PATH}/client.properties'",
-            stderr=PIPE,
-            shell=True,
-            universal_newlines=True,
-        )
+    for _ in range(3):
+        try:
+            result = check_output(
+                f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.acls --bootstrap-server {bootstrap_server} --add --allow-principal=User:client --operation READ --operation WRITE --operation CREATE --topic TEST-TOPIC --command-config {KafkaSnap.CONF_PATH}/client.properties'",
+                stderr=PIPE,
+                shell=True,
+                universal_newlines=True,
+            )
 
-        return result
+            return result
 
-    except subprocess.CalledProcessError as e:
-        print(e.output)
-        print(e.stderr)
-        print(e.stdout)
-        print(str(e))
+        except subprocess.CalledProcessError as e:
+            print(e.output)
+            print(e.stderr)
+            print(e.stdout)
+            print(str(e))
+            time.sleep(10)
+            continue
+
+    raise
