@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 def load_acls(model_full_name: str, zookeeper_uri: str) -> Set[Acl]:
     result = check_output(
-        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 'charmed-kafka.acls --authorizer-properties zookeeper.connect={zookeeper_uri} --list'",
+        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.acls --authorizer-properties zookeeper.connect={zookeeper_uri} --list'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -40,7 +40,7 @@ def load_acls(model_full_name: str, zookeeper_uri: str) -> Set[Acl]:
 
 def load_super_users(model_full_name: str) -> List[str]:
     result = check_output(
-        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 'cat /var/snap/charmed-kafka/common/server.properties'",
+        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'cat /var/snap/charmed-kafka/common/server.properties'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -56,7 +56,7 @@ def load_super_users(model_full_name: str) -> List[str]:
 
 def check_user(model_full_name: str, username: str, zookeeper_uri: str) -> None:
     result = check_output(
-        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 'charmed-kafka.configs --zookeeper {zookeeper_uri} --describe --entity-type users --entity-name {username}'",
+        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.configs --zookeeper {zookeeper_uri} --describe --entity-type users --entity-name {username}'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -66,7 +66,7 @@ def check_user(model_full_name: str, username: str, zookeeper_uri: str) -> None:
 
 def get_user(model_full_name: str, username: str, zookeeper_uri: str) -> str:
     result = check_output(
-        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 'charmed-kafka.configs --zookeeper {zookeeper_uri} --describe --entity-type users --entity-name {username}'",
+        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.configs --zookeeper {zookeeper_uri} --describe --entity-type users --entity-name {username}'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -263,7 +263,7 @@ def produce_and_check_logs(
         client.produce_message(topic_name=topic, message_content=message)
 
     logs = check_output(
-        f"JUJU_MODEL={model_full_name} juju ssh {kafka_unit_name} 'find {KafkaSnap.DATA_PATH}/data'",
+        f"JUJU_MODEL={model_full_name} juju ssh {kafka_unit_name} sudo -i 'find {KafkaSnap.DATA_PATH}/data'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -287,7 +287,7 @@ async def run_client_properties(ops_test: OpsTest) -> str:
         + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT'].client}"
     )
     result = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 'charmed-kafka.configs --bootstrap-server {bootstrap_server} --describe --all --command-config {KafkaSnap.CONF_PATH}/client.properties --entity-type users'",
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.configs --bootstrap-server {bootstrap_server} --describe --all --command-config {KafkaSnap.CONF_PATH}/client.properties --entity-type users'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
