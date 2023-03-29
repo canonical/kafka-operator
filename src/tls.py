@@ -27,7 +27,13 @@ from ops.framework import Object
 from ops.model import ActiveStatus, BlockedStatus, Relation
 
 from literals import TLS_RELATION, TRUSTED_CA_RELATION, TRUSTED_CERTIFICATE_RELATION
-from utils import generate_password, parse_tls_file, safe_write_to_file, set_snap_ownership
+from utils import (
+    generate_password,
+    parse_tls_file,
+    safe_write_to_file,
+    set_snap_mode_bits,
+    set_snap_ownership,
+)
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -418,6 +424,7 @@ class KafkaTLS(Object):
                 cwd=self.charm.snap.CONF_PATH,
             )
             set_snap_ownership(path=f"{self.charm.snap.CONF_PATH}/truststore.jks")
+            set_snap_mode_bits(path=f"{self.charm.snap.CONF_PATH}/truststore.jks")
         except subprocess.CalledProcessError as e:
             # in case this reruns and fails
             if "already exists" in e.output:
@@ -436,6 +443,7 @@ class KafkaTLS(Object):
                 cwd=self.charm.snap.CONF_PATH,
             )
             set_snap_ownership(path=f"{self.charm.snap.CONF_PATH}/keystore.p12")
+            set_snap_mode_bits(path=f"{self.charm.snap.CONF_PATH}/keystore.p12")
         except subprocess.CalledProcessError as e:
             logger.error(e.output)
             raise e

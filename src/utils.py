@@ -113,6 +113,11 @@ def set_snap_ownership(path: str) -> None:
     shutil.chown(path, user="snap_daemon", group="root")
 
 
+def set_snap_mode_bits(path: str) -> None:
+    """Sets filepath mode bits."""
+    os.chmod(path, 0o770)
+
+
 def generate_password() -> str:
     """Creates randomized string for use as app passwords.
 
