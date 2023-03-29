@@ -40,10 +40,10 @@ provides:
     interface: cos_agent
 
 storage:
-  log-data:
+  data:
     type: filesystem
     description: Directories where the log data is stored
     minimum-size: 10G
-    location: /var/snap/charmed-kafka/common
+    location: /var/snap/charmed-kafka/common/var/lib/kafka
     multiple:
       range: 1-

@@ -5,9 +5,11 @@
 """KafkaProvider class and methods."""
 
 import logging
+import subprocess
+from typing import TYPE_CHECKING, Optional
 
 from charms.data_platform_libs.v0.data_interfaces import KafkaProvides, TopicRequestedEvent
-from ops.charm import RelationBrokenEvent
+from ops.charm import RelationBrokenEvent, RelationCreatedEvent
 from ops.framework import Object
 from ops.model import Relation
 
@@ -15,6 +17,9 @@ from auth import KafkaAuth
 from config import KafkaConfig
 from literals import PEER, REL_NAME
 from utils import generate_password
+
+if TYPE_CHECKING:
+    from charm import KafkaCharm
 
 logger = logging.getLogger(__name__)
 
@@ -24,16 +29,13 @@ class KafkaProvider(Object):
 
     def __init__(self, charm) -> None:
         super().__init__(charm, "kafka_client")
-        self.charm = charm
+        self.charm: "KafkaCharm" = charm
         self.kafka_config = KafkaConfig(self.charm)
-        self.kafka_auth = KafkaAuth(
-            charm,
-            opts=self.kafka_config.auth_args,
-            zookeeper=self.kafka_config.zookeeper_config.get("connect", ""),
-        )
+        self.kafka_auth = KafkaAuth(charm)
 
         self.kafka_provider = KafkaProvides(self.charm, REL_NAME)
 
+        self.framework.observe(self.charm.on[REL_NAME].relation_created, self._on_relation_created)
         self.framework.observe(self.charm.on[REL_NAME].relation_broken, self._on_relation_broken)
 
         self.framework.observe(
@@ -49,7 +51,7 @@ class KafkaProvider(Object):
         # on all unit update the server properties to enable client listener if needed
         self.charm._on_config_changed(event)
 
-        if not self.charm.unit.is_leader():
+        if not self.charm.unit.is_leader() or not self.peer_relation:
             return
 
         extra_user_roles = event.extra_user_roles or ""
@@ -65,10 +67,16 @@ class KafkaProvider(Object):
             event.consumer_group_prefix or f"{username}-" if "consumer" in extra_user_roles else ""
         )
 
-        self.kafka_auth.add_user(
-            username=username,
-            password=password,
-        )
+        # catching error here in case listeners not established for bootstrap-server auth
+        try:
+            self.kafka_auth.add_user(
+                username=username,
+                password=password,
+            )
+        except subprocess.CalledProcessError:
+            logger.warning("unable to create internal user just yet")
+            event.defer()
+            return
 
         # non-leader units need cluster_config_changed event to update their super.users
         self.peer_relation.data[self.charm.app].update({username: password})
@@ -95,9 +103,14 @@ class KafkaProvider(Object):
         self.kafka_provider.set_topic(relation.id, topic)
 
     @property
-    def peer_relation(self) -> Relation:
+    def peer_relation(self) -> Optional[Relation]:
         """The Kafka cluster's peer relation."""
         return self.charm.model.get_relation(PEER)
+
+    def _on_relation_created(self, event: RelationCreatedEvent) -> None:
+        """Handler for `kafka-client-relation-created` event."""
+        logger.info("RELATION CREATED - CALLING CONFIG CHANGED")
+        self.charm._on_config_changed(event)
 
     def _on_relation_broken(self, event: RelationBrokenEvent) -> None:
         """Handler for `kafka-client-relation-broken` event.
@@ -111,7 +124,7 @@ class KafkaProvider(Object):
         if self.charm.app.planned_units == 0:
             return
 
-        if not self.charm.unit.is_leader():
+        if not self.charm.unit.is_leader() or not self.peer_relation:
             return
 
         if not self.charm.healthy:

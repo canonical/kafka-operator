@@ -20,14 +20,19 @@ from literals import SNAP_NAME
 logger = logging.getLogger(__name__)
 
 
-SNAP_CONFIG_PATH = "/var/snap/charmed-kafka/common"
-
-
 class KafkaSnap:
     """Wrapper for performing common operations specific to the Kafka Snap."""
 
+    SNAP_NAME = "charmed-kafka"
+    COMPONENT = "kafka"
+    SNAP_SERVICE = "daemon"
+
+    CONF_PATH = f"/var/snap/{SNAP_NAME}/current/etc/{COMPONENT}"
+    LOGS_PATH = f"/var/snap/{SNAP_NAME}/common/var/log/{COMPONENT}"
+    DATA_PATH = f"/var/snap/{SNAP_NAME}/common/var/lib/{COMPONENT}"
+    BINARIES_PATH = f"/snap/{SNAP_NAME}/current/opt/{COMPONENT}"
+
     def __init__(self) -> None:
-        self.snap_config_path = SNAP_CONFIG_PATH
         self.kafka = snap.SnapCache()[SNAP_NAME]
 
     def install(self) -> bool:
@@ -43,7 +48,7 @@ class KafkaSnap:
             kafka = cache[SNAP_NAME]
 
             if not kafka.present:
-                kafka.ensure(snap.SnapState.Latest, channel="latest/edge")
+                kafka.ensure(snap.SnapState.Latest, channel="3/edge")
 
             self.kafka = kafka
             self.kafka.connect(plug="removable-media")
@@ -53,82 +58,64 @@ class KafkaSnap:
             logger.error(str(e))
             return False
 
-    def start_snap_service(self, snap_service: str) -> bool:
+    def start_snap_service(self) -> bool:
         """Starts snap service process.
-
-        Args:
-            snap_service: The desired service to run on the unit
-                `charmed-kafka` or `zookeeper`
 
         Returns:
             True if service successfully starts. False otherwise.
         """
         try:
-            self.kafka.start(services=[snap_service])
+            self.kafka.start(services=[self.SNAP_SERVICE])
             return True
         except snap.SnapError as e:
             logger.exception(str(e))
             return False
 
-    def stop_snap_service(self, snap_service: str) -> bool:
+    def stop_snap_service(self) -> bool:
         """Stops snap service process.
-
-        Args:
-            snap_service: The desired service to stop on the unit
-                `charmed-kafka` or `zookeeper`
 
         Returns:
             True if service successfully stops. False otherwise.
         """
         try:
-            self.kafka.stop(services=[snap_service])
+            self.kafka.stop(services=[self.SNAP_SERVICE])
             return True
         except snap.SnapError as e:
             logger.exception(str(e))
             return False
 
-    def restart_snap_service(self, snap_service: str) -> bool:
+    def restart_snap_service(self) -> bool:
         """Restarts snap service process.
-
-        Args:
-            snap_service: The desired service to run on the unit
-                `kafka` or `zookeeper`
 
         Returns:
             True if service successfully restarts. False otherwise.
         """
         try:
-            self.kafka.restart(services=[snap_service])
+            self.kafka.restart(services=[self.SNAP_SERVICE])
             return True
         except snap.SnapError as e:
             logger.exception(str(e))
             return False
 
-    def disable_enable(self, snap_service: str) -> None:
+    def disable_enable(self) -> None:
         """Disables then enables snap service.
 
         Necessary for snap services to recognise new storage mounts
 
-        Args:
-            snap_service: The desired service to disable+enable
-
         Raises:
             subprocess.CalledProcessError if error occurs
         """
-        subprocess.run(f"snap disable {snap_service}", shell=True)
-        subprocess.run(f"snap enable {snap_service}", shell=True)
+        subprocess.run(f"snap disable {self.SNAP_SERVICE}", shell=True)
+        subprocess.run(f"snap enable {self.SNAP_SERVICE}", shell=True)
 
     @retry(
         wait=wait_fixed(1),
         stop=stop_after_attempt(5),
-        retry_error_callback=lambda state: state.outcome.result(),
+        retry_error_callback=lambda state: state.outcome.result(),  # type: ignore
         retry=retry_if_not_result(lambda result: True if result else False),
     )
-    def active(self, snap_service: str) -> bool:
+    def active(self) -> bool:
         """Checks if service is active.
-
-        Args:
-            snap_service: The desired service to check active
 
         Returns:
             True if service is active. Otherwise False
@@ -137,19 +124,19 @@ class KafkaSnap:
             KeyError if service does not exist
         """
         try:
-            return bool(self.kafka.services[snap_service]["active"])
+            return bool(self.kafka.services[self.SNAP_SERVICE]["active"])
         except KeyError:
             return False
 
     @staticmethod
-    def run_bin_command(bin_keyword: str, bin_args: List[str], opts: List[str]) -> str:
+    def run_bin_command(bin_keyword: str, bin_args: List[str], opts: List[str] = []) -> str:
         """Runs kafka bin command with desired args.
 
         Args:
             bin_keyword: the kafka shell script to run
                 e.g `configs`, `topics` etc
             bin_args: the shell command args
-            opts (optional): the desired `KAFKA_OPTS` env var values for the command
+            opts: any additional opts args strings
 
         Returns:
             String of kafka bin command output
@@ -158,11 +145,8 @@ class KafkaSnap:
             `subprocess.CalledProcessError`: if the error returned a non-zero exit code
         """
         args_string = " ".join(bin_args)
-        args_string_appended = (
-            f"{args_string} --zk-tls-config-file={SNAP_CONFIG_PATH}/server.properties"
-        )
         opts_string = " ".join(opts)
-        command = f"KAFKA_OPTS={opts_string} {SNAP_NAME}.{bin_keyword} {args_string_appended}"
+        command = f"{opts_string} {SNAP_NAME}.{bin_keyword} {args_string}"
 
         try:
             output = subprocess.check_output(

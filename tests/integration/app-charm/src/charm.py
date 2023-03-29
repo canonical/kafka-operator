@@ -9,6 +9,7 @@ of the libraries in this repository.
 """
 
 import logging
+import shutil
 import subprocess
 from socket import getfqdn
 
@@ -97,7 +98,7 @@ class ApplicationCharm(CharmBase):
         kafka = cache["charmed-kafka"]
 
         if not kafka.present:
-            kafka.ensure(snap.SnapState.Latest, channel="latest/edge")
+            kafka.ensure(snap.SnapState.Latest, channel="3/edge")
 
     def _create_keystore(self, unit_name: str, unit_host: str):
         try:
@@ -108,6 +109,7 @@ class ApplicationCharm(CharmBase):
                 shell=True,
                 universal_newlines=True,
             )
+            shutil.chown("client.keystore.jks", user="snap_daemon", group="root")
 
             logger.info("creating a ca")
             subprocess.check_output(
@@ -116,6 +118,8 @@ class ApplicationCharm(CharmBase):
                 shell=True,
                 universal_newlines=True,
             )
+            shutil.chown("ca.key", user="snap_daemon", group="root")
+            shutil.chown("ca.cert", user="snap_daemon", group="root")
 
             logger.info("signing certificate")
             subprocess.check_output(
@@ -124,12 +128,15 @@ class ApplicationCharm(CharmBase):
                 shell=True,
                 universal_newlines=True,
             )
+            shutil.chown("client.csr", user="snap_daemon", group="root")
+
             subprocess.check_output(
                 "openssl x509 -req -CA ca.cert -CAkey ca.key -in client.csr -out client.cert -days 90 -CAcreateserial -passin pass:password",
                 stderr=subprocess.PIPE,
                 shell=True,
                 universal_newlines=True,
             )
+            shutil.chown("client.cert", user="snap_daemon", group="root")
 
             logger.info("importing certificate to keystore")
             subprocess.check_output(
@@ -138,6 +145,7 @@ class ApplicationCharm(CharmBase):
                 shell=True,
                 universal_newlines=True,
             )
+            shutil.chown("client.keystore.jks", user="snap_daemon", group="root")
 
             logger.info("grabbing cert content")
             certificate = subprocess.check_output(
@@ -170,6 +178,7 @@ class ApplicationCharm(CharmBase):
                     shell=True,
                     universal_newlines=True,
                 )
+                shutil.chown("client.truststore.jks", user="snap_daemon", group="root")
             except subprocess.CalledProcessError as e:
                 # in case this reruns and fails
                 if "already exists" in e.output:
@@ -201,7 +210,7 @@ class ApplicationCharm(CharmBase):
         logger.info("running producer application")
         try:
             subprocess.check_output(
-                f"/snap/charmed-kafka/current/opt/kafka/bin/kafka-console-producer.sh --broker-list {bootstrap_servers} --topic=TEST-TOPIC --producer.config client.properties < data",
+                f"/snap/charmed-kafka/current/bin/kafka-console-producer.sh --broker-list {bootstrap_servers} --topic=TEST-TOPIC --producer.config client.properties < data",
                 stderr=subprocess.PIPE,
                 shell=True,
                 universal_newlines=True,

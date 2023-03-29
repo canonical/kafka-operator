@@ -7,9 +7,12 @@
 import logging
 import re
 from dataclasses import asdict, dataclass
-from typing import List, Optional, Set
+from typing import TYPE_CHECKING, Optional, Set
 
 from snap import KafkaSnap
+
+if TYPE_CHECKING:
+    from charm import KafkaCharm
 
 logger = logging.getLogger(__name__)
 
@@ -27,22 +30,24 @@ class Acl:
 class KafkaAuth:
     """Object for updating Kafka users and ACLs."""
 
-    def __init__(self, charm, opts: List[str], zookeeper: str):
-        self.charm = charm
-        self.opts = opts
-        self.zookeeper = zookeeper
+    def __init__(self, charm):
+        self.charm: "KafkaCharm" = charm
+        self.zookeeper_connect = self.charm.kafka_config.zookeeper_config.get("connect", "")
+        self.bootstrap_server = ",".join(self.charm.kafka_config.bootstrap_server)
+        self.client_properties = self.charm.kafka_config.client_properties_filepath
+        self.server_properties = self.charm.kafka_config.server_properties_filepath
+
         self.current_acls: Set[Acl] = set()
         self.new_user_acls: Set[Acl] = set()
-        # TODO: when we need to have --bootstrap-server bin commands, don't default to --zookeeper
-        # pass auth provider via command argument and handle it in run_bin_command
 
     def _get_acls_from_cluster(self) -> str:
         """Loads the currently active ACLs from the Kafka cluster."""
         command = [
-            f"--authorizer-properties zookeeper.connect={self.zookeeper}",
+            f"--bootstrap-server={self.bootstrap_server}",
+            f"--command-config={self.client_properties}",
             "--list",
         ]
-        acls = KafkaSnap.run_bin_command(bin_keyword="acls", bin_args=command, opts=self.opts)
+        acls = KafkaSnap.run_bin_command(bin_keyword="acls", bin_args=command)
 
         return acls
 
@@ -138,24 +143,41 @@ class KafkaAuth:
 
         return consumer_acls
 
-    def add_user(self, username: str, password: str) -> None:
+    def add_user(self, username: str, password: str, zk_auth: bool = False) -> None:
         """Adds new user credentials to ZooKeeper.
 
         Args:
             username: the user name to add
             password: the user password
+            zk_auth: flag to specify adding users using ZooKeeper authorizer
+                For use before cluster start
 
         Raises:
             `subprocess.CalledProcessError`: if the error returned a non-zero exit code
         """
-        command = [
-            f"--zookeeper={self.zookeeper}",
+        base_command = [
             "--alter",
             "--entity-type=users",
             f"--entity-name={username}",
             f"--add-config=SCRAM-SHA-512=[password={password}]",
         ]
-        KafkaSnap.run_bin_command(bin_keyword="configs", bin_args=command, opts=self.opts)
+
+        # needed only here, as internal SCRAM users cannot be created using `--bootstrap-server` until the cluster has initialised
+        # instead must be authorized using ZooKeeper JAAS
+        if zk_auth:
+            command = base_command + [
+                f"--zookeeper={self.zookeeper_connect}",
+                f"--zk-tls-config-file={self.server_properties}",
+            ]
+            opts = [self.charm.kafka_config.kafka_opts]
+        else:
+            command = base_command + [
+                f"--bootstrap-server={self.bootstrap_server}",
+                f"--command-config={self.client_properties}",
+            ]
+            opts = []
+
+        KafkaSnap.run_bin_command(bin_keyword="configs", bin_args=command, opts=opts)
 
     def delete_user(self, username: str) -> None:
         """Deletes user credentials from ZooKeeper.
@@ -167,13 +189,14 @@ class KafkaAuth:
             `subprocess.CalledProcessError`: if the error returned a non-zero exit code
         """
         command = [
-            f"--zookeeper={self.zookeeper}",
+            f"--bootstrap-server={self.bootstrap_server}",
+            f"--command-config={self.client_properties}",
             "--alter",
             "--entity-type=users",
             f"--entity-name={username}",
             "--delete-config=SCRAM-SHA-512",
         ]
-        KafkaSnap.run_bin_command(bin_keyword="configs", bin_args=command, opts=self.opts)
+        KafkaSnap.run_bin_command(bin_keyword="configs", bin_args=command)
 
     def add_acl(
         self, username: str, operation: str, resource_type: str, resource_name: str
@@ -195,7 +218,8 @@ class KafkaAuth:
             `subprocess.CalledProcessError`: if the error returned a non-zero exit code
         """
         command = [
-            f"--authorizer-properties zookeeper.connect={self.zookeeper}",
+            f"--bootstrap-server={self.bootstrap_server}",
+            f"--command-config={self.client_properties}",
             "--add",
             f"--allow-principal=User:{username}",
             f"--operation={operation}",
@@ -208,7 +232,7 @@ class KafkaAuth:
                 f"--group={resource_name}",
                 "--resource-pattern-type=PREFIXED",
             ]
-        KafkaSnap.run_bin_command(bin_keyword="acls", bin_args=command, opts=self.opts)
+        KafkaSnap.run_bin_command(bin_keyword="acls", bin_args=command)
 
     def remove_acl(
         self, username: str, operation: str, resource_type: str, resource_name: str
@@ -227,7 +251,8 @@ class KafkaAuth:
             `subprocess.CalledProcessError`: if the error returned a non-zero exit code
         """
         command = [
-            f"--authorizer-properties zookeeper.connect={self.zookeeper}",
+            f"--bootstrap-server={self.bootstrap_server}",
+            f"--command-config={self.client_properties}",
             "--remove",
             f"--allow-principal=User:{username}",
             f"--operation={operation}",
@@ -242,7 +267,7 @@ class KafkaAuth:
                 "--resource-pattern-type=PREFIXED",
             ]
 
-        KafkaSnap.run_bin_command(bin_keyword="acls", bin_args=command, opts=self.opts)
+        KafkaSnap.run_bin_command(bin_keyword="acls", bin_args=command)
 
     def remove_all_user_acls(self, username: str) -> None:
         """Removes all active ACLs for a given user.

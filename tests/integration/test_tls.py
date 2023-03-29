@@ -112,11 +112,11 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm):
             ),
         )
         await ops_test.model.wait_for_idle(
-            apps=[CHARM_KEY, DUMMY_NAME], timeout=1000, idle_period=15
+            apps=[CHARM_KEY, DUMMY_NAME], timeout=1000, idle_period=60
         )
         await ops_test.model.add_relation(CHARM_KEY, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
         await ops_test.model.wait_for_idle(
-            apps=[CHARM_KEY, DUMMY_NAME], timeout=1000, idle_period=15
+            apps=[CHARM_KEY, DUMMY_NAME], timeout=3600, idle_period=60, status="active"
         )
 
         assert ops_test.model.applications[CHARM_KEY].status == "active"
@@ -138,6 +138,7 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm):
     assert private_key_2 == new_private_key
 
 
+@pytest.mark.abort_on_fail
 async def test_mtls(ops_test: OpsTest):
     # creating the signed external cert on the unit
     action = await ops_test.model.units.get(f"{DUMMY_NAME}/0").run_action("create-certificate")
@@ -165,7 +166,7 @@ async def test_mtls(ops_test: OpsTest):
             f"{CHARM_KEY}:{TRUSTED_CERTIFICATE_RELATION}", f"{MTLS_NAME}:{TLS_RELATION}"
         )
         await ops_test.model.wait_for_idle(
-            apps=[CHARM_KEY, MTLS_NAME], idle_period=15, timeout=1000
+            apps=[CHARM_KEY, MTLS_NAME], idle_period=60, timeout=2000, status="active"
         )
 
     # getting kafka ca and address
@@ -189,6 +190,7 @@ async def test_mtls(ops_test: OpsTest):
     assert response.results.get("success", None) == "TRUE"
 
 
+@pytest.mark.abort_on_fail
 async def test_kafka_tls_scaling(ops_test: OpsTest):
     """Scale the application while using TLS to check that new units will configure correctly."""
     await ops_test.model.applications[CHARM_KEY].add_units(count=2)

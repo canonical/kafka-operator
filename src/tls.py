@@ -8,7 +8,7 @@ import json
 import logging
 import socket
 import subprocess
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 from charms.tls_certificates_interface.v1.tls_certificates import (
     CertificateAvailableEvent,
@@ -27,8 +27,16 @@ from ops.framework import Object
 from ops.model import ActiveStatus, BlockedStatus, Relation
 
 from literals import TLS_RELATION, TRUSTED_CA_RELATION, TRUSTED_CERTIFICATE_RELATION
-from snap import SNAP_CONFIG_PATH
-from utils import generate_password, parse_tls_file, safe_write_to_file
+from utils import (
+    generate_password,
+    parse_tls_file,
+    safe_write_to_file,
+    set_snap_mode_bits,
+    set_snap_ownership,
+)
+
+if TYPE_CHECKING:
+    from charm import KafkaCharm
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +46,7 @@ class KafkaTLS(Object):
 
     def __init__(self, charm):
         super().__init__(charm, "tls")
-        self.charm = charm
+        self.charm: "KafkaCharm" = charm
         self.certificates = TLSCertificatesRequiresV1(self.charm, TLS_RELATION)
 
         # Own certificates handlers
@@ -57,7 +65,9 @@ class KafkaTLS(Object):
         self.framework.observe(
             getattr(self.certificates.on, "certificate_expiring"), self._on_certificate_expiring
         )
-        self.framework.observe(self.charm.on.set_tls_private_key_action, self._set_tls_private_key)
+        self.framework.observe(
+            getattr(self.charm.on, "set_tls_private_key_action"), self._set_tls_private_key
+        )
 
         # External certificates handlers (for mTLS)
         for relation in [TRUSTED_CERTIFICATE_RELATION, TRUSTED_CA_RELATION]:
@@ -80,7 +90,7 @@ class KafkaTLS(Object):
 
     def _tls_relation_created(self, _) -> None:
         """Handler for `certificates_relation_created` event."""
-        if not self.charm.unit.is_leader():
+        if not self.charm.unit.is_leader() or not self.peer_relation:
             return
 
         self.peer_relation.data[self.charm.app].update({"tls": "enabled"})
@@ -184,7 +194,7 @@ class KafkaTLS(Object):
             else provider_certificates[0]["ca"]
         )
         filename = f"{alias}.pem"
-        safe_write_to_file(content=content, path=f"{SNAP_CONFIG_PATH}/{filename}")
+        safe_write_to_file(content=content, path=f"{self.charm.snap.CONF_PATH}/{filename}")
         self.import_cert(alias=f"{alias}", filename=filename)
 
     def _trusted_relation_broken(self, event: RelationBrokenEvent) -> None:
@@ -237,7 +247,7 @@ class KafkaTLS(Object):
 
     def _on_certificate_expiring(self, _) -> None:
         """Handler for `certificate_expiring` event."""
-        if not self.private_key or not self.csr:
+        if not self.private_key or not self.csr or not self.peer_relation:
             logger.error("Missing unit private key and/or old csr")
             return
         new_csr = generate_csr(
@@ -266,7 +276,7 @@ class KafkaTLS(Object):
         self._on_certificate_expiring(event)
 
     @property
-    def peer_relation(self) -> Relation:
+    def peer_relation(self) -> Optional[Relation]:
         """Get the peer relation of the charm."""
         return self.charm.peer_relation
 
@@ -350,7 +360,7 @@ class KafkaTLS(Object):
 
     def _request_certificate(self):
         """Generates and submits CSR to provider."""
-        if not self.private_key:
+        if not self.private_key or not self.peer_relation:
             logger.error("Can't request certificate, missing private key")
             return
 
@@ -381,7 +391,9 @@ class KafkaTLS(Object):
             logger.error("Can't set private-key to unit, missing private-key in relation data")
             return
 
-        safe_write_to_file(content=self.private_key, path=f"{SNAP_CONFIG_PATH}/server.key")
+        safe_write_to_file(
+            content=self.private_key, path=f"{self.charm.snap.CONF_PATH}/server.key"
+        )
 
     def set_ca(self) -> None:
         """Sets the unit ca."""
@@ -389,7 +401,7 @@ class KafkaTLS(Object):
             logger.error("Can't set CA to unit, missing CA in relation data")
             return
 
-        safe_write_to_file(content=self.ca, path=f"{SNAP_CONFIG_PATH}/ca.pem")
+        safe_write_to_file(content=self.ca, path=f"{self.charm.snap.CONF_PATH}/ca.pem")
 
     def set_certificate(self) -> None:
         """Sets the unit certificate."""
@@ -397,7 +409,9 @@ class KafkaTLS(Object):
             logger.error("Can't set certificate to unit, missing certificate in relation data")
             return
 
-        safe_write_to_file(content=self.certificate, path=f"{SNAP_CONFIG_PATH}/server.pem")
+        safe_write_to_file(
+            content=self.certificate, path=f"{self.charm.snap.CONF_PATH}/server.pem"
+        )
 
     def set_truststore(self) -> None:
         """Adds CA to JKS truststore."""
@@ -407,8 +421,10 @@ class KafkaTLS(Object):
                 stderr=subprocess.PIPE,
                 shell=True,
                 universal_newlines=True,
-                cwd=SNAP_CONFIG_PATH,
+                cwd=self.charm.snap.CONF_PATH,
             )
+            set_snap_ownership(path=f"{self.charm.snap.CONF_PATH}/truststore.jks")
+            set_snap_mode_bits(path=f"{self.charm.snap.CONF_PATH}/truststore.jks")
         except subprocess.CalledProcessError as e:
             # in case this reruns and fails
             if "already exists" in e.output:
@@ -424,8 +440,10 @@ class KafkaTLS(Object):
                 stderr=subprocess.PIPE,
                 shell=True,
                 universal_newlines=True,
-                cwd=SNAP_CONFIG_PATH,
+                cwd=self.charm.snap.CONF_PATH,
             )
+            set_snap_ownership(path=f"{self.charm.snap.CONF_PATH}/keystore.p12")
+            set_snap_mode_bits(path=f"{self.charm.snap.CONF_PATH}/keystore.p12")
         except subprocess.CalledProcessError as e:
             logger.error(e.output)
             raise e
@@ -438,7 +456,7 @@ class KafkaTLS(Object):
                 stderr=subprocess.PIPE,
                 shell=True,
                 universal_newlines=True,
-                cwd=SNAP_CONFIG_PATH,
+                cwd=self.charm.snap.CONF_PATH,
             )
         except subprocess.CalledProcessError as e:
             # in case this reruns and fails
@@ -456,14 +474,14 @@ class KafkaTLS(Object):
                 stderr=subprocess.PIPE,
                 shell=True,
                 universal_newlines=True,
-                cwd=SNAP_CONFIG_PATH,
+                cwd=self.charm.snap.CONF_PATH,
             )
             subprocess.check_output(
                 f"rm -f {alias}.pem",
                 stderr=subprocess.PIPE,
                 shell=True,
                 universal_newlines=True,
-                cwd=SNAP_CONFIG_PATH,
+                cwd=self.charm.snap.CONF_PATH,
             )
         except subprocess.CalledProcessError as e:
             if "does not exist" in e.output:
@@ -480,7 +498,7 @@ class KafkaTLS(Object):
                 stderr=subprocess.PIPE,
                 shell=True,
                 universal_newlines=True,
-                cwd=SNAP_CONFIG_PATH,
+                cwd=self.charm.snap.CONF_PATH,
             )
         except subprocess.CalledProcessError as e:
             logger.error(e.output)

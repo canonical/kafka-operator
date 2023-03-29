@@ -33,10 +33,10 @@ def harness():
         }
     )
     harness.begin()
-    storage_metadata = getattr(harness.charm, "meta").storages["log-data"]
+    storage_metadata = getattr(harness.charm, "meta").storages["data"]
     min_storages = storage_metadata.multiple_range[0] if storage_metadata.multiple_range else 0
     with harness.hooks_disabled():
-        harness.add_storage(storage_name="log-data", count=min_storages, attach=True)
+        harness.add_storage(storage_name="data", count=min_storages, attach=True)
 
     return harness
 
@@ -192,8 +192,8 @@ def test_storage_add_does_nothing_if_snap_not_active(harness, zk_data, passwords
         patch("snap.KafkaSnap.active", return_value=False),
         patch("charm.KafkaCharm._disable_enable_restart") as patched_restart,
     ):
-        harness.add_storage(storage_name="log-data", count=2)
-        harness.attach_storage(storage_id="log-data/1")
+        harness.add_storage(storage_name="data", count=2)
+        harness.attach_storage(storage_id="data/1")
 
         assert patched_restart.call_count == 0
 
@@ -213,8 +213,8 @@ def test_storage_add_defers_if_service_not_healthy(harness, zk_data, passwords_d
         patch("charm.KafkaCharm._disable_enable_restart") as patched_restart,
         patch("ops.framework.EventBase.defer") as patched_defer,
     ):
-        harness.add_storage(storage_name="log-data", count=2)
-        harness.attach_storage(storage_id="log-data/1")
+        harness.add_storage(storage_name="data", count=2)
+        harness.attach_storage(storage_id="data/1")
 
         assert patched_restart.call_count == 0
         assert patched_defer.call_count == 1
@@ -239,8 +239,8 @@ def test_storage_add_disableenables_and_starts(harness, zk_data, passwords_data)
         patch("snap.KafkaSnap.start_snap_service") as patched_start,
         patch("ops.framework.EventBase.defer") as patched_defer,
     ):
-        harness.add_storage(storage_name="log-data", count=2)
-        harness.attach_storage(storage_id="log-data/1")
+        harness.add_storage(storage_name="data", count=2)
+        harness.attach_storage(storage_id="data/1")
 
         assert patched_disable_enable.call_count == 1
         assert patched_start.call_count == 1
@@ -255,8 +255,8 @@ def test_storage_detaching_disableenables_and_starts(harness, zk_data, passwords
         zk_rel_id = harness.add_relation(ZK, ZK)
         harness.update_relation_data(zk_rel_id, ZK, zk_data)
         harness.update_relation_data(peer_rel_id, CHARM_KEY, passwords_data)
-        harness.add_storage(storage_name="log-data", count=2)
-        harness.attach_storage(storage_id="log-data/1")
+        harness.add_storage(storage_name="data", count=2)
+        harness.attach_storage(storage_id="data/1")
 
     with (
         patch("snap.KafkaSnap.active", return_value=True),
@@ -268,18 +268,18 @@ def test_storage_detaching_disableenables_and_starts(harness, zk_data, passwords
         patch("snap.KafkaSnap.start_snap_service") as patched_start,
         patch("ops.framework.EventBase.defer") as patched_defer,
     ):
-        harness.detach_storage(storage_id="log-data/1")
+        harness.detach_storage(storage_id="data/1")
 
         assert patched_disable_enable.call_count == 1
         assert patched_start.call_count == 1
         assert patched_defer.call_count == 0
 
 
-def test_install_sets_opts(harness):
-    """Checks KAFKA_OPTS is written to /etc/environment on install hook."""
+def test_install_sets_env_vars(harness):
+    """Checks KAFKA_OPTS and other vars are written to /etc/environment on install hook."""
     with (
         patch("snap.KafkaSnap.install"),
-        patch("config.KafkaConfig.set_kafka_opts") as patched_kafka_opts,
+        patch("config.KafkaConfig.set_environment") as patched_kafka_opts,
     ):
         harness.charm.on.install.emit()
 
@@ -290,7 +290,7 @@ def test_install_waits_until_zookeeper_relation(harness):
     """Checks unit goes to WaitingStatus without ZK relation on install hook."""
     with (
         patch("snap.KafkaSnap.install"),
-        patch("config.KafkaConfig.set_kafka_opts"),
+        patch("config.KafkaConfig.set_environment"),
     ):
         harness.charm.on.install.emit()
         assert isinstance(harness.charm.unit.status, BlockedStatus)
@@ -300,14 +300,14 @@ def test_install_blocks_snap_install_failure(harness):
     """Checks unit goes to BlockedStatus after snap failure on install hook."""
     with (
         patch("snap.KafkaSnap.install", return_value=False),
-        patch("config.KafkaConfig.set_kafka_opts"),
+        patch("config.KafkaConfig.set_environment"),
     ):
         harness.charm.on.install.emit()
         assert isinstance(harness.charm.unit.status, BlockedStatus)
 
 
-def test_zookeeper_changed_sets_passwords_and_creates_users(harness, zk_data):
-    """Checks inter-broker passwords are created on zookeeper-changed hook."""
+def test_zookeeper_changed_sets_passwords_and_creates_users_with_zk(harness, zk_data):
+    """Checks inter-broker passwords are created on zookeeper-changed hook using zk auth."""
     with harness.hooks_disabled():
         peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
         harness.add_relation_unit(peer_rel_id, f"{CHARM_KEY}/0")
@@ -327,8 +327,13 @@ def test_zookeeper_changed_sets_passwords_and_creates_users(harness, zk_data):
         patched_set_zk_jaas.assert_called_once()
         patched_set_server_properties.assert_called_once()
 
+        # checks all users are INTERNAL only
         for call in patched_add_user.kwargs.get("username", []):
             assert call in INTERNAL_USERS
+
+        # checks all users added are added with --zookeeper auth
+        for call in patched_add_user.kwargs.get("zk_auth", False):
+            assert True
 
 
 def test_zookeeper_joined_sets_chroot(harness):

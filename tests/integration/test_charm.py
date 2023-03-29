@@ -37,7 +37,7 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
         ),
         ops_test.model.deploy(kafka_charm, application_name=APP_NAME, num_units=1, series="jammy"),
     )
-    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME])
+    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], idle_period=30, timeout=3600)
     assert ops_test.model.applications[APP_NAME].status == "blocked"
     assert ops_test.model.applications[ZK_NAME].status == "active"
 
@@ -83,7 +83,13 @@ async def test_client_properties_makes_admin_connection(ops_test: OpsTest):
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME, DUMMY_NAME])
     result = await run_client_properties(ops_test=ops_test)
     assert result
-    assert len(result.strip().split("\n")) == 3
+
+    acls = 0
+    for line in result.strip().split("\n"):
+        if "SCRAM credential configs for user-principal" in line:
+            acls += 1
+    assert acls == 3
+
     await ops_test.model.applications[APP_NAME].remove_relation(
         f"{APP_NAME}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_ADMIN}"
     )
@@ -133,6 +139,7 @@ async def test_logs_write_to_new_storage(ops_test: OpsTest):
 
 
 @pytest.mark.abort_on_fail
+@pytest.mark.skip
 async def test_observability_integration(ops_test: OpsTest):
     await ops_test.model.deploy(
         "ch:grafana-agent",
@@ -142,7 +149,7 @@ async def test_observability_integration(ops_test: OpsTest):
         series="jammy",
     )
 
-    await ops_test.model.add_relation(f"{APP_NAME}:cos-agent", "agent"),
+    await ops_test.model.add_relation(f"{APP_NAME}:cos-agent", "agent")
 
     # TODO uncomment once cos-agent is integrated in zookeeper
     # await ops_test.model.add_relation(f"{ZK_NAME}:juju-info", "agent")

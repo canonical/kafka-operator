@@ -9,6 +9,7 @@ import logging
 import os
 import re
 import secrets
+import shutil
 import string
 from typing import Dict, List, Optional, Set
 
@@ -27,7 +28,7 @@ logger = logging.getLogger(__name__)
     # retry to give ZK time to update its broker zNodes before failing
     wait=wait_fixed(6),
     stop=stop_after_attempt(10),
-    retry_error_callback=(lambda state: state.outcome.result()),
+    retry_error_callback=(lambda state: state.outcome.result()),  # type: ignore
     retry=retry_if_not_result(lambda result: True if result else False),
 )
 def broker_active(unit: Unit, zookeeper_config: Dict[str, str]) -> bool:
@@ -104,7 +105,17 @@ def safe_write_to_file(content: str, path: str, mode: str = "w") -> None:
     with open(path, mode) as f:
         f.write(content)
 
-    return
+    set_snap_ownership(path=path)
+
+
+def set_snap_ownership(path: str) -> None:
+    """Sets a filepath `snap_daemon` ownership."""
+    shutil.chown(path, user="snap_daemon", group="root")
+
+
+def set_snap_mode_bits(path: str) -> None:
+    """Sets filepath mode bits."""
+    os.chmod(path, 0o770)
 
 
 def generate_password() -> str:
