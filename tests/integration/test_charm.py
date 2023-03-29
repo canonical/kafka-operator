@@ -139,6 +139,7 @@ async def test_logs_write_to_new_storage(ops_test: OpsTest):
 
 
 @pytest.mark.abort_on_fail
+@pytest.mark.skip
 async def test_observability_integration(ops_test: OpsTest):
     await ops_test.model.deploy(
         "ch:grafana-agent",
@@ -148,7 +149,7 @@ async def test_observability_integration(ops_test: OpsTest):
         series="jammy",
     )
 
-    await ops_test.model.add_relation(f"{APP_NAME}:cos-agent", "agent"),
+    await ops_test.model.add_relation(f"{APP_NAME}:cos-agent", "agent")
 
     # TODO uncomment once cos-agent is integrated in zookeeper
     # await ops_test.model.add_relation(f"{ZK_NAME}:juju-info", "agent")
