@@ -5,6 +5,7 @@
 """KafkaSnap class and methods."""
 
 import logging
+import re
 import subprocess
 from typing import List
 
@@ -128,6 +129,24 @@ class KafkaSnap:
         except KeyError:
             return False
 
+    def get_service_pid(self) -> int:
+        """Gets pid of a currently active snap service.
+
+        Returns:
+            Integer of pid
+
+        Raises:
+            KeyError if no pid string found in most recent log
+            SnapError if error occurs
+        """
+        last_log = self.kafka.logs(services=[self.SNAP_SERVICE], num_lines=1)
+        pid_string = re.search(rf"{SNAP_NAME}.{self.SNAP_SERVICE}\[([0-9]+)\]", last_log)
+
+        if not pid_string:
+            raise KeyError("pid not found in snap logs")
+
+        return int(pid_string[1])
+
     @staticmethod
     def run_bin_command(bin_keyword: str, bin_args: List[str], opts: List[str] = []) -> str:
         """Runs kafka bin command with desired args.
@@ -147,7 +166,6 @@ class KafkaSnap:
         args_string = " ".join(bin_args)
         opts_string = " ".join(opts)
         command = f"{opts_string} {SNAP_NAME}.{bin_keyword} {args_string}"
-
         try:
             output = subprocess.check_output(
                 command, stderr=subprocess.PIPE, universal_newlines=True, shell=True

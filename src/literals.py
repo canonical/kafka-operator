@@ -77,3 +77,7 @@ class Status(Enum):
         WaitingStatus("internal broker credentials not yet added"), "INFO"
     )
     NO_CERT = StatusLevel(WaitingStatus("unit waiting for signed certificates"), "INFO")
+    SYSCONF_NOT_OPTIMAL = StatusLevel(
+        ActiveStatus("machine system settings are not optimal - see logs for info"),
+        "WARNING",
+    )
