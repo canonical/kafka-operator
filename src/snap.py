@@ -132,9 +132,6 @@ class KafkaSnap:
     def get_service_pid(self) -> int:
         """Gets pid of a currently active snap service.
 
-        Args:
-            snap_service: The desired service to get the pid of
-
         Returns:
             Integer of pid
 
