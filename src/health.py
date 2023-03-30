@@ -107,6 +107,9 @@ class KafkaHealth(Object):
                     partitions.append(partition["partition"])
                     sizes.append(int(partition["size"]))
 
+        if not sizes or not partitions:
+            return (0, 0)
+
         average_partition_size = mean(sizes)
         total_partitions = len(partitions)
 
