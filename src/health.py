@@ -12,8 +12,6 @@ from typing import TYPE_CHECKING, Tuple
 
 from ops.framework import Object
 
-from literals import Status
-
 if TYPE_CHECKING:
     from charm import KafkaCharm
 
@@ -122,7 +120,6 @@ class KafkaHealth(Object):
 
         # eyeballing warning if 80% used, can be changed
         if max_maps * 0.8 <= current_maps:
-            self.charm._set_status(Status.SYSCONF_NOT_OPTIMAL)
             logger.warning(
                 f"number of Kafka memory maps {current_maps} is approaching limit of {max_maps} - increase /etc/sysctl.conf vm.max_map_count limit and restart machine"
             )
@@ -143,7 +140,6 @@ class KafkaHealth(Object):
 
         # eyeballing warning if 80% used, can be changed
         if current_max_files * 0.8 <= minimum_fd_limit:
-            self.charm._set_status(Status.SYSCONF_NOT_OPTIMAL)
             logger.warning(
                 f"number of required Kafka file descriptors {minimum_fd_limit} is approaching limit of {current_max_files} - increase /etc/security/limits.d/root.conf limit and restart machine"
             )
@@ -156,7 +152,6 @@ class KafkaHealth(Object):
         vm_swappiness = self._get_vm_swappiness()
 
         if vm_swappiness > 1:
-            self.charm._set_status(Status.SYSCONF_NOT_OPTIMAL)
             logger.error(
                 f"machine vm.swappiness setting of {vm_swappiness} is higher than 1 - set /etc/syscl.conf vm.swappiness=1 and restart machine"
             )

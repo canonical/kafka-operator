@@ -188,6 +188,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             return
 
         if not self.health.machine_configured():
+            self._set_status(Status.SYSCONF_NOT_OPTIMAL)
             return
 
         self._set_status(Status.ACTIVE)
