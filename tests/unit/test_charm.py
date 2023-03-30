@@ -174,6 +174,7 @@ def test_update_status_sets_active(harness, zk_data, passwords_data):
     with (
         patch("snap.KafkaSnap.active", return_value=True),
         patch("charm.broker_active", return_value=True),
+        patch("health.KafkaHealth.machine_configured", return_value=True),
     ):
         harness.charm.on.update_status.emit()
         assert isinstance(harness.charm.unit.status, ActiveStatus)

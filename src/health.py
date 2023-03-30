@@ -8,11 +8,14 @@ import json
 import logging
 import subprocess
 from statistics import mean
-from typing import Tuple
+from typing import TYPE_CHECKING, Tuple
 
 from ops.framework import Object
 
 from literals import Status
+
+if TYPE_CHECKING:
+    from charm import KafkaCharm
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +25,7 @@ class KafkaHealth(Object):
 
     def __init__(self, charm) -> None:
         super().__init__(charm, "kafka_health")
-        self.charm = charm
+        self.charm: "KafkaCharm" = charm
 
     @property
     def _service_pid(self) -> int:
@@ -80,13 +83,25 @@ class KafkaHealth(Object):
             f"--bootstrap-server {','.join(self.charm.kafka_config.bootstrap_server)}",
             f"--command-config {self.charm.kafka_config.client_properties_filepath}",
         ]
-        log_dirs = json.loads(
-            self.charm.snap.run_bin_command(bin_keyword="log-dirs", bin_args=log_dirs_command)
+        log_dirs = self.charm.snap.run_bin_command(
+            bin_keyword="log-dirs", bin_args=log_dirs_command
         )
+
+        dirs = {}
+        for line in log_dirs.splitlines():
+            try:
+                # filters stdout to only relevant lines
+                dirs = json.loads(line)
+                break
+            except json.decoder.JSONDecodeError:
+                continue
+
+        if not dirs:
+            return (0, 0)
 
         partitions = []
         sizes = []
-        for broker in log_dirs["brokers"]:
+        for broker in dirs["brokers"]:
             for log_dir in broker["logDirs"]:
                 for partition in log_dir["partitions"]:
                     partitions.append(partition["partition"])
@@ -111,8 +126,11 @@ class KafkaHealth(Object):
 
     def _check_file_descriptors(self) -> bool:
         """Checks that the number of used file descriptors is not approaching threshold."""
+        if not self.charm.kafka_config.client_listeners:
+            return True
+
         total_partitions, average_partition_size = self._get_partitions_size()
-        segment_size = int(self.charm.config.get("log_segment_bytes", None))
+        segment_size = int(self.charm.config["log_segment_bytes"])
 
         minimum_fd_limit = total_partitions * (average_partition_size / segment_size)
         current_max_files = self._get_current_max_files()
