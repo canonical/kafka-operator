@@ -77,21 +77,7 @@ class Status(Enum):
         WaitingStatus("internal broker credentials not yet added"), "INFO"
     )
     NO_CERT = StatusLevel(WaitingStatus("unit waiting for signed certificates"), "INFO")
-    TOO_SWAPPY = StatusLevel(
-        ActiveStatus(
-            "machine vm.swappiness setting higher than 1, set /etc/syscl.conf vm.swappiness=1 and restart"
-        ),
-        "ERROR",
-    )
-    NEAR_FD_LIMIT = StatusLevel(
-        ActiveStatus(
-            "number of Kafka file descriptors approaching limit, increase /etc/security/limits.d/root.conf limit and restart"
-        ),
-        "WARNING",
-    )
-    NEAR_MMAP_LIMIT = StatusLevel(
-        ActiveStatus(
-            "number of Kafka memory maps approaching limit, increase /etc/sysctl.conf vm.max_map_count limit and restart"
-        ),
+    SYSCONF_NOT_OPTIMAL = StatusLevel(
+        ActiveStatus("machine system settings are not optimal - see logs for info"),
         "WARNING",
     )

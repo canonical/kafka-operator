@@ -122,7 +122,10 @@ class KafkaHealth(Object):
 
         # eyeballing warning if 80% used, can be changed
         if max_maps * 0.8 <= current_maps:
-            self.charm._set_status(Status.NEAR_MMAP_LIMIT)
+            self.charm._set_status(Status.SYSCONF_NOT_OPTIMAL)
+            logger.warning(
+                f"number of Kafka memory maps {current_maps} is approaching limit of {max_maps} - increase /etc/sysctl.conf vm.max_map_count limit and restart machine"
+            )
             return False
 
         return True
@@ -140,7 +143,10 @@ class KafkaHealth(Object):
 
         # eyeballing warning if 80% used, can be changed
         if current_max_files * 0.8 <= minimum_fd_limit:
-            self.charm._set_status(Status.NEAR_FD_LIMIT)
+            self.charm._set_status(Status.SYSCONF_NOT_OPTIMAL)
+            logger.warning(
+                f"number of required Kafka file descriptors {minimum_fd_limit} is approaching limit of {current_max_files} - increase /etc/security/limits.d/root.conf limit and restart machine"
+            )
             return False
 
         return True
@@ -150,7 +156,10 @@ class KafkaHealth(Object):
         vm_swappiness = self._get_vm_swappiness()
 
         if vm_swappiness > 1:
-            self.charm._set_status(Status.TOO_SWAPPY)
+            self.charm._set_status(Status.SYSCONF_NOT_OPTIMAL)
+            logger.error(
+                f"machine vm.swappiness setting of {vm_swappiness} is higher than 1 - set /etc/syscl.conf vm.swappiness=1 and restart machine"
+            )
             return False
 
         return True
@@ -161,13 +170,13 @@ class KafkaHealth(Object):
         Returns:
             True if settings safely configured. Otherwise False
         """
-        if not self._check_memory_maps():
-            return False
-
-        if not self._check_file_descriptors():
-            return False
-
-        if not self._check_vm_swappiness():
+        if not all(
+            [
+                self._check_memory_maps(),
+                self._check_file_descriptors(),
+                self._check_vm_swappiness(),
+            ]
+        ):
             return False
 
         return True
