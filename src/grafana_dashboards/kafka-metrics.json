@@ -2084,7 +2084,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum (kafka_server_brokertopicmetrics_totalproducerequestspersec{job=\"$job\",instance=~\"$broker\",topic!=\"\",topic=~\"$topic\"}))by(topic)",
+          "expr": "sum (kafka_server_brokertopicmetrics_totalproducerequestspersec{job=\"$job\",instance=~\"$broker\",topic!=\"\",topic=~\"$topic\"})by(topic)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
