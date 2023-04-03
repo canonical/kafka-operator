@@ -83,7 +83,7 @@ LIBAPI = 1
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 8
+LIBPATCH = 11
 
 
 # Regex to locate 7-bit C1 ANSI sequences
@@ -393,6 +393,22 @@ class Snap(object):
         except CalledProcessError as e:
             raise SnapError("Could not {} for snap [{}]: {}".format(_cmd, self._name, e.stderr))
 
+    def hold(self, duration: Optional[timedelta] = None) -> None:
+        """Add a refresh hold to a snap.
+
+        Args:
+            duration: duration for the hold, or None (the default) to hold this snap indefinitely.
+        """
+        hold_str = "forever"
+        if duration is not None:
+            seconds = round(duration.total_seconds())
+            hold_str = f"{seconds}s"
+        self._snap("refresh", [f"--hold={hold_str}"])
+
+    def unhold(self) -> None:
+        """Remove the refresh hold of a snap."""
+        self._snap("refresh", ["--unhold"])
+
     def restart(
         self, services: Optional[List[str]] = None, reload: Optional[bool] = False
     ) -> None:
@@ -439,8 +455,9 @@ class Snap(object):
           cohort: optionally, specify a cohort.
           leave_cohort: leave the current cohort.
         """
-        channel = '--channel="{}"'.format(channel) if channel else ""
-        args = [channel]
+        args = []
+        if channel:
+            args.append('--channel="{}"'.format(channel))
 
         if not cohort:
             cohort = self._cohort
@@ -570,6 +587,12 @@ class Snap(object):
                 services[app["name"]] = SnapService(**app).as_dict()
 
         return services
+
+    @property
+    def held(self) -> bool:
+        """Report whether the snap has a hold."""
+        info = self._snap("info")
+        return "hold:" in info
 
 
 class _UnixSocketConnection(http.client.HTTPConnection):
@@ -976,19 +999,27 @@ def _system_set(config_item: str, value: str) -> None:
         raise SnapError("Failed setting system config '{}' to '{}'".format(config_item, value))
 
 
-def hold_refresh(days: int = 90) -> bool:
+def hold_refresh(days: int = 90, forever: bool = False) -> bool:
     """Set the system-wide snap refresh hold.
 
     Args:
         days: number of days to hold system refreshes for. Maximum 90. Set to zero to remove hold.
+        forever: if True, will set a hold forever.
     """
-    # Currently the snap daemon can only hold for a maximum of 90 days
-    if not isinstance(days, int) or days > 90:
-        raise ValueError("days must be an int between 1 and 90")
+    if not isinstance(forever, bool):
+        raise TypeError("forever must be a bool")
+    if not isinstance(days, int):
+        raise TypeError("days must be an int")
+    if forever:
+        _system_set("refresh.hold", "forever")
+        logger.info("Set system-wide snap refresh hold to: forever")
     elif days == 0:
         _system_set("refresh.hold", "")
         logger.info("Removed system-wide snap refresh hold")
     else:
+        # Currently the snap daemon can only hold for a maximum of 90 days
+        if not 1 <= days <= 90:
+            raise ValueError("days must be between 1 and 90")
         # Add the number of days to current time
         target_date = datetime.now(timezone.utc).astimezone() + timedelta(days=days)
         # Format for the correct datetime format

@@ -55,6 +55,8 @@ class KafkaSnap:
             self.kafka = kafka
             self.kafka.connect(plug="removable-media")
 
+            self.kafka.hold()
+
             return True
         except (snap.SnapError, apt.PackageNotFoundError) as e:
             logger.error(str(e))
