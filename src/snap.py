@@ -27,6 +27,7 @@ class KafkaSnap:
     SNAP_NAME = "charmed-kafka"
     COMPONENT = "kafka"
     SNAP_SERVICE = "daemon"
+    LOG_SLOT = "logs"
 
     CONF_PATH = f"/var/snap/{SNAP_NAME}/current/etc/{COMPONENT}"
     LOGS_PATH = f"/var/snap/{SNAP_NAME}/common/var/log/{COMPONENT}"
