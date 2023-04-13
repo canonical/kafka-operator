@@ -139,14 +139,13 @@ class KafkaSnap:
             Integer of pid
 
         Raises:
-            KeyError if no pid string found in most recent log
-            SnapError if error occurs
+            SnapError if error occurs or if no pid string found in most recent log
         """
         last_log = self.kafka.logs(services=[self.SNAP_SERVICE], num_lines=1)
         pid_string = re.search(rf"{SNAP_NAME}.{self.SNAP_SERVICE}\[([0-9]+)\]", last_log)
 
         if not pid_string:
-            raise KeyError("pid not found in snap logs")
+            raise snap.SnapError("pid not found in snap logs")
 
         return int(pid_string[1])
 

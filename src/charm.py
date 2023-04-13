@@ -10,6 +10,7 @@ from typing import MutableMapping, Optional
 
 from charms.data_platform_libs.v0.data_models import TypedCharmBase
 from charms.grafana_agent.v0.cos_agent import COSAgentProvider
+from charms.operator_libs_linux.v1.snap import SnapError
 from charms.rolling_ops.v0.rollingops import RollingOpsManager, RunWithLock
 from ops.charm import (
     ActionEvent,
@@ -189,8 +190,12 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             self._set_status(Status.ZK_NOT_CONNECTED)
             return
 
-        if not self.health.machine_configured():
-            self._set_status(Status.SYSCONF_NOT_OPTIMAL)
+        try:
+            if not self.health.machine_configured():
+                self._set_status(Status.SYSCONF_NOT_OPTIMAL)
+                return
+        except SnapError:
+            self._set_status(Status.SNAP_NOT_RUNNING)
             return
 
         self._set_status(Status.ACTIVE)
