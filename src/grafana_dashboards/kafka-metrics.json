@@ -49,26 +49,38 @@
       {
         "$$hashKey": "object:87",
         "builtIn": 1,
-        "datasource": "-- Grafana --",
+        "datasource": {
+          "type": "datasource",
+          "uid": "grafana"
+        },
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
         "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
         "type": "dashboard"
       }
     ]
   },
-  "description": "Dashboard for metrics jmx_exporter protmetheus",
+  "description": "Dashboard for metrics jmx_exporter prometheus",
   "editable": true,
+  "fiscalYearStartMonth": 0,
   "gnetId": 11962,
   "graphTooltip": 0,
-  "id": null,
-  "iteration": 1607296167119,
+  "id": 9,
   "links": [],
+  "liveNow": false,
   "panels": [
     {
       "collapsed": false,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -77,34 +89,58 @@
       },
       "id": 231,
       "panels": [],
+      "targets": [
+        {
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "refId": "A"
+        }
+      ],
       "title": "Cluster health",
       "type": "row"
     },
     {
-      "cacheTimeout": null,
-      "colorBackground": false,
-      "colorPostfix": false,
-      "colorValue": true,
-      "colors": [
-        "#d44a3a",
-        "rgba(237, 129, 40, 0.89)",
-        "#299c46"
-      ],
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#d44a3a",
+                "value": null
+              },
+              {
+                "color": "rgba(237, 129, 40, 0.89)",
+                "value": 2
+              },
+              {
+                "color": "#299c46",
+                "value": 3
+              }
+            ]
+          },
+          "unit": "none"
         },
         "overrides": []
-      },
-      "format": "none",
-      "gauge": {
-        "maxValue": 100,
-        "minValue": 0,
-        "show": false,
-        "thresholdLabels": false,
-        "thresholdMarkers": true
       },
       "gridPos": {
         "h": 4,
@@ -113,45 +149,29 @@
         "y": 1
       },
       "id": 647,
-      "interval": null,
       "links": [],
-      "mappingType": 1,
-      "mappingTypes": [
-        {
-          "$$hashKey": "object:968",
-          "name": "value to text",
-          "value": 1
-        },
-        {
-          "$$hashKey": "object:969",
-          "name": "range to text",
-          "value": 2
-        }
-      ],
       "maxDataPoints": 100,
-      "nullPointMode": "connected",
-      "nullText": null,
-      "postfix": " / $online_broker",
-      "postfixFontSize": "100%",
-      "prefix": "",
-      "prefixFontSize": "50%",
-      "rangeMaps": [
-        {
-          "from": "null",
-          "text": "N/A",
-          "to": "null"
-        }
-      ],
-      "sparkline": {
-        "fillColor": "rgba(31, 118, 189, 0.18)",
-        "full": false,
-        "lineColor": "rgb(31, 120, 193)",
-        "show": true
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
       },
-      "tableColumn": "",
+      "pluginVersion": "9.2.1",
       "targets": [
         {
-          "expr": "count(kafka_server_replicamanager_leadercount{job=~\"$job\"})",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "count(kafka_server_replicamanager_leadercount{job=~\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\"})",
           "format": "time_series",
           "instant": false,
           "interval": "",
@@ -160,44 +180,50 @@
           "refId": "A"
         }
       ],
-      "thresholds": "2,3",
       "title": "Brokers Online",
-      "type": "singlestat",
-      "valueFontSize": "200%",
-      "valueMaps": [
-        {
-          "$$hashKey": "object:971",
-          "op": "=",
-          "text": "N/A",
-          "value": "null"
-        }
-      ],
-      "valueName": "current"
+      "type": "stat"
     },
     {
-      "cacheTimeout": null,
-      "colorBackground": false,
-      "colorValue": true,
-      "colors": [
-        "#C4162A",
-        "#37872D",
-        "#299c46"
-      ],
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#C4162A",
+                "value": null
+              },
+              {
+                "color": "#37872D",
+                "value": 0
+              },
+              {
+                "color": "#299c46",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
         },
         "overrides": []
-      },
-      "format": "none",
-      "gauge": {
-        "maxValue": 100,
-        "minValue": 0,
-        "show": false,
-        "thresholdLabels": false,
-        "thresholdMarkers": true
       },
       "gridPos": {
         "h": 4,
@@ -206,44 +232,30 @@
         "y": 1
       },
       "id": 233,
-      "interval": null,
       "links": [],
-      "mappingType": 1,
-      "mappingTypes": [
-        {
-          "name": "value to text",
-          "value": 1
-        },
-        {
-          "name": "range to text",
-          "value": 2
-        }
-      ],
       "maxDataPoints": 100,
-      "nullPointMode": "connected",
-      "nullText": null,
-      "postfix": "",
-      "postfixFontSize": "50%",
-      "prefix": "",
-      "prefixFontSize": "50%",
-      "rangeMaps": [
-        {
-          "from": "null",
-          "text": "N/A",
-          "to": "null"
-        }
-      ],
-      "repeatDirection": "h",
-      "sparkline": {
-        "fillColor": "rgba(31, 118, 189, 0.18)",
-        "full": false,
-        "lineColor": "rgb(31, 120, 193)",
-        "show": true
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
       },
-      "tableColumn": "",
+      "pluginVersion": "9.2.1",
+      "repeatDirection": "h",
       "targets": [
         {
-          "expr": "sum(kafka_controller_kafkacontroller_activecontrollercount{job=~\"$job\"})",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "sum(kafka_controller_kafkacontroller_activecontrollercount{job=~\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -251,43 +263,46 @@
           "refId": "A"
         }
       ],
-      "thresholds": "0,1",
       "title": "Active Controllers",
-      "type": "singlestat",
-      "valueFontSize": "200%",
-      "valueMaps": [
-        {
-          "op": "=",
-          "text": "N/A",
-          "value": "null"
-        }
-      ],
-      "valueName": "current"
+      "type": "stat"
     },
     {
-      "cacheTimeout": null,
-      "colorBackground": false,
-      "colorValue": true,
-      "colors": [
-        "#37872D",
-        "#37872D",
-        "#37872D"
-      ],
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "none"
         },
         "overrides": []
-      },
-      "format": "none",
-      "gauge": {
-        "maxValue": 100,
-        "minValue": 0,
-        "show": false,
-        "thresholdLabels": false,
-        "thresholdMarkers": true
       },
       "gridPos": {
         "h": 4,
@@ -296,45 +311,29 @@
         "y": 1
       },
       "id": 625,
-      "interval": null,
       "links": [],
-      "mappingType": 1,
-      "mappingTypes": [
-        {
-          "$$hashKey": "object:1005",
-          "name": "value to text",
-          "value": 1
-        },
-        {
-          "$$hashKey": "object:1006",
-          "name": "range to text",
-          "value": 2
-        }
-      ],
       "maxDataPoints": 100,
-      "nullPointMode": "connected",
-      "nullText": null,
-      "postfix": "",
-      "postfixFontSize": "50%",
-      "prefix": "",
-      "prefixFontSize": "100%",
-      "rangeMaps": [
-        {
-          "from": "null",
-          "text": "N/A",
-          "to": "null"
-        }
-      ],
-      "sparkline": {
-        "fillColor": "rgba(31, 118, 189, 0.18)",
-        "full": false,
-        "lineColor": "rgb(31, 120, 193)",
-        "show": true
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
       },
-      "tableColumn": "",
+      "pluginVersion": "9.2.1",
       "targets": [
         {
-          "expr": "sum(kafka_controller_kafkacontroller_globaltopiccount{job=~\"$job\"})",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "sum(kafka_controller_kafkacontroller_globaltopiccount{job=~\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\"})",
           "format": "time_series",
           "hide": false,
           "interval": "",
@@ -343,44 +342,50 @@
           "refId": "A"
         }
       ],
-      "thresholds": "",
       "title": "Total of Topics",
-      "type": "singlestat",
-      "valueFontSize": "200%",
-      "valueMaps": [
-        {
-          "$$hashKey": "object:1008",
-          "op": "=",
-          "text": "N/A",
-          "value": "null"
-        }
-      ],
-      "valueName": "current"
+      "type": "stat"
     },
     {
-      "cacheTimeout": null,
-      "colorBackground": false,
-      "colorValue": true,
-      "colors": [
-        "#508642",
-        "rgba(237, 129, 40, 0.89)",
-        "#bf1b00"
-      ],
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#508642",
+                "value": null
+              },
+              {
+                "color": "rgba(237, 129, 40, 0.89)",
+                "value": 1
+              },
+              {
+                "color": "#bf1b00",
+                "value": 5
+              }
+            ]
+          },
+          "unit": "none"
         },
         "overrides": []
-      },
-      "format": "none",
-      "gauge": {
-        "maxValue": 100,
-        "minValue": 0,
-        "show": false,
-        "thresholdLabels": false,
-        "thresholdMarkers": true
       },
       "gridPos": {
         "h": 4,
@@ -389,43 +394,29 @@
         "y": 1
       },
       "id": 30,
-      "interval": null,
       "links": [],
-      "mappingType": 1,
-      "mappingTypes": [
-        {
-          "name": "value to text",
-          "value": 1
-        },
-        {
-          "name": "range to text",
-          "value": 2
-        }
-      ],
       "maxDataPoints": 100,
-      "nullPointMode": "connected",
-      "nullText": null,
-      "postfix": "",
-      "postfixFontSize": "50%",
-      "prefix": "",
-      "prefixFontSize": "100%",
-      "rangeMaps": [
-        {
-          "from": "null",
-          "text": "N/A",
-          "to": "null"
-        }
-      ],
-      "sparkline": {
-        "fillColor": "rgba(31, 118, 189, 0.18)",
-        "full": false,
-        "lineColor": "rgb(31, 120, 193)",
-        "show": true
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
       },
-      "tableColumn": "",
+      "pluginVersion": "9.2.1",
       "targets": [
         {
-          "expr": "sum(kafka_server_replicamanager_underreplicatedpartitions{job=~\"$job\"})",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "sum(kafka_server_replicamanager_underreplicatedpartitions{job=~\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\"})",
           "format": "time_series",
           "hide": false,
           "interval": "",
@@ -434,44 +425,50 @@
           "refId": "A"
         }
       ],
-      "thresholds": "1,5",
       "title": "Under Replicated Partitions",
-      "type": "singlestat",
-      "valueFontSize": "200%",
-      "valueMaps": [
-        {
-          "op": "=",
-          "text": "N/A",
-          "value": "null"
-        }
-      ],
-      "valueName": "current"
+      "type": "stat"
     },
     {
-      "cacheTimeout": null,
-      "colorBackground": false,
-      "colorPrefix": false,
-      "colorValue": true,
-      "colors": [
-        "#d44a3a",
-        "rgba(237, 129, 40, 0.89)",
-        "#299c46"
-      ],
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#d44a3a",
+                "value": null
+              },
+              {
+                "color": "rgba(237, 129, 40, 0.89)",
+                "value": 0
+              },
+              {
+                "color": "#299c46",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "none"
         },
         "overrides": []
-      },
-      "format": "none",
-      "gauge": {
-        "maxValue": 100,
-        "minValue": 0,
-        "show": false,
-        "thresholdLabels": false,
-        "thresholdMarkers": true
       },
       "gridPos": {
         "h": 4,
@@ -480,43 +477,29 @@
         "y": 1
       },
       "id": 40,
-      "interval": null,
       "links": [],
-      "mappingType": 1,
-      "mappingTypes": [
-        {
-          "name": "value to text",
-          "value": 1
-        },
-        {
-          "name": "range to text",
-          "value": 2
-        }
-      ],
       "maxDataPoints": 100,
-      "nullPointMode": "connected",
-      "nullText": null,
-      "postfix": "",
-      "postfixFontSize": "50%",
-      "prefix": "",
-      "prefixFontSize": "50%",
-      "rangeMaps": [
-        {
-          "from": "null",
-          "text": "N/A",
-          "to": "null"
-        }
-      ],
-      "sparkline": {
-        "fillColor": "rgba(31, 118, 189, 0.18)",
-        "full": false,
-        "lineColor": "rgb(31, 120, 193)",
-        "show": true
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
       },
-      "tableColumn": "",
+      "pluginVersion": "9.2.1",
       "targets": [
         {
-          "expr": "sum(kafka_server_replicamanager_partitioncount{job=~\"$job\"})",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "sum(kafka_server_replicamanager_partitioncount{job=~\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -524,43 +507,50 @@
           "refId": "A"
         }
       ],
-      "thresholds": "0,0",
       "title": "Online Partitions",
-      "type": "singlestat",
-      "valueFontSize": "200%",
-      "valueMaps": [
-        {
-          "op": "=",
-          "text": "N/A",
-          "value": "null"
-        }
-      ],
-      "valueName": "current"
+      "type": "stat"
     },
     {
-      "cacheTimeout": null,
-      "colorBackground": false,
-      "colorValue": true,
-      "colors": [
-        "#508642",
-        "rgba(237, 129, 40, 0.89)",
-        "#bf1b00"
-      ],
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#508642",
+                "value": null
+              },
+              {
+                "color": "rgba(237, 129, 40, 0.89)",
+                "value": 1
+              },
+              {
+                "color": "#bf1b00",
+                "value": 5
+              }
+            ]
+          },
+          "unit": "none"
         },
         "overrides": []
-      },
-      "format": "none",
-      "gauge": {
-        "maxValue": 100,
-        "minValue": 0,
-        "show": false,
-        "thresholdLabels": false,
-        "thresholdMarkers": true
       },
       "gridPos": {
         "h": 4,
@@ -569,43 +559,29 @@
         "y": 1
       },
       "id": 126,
-      "interval": null,
       "links": [],
-      "mappingType": 1,
-      "mappingTypes": [
-        {
-          "name": "value to text",
-          "value": 1
-        },
-        {
-          "name": "range to text",
-          "value": 2
-        }
-      ],
       "maxDataPoints": 100,
-      "nullPointMode": "connected",
-      "nullText": null,
-      "postfix": "",
-      "postfixFontSize": "50%",
-      "prefix": "",
-      "prefixFontSize": "100%",
-      "rangeMaps": [
-        {
-          "from": "null",
-          "text": "N/A",
-          "to": "null"
-        }
-      ],
-      "sparkline": {
-        "fillColor": "rgba(31, 118, 189, 0.18)",
-        "full": false,
-        "lineColor": "rgb(31, 120, 193)",
-        "show": true
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
       },
-      "tableColumn": "",
+      "pluginVersion": "9.2.1",
       "targets": [
         {
-          "expr": "sum(kafka_controller_kafkacontroller_offlinepartitionscount{job=~\"$job\"})",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "sum(kafka_controller_kafkacontroller_offlinepartitionscount{job=~\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\"})",
           "format": "time_series",
           "hide": false,
           "interval": "",
@@ -614,29 +590,15 @@
           "refId": "A"
         }
       ],
-      "thresholds": "1,5",
       "title": "Offline Partitions",
-      "type": "singlestat",
-      "valueFontSize": "200%",
-      "valueMaps": [
-        {
-          "op": "=",
-          "text": "N/A",
-          "value": "null"
-        }
-      ],
-      "valueName": "current"
+      "type": "stat"
     },
     {
       "columns": [],
-      "datasource": "${prometheusds}",
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
+      "datasource": {
+        "uid": "${prometheusds}"
       },
+      "description": "",
       "fontSize": "100%",
       "gridPos": {
         "h": 10,
@@ -646,7 +608,6 @@
       },
       "id": 622,
       "links": [],
-      "pageSize": null,
       "scroll": true,
       "showHeader": true,
       "sort": {
@@ -664,7 +625,6 @@
         {
           "alias": "",
           "align": "auto",
-          "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
             "rgba(237, 129, 40, 0.89)",
@@ -679,7 +639,6 @@
         {
           "alias": " Brokers",
           "align": "auto",
-          "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
             "rgba(237, 129, 40, 0.89)",
@@ -725,7 +684,6 @@
         {
           "alias": "",
           "align": "auto",
-          "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
             "rgba(237, 129, 40, 0.89)",
@@ -742,7 +700,10 @@
       ],
       "targets": [
         {
-          "expr": "kafka_controller_kafkacontroller_activecontrollercount{job=~\"$job\"}",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "kafka_controller_kafkacontroller_activecontrollercount{job=~\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\"}",
           "format": "table",
           "instant": true,
           "interval": "",
@@ -751,21 +712,21 @@
           "refId": "A"
         }
       ],
-      "timeFrom": null,
-      "timeShift": null,
       "title": "Controller and Followers ",
       "transform": "table",
       "type": "table-old"
     },
     {
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
           },
-          "custom": {},
-          "displayName": "Messages In Per Sec",
+          "displayName": "Total Messages In",
           "mappings": [],
           "noValue": "0",
           "thresholds": {
@@ -802,30 +763,27 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "9.2.1",
       "targets": [
         {
-          "expr": "sum(kafka_server_brokertopicmetrics_messagesinpersec{job=\"$job\",topic=\"\"})",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "sum(kafka_server_brokertopicmetrics_messagesinpersec{job=\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\",topic=\"\"})",
           "interval": "",
           "legendFormat": "Total messages in per sec ",
           "refId": "A"
         }
       ],
-      "timeFrom": null,
-      "timeShift": null,
-      "title": "",
+      "title": "Total message produced ",
       "type": "stat"
     },
     {
       "columns": [],
-      "datasource": "${prometheusds}",
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
+      "datasource": {
+        "uid": "${prometheusds}"
       },
+      "description": "",
       "fontSize": "100%",
       "gridPos": {
         "h": 10,
@@ -835,7 +793,6 @@
       },
       "id": 619,
       "links": [],
-      "pageSize": null,
       "scroll": true,
       "showHeader": true,
       "sort": {
@@ -855,7 +812,6 @@
           "$$hashKey": "object:46",
           "alias": "",
           "align": "auto",
-          "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
             "rgba(237, 129, 40, 0.89)",
@@ -871,7 +827,6 @@
           "$$hashKey": "object:47",
           "alias": "Brokers",
           "align": "auto",
-          "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
             "rgba(237, 129, 40, 0.89)",
@@ -910,7 +865,6 @@
           "$$hashKey": "object:49",
           "alias": "",
           "align": "auto",
-          "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
             "rgba(237, 129, 40, 0.89)",
@@ -967,7 +921,10 @@
       ],
       "targets": [
         {
-          "expr": "kafka_server_replicamanager_leadercount{job=~\"$job\"} / kafka_server_replicamanager_partitioncount{job=\"$job\"} * 100",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "kafka_server_replicamanager_leadercount{job=~\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\"} / kafka_server_replicamanager_partitioncount{job=\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\"} * 100",
           "format": "table",
           "hide": true,
           "instant": true,
@@ -977,7 +934,10 @@
           "refId": "C"
         },
         {
-          "expr": "kafka_server_replicamanager_leadercount{job=~\"$job\"}",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "kafka_server_replicamanager_leadercount{job=~\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\"}",
           "format": "table",
           "hide": false,
           "instant": true,
@@ -987,7 +947,10 @@
           "refId": "A"
         },
         {
-          "expr": "count(kafka_cluster_partition_replicascount{job=\"$job\"} <= 1)by(instance)",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "count by(instance) (kafka_cluster_partition_replicascount{job=\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\"} <= 1)",
           "format": "table",
           "instant": true,
           "interval": "",
@@ -996,21 +959,20 @@
           "refId": "B"
         }
       ],
-      "timeFrom": null,
-      "timeShift": null,
       "title": "Partitions Leader and Replica Per Broker",
       "transform": "table",
       "type": "table-old"
     },
     {
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
           },
-          "custom": {},
-          "displayName": "Messages In Per Sec (timerange)",
+          "displayName": "Messages In (timerange)",
           "mappings": [],
           "noValue": "0",
           "thresholds": {
@@ -1047,42 +1009,43 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "9.2.1",
       "targets": [
         {
-          "expr": "sum(increase(kafka_server_brokertopicmetrics_messagesinpersec{job=\"$job\",topic=\"\"}[$__range]))",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "sum(increase(kafka_server_brokertopicmetrics_messagesinpersec{job=\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\",topic=\"\"}[$__range]))",
           "interval": "",
           "legendFormat": "Total messages from ${__from:date:MM-DD hA} to ${__to:date:MM-DD hA}",
           "refId": "A"
         }
       ],
-      "timeFrom": null,
-      "timeShift": null,
-      "title": "",
+      "title": "Message In TimeRange",
       "type": "stat"
     },
     {
-      "cacheTimeout": null,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "decimals": 2,
           "displayName": "Broker: $broker",
           "mappings": [
             {
-              "$$hashKey": "object:230",
-              "id": 0,
-              "op": "=",
-              "text": "N/A",
-              "type": 1,
-              "value": "null"
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A"
+                }
+              },
+              "type": "special"
             }
           ],
           "max": 100,
           "min": 0,
-          "nullValueMode": "connected",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1124,25 +1087,29 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "9.2.1",
       "repeat": "broker",
       "repeatDirection": "h",
       "targets": [
         {
-          "expr": "100 - (kafka_network_socketserver_networkprocessoravgidlepercent{job=\"$job\",instance=~\"$broker\"}*100)",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "100 - (kafka_network_socketserver_networkprocessoravgidlepercent{instance=~\"$broker\",job=\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\"} * 100)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Network processor avg {{instance}}",
+          "legendFormat": "Network processor avg ",
           "refId": "A"
         }
       ],
-      "title": "",
       "type": "gauge"
     },
     {
       "collapsed": false,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -1151,34 +1118,40 @@
       },
       "id": 680,
       "panels": [],
+      "targets": [
+        {
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "refId": "A"
+        }
+      ],
       "title": "Request Handler",
       "type": "row"
     },
     {
-      "cacheTimeout": null,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "description": "If <= 0 is very idle",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "decimals": 2,
           "displayName": "Broker: $broker",
           "mappings": [
             {
-              "$$hashKey": "object:230",
-              "from": "-1",
-              "id": 0,
-              "op": "=",
-              "text": "N/A",
-              "to": "0",
-              "type": 1,
-              "value": "null"
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "N/A"
+                }
+              },
+              "type": "special"
             }
           ],
           "max": 100,
           "min": 0,
           "noValue": "0",
-          "nullValueMode": "connected",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1221,25 +1194,29 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "9.2.1",
       "repeat": "broker",
       "repeatDirection": "h",
       "targets": [
         {
-          "expr": "kafka_server_kafkarequesthandlerpool_requesthandleravgidlepercent_total{job=\"$job\",instance=~\"$broker\"}",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "kafka_server_kafkarequesthandlerpool_requesthandleravgidlepercent_total{instance=~\"$broker\",job=\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\"}",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Request handler avg {{instance}}",
+          "legendFormat": "Request handler avg ",
           "refId": "A"
         }
       ],
-      "title": "",
       "type": "gauge"
     },
     {
       "collapsed": false,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -1248,20 +1225,27 @@
       },
       "id": 651,
       "panels": [],
+      "targets": [
+        {
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "refId": "A"
+        }
+      ],
       "title": "Latency",
       "type": "row"
     },
     {
-      "cacheTimeout": null,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
           },
-          "custom": {},
-          "decimals": null,
           "displayName": "Total Time Produce Latency 99th",
           "mappings": [],
           "max": "1000",
@@ -1311,35 +1295,33 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "7.3.4",
-      "repeat": null,
+      "pluginVersion": "9.2.1",
       "repeatDirection": "h",
       "targets": [
         {
-          "expr": "avg(kafka_network_requestmetrics_totaltimems{request=\"Produce\",job=\"$job\",quantile=\"0.99\",instance=~\"$broker\"})by(request)",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "avg by(request) (kafka_network_requestmetrics_totaltimems{instance=~\"$broker\",job=\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\",quantile=\"0.99\",request=\"Produce\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Total {{request}} 99th",
+          "legendFormat": "Total  99th",
           "refId": "D"
         }
       ],
-      "timeFrom": null,
-      "timeShift": null,
-      "title": "",
       "type": "gauge"
     },
     {
-      "cacheTimeout": null,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
           },
-          "custom": {},
-          "decimals": null,
           "displayName": "Total Time FetchConsumer Latency 99th",
           "mappings": [],
           "max": "1000",
@@ -1386,34 +1368,33 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "9.2.1",
       "repeatDirection": "h",
       "targets": [
         {
-          "expr": "avg(kafka_network_requestmetrics_totaltimems{request=\"FetchConsumer\",job=\"$job\",quantile=\"0.99\",instance=~\"$broker\"})by(request)",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "avg by(request) (kafka_network_requestmetrics_totaltimems{instance=~\"$broker\",job=\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\",quantile=\"0.99\",request=\"FetchConsumer\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Total {{request}} 99th",
+          "legendFormat": "Total  99th",
           "refId": "D"
         }
       ],
-      "timeFrom": null,
-      "timeShift": null,
-      "title": "",
       "type": "gauge"
     },
     {
-      "cacheTimeout": null,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
           },
-          "custom": {},
-          "decimals": null,
           "displayName": "Total Time FetchFollower Latency 99th",
           "mappings": [],
           "max": "1000",
@@ -1460,34 +1441,34 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "9.2.1",
       "repeatDirection": "h",
       "targets": [
         {
-          "expr": "avg(kafka_network_requestmetrics_totaltimems{request=\"FetchFollower\",job=\"$job\",quantile=\"0.99\",instance=~\"$broker\"})by(request)",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "avg by(request) (kafka_network_requestmetrics_totaltimems{instance=~\"$broker\",job=\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\",quantile=\"0.99\",request=\"FetchFollower\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Total {{request}} 99th",
+          "legendFormat": "Total  99th",
           "refId": "D"
         }
       ],
-      "timeFrom": null,
-      "timeShift": null,
-      "title": "",
       "type": "gauge"
     },
     {
       "aliasColors": {},
       "bars": false,
-      "cacheTimeout": null,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -1523,7 +1504,7 @@
       },
       "paceLength": 10,
       "percentage": false,
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "9.2.1",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1533,18 +1514,19 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg (kafka_network_requestmetrics_totaltimems{request=\"Produce\",job=\"$job\",quantile=\"0.99\",instance=~\"$broker\"})by(instance)",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "avg by(instance) (kafka_network_requestmetrics_totaltimems{instance=~\"$broker\",job=\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\",quantile=\"0.99\",request=\"Produce\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{instance}}",
+          "legendFormat": "",
           "refId": "D"
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "Produce Latency 99th per Broker",
       "tooltip": {
         "shared": true,
@@ -1553,46 +1535,37 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
           "format": "ms",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
       "aliasColors": {},
       "bars": false,
-      "cacheTimeout": null,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -1628,7 +1601,7 @@
       },
       "paceLength": 10,
       "percentage": false,
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "9.2.1",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1638,18 +1611,19 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg (kafka_network_requestmetrics_totaltimems{request=\"FetchConsumer\",job=\"$job\",quantile=\"0.99\",instance=~\"$broker\"})by(instance)",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "avg by(instance) (kafka_network_requestmetrics_totaltimems{instance=~\"$broker\",job=\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\",quantile=\"0.99\",request=\"FetchConsumer\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{instance}}",
+          "legendFormat": "",
           "refId": "D"
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "FetchConsumer Latency 99th per Broker",
       "tooltip": {
         "shared": true,
@@ -1658,46 +1632,37 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
           "format": "ms",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
       "aliasColors": {},
       "bars": false,
-      "cacheTimeout": null,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -1733,7 +1698,7 @@
       },
       "paceLength": 10,
       "percentage": false,
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "9.2.1",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -1743,18 +1708,19 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg (kafka_network_requestmetrics_totaltimems{request=\"FetchFollower\",job=\"$job\",quantile=\"0.99\",instance=~\"$broker\"})by(instance)",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "avg by(instance) (kafka_network_requestmetrics_totaltimems{instance=~\"$broker\",job=\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\",quantile=\"0.99\",request=\"FetchFollower\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{instance}}",
+          "legendFormat": "",
           "refId": "D"
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "FetchFollow Latency 99th per Broker",
       "tooltip": {
         "shared": true,
@@ -1763,38 +1729,31 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
           "format": "ms",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
       "collapsed": false,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -1803,6 +1762,14 @@
       },
       "id": 653,
       "panels": [],
+      "targets": [
+        {
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "refId": "A"
+        }
+      ],
       "title": "Throughput",
       "type": "row"
     },
@@ -1811,11 +1778,13 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -1852,7 +1821,7 @@
       },
       "paceLength": 10,
       "percentage": false,
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "9.2.1",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -1862,19 +1831,22 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sort(sum(kafka_server_brokertopicmetrics_messagesinpersec{job=\"$job\",instance=~\"$broker\",topic!=\"\",topic=~\"$topic\"})by(topic))",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "editorMode": "builder",
+          "expr": "rate(kafka_server_brokertopicmetrics_messagesinpersec{instance=~\"$broker\", job=\"$job\", juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", topic!=\"\", topic=~\"$topic\"}[5m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Topic: {{topic}}",
+          "legendFormat": "Topic: ",
+          "range": true,
           "refId": "D"
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
-      "title": "Messages In Per Topic",
+      "title": "Income Messages per second",
       "tooltip": {
         "shared": false,
         "sort": 0,
@@ -1882,9 +1854,7 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
@@ -1893,22 +1863,16 @@
           "format": "reqps",
           "label": "Message/s",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -1916,11 +1880,13 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -1960,7 +1926,7 @@
       },
       "paceLength": 10,
       "percentage": false,
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "9.2.1",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -1970,19 +1936,22 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum (kafka_server_brokertopicmetrics_bytesinpersec{job=\"$job\",topic!=\"\",instance=~\"$broker\",topic=~\"$topic\"})by(topic)",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "editorMode": "code",
+          "expr": "rate(kafka_server_brokertopicmetrics_bytesinpersec{instance=~\"$broker\",job=\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\",topic!=\"\",topic=~\"$topic\"}[5m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 2,
-          "legendFormat": "Topic: {{topic}}",
+          "legendFormat": "Topic: ",
+          "range": true,
           "refId": "A"
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
-      "title": "Bytes In Per Topic",
+      "title": "Bytes In Per Second",
       "tooltip": {
         "shared": false,
         "sort": 0,
@@ -1990,34 +1959,26 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
-          "decimals": null,
           "format": "Bps",
           "label": "Bytes/s",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "Bps",
           "label": "",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": false
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -2032,11 +1993,13 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -2074,7 +2037,7 @@
       },
       "paceLength": 10,
       "percentage": false,
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "9.2.1",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -2084,18 +2047,21 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum (kafka_server_brokertopicmetrics_totalproducerequestspersec{job=\"$job\",instance=~\"$broker\",topic!=\"\",topic=~\"$topic\"})by(topic)",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "editorMode": "code",
+          "expr": "rate(kafka_server_brokertopicmetrics_totalproducerequestspersec{instance=~\"$broker\", job=\"$job\", juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", topic!=\"\"}[5m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Topic: {{topic}}",
+          "legendFormat": "Topic: ",
+          "range": true,
           "refId": "A"
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "Total Produce Request Rate Per Topic",
       "tooltip": {
         "shared": false,
@@ -2104,47 +2070,42 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
-          "format": "reqps",
-          "label": "Request/s",
+          "$$hashKey": "object:6884",
+          "format": "msg/s",
+          "label": "Message/s",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
+          "$$hashKey": "object:6885",
           "format": "reqps",
           "label": "",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
-      "aliasColors": {
-        "Incoming Byte Topic: depositos-comando-ledger": "light-orange"
-      },
+      "aliasColors": {},
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -2156,115 +2117,6 @@
         "w": 12,
         "x": 12,
         "y": 51
-      },
-      "hiddenSeries": false,
-      "id": 154,
-      "interval": "",
-      "legend": {
-        "alignAsTable": true,
-        "avg": false,
-        "current": true,
-        "hideEmpty": false,
-        "hideZero": false,
-        "max": true,
-        "min": true,
-        "rightSide": true,
-        "show": true,
-        "sort": "current",
-        "sortDesc": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 2,
-      "links": [],
-      "nullPointMode": "connected",
-      "options": {
-        "alertThreshold": true
-      },
-      "paceLength": 10,
-      "percentage": false,
-      "pluginVersion": "7.3.4",
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "sum (kafka_server_brokertopicmetrics_bytesoutpersec{job=\"$job\",instance=~\"$broker\",topic!=\"\",topic=~\"$topic\"})by(topic)",
-          "format": "time_series",
-          "interval": "",
-          "intervalFactor": 2,
-          "legendFormat": "Topic: {{topic}}",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Bytes Out Per Topic",
-      "tooltip": {
-        "shared": false,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "decimals": null,
-          "format": "Bps",
-          "label": "Bytes/s",
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "Bps",
-          "label": "",
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": false
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "${prometheusds}",
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {},
-          "links": []
-        },
-        "overrides": []
-      },
-      "fill": 0,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 10,
-        "w": 12,
-        "x": 0,
-        "y": 61
       },
       "hiddenSeries": false,
       "id": 176,
@@ -2290,7 +2142,7 @@
       },
       "paceLength": 10,
       "percentage": false,
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "9.2.1",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -2300,19 +2152,21 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(kafka_network_requestmetrics_requestspersec{request=~\"Produce\",job=\"$job\",instance=~\"$broker\"})by(instance)",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "editorMode": "builder",
+          "expr": "rate(kafka_network_requestmetrics_requestspersec{instance=~\"$broker\", job=\"$job\", juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", request=~\"Produce\"}[5m])",
           "format": "time_series",
           "instant": false,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Request: {{instance}}",
+          "legendFormat": "Request: ",
           "refId": "A"
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "Produce Request Per Broker",
       "tooltip": {
         "shared": true,
@@ -2321,290 +2175,167 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
-          "decimals": null,
+          "$$hashKey": "object:12780",
           "format": "reqps",
           "label": "Request/s",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
+          "$$hashKey": "object:12781",
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "${prometheusds}",
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {},
-          "links": []
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 10,
-        "w": 12,
-        "x": 12,
-        "y": 61
-      },
-      "hiddenSeries": false,
-      "id": 142,
-      "interval": "",
-      "legend": {
-        "alignAsTable": true,
-        "avg": false,
-        "current": true,
-        "hideEmpty": false,
-        "hideZero": false,
-        "max": true,
-        "min": true,
-        "rightSide": true,
-        "show": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 2,
-      "links": [],
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "paceLength": 10,
-      "percentage": false,
-      "pluginVersion": "7.3.4",
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [
-        {
-          "$$hashKey": "object:411",
-          "alias": "/.*Bytes In*./",
-          "transform": "negative-Y"
-        }
-      ],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "sum (kafka_server_brokertopicmetrics_bytesoutpersec{job=\"$job\",instance=~\"$broker\",topic!=\"\"})by(instance)",
-          "format": "time_series",
-          "instant": false,
-          "interval": "",
-          "intervalFactor": 2,
-          "legendFormat": "Bytes Out [{{instance}}]",
-          "refId": "B"
-        },
-        {
-          "expr": "sum (kafka_server_brokertopicmetrics_bytesinpersec{job=\"$job\",instance=~\"$broker\",topic!=\"\"})by(instance)",
-          "format": "time_series",
-          "instant": false,
-          "interval": "",
-          "intervalFactor": 2,
-          "legendFormat": "Bytes In [{{instance}}]",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Bytes In / Out Per Broker",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "$$hashKey": "object:424",
-          "decimals": null,
-          "format": "Bps",
-          "label": "In (-) / Out (+)",
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "$$hashKey": "object:425",
-          "format": "Bps",
-          "label": "",
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": false
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
       "collapsed": false,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 71
+        "y": 61
       },
       "id": 28,
       "panels": [],
+      "targets": [
+        {
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "refId": "A"
+        }
+      ],
       "title": "Troubleshooting",
       "type": "row"
     },
     {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
-          "links": []
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Request/s",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "links": [],
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "reqps"
         },
         "overrides": []
       },
-      "fill": 0,
-      "fillGradient": 0,
       "gridPos": {
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 72
+        "y": 62
       },
-      "hiddenSeries": false,
       "id": 612,
-      "legend": {
-        "alignAsTable": true,
-        "avg": false,
-        "current": true,
-        "max": true,
-        "min": false,
-        "rightSide": true,
-        "show": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 2,
       "links": [],
-      "nullPointMode": "null",
       "options": {
-        "alertThreshold": true
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "asc"
+        }
       },
-      "paceLength": 10,
-      "percentage": false,
-      "pluginVersion": "7.3.4",
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
+      "pluginVersion": "9.2.1",
       "targets": [
         {
-          "expr": "sum(kafka_server_brokertopicmetrics_failedproducerequestspersec{job=~\"$job\",instance=~\"$broker\"})by(instance)",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "editorMode": "builder",
+          "expr": "rate(kafka_server_brokertopicmetrics_failedproducerequestspersec{instance=~\"$broker\", job=~\"$job\", juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\"}[5m])",
           "format": "time_series",
           "instant": false,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{instance}}",
+          "legendFormat": "",
           "refId": "A"
         }
       ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
       "title": "Failed Produce Request Per Broker",
-      "tooltip": {
-        "shared": true,
-        "sort": 1,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "decimals": null,
-          "format": "reqps",
-          "label": "Request/s",
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
+      "type": "timeseries"
     },
     {
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -2615,7 +2346,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 72
+        "y": 62
       },
       "hiddenSeries": false,
       "id": 613,
@@ -2639,7 +2370,7 @@
       },
       "paceLength": 10,
       "percentage": false,
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "9.2.1",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -2649,19 +2380,21 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(kafka_server_brokertopicmetrics_failedfetchrequestspersec{job=~\"$job\",instance=~\"$broker\"})by(instance)",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "editorMode": "code",
+          "expr": "sum by(instance) (kafka_server_brokertopicmetrics_failedfetchrequestspersec{instance=~\"$broker\",job=~\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\"})",
           "format": "time_series",
           "instant": false,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{instance}}",
+          "legendFormat": "",
           "refId": "A"
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "Failed Fetch Request Per Broker",
       "tooltip": {
         "shared": true,
@@ -2670,151 +2403,142 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
-          "decimals": null,
+          "$$hashKey": "object:2358",
           "format": "reqps",
           "label": "Request/s",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
+          "$$hashKey": "object:2359",
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
-          "links": []
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Request/s",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "links": [],
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "reqps"
         },
         "overrides": []
       },
-      "fill": 0,
-      "fillGradient": 0,
       "gridPos": {
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 81
+        "y": 71
       },
-      "hiddenSeries": false,
       "id": 614,
-      "legend": {
-        "alignAsTable": true,
-        "avg": false,
-        "current": true,
-        "max": true,
-        "min": false,
-        "rightSide": true,
-        "show": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 2,
       "links": [],
-      "nullPointMode": "null",
       "options": {
-        "alertThreshold": true
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
-      "paceLength": 10,
-      "percentage": false,
-      "pluginVersion": "7.3.4",
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
+      "pluginVersion": "9.2.1",
       "targets": [
         {
-          "expr": "sum(kafka_server_brokertopicmetrics_failedproducerequestspersec{job=~\"$job\",topic!=\"\",instance=~\"$broker\",topic=~\"$topic\"})by(topic)",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "editorMode": "builder",
+          "expr": "rate(kafka_server_brokertopicmetrics_failedproducerequestspersec{instance=~\"$broker\", job=~\"$job\", juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", topic!=\"\", topic=~\"$topic\"}[5m])",
           "format": "time_series",
           "instant": false,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{topic}}",
+          "legendFormat": "",
           "refId": "A"
         }
       ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
       "title": "Failed Produce Request Per Topic",
-      "tooltip": {
-        "shared": false,
-        "sort": 1,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "decimals": null,
-          "format": "reqps",
-          "label": "Request/s",
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
+      "type": "timeseries"
     },
     {
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -2825,7 +2549,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 81
+        "y": 71
       },
       "hiddenSeries": false,
       "id": 615,
@@ -2849,7 +2573,7 @@
       },
       "paceLength": 10,
       "percentage": false,
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "9.2.1",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -2859,19 +2583,20 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(kafka_server_brokertopicmetrics_failedfetchrequestspersec{job=~\"$job\",topic!=\"\",instance=~\"$broker\",topic=~\"$topic\"})by(topic)",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "sum by(topic) (kafka_server_brokertopicmetrics_failedfetchrequestspersec{instance=~\"$broker\",job=~\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\",topic!=\"\",topic=~\"$topic\"})",
           "format": "time_series",
           "instant": false,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{topic}}",
+          "legendFormat": "",
           "refId": "A"
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "Failed Fetch Request Per Topic",
       "tooltip": {
         "shared": false,
@@ -2880,36 +2605,27 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
           "$$hashKey": "object:947",
-          "decimals": null,
           "format": "reqps",
           "label": "Request/s",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "$$hashKey": "object:948",
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -2917,11 +2633,12 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -2932,7 +2649,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 90
+        "y": 80
       },
       "hiddenSeries": false,
       "id": 138,
@@ -2956,7 +2673,7 @@
       },
       "paceLength": 10,
       "percentage": false,
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "9.2.1",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -2966,18 +2683,19 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum (kafka_server_sessionexpirelistener_zookeeperdisconnectspersec{job=\"$job\",instance=~\"$broker\"})by(instance)",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "sum by(instance) (kafka_server_sessionexpirelistener_zookeeperdisconnectspersec{instance=~\"$broker\",job=\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Broker - {{instance}}",
+          "legendFormat": "Broker - ",
           "refId": "A"
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "ZooKeeper Disconnects Per Sec",
       "tooltip": {
         "shared": true,
@@ -2986,34 +2704,25 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
-          "decimals": null,
           "format": "ms",
           "label": "Time/ms",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -3021,11 +2730,12 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -3036,7 +2746,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 90
+        "y": 80
       },
       "hiddenSeries": false,
       "id": 139,
@@ -3060,7 +2770,7 @@
       },
       "paceLength": 10,
       "percentage": false,
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "9.2.1",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -3070,18 +2780,19 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum (kafka_server_sessionexpirelistener_zookeeperexpirespersec{job=\"$job\",instance=~\"$broker\"})by(instance)",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "sum by(instance) (kafka_server_sessionexpirelistener_zookeeperexpirespersec{instance=~\"$broker\",job=\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Broker - {{instance}}",
+          "legendFormat": "Broker - ",
           "refId": "A"
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "ZooKeeper Expires Per Sec",
       "tooltip": {
         "shared": true,
@@ -3090,36 +2801,27 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
           "$$hashKey": "object:1050",
-          "decimals": null,
           "format": "ms",
           "label": "Time/ms",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "$$hashKey": "object:1051",
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -3127,11 +2829,12 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -3142,7 +2845,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 90
+        "y": 80
       },
       "hiddenSeries": false,
       "id": 150,
@@ -3166,7 +2869,7 @@
       },
       "paceLength": 10,
       "percentage": false,
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "9.2.1",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -3176,18 +2879,19 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(kafka_server_zookeeperclientmetrics_zookeeperrequestlatencyms{job=\"$job\",instance=~\"$broker\"})by(instance)",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "sum by(instance) (kafka_server_zookeeperclientmetrics_zookeeperrequestlatencyms{instance=~\"$broker\",job=\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Broker: {{instance}}",
+          "legendFormat": "Broker: ",
           "refId": "A"
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "ZooKeeper Request Latency Ms",
       "tooltip": {
         "shared": true,
@@ -3196,34 +2900,25 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
-          "decimals": null,
           "format": "ms",
           "label": "Time/ms",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -3231,11 +2926,12 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -3246,7 +2942,7 @@
         "h": 10,
         "w": 12,
         "x": 0,
-        "y": 98
+        "y": 88
       },
       "hiddenSeries": false,
       "id": 193,
@@ -3272,7 +2968,7 @@
       },
       "paceLength": 10,
       "percentage": false,
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "9.2.1",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -3287,7 +2983,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum (kafka_server_replicamanager_isrshrinkspersec{job=\"$job\",instance=~\"$broker\"})",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "sum(kafka_server_replicamanager_isrshrinkspersec{instance=~\"$broker\",job=\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -3295,7 +2994,10 @@
           "refId": "A"
         },
         {
-          "expr": "sum (kafka_server_replicamanager_isrexpandspersec{job=\"$job\",instance=~\"$broker\"})",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "sum(kafka_server_replicamanager_isrexpandspersec{instance=~\"$broker\",job=\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -3304,9 +3006,7 @@
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "Isr Shrinks / Isr Expands Per Sec",
       "tooltip": {
         "shared": true,
@@ -3315,34 +3015,25 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
-          "decimals": null,
           "format": "ops",
           "label": "Expands (-) / Shrinks (+)",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -3350,11 +3041,13 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -3365,7 +3058,7 @@
         "h": 10,
         "w": 12,
         "x": 12,
-        "y": 98
+        "y": 88
       },
       "hiddenSeries": false,
       "id": 177,
@@ -3389,7 +3082,7 @@
       },
       "paceLength": 10,
       "percentage": false,
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "9.2.1",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -3399,19 +3092,21 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(kafka_network_requestmetrics_requestspersec{request=~\"FetchFollower\",job=\"$job\",instance=~\"$broker\"})by(instance)",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "editorMode": "builder",
+          "expr": "rate(kafka_network_requestmetrics_requestspersec{instance=~\"$broker\", job=\"$job\", juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", request=~\"FetchFollower\"}[5m])",
           "format": "time_series",
           "instant": false,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Request: {{instance}}",
+          "legendFormat": "Request: ",
           "refId": "A"
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "FetchFollower Request Per Broker",
       "tooltip": {
         "shared": true,
@@ -3420,34 +3115,27 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
-          "decimals": null,
+          "$$hashKey": "object:13932",
           "format": "reqps",
           "label": "Request/s",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
+          "$$hashKey": "object:13933",
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -3455,12 +3143,14 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      },
       "decimals": 0,
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -3471,7 +3161,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 108
+        "y": 98
       },
       "hiddenSeries": false,
       "id": 178,
@@ -3495,7 +3185,7 @@
       },
       "paceLength": 10,
       "percentage": false,
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "9.2.1",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -3505,20 +3195,22 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(kafka_network_requestmetrics_requestspersec{request=\"FetchConsumer\",job=\"$job\",instance=~\"$broker\"})by(instance)",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "editorMode": "code",
+          "expr": "rate(kafka_network_requestmetrics_requestspersec{instance=~\"$broker\", job=\"$job\", juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", request=\"Fetch\"}[5m])",
           "format": "time_series",
           "instant": false,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Request: {{instance}}",
+          "legendFormat": "Request: ",
           "refId": "A"
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
-      "title": "FetchConsumer Request Per Broker",
+      "title": "Request Per Broker",
       "tooltip": {
         "shared": true,
         "sort": 1,
@@ -3526,9 +3218,7 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
@@ -3539,23 +3229,17 @@
           "format": "reqps",
           "label": "Request/s",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "$$hashKey": "object:1580",
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -3563,12 +3247,13 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "decimals": 0,
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -3579,7 +3264,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 108
+        "y": 98
       },
       "hiddenSeries": false,
       "id": 196,
@@ -3605,7 +3290,7 @@
       },
       "paceLength": 10,
       "percentage": false,
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "9.2.1",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -3615,18 +3300,19 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum (kafka_server_delayedoperationpurgatory_purgatorysize{job=\"$job\",delayedOperation=\"Fetch\",instance=~\"$broker\"})by(instance)",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "sum by(instance) (kafka_server_delayedoperationpurgatory_purgatorysize{delayedOperation=\"Fetch\",instance=~\"$broker\",job=\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Broker {{instance}}",
+          "legendFormat": "Broker ",
           "refId": "A"
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "Number of Requests Waiting in the Fetch Purgatory",
       "tooltip": {
         "shared": true,
@@ -3635,9 +3321,7 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
@@ -3647,349 +3331,132 @@
           "format": "none",
           "label": "",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
-          "links": []
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Bytes/s",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "links": [],
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "reqps"
         },
         "overrides": []
       },
-      "fill": 0,
-      "fillGradient": 0,
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 116
+        "y": 106
       },
-      "hiddenSeries": false,
       "id": 56,
-      "legend": {
-        "alignAsTable": true,
-        "avg": false,
-        "current": true,
-        "max": true,
-        "min": true,
-        "rightSide": false,
-        "show": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 2,
       "links": [],
-      "nullPointMode": "null",
       "options": {
-        "alertThreshold": true
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "min"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
       },
-      "paceLength": 10,
-      "percentage": false,
-      "pluginVersion": "7.3.4",
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
+      "pluginVersion": "9.2.1",
       "targets": [
         {
-          "expr": "sum (kafka_server_brokertopicmetrics_totalfetchrequestspersec{job=\"$job\",instance=~\"$broker\",topic!=\"\"})by(instance)",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "editorMode": "builder",
+          "expr": "rate(kafka_server_brokertopicmetrics_totalfetchrequestspersec{instance=~\"$broker\", job=\"$job\", juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", topic!=\"\"}[5m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Broker: {{instance}}",
+          "legendFormat": "Broker: ",
+          "range": true,
           "refId": "A"
         }
       ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Total Fetch Request Per Broker",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "reqps",
-          "label": "Bytes/s",
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
+      "title": "Fetch Request Per Broker",
+      "type": "timeseries"
     },
     {
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
-          "links": []
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 116
-      },
-      "hiddenSeries": false,
-      "id": 147,
-      "legend": {
-        "alignAsTable": true,
-        "avg": false,
-        "current": true,
-        "max": true,
-        "min": true,
-        "rightSide": false,
-        "show": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 2,
-      "links": [],
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "paceLength": 10,
-      "percentage": false,
-      "pluginVersion": "7.3.4",
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "sum (irate(kafka_log_logflushstats_logflushrateandtimems_count{job=\"$job\",instance=~\"$broker\"}[5m]))by(instance)",
-          "format": "time_series",
-          "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "Broker - {{instance}}",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Log Flush Stats Count",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "decimals": null,
-          "format": "ms",
-          "label": "",
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "${prometheusds}",
-      "decimals": 0,
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {},
-          "links": []
-        },
-        "overrides": []
-      },
-      "fill": 0,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 9,
-        "w": 12,
-        "x": 0,
-        "y": 124
-      },
-      "hiddenSeries": false,
-      "id": 195,
-      "legend": {
-        "alignAsTable": true,
-        "avg": false,
-        "current": true,
-        "hideEmpty": false,
-        "hideZero": false,
-        "max": true,
-        "min": true,
-        "rightSide": false,
-        "show": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 2,
-      "links": [],
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "paceLength": 10,
-      "percentage": false,
-      "pluginVersion": "7.3.4",
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "sum (kafka_server_delayedoperationpurgatory_purgatorysize{job=\"$job\",delayedOperation=\"Produce\",instance=~\"$broker\"})by(instance)",
-          "format": "time_series",
-          "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "Broker {{instance}}",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Number of Requests Waiting in the Producer Purgatory",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "decimals": 0,
-          "format": "none",
-          "label": "",
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "decimals": 0,
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "${prometheusds}",
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -4000,7 +3467,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 124
+        "y": 106
       },
       "hiddenSeries": false,
       "id": 140,
@@ -4026,7 +3493,7 @@
       },
       "paceLength": 10,
       "percentage": false,
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "9.2.1",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -4036,18 +3503,19 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum (kafka_controller_controllerstats_leaderelectionrateandtimems{job=\"$job\",instance=~\"$broker\"})by(instance)",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "sum by(instance) (kafka_controller_controllerstats_leaderelectionrateandtimems{instance=~\"$broker\",job=\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Broker - {{instance}}",
+          "legendFormat": "Broker - ",
           "refId": "A"
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "Leader Election Rate Count",
       "tooltip": {
         "shared": true,
@@ -4056,52 +3524,141 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "time",
-        "name": null,
         "show": true,
         "values": []
       },
       "yaxes": [
         {
-          "decimals": null,
           "format": "none",
           "label": "",
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
+      "decimals": 0,
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "links": []
+        },
+        "overrides": []
+      },
+      "fill": 0,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 114
+      },
+      "hiddenSeries": false,
+      "id": 195,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "hideEmpty": false,
+        "hideZero": false,
+        "max": true,
+        "min": true,
+        "rightSide": false,
+        "show": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 2,
+      "links": [],
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "paceLength": 10,
+      "percentage": false,
+      "pluginVersion": "9.2.1",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "sum by(instance) (kafka_server_delayedoperationpurgatory_purgatorysize{delayedOperation=\"Produce\",instance=~\"$broker\",job=\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\"})",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "Broker ",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Number of Requests Waiting in the Producer Purgatory",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": 0,
+          "format": "none",
+          "label": "",
+          "logBase": 1,
+          "show": true
+        },
+        {
+          "decimals": 0,
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
       }
     },
     {
       "columns": [],
-      "datasource": "${prometheusds}",
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
+      "datasource": {
+        "uid": "${prometheusds}"
       },
+      "description": "",
       "fontSize": "100%",
       "gridPos": {
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 133
+        "y": 123
       },
       "id": 628,
       "links": [],
@@ -4125,7 +3682,6 @@
           "$$hashKey": "object:1742",
           "alias": "Instance",
           "align": "auto",
-          "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
             "rgba(237, 129, 40, 0.89)",
@@ -4180,7 +3736,6 @@
           "$$hashKey": "object:1744",
           "alias": "",
           "align": "auto",
-          "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
             "rgba(237, 129, 40, 0.89)",
@@ -4198,7 +3753,6 @@
           "$$hashKey": "object:1745",
           "alias": "",
           "align": "auto",
-          "colorMode": null,
           "colors": [
             "rgba(245, 54, 54, 0.9)",
             "rgba(237, 129, 40, 0.89)",
@@ -4215,7 +3769,10 @@
       ],
       "targets": [
         {
-          "expr": "kafka_cluster_partition_replicascount{job=~\"$job\",topic=~\"$topic\"}",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "kafka_cluster_partition_replicascount{job=~\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\",topic=~\"$topic\"}",
           "format": "table",
           "instant": true,
           "interval": "",
@@ -4224,8 +3781,6 @@
           "refId": "A"
         }
       ],
-      "timeFrom": null,
-      "timeShift": null,
       "title": "Partitions Leader Per Broker",
       "transform": "table",
       "type": "table-old"
@@ -4235,12 +3790,13 @@
       "bars": true,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "decimals": 2,
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -4251,7 +3807,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 142
+        "y": 132
       },
       "hiddenSeries": false,
       "id": 609,
@@ -4275,7 +3831,7 @@
       },
       "paceLength": 10,
       "percentage": false,
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "9.2.1",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -4285,19 +3841,20 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sort(sum(kafka_log_log_size{job=~\"$job\",instance=~\"$broker\"})by(instance))",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "sort(sum by(instance) (kafka_log_log_size{instance=~\"$broker\",job=~\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\"}))",
           "format": "time_series",
           "instant": true,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Instance Broker:  {{instance}}",
+          "legendFormat": "Instance Broker:  ",
           "refId": "A"
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "Disk Usage Segment Size",
       "tooltip": {
         "shared": false,
@@ -4306,9 +3863,7 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "series",
-        "name": null,
         "show": true,
         "values": [
           "total"
@@ -4320,22 +3875,16 @@
           "format": "bytes",
           "label": "",
           "logBase": 2,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "format": "short",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
       "yaxis": {
-        "align": false,
-        "alignLevel": null
+        "align": false
       }
     },
     {
@@ -4343,12 +3892,13 @@
       "bars": true,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "decimals": 0,
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
           "links": []
         },
         "overrides": []
@@ -4359,7 +3909,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 150
+        "y": 140
       },
       "hiddenSeries": false,
       "id": 603,
@@ -4381,7 +3931,7 @@
       },
       "paceLength": 10,
       "percentage": false,
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "9.2.1",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
@@ -4391,19 +3941,20 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sort(sum(kafka_server_replicamanager_partitioncount{job=~\"$job\"}) by (instance))",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "expr": "sort(sum by(instance) (kafka_server_replicamanager_partitioncount{job=~\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\"}))",
           "format": "time_series",
           "instant": true,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Instance Broker: {{instance}}",
+          "legendFormat": "Instance Broker: ",
           "refId": "A"
         }
       ],
       "thresholds": [],
-      "timeFrom": null,
       "timeRegions": [],
-      "timeShift": null,
       "title": "Count Partition per Broker",
       "tooltip": {
         "shared": false,
@@ -4412,9 +3963,7 @@
       },
       "type": "graph",
       "xaxis": {
-        "buckets": null,
         "mode": "series",
-        "name": null,
         "show": true,
         "values": [
           "current"
@@ -4424,19 +3973,13 @@
         {
           "decimals": 0,
           "format": "none",
-          "label": null,
           "logBase": 2,
-          "max": null,
-          "min": null,
           "show": true
         },
         {
           "decimals": 0,
           "format": "none",
-          "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
           "show": true
         }
       ],
@@ -4447,22 +3990,25 @@
     },
     {
       "collapsed": true,
-      "datasource": "${prometheusds}",
+      "datasource": {
+        "uid": "${prometheusds}"
+      },
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 158
+        "y": 148
       },
       "id": 159,
       "panels": [
         {
           "aliasColors": {},
           "bars": false,
-          "cacheTimeout": null,
           "dashLength": 10,
           "dashes": false,
-          "datasource": "${prometheusds}",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
           "description": "",
           "fieldConfig": {
             "defaults": {
@@ -4510,18 +4056,19 @@
           "steppedLine": false,
           "targets": [
             {
+              "datasource": {
+                "uid": "${prometheusds}"
+              },
               "expr": "jvm_threads_current{job=\"$job\",instance=~\"$broker\"}",
               "format": "time_series",
               "interval": "",
               "intervalFactor": 1,
-              "legendFormat": "{{instance}}",
+              "legendFormat": "",
               "refId": "A"
             }
           ],
           "thresholds": [],
-          "timeFrom": null,
           "timeRegions": [],
-          "timeShift": null,
           "title": "JVM Threads Current",
           "tooltip": {
             "shared": true,
@@ -4530,33 +4077,24 @@
           },
           "type": "graph",
           "xaxis": {
-            "buckets": null,
             "mode": "time",
-            "name": null,
             "show": true,
             "values": []
           },
           "yaxes": [
             {
               "format": "none",
-              "label": null,
               "logBase": 1,
-              "max": null,
-              "min": null,
               "show": true
             },
             {
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
-              "min": null,
               "show": true
             }
           ],
           "yaxis": {
-            "align": false,
-            "alignLevel": null
+            "align": false
           }
         },
         {
@@ -4564,7 +4102,9 @@
           "bars": false,
           "dashLength": 10,
           "dashes": false,
-          "datasource": "${prometheusds}",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
           "description": "",
           "fieldConfig": {
             "defaults": {
@@ -4612,18 +4152,19 @@
           "steppedLine": false,
           "targets": [
             {
+              "datasource": {
+                "uid": "${prometheusds}"
+              },
               "expr": "sum without(area)(jvm_memory_bytes_used{job=\"$job\",instance=~\"$broker\"} )",
               "format": "time_series",
               "interval": "",
               "intervalFactor": 1,
-              "legendFormat": "Broker - {{instance}}",
+              "legendFormat": "Broker - ",
               "refId": "A"
             }
           ],
           "thresholds": [],
-          "timeFrom": null,
           "timeRegions": [],
-          "timeShift": null,
           "title": "JVM Memory Usage",
           "tooltip": {
             "shared": true,
@@ -4632,33 +4173,24 @@
           },
           "type": "graph",
           "xaxis": {
-            "buckets": null,
             "mode": "time",
-            "name": null,
             "show": true,
             "values": []
           },
           "yaxes": [
             {
               "format": "bytes",
-              "label": null,
               "logBase": 1,
-              "max": null,
-              "min": null,
               "show": true
             },
             {
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
-              "min": null,
               "show": true
             }
           ],
           "yaxis": {
-            "align": false,
-            "alignLevel": null
+            "align": false
           }
         },
         {
@@ -4666,7 +4198,9 @@
           "bars": false,
           "dashLength": 10,
           "dashes": false,
-          "datasource": "${prometheusds}",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
           "description": "",
           "fieldConfig": {
             "defaults": {
@@ -4714,18 +4248,19 @@
           "steppedLine": false,
           "targets": [
             {
+              "datasource": {
+                "uid": "${prometheusds}"
+              },
               "expr": "rate(process_cpu_seconds_total{job=~\"$job\",instance=~\"$broker\"}[5m])",
               "format": "time_series",
               "interval": "",
               "intervalFactor": 1,
-              "legendFormat": "Broker - {{instance}}",
+              "legendFormat": "Broker - ",
               "refId": "A"
             }
           ],
           "thresholds": [],
-          "timeFrom": null,
           "timeRegions": [],
-          "timeShift": null,
           "title": "CPU Usage",
           "tooltip": {
             "shared": true,
@@ -4734,9 +4269,7 @@
           },
           "type": "graph",
           "xaxis": {
-            "buckets": null,
             "mode": "time",
-            "name": null,
             "show": true,
             "values": []
           },
@@ -4745,22 +4278,16 @@
               "format": "s",
               "label": "Usage/s",
               "logBase": 1,
-              "max": null,
-              "min": null,
               "show": true
             },
             {
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
-              "min": null,
               "show": true
             }
           ],
           "yaxis": {
-            "align": false,
-            "alignLevel": null
+            "align": false
           }
         },
         {
@@ -4768,7 +4295,9 @@
           "bars": false,
           "dashLength": 10,
           "dashes": false,
-          "datasource": "${prometheusds}",
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
           "description": "",
           "fieldConfig": {
             "defaults": {
@@ -4816,18 +4345,19 @@
           "steppedLine": false,
           "targets": [
             {
+              "datasource": {
+                "uid": "${prometheusds}"
+              },
               "expr": "sum without(gc)(rate(jvm_gc_collection_seconds_sum{job=\"$job\",instance=~\"$broker\"}[1m]))",
               "format": "time_series",
               "interval": "",
               "intervalFactor": 1,
-              "legendFormat": "{{instance}}",
+              "legendFormat": "",
               "refId": "A"
             }
           ],
           "thresholds": [],
-          "timeFrom": null,
           "timeRegions": [],
-          "timeShift": null,
           "title": "Time spent in GC",
           "tooltip": {
             "shared": true,
@@ -4836,34 +4366,33 @@
           },
           "type": "graph",
           "xaxis": {
-            "buckets": null,
             "mode": "time",
-            "name": null,
             "show": true,
             "values": []
           },
           "yaxes": [
             {
               "format": "ms",
-              "label": null,
               "logBase": 1,
-              "max": null,
-              "min": null,
               "show": true
             },
             {
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
-              "min": null,
               "show": true
             }
           ],
           "yaxis": {
-            "align": false,
-            "alignLevel": null
+            "align": false
           }
+        }
+      ],
+      "targets": [
+        {
+          "datasource": {
+            "uid": "${prometheusds}"
+          },
+          "refId": "A"
         }
       ],
       "title": "JVM",
@@ -4871,7 +4400,7 @@
     }
   ],
   "refresh": "1m",
-  "schemaVersion": 26,
+  "schemaVersion": 37,
   "style": "dark",
   "tags": [
     "stable",
@@ -4880,93 +4409,267 @@
   "templating": {
     "list": [
       {
-        "allValue": null,
-        "current": {},
-        "datasource": "${prometheusds}",
+        "current": {
+          "selected": false,
+          "text": "juju_cos_8c507e84-da45-40ed-8012-0721748834b2_loki_0",
+          "value": "juju_cos_8c507e84-da45-40ed-8012-0721748834b2_loki_0"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "lokids",
+        "options": [],
+        "query": "loki",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "juju_cos_8c507e84-da45-40ed-8012-0721748834b2_prometheus_0",
+          "value": "juju_cos_8c507e84-da45-40ed-8012-0721748834b2_prometheus_0"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "prometheusds",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "kafka/0",
+          "value": "kafka/0"
+        },
+        "datasource": {
+          "uid": "${prometheusds}"
+        },
+        "definition": "label_values(up{juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_application=\"$juju_application\"},juju_unit)",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Juju unit",
+        "multi": false,
+        "name": "juju_unit",
+        "options": [],
+        "query": {
+          "query": "label_values(up{juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_application=\"$juju_application\"},juju_unit)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "kafka",
+          "value": "kafka"
+        },
+        "datasource": {
+          "uid": "${prometheusds}"
+        },
+        "definition": "label_values(up{juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\"},juju_application)",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Juju application",
+        "multi": false,
+        "name": "juju_application",
+        "options": [],
+        "query": {
+          "query": "label_values(up{juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\"},juju_application)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "aa5c8bb5-59c4-4e20-847a-296b11e87a00",
+          "value": "aa5c8bb5-59c4-4e20-847a-296b11e87a00"
+        },
+        "datasource": {
+          "uid": "${prometheusds}"
+        },
+        "definition": "label_values(up{juju_model=\"$juju_model\"},juju_model_uuid)",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Juju model uuid",
+        "multi": false,
+        "name": "juju_model_uuid",
+        "options": [],
+        "query": {
+          "query": "label_values(up{juju_model=\"$juju_model\"},juju_model_uuid)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "kafka",
+          "value": "kafka"
+        },
+        "datasource": {
+          "uid": "${prometheusds}"
+        },
+        "definition": "label_values(up,juju_model)",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Juju model",
+        "multi": false,
+        "name": "juju_model",
+        "options": [],
+        "query": {
+          "query": "label_values(up,juju_model)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "kafka_0",
+          "value": "kafka_0"
+        },
+        "datasource": {
+          "uid": "${prometheusds}"
+        },
         "definition": "label_values(kafka_controller_kafkacontroller_controllerstate, job)",
-        "error": null,
         "hide": 0,
         "includeAll": false,
         "label": "job",
         "multi": false,
         "name": "job",
         "options": [],
-        "query": "label_values(kafka_controller_kafkacontroller_controllerstate, job)",
+        "query": {
+          "query": "label_values(kafka_controller_kafkacontroller_controllerstate, job)",
+          "refId": "juju_cos_4880692b-9156-4a6d-8b7b-2cd478b8972a_prometheus_0-job-Variable-Query"
+        },
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
         "sort": 0,
         "tagValuesQuery": "",
-        "tags": [],
         "tagsQuery": "",
         "type": "query",
         "useTags": false
       },
       {
-        "allValue": null,
-        "current": {},
-        "datasource": "${prometheusds}",
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "uid": "${prometheusds}"
+        },
         "definition": "label_values(kafka_controller_kafkacontroller_controllerstate{job=\"$job\"}, instance)",
-        "error": null,
         "hide": 0,
         "includeAll": true,
         "label": "Broker",
         "multi": true,
         "name": "broker",
         "options": [],
-        "query": "label_values(kafka_controller_kafkacontroller_controllerstate{job=\"$job\"}, instance)",
+        "query": {
+          "query": "label_values(kafka_controller_kafkacontroller_controllerstate{job=\"$job\"}, instance)",
+          "refId": "juju_cos_4880692b-9156-4a6d-8b7b-2cd478b8972a_prometheus_0-broker-Variable-Query"
+        },
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
         "sort": 0,
         "tagValuesQuery": "",
-        "tags": [],
         "tagsQuery": "",
         "type": "query",
         "useTags": false
       },
       {
-        "allValue": null,
-        "current": {},
-        "datasource": "${prometheusds}",
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "uid": "${prometheusds}"
+        },
         "definition": "label_values(kafka_cluster_partition_replicascount{job=\"$job\"}, topic)",
-        "error": null,
         "hide": 0,
         "includeAll": true,
         "label": "Topic",
         "multi": true,
         "name": "topic",
         "options": [],
-        "query": "label_values(kafka_cluster_partition_replicascount{job=\"$job\"}, topic)",
+        "query": {
+          "query": "label_values(kafka_cluster_partition_replicascount{job=\"$job\"}, topic)",
+          "refId": "juju_cos_4880692b-9156-4a6d-8b7b-2cd478b8972a_prometheus_0-topic-Variable-Query"
+        },
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
         "sort": 0,
         "tagValuesQuery": "",
-        "tags": [],
         "tagsQuery": "",
         "type": "query",
         "useTags": false
       },
       {
-        "allValue": null,
-        "current": {},
-        "datasource": "${prometheusds}",
+        "current": {
+          "selected": false,
+          "text": "3",
+          "value": "3"
+        },
+        "datasource": {
+          "uid": "${prometheusds}"
+        },
         "definition": "query_result(count(up{job=~\"$job\"}))",
-        "error": null,
         "hide": 2,
         "includeAll": false,
         "label": "",
         "multi": false,
         "name": "online_broker",
         "options": [],
-        "query": "query_result(count(up{job=~\"$job\"}))",
+        "query": {
+          "query": "query_result(count(up{job=~\"$job\"}))",
+          "refId": "juju_cos_4880692b-9156-4a6d-8b7b-2cd478b8972a_prometheus_0-online_broker-Variable-Query"
+        },
         "refresh": 1,
         "regex": "/.* ([^\\ ]*) .*/",
         "skipUrlSync": false,
         "sort": 0,
         "tagValuesQuery": "",
-        "tags": [],
         "tagsQuery": "",
         "type": "query",
         "useTags": false
@@ -4974,7 +4677,7 @@
     ]
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {
@@ -5006,5 +4709,5 @@
   "timezone": "",
   "title": "Kafka Metrics",
   "uid": "5nhADrDWk",
-  "version": 10
+  "version": 11
 }
