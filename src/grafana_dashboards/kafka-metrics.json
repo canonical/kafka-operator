@@ -4576,7 +4576,6 @@
         "options": [],
         "query": {
           "query": "label_values(kafka_controller_kafkacontroller_controllerstate, job)",
-          "refId": "juju_cos_4880692b-9156-4a6d-8b7b-2cd478b8972a_prometheus_0-job-Variable-Query"
         },
         "refresh": 1,
         "regex": "",
@@ -4605,7 +4604,6 @@
         "options": [],
         "query": {
           "query": "label_values(kafka_controller_kafkacontroller_controllerstate{job=\"$job\"}, instance)",
-          "refId": "juju_cos_4880692b-9156-4a6d-8b7b-2cd478b8972a_prometheus_0-broker-Variable-Query"
         },
         "refresh": 1,
         "regex": "",
@@ -4634,7 +4632,6 @@
         "options": [],
         "query": {
           "query": "label_values(kafka_cluster_partition_replicascount{job=\"$job\"}, topic)",
-          "refId": "juju_cos_4880692b-9156-4a6d-8b7b-2cd478b8972a_prometheus_0-topic-Variable-Query"
         },
         "refresh": 2,
         "regex": "",
@@ -4663,7 +4660,6 @@
         "options": [],
         "query": {
           "query": "query_result(count(up{job=~\"$job\"}))",
-          "refId": "juju_cos_4880692b-9156-4a6d-8b7b-2cd478b8972a_prometheus_0-online_broker-Variable-Query"
         },
         "refresh": 1,
         "regex": "/.* ([^\\ ]*) .*/",
