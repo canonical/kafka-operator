@@ -289,7 +289,6 @@ class KafkaConfig:
             f"zookeeper.ssl.truststore.location={self.truststore_filepath}",
             f"zookeeper.ssl.truststore.password={self.charm.tls.truststore_password}",
             "zookeeper.clientCnxnSocket=org.apache.zookeeper.ClientCnxnSocketNetty",
-            "zookeeper.ssl.endpoint.identification.algorithm=",
         ]
 
     @property

@@ -164,6 +164,25 @@ def test_update_status_blocks_if_broker_not_active(harness, zk_data, passwords_d
         assert isinstance(harness.charm.unit.status, BlockedStatus)
 
 
+def test_update_status_blocks_if_no_service(harness, zk_data, passwords_data):
+    with harness.hooks_disabled():
+        peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
+        zk_rel_id = harness.add_relation(ZK, ZK)
+        harness.update_relation_data(zk_rel_id, ZK, zk_data)
+        harness.update_relation_data(peer_rel_id, CHARM_KEY, passwords_data)
+
+    with (
+        patch(
+            "snap.snap.Snap.logs",
+            return_value="2023-04-13T13:11:43+01:00 juju.fetch-oci[840]: /usr/bin/timeout",
+        ),
+        patch("charm.KafkaCharm.healthy", return_value=True),
+        patch("charm.broker_active", return_value=True),
+    ):
+        harness.charm.on.update_status.emit()
+        assert isinstance(harness.charm.unit.status, BlockedStatus)
+
+
 def test_update_status_sets_active(harness, zk_data, passwords_data):
     with harness.hooks_disabled():
         peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
