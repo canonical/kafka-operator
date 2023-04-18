@@ -162,9 +162,6 @@ def get_env() -> dict[str, str]:
 
 def update_env(env: dict[str, str]) -> None:
     """Updates /etc/environment file."""
-    logger.info(f"{env=}")
-    logger.info(f"{get_env()=}")
     updated_env = {**get_env(), **env}
-    logger.info(f"{updated_env=}")
     content = "\n".join([f"{key}={value}" for key, value in updated_env.items()])
     safe_write_to_file(content=content, path="/etc/environment", mode="w")
