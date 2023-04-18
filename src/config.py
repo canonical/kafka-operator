@@ -21,7 +21,7 @@ from literals import (
     AuthMechanism,
     Scope,
 )
-from utils import safe_write_to_file
+from utils import map_env, safe_write_to_file, update_env
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -511,10 +511,9 @@ class KafkaConfig:
 
     def set_environment(self) -> None:
         """Writes the env-vars needed for passing to charmed-kafka service."""
-        environment = f"{self.kafka_opts}\n" f"{self.jmx_opts}\n" f"{self.log4j_opts}\n"
-
-        safe_write_to_file(
-            content=environment,
-            path="/etc/environment",
-            mode="a",
-        )
+        updated_env_list = [
+            self.kafka_opts,
+            self.jmx_opts,
+            self.log4j_opts,
+        ]
+        update_env(env=map_env(env=updated_env_list))

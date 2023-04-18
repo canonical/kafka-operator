@@ -132,3 +132,39 @@ def parse_tls_file(raw_content: str) -> str:
     if re.match(r"(-+(BEGIN|END) [A-Z ]+-+)", raw_content):
         return raw_content
     return base64.b64decode(raw_content).decode("utf-8")
+
+
+def map_env(env: list[str]) -> dict[str, str]:
+    """Builds environment map for arbitrary env-var strings.
+
+    Returns:
+        Dict of env-var and value
+    """
+    map_env = {}
+    for var in env:
+        key = "".join(var.split("=", maxsplit=1)[0])
+        value = "".join(var.split("=", maxsplit=1)[1:])
+
+        map_env[key] = value
+
+    return map_env
+
+
+def get_env() -> dict[str, str]:
+    """Builds map of current basic environment for all processes.
+
+    Returns:
+        Dict of env-var and value
+    """
+    raw_env = safe_get_file("/etc/environment") or []
+    return map_env(env=raw_env)
+
+
+def update_env(env: dict[str, str]) -> None:
+    """Updates /etc/environment file."""
+    logger.info(f"{env=}")
+    logger.info(f"{get_env()=}")
+    updated_env = {**get_env(), **env}
+    logger.info(f"{updated_env=}")
+    content = "\n".join([f"{key}={value}" for key, value in updated_env.items()])
+    safe_write_to_file(content=content, path="/etc/environment", mode="w")
