@@ -94,7 +94,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             metrics_endpoints=[
                 # Endpoint for the kafka and jmx exporters
                 # See https://github.com/canonical/charmed-kafka-snap for details
-                {"path": "/metrics", "port": f"{JMX_EXPORTER_PORT}"},
+                {"path": "/metrics", "port": JMX_EXPORTER_PORT},
             ],
             metrics_rules_dir=METRICS_RULES_DIR,
             logs_rules_dir=LOGS_RULES_DIR,
