@@ -765,7 +765,7 @@
             "mode": "thresholds"
           },
           "custom": {},
-          "displayName": "Messages In Per Sec",
+          "displayName": "Total Messages In",
           "mappings": [],
           "noValue": "0",
           "thresholds": {
@@ -2313,7 +2313,7 @@
           "instant": false,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{instance}}",
+          "legendFormat": "Requests",
           "refId": "A"
         }
       ],
@@ -2518,12 +2518,12 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "rate(kafka_server_brokertopicmetrics_failedproducerequestspersec{instance=~\"$broker\", job=~\"$job\", juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\"}[5m])",
+          "expr": "rate(kafka_server_brokertopicmetrics_failedproducerequestspersec{instance=~\"$broker\",job=~\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\"}[5m])",
           "format": "time_series",
           "instant": false,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "",
+          "legendFormat": "Failed Requests",
           "refId": "A"
         }
       ],
@@ -2556,113 +2556,6 @@
           "show": true
         },
         {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "${prometheusds}",
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {},
-          "links": []
-        },
-        "overrides": []
-      },
-      "fill": 0,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 9,
-        "w": 12,
-        "x": 12,
-        "y": 81
-      },
-      "hiddenSeries": false,
-      "id": 615,
-      "legend": {
-        "alignAsTable": true,
-        "avg": false,
-        "current": true,
-        "max": true,
-        "min": false,
-        "rightSide": true,
-        "show": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 2,
-      "links": [],
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "paceLength": 10,
-      "percentage": false,
-      "pluginVersion": "7.3.4",
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "sum(kafka_server_brokertopicmetrics_failedfetchrequestspersec{job=~\"$job\",topic!=\"\",instance=~\"$broker\",topic=~\"$topic\"})by(topic)",
-          "format": "time_series",
-          "instant": false,
-          "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "{{topic}}",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Failed Fetch Request Per Topic",
-      "tooltip": {
-        "shared": false,
-        "sort": 1,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "$$hashKey": "object:947",
-          "decimals": null,
-          "format": "reqps",
-          "label": "Request/s",
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "$$hashKey": "object:948",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -3163,12 +3056,12 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(kafka_network_requestmetrics_requestspersec{request=~\"FetchFollower\",job=\"$job\",instance=~\"$broker\"})by(instance)",
+          "expr": "rate(kafka_network_requestmetrics_requestspersec{instance=~\"$broker\", job=\"$job\", juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", request=~\"FetchFollower\"}[5m])",
           "format": "time_series",
           "instant": false,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Request: {{instance}}",
+          "legendFormat": "Requests",
           "refId": "A"
         }
       ],
@@ -3269,12 +3162,12 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(kafka_network_requestmetrics_requestspersec{request=\"FetchConsumer\",job=\"$job\",instance=~\"$broker\"})by(instance)",
+          "expr": "rate(kafka_network_requestmetrics_requestspersec{instance=~\"$broker\", job=\"$job\", juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", request=\"FetchConsumer\"}[5m])",
           "format": "time_series",
           "instant": false,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Request: {{instance}}",
+          "legendFormat": "Requests",
           "refId": "A"
         }
       ],
@@ -3483,11 +3376,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum (kafka_server_brokertopicmetrics_totalfetchrequestspersec{job=\"$job\",instance=~\"$broker\",topic!=\"\"})by(instance)",
+          "expr": "rate(kafka_server_brokertopicmetrics_totalfetchrequestspersec{instance=~\"$broker\", job=\"$job\", juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", topic!=\"\"}[5m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Broker: {{instance}}",
+          "legendFormat": "Broker: $broker",
           "refId": "A"
         }
       ],
@@ -3531,111 +3424,7 @@
         "align": false,
         "alignLevel": null
       }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "${prometheusds}",
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {},
-          "links": []
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 116
-      },
-      "hiddenSeries": false,
-      "id": 147,
-      "legend": {
-        "alignAsTable": true,
-        "avg": false,
-        "current": true,
-        "max": true,
-        "min": true,
-        "rightSide": false,
-        "show": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 2,
-      "links": [],
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "paceLength": 10,
-      "percentage": false,
-      "pluginVersion": "7.3.4",
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "sum (irate(kafka_log_logflushstats_logflushrateandtimems_count{job=\"$job\",instance=~\"$broker\"}[5m]))by(instance)",
-          "format": "time_series",
-          "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "Broker - {{instance}}",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Log Flush Stats Count",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "decimals": null,
-          "format": "ms",
-          "label": "",
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
+    }
     {
       "aliasColors": {},
       "bars": false,
