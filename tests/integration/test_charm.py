@@ -48,7 +48,11 @@ async def test_build_and_deploy_same_machine(ops_test: OpsTest, kafka_charm):
             to=machine_ids[0],
         ),
         ops_test.model.deploy(
-            kafka_charm, application_name=SAME_KAFKA, num_units=1, series="jammy", to=machine_ids[0]
+            kafka_charm,
+            application_name=SAME_KAFKA,
+            num_units=1,
+            series="jammy",
+            to=machine_ids[0],
         ),
     )
     await ops_test.model.wait_for_idle(apps=[SAME_ZK, SAME_KAFKA], idle_period=30, timeout=3600)
