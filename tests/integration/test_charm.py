@@ -68,6 +68,7 @@ async def test_build_and_deploy_same_machine(ops_test: OpsTest, kafka_charm):
     for machine in ops_test.model.machines.values():
         await machine.destroy()
 
+
 @pytest.mark.abort_on_fail
 async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
     await asyncio.gather(
