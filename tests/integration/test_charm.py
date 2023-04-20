@@ -27,6 +27,8 @@ from .helpers import (
 logger = logging.getLogger(__name__)
 
 DUMMY_NAME = "app"
+SAME_ZK = f"{ZK_NAME}-same"
+SAME_KAFKA = f"{APP_NAME}-same"
 
 
 @pytest.mark.abort_on_fail
@@ -40,27 +42,31 @@ async def test_build_and_deploy_same_machine(ops_test: OpsTest, kafka_charm):
         ops_test.model.deploy(
             ZK_NAME,
             channel="edge",
-            application_name=ZK_NAME,
+            application_name=SAME_ZK,
             num_units=1,
             series="jammy",
             to=machines[0],
         ),
         ops_test.model.deploy(
-            kafka_charm, application_name=APP_NAME, num_units=1, series="jammy", to=machines[0]
+            kafka_charm, application_name=SAME_KAFKA, num_units=1, series="jammy", to=machines[0]
         ),
     )
-    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], idle_period=30, timeout=3600)
-    assert ops_test.model.applications[APP_NAME].status == "blocked"
-    assert ops_test.model.applications[ZK_NAME].status == "active"
+    await ops_test.model.wait_for_idle(apps=[SAME_ZK, SAME_KAFKA], idle_period=30, timeout=3600)
+    assert ops_test.model.applications[SAME_KAFKA].status == "blocked"
+    assert ops_test.model.applications[SAME_ZK].status == "active"
 
-    await ops_test.model.add_relation(APP_NAME, ZK_NAME)
+    await ops_test.model.add_relation(SAME_KAFKA, SAME_ZK)
     async with ops_test.fast_forward():
-        await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], idle_period=30)
-        assert ops_test.model.applications[APP_NAME].status == "active"
-        assert ops_test.model.applications[ZK_NAME].status == "active"
+        await ops_test.model.wait_for_idle(apps=[SAME_ZK, SAME_KAFKA], idle_period=30)
+        assert ops_test.model.applications[SAME_ZK].status == "active"
+        assert ops_test.model.applications[SAME_KAFKA].status == "active"
 
-    # teardown and cleanup for remaining tests
-    await ops_test.model.reset(force=True)
+    # await asyncio.gather(
+    #     ops_test.model.applications[SAME_KAFKA].remove(),
+    #     asyncio.gather(ops_test.model.applications[SAME_ZK].remove()),
+    # )
+    # await ops_test.model.remove_machine(machines[0])
+    await ops_test.model.reset()
 
 
 @pytest.mark.abort_on_fail
