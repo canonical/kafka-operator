@@ -61,12 +61,11 @@ async def test_build_and_deploy_same_machine(ops_test: OpsTest, kafka_charm):
         assert ops_test.model.applications[SAME_ZK].status == "active"
         assert ops_test.model.applications[SAME_KAFKA].status == "active"
 
-    # await asyncio.gather(
-    #     ops_test.model.applications[SAME_KAFKA].remove(),
-    #     asyncio.gather(ops_test.model.applications[SAME_ZK].remove()),
-    # )
-    # await ops_test.model.remove_machine(machines[0])
-    await ops_test.model.reset()
+    await asyncio.gather(
+        ops_test.model.applications[SAME_KAFKA].remove(),
+        asyncio.gather(ops_test.model.applications[SAME_ZK].remove()),
+    )
+    await ops_test.model.remove_machine(machines[0])
 
 
 @pytest.mark.abort_on_fail
