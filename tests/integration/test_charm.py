@@ -35,7 +35,7 @@ SAME_KAFKA = f"{APP_NAME}-same"
 async def test_build_and_deploy_same_machine(ops_test: OpsTest, kafka_charm):
     # deploying 1 machine
     await ops_test.model.add_machine(series="jammy")
-    machines = await ops_test.model.get_machines()
+    machine_ids = await ops_test.model.get_machines()
 
     # deploying both kafka + zk to same machine
     await asyncio.gather(
@@ -45,10 +45,10 @@ async def test_build_and_deploy_same_machine(ops_test: OpsTest, kafka_charm):
             application_name=SAME_ZK,
             num_units=1,
             series="jammy",
-            to=machines[0],
+            to=machine_ids[0],
         ),
         ops_test.model.deploy(
-            kafka_charm, application_name=SAME_KAFKA, num_units=1, series="jammy", to=machines[0]
+            kafka_charm, application_name=SAME_KAFKA, num_units=1, series="jammy", to=machine_ids[0]
         ),
     )
     await ops_test.model.wait_for_idle(apps=[SAME_ZK, SAME_KAFKA], idle_period=30, timeout=3600)
@@ -62,11 +62,10 @@ async def test_build_and_deploy_same_machine(ops_test: OpsTest, kafka_charm):
         assert ops_test.model.applications[SAME_KAFKA].status == "active"
 
     await asyncio.gather(
-        ops_test.model.applications[SAME_KAFKA].remove(),
-        asyncio.gather(ops_test.model.applications[SAME_ZK].remove()),
+        ops_test.model.applications[SAME_KAFKA].remove(force=True, no_wait=True),
+        ops_test.model.applications[SAME_ZK].remove(force=True, no_wait=True),
     )
-    for machine in ops_test.model.machines.values():
-        await machine.destroy()
+    await ops_test.model.machines[machine_ids[0]].destroy()
 
 
 @pytest.mark.abort_on_fail
