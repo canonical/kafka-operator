@@ -58,7 +58,7 @@
       }
     ]
   },
-  "description": "Dashboard for metrics jmx_exporter protmetheus",
+  "description": "Dashboard for Kafka metrics based on jmx_exporter prometheus",
   "editable": true,
   "gnetId": 11962,
   "graphTooltip": 0,
@@ -765,7 +765,7 @@
             "mode": "thresholds"
           },
           "custom": {},
-          "displayName": "Messages In Per Sec",
+          "displayName": "Total Messages In",
           "mappings": [],
           "noValue": "0",
           "thresholds": {
@@ -1010,7 +1010,7 @@
             "mode": "thresholds"
           },
           "custom": {},
-          "displayName": "Messages In Per Sec (timerange)",
+          "displayName": "Messages In (timerange)",
           "mappings": [],
           "noValue": "0",
           "thresholds": {
@@ -1316,7 +1316,7 @@
       "repeatDirection": "h",
       "targets": [
         {
-          "expr": "avg(kafka_network_requestmetrics_totaltimems{request=\"Produce\",job=\"$job\",quantile=\"0.99\",instance=~\"$broker\"})by(request)",
+          "expr": "avg by(request) (kafka_network_requestmetrics_totaltimems{instance=~\"$broker\",job=\"$job\",quantile=\"0.99\",request=\"Produce\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1390,7 +1390,7 @@
       "repeatDirection": "h",
       "targets": [
         {
-          "expr": "avg(kafka_network_requestmetrics_totaltimems{request=\"FetchConsumer\",job=\"$job\",quantile=\"0.99\",instance=~\"$broker\"})by(request)",
+          "expr": "avg by(request) (kafka_network_requestmetrics_totaltimems{instance=~\"$broker\",job=\"$job\",quantile=\"0.99\",request=\"FetchConsumer\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1464,7 +1464,7 @@
       "repeatDirection": "h",
       "targets": [
         {
-          "expr": "avg(kafka_network_requestmetrics_totaltimems{request=\"FetchFollower\",job=\"$job\",quantile=\"0.99\",instance=~\"$broker\"})by(request)",
+          "expr": "avg by(request) (kafka_network_requestmetrics_totaltimems{instance=~\"$broker\",job=\"$job\",quantile=\"0.99\",request=\"FetchFollower\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1533,7 +1533,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg (kafka_network_requestmetrics_totaltimems{request=\"Produce\",job=\"$job\",quantile=\"0.99\",instance=~\"$broker\"})by(instance)",
+          "expr": "avg by(instance) (kafka_network_requestmetrics_totaltimems{instance=~\"$broker\",job=\"$job\",quantile=\"0.99\",request=\"Produce\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1638,7 +1638,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg (kafka_network_requestmetrics_totaltimems{request=\"FetchConsumer\",job=\"$job\",quantile=\"0.99\",instance=~\"$broker\"})by(instance)",
+          "expr": "avg by(instance) (kafka_network_requestmetrics_totaltimems{instance=~\"$broker\",job=\"$job\",quantile=\"0.99\",request=\"FetchConsumer\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1743,7 +1743,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg (kafka_network_requestmetrics_totaltimems{request=\"FetchFollower\",job=\"$job\",quantile=\"0.99\",instance=~\"$broker\"})by(instance)",
+          "expr": "avg by(instance) (kafka_network_requestmetrics_totaltimems{instance=~\"$broker\",job=\"$job\",quantile=\"0.99\",request=\"FetchFollower\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1862,7 +1862,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sort(sum(kafka_server_brokertopicmetrics_messagesinpersec{job=\"$job\",instance=~\"$broker\",topic!=\"\",topic=~\"$topic\"})by(topic))",
+          "expr": "rate(kafka_server_brokertopicmetrics_messagesinpersec{instance=~\"$broker\", job=\"$job\", juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", topic!=\"\", topic=~\"$topic\"}[5m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1874,7 +1874,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Messages In Per Topic",
+      "title": "Income messages per second",
       "tooltip": {
         "shared": false,
         "sort": 0,
@@ -1970,7 +1970,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum (kafka_server_brokertopicmetrics_bytesinpersec{job=\"$job\",topic!=\"\",instance=~\"$broker\",topic=~\"$topic\"})by(topic)",
+          "expr": "rate(kafka_server_brokertopicmetrics_bytesinpersec{instance=~\"$broker\",job=\"$job\",topic!=\"\",topic=~\"$topic\"}[5m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 2,
@@ -2084,7 +2084,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum (kafka_server_brokertopicmetrics_totalproducerequestspersec{job=\"$job\",instance=~\"$broker\",topic!=\"\",topic=~\"$topic\"})by(topic)",
+          "expr": "rate(kafka_server_brokertopicmetrics_totalproducerequestspersec{instance=~\"$broker\", job=\"$job\", juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", topic!=\"\"}[5m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -2134,9 +2134,7 @@
       }
     },
     {
-      "aliasColors": {
-        "Incoming Byte Topic: depositos-comando-ledger": "light-orange"
-      },
+      "aliasColors": {},
       "bars": false,
       "dashLength": 10,
       "dashes": false,
@@ -2156,115 +2154,6 @@
         "w": 12,
         "x": 12,
         "y": 51
-      },
-      "hiddenSeries": false,
-      "id": 154,
-      "interval": "",
-      "legend": {
-        "alignAsTable": true,
-        "avg": false,
-        "current": true,
-        "hideEmpty": false,
-        "hideZero": false,
-        "max": true,
-        "min": true,
-        "rightSide": true,
-        "show": true,
-        "sort": "current",
-        "sortDesc": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 2,
-      "links": [],
-      "nullPointMode": "connected",
-      "options": {
-        "alertThreshold": true
-      },
-      "paceLength": 10,
-      "percentage": false,
-      "pluginVersion": "7.3.4",
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "sum (kafka_server_brokertopicmetrics_bytesoutpersec{job=\"$job\",instance=~\"$broker\",topic!=\"\",topic=~\"$topic\"})by(topic)",
-          "format": "time_series",
-          "interval": "",
-          "intervalFactor": 2,
-          "legendFormat": "Topic: {{topic}}",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Bytes Out Per Topic",
-      "tooltip": {
-        "shared": false,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "decimals": null,
-          "format": "Bps",
-          "label": "Bytes/s",
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "Bps",
-          "label": "",
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": false
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "${prometheusds}",
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {},
-          "links": []
-        },
-        "overrides": []
-      },
-      "fill": 0,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 10,
-        "w": 12,
-        "x": 0,
-        "y": 61
       },
       "hiddenSeries": false,
       "id": 176,
@@ -2300,7 +2189,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(kafka_network_requestmetrics_requestspersec{request=~\"Produce\",job=\"$job\",instance=~\"$broker\"})by(instance)",
+          "expr": "rate(kafka_network_requestmetrics_requestspersec{instance=~\"$broker\", job=\"$job\", juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", request=~\"Produce\"}[5m])",
           "format": "time_series",
           "instant": false,
           "interval": "",
@@ -2344,131 +2233,6 @@
           "max": null,
           "min": null,
           "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "${prometheusds}",
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {},
-          "links": []
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 10,
-        "w": 12,
-        "x": 12,
-        "y": 61
-      },
-      "hiddenSeries": false,
-      "id": 142,
-      "interval": "",
-      "legend": {
-        "alignAsTable": true,
-        "avg": false,
-        "current": true,
-        "hideEmpty": false,
-        "hideZero": false,
-        "max": true,
-        "min": true,
-        "rightSide": true,
-        "show": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 2,
-      "links": [],
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "paceLength": 10,
-      "percentage": false,
-      "pluginVersion": "7.3.4",
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [
-        {
-          "$$hashKey": "object:411",
-          "alias": "/.*Bytes In*./",
-          "transform": "negative-Y"
-        }
-      ],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "sum (kafka_server_brokertopicmetrics_bytesoutpersec{job=\"$job\",instance=~\"$broker\",topic!=\"\"})by(instance)",
-          "format": "time_series",
-          "instant": false,
-          "interval": "",
-          "intervalFactor": 2,
-          "legendFormat": "Bytes Out [{{instance}}]",
-          "refId": "B"
-        },
-        {
-          "expr": "sum (kafka_server_brokertopicmetrics_bytesinpersec{job=\"$job\",instance=~\"$broker\",topic!=\"\"})by(instance)",
-          "format": "time_series",
-          "instant": false,
-          "interval": "",
-          "intervalFactor": 2,
-          "legendFormat": "Bytes In [{{instance}}]",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Bytes In / Out Per Broker",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "$$hashKey": "object:424",
-          "decimals": null,
-          "format": "Bps",
-          "label": "In (-) / Out (+)",
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "$$hashKey": "object:425",
-          "format": "Bps",
-          "label": "",
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": false
         }
       ],
       "yaxis": {
@@ -2544,12 +2308,12 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(kafka_server_brokertopicmetrics_failedproducerequestspersec{job=~\"$job\",instance=~\"$broker\"})by(instance)",
+          "expr": "rate(kafka_server_brokertopicmetrics_failedproducerequestspersec{instance=~\"$broker\", job=~\"$job\", juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", topic!=\"\", topic=~\"$topic\"}[5m])",
           "format": "time_series",
           "instant": false,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{instance}}",
+          "legendFormat": "Requests",
           "refId": "A"
         }
       ],
@@ -2649,12 +2413,12 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(kafka_server_brokertopicmetrics_failedfetchrequestspersec{job=~\"$job\",instance=~\"$broker\"})by(instance)",
+          "expr": "sum by(topic) (kafka_server_brokertopicmetrics_failedfetchrequestspersec{instance=~\"$broker\",job=~\"$job\",topic!=\"\",topic=~\"$topic\"})",
           "format": "time_series",
           "instant": false,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{instance}}",
+          "legendFormat": "{{topic}}",
           "refId": "A"
         }
       ],
@@ -2754,12 +2518,12 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(kafka_server_brokertopicmetrics_failedproducerequestspersec{job=~\"$job\",topic!=\"\",instance=~\"$broker\",topic=~\"$topic\"})by(topic)",
+          "expr": "rate(kafka_server_brokertopicmetrics_failedproducerequestspersec{instance=~\"$broker\",job=~\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\"}[5m])",
           "format": "time_series",
           "instant": false,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{topic}}",
+          "legendFormat": "Failed Requests",
           "refId": "A"
         }
       ],
@@ -2792,113 +2556,6 @@
           "show": true
         },
         {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "${prometheusds}",
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {},
-          "links": []
-        },
-        "overrides": []
-      },
-      "fill": 0,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 9,
-        "w": 12,
-        "x": 12,
-        "y": 81
-      },
-      "hiddenSeries": false,
-      "id": 615,
-      "legend": {
-        "alignAsTable": true,
-        "avg": false,
-        "current": true,
-        "max": true,
-        "min": false,
-        "rightSide": true,
-        "show": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 2,
-      "links": [],
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "paceLength": 10,
-      "percentage": false,
-      "pluginVersion": "7.3.4",
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "sum(kafka_server_brokertopicmetrics_failedfetchrequestspersec{job=~\"$job\",topic!=\"\",instance=~\"$broker\",topic=~\"$topic\"})by(topic)",
-          "format": "time_series",
-          "instant": false,
-          "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "{{topic}}",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Failed Fetch Request Per Topic",
-      "tooltip": {
-        "shared": false,
-        "sort": 1,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "$$hashKey": "object:947",
-          "decimals": null,
-          "format": "reqps",
-          "label": "Request/s",
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "$$hashKey": "object:948",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -3399,12 +3056,12 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(kafka_network_requestmetrics_requestspersec{request=~\"FetchFollower\",job=\"$job\",instance=~\"$broker\"})by(instance)",
+          "expr": "rate(kafka_network_requestmetrics_requestspersec{instance=~\"$broker\", job=\"$job\", juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", request=~\"FetchFollower\"}[5m])",
           "format": "time_series",
           "instant": false,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Request: {{instance}}",
+          "legendFormat": "Requests",
           "refId": "A"
         }
       ],
@@ -3505,12 +3162,12 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(kafka_network_requestmetrics_requestspersec{request=\"FetchConsumer\",job=\"$job\",instance=~\"$broker\"})by(instance)",
+          "expr": "rate(kafka_network_requestmetrics_requestspersec{instance=~\"$broker\", job=\"$job\", juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", request=\"FetchConsumer\"}[5m])",
           "format": "time_series",
           "instant": false,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Request: {{instance}}",
+          "legendFormat": "Requests",
           "refId": "A"
         }
       ],
@@ -3719,11 +3376,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum (kafka_server_brokertopicmetrics_totalfetchrequestspersec{job=\"$job\",instance=~\"$broker\",topic!=\"\"})by(instance)",
+          "expr": "rate(kafka_server_brokertopicmetrics_totalfetchrequestspersec{instance=~\"$broker\", job=\"$job\", juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", topic!=\"\"}[5m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Broker: {{instance}}",
+          "legendFormat": "Broker: $broker",
           "refId": "A"
         }
       ],
@@ -3749,110 +3406,6 @@
         {
           "format": "reqps",
           "label": "Bytes/s",
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "${prometheusds}",
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {},
-          "links": []
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 116
-      },
-      "hiddenSeries": false,
-      "id": 147,
-      "legend": {
-        "alignAsTable": true,
-        "avg": false,
-        "current": true,
-        "max": true,
-        "min": true,
-        "rightSide": false,
-        "show": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 2,
-      "links": [],
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "paceLength": 10,
-      "percentage": false,
-      "pluginVersion": "7.3.4",
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "sum (irate(kafka_log_logflushstats_logflushrateandtimems_count{job=\"$job\",instance=~\"$broker\"}[5m]))by(instance)",
-          "format": "time_series",
-          "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "Broker - {{instance}}",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Log Flush Stats Count",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "decimals": null,
-          "format": "ms",
-          "label": "",
           "logBase": 1,
           "max": null,
           "min": null,
