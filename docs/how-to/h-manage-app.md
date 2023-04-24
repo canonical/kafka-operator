@@ -1,19 +1,19 @@
 # How to manage related applications
 
-Relations to new applications are supported via the "[mysql_client](https://github.com/canonical/charm-relation-interfaces/blob/main/interfaces/kafka_client/v0/README.md)" interface.
+Relations to new applications are supported via the "[kafka_client](https://github.com/canonical/charm-relation-interfaces/blob/main/interfaces/kafka_client/v0/README.md)" interface.
 
 ## Within juju via `kafka_client` interface
  
 If the charms supports the `kafka_client` interface, just create a relation between the two charms:
 
 ```shell
-juju relate mysql application
+juju relate kafka application
 ```
 
 To remove a relation:
 
 ```shell
-juju remove-relation mysql application
+juju remove-relation kafka application
 ```
 
 ## Outside juju or for charms not implementing `kafka_client`
