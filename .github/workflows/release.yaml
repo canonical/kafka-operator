@@ -1,4 +1,6 @@
-name: Release to 22.04/edge
+# Copyright 2023 Canonical Ltd.
+# See LICENSE file for licensing details.
+name: Release to Charmhub
 
 on:
   push:
@@ -26,24 +28,23 @@ jobs:
       - lib-check
     uses: ./.github/workflows/ci.yaml
 
-  release-to-charmhub:
-    name: Release to CharmHub
+  build:
+    name: Build charm
+    uses: canonical/data-platform-workflows/.github/workflows/build_charm_without_cache.yaml@v2
+
+  release:
+    name: Release to Charmhub
     needs:
       - lib-check
       - ci-tests
-    runs-on: ubuntu-22.04
+      - build
+    #runs-on: ubuntu-22.04
     timeout-minutes: 60
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - name: Select charmhub channel
-        uses: canonical/charming-actions/channel@2.1.0
-        id: channel
-      - name: Upload charm to charmhub
-        uses: canonical/charming-actions/upload-charm@2.1.0
-        with:
-          credentials: "${{ secrets.CHARMHUB_TOKEN }}"
-          github-token: "${{ secrets.GITHUB_TOKEN }}"
-          channel: "${{ steps.channel.outputs.name }}"
+    uses: canonical/data-platform-workflows/.github/workflows/release_charm.yaml@v2
+    with:
+      channel: 3/edge
+      artifact-name: ${{ needs.build.outputs.artifact-name }}
+    secrets:
+      charmhub-token: ${{ secrets.CHARMHUB_TOKEN }}
+    permissions:
+      contents: write  # Needed to create GitHub release
