@@ -11,8 +11,7 @@ The Kafka Operator uses the latest upstream Kafka binaries released by the The A
 
 As currently Kafka requires a paired ZooKeeper deployment in production, this operator makes use of the [ZooKeeper Operator](https://github.com/canonical/zookeeper-operator) for various essential functions.
 
-The Charmed Kafka operator comes in two flavours to deploy and operate PostgreSQL on [physical/virtual machines](https://github.com/canonical/kafka-operator) and [Kubernetes](https://github.com/canonical/kafka-k8s-operator). Both offer features such as replication, TLS, password rotation, and easy to use integration with applications. The Charmed PostgreSQL Operator meets the need of deploying PostgreSQL in a structured and consistent manner while allowing the user flexibility in configuration. It simplifies deployment, scaling, configuration and management of PostgreSQL in production at scale in a reliable way.
-
+The Charmed Kafka operator comes in two flavours to deploy and operate Kafka on [physical/virtual machines](https://github.com/canonical/kafka-operator) and [Kubernetes](https://github.com/canonical/kafka-k8s-operator). Both offer features such as replication, TLS, password rotation, and easy to use integration with applications. The Charmed Kafka Operator meets the need of deploying Kafka in a structured and consistent manner while allowing the user flexibility in configuration. It simplifies deployment, scaling, configuration and management of Kafka in production at scale in a reliable way.
 
 ## Charm version, environment and OS
 
@@ -29,7 +28,7 @@ If you find a bug in this snap or want to request a specific feature, here are t
 
 * Raise issues or feature requests in [Github](https://github.com/canonical/kafka-operator/issues)
 
-* Security issues in the Charmed MongoDB Operator can be reported through [LaunchPad](https://wiki.ubuntu.com/DebuggingSecurity#How%20to%20File). Please do not file GitHub issues about security issues.
+* Security issues in the Charmed Kafka Operator can be reported through [LaunchPad](https://wiki.ubuntu.com/DebuggingSecurity#How%20to%20File). Please do not file GitHub issues about security issues.
 
 * Meet the community and chat with us if there are issues and feature requests in our [Mattermost Channel](https://chat.charmhub.io/charmhub/channels/data-platform)
 
@@ -45,7 +44,6 @@ The Charmed Kafka Operator is free software, distributed under the Apache Softwa
 
 | Level | Path                 | Navlink                                                              |
 |-------|----------------------|----------------------------------------------------------------------|
-| 1     | tutorial             | [Tutorial]()                                                         |
 | 1     | how-to               | [How To]()                                                           |
 | 2     | h-manage-units       | [Manage units](/t/charmed-kafka-how-to-manage-units/10287)           |
 | 2     | h-enable-encryption  | [Enable encryption](/t/charmed-kafka-how-to-enable-encryption/10281) |

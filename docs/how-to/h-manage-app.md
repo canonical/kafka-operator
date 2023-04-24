@@ -67,4 +67,3 @@ juju run-action kafka/leader set-password password=<password> --wait
 # to randomly generate a password for the operator user
 juju run-action kafka/leader set-password --wait
 ```
-

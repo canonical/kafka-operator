@@ -53,4 +53,3 @@ juju remove-unit <unit_name>
 ```
 
 Even when scaling multiple units at the same time, the charm uses a rolling restart sequence to make sure the cluster stays available and healthy during the operation.
-

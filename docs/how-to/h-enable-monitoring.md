@@ -55,6 +55,3 @@ juju relate grafana-agent prometheus-receive-remote-write
 ```
 
 After this is complete, Grafana will show the new dashboards: `Kafka Exporter` and allows access for Charmed Kafka logs on Loki.
-
-
-
