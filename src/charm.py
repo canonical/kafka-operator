@@ -78,7 +78,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.framework.observe(self.on[ZK].relation_broken, self._on_zookeeper_broken)
 
         self.framework.observe(getattr(self.on, "set_password_action"), self._set_password_action)
-        self.framework.observe(getattr(self.on, "rolling_restart_unit_action"), self._restart)
         self.framework.observe(
             getattr(self.on, "get_admin_credentials_action"), self._get_admin_credentials_action
         )

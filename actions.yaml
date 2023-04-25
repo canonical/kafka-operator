@@ -26,9 +26,6 @@ set-tls-private-key:
         Content will be auto-generated if this option is not specified.
         Can be raw-string, or base64 encoded.
 
-rolling-restart-unit:
-  description: Manually triggers a rolling restart for specified units.
-
 get-admin-credentials:
   description: Get administrator authentication credentials for client commands
     The returned client_properties can be used for Kafka bin commands using `--bootstrap-server` and `--command-config` for admin level administration
