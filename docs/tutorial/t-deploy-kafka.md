@@ -4,7 +4,7 @@ This is part of the [Charmed Kafka Tutorial](/t/). Please refer to this page for
 
 ## Deploy
 
-To deploy Charmed Kafka, all you need to do is run the following command, which will fetch the needed charms([Kafka](https://charmhub.io/kafka?channel=edge) and [Zookeeper](https://charmhub.io/zookeeper?channel=edge)) from [Charmhub](https://charmhub.io/) and deploy it to your model:
+To deploy Charmed Kafka, all you need to do is run the following command, which will fetch the needed charms([Kafka](https://charmhub.io/kafka?channel=3/edge) and [Zookeeper](https://charmhub.io/zookeeper?channel=edge)) from [Charmhub](https://charmhub.io/) and deploy it to your model:
 
 ```shell
 $ juju deploy zookeeper --channel latest/edge -n 5
@@ -57,13 +57,9 @@ Machine  State    Address        Inst id        Series  AZ  Message
 To exit the screen with `juju status --watch 1s`, enter `Ctrl+c`.
 
 
-
 ## Access Kafka cluster
 
-
-
 To watch the process, `juju status` can be used. Once all the units show as `active|idle` the credentials to access a broker can be queried with:
-
 ```shell
 juju run-action kafka/leader get-admin-credentials --wait
 ```
