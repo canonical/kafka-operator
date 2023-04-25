@@ -1,4 +1,4 @@
-# Get a Charmed Kakfa and Zookeeper up and running
+# Get a Charmed Kafka and Zookeeper up and running
 
 This is part of the [Charmed Kafka Tutorial](/t/). Please refer to this page for more information and the overview of the content. 
 
