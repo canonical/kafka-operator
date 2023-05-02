@@ -43,8 +43,8 @@ The charm is meant to be deployed using `juju>=2.9.37`.
 
 The Kafka and ZooKeeper operators can both be deployed as follows:
 ```shell
-$ juju deploy zookeeper --channel latest/edge -n 5
-$ juju deploy kafka --channel latest/edge -n 3
+$ juju deploy zookeeper --channel edge -n 5
+$ juju deploy kafka --channel edge -n 3
 ```
 
 After this, it is necessary to connect them:
@@ -69,7 +69,7 @@ Note that when no other application is related to Kafka, the cluster is secured-
 
 Available Kafka bin commands can be found with:
 ```
-snap info charmed-kafka --channel latest/edge
+snap info charmed-kafka --channel edge
 ```
 
 ### Replication

@@ -98,7 +98,7 @@ class ApplicationCharm(CharmBase):
         kafka = cache["charmed-kafka"]
 
         if not kafka.present:
-            kafka.ensure(snap.SnapState.Latest, channel="3/edge")
+            kafka.ensure(snap.SnapState.Latest, channel="edge")
 
     def _create_keystore(self, unit_name: str, unit_host: str):
         try:
