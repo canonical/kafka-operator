@@ -211,6 +211,8 @@ def test_storage_add_does_nothing_if_snap_not_active(harness, zk_data, passwords
     with (
         patch("snap.KafkaSnap.active", return_value=False),
         patch("charm.KafkaCharm._disable_enable_restart") as patched_restart,
+        patch("charm.set_snap_ownership"),
+        patch("charm.set_snap_mode_bits"),
     ):
         harness.add_storage(storage_name="data", count=2)
         harness.attach_storage(storage_id="data/1")
@@ -232,6 +234,8 @@ def test_storage_add_defers_if_service_not_healthy(harness, zk_data, passwords_d
         patch("charm.KafkaCharm.healthy", return_value=False),
         patch("charm.KafkaCharm._disable_enable_restart") as patched_restart,
         patch("ops.framework.EventBase.defer") as patched_defer,
+        patch("charm.set_snap_ownership"),
+        patch("charm.set_snap_mode_bits"),
     ):
         harness.add_storage(storage_name="data", count=2)
         harness.attach_storage(storage_id="data/1")
@@ -258,6 +262,8 @@ def test_storage_add_disableenables_and_starts(harness, zk_data, passwords_data)
         patch("snap.KafkaSnap.disable_enable") as patched_disable_enable,
         patch("snap.KafkaSnap.start_snap_service") as patched_start,
         patch("ops.framework.EventBase.defer") as patched_defer,
+        patch("charm.set_snap_ownership"),
+        patch("charm.set_snap_mode_bits"),
     ):
         harness.add_storage(storage_name="data", count=2)
         harness.attach_storage(storage_id="data/1")

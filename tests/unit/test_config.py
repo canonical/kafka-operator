@@ -252,6 +252,7 @@ def test_set_environment(harness):
         patch("config.safe_write_to_file") as patched_write,
         patch("builtins.open", mock_open()),
         patch("shutil.chown"),
+        patch("utils.set_snap_ownership"),
     ):
         harness.charm.kafka_config.set_environment()
 
