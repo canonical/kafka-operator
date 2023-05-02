@@ -109,7 +109,6 @@ class KafkaProvider(Object):
 
     def _on_relation_created(self, event: RelationCreatedEvent) -> None:
         """Handler for `kafka-client-relation-created` event."""
-        logger.info("RELATION CREATED - CALLING CONFIG CHANGED")
         self.charm._on_config_changed(event)
 
     def _on_relation_broken(self, event: RelationBrokenEvent) -> None:
