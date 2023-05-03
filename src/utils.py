@@ -9,6 +9,7 @@ import logging
 import os
 import re
 import secrets
+import shutil
 import string
 from typing import Dict, List, Optional, Set
 
@@ -109,12 +110,24 @@ def safe_write_to_file(content: str, path: str, mode: str = "w") -> None:
 
 def set_snap_ownership(path: str) -> None:
     """Sets a filepath `snap_daemon` ownership."""
-    os.system(f"chown -R snap_daemon:root {path}")
+    shutil.chown(path, user="snap_daemon", group="root")
+
+    for root, dirs, files in os.walk(path):
+        for d in dirs:
+            shutil.chown(os.path.join(root, d), user="snap_daemon", group="root")
+        for f in files:
+            shutil.chown(os.path.join(root, f), user="snap_daemon", group="root")
 
 
 def set_snap_mode_bits(path: str) -> None:
     """Sets filepath mode bits."""
-    os.system(f"chmod -R {path} 770")
+    os.chmod(path, 0o770)
+
+    for root, dirs, files in os.walk(path):
+        for d in dirs:
+            os.chmod(os.path.join(root, d), 0o770)
+        for f in files:
+            os.chmod(os.path.join(root, f), 0o770)
 
 
 def generate_password() -> str:
