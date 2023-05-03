@@ -109,8 +109,8 @@ class KafkaSnap:
         Raises:
             subprocess.CalledProcessError if error occurs
         """
-        subprocess.run(f"snap disable {self.SNAP_SERVICE}", shell=True)
-        subprocess.run(f"snap enable {self.SNAP_SERVICE}", shell=True)
+        subprocess.run(f"snap disable {self.SNAP_NAME}", shell=True)
+        subprocess.run(f"snap enable {self.SNAP_NAME}", shell=True)
 
     @retry(
         wait=wait_fixed(1),

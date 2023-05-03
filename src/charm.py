@@ -45,7 +45,13 @@ from provider import KafkaProvider
 from snap import KafkaSnap
 from structured_config import CharmConfig
 from tls import KafkaTLS
-from utils import broker_active, generate_password, safe_get_file
+from utils import (
+    broker_active,
+    generate_password,
+    safe_get_file,
+    set_snap_mode_bits,
+    set_snap_ownership,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -206,6 +212,8 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         # set status only for running services, not on startup
         if self.snap.active():
             self._set_status(Status.ADDED_STORAGE)
+            set_snap_ownership(path=self.snap.DATA_PATH)
+            set_snap_mode_bits(path=self.snap.DATA_PATH)
             self._on_config_changed(event)
 
     def _on_storage_detaching(self, event: StorageDetachingEvent) -> None:
