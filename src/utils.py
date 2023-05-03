@@ -113,10 +113,8 @@ def set_snap_ownership(path: str) -> None:
     shutil.chown(path, user="snap_daemon", group="root")
 
     for root, dirs, files in os.walk(path):
-        for d in dirs:
-            shutil.chown(os.path.join(root, d), user="snap_daemon", group="root")
-        for f in files:
-            shutil.chown(os.path.join(root, f), user="snap_daemon", group="root")
+        for fp in dirs + files:
+            shutil.chown(os.path.join(root, fp), user="snap_daemon", group="root")
 
 
 def set_snap_mode_bits(path: str) -> None:
@@ -124,10 +122,8 @@ def set_snap_mode_bits(path: str) -> None:
     os.chmod(path, 0o770)
 
     for root, dirs, files in os.walk(path):
-        for d in dirs:
-            os.chmod(os.path.join(root, d), 0o770)
-        for f in files:
-            os.chmod(os.path.join(root, f), 0o770)
+        for fp in dirs + files:
+            os.chmod(os.path.join(root, fp), 0o770)
 
 
 def generate_password() -> str:
