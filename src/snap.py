@@ -16,7 +16,7 @@ from tenacity.retry import retry_if_not_result
 from tenacity.stop import stop_after_attempt
 from tenacity.wait import wait_fixed
 
-from literals import SNAP_NAME, KAFKA_SNAP_REVISION
+from literals import KAFKA_SNAP_REVISION, SNAP_NAME
 
 logger = logging.getLogger(__name__)
 
