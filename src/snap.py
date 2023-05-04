@@ -50,7 +50,7 @@ class KafkaSnap:
             kafka = cache[SNAP_NAME]
 
             if not kafka.present:
-                kafka.ensure(snap.SnapState.Latest, revision=KAFKA_SNAP_REVISION)
+                kafka.ensure(snap.SnapState.Present, revision=KAFKA_SNAP_REVISION)
 
             self.kafka = kafka
             self.kafka.connect(plug="removable-media")
