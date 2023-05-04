@@ -9,6 +9,7 @@ import re
 import subprocess
 from typing import List
 
+
 from charms.operator_libs_linux.v0 import apt
 from charms.operator_libs_linux.v1 import snap
 from tenacity import retry
