@@ -25,7 +25,7 @@ INTERNAL_USERS = [INTER_BROKER_USER, ADMIN_USER]
 JMX_EXPORTER_PORT = 9101
 METRICS_RULES_DIR = "./src/alert_rules/prometheus"
 LOGS_RULES_DIR = "./src/alert_rules/loki"
-KAFKA_SNAP_REVISION = 117
+KAFKA_SNAP_REVISION = 16
 
 AuthMechanism = Literal["SASL_PLAINTEXT", "SASL_SSL", "SSL"]
 Scope = Literal["INTERNAL", "CLIENT"]
