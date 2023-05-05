@@ -16,7 +16,7 @@ from tenacity.retry import retry_if_not_result
 from tenacity.stop import stop_after_attempt
 from tenacity.wait import wait_fixed
 
-from literals import SNAP_NAME
+from literals import CHARMED_KAFKA_SNAP_REVISION, SNAP_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ class KafkaSnap:
             kafka = cache[SNAP_NAME]
 
             if not kafka.present:
-                kafka.ensure(snap.SnapState.Latest, channel="3/edge")
+                kafka.ensure(snap.SnapState.Present, revision=CHARMED_KAFKA_SNAP_REVISION)
 
             self.kafka = kafka
             self.kafka.connect(plug="removable-media")
