@@ -4,7 +4,7 @@ This is part of the [Charmed Kafka Tutorial](/t/charmed-kafka-tutorial-overview/
 
 ## Deploy
 
-To deploy Charmed Kafka, all you need to do is run the following command, which will fetch the needed charms([Kafka](https://charmhub.io/kafka?channel=3/edge) and [Zookeeper](https://charmhub.io/zookeeper?channel=edge)) from [Charmhub](https://charmhub.io/) and deploy it to your model:
+To deploy Charmed Kafka, all you need to do is run the following command, which will fetch the needed charms([Kafka](https://charmhub.io/kafka?channel=3/stable) and [Zookeeper](https://charmhub.io/zookeeper?channel=3/stable)) from [Charmhub](https://charmhub.io/) and deploy it to your model:
 
 ```shell
 $ juju deploy zookeeper -n 5
