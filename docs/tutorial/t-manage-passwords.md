@@ -1,6 +1,6 @@
 # Manage Passwords
 
-This is part of the [Charmed Kafka Tutorial](https://discourse.charmhub.io/t/charmed-kafka-tutorial/). Please refer to this page for more information and the overview of the content.
+This is part of the [Charmed Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571). Please refer to this page for more information and the overview of the content.
 
 ## Passwords
 

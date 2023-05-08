@@ -1,6 +1,6 @@
 # Get a Charmed Kafka and Zookeeper up and running
 
-This is part of the [Charmed Kafka Tutorial](/t/). Please refer to this page for more information and the overview of the content. 
+This is part of the [Charmed Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571). Please refer to this page for more information and the overview of the content. 
 
 ## Deploy
 

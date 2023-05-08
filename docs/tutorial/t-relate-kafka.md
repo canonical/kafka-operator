@@ -1,6 +1,6 @@
 # Relate your Kafka deployment 
 
-This is part of the [Charmed Kafka Tutorial](/t/charmed-kafka-tutorial/). Please refer to this page for more information and the overview of the content. 
+This is part of the [Charmed Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571). Please refer to this page for more information and the overview of the content. 
 
 ## Relations
 Relations, or what Juju documentation [describes as Integration](https://juju.is/docs/sdk/integration), are the easiest way to create a user for Kafka in Charmed Kafka. Relations automatically create a username, password, and database for the desired user/application. As mentioned earlier in the [Access Kafka section](#access-kafka) it is a better practice to connect to Kafka via a specific user rather than the admin user.

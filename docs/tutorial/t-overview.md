@@ -21,8 +21,8 @@ While this tutorial intends to guide and teach you as you deploy Charmed Kafka, 
 ## Step-by-step guide
 
 Here’s an overview of the steps required with links to our separate tutorials that deal with each individual step:
-* [Set up the environment](/t/)
-* [Deploy Kafka](/t/)
-* [Manage passwords](/t/)
-* [Relate your Kafka to other applications](/t/)
-* [Cleanup your environment](/t/)
+* [Set up the environment](/t/charmed-kafka-tutorial-setup-environment/10575)
+* [Deploy Kafka](/t/charmed-kafka-tutorial-deploy-kafka/10567)
+* [Manage passwords](/t/charmed-kafka-tutorial-manage-passwords/10569)
+* [Relate your Kafka to other applications](/t/charmed-kafka-tutorial-relate-kafka/10573)
+* [Cleanup your environment](/t/charmed-kafka-tutorial-cleanup-environment/10565)
