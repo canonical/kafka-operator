@@ -6,7 +6,7 @@ This is part of the [Charmed Kafka Tutorial](/t/charmed-kafka-tutorial/). Please
 Relations, or what Juju documentation [describes as Integration](https://juju.is/docs/sdk/integration), are the easiest way to create a user for Kafka in Charmed Kafka. Relations automatically create a username, password, and database for the desired user/application. As mentioned earlier in the [Access Kafka section](#access-kafka) it is a better practice to connect to Kafka via a specific user rather than the admin user.
 
 ### Data Integrator Charm
-Before relating to a charmed application, we must first deploy our charmed application. In this tutorial we will relate to the [Data Integrator Charm](https://charmhub.io/data-integrator). This is a bare-bones charm that allows for central management of database users, providing support for different kinds of data platforms (e.g. MongoDB, MySQL, PostgreSQL, Kafka, OpenSearch, etc) with a consistent, opinionated and robust user experience. In order to deploy the Data Integrator Charm we can use the command `juju deploy` we have learned above:
+To start using the Kafka cluster, we will now relate our application to the [Data Integrator Charm](https://charmhub.io/data-integrator). This is a bare-bones charm that allows for central management of database users, providing support for different kinds of data platforms (e.g. MongoDB, MySQL, PostgreSQL, Kafka, OpenSearch, etc) with a consistent, opinionated and robust user experience. In order to deploy the Data Integrator Charm we can use the command `juju deploy` we have learned above:
 
 ```shell
 juju deploy data-integrator --channel stable --config topic-name=test-topic --config extra-user-roles=producer,consumer
@@ -17,7 +17,7 @@ Located charm "data-integrator" in charm-hub, revision 11
 Deploying "data-integrator" from charm-hub charm "data-integrator", revision 11 in channel stable on jammy
 ```
 
-### Relate to MongoDB
+### Relate to Kafka
 Now that the Database Integrator Charm has been set up, we can relate it to Kafka. This will automatically create a username, password, and database for the Database Integrator Charm. Relate the two applications with:
 ```shell
 juju relate data-integrator kafka
@@ -29,8 +29,8 @@ tutorial  overlord    localhost/localhost  2.9.38   unsupported  10:04:50Z
 
 App              Version  Status  Scale  Charm            Channel      Rev  Exposed  Message
 data-integrator           active      1  data-integrator  stable        11  no       
-kafka                     active      3  kafka            3/edge       112  no       
-zookeeper                 active      5  zookeeper        latest/edge   98  no       
+kafka                     active      3  kafka            3/stable     117  no       
+zookeeper                 active      5  zookeeper        3/stable      99  no       
 
 Unit                Workload  Agent  Machine  Public address  Ports  Message
 data-integrator/0*  active    idle   8        10.244.26.4            
@@ -96,8 +96,8 @@ tutorial  overlord    localhost/localhost  2.9.38   unsupported  10:20:59Z
 
 App              Version  Status   Scale  Charm            Channel      Rev  Exposed  Message
 data-integrator           blocked      1  data-integrator  stable        11  no       Please relate the data-integrator with the desired product
-kafka                     active       3  kafka            3/edge        112  no       
-zookeeper                 active       5  zookeeper        latest/edge   98  no       
+kafka                     active       3  kafka            3/stable     117  no       
+zookeeper                 active       5  zookeeper        3/stable      99  no       
 
 Unit                Workload  Agent  Machine  Public address  Ports  Message
 data-integrator/0*  blocked   idle   8        10.244.26.4            Please relate the data-integrator with the desired product

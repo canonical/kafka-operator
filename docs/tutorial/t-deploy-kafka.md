@@ -7,8 +7,8 @@ This is part of the [Charmed Kafka Tutorial](/t/). Please refer to this page for
 To deploy Charmed Kafka, all you need to do is run the following command, which will fetch the needed charms([Kafka](https://charmhub.io/kafka?channel=3/edge) and [Zookeeper](https://charmhub.io/zookeeper?channel=edge)) from [Charmhub](https://charmhub.io/) and deploy it to your model:
 
 ```shell
-$ juju deploy zookeeper --channel latest/edge -n 5
-$ juju deploy kafka --channel 3/edge -n 3
+$ juju deploy zookeeper -n 5
+$ juju deploy kafka -n 3
 ```
 
 After this, it is necessary to connect them:
@@ -31,8 +31,8 @@ Model     Controller  Cloud/Region         Version  SLA          Timestamp
 tutorial  overlord    localhost/localhost  2.9.38   unsupported  08:20:12Z
 
 App        Version  Status  Scale  Charm      Channel      Rev  Exposed  Message
-kafka               active      3  kafka      3/edge       112  no       
-zookeeper           active      5  zookeeper  latest/edge   98  no       
+kafka               active      3  kafka      3/stable     117  no       
+zookeeper           active      5  zookeeper  3/stable      99  no       
 
 Unit          Workload  Agent  Machine  Public address  Ports  Message
 kafka/0       active    idle   5        10.244.26.43           machine system settings are not optimal - see logs for info

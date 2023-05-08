@@ -2,18 +2,6 @@
 
 This is part of the [Charmed Kafka Tutorial](/t/). Please refer to this page for more information and the overview of the content. 
 
-## Requirements
-
-For production environments, it is recommended to deploy at least 5 nodes for Zookeeper and 3 for Kafka. While the following requirements are meant to be for production, the charm can be deployed in much smaller environments.
-
-- 64GB of RAM
-- 24 cores
-- 12 storage devices
-- 10 GbE card
-
-The charm is meant to be deployed using `juju>=2.9.37`.
-
-
 ## Prepare LXD
 The fastest, simplest way to get started with Charmed Kafka is to set up a local LXD cloud. LXD is a system container and virtual machine manager; Charmed Kafka will be run in one of these containers and managed by Juju. While this tutorial covers the basics of LXD, you can [explore more LXD here](https://linuxcontainers.org/lxd/getting-started-cli/). LXD comes pre-installed on Ubuntu 20.04. Verify that LXD is installed by entering the command `which lxd` into the command line, this will output:
 ```

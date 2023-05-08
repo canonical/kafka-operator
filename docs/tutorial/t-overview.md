@@ -23,8 +23,6 @@ While this tutorial intends to guide and teach you as you deploy Charmed Kafka, 
 Here’s an overview of the steps required with links to our separate tutorials that deal with each individual step:
 * [Set up the environment](/t/)
 * [Deploy Kafka](/t/)
-* [Managing your units](/t/)
 * [Manage passwords](/t/)
 * [Relate your Kafka to other applications](/t/)
-* [Enable security](/t/)
 * [Cleanup your environment](/t/)

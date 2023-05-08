@@ -1,6 +1,5 @@
 # Performance Tuning
-
-This is part of the [Charmed Kafka Tutorial](https://discourse.charmhub.io/t/charmed-kafka-tutorial/). Please refer to this page for more information and the overview of the content.
+This section contains some suggested values to get the better performance from Charmed Kafka.
 
 ## Virtual Memory Handling - Recommended
 Kafka brokers make heavy use of the OS page cache to maintain performance. They never normally explicitly issue a command to ensure messages have been persisted to disk (`sync`), relying instead on the underlying OS to ensure that larger chunks (pages) of data are persisted from the page cache to the disk when the OS deems it efficient and/or necessary to do so. As such, there are a range of runtime kernel parameter tuning that are recommended to set on machines running Kafka to improve performance.

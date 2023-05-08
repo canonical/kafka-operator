@@ -8,7 +8,7 @@ When we accessed Kafka earlier in this tutorial, we needed to include a password
 Passwords help to secure our cluster and are essential for security. Over time it is a good practice to change the password frequently. Here we will go through setting and changing the password for the admin user.
 
 ### Retrieve the admin password
-As previously mentioned, the admin password can be retrieved by running the `get-password` action on the Charmed Kafka application:
+As previously mentioned, the admin password can be retrieved by running the `get-admin-credentials` action on the Charmed Kafka application:
 ```shell
 juju run-action kafka/leader get-admin-credentials --wait
 ```

@@ -50,17 +50,18 @@ The Charmed Kafka Operator is free software, distributed under the Apache Softwa
 | 2     | h-manage-app           | [Manage applications](/t/charmed-kafka-how-to-manage-app/10285)                                                 |
 | 2     | h-enable-monitoring    | [Enable Monitoring](/t/charmed-kafka-how-to-enable-monitoring/10283)                                            |
 | 1     | reference              | [Reference]()                                                                                                   |
-| 2     | r-actions              | [Actions](https://charmhub.io/kafka/actions?channel=3/edge)                                                     |
-| 2     | r-configurations       | [Configurations](https://charmhub.io/kafka/configure?channel=3/edge)                                            |
-| 2     | r-libraries            | [Libraries](https://charmhub.io/kafka/libraries/kafka_libs?channel=3/edge)                                      |
+| 2     | r-actions              | [Actions](https://charmhub.io/kafka/actions?channel=3/stable)                                                   |
+| 2     | r-configurations       | [Configurations](https://charmhub.io/kafka/configure?channel=3/stable)                                          |
+| 2     | r-libraries            | [Libraries](https://charmhub.io/kafka/libraries/kafka_libs?channel=3/stable)                                    |
+| 2     | r-requirements         | [Requirements](/t/)                                                                                             |
+| 2     | r-performance-tuning   | [Performance Tuning](/t/)                                                                                       |
 | 1     | tutorial               | [Tutorial]()                                                                                                    |
 | 2     | t-overview             | [1. Introduction](/t/)                                                                                          |
 | 2     | t-setup-environment    | [2. Set up the environment](/t/)                                                                                |
 | 2     | t-deploy-kafka         | [3. Deploy Kafka](/t/)                                                                                          |
 | 2     | t-manage-passwords     | [4. Manage passwords](/t/)                                                                                      |
 | 2     | t-relate-kafka         | [5. Relate Kafka to other applications](/t/)                                                                    |
-| 2     | t-performance-tuning   | [6. Performance Tuning](/t/)                                                                                    |
-| 2     | t-cleanup-environment  | [7. Cleanup your environment](/t/)                                                                              |
+| 2     | t-cleanup-environment  | [6. Cleanup your environment](/t/)                                                                              |
 
 # Redirects
 
