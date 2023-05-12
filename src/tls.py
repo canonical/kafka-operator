@@ -144,10 +144,7 @@ class KafkaTLS(Object):
 
     def _trusted_relation_joined(self, event: RelationJoinedEvent) -> None:
         """Generate a CSR so the tls-certificates operator works as expected."""
-        if not event.app:
-            return
-
-        if not self.private_key or self.keystore_password or self.truststore_password:
+        if not self.enabled:
             logger.debug("Missing TLS relation, deferring")
             event.defer()
             return
@@ -169,12 +166,9 @@ class KafkaTLS(Object):
 
     def _trusted_relation_changed(self, event: RelationChangedEvent) -> None:
         """Overrides the requirer logic of TLSInterface."""
-        if not self.private_key or self.keystore_password or self.truststore_password:
+        if not self.enabled:
             logger.debug("Missing TLS relation, deferring")
             event.defer()
-            return
-
-        if not event.relation or not event.relation.app:
             return
 
         relation_data = _load_relation_data(dict(event.relation.data[event.relation.app]))
@@ -199,9 +193,6 @@ class KafkaTLS(Object):
 
     def _trusted_relation_broken(self, event: RelationBrokenEvent) -> None:
         """Handle relation broken for a trusted certificate/ca relation."""
-        if not event.relation or not event.relation.app:
-            return
-
         # All units will need to remove the cert from their truststore
         alias = self.generate_alias(
             app_name=event.relation.app.name, relation_id=event.relation.id
