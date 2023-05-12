@@ -150,11 +150,16 @@ class KafkaTLS(Object):
             event.defer()
             return
 
-        alias = self.generate_alias(app_name=event.app.name, relation_id=event.relation.id)  # type: ignore[reportOptionalMemberAccess]
+        alias = self.generate_alias(
+            app_name=event.app.name,  # pyright: ignore[reportOptionalMemberAccess]
+            relation_id=event.relation.id,
+        )
         csr = (
             generate_csr(
                 add_unique_id_to_subject_name=bool(alias),
-                private_key=self.private_key.encode("utf-8"),  # type: ignore[reportOptionalMemberAccess]
+                private_key=self.private_key.encode(  # pyright: ignore[reportOptionalMemberAccess]
+                    "utf-8"
+                ),
                 subject=self.charm.unit_peer_data.get("private-address", ""),
                 **self._sans,
             )
@@ -181,7 +186,10 @@ class KafkaTLS(Object):
             event.defer()
             return
 
-        alias = self.generate_alias(event.relation.app.name, event.relation.id)  # type: ignore[reportOptionalMemberAccess]
+        alias = self.generate_alias(
+            event.relation.app.name,  # pyright: ignore[reportOptionalMemberAccess]
+            event.relation.id,
+        )
         # NOTE: Relation should only be used with one set of certificates,
         # hence using just the first item on the list.
         content = (
@@ -197,7 +205,8 @@ class KafkaTLS(Object):
         """Handle relation broken for a trusted certificate/ca relation."""
         # All units will need to remove the cert from their truststore
         alias = self.generate_alias(
-            app_name=event.relation.app.name, relation_id=event.relation.id  # type: ignore[reportOptionalMemberAccess]
+            app_name=event.relation.app.name,  # pyright: ignore[reportOptionalMemberAccess]
+            relation_id=event.relation.id,
         )
         self.remove_cert(alias=alias)
 
