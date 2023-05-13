@@ -8,6 +8,7 @@ This charm is meant to be used only for testing
 of the libraries in this repository.
 """
 
+import base64
 import logging
 import shutil
 import subprocess
@@ -23,7 +24,6 @@ from ops.model import ActiveStatus
 from utils import safe_write_to_file
 
 logger = logging.getLogger(__name__)
-
 
 CHARM_KEY = "app"
 PEER = "cluster"
@@ -70,6 +70,9 @@ class ApplicationCharm(CharmBase):
         )
         self.framework.observe(
             getattr(self.on, "run_mtls_producer_action"), self.run_mtls_producer
+        )
+        self.framework.observe(
+            getattr(self.on, "get_offsets_action"), self.get_offsets
         )
 
     def _on_start(self, _) -> None:
@@ -164,6 +167,7 @@ class ApplicationCharm(CharmBase):
     def _create_truststore(self, broker_ca: str):
         logger.info("writing broker cert to unit")
         unit_name = self.unit.name.replace("/", "-")
+
         safe_write_to_file(
             content=broker_ca, path=f"/var/lib/juju/agents/unit-{unit_name}/charm/broker.cert"
         )
@@ -173,7 +177,7 @@ class ApplicationCharm(CharmBase):
             try:
                 logger.info(f"adding {file} to truststore")
                 subprocess.check_output(
-                    f"keytool -keystore client.truststore.jks -alias {file.replace('.','-')} -importcert -file {file} -storepass password -noprompt",
+                    f"keytool -keystore client.truststore.jks -alias {file.replace('.', '-')} -importcert -file {file} -storepass password -noprompt",
                     stderr=subprocess.PIPE,
                     shell=True,
                     universal_newlines=True,
@@ -185,13 +189,6 @@ class ApplicationCharm(CharmBase):
                     logger.warning(e.output)
                     continue
                 raise e
-
-    def _attempt_mtls_connection(self, bootstrap_servers: str):
-        logger.info("creating data to feed to producer")
-        unit_name = self.unit.name.replace("/", "-")
-        safe_write_to_file(
-            content="a\n b\n c\n d\n e", path=f"/var/lib/juju/agents/unit-{unit_name}/charm/data"
-        )
 
         logger.info("creating client.properties file")
         properties = [
@@ -207,10 +204,31 @@ class ApplicationCharm(CharmBase):
             path=f"/var/lib/juju/agents/unit-{unit_name}/charm/client.properties",
         )
 
+    def _attempt_mtls_connection(self, bootstrap_servers: str, num_messages: int):
+        logger.info("creating data to feed to producer")
+        unit_name = self.unit.name.replace("/", "-")
+        content = "\n".join(f"message: {ith}" for ith in range(num_messages))
+
+        safe_write_to_file(
+            content=content, path=f"/var/lib/juju/agents/unit-{unit_name}/charm/data"
+        )
+
+        logger.info("Creating topic")
+        try:
+            subprocess.check_output(
+                f"/snap/charmed-kafka/current/bin/kafka-topics.sh --bootstrap-server {bootstrap_servers} --topic=TEST-TOPIC --create --command-config client.properties",
+                stderr=subprocess.PIPE,
+                shell=True,
+                universal_newlines=True,
+            )
+        except subprocess.CalledProcessError as e:
+            logger.error(e.output)
+            raise e
+
         logger.info("running producer application")
         try:
             subprocess.check_output(
-                f"/snap/charmed-kafka/current/bin/kafka-console-producer.sh --broker-list {bootstrap_servers} --topic=TEST-TOPIC --producer.config client.properties < data",
+                f"/snap/charmed-kafka/current/bin/kafka-console-producer.sh --bootstrap-server {bootstrap_servers} --topic=TEST-TOPIC --producer.config client.properties < data",
                 stderr=subprocess.PIPE,
                 shell=True,
                 universal_newlines=True,
@@ -244,16 +262,39 @@ class ApplicationCharm(CharmBase):
     def run_mtls_producer(self, event: ActionEvent):
         broker_ca = event.params["broker-ca"]
         bootstrap_server = event.params["bootstrap-server"]
+        num_messages = int(event.params["num-messages"])
+
+        decode_cert = base64.b64decode(broker_ca).decode("utf-8").strip()
 
         try:
-            self._create_truststore(broker_ca=broker_ca)
-            self._attempt_mtls_connection(bootstrap_servers=bootstrap_server)
+            self._create_truststore(broker_ca=decode_cert)
+            self._attempt_mtls_connection(
+                bootstrap_servers=bootstrap_server, num_messages=num_messages
+            )
         except Exception as e:
             logger.error(e)
             event.fail()
             return
 
         event.set_results({"success": "TRUE"})
+
+    def get_offsets(self, event: ActionEvent):
+        bootstrap_server = event.params["bootstrap-server"]
+
+        logger.info("fetching offsets")
+        try:
+            output = subprocess.check_output(
+                f"/snap/charmed-kafka/current/bin/kafka-get-offsets.sh --bootstrap-server {bootstrap_server} --topic=TEST-TOPIC --command-config client.properties",
+                stderr=subprocess.PIPE,
+                shell=True,
+                universal_newlines=True,
+            )
+            event.set_results({"output": output})
+        except subprocess.CalledProcessError as e:
+            logger.error(e.output)
+            event.fail()
+
+        return
 
 
 if __name__ == "__main__":
