@@ -216,7 +216,7 @@ async def test_mtls(ops_test: OpsTest):
 
     assert topic_name == "TEST-TOPIC"
     assert min_offset == "0"
-    assert max_offset == "10"
+    assert max_offset == str(num_messages)
 
 
 @pytest.mark.abort_on_fail
