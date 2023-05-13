@@ -71,9 +71,7 @@ class ApplicationCharm(CharmBase):
         self.framework.observe(
             getattr(self.on, "run_mtls_producer_action"), self.run_mtls_producer
         )
-        self.framework.observe(
-            getattr(self.on, "get_offsets_action"), self.get_offsets
-        )
+        self.framework.observe(getattr(self.on, "get_offsets_action"), self.get_offsets)
 
     def _on_start(self, _) -> None:
         self.unit.status = ActiveStatus()

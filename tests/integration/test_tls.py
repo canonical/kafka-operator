@@ -48,8 +48,12 @@ async def test_deploy_tls(ops_test: OpsTest, kafka_charm):
         ops_test.model.deploy(TLS_NAME, channel="beta", config=tls_config, series="jammy"),
         ops_test.model.deploy(ZK, channel="edge", series="jammy", application_name=ZK),
         ops_test.model.deploy(
-            kafka_charm, application_name=CHARM_KEY, series="jammy",
-            config={"ssl_principal_mapping_rules": "RULE:^.*[Cc][Nn]=([a-zA-Z0-9.]*).*$/$1/L,DEFAULT"},
+            kafka_charm,
+            application_name=CHARM_KEY,
+            series="jammy",
+            config={
+                "ssl_principal_mapping_rules": "RULE:^.*[Cc][Nn]=([a-zA-Z0-9.]*).*$/$1/L,DEFAULT"
+            },
         ),
     )
     await ops_test.model.block_until(lambda: len(ops_test.model.applications[ZK].units) == 1)
@@ -187,11 +191,12 @@ async def test_mtls(ops_test: OpsTest):
 
     # running mtls producer
     action = await ops_test.model.units.get(f"{DUMMY_NAME}/0").run_action(
-        "run-mtls-producer", **{
+        "run-mtls-producer",
+        **{
             "bootstrap-server": ssl_bootstrap_server,
             "broker-ca": base64.b64encode(broker_ca.encode("utf-8")).decode("utf-8"),
             "num-messages": num_messages,
-        }
+        },
     )
 
     response = await action.wait()
@@ -199,9 +204,10 @@ async def test_mtls(ops_test: OpsTest):
     assert response.results.get("success", None) == "TRUE"
 
     offsets_action = await ops_test.model.units.get(f"{DUMMY_NAME}/0").run_action(
-        "get-offsets", **{
+        "get-offsets",
+        **{
             "bootstrap-server": ssl_bootstrap_server,
-        }
+        },
     )
 
     response = await offsets_action.wait()
