@@ -47,7 +47,14 @@ async def test_deploy_tls(ops_test: OpsTest, kafka_charm):
     await asyncio.gather(
         ops_test.model.deploy(TLS_NAME, channel="beta", config=tls_config, series="jammy"),
         ops_test.model.deploy(ZK, channel="edge", series="jammy", application_name=ZK),
-        ops_test.model.deploy(kafka_charm, application_name=CHARM_KEY, series="jammy"),
+        ops_test.model.deploy(
+            kafka_charm,
+            application_name=CHARM_KEY,
+            series="jammy",
+            config={
+                "ssl_principal_mapping_rules": "RULE:^.*[Cc][Nn]=([a-zA-Z0-9.]*).*$/$1/L,DEFAULT"
+            },
+        ),
     )
     await ops_test.model.block_until(lambda: len(ops_test.model.applications[ZK].units) == 1)
     await ops_test.model.wait_for_idle(
@@ -180,14 +187,36 @@ async def test_mtls(ops_test: OpsTest):
     # setting ACLs using normal sasl port
     await set_mtls_client_acls(ops_test, bootstrap_server=sasl_bootstrap_server)
 
+    num_messages = 10
+
     # running mtls producer
     action = await ops_test.model.units.get(f"{DUMMY_NAME}/0").run_action(
-        "run-mtls-producer", **{"bootstrap-server": ssl_bootstrap_server, "broker-ca": broker_ca}
+        "run-mtls-producer",
+        **{
+            "bootstrap-server": ssl_bootstrap_server,
+            "broker-ca": base64.b64encode(broker_ca.encode("utf-8")).decode("utf-8"),
+            "num-messages": num_messages,
+        },
     )
 
     response = await action.wait()
 
     assert response.results.get("success", None) == "TRUE"
+
+    offsets_action = await ops_test.model.units.get(f"{DUMMY_NAME}/0").run_action(
+        "get-offsets",
+        **{
+            "bootstrap-server": ssl_bootstrap_server,
+        },
+    )
+
+    response = await offsets_action.wait()
+
+    topic_name, min_offset, max_offset = response.results["output"].strip().split(":")
+
+    assert topic_name == "TEST-TOPIC"
+    assert min_offset == "0"
+    assert max_offset == str(num_messages)
 
 
 @pytest.mark.abort_on_fail
