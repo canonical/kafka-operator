@@ -215,8 +215,8 @@ async def test_mtls(ops_test: OpsTest):
     topic_name, min_offset, max_offset = response.results["output"].strip().split(":")
 
     assert topic_name == "TEST-TOPIC"
-    assert min_offset == 0
-    assert max_offset == 10
+    assert min_offset == "0"
+    assert max_offset == "10"
 
 
 @pytest.mark.abort_on_fail
