@@ -183,10 +183,20 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         return True
 
-    def _on_update_status(self, _: EventBase) -> None:
+    def _on_update_status(self, event: EventBase) -> None:
         """Handler for `update-status` events."""
         if not self.healthy:
             return
+
+        # NOTE: integration with kafka-broker-rack-awareness charm.
+        # Load current properties set in the charm workload and check
+        # if rack.properties file exists
+        properties = safe_get_file(self.kafka_config.server_properties_filepath)
+        if properties:
+            if self.kafka_config.rack_properties != [] and (
+                set(self.kafka_config.server_properties) ^ set(properties)
+            ):
+                self._on_config_changed(event)
 
         if not broker_active(
             unit=self.unit,

@@ -21,7 +21,7 @@ from literals import (
     AuthMechanism,
     Scope,
 )
-from utils import map_env, safe_write_to_file, update_env
+from utils import map_env, safe_get_file, safe_write_to_file, update_env
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -413,6 +413,17 @@ class KafkaConfig:
         )
 
     @property
+    def rack_properties(self) -> List[str]:
+        """Builds all properties related to rack awareness configuration.
+
+        Returns:
+            List of properties to be set
+        """
+        # TODO: not sure if we should make this an instance attribute like the other paths
+        rack_path = f"{self.charm.snap.CONF_PATH}/rack.properties"
+        return safe_get_file(rack_path) or []
+
+    @property
     def client_properties(self) -> List[str]:
         """Builds all properties necessary for running an admin Kafka client.
 
@@ -465,6 +476,7 @@ class KafkaConfig:
             + self.scram_properties
             + self.default_replication_properties
             + self.auth_properties
+            + self.rack_properties
             + DEFAULT_CONFIG_OPTIONS.split("\n")
         )
 
