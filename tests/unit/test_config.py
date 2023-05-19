@@ -241,9 +241,9 @@ def test_jmx_opts(harness):
     """Checks necessary args for KAFKA_JMX_OPTS."""
     args = harness.charm.kafka_config.jmx_opts
     assert "-javaagent:" in args
-    assert len(args.split(":")) == 3
     assert args.split(":")[1].split("=")[-1] == str(JMX_EXPORTER_PORT)
     assert "KAFKA_JMX_OPTS" in args
+    assert "-Djavax.net.debug=ssl" in args
 
 
 def test_set_environment(harness):
