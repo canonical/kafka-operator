@@ -67,7 +67,7 @@ options:
     type: string
     default: ""
   ssl_principal_mapping_rules:
-    description: A list of rules for mapping from distinguished name from the client certificate to short name. Each rule starts with "RULE:" and contains an expression as the following. "RULE:pattern/replacement/[LU]". A valid set of rules could look something like this "RULE:^.*[Cc][Nn]=([a-zA-Z0-9.]*).*$/$1/L,DEFAULT"
+    description: A list of rules for mapping from distinguished name from the client certificate to short name. Each rule starts with "RULE:" and contains an expression as the following. "RULE:pattern/replacement/[LU]". A valid set of rules could look something like this 'RULE:^.*[Cc][Nn]=([a-zA-Z0-9.-_@]*).*$/$1/L,DEFAULT'
     type: string
     default: "DEFAULT"
   replication_quota_window_num:
