@@ -214,14 +214,17 @@ class KafkaConfig:
         opts = [
             "-Dcom.sun.management.jmxremote",
             f"-javaagent:{self.jmx_prometheus_javaagent_filepath}={JMX_EXPORTER_PORT}:{self.jmx_prometheus_config_filepath}",
-            "-Djavax.net.debug=ssl:handshake:verbose:session:keymanager:trustmanager",
         ]
 
         return f"KAFKA_JMX_OPTS={' '.join(opts)}"
 
     @property
     def jvm_performance_opts(self) -> str:
-        """The JVM config options for tuning performance settings."""
+        """The JVM config options for tuning performance settings.
+
+        Returns:
+            String of JVM performance options
+        """
         opts = [
             "-XX:MetaspaceSize=96m",
             "-XX:+UseG1GC",
@@ -236,7 +239,11 @@ class KafkaConfig:
 
     @property
     def heap_opts(self) -> str:
-        """The JVM config options for setting heap limits."""
+        """The JVM config options for setting heap limits.
+
+        Returns:
+            String of JVM heap memory options
+        """
         target_memory = (
             JVM_MEM_MIN_GB if self.charm.config["profile"] == "testing" else JVM_MEM_MAX_GB
         )
@@ -254,7 +261,10 @@ class KafkaConfig:
         Returns:
             String of Java config options
         """
-        opts = [f"-Djava.security.auth.login.config={self.zk_jaas_filepath}"]
+        opts = [
+            f"-Djava.security.auth.login.config={self.zk_jaas_filepath}",
+            "-Djavax.net.debug=ssl:handshake:verbose:session:keymanager:trustmanager",
+        ]
 
         return f"KAFKA_OPTS={' '.join(opts)}"
 

@@ -230,6 +230,7 @@ def test_kafka_opts(harness):
     args = harness.charm.kafka_config.kafka_opts
     assert "-Djava.security.auth.login.config" in args
     assert "KAFKA_OPTS" in args
+    assert "-Djavax.net.debug=ssl" in args
 
 
 @pytest.mark.parametrize(
@@ -258,7 +259,6 @@ def test_jmx_opts(harness):
     assert "-javaagent:" in args
     assert args.split(":")[1].split("=")[-1] == str(JMX_EXPORTER_PORT)
     assert "KAFKA_JMX_OPTS" in args
-    assert "-Djavax.net.debug=ssl" in args
 
 
 def test_set_environment(harness):
