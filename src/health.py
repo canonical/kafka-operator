@@ -172,7 +172,9 @@ class KafkaHealth(Object):
             JVM_MEM_MIN_GB if self.charm.config["profile"] == "testing" else JVM_MEM_MAX_GB
         )
 
-        if target_memory_gb >= total_memory_gb:  # reserving 2GB for non-JVM
+        # TODO: with memory barely above JVM heap, there will be no room for OS page cache, degrading perf
+        # need to figure out a better way of ensuring sufficiently beefy machines
+        if target_memory_gb >= total_memory_gb:
             logger.error(
                 f"Insufficient total memory '{round(total_memory_gb, 2)}' for desired performance profile '{self.charm.config['profile']}' - redeploy with greater than {target_memory_gb}GB available memory"
             )
