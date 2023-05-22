@@ -15,6 +15,8 @@ from literals import (
     INTER_BROKER_USER,
     INTERNAL_USERS,
     JMX_EXPORTER_PORT,
+    JVM_MEM_MAX_GB,
+    JVM_MEM_MIN_GB,
     REL_NAME,
     SECURITY_PROTOCOL_PORTS,
     ZK,
@@ -216,6 +218,34 @@ class KafkaConfig:
         ]
 
         return f"KAFKA_JMX_OPTS={' '.join(opts)}"
+
+    @property
+    def jvm_performance_opts(self) -> str:
+        """The JVM config options for tuning performance settings."""
+        opts = [
+            "-XX:MetaspaceSize=96m",
+            "-XX:+UseG1GC",
+            "-XX:MaxGCPauseMillis=20",
+            "-XX:InitiatingHeapOccupancyPercent=35",
+            "-XX:G1HeapRegionSize=16M",
+            "-XX:MinMetaspaceFreeRatio=50",
+            "-XX:MaxMetaspaceFreeRatio=80",
+        ]
+
+        return f"KAFKA_JVM_PERFORMANCE_OPTS={' '.join(opts)}"
+
+    @property
+    def heap_opts(self) -> str:
+        """The JVM config options for setting heap limits."""
+        target_memory = (
+            JVM_MEM_MIN_GB if self.charm.config["profile"] == "testing" else JVM_MEM_MAX_GB
+        )
+        opts = [
+            f"-Xms{target_memory}G",
+            f"-Xmx{target_memory}G",
+        ]
+
+        return f"KAFKA_HEAP_OPTS={' '.join(opts)}"
 
     @property
     def kafka_opts(self) -> str:
@@ -516,5 +546,7 @@ class KafkaConfig:
             self.kafka_opts,
             self.jmx_opts,
             self.log4j_opts,
+            self.jvm_performance_opts,
+            self.heap_opts,
         ]
         update_env(env=map_env(env=updated_env_list))

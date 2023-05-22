@@ -11,6 +11,9 @@ from statistics import mean
 from typing import TYPE_CHECKING, Tuple
 
 from ops.framework import Object
+from src.utils import safe_get_file
+
+from literals import JVM_MEM_MAX_GB, JVM_MEM_MIN_GB
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -159,6 +162,24 @@ class KafkaHealth(Object):
 
         return True
 
+    def _check_total_memory(self) -> bool:
+        """Checks that the total available memory is sufficient for desired profile."""
+        if not (meminfo := safe_get_file(filepath="/proc/meminfo")):
+            return False
+
+        total_memory_gb = int(meminfo[0].split()[1]) / 1000000
+        target_memory_gb = (
+            JVM_MEM_MIN_GB if self.charm.config["profile"] == "testing" else JVM_MEM_MAX_GB
+        )
+
+        if target_memory_gb >= total_memory_gb:  # reserving 2GB for non-JVM
+            logger.error(
+                f"Insufficient total memory '{round(total_memory_gb, 2)}' for desired performance profile '{self.charm.config['profile']}' - redeploy with greater than {target_memory_gb}GB available memory"
+            )
+            return False
+
+        return True
+
     def machine_configured(self) -> bool:
         """Checks machine configuration for healthy settings.
 
@@ -167,6 +188,7 @@ class KafkaHealth(Object):
         """
         if not all(
             [
+                self._check_total_memory(),
                 self._check_memory_maps(),
                 self._check_file_descriptors(),
                 self._check_vm_swappiness(),
