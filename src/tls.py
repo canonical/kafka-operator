@@ -202,7 +202,7 @@ class KafkaTLS(Object):
         self.import_cert(alias=f"{alias}", filename=filename)
 
         # ensuring new config gets applied
-        self.charm._on_config_changed(event)
+        self.charm.on[f"{self.charm.restart.name}"].acquire_lock.emit()
 
     def _trusted_relation_broken(self, event: RelationBrokenEvent) -> None:
         """Handle relation broken for a trusted certificate/ca relation."""
