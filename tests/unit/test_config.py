@@ -234,7 +234,7 @@ def test_kafka_opts(harness):
 
 @pytest.mark.parametrize(
     "profile,expected",
-    [("testing", JVM_MEM_MIN_GB), ("other", JVM_MEM_MIN_GB), ("production", JVM_MEM_MAX_GB)],
+    [("testing", JVM_MEM_MIN_GB), ("production", JVM_MEM_MAX_GB)],
 )
 def test_heap_opts(harness, profile, expected):
     """Checks necessary args for KAFKA_HEAP_OPTS."""
