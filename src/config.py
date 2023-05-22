@@ -212,6 +212,7 @@ class KafkaConfig:
         opts = [
             "-Dcom.sun.management.jmxremote",
             f"-javaagent:{self.jmx_prometheus_javaagent_filepath}={JMX_EXPORTER_PORT}:{self.jmx_prometheus_config_filepath}",
+            "-Djavax.net.debug=ssl:handshake:verbose:session:keymanager:trustmanager",
         ]
 
         return f"KAFKA_JMX_OPTS={' '.join(opts)}"

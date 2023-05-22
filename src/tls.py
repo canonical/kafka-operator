@@ -201,8 +201,17 @@ class KafkaTLS(Object):
         safe_write_to_file(content=content, path=f"{self.charm.snap.CONF_PATH}/{filename}")
         self.import_cert(alias=f"{alias}", filename=filename)
 
+        # ensuring new config gets applied
+        self.charm.on[f"{self.charm.restart.name}"].acquire_lock.emit()
+
     def _trusted_relation_broken(self, event: RelationBrokenEvent) -> None:
         """Handle relation broken for a trusted certificate/ca relation."""
+        # Once the certificates have been added, TLS setup has finished
+        if not self.certificate:
+            logger.debug("Missing TLS relation, deferring")
+            event.defer()
+            return
+
         # All units will need to remove the cert from their truststore
         alias = self.generate_alias(
             app_name=event.relation.app.name,  # pyright: ignore[reportOptionalMemberAccess]
@@ -463,7 +472,7 @@ class KafkaTLS(Object):
         except subprocess.CalledProcessError as e:
             # in case this reruns and fails
             if "already exists" in e.output:
-                logger.warning(e.output)
+                logger.debug(e.output)
                 return
             logger.error(e.output)
             raise e
