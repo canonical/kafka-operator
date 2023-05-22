@@ -61,6 +61,7 @@ class CharmConfig(BaseConfigModel):
     ssl_principal_mapping_rules: str
     replication_quota_window_num: int
     zookeeper_ssl_cipher_suites: Optional[str]
+    profile: str
 
     @validator("*", pre=True)
     @classmethod
@@ -203,3 +204,12 @@ class CharmConfig(BaseConfigModel):
         if int_value >= -9223372036854775807 and int_value <= 9223372036854775808:
             return int_value
         raise ValueError("Value is not a long")
+
+    @validator("profile")
+    @classmethod
+    def profile_values(cls, value: str) -> Optional[str]:
+        """Check profile config option is one of `testing`, `staging` or `production`."""
+        if value not in ["testing", "staging", "production"]:
+            raise ValueError("Value not one of 'testing', 'staging' or 'production'")
+
+        return value
