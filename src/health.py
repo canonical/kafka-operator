@@ -11,9 +11,9 @@ from statistics import mean
 from typing import TYPE_CHECKING, Tuple
 
 from ops.framework import Object
-from src.utils import safe_get_file
 
 from literals import JVM_MEM_MAX_GB, JVM_MEM_MIN_GB
+from utils import safe_get_file
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
