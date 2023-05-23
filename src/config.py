@@ -245,7 +245,7 @@ class KafkaConfig:
             String of JVM heap memory options
         """
         target_memory = (
-            JVM_MEM_MIN_GB if self.charm.config["profile"] == "testing" else JVM_MEM_MAX_GB
+            JVM_MEM_MIN_GB if self.charm.config.profile == "testing" else JVM_MEM_MAX_GB
         )
         opts = [
             f"-Xms{target_memory}G",

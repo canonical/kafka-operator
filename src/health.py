@@ -136,7 +136,7 @@ class KafkaHealth(Object):
             return True
 
         total_partitions, average_partition_size = self._get_partitions_size()
-        segment_size = int(self.charm.config["log_segment_bytes"])
+        segment_size = self.charm.config.log_segment_bytes
 
         minimum_fd_limit = total_partitions * (average_partition_size / segment_size)
         current_max_files = self._get_current_max_files()
@@ -169,14 +169,14 @@ class KafkaHealth(Object):
 
         total_memory_gb = int(meminfo[0].split()[1]) / 1000000
         target_memory_gb = (
-            JVM_MEM_MIN_GB if self.charm.config["profile"] == "testing" else JVM_MEM_MAX_GB
+            JVM_MEM_MIN_GB if self.charm.config.profile == "testing" else JVM_MEM_MAX_GB
         )
 
         # TODO: with memory barely above JVM heap, there will be no room for OS page cache, degrading perf
         # need to figure out a better way of ensuring sufficiently beefy machines
         if target_memory_gb >= total_memory_gb:
             logger.error(
-                f"Insufficient total memory '{round(total_memory_gb, 2)}' for desired performance profile '{self.charm.config['profile']}' - redeploy with greater than {target_memory_gb}GB available memory"
+                f"Insufficient total memory '{round(total_memory_gb, 2)}' for desired performance profile '{self.charm.config.profile}' - redeploy with greater than {target_memory_gb}GB available memory"
             )
             return False
 
