@@ -202,7 +202,7 @@ class KafkaConfig:
         """
         opts = [f"-Dlog4j.configuration=file:{self.log4j_properties_filepath}"]
 
-        return f"KAFKA_LOG4J_OPTS={' '.join(opts)}"
+        return f"KAFKA_LOG4J_OPTS='{' '.join(opts)}'"
 
     @property
     def jmx_opts(self) -> str:
@@ -216,7 +216,7 @@ class KafkaConfig:
             f"-javaagent:{self.jmx_prometheus_javaagent_filepath}={JMX_EXPORTER_PORT}:{self.jmx_prometheus_config_filepath}",
         ]
 
-        return f"KAFKA_JMX_OPTS={' '.join(opts)}"
+        return f"KAFKA_JMX_OPTS='{' '.join(opts)}'"
 
     @property
     def jvm_performance_opts(self) -> str:
@@ -235,7 +235,7 @@ class KafkaConfig:
             "-XX:MaxMetaspaceFreeRatio=80",
         ]
 
-        return f"KAFKA_JVM_PERFORMANCE_OPTS={' '.join(opts)}"
+        return f"KAFKA_JVM_PERFORMANCE_OPTS='{' '.join(opts)}'"
 
     @property
     def heap_opts(self) -> str:
@@ -252,7 +252,7 @@ class KafkaConfig:
             f"-Xmx{target_memory}G",
         ]
 
-        return f"KAFKA_HEAP_OPTS={' '.join(opts)}"
+        return f"KAFKA_HEAP_OPTS='{' '.join(opts)}'"
 
     @property
     def kafka_opts(self) -> str:
@@ -266,7 +266,7 @@ class KafkaConfig:
             "-Djavax.net.debug=ssl:handshake:verbose:session:keymanager:trustmanager",
         ]
 
-        return f"KAFKA_OPTS={' '.join(opts)}"
+        return f"KAFKA_OPTS='{' '.join(opts)}'"
 
     @property
     def bootstrap_server(self) -> List[str]:
