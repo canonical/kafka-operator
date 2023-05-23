@@ -15,6 +15,8 @@ from literals import (
     INTER_BROKER_USER,
     INTERNAL_USERS,
     JMX_EXPORTER_PORT,
+    JVM_MEM_MAX_GB,
+    JVM_MEM_MIN_GB,
     REL_NAME,
     SECURITY_PROTOCOL_PORTS,
     ZK,
@@ -200,7 +202,7 @@ class KafkaConfig:
         """
         opts = [f"-Dlog4j.configuration=file:{self.log4j_properties_filepath}"]
 
-        return f"KAFKA_LOG4J_OPTS={' '.join(opts)}"
+        return f"KAFKA_LOG4J_OPTS='{' '.join(opts)}'"
 
     @property
     def jmx_opts(self) -> str:
@@ -212,10 +214,45 @@ class KafkaConfig:
         opts = [
             "-Dcom.sun.management.jmxremote",
             f"-javaagent:{self.jmx_prometheus_javaagent_filepath}={JMX_EXPORTER_PORT}:{self.jmx_prometheus_config_filepath}",
-            "-Djavax.net.debug=ssl:handshake:verbose:session:keymanager:trustmanager",
         ]
 
-        return f"KAFKA_JMX_OPTS={' '.join(opts)}"
+        return f"KAFKA_JMX_OPTS='{' '.join(opts)}'"
+
+    @property
+    def jvm_performance_opts(self) -> str:
+        """The JVM config options for tuning performance settings.
+
+        Returns:
+            String of JVM performance options
+        """
+        opts = [
+            "-XX:MetaspaceSize=96m",
+            "-XX:+UseG1GC",
+            "-XX:MaxGCPauseMillis=20",
+            "-XX:InitiatingHeapOccupancyPercent=35",
+            "-XX:G1HeapRegionSize=16M",
+            "-XX:MinMetaspaceFreeRatio=50",
+            "-XX:MaxMetaspaceFreeRatio=80",
+        ]
+
+        return f"KAFKA_JVM_PERFORMANCE_OPTS='{' '.join(opts)}'"
+
+    @property
+    def heap_opts(self) -> str:
+        """The JVM config options for setting heap limits.
+
+        Returns:
+            String of JVM heap memory options
+        """
+        target_memory = (
+            JVM_MEM_MIN_GB if self.charm.config.profile == "testing" else JVM_MEM_MAX_GB
+        )
+        opts = [
+            f"-Xms{target_memory}G",
+            f"-Xmx{target_memory}G",
+        ]
+
+        return f"KAFKA_HEAP_OPTS='{' '.join(opts)}'"
 
     @property
     def kafka_opts(self) -> str:
@@ -224,9 +261,12 @@ class KafkaConfig:
         Returns:
             String of Java config options
         """
-        opts = [f"-Djava.security.auth.login.config={self.zk_jaas_filepath}"]
+        opts = [
+            f"-Djava.security.auth.login.config={self.zk_jaas_filepath}",
+            "-Djavax.net.debug=ssl:handshake:verbose:session:keymanager:trustmanager",
+        ]
 
-        return f"KAFKA_OPTS={' '.join(opts)}"
+        return f"KAFKA_OPTS='{' '.join(opts)}'"
 
     @property
     def bootstrap_server(self) -> List[str]:
@@ -516,5 +556,7 @@ class KafkaConfig:
             self.kafka_opts,
             self.jmx_opts,
             self.log4j_opts,
+            self.jvm_performance_opts,
+            self.heap_opts,
         ]
         update_env(env=map_env(env=updated_env_list))

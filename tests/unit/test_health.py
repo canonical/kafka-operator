@@ -11,7 +11,7 @@ import yaml
 from ops.testing import Harness
 
 from charm import KafkaCharm
-from literals import CHARM_KEY
+from literals import CHARM_KEY, JVM_MEM_MAX_GB, JVM_MEM_MIN_GB
 
 logger = logging.getLogger(__name__)
 
@@ -51,9 +51,24 @@ def test_check_vm_swappiness(harness):
         patch("health.KafkaHealth._get_vm_swappiness", return_value=5),
         patch("health.KafkaHealth._check_file_descriptors", return_value=True),
         patch("health.KafkaHealth._check_memory_maps", return_value=True),
+        patch("health.KafkaHealth._check_total_memory", return_value=True),
     ):
         assert not harness.charm.health._check_vm_swappiness()
         assert not harness.charm.health.machine_configured()
+
+
+@pytest.mark.parametrize("total_mem_kb", [5741156, 65741156])
+@pytest.mark.parametrize(
+    "profile,limit", [("testing", JVM_MEM_MIN_GB), ("production", JVM_MEM_MAX_GB)]
+)
+def test_check_total_memory_testing_profile(harness, total_mem_kb, profile, limit):
+    harness._update_config({"profile": profile})
+
+    with patch("health.safe_get_file", return_value=[f"MemTotal:      {total_mem_kb} kB"]):
+        if total_mem_kb / 1000000 <= limit:
+            assert not harness.charm.health._check_total_memory()
+        else:
+            assert harness.charm.health._check_total_memory()
 
 
 def test_get_partitions_size(harness):
@@ -69,28 +84,18 @@ def test_check_file_descriptors_no_listeners(harness):
         assert patched_run_bin.call_count == 0
 
 
-def test_machine_configured_fails_near_mmap_limit(harness):
+@pytest.mark.parametrize("mmap", [True, False])
+@pytest.mark.parametrize("fd", [True, False])
+@pytest.mark.parametrize("swap", [True, False])
+@pytest.mark.parametrize("mem", [True, False])
+def test_machine_configured_succeeds_and_fails(harness, mmap, fd, swap, mem):
     with (
-        patch("health.KafkaHealth._check_memory_maps", return_value=False),
-        patch("health.KafkaHealth._check_file_descriptors", return_value=True),
-        patch("health.KafkaHealth._check_vm_swappiness", return_value=True),
+        patch("health.KafkaHealth._check_memory_maps", return_value=mmap),
+        patch("health.KafkaHealth._check_file_descriptors", return_value=fd),
+        patch("health.KafkaHealth._check_vm_swappiness", return_value=swap),
+        patch("health.KafkaHealth._check_total_memory", return_value=mem),
     ):
-        assert not harness.charm.health.machine_configured()
-
-
-def test_machine_configured_fails_near_file_limit(harness):
-    with (
-        patch("health.KafkaHealth._check_memory_maps", return_value=True),
-        patch("health.KafkaHealth._check_file_descriptors", return_value=False),
-        patch("health.KafkaHealth._check_vm_swappiness", return_value=True),
-    ):
-        assert not harness.charm.health.machine_configured()
-
-
-def test_machine_configured_succeeds(harness):
-    with (
-        patch("health.KafkaHealth._check_memory_maps", return_value=True),
-        patch("health.KafkaHealth._check_file_descriptors", return_value=True),
-        patch("health.KafkaHealth._check_vm_swappiness", return_value=True),
-    ):
-        assert harness.charm.health.machine_configured()
+        if all([mmap, fd, swap, mem]):
+            assert harness.charm.health.machine_configured()
+        else:
+            assert not harness.charm.health.machine_configured()

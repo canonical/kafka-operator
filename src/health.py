@@ -12,6 +12,9 @@ from typing import TYPE_CHECKING, Tuple
 
 from ops.framework import Object
 
+from literals import JVM_MEM_MAX_GB, JVM_MEM_MIN_GB
+from utils import safe_get_file
+
 if TYPE_CHECKING:
     from charm import KafkaCharm
 
@@ -133,7 +136,7 @@ class KafkaHealth(Object):
             return True
 
         total_partitions, average_partition_size = self._get_partitions_size()
-        segment_size = int(self.charm.config["log_segment_bytes"])
+        segment_size = self.charm.config.log_segment_bytes
 
         minimum_fd_limit = total_partitions * (average_partition_size / segment_size)
         current_max_files = self._get_current_max_files()
@@ -159,6 +162,26 @@ class KafkaHealth(Object):
 
         return True
 
+    def _check_total_memory(self) -> bool:
+        """Checks that the total available memory is sufficient for desired profile."""
+        if not (meminfo := safe_get_file(filepath="/proc/meminfo")):
+            return False
+
+        total_memory_gb = int(meminfo[0].split()[1]) / 1000000
+        target_memory_gb = (
+            JVM_MEM_MIN_GB if self.charm.config.profile == "testing" else JVM_MEM_MAX_GB
+        )
+
+        # TODO: with memory barely above JVM heap, there will be no room for OS page cache, degrading perf
+        # need to figure out a better way of ensuring sufficiently beefy machines
+        if target_memory_gb >= total_memory_gb:
+            logger.error(
+                f"Insufficient total memory '{round(total_memory_gb, 2)}' for desired performance profile '{self.charm.config.profile}' - redeploy with greater than {target_memory_gb}GB available memory"
+            )
+            return False
+
+        return True
+
     def machine_configured(self) -> bool:
         """Checks machine configuration for healthy settings.
 
@@ -167,6 +190,7 @@ class KafkaHealth(Object):
         """
         if not all(
             [
+                self._check_total_memory(),
                 self._check_memory_maps(),
                 self._check_file_descriptors(),
                 self._check_vm_swappiness(),

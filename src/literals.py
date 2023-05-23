@@ -32,6 +32,9 @@ AuthMechanism = Literal["SASL_PLAINTEXT", "SASL_SSL", "SSL"]
 Scope = Literal["INTERNAL", "CLIENT"]
 DebugLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
 
+JVM_MEM_MIN_GB = 1
+JVM_MEM_MAX_GB = 6
+
 
 @dataclass
 class Ports:

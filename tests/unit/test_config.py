@@ -16,6 +16,8 @@ from literals import (
     INTER_BROKER_USER,
     INTERNAL_USERS,
     JMX_EXPORTER_PORT,
+    JVM_MEM_MAX_GB,
+    JVM_MEM_MIN_GB,
     PEER,
     ZK,
 )
@@ -228,6 +230,20 @@ def test_kafka_opts(harness):
     args = harness.charm.kafka_config.kafka_opts
     assert "-Djava.security.auth.login.config" in args
     assert "KAFKA_OPTS" in args
+    assert "-Djavax.net.debug=ssl" in args
+
+
+@pytest.mark.parametrize(
+    "profile,expected",
+    [("testing", JVM_MEM_MIN_GB), ("production", JVM_MEM_MAX_GB)],
+)
+def test_heap_opts(harness, profile, expected):
+    """Checks necessary args for KAFKA_HEAP_OPTS."""
+    harness._update_config({"profile": profile})
+    args = harness.charm.kafka_config.heap_opts
+    assert f"Xms{expected}G" in args
+    assert f"Xmx{expected}G" in args
+    assert "KAFKA_HEAP_OPTS" in args
 
 
 def test_log4j_opts(harness):
@@ -243,7 +259,6 @@ def test_jmx_opts(harness):
     assert "-javaagent:" in args
     assert args.split(":")[1].split("=")[-1] == str(JMX_EXPORTER_PORT)
     assert "KAFKA_JMX_OPTS" in args
-    assert "-Djavax.net.debug=ssl" in args
 
 
 def test_set_environment(harness):
@@ -260,6 +275,8 @@ def test_set_environment(harness):
             assert "KAFKA_OPTS" in call.kwargs.get("content", "")
             assert "KAFKA_LOG4J_OPTS" in call.kwargs.get("content", "")
             assert "KAFKA_JMX_OPTS" in call.kwargs.get("content", "")
+            assert "KAFKA_HEAP_OPTS" in call.kwargs.get("content", "")
+            assert "KAFKA_JVM_PERFORMANCE_OPTS" in call.kwargs.get("content", "")
             assert "/etc/environment" == call.kwargs.get("path", "")
 
 
