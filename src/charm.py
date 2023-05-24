@@ -192,11 +192,11 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         # Load current properties set in the charm workload and check
         # if rack.properties file exists
         properties = safe_get_file(self.kafka_config.server_properties_filepath)
-        if properties:
-            if self.kafka_config.rack_properties != [] and (
-                set(self.kafka_config.server_properties) ^ set(properties)
-            ):
-                self._on_config_changed(event)
+        if properties and (
+            self.kafka_config.rack_properties != []
+            and (set(self.kafka_config.server_properties) ^ set(properties))
+        ):
+            self._on_config_changed(event)
 
         if not broker_active(
             unit=self.unit,

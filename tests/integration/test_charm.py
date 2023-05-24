@@ -74,11 +74,16 @@ async def test_build_and_deploy_same_machine(ops_test: OpsTest, kafka_charm):
 
 @pytest.mark.abort_on_fail
 async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
+    await ops_test.model.add_machine(series="jammy")
+    machine_ids = await ops_test.model.get_machines()
+
     await asyncio.gather(
+        ops_test.model.deploy(
+            kafka_charm, application_name=APP_NAME, num_units=1, series="jammy", to=machine_ids[0]
+        ),
         ops_test.model.deploy(
             ZK_NAME, channel="edge", application_name=ZK_NAME, num_units=1, series="jammy"
         ),
-        ops_test.model.deploy(kafka_charm, application_name=APP_NAME, num_units=1, series="jammy"),
     )
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], idle_period=30, timeout=3600)
     assert ops_test.model.applications[APP_NAME].status == "blocked"
@@ -153,6 +158,20 @@ async def test_logs_write_to_storage(ops_test: OpsTest):
         provider_unit_name=f"{DUMMY_NAME}/0",
         topic="hot-topic",
     )
+
+
+async def test_rack_awareness_integration(ops_test: OpsTest):
+    machine_ids = await ops_test.model.get_machines()
+    await ops_test.model.deploy(
+        "kafka-broker-rack-awareness",
+        channel="edge",
+        application_name="rack",
+        to=machine_ids[0],
+        series="jammy",
+        config={"broker-rack": "integration-zone"},
+    )
+    await ops_test.model.wait_for_idle(apps=["rack"], idle_period=30, timeout=3600)
+    assert ops_test.model.applications["rack"].status == "active"
 
 
 async def test_exporter_endpoints(ops_test: OpsTest):
