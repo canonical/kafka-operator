@@ -375,6 +375,33 @@ def test_auth_properties(harness):
     )
 
 
+def test_rack_properties(harness: Harness):
+    """Checks that rack properties are added to server properties."""
+    harness.add_relation(PEER, CHARM_KEY)
+    zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
+    harness.update_relation_data(
+        zk_relation_id,
+        harness.charm.app.name,
+        {
+            "chroot": "/kafka",
+            "username": "moria",
+            "password": "mellon",
+            "endpoints": "1.1.1.1,2.2.2.2",
+            "uris": "1.1.1.1:2181/kafka,2.2.2.2:2181/kafka",
+            "tls": "disabled",
+        },
+    )
+
+    with (
+        patch(
+            "config.KafkaConfig.rack_properties",
+            new_callable=PropertyMock,
+            return_value=["broker.rack=gondor-west"],
+        )
+    ):
+        assert "broker.rack=gondor-west" in harness.charm.kafka_config.server_properties
+
+
 def test_super_users(harness):
     """Checks super-users property is updated for new admin clients."""
     peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
