@@ -53,8 +53,8 @@ groups:
     labels:
       severity: warning
     annotations:
-      summary: 'Broker {{ $labels.instance }} :: Broker State :: Zookeeper Sync Disconected.'
-      description: 'Zookeeper Sync Disconected.'
+      summary: 'Broker {{ $labels.instance }} :: Broker State :: Zookeeper Sync Disconnected.'
+      description: 'Zookeeper Sync Disconnected.'
 
   - alert: Zookeeper Session Expiry
     expr: rate(kafka_server_sessionexpirelistener_zookeeperexpirespersec{juju_charm!=".*"}[5m]) != 0
@@ -83,7 +83,7 @@ groups:
     labels:
       severity: critical
     annotations:
-      summary: 'Broker {{ $labels.instance }} :: Controller and Partitions :: {{ $value }} partitons offline'
+      summary: 'Broker {{ $labels.instance }} :: Controller and Partitions :: {{ $value }} partitions offline'
       description: 'After successful leader election, if the leader for partition dies, then the partition moves to the OfflinePartition state. Offline partitions are not available for reading and writing. Restart the brokers, if needed, and check the logs for errors.'
 
   - alert: High Partitions Count
@@ -92,7 +92,7 @@ groups:
     labels:
       severity: warning
     annotations:
-      summary: 'Broker {{ $labels.instance }} :: Controller and Partitions :: Too many partitions :: {{ $value }} partitons in broker'
+      summary: 'Broker {{ $labels.instance }} :: Controller and Partitions :: Too many partitions :: {{ $value }} partitions in broker'
       description: 'Recommended number of partition per broker should be below 4000. Increase the number of broker and rebalance partitions in order to keep this number controlled.'
 
   # =======================
@@ -237,7 +237,7 @@ groups:
       severity: warning
     annotations:
       summary: 'Broker {{ $labels.instance }} :: Kafka offline log directories.'
-      description: 'There are {{ $value }} offline log directoris on {{ $labels.instance }}.'
+      description: 'There are {{ $value }} offline log directories on {{ $labels.instance }}.'
 
   - alert: Topic Count
     expr: count(count by (topic,instance) (rate(kafka_server_brokertopicmetrics_messagesinpersec{juju_charm!=".*"}[5m]))) by (instance) > 1000
