@@ -437,9 +437,12 @@ class KafkaTLS(Object):
             set_snap_ownership(path=f"{self.charm.snap.CONF_PATH}/truststore.jks")
             set_snap_mode_bits(path=f"{self.charm.snap.CONF_PATH}/truststore.jks")
         except subprocess.CalledProcessError as e:
-            # in case this reruns and fails
+            # when this reruns and fails, attempt refresh of ca
             if "already exists" in e.output:
+                self.remove_cert(alias="ca")
+                self.set_truststore()
                 return
+
             logger.error(e.output)
             raise e
 
