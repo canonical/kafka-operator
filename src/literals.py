@@ -88,3 +88,4 @@ class Status(Enum):
         ActiveStatus("machine system settings are not optimal - see logs for info"),
         "WARNING",
     )
+    PARTITIONS_NOT_IN_SYNC = StatusLevel(BlockedStatus("partition not in sync"), "ERROR")

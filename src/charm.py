@@ -20,6 +20,7 @@ from ops.charm import (
     StorageAttachedEvent,
     StorageDetachingEvent,
     StorageEvent,
+    UpgradeCharmEvent,
 )
 from ops.framework import EventBase
 from ops.main import main
@@ -75,6 +76,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.framework.observe(getattr(self.on, "install"), self._on_install)
         self.framework.observe(getattr(self.on, "config_changed"), self._on_config_changed)
         self.framework.observe(getattr(self.on, "update_status"), self._on_update_status)
+        self.framework.observe(getattr(self.on, "upgrade_charm"), self._on_upgrade_charm)
 
         self.framework.observe(self.on[PEER].relation_changed, self._on_config_changed)
 
@@ -236,6 +238,10 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         self._on_config_changed(event)
 
+    def _on_upgrade_charm(self, event: UpgradeCharmEvent) -> None:
+        """Handler for `upgrade_charm` events."""
+        self.on[f"{self.restart.name}"].acquire_lock.emit(callback_override="_upgrade_restart")
+
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
         if self.snap.install():
@@ -383,6 +389,25 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         else:
             logger.error(f"Broker {self.unit.name.split('/')[1]} failed to restart")
             return
+
+    def _upgrade_restart(self, event: EventBase) -> None:
+        """Handler for `rolling_ops` upgrade_charm restart events."""
+        if not self.healthy or not self.peer_relation:
+            event.defer()
+            return
+
+        self.snap.restart_snap_service()
+
+        if not self.health.partitions_in_sync():
+            self._set_status(Status.PARTITIONS_NOT_IN_SYNC)
+            # TODO: how to 'halt' upgrades?
+            event.defer()
+            return
+
+        if self.healthy:
+            logger.info(f'Broker {self.unit.name.split("/")[1]} restarted')
+        else:
+            logger.error(f"Broker {self.unit.name.split('/')[1]} failed to restart")
 
     def _set_password_action(self, event: ActionEvent) -> None:
         """Handler for set-password action.

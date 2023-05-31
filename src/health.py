@@ -10,9 +10,11 @@ import subprocess
 from statistics import mean
 from typing import TYPE_CHECKING, Tuple
 
+import requests
 from ops.framework import Object
+from tenacity import retry, retry_if_not_result, stop_after_attempt, wait_fixed
 
-from literals import JVM_MEM_MAX_GB, JVM_MEM_MIN_GB
+from literals import JMX_EXPORTER_PORT, JVM_MEM_MAX_GB, JVM_MEM_MIN_GB
 from utils import safe_get_file
 
 if TYPE_CHECKING:
@@ -32,6 +34,17 @@ class KafkaHealth(Object):
     def _service_pid(self) -> int:
         """Gets most recent Kafka service pid from the snap logs."""
         return self.charm.snap.get_service_pid()
+
+    # TODO: metrics are great! we should use them more with a better interface
+    def _get_jmx_metrics(self) -> list[str]:
+        """Gets the current JMX metrics for the cluster from the running unit."""
+        if not self.charm.peer_relation:
+            return []
+
+        bootstrap_server = self.charm.peer_relation.data[self.charm.unit].get("private-address")
+        response = requests.get(f"http://{bootstrap_server}:{JMX_EXPORTER_PORT}/metrics")
+
+        return response.text.splitlines()
 
     def _get_current_memory_maps(self) -> int:
         """Gets the current number of memory maps for the Kafka process."""
@@ -197,5 +210,29 @@ class KafkaHealth(Object):
             ]
         ):
             return False
+
+        return True
+
+    @retry(
+        # retry to allow for brokers to catch up
+        wait=wait_fixed(2),
+        stop=stop_after_attempt(30),
+        retry_error_callback=(lambda state: state.outcome.result()),  # type: ignore
+        retry=retry_if_not_result(lambda result: True if result else False),
+    )
+    def partitions_in_sync(self) -> bool:
+        """Checks partition replication for under min-isr partitions.
+
+        Returns:
+            True if all partitions over min-isr. Otherwise False
+        """
+        metrics = self._get_jmx_metrics()
+
+        for metric in metrics:
+            if metric.startswith("#") or "underminisrpartitioncount" not in metric:
+                continue
+
+            if float(metric.split()[1]):
+                return False
 
         return True
