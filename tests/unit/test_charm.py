@@ -4,7 +4,7 @@
 
 import logging
 from pathlib import Path
-from unittest.mock import PropertyMock, patch
+from unittest.mock import Mock, PropertyMock, patch
 
 import pytest
 import yaml
@@ -13,6 +13,7 @@ from ops.testing import Harness
 from tenacity.wait import wait_none
 
 from charm import KafkaCharm
+from health import KafkaHealth
 from literals import CHARM_KEY, INTERNAL_USERS, PEER, REL_NAME, ZK
 
 logger = logging.getLogger(__name__)
@@ -608,3 +609,29 @@ def test_config_changed_restarts(harness):
         harness.charm.on.config_changed.emit()
 
         patched_restart_snap_service.assert_called_once()
+
+
+@pytest.mark.parametrize("underminisrpartitioncount,deferred", [("1.0", True), ("0.0", False)])
+def test_upgrade_charm_succeeds(harness, underminisrpartitioncount, deferred):
+    peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
+    harness.add_relation_unit(peer_rel_id, f"{CHARM_KEY}/0")
+    harness.set_leader(True)
+    zk_rel_id = harness.add_relation(ZK, ZK)
+    harness.add_relation_unit(zk_rel_id, f"{ZK}/0")
+
+    KafkaHealth.partitions_in_sync.retry.wait = wait_none()
+    mock_response = Mock()
+    mock_response.text = f"""
+        kafka_server_replicamanager_underminisrpartitioncount {underminisrpartitioncount}
+    """
+
+    with (
+        patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
+        patch("snap.KafkaSnap.restart_snap_service") as patched_restart_snap_service,
+        patch("ops.framework.EventBase.defer") as patched_defer,
+        patch("requests.get", return_value=mock_response),
+    ):
+        harness.charm.on.upgrade_charm.emit()
+
+        assert patched_restart_snap_service.call_count
+        assert bool(patched_defer.call_count) == deferred

@@ -9,8 +9,10 @@ from unittest.mock import patch
 import pytest
 import yaml
 from ops.testing import Harness
+from tenacity import wait_none
 
 from charm import KafkaCharm
+from health import KafkaHealth
 from literals import CHARM_KEY, JVM_MEM_MAX_GB, JVM_MEM_MIN_GB
 
 logger = logging.getLogger(__name__)
@@ -99,3 +101,18 @@ def test_machine_configured_succeeds_and_fails(harness, mmap, fd, swap, mem):
             assert harness.charm.health.machine_configured()
         else:
             assert not harness.charm.health.machine_configured()
+
+
+@pytest.mark.parametrize("underminisrpartitioncount,value", [("1.0", False), ("0.0", True)])
+def test_partitions_in_sync(harness, underminisrpartitioncount, value):
+    example_metrics = f"""
+        kafka_server_replicamanager_underminisrpartitioncount {underminisrpartitioncount}
+        kafka_server_replicamanager_underreplicatedpartitions 0.0
+        kafka_utils_throttler_cleaner_io 0.0
+        process_cpu_seconds_total 304.28
+        process_virtual_memory_bytes 1.6794304512E10
+    """
+    with (patch("health.KafkaHealth._get_jmx_metrics", return_value=example_metrics.splitlines())):
+        KafkaHealth.partitions_in_sync.retry.wait = wait_none()
+
+        assert harness.charm.health.partitions_in_sync() == value
