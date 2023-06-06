@@ -1,0 +1,249 @@
+groups:
+- name: kafka.alerts
+  rules:
+  # ==============
+  # Base JMX Rules
+  # ==============
+  - alert: Kafka Missing
+    expr: up{juju_charm!=".*"} == 0
+    for: 0m
+    labels:
+      severity: critical
+    annotations:
+      summary: Prometheus target missing (instance {{ $labels.instance }})
+      description: "Kafka target has disappeared. An exporter might be crashed.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+  - alert: JvmMemory Filling Up
+    expr: (sum by (instance)(jvm_memory_bytes_used{area="heap",juju_charm!=".*"}) / sum by (instance)(jvm_memory_bytes_max{area="heap",juju_charm!=".*"})) * 100 > 80
+    for: 2m
+    labels:
+        severity: warning
+    annotations:
+        summary: JVM memory filling up (instance {{ $labels.instance }})
+        description: "JVM memory is filling up (> 80%)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+  - alert: Kafka Threads Dead Locked
+    expr: jvm_threads_deadlocked{juju_charm!=".*"} > 0
+    labels:
+      severity: warning
+    annotations:
+      summary: "Zookeeper JVM threads Deadlock occurred."
+      description: |-
+        JVM Thread Deadlock means a situation where two or more JVM threads are blocked forever, waiting for each other.
+        Deadlock occurs when multiple threads need the same locks but obtain them in different order.
+
+        Also look to JVM documentation about threads state:
+        https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Thread.State.html
+
+  # ============
+  # Broker State
+  # ============
+  - alert: Broker State
+    expr: count(kafka_server_kafkaserver_brokerstate{juju_charm!=".*"}) by (instance) == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: 'Broker {{ $labels.instance }} :: Broker State :: No Brokers alive.'
+      description: 'Broker count is 0'
+
+  - alert: Zookeeper Session Connection
+    expr: avg(kafka_server_sessionexpirelistener_zookeepersyncconnectspersec{juju_charm!=".*"})by(instance) < 1
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: 'Broker {{ $labels.instance }} :: Broker State :: Zookeeper Sync Disconnected.'
+      description: 'Zookeeper Sync Disconnected.'
+
+  - alert: Zookeeper Session Expiry
+    expr: rate(kafka_server_sessionexpirelistener_zookeeperexpirespersec{juju_charm!=".*"}[5m]) != 0
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: 'Broker {{ $labels.instance }} :: Broker State :: The ZooKeeper session has expired.'
+      description: 'When a session expires, we can have leader changes and even a new controller. It is important to keep an eye on the number of such events across a Kafka cluster and if the overall number is high.'
+
+  # =========================
+  # Controller and Partitions
+  # =========================
+  - alert: Active Controllers
+    expr: sum(kafka_controller_kafkacontroller_activecontrollercount{juju_charm!=".*"}) != 1
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: 'Broker :: Controller and Partitions :: No active controller'
+      description: 'No broker in the cluster is reporting as the active controller in the last 1 minute interval. During steady state there should be only one active controller per cluster.'
+
+  - alert: Offline Partitions
+    expr: sum(kafka_controller_kafkacontroller_offlinepartitionscount{juju_charm!=".*"}) by (instance) > 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: 'Broker {{ $labels.instance }} :: Controller and Partitions :: {{ $value }} partitions offline'
+      description: 'After successful leader election, if the leader for partition dies, then the partition moves to the OfflinePartition state. Offline partitions are not available for reading and writing. Restart the brokers, if needed, and check the logs for errors.'
+
+  - alert: High Partitions Count
+    expr: kafka_server_replicamanager_partitioncount{juju_charm!=".*"} > 3000
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: 'Broker {{ $labels.instance }} :: Controller and Partitions :: Too many partitions :: {{ $value }} partitions in broker'
+      description: 'Recommended number of partition per broker should be below 4000. Increase the number of broker and rebalance partitions in order to keep this number controlled.'
+
+  # =======================
+  # Replicas and Partitions
+  # =======================
+  - alert: Under Replicated Partitions
+    expr: sum(kafka_server_replicamanager_underreplicatedpartitions{juju_charm!=".*"}) by (instance) > 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: 'Broker {{ $labels.instance }} :: Replicas and Partitions :: {{ $value }} under replicated partitons'
+      description: 'Under-replicated partitions means that one or more replicas are not available. This is usually because a broker is down.  Restart the broker, and check for errors in the logs.'
+
+  - alert: Replica Fetcher Manager Max Lag
+    expr: avg(kafka_server_replicafetchermanager_maxlag{juju_charm!=".*"})by(instance) > 50
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: 'Broker {{ $labels.instance }} :: Replicas and Partitions :: Replica Fetcher Manager Max Lag is {{ $value }}!'
+      description: 'The maximum lag between the time that messages are received by the leader replica and by the follower replicas.'
+
+  - alert: Not Replicated Topic
+    expr: count(kafka_cluster_partition_insyncreplicascount{juju_charm!=".*"})by(topic, partition) <= 1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: 'Topic {{ $labels.topic }} - Partition {{ $labels.partition }} :: Replicas and Partitions :: The IRS for the topic is lower or equal than 1.'
+      description: 'The topic is subject to data loss if the partition goes down and data cannot be recovered.'
+
+  # ================
+  # In Sync Replicas
+  # ================
+  - alert: ISR Expands Rate
+    expr: max(rate(kafka_server_replicamanager_isrexpandspersec{juju_charm!=".*"}[5m])) by (instance) != 0
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: 'Broker {{ $labels.instance }} :: In Sync Replicas :: {{ $value }} ISR Expansion Rate.'
+      description: 'If a broker goes down, ISR for some of the partitions shrink. When that broker is up again, ISRs are expanded once the replicas are fully caught up. Other than that, the expected value for ISR expansion rate is 0. If ISR is expanding and shrinking frequently, adjust Allowed replica lag.'
+
+  - alert: ISR Shrinks Rate
+    expr: max(rate(kafka_server_replicamanager_isrshrinkspersec{juju_charm!=".*"}[5m])) by (instance) != 0
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: 'Broker {{ $labels.instance }} :: In Sync Replicas :: {{ $value }} ISR Shrink Rate.'
+      description: 'If a broker goes down, ISR for some of the partitions shrink. When that broker is up again, ISRs are expanded once the replicas are fully caught up. Other than that, the expected value for ISR shrink rate is 0. If ISR is expanding and shrinking frequently, adjust Allowed replica lag.'
+
+  # ================
+  # Leader Elections
+  # ================
+  - alert: Leader Election Rate
+    expr: max(rate(kafka_controller_controllerstats_leaderelectionrateandtimems{juju_charm!=".*",quantile=""}[2m]))by(instance) !=0
+    for: 60s
+    labels:
+      severity: critical
+    annotations:
+      summary: "Broker Kafka :: Leader Elections :: Number of disputed leader elections rate are {{ $value }}"
+      description: "Critical: Kafka number of disputed leader elections rate(!=0) on the instance {{ $labels.instance }} for more than 1 minutes"
+
+  - alert: Unclean Leader Election
+    expr: max(rate(kafka_controller_controllerstats_uncleanleaderelectionspersec{juju_charm!=".*"}[5m])) by (instance) != 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: 'Broker {{ $labels.instance }} :: Leader Elections :: {{ $value }} unclean leader elections.'
+      description: '{{ $value }} unclean partition leader elections in the cluster reported in the last 1 minute interval. When unclean leader election is held among out-of-sync replicas, there is a possibility of data loss if any messages were not synced prior to the loss of the former leader. So if the number of unclean elections is greater than 0, investigate broker logs to determine why leaders were re-elected, and look for WARN or ERROR messages. Consider setting the broker configuration parameter unclean.leader.election.enable to false so that a replica outside of the set of in-sync replicas is never elected leader.'
+
+  # ==============
+  # Consumer Level
+  # ==============
+  - alert: Records Lag Max
+    expr: sum(kafka_server_fetcherlagmetrics_consumerlag{juju_charm!=".*"}) by(instance, client_id) > 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: 'Broker {{ $labels.instance }} :: Consumer :: The maximum lag is {{ $value }}.'
+      description: 'The maximum lag in terms of number of records for any partition in this window. An increasing value over time is your best indication that the consumer group is not keeping up with the producers.'
+
+  # ===============
+  # Thread Capacity
+  # ===============
+  - alert: Network Processor Idle Percent
+    expr: avg(sum(kafka_network_processor_idlepercent{juju_charm!=".*"}) by (instance, networkProcessor)) by (instance) < 0.3
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: 'Broker {{ $labels.instance }} :: Thread Capacity :: Network Processor Idle Percent is {{ $value }}.'
+      description: 'The average fraction of time the network processors are idle. A lower value {{ $value }} indicates that the network workload of the broker is very high.'
+
+  - alert: Request Handler Idle Percent
+    expr: avg(kafka_server_kafkarequesthandlerpool_requesthandleravgidlepercent_total{juju_charm!=".*"}) by (instance) < 0.3
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: 'Broker {{ $labels.instance }} :: Thread Capacity :: Request Handler Idle Percent is {{ $value }}.'
+      description: 'The average fraction of time the request handler threads (IO) are idle. A lower value {{ $value }} indicates that the workload of a broker is very high.'
+
+  - alert: Request Queue Time Max
+    expr: max(kafka_network_requestmetrics_requestqueuetimems{quantile="0.95", juju_charm!=".*"}) by(instance) > 200
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: 'Kafka {{ $labels.instance }}: {{ $value }}ms request queue time'
+      description: 'Max request queue time exceeded 200ms for a request. It is the time, in milliseconds, that a request currently spends in the request queue.'
+
+  - alert: Response Queue Time Max
+    expr: max(kafka_network_requestmetrics_responsequeuetimems{quantile="0.95", juju_charm!=".*"}) by(instance) > 200
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: 'Kafka {{ $labels.instance }}: {{ $value }}ms response queue time'
+      description: 'Max response queue time exceeded 200ms for a request. It is the length of time, in milliseconds, that the request waits in the response queue.'
+
+  # ==========
+  # Safe Guard
+  # ==========
+  - alert: JVM Usage
+    expr: ((sum without(area)(jvm_memory_bytes_used{juju_charm!=".*"}) / 1024 / 1024) / (sum without(area)(jvm_memory_bytes_max{juju_charm!=".*"}) / 1024 / 1024)) * 100 > 70
+    for: 60s
+    labels:
+      severity: critical
+    annotations:
+      summary: "Broker {{ $labels.instance }} :: Critical :: Heap memory usage is {{ $value }}%"
+      description: " The borker {{ $labels.instance }} has high memory usage ({{ $value }}>70%) for more than 1 minutes."
+
+  - alert: Offline Log Directory
+    expr: kafka_log_logmanager_offlinelogdirectorycount{juju_charm!=".*"} > 0
+    for: 10s
+    labels:
+      severity: warning
+    annotations:
+      summary: 'Broker {{ $labels.instance }} :: Kafka offline log directories.'
+      description: 'There are {{ $value }} offline log directories on {{ $labels.instance }}.'
+
+  - alert: Topic Count
+    expr: count(count by (topic,instance) (rate(kafka_server_brokertopicmetrics_messagesinpersec{juju_charm!=".*"}[5m]))) by (instance) > 1000
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: 'Broker {{ $labels.instance }} :: Safe Guard :: 1000 topics reached'
+      description: 'The number of active topics in the cluster has reached 1000.'
