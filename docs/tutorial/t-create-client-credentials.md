@@ -114,9 +114,9 @@ channels:
 installed:     3.3.2            (16) 167MB -
 ```
 
-> At the moment of writing this tutorial the charmed-kafka snap is not yet available on the stable channel. Thus, we will be using the edge channel.
+> At the moment of writing this tutorial the `charmed-kafka` snap is not yet available on the `stable` channel. Thus, we will be using the `edge` channel.
 
-Snaps have constrained access to files as they are designed focused on security. So, once we have created a set of client credentials we will be copying those files into a folder path that the snap has access to read and write, else you might get a permission denied error.
+Snaps have constrained access to files as they are designed with a focus on security. Once we have created a set of client credentials we will be copying those files into a folder path that the snap has access to read and write to avoid permission denied errors.
 
 ```bash
 SNAP_KAFKA_PATH=/var/snap/charmed-kafka/current/etc/kafka
@@ -130,14 +130,12 @@ This is a utility to parse JSON objects from the CLI.
 sudo snap install jq
 ```
 
-> It just makes the tutorial easier
-
 ## Authentication
 
 There are two protocols options for the client authentication
 
 - Option A: SASL_SSL (Server cert + User and pass)
-- Option B: mTLS (Server cert + Client cert signed by server)
+- Option B: SSL (mTLS, Server cert + Client cert signed by server)
 
 ### Applicable for both authentication options
 
@@ -146,24 +144,31 @@ Define the following variables in advance:
 ```bash
 # ---------- Environment
 # Certs
-CERT_EXPIRATION_DAYS=7300 # 20 years expiration example
+CERT_EXPIRATION_DAYS=365
+
+# Kafka ports
+KAFKA_SASL_PORT=9093
+KAFKA_MTLS_PORT=9094
 
 # Kafka servers
-KAFKA_SERVERS_SASL=172.20.10.4:9093,172.20.10.5:9093,172.20.10.6:9093 # CHANGE_ME
-KAFKA_SERVERS_MTLS=172.20.10.4:9094,172.20.10.5:9094,172.20.10.6:9094 # CHANGE_ME
+KAFKA_SERVERS_SASL=<broker-ip>$KAFKA_SASL_PORT
+KAFKA_SERVERS_MTLS=<broker-ip>$KAFKA_MTLS_PORT
 
 # Java keystore and trustore
-KAFKA_CLIENT_KEYSTORE_PASSWORD=my_keystore_pass # CHANGE_ME
-KAFKA_CLIENT_TRUSTSTORE_PASSWORD=my_truststore_pass # CHANGE_ME
+KAFKA_CLIENT_KEYSTORE_PASSWORD=changeme
+KAFKA_CLIENT_TRUSTSTORE_PASSWORD=changeme
 
 # Only for Option A: SASL
-KAFKA_CLIENT_SASL_USER=my_sasl_username # CHANGE_ME
-KAFKA_CLIENT_SASL_PASSWORD=my_sasl_password # CHANGE_ME
-
+KAFKA_CLIENT_SASL_USER=<sasl-username>
+KAFKA_CLIENT_SASL_PASSWORD=<sasl-password>
+s
 # Only for Option B: mTLS
-KAFKA_CLIENT_MTLS_CN=example.com # CHANGE_ME
-KAFKA_CLIENT_MTLS_NAME=client-a # CHANGE_ME
-KAFKA_CLIENT_MTLS_IP=172.20.10.28 # CHANGE_ME (Hint: $ hostname -I )
+KAFKA_CLIENT_MTLS_CN=<client-cn>
+KAFKA_CLIENT_MTLS_NAME=<client-name>
+KAFKA_CLIENT_MTLS_IP=<client-ip>
+
+# regex to generate User:Principal from the certificate DN
+# in this example, pulls value from `CN` from presenting certificates
 KAFKA_SSL_PRINCIPAL_MAPPING_RULES='RULE:^.*[Cc][Nn]=([a-zA-Z0-9\.-]*).*$/$1/L,DEFAULT'
 ```
 
@@ -178,8 +183,10 @@ If you are using the [tls-certificates-operator charm](https://charmhub.io/tls-c
 JUJU_TLS_OPERTOR_APP=tls-certificates-operator
 JUJU_TLS_OPERTOR_UNIT=0
 
+# getting the root CA to be used by the client
 juju show-unit $JUJU_TLS_OPERTOR_APP/$JUJU_TLS_OPERTOR_UNIT --format json | jq -r '.[]."relation-info"[]."application-data"."self_signed_ca_certificate" // empty' > ss_ca.pem
 
+# getting root CA private key and password to be used by the client
 juju show-unit $JUJU_TLS_OPERTOR_APP/$JUJU_TLS_OPERTOR_UNIT --format json | jq -r '.[]."relation-info"[]."application-data"."self_signed_ca_private_key" // empty' > ss_ca.key
 
 SS_KEY_PASSWORD=$(juju show-unit $JUJU_TLS_OPERTOR_APP/$JUJU_TLS_OPERTOR_UNIT --format json | jq -r '.[]."relation-info"[]."application-data"."self_signed_ca_private_key_password" // empty')
@@ -191,6 +198,7 @@ Else retrieve Root CA from your certs provider.
 
 ```bash
 # ---------- Server CA
+# getting the CA used by the server
 juju show-unit kafka/0 --format json | jq -r '.[]."relation-info"[]."local-unit".data.ca // empty' > kafka_ca.pem
 ```
 
@@ -200,27 +208,19 @@ This creates a client cert signed by the server
 
 ```bash
 # ---------- Keystore
-keytool -keystore client.keystore.jks -alias client-key -validity $CERT_EXPIRATION_DAYS \
-  -genkey -keyalg RSA -noprompt -storepass $KAFKA_CLIENT_KEYSTORE_PASSWORD \
-  -dname "CN=$KAFKA_CLIENT_MTLS_CN" \
-  -ext SAN=DNS:${KAFKA_CLIENT_MTLS_NAME},IP:${KAFKA_CLIENT_MTLS_IP}
-
-keytool -keystore client.keystore.jks --alias client-key -certreq -file client.csr -storepass $KAFKA_CLIENT_KEYSTORE_PASSWORD
-openssl x509 -req -CA ss_ca.pem -CAkey ss_ca.key -in client.csr -out client.pem -days $CERT_EXPIRATION_DAYS -CAcreateserial -passin pass:$SS_KEY_PASSWORD
-
-# Some client applications require keystore in .p12 format
-# client.keystore.jks -> client.keystore.p12
-keytool -importkeystore \
-  -srckeystore client.keystore.jks -srcstorepass $KAFKA_CLIENT_KEYSTORE_PASSWORD \
-  -destkeystore client.keystore.p12 -deststoretype PKCS12 -deststorepass $KAFKA_CLIENT_KEYSTORE_PASSWORD \
-  -srcalias client-key -destalias client-key
-openssl pkcs12 -in client.keystore.p12 -nodes -nocerts -out client_private_key.pem --password pass:$KAFKA_CLIENT_KEYSTORE_PASSWORD
-
+# create new private key --> client_key.pem
 openssl genrsa -out client_key.pem 4096
+
+# create new csr --> client_csr.pem
 openssl req -new -key client_key.pem -out client_csr.pem -subj "/C=US/ST=Denial/L=Springfield/O=Dis/CN=$KAFKA_CLIENT_MTLS_CN"
+
+# sign new csr using new client CA --> client_cert.pem
 openssl x509 -req -CA ss_ca.pem -CAkey ss_ca.key -in client_csr.pem -out client_cert.pem -days $CERT_EXPIRATION_DAYS -CAcreateserial -passin pass:$SS_KEY_PASSWORD
+
+# create new chain --> client_chain.pem
 cat ss_ca.pem client_cert.pem client_key.pem > client_chain.pem
 
+# create p12 keystore from chain --> client.keystore.p12
 openssl pkcs12 -export -in client_chain.pem \
  -out client.keystore.p12 -password pass:$KAFKA_CLIENT_KEYSTORE_PASSWORD \
  -name client-chain -noiter -nomaciter
@@ -241,10 +241,10 @@ keytool -keystore client.truststore.jks -storepass $KAFKA_CLIENT_TRUSTSTORE_PASS
 #### Checking certs validity
 
 ```bash
-# ---------- Teting Certs validity
+# ---------- Checking certs validity
 echo "Client certs in Keystore:"
-keytool -list -keystore client.keystore.jks -storepass $KAFKA_CLIENT_KEYSTORE_PASSWORD -rfc | grep "Alias name"
-keytool -list -keystore client.keystore.jks -storepass $KAFKA_CLIENT_KEYSTORE_PASSWORD -v | grep until
+keytool -list -keystore client.keystore.p12 -storepass $KAFKA_CLIENT_KEYSTORE_PASSWORD -rfc | grep "Alias name"
+keytool -list -keystore client.keystore.p12 -storepass $KAFKA_CLIENT_KEYSTORE_PASSWORD -v | grep until
 
 echo "Server certs in Truststore:"
 keytool -list -keystore client.truststore.jks -storepass $KAFKA_CLIENT_TRUSTSTORE_PASSWORD -rfc | grep "Alias name"
@@ -255,10 +255,10 @@ keytool -list -keystore client.truststore.jks -storepass $KAFKA_CLIENT_TRUSTSTOR
 
 This includes SASL authentication through SSL, which requires:
 
-1. For SSL the client needs to trust the server certificates.
-2. For SASL an username and password credential are required.
+1. For SSL, the client needs to trust the server certificates.
+2. For SASL, username and password credentials are required.
 
-To create new users we are going to a SASL_SSL user admin credentials that are stored inside the Kafka server
+To create new users we are going to use `SASL_SSL` user admin credentials that are stored inside the Kafka server for administrators.
 
 ```bash
 # ---------- Option A: SASL_SSL
@@ -277,7 +277,7 @@ sudo charmed-kafka.configs \
 
 ```bash
 # client-sasl.properties
-echo "sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username=\"safefleet\" password=\"$KAFKA_CLIENT_SASL_PASSWORD\";" > client-sasl.properties
+echo "sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username=\"$KAFKA_CLIENT_SASL_USER\" password=\"$KAFKA_CLIENT_SASL_PASSWORD\";" > client-sasl.properties
 echo sasl.mechanism=SCRAM-SHA-512 >> client-sasl.properties
 echo security.protocol=SASL_SSL >> client-sasl.properties
 echo bootstrap.servers=$KAFKA_SERVERS_MTLS >> client-sasl.properties
