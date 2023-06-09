@@ -1,18 +1,20 @@
 # Create Client Credentials
 
-After having succesfully deployed a Kafka cluster you most probably would like to have client applications to connect to this cluster.
+After having successfully deployed a Kafka cluster you most probably would like to have your client applications be able connect to the cluster.
 
 ## Install required software
 
 ### Keytool (Java)
 
-If your clients applications are based on Java, consider that it might need to use special Java file formats for the certificates called keystore and trustore.
+If your client applications are based on Java, consider that it might need to use special Java file formats for the certificates called keystore and trustsore.
 
-To generate these files we will need `keytool` binary. This commes preinstalled with any Java installation.
+To generate these files we will need the `keytool` binary. This comes pre-installed with any Java installation.
 
-Make sure you have Java installed and keytool was installed with it.
+Make sure you have Java installed and `keytool` was installed with it.
 
 ```bash
+$ sudo apt install default-jre
+
 $ java --version
 openjdk 11.0.19 2023-04-18
 OpenJDK Runtime Environment (build 11.0.19+7-post-Ubuntu-0ubuntu120.04.1)
@@ -251,7 +253,7 @@ keytool -list -keystore client.truststore.jks -storepass $KAFKA_CLIENT_TRUSTSTOR
 
 ### Option A: SASL_SSL
 
-This includes SASL autentication through SSL, which requires:
+This includes SASL authentication through SSL, which requires:
 
 1. For SSL the client needs to trust the server certificates.
 2. For SASL an username and password credential are required.
@@ -285,7 +287,7 @@ echo ssl.truststore.type=JKS >> client-sasl.properties
 echo ssl.keystore.location=$SNAP_KAFKA_PATH/client.keystore.p12 >> client-sasl.properties
 echo ssl.keystore.password=$KAFKA_CLIENT_KEYSTORE_PASSWORD >> client-sasl.properties
 echo ssl.keystore.type=PKCS12 >> client-sasl.properties
-echo ssl.client.auth=none >> client-sasl.properties
+echo ssl.client.auth=required >> client-sasl.properties
 ```
 
 ### Option B: mTLS
@@ -293,9 +295,10 @@ echo ssl.client.auth=none >> client-sasl.properties
 This is a mutual TLS communication which means:
 
 1. The client needs to trust the server certificates.
-2. Instead of username and passwords, the client needs its own certificate signed by the server for the authentication.
+2. Instead of username and passwords, the client needs its own certificate signed by a certificate trusted by the server for the authentication.
 
 ```bash
+# updating the charm config to use custom principal mapping rule
 juju config kafka ssl_principal_mapping_rules=$KAFKA_SSL_PRINCIPAL_MAPPING_RULES
 ```
 
@@ -321,7 +324,7 @@ echo ssl.truststore.type=JKS >> client-mtls.properties
 echo ssl.keystore.location=$SNAP_KAFKA_PATH/client.keystore.p12 >> client-mtls.properties
 echo ssl.keystore.password=$KAFKA_CLIENT_KEYSTORE_PASSWORD >> client-mtls.properties
 echo ssl.keystore.type=PKCS12 >> client-mtls.properties
-echo ssl.client.auth=none >> client-mtls.properties
+echo ssl.client.auth=required >> client-mtls.properties
 ```
 
 ## Authorization
@@ -331,7 +334,7 @@ echo ssl.client.auth=none >> client-mtls.properties
 In this **example** we will be granting read and write privileges `KAFKA_CLIENT_SASL_USER` over _group_, _topic_ and _transaction_ resources and read only permissions to `KAFKA_CLIENT_MTLS_CN`.
 
 Notice you can create multiple SASL or multiple mTLS users and each can have their own set of privileges.
-You can also distribute one credential set to a group of multiple clients.
+You can also distribute one set of ACL permissions to multiple principals.
 
 ```bash
 juju ssh kafka/leader "
@@ -373,13 +376,15 @@ sudo charmed-kafka.acls --bootstrap-server $KAFKA_SERVERS_SASL --command-config 
 
 ```bash
 # ---------- Testing Kafka Access
-KAFKA_TEST_TOPIC=TEST-TOPIC-A
+KAFKA_TEST_TOPIC=EXAMPLE-TOPIC
 
+# copying the files to a path readable by the `charmed-kafka` snap commands
 sudo cp client.truststore.jks $SNAP_KAFKA_PATH/
 sudo cp client.keystore.p12 $SNAP_KAFKA_PATH/
 sudo cp client-mtls.properties $SNAP_KAFKA_PATH/
 sudo cp client-sasl.properties $SNAP_KAFKA_PATH/
 
+# confirming correct file permissions to be readable by the snap
 sudo chown snap_daemon:root $SNAP_KAFKA_PATH/client-mtls.properties
 sudo chown snap_daemon:root $SNAP_KAFKA_PATH/client-sasl.properties
 sudo chown snap_daemon:root $SNAP_KAFKA_PATH/client.keystore.p12
