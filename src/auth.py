@@ -195,7 +195,7 @@ class KafkaAuth:
             KafkaSnap.run_bin_command(bin_keyword="configs", bin_args=command)
         except subprocess.CalledProcessError as e:
             if "delete a user credential that does not exist" in e.stderr:
-                logger.info(f"User: {username} can't be deleted, it does not exist")
+                logger.warning(f"User: {username} can't be deleted, it does not exist")
                 return
             raise
 

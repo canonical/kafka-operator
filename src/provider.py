@@ -80,8 +80,6 @@ class KafkaProvider(Object):
         # non-leader units need cluster_config_changed event to update their super.users
         self.charm.app_peer_data.update({username: password})
 
-        # self.kafka_auth.load_current_acls()
-
         self.kafka_auth.update_user_acls(
             username=username,
             topic=topic,
