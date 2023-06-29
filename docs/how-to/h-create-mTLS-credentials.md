@@ -37,7 +37,7 @@ KAFKA_CLIENT_MTLS_IP=<client-ip>
 
 ### Retrieve Root CA
 
-If you are using the [tls-certificates-operator charm](https://charmhub.io/tls-certificates-operator), retrieve the Root CA excecuting the following commands:
+If you are using the [tls-certificates-operator charm](https://charmhub.io/tls-certificates-operator), retrieve the Root CA executing the following commands:
 
 ```bash
 # ---------- Root CA
