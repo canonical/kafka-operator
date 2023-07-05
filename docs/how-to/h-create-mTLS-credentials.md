@@ -179,7 +179,7 @@ sudo cp client.truststore.jks $SNAP_KAFKA_PATH/
 sudo cp client.keystore.p12 $SNAP_KAFKA_PATH/
 sudo cp client-mtls.properties $SNAP_KAFKA_PATH/
 
-# Appply file permissions to be readable by the snap
+# Apply file permissions to be readable by the snap
 sudo chown snap_daemon:root $SNAP_KAFKA_PATH/client-mtls.properties
 sudo chown snap_daemon:root $SNAP_KAFKA_PATH/client.keystore.p12
 sudo chown snap_daemon:root $SNAP_KAFKA_PATH/client.truststore.jks
