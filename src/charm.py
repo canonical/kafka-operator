@@ -7,9 +7,16 @@
 import logging
 import subprocess
 from typing import MutableMapping, Optional
+from pathlib import Path
 
+import yaml
 from charms.data_platform_libs.v0.data_models import TypedCharmBase
 from charms.grafana_agent.v0.cos_agent import COSAgentProvider
+from charms.operator_libs_linux.v0.sysctl import (
+    SysctlConfig,
+    SysctlError,
+    SysctlPermissionError,
+)
 from charms.operator_libs_linux.v1.snap import SnapError
 from charms.rolling_ops.v0.rollingops import RollingOpsManager, RunWithLock
 from ops.charm import (
@@ -238,6 +245,16 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
+        sysctl_yaml = yaml.safe_load(Path("./src/templates/sysctl.yaml").read_text())
+        sysctl = SysctlConfig(config_params=sysctl_yaml["testing"], app_name=CHARM_KEY)
+        try:
+            sysctl.update()
+        except SysctlPermissionError as e:
+            logger.error(f"Error setting values on sysctl: {e.message}")
+            self._set_status(Status.SYSCONF_NOT_POSSIBLE)
+        except SysctlError:
+            logger.error("Error on sysctl")
+
         if self.snap.install():
             self.kafka_config.set_environment()
             self._set_status(Status.ZK_NOT_RELATED)

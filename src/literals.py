@@ -88,3 +88,7 @@ class Status(Enum):
         ActiveStatus("machine system settings are not optimal - see logs for info"),
         "WARNING",
     )
+    SYSCONF_NOT_POSSIBLE = StatusLevel(
+        BlockedStatus("sysctl params cannot be set. Is the machine running on a container?"),
+        "WARNING",
+    )

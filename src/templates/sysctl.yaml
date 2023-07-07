@@ -1,0 +1,11 @@
+testing:
+  vm.swappiness:
+    value: 1
+  vm.max_map_count:
+    value: 262144
+  vm.dirty_ratio:
+    value: 80
+  vm.dirty_background_ratio:
+    value: 5
+  net.ipv4.tcp_max_syn_backlog:
+    value: 4096
