@@ -6,8 +6,8 @@
 
 import logging
 import subprocess
-from typing import MutableMapping, Optional
 from pathlib import Path
+from typing import MutableMapping, Optional
 
 import yaml
 from charms.data_platform_libs.v0.data_models import TypedCharmBase
@@ -16,6 +16,7 @@ from charms.operator_libs_linux.v0.sysctl import (
     SysctlConfig,
     SysctlError,
     SysctlPermissionError,
+    ValidationError,
 )
 from charms.operator_libs_linux.v1.snap import SnapError
 from charms.rolling_ops.v0.rollingops import RollingOpsManager, RunWithLock
@@ -73,6 +74,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.name = CHARM_KEY
         self.snap = KafkaSnap()
         self.kafka_config = KafkaConfig(self)
+        self.sysctl_config = SysctlConfig(name=CHARM_KEY)
         self.tls = KafkaTLS(self)
         self.provider = KafkaProvider(self)
         self.health = KafkaHealth(self)
@@ -246,10 +248,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
         sysctl_yaml = yaml.safe_load(Path("./src/templates/sysctl.yaml").read_text())
-        sysctl = SysctlConfig(config_params=sysctl_yaml["testing"], app_name=CHARM_KEY)
         try:
-            sysctl.update()
-        except SysctlPermissionError as e:
+            self.sysctl_config.update(config=sysctl_yaml["testing"])
+        except (SysctlPermissionError, ValidationError) as e:
             logger.error(f"Error setting values on sysctl: {e.message}")
             self._set_status(Status.SYSCONF_NOT_POSSIBLE)
         except SysctlError:
