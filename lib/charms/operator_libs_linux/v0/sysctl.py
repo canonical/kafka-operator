@@ -18,9 +18,9 @@
 import logging
 import os
 import re
-import glob
+from pathlib import Path
 from subprocess import STDOUT, CalledProcessError, check_output
-from typing import Mapping, Dict
+from typing import Mapping, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -35,8 +35,8 @@ LIBAPI = 0
 LIBPATCH = 2
 
 
-SYSCTL_DIRECTORY = "/etc/sysctl.d"
-SYSCTL_FILENAME = f"{SYSCTL_DIRECTORY}/95-juju-sysctl.conf"
+SYSCTL_DIRECTORY = Path("/etc/sysctl.d")
+SYSCTL_FILENAME = Path(f"{SYSCTL_DIRECTORY}/95-juju-sysctl.conf")
 SYSCTL_HEADER = f"""# This config file was produced by sysctl lib v{LIBAPI}.{LIBPATCH}
 #
 # This file represents the output of the sysctl lib, which can combine multiple
@@ -77,7 +77,7 @@ class ValidationError(Error):
 class SysctlConfig(Mapping[str, int]):
     """Represents the state of the config that a charm wants to enforce."""
 
-    def __init__(self, name: str = "") -> None:
+    def __init__(self, name: Optional[str] = None) -> None:
         self.name = name
 
     def __contains__(self, key: str) -> bool:
@@ -115,15 +115,15 @@ class SysctlConfig(Mapping[str, int]):
 
     @name.setter
     def name(self, value: str):
-        if value == "":
+        if value is None:
             self._name, *_ = os.getenv("JUJU_UNIT_NAME", "unknown").split("/")
         else:
             self._name = value
 
     @property
-    def charm_filepath(self) -> str:
+    def charm_filepath(self) -> Path:
         """Name for resulting charm config file."""
-        return f"{SYSCTL_DIRECTORY}/90-juju-{self.name}"
+        return Path(f"{SYSCTL_DIRECTORY}/90-juju-{self.name}")
 
     @property
     def charm_config_exists(self) -> bool:
@@ -140,7 +140,6 @@ class SysctlConfig(Mapping[str, int]):
         self._parse_config(config)
         if self.charm_config_exists:
             return
-        self._create_charm_file()
 
         conflict = self.validate()
         if conflict:
@@ -156,6 +155,8 @@ class SysctlConfig(Mapping[str, int]):
             raise
         except SysctlError:
             raise
+
+        self._create_charm_file()
         self._merge()
 
     def validate(self) -> list[str]:
@@ -172,31 +173,28 @@ class SysctlConfig(Mapping[str, int]):
 
     def _create_charm_file(self) -> None:
         """Write the charm file."""
-        charm_params = [f"{key}={value}" for key, value in self._desired_config.items()]
+        charm_params = [f"{key}={value}\n" for key, value in self._desired_config.items()]
         with open(self.charm_filepath, "w") as f:
             f.writelines(charm_params)
 
     def _merge(self) -> None:
         """Create the merged sysctl file."""
-        # get all files that start by 90-juju-
-        charm_files = [f for f in glob.glob(f"{SYSCTL_DIRECTORY}/90-juju-*")]
-        data = [SYSCTL_HEADER]
-        for path in charm_files:
-            with open(path, "r") as f:
-                data += f.readlines()
-        with open(SYSCTL_FILENAME, "w") as f:
+        data = (
+            [f"# {self.name}\n"] + [f"{key}={value}\n" for key, value in self._desired_config.items()]
+        )
+        if not self.merged_config_exists:
+            data.insert(0, SYSCTL_HEADER)
+
+        with open(SYSCTL_FILENAME, "a+") as f:
             f.writelines(data)
 
-    def _apply(self) -> list[str] | None:
-        """Apply values to machine.
-
-        Returns:
-            none or the list of keys that failed to apply.
-        """
+    def _apply(self) -> None:
+        """Apply values to machine."""
         cmd = ["-p", self.charm_filepath]
         result = self._sysctl(cmd)
         expr = re.compile(r'^sysctl: permission denied on key \"([a-z_\.]+)\", ignoring$')
         failed_values = [expr.match(line) for line in result if expr.match(line)]
+        logger.debug(f"Failed values: {failed_values}")
 
         if failed_values:
             msg = f"Unable to set params: {[f.group(1) for f in failed_values]}"
