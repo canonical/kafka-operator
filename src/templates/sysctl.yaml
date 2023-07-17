@@ -9,3 +9,6 @@ testing:
     value: 5
   net.ipv4.tcp_max_syn_backlog:
     value: 4096
+production:
+  net.ipv4.tcp_max_syn_backlog:
+    value: 4096

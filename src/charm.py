@@ -12,12 +12,7 @@ from typing import MutableMapping, Optional
 import yaml
 from charms.data_platform_libs.v0.data_models import TypedCharmBase
 from charms.grafana_agent.v0.cos_agent import COSAgentProvider
-from charms.operator_libs_linux.v0.sysctl import (
-    SysctlConfig,
-    SysctlError,
-    SysctlPermissionError,
-    ValidationError,
-)
+from charms.operator_libs_linux.v0 import sysctl
 from charms.operator_libs_linux.v1.snap import SnapError
 from charms.rolling_ops.v0.rollingops import RollingOpsManager, RunWithLock
 from ops.charm import (
@@ -74,7 +69,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.name = CHARM_KEY
         self.snap = KafkaSnap()
         self.kafka_config = KafkaConfig(self)
-        self.sysctl_config = SysctlConfig(name=CHARM_KEY)
+        self.sysctl_config = sysctl.Config(name=CHARM_KEY)
         self.tls = KafkaTLS(self)
         self.provider = KafkaProvider(self)
         self.health = KafkaHealth(self)
@@ -84,6 +79,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.framework.observe(getattr(self.on, "install"), self._on_install)
         self.framework.observe(getattr(self.on, "config_changed"), self._on_config_changed)
         self.framework.observe(getattr(self.on, "update_status"), self._on_update_status)
+        self.framework.observe(getattr(self.on, "stop"), self._on_stop)
 
         self.framework.observe(self.on[PEER].relation_changed, self._on_config_changed)
 
@@ -192,6 +188,10 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         return True
 
+    def _on_stop(self, _) -> None:
+        """Handler for stop."""
+        self.sysctl_config.remove()
+
     def _on_update_status(self, event: EventBase) -> None:
         """Handler for `update-status` events."""
         if not self.healthy:
@@ -250,10 +250,10 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         sysctl_yaml = yaml.safe_load(Path("./src/templates/sysctl.yaml").read_text())
         try:
             self.sysctl_config.update(config=sysctl_yaml["testing"])
-        except (SysctlPermissionError, ValidationError) as e:
+        except (sysctl.SysctlPermissionError, sysctl.ValidationError) as e:
             logger.error(f"Error setting values on sysctl: {e.message}")
             self._set_status(Status.SYSCONF_NOT_POSSIBLE)
-        except SysctlError:
+        except sysctl.SysctlError:
             logger.error("Error on sysctl")
 
         if self.snap.install():
@@ -340,6 +340,16 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         if not self.healthy:
             event.defer()
             return
+
+        # SYSCTL EXAMPLE
+        sysctl_yaml = yaml.safe_load(Path("./src/templates/sysctl.yaml").read_text())
+        try:
+            self.sysctl_config.update(config=sysctl_yaml[self.config.profile])
+        except (SysctlPermissionError, ValidationError) as e:
+            logger.error(f"Error setting values on sysctl: {e.message}")
+            self._set_status(Status.SYSCONF_NOT_POSSIBLE)
+        except SysctlError:
+            logger.error("Error on sysctl")
 
         # Load current properties set in the charm workload
         properties = safe_get_file(self.kafka_config.server_properties_filepath)
