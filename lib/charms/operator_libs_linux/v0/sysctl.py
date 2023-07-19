@@ -273,7 +273,7 @@ class Config(Dict):
         """Parse a config passed to the lib."""
         result = {}
         for key, value in config.items():
-            result[key] = value["value"]
+            result[key] = str(value["value"])
         self._desired_config: Dict[str, str] = result
 
     def _load_data(self) -> Dict[str, str]:
