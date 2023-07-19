@@ -14,6 +14,18 @@
 
 """Handler for the sysctl config.
 
+This library allows your charm to create and update sysctl config options to the machine.
+
+Validation and merge capabilities are added, for situations where more than one application
+are setting values. The following files can be created:
+
+- /etc/sysctl.d/90-juju-<app-name>
+    Requirements from one application requesting to update the values.
+
+- /etc/sysctl.d/95-juju-sysctl.conf
+    Merged file resulting from all other `90-juju-*` application files.
+
+
 A charm using the sysctl lib will need a data structure like the following:
 ```yaml
 vm.swappiness:
@@ -56,6 +68,7 @@ class MyCharm(CharmBase):
 
     def _on_remove(self, _):
         self.sysctl.remove()
+```
 """
 
 import logging
@@ -135,7 +148,7 @@ class Config(Dict):
         """Iterate over config."""
         return iter(self._data)
 
-    def __getitem__(self, key: str) -> int:
+    def __getitem__(self, key: str) -> str:
         """Get value for key form config."""
         return self._data[key]
 
@@ -155,8 +168,7 @@ class Config(Dict):
         """
         self._parse_config(config)
 
-        # NOTE: case where own charm calls update() more than once. Remove first so
-        # we don't get validation errors.
+        # NOTE: case where own charm calls update() more than once.
         if self.charm_filepath.exists():
             self._merge(add_own_charm=False)
 
@@ -184,7 +196,7 @@ class Config(Dict):
     def _validate(self) -> List[str]:
         """Validate the desired config params against merged ones."""
         common_keys = set(self._data.keys()) & set(self._desired_config.keys())
-        confict_keys = []
+        conflict_keys = []
         for key in common_keys:
             if self._data[key] != self._desired_config[key]:
                 logger.warning(
@@ -193,9 +205,9 @@ class Config(Dict):
                     self._data[key],
                     self._desired_config[key],
                 )
-                confict_keys.append(key)
+                conflict_keys.append(key)
 
-        return confict_keys
+        return conflict_keys
 
     def _create_charm_file(self) -> None:
         """Write the charm file."""
@@ -237,11 +249,11 @@ class Config(Dict):
             logger.error(msg)
             raise SysctlPermissionError(msg)
 
-    def _create_snapshot(self) -> Dict[str, int]:
+    def _create_snapshot(self) -> Dict[str, str]:
         """Create a snaphot of config options that are going to be set."""
-        return {key: int(self._sysctl([key, "-n"])[0]) for key in self._desired_config.keys()}
+        return {key: self._sysctl([key, "-n"])[0] for key in self._desired_config.keys()}
 
-    def _restore_snapshot(self, snapshot: Dict[str, int]) -> None:
+    def _restore_snapshot(self, snapshot: Dict[str, str]) -> None:
         """Restore a snapshot to the machine."""
         values = [f"{key}={value}" for key, value in snapshot.items()]
         self._sysctl(values)
@@ -261,10 +273,10 @@ class Config(Dict):
         """Parse a config passed to the lib."""
         result = {}
         for key, value in config.items():
-            result[key] = int(value["value"])
-        self._desired_config: Dict[str, int] = result
+            result[key] = value["value"]
+        self._desired_config: Dict[str, str] = result
 
-    def _load_data(self) -> Dict[str, int]:
+    def _load_data(self) -> Dict[str, str]:
         """Get merged config."""
         config = {}
         if not SYSCTL_FILENAME.exists():
@@ -276,10 +288,10 @@ class Config(Dict):
 
         return config
 
-    def _parse_line(self, line: str) -> Dict[str, int]:
+    def _parse_line(self, line: str) -> Dict[str, str]:
         """Parse a line from juju-sysctl.conf file."""
         if line.startswith("#") or line == "\n":
             return {}
 
         param, value = line.split("=")
-        return {param.strip(): int(value.strip())}
+        return {param.strip(): value.strip()}
