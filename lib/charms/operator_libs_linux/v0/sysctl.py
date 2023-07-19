@@ -158,7 +158,7 @@ class Config(Dict):
         # NOTE: case where own charm calls update() more than once. Remove first so
         # we don't get validation errors.
         if self.charm_filepath.exists():
-            self.remove()
+            self._merge(add_own_charm=False)
 
         conflict = self._validate()
         if conflict:
@@ -203,11 +203,19 @@ class Config(Dict):
         with open(self.charm_filepath, "w") as f:
             f.writelines(charm_params)
 
-    def _merge(self) -> None:
-        """Create the merged sysctl file."""
+    def _merge(self, add_own_charm=True) -> None:
+        """Create the merged sysctl file.
+
+        Args:
+            add_own_charm : bool, if false it will skip the charm file from the merge.
+        """
         # get all files that start by 90-juju-
         data = [SYSCTL_HEADER]
-        for path in SYSCTL_DIRECTORY.glob(f"{CHARM_FILENAME_PREFIX}*"):
+        paths = set(SYSCTL_DIRECTORY.glob(f"{CHARM_FILENAME_PREFIX}*"))
+        if not add_own_charm:
+            paths.discard(self.charm_filepath.as_posix())
+
+        for path in paths:
             with open(path, "r") as f:
                 data += f.readlines()
         with open(SYSCTL_FILENAME, "w") as f:
