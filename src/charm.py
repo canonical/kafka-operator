@@ -31,6 +31,7 @@ from health import KafkaHealth
 from literals import (
     ADMIN_USER,
     CHARM_KEY,
+    DEPENDENCIES,
     INTERNAL_USERS,
     JMX_EXPORTER_PORT,
     LOGS_RULES_DIR,
@@ -45,6 +46,7 @@ from provider import KafkaProvider
 from snap import KafkaSnap
 from structured_config import CharmConfig
 from tls import KafkaTLS
+from upgrade import KafkaDependencyModel, KafkaUpgrade
 from utils import (
     broker_active,
     generate_password,
@@ -70,6 +72,12 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.provider = KafkaProvider(self)
         self.health = KafkaHealth(self)
         self.restart = RollingOpsManager(self, relation="restart", callback=self._restart)
+        self.upgrade = KafkaUpgrade(
+            self,
+            dependency_model=KafkaDependencyModel(
+                **DEPENDENCIES  # pyright: ignore[reportGeneralTypeIssues]
+            ),
+        )
 
         self.framework.observe(getattr(self.on, "start"), self._on_start)
         self.framework.observe(getattr(self.on, "install"), self._on_install)
@@ -185,7 +193,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
     def _on_update_status(self, event: EventBase) -> None:
         """Handler for `update-status` events."""
-        if not self.healthy:
+        if not self.healthy or not self.upgrade.idle:
             return
 
         # NOTE: integration with kafka-broker-rack-awareness charm.
@@ -319,7 +327,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
     def _on_config_changed(self, event: EventBase) -> None:
         """Generic handler for most `config_changed` events across relations."""
         # only overwrite properties if service is already active
-        if not self.healthy:
+        if not self.healthy or not self.upgrade.idle:
             event.defer()
             return
 

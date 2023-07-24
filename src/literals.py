@@ -88,3 +88,13 @@ class Status(Enum):
         ActiveStatus("machine system settings are not optimal - see logs for info"),
         "WARNING",
     )
+
+
+DEPENDENCIES = {
+    "service": {
+        "dependencies": {},
+        "name": "kafka",
+        "upgrade_supported": ">3",
+        "version": "3.3",
+    },
+}

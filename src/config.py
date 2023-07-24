@@ -512,6 +512,7 @@ class KafkaConfig:
                 f"listeners={','.join(listeners_repr)}",
                 f"advertised.listeners={','.join(advertised_listeners)}",
                 f"inter.broker.listener.name={self.internal_listener.name}",
+                f"inter.broker.protocol.version={self.charm.upgrade.current_version}",
             ]
             + self.config_properties
             + self.scram_properties
