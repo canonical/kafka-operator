@@ -30,7 +30,7 @@ authors = [""]
 
 [tool.poetry.dependencies]
 python = ">=3.8"
-ops = ">=2.0.0"
+ops = ">=2.4.1"
 kazoo = ">=2.8.0"
 
 # The cosl dep could be removed from here once PYDEPS is released:
@@ -42,6 +42,7 @@ pure-sasl = ">=0.6.2"
 jsonschema = ">=4.10"
 cryptography = "^39.0.0"
 pydantic =">=1.10"
+pyyaml = "^6.0.1"
 
 [tool.poetry.group.fmt]
 optional = true
