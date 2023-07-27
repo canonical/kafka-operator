@@ -586,10 +586,7 @@ class DataRequires(Object, ABC):
         else:
             return (
                 all(
-                    [
-                        self._is_resource_created_for_relation(relation)
-                        for relation in self.relations
-                    ]
+                    self._is_resource_created_for_relation(relation) for relation in self.relations
                 )
                 if self.relations
                 else False
