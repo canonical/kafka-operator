@@ -14,30 +14,27 @@
 
 """Handler for the sysctl config.
 
-This library allows your charm to create and update sysctl config options to the machine.
+This library allows your charm to create and configure sysctl options to the machine.
 
 Validation and merge capabilities are added, for situations where more than one application
 are setting values. The following files can be created:
 
 - /etc/sysctl.d/90-juju-<app-name>
-    Requirements from one application requesting to update the values.
+    Requirements from one application requesting to configure the values.
 
 - /etc/sysctl.d/95-juju-sysctl.conf
     Merged file resulting from all other `90-juju-*` application files.
 
 
 A charm using the sysctl lib will need a data structure like the following:
-```yaml
-vm.swappiness:
-  value: 1
-vm.max_map_count:
-  value: 262144
-vm.dirty_ratio:
-  value: 80
-vm.dirty_background_ratio:
-  value: 5
-net.ipv4.tcp_max_syn_backlog:
-  value: 4096
+```
+{
+"vm.swappiness": "1",
+"vm.max_map_count": "262144",
+"vm.dirty_ratio": "80",
+"vm.dirty_background_ratio": "5",
+"net.ipv4.tcp_max_syn_backlog": "4096",
+}
 ```
 
 Now, it can use that template within the charm, or just declare the values directly:
@@ -56,14 +53,14 @@ class MyCharm(CharmBase):
 
     def _on_install(self, _):
         # Altenatively, read the values from a template
-        sysctl_data = {"net.ipv4.tcp_max_syn_backlog": {"value": 4096}}
+        sysctl_data = {"net.ipv4.tcp_max_syn_backlog": "4096"}}
 
         try:
-            self.sysctl.update(config=sysctl_data)
-        except (sysctl.SysctlPermissionError, sysctl.ValidationError) as e:
+            self.sysctl.configure(config=sysctl_data)
+        except (sysctl.ApplyError, sysctl.ValidationError) as e:
             logger.error(f"Error setting values on sysctl: {e.message}")
             self.unit.status = BlockedStatus("Sysctl config not possible")
-        except sysctl.SysctlError:
+        except sysctl.CommandError:
             logger.error("Error on sysctl")
 
     def _on_remove(self, _):
@@ -87,11 +84,11 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 2
+LIBPATCH = 3
 
 CHARM_FILENAME_PREFIX = "90-juju-"
 SYSCTL_DIRECTORY = Path("/etc/sysctl.d")
-SYSCTL_FILENAME = Path(f"{SYSCTL_DIRECTORY}/95-juju-sysctl.conf")
+SYSCTL_FILENAME = SYSCTL_DIRECTORY / "95-juju-sysctl.conf"
 SYSCTL_HEADER = f"""# This config file was produced by sysctl lib v{LIBAPI}.{LIBPATCH}
 #
 # This file represents the output of the sysctl lib, which can combine multiple
@@ -102,26 +99,17 @@ SYSCTL_HEADER = f"""# This config file was produced by sysctl lib v{LIBAPI}.{LIB
 class Error(Exception):
     """Base class of most errors raised by this library."""
 
-    def __repr__(self):
-        """Represent the Error."""
-        return "<{}.{} {}>".format(type(self).__module__, type(self).__name__, self.args)
-
-    @property
-    def name(self):
-        """Return a string representation of the model plus class."""
-        return "<{}.{}>".format(type(self).__module__, type(self).__name__)
-
     @property
     def message(self):
         """Return the message passed as an argument."""
         return self.args[0]
 
 
-class SysctlError(Error):
+class CommandError(Error):
     """Raised when there's an error running sysctl command."""
 
 
-class SysctlPermissionError(Error):
+class ApplyError(Error):
     """Raised when there's an error applying values in sysctl."""
 
 
@@ -131,6 +119,8 @@ class ValidationError(Error):
 
 class Config(Dict):
     """Represents the state of the config that a charm wants to enforce."""
+
+    _apply_re = re.compile(r"sysctl: permission denied on key \"([a-z_\.]+)\", ignoring$")
 
     def __init__(self, name: str) -> None:
         self.name = name
@@ -157,18 +147,18 @@ class Config(Dict):
         """Name for resulting charm config file."""
         return SYSCTL_DIRECTORY / f"{CHARM_FILENAME_PREFIX}{self.name}"
 
-    def update(self, config: Dict[str, dict]) -> None:
-        """Update sysctl config options with a desired set of config params.
+    def configure(self, config: Dict[str, str]) -> None:
+        """Configure sysctl options with a desired set of params.
 
         Args:
-            config: dictionary with keys to update:
+            config: dictionary with keys to configure:
         ```
-        {"vm.swappiness": {"value": 10}, ...}
+        {"vm.swappiness": "10", ...}
         ```
         """
         self._parse_config(config)
 
-        # NOTE: case where own charm calls update() more than once.
+        # NOTE: case where own charm calls configure() more than once.
         if self.charm_filepath.exists():
             self._merge(add_own_charm=False)
 
@@ -180,7 +170,7 @@ class Config(Dict):
         logger.debug("Created snapshot for keys: %s", snapshot)
         try:
             self._apply()
-        except SysctlPermissionError:
+        except ApplyError:
             self._restore_snapshot(snapshot)
             raise
 
@@ -188,7 +178,11 @@ class Config(Dict):
         self._merge()
 
     def remove(self) -> None:
-        """Remove config for charm."""
+        """Remove config for charm.
+
+        The removal process won't apply any sysctl configuration. It will only merge files from
+        remaining charms.
+        """
         self.charm_filepath.unlink(missing_ok=True)
         logger.info("Charm config file %s was removed", self.charm_filepath)
         self._merge()
@@ -211,9 +205,10 @@ class Config(Dict):
 
     def _create_charm_file(self) -> None:
         """Write the charm file."""
-        charm_params = [f"{key}={value}\n" for key, value in self._desired_config.items()]
         with open(self.charm_filepath, "w") as f:
-            f.writelines(charm_params)
+            f.write(f"# {self.name}\n")
+            for key, value in self._desired_config.items():
+                f.write(f"{key}={value}\n")
 
     def _merge(self, add_own_charm=True) -> None:
         """Create the merged sysctl file.
@@ -240,18 +235,21 @@ class Config(Dict):
         """Apply values to machine."""
         cmd = [f"{key}={value}" for key, value in self._desired_config.items()]
         result = self._sysctl(cmd)
-        expr = re.compile(r"^sysctl: permission denied on key \"([a-z_\.]+)\", ignoring$")
-        failed_values = [expr.match(line) for line in result if expr.match(line)]
+        failed_values = [
+            self._apply_re.match(line) for line in result if self._apply_re.match(line)
+        ]
         logger.debug("Failed values: %s", failed_values)
 
         if failed_values:
             msg = f"Unable to set params: {[f.group(1) for f in failed_values]}"
             logger.error(msg)
-            raise SysctlPermissionError(msg)
+            raise ApplyError(msg)
 
     def _create_snapshot(self) -> Dict[str, str]:
-        """Create a snaphot of config options that are going to be set."""
-        return {key: self._sysctl([key, "-n"])[0] for key in self._desired_config.keys()}
+        """Create a snapshot of config options that are going to be set."""
+        cmd = ["-n"] + list(self._desired_config.keys())
+        values = self._sysctl(cmd)
+        return dict(zip(list(self._desired_config.keys()), values))
 
     def _restore_snapshot(self, snapshot: Dict[str, str]) -> None:
         """Restore a snapshot to the machine."""
@@ -267,14 +265,11 @@ class Config(Dict):
         except CalledProcessError as e:
             msg = f"Error executing '{cmd}': {e.stdout}"
             logger.error(msg)
-            raise SysctlError(msg)
+            raise CommandError(msg)
 
-    def _parse_config(self, config: Dict[str, dict]) -> None:
+    def _parse_config(self, config: Dict[str, str]) -> None:
         """Parse a config passed to the lib."""
-        result = {}
-        for key, value in config.items():
-            result[key] = str(value["value"])
-        self._desired_config: Dict[str, str] = result
+        self._desired_config = {k: str(v) for k, v in config.items()}
 
     def _load_data(self) -> Dict[str, str]:
         """Get merged config."""
@@ -284,14 +279,10 @@ class Config(Dict):
 
         with open(SYSCTL_FILENAME, "r") as f:
             for line in f:
-                config.update(self._parse_line(line))
+                if line.startswith(("#", ";")) or not line.strip() or "=" not in line:
+                    continue
+
+                key, _, value = line.partition("=")
+                config[key.strip()] = value.strip()
 
         return config
-
-    def _parse_line(self, line: str) -> Dict[str, str]:
-        """Parse a line from juju-sysctl.conf file."""
-        if line.startswith("#") or line == "\n":
-            return {}
-
-        param, value = line.split("=")
-        return {param.strip(): value.strip()}

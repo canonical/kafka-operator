@@ -6,10 +6,8 @@
 
 import logging
 import subprocess
-from pathlib import Path
 from typing import MutableMapping, Optional
 
-import yaml
 from charms.data_platform_libs.v0.data_models import TypedCharmBase
 from charms.grafana_agent.v0.cos_agent import COSAgentProvider
 from charms.operator_libs_linux.v0 import sysctl
@@ -38,6 +36,7 @@ from literals import (
     JMX_EXPORTER_PORT,
     LOGS_RULES_DIR,
     METRICS_RULES_DIR,
+    OS_REQUIREMENTS,
     PEER,
     REL_NAME,
     ZK,
@@ -247,16 +246,8 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
-        sysctl_yaml = yaml.safe_load(Path("./src/templates/sysctl.yaml").read_text())
-        try:
-            self.sysctl_config.update(config=sysctl_yaml["testing"])
-        except (sysctl.SysctlPermissionError, sysctl.ValidationError) as e:
-            logger.error(f"Error setting values on sysctl: {e.message}")
-            self._set_status(Status.SYSCONF_NOT_POSSIBLE)
-        except sysctl.SysctlError:
-            logger.error("Error on sysctl")
-
         if self.snap.install():
+            self._set_os_config()
             self.kafka_config.set_environment()
             self._set_status(Status.ZK_NOT_RELATED)
         else:
@@ -340,16 +331,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         if not self.healthy:
             event.defer()
             return
-
-        # SYSCTL EXAMPLE
-        sysctl_yaml = yaml.safe_load(Path("./src/templates/sysctl.yaml").read_text())
-        try:
-            self.sysctl_config.update(config=sysctl_yaml[self.config.profile])
-        except (sysctl.SysctlPermissionError, sysctl.ValidationError) as e:
-            logger.error(f"Error setting values on sysctl: {e.message}")
-            self._set_status(Status.SYSCONF_NOT_POSSIBLE)
-        except sysctl.SysctlError:
-            logger.error("Error on sysctl")
 
         # Load current properties set in the charm workload
         properties = safe_get_file(self.kafka_config.server_properties_filepath)
@@ -506,6 +487,16 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             self._update_internal_user(username=username, password=password)
 
         return credentials
+
+    def _set_os_config(self) -> None:
+        """Sets sysctl config."""
+        try:
+            self.sysctl_config.configure(OS_REQUIREMENTS)
+        except (sysctl.ApplyError, sysctl.ValidationError) as e:
+            logger.error(f"Error setting values on sysctl: {e.message}")
+            self._set_status(Status.SYSCONF_NOT_POSSIBLE)
+        except sysctl.CommandError:
+            logger.error("Error on sysctl")
 
     def get_secret(self, scope: str, key: str) -> Optional[str]:
         """Get TLS secret from the secret storage.

@@ -34,6 +34,12 @@ DebugLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
 
 JVM_MEM_MIN_GB = 1
 JVM_MEM_MAX_GB = 6
+OS_REQUIREMENTS = {
+    "vm.max_map_count": "262144",
+    "vm.swappiness": "1",
+    "vm.dirty_ratio": "80",
+    "vm.dirty_background_ratio": "5",
+}
 
 
 @dataclass
