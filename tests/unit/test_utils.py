@@ -25,6 +25,22 @@ def test_map_env_populated():
         assert len(value.split()) == 3
 
 
+def test_map_env_empty_item():
+    # we get this after reading the default /etc/environment from a stock 22.04 because of safe_get_file,
+    # see: https://github.com/verterok/zookeeper-operator/blob/fix-invalid-etc-env/src/utils.py#L44
+    example_env = [
+        'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin"',
+        "",
+    ]
+    env = map_env(env=example_env)
+
+    assert len(env) == 1
+    assert sorted(env.keys()) == sorted(["PATH"])
+
+    for value in env.values():
+        assert type(value) == str
+
+
 def test_get_env_empty():
     with patch("utils.safe_get_file", return_value=[]):
         assert not get_env()
