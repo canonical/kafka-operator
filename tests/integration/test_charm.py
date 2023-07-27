@@ -66,8 +66,8 @@ async def test_build_and_deploy_same_machine(ops_test: OpsTest, kafka_charm):
         assert ops_test.model.applications[SAME_KAFKA].status == "active"
 
     await asyncio.gather(
-        ops_test.model.applications[SAME_KAFKA].remove(force=True, no_wait=True),
-        ops_test.model.applications[SAME_ZK].remove(force=True, no_wait=True),
+        ops_test.model.applications[SAME_KAFKA].destroy(),
+        ops_test.model.applications[SAME_ZK].destroy(),
     )
     await ops_test.model.machines[machine_ids[0]].destroy()
 
