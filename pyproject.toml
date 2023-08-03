@@ -30,7 +30,7 @@ authors = [""]
 
 [tool.poetry.dependencies]
 python = ">=3.8"
-ops = ">=2.0.0"
+ops = ">=2.4.1"
 kazoo = ">=2.8.0"
 
 # The cosl dep could be removed from here once PYDEPS is released:
@@ -41,7 +41,8 @@ tenacity = ">=8.0.1"
 pure-sasl = ">=0.6.2"
 jsonschema = ">=4.10"
 cryptography = "^39.0.0"
-pydantic =">=1.10"
+pydantic ="^1.10.7"
+pyyaml = "^6.0.1"
 
 [tool.poetry.group.fmt]
 optional = true
@@ -72,7 +73,7 @@ optional = true
 
 [tool.poetry.group.integration.dependencies]
 pytest = ">=7.2"
-juju = "<3.1"  # The latest python-libjuju that supports both juju 2.9 and 3.0
+juju = "^2.9.44"  # The latest python-libjuju that supports both juju 2.9 and 3.0
 coverage = {extras = ["toml"], version = ">7.0"}
 pytest-operator = ">0.20"
 kazoo = ">=2.8"

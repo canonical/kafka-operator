@@ -161,7 +161,8 @@ class KafkaTLS(Object):
                     "utf-8"
                 ),
                 subject=self.charm.unit_peer_data.get("private-address", ""),
-                **self._sans,
+                sans_ip=self._sans["sans_ip"],
+                sans_dns=self._sans["sans_dns"],
             )
             .decode()
             .strip()
@@ -264,7 +265,8 @@ class KafkaTLS(Object):
         new_csr = generate_csr(
             private_key=self.private_key.encode("utf-8"),
             subject=self.peer_relation.data[self.charm.unit].get("private-address", ""),
-            **self._sans,
+            sans_ip=self._sans["sans_ip"],
+            sans_dns=self._sans["sans_dns"],
         )
 
         self.certificates.request_certificate_renewal(
@@ -378,7 +380,8 @@ class KafkaTLS(Object):
         csr = generate_csr(
             private_key=self.private_key.encode("utf-8"),
             subject=self.peer_relation.data[self.charm.unit].get("private-address", ""),
-            **self._sans,
+            sans_ip=self._sans["sans_ip"],
+            sans_dns=self._sans["sans_dns"],
         )
         self.charm.set_secret(scope="unit", key="csr", value=csr.decode("utf-8").strip())
 
