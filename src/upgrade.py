@@ -11,9 +11,12 @@ from charms.data_platform_libs.v0.upgrade import (
     DataUpgrade,
     DependencyModel,
     UpgradeGrantedEvent,
+    verify_requirements,
 )
 from pydantic import BaseModel
 from typing_extensions import override
+
+from utils import get_zookeeper_version
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -49,6 +52,12 @@ class KafkaUpgrade(DataUpgrade):
         dependency_model: DependencyModel = getattr(self.dependency_model, "service")
         return dependency_model.version
 
+    @property
+    def zookeeper_current_version(self) -> str:
+        """Get current Zookeeper version."""
+        version = get_zookeeper_version(zookeeper_config=self.charm.kafka_config.zookeeper_config)
+        return version.split("-")[0]  # Remove build information from version
+
     @override
     def pre_upgrade_check(self) -> None:
         default_message = "Pre-upgrade check failed and cannot safely upgrade"
@@ -70,6 +79,15 @@ class KafkaUpgrade(DataUpgrade):
 
     @override
     def _on_upgrade_granted(self, event: UpgradeGrantedEvent) -> None:
+        dependency_model: DependencyModel = getattr(self.dependency_model, "service")
+        if not verify_requirements(
+            version=self.zookeeper_current_version,
+            requirement=dependency_model.dependencies["zookeeper"],
+        ):
+            logger.error("ZooKeeper requirement not met")
+            self.set_unit_failed()
+            return
+
         self.charm.snap.stop_snap_service()
 
         if not self.charm.snap.install():

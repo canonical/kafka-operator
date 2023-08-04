@@ -399,6 +399,24 @@ class ZooKeeperManager:
         ) as zk:
             zk.delete_znode(path=path)
 
+    def get_version(self) -> str:
+        """Get ZooKeeper version.
+
+        Version will have a similar format to
+            3.6.4--d65253dcf68e9097c6e95a126463fd5fdeb4521c, built on 12/18/2022 18:10 GMT
+        """
+        with ZooKeeperClient(
+            host=self.leader,
+            client_port=self.client_port,
+            username=self.username,
+            password=self.password,
+            use_ssl=self.use_ssl,
+            keyfile_path=self.keyfile_path,
+            keyfile_password=self.keyfile_password,
+            certfile_path=self.certfile_path,
+        ) as zk:
+            return zk.srvr["Zookeeper version"]
+
 
 class ZooKeeperClient:
     """Handler for ZooKeeper connections and running 4lw client commands."""

@@ -13,7 +13,7 @@ from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, StatusBase
 
 CHARM_KEY = "kafka"
 SNAP_NAME = "charmed-kafka"
-CHARMED_KAFKA_SNAP_REVISION = 16
+CHARMED_KAFKA_SNAP_REVISION = 17
 
 PEER = "cluster"
 ZK = "zookeeper"
@@ -92,7 +92,7 @@ class Status(Enum):
 
 DEPENDENCIES = {
     "service": {
-        "dependencies": {},
+        "dependencies": {"zookeeper": ">3"},
         "name": "kafka",
         "upgrade_supported": ">3",
         "version": "3.3",
