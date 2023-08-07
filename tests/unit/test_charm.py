@@ -158,6 +158,7 @@ def test_update_status_blocks_if_broker_not_active(harness, zk_data, passwords_d
     with (
         patch("snap.KafkaSnap.active", return_value=True),
         patch("charm.broker_active", return_value=False) as patched_broker_active,
+        patch("upgrade.KafkaUpgrade.idle", return_value=True),
     ):
         harness.charm.on.update_status.emit()
         assert patched_broker_active.call_count == 1
@@ -178,6 +179,7 @@ def test_update_status_blocks_if_no_service(harness, zk_data, passwords_data):
         ),
         patch("charm.KafkaCharm.healthy", return_value=True),
         patch("charm.broker_active", return_value=True),
+        patch("upgrade.KafkaUpgrade.idle", return_value=True),
     ):
         harness.charm.on.update_status.emit()
         assert isinstance(harness.charm.unit.status, BlockedStatus)
@@ -194,6 +196,7 @@ def test_update_status_sets_active(harness, zk_data, passwords_data):
         patch("snap.KafkaSnap.active", return_value=True),
         patch("charm.broker_active", return_value=True),
         patch("health.KafkaHealth.machine_configured", return_value=True),
+        patch("upgrade.KafkaUpgrade.idle", return_value=True),
     ):
         harness.charm.on.update_status.emit()
         assert isinstance(harness.charm.unit.status, ActiveStatus)
@@ -256,6 +259,7 @@ def test_storage_add_disableenables_and_starts(harness, zk_data, passwords_data)
     with (
         patch("snap.KafkaSnap.active", return_value=True),
         patch("charm.KafkaCharm.healthy", new_callable=PropertyMock(return_value=True)),
+        patch("upgrade.KafkaUpgrade.idle", return_value=True),
         patch("config.KafkaConfig.set_server_properties"),
         patch("config.KafkaConfig.set_client_properties"),
         patch("charm.safe_get_file", return_value=["gandalf=grey"]),
@@ -287,6 +291,7 @@ def test_storage_detaching_disableenables_and_starts(harness, zk_data, passwords
     with (
         patch("snap.KafkaSnap.active", return_value=True),
         patch("charm.KafkaCharm.healthy", new_callable=PropertyMock(return_value=True)),
+        patch("upgrade.KafkaUpgrade.idle", return_value=True),
         patch("config.KafkaConfig.set_server_properties"),
         patch("config.KafkaConfig.set_client_properties"),
         patch("charm.safe_get_file", return_value=["gandalf=grey"]),
@@ -515,6 +520,7 @@ def test_config_changed_updates_server_properties(harness):
         ),
         patch("charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=True),
         patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
+        patch("upgrade.KafkaUpgrade.idle", return_value=True),
         patch("charm.safe_get_file", return_value=["gandalf=grey"]),
         patch("config.KafkaConfig.set_server_properties") as set_server_properties,
         patch("config.KafkaConfig.set_client_properties"),
@@ -542,6 +548,7 @@ def test_config_changed_updates_client_properties(harness):
         ),
         patch("charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=True),
         patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
+        patch("upgrade.KafkaUpgrade.idle", return_value=True),
         patch("charm.safe_get_file", return_value=["gandalf=grey"]),
         patch("config.KafkaConfig.set_server_properties"),
         patch("config.KafkaConfig.set_client_properties") as set_client_properties,
@@ -564,9 +571,10 @@ def test_config_changed_updates_client_data(harness):
             return_value=["gandalf=white"],
         ),
         patch("charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=True),
+        patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
+        patch("upgrade.KafkaUpgrade.idle", return_value=True),
         patch("charm.safe_get_file", return_value=["gandalf=white"]),
         patch("provider.KafkaProvider.update_connection_info") as patched_update_connection_info,
-        patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
         patch("config.KafkaConfig.set_client_properties") as patched_set_client_properties,
     ):
         harness.set_leader(True)
@@ -591,13 +599,14 @@ def test_config_changed_restarts(harness):
             return_value=["gandalf=grey"],
         ),
         patch("charm.KafkaCharm.ready_to_start", new_callable=PropertyMock, return_value=True),
+        patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
         patch("charm.safe_get_file", return_value=["gandalf=white"]),
+        patch("upgrade.KafkaUpgrade.idle", return_value=True),
         patch("config.safe_write_to_file", return_value=None),
         patch("snap.KafkaSnap.restart_snap_service") as patched_restart_snap_service,
         patch("charm.broker_active", return_value=True),
         patch("config.KafkaConfig.zookeeper_connected", return_value=True),
         patch("auth.KafkaAuth.add_user"),
-        patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
         patch("config.KafkaConfig.set_zk_jaas_config"),
         patch("config.KafkaConfig.set_server_properties"),
     ):
