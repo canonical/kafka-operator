@@ -34,6 +34,12 @@ DebugLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
 
 JVM_MEM_MIN_GB = 1
 JVM_MEM_MAX_GB = 6
+OS_REQUIREMENTS = {
+    "vm.max_map_count": "262144",
+    "vm.swappiness": "1",
+    "vm.dirty_ratio": "80",
+    "vm.dirty_background_ratio": "5",
+}
 
 
 @dataclass
@@ -86,6 +92,10 @@ class Status(Enum):
     NO_CERT = StatusLevel(WaitingStatus("unit waiting for signed certificates"), "INFO")
     SYSCONF_NOT_OPTIMAL = StatusLevel(
         ActiveStatus("machine system settings are not optimal - see logs for info"),
+        "WARNING",
+    )
+    SYSCONF_NOT_POSSIBLE = StatusLevel(
+        BlockedStatus("sysctl params cannot be set. Is the machine running on a container?"),
         "WARNING",
     )
 
