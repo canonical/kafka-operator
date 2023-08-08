@@ -492,11 +492,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         """Sets sysctl config."""
         try:
             self.sysctl_config.configure(OS_REQUIREMENTS)
-        except (sysctl.ApplyError, sysctl.ValidationError) as e:
+        except (sysctl.ApplyError, sysctl.ValidationError, sysctl.CommandError) as e:
             logger.error(f"Error setting values on sysctl: {e.message}")
             self._set_status(Status.SYSCONF_NOT_POSSIBLE)
-        except sysctl.CommandError:
-            logger.error("Error on sysctl")
 
     def get_secret(self, scope: str, key: str) -> Optional[str]:
         """Get TLS secret from the secret storage.
