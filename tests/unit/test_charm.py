@@ -8,12 +8,13 @@ from unittest.mock import PropertyMock, patch
 
 import pytest
 import yaml
+from charms.operator_libs_linux.v0.sysctl import ApplyError
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 from ops.testing import Harness
 from tenacity.wait import wait_none
 
 from charm import KafkaCharm
-from literals import CHARM_KEY, INTERNAL_USERS, PEER, REL_NAME, ZK
+from literals import CHARM_KEY, INTERNAL_USERS, OS_REQUIREMENTS, PEER, REL_NAME, ZK
 
 logger = logging.getLogger(__name__)
 
@@ -306,6 +307,7 @@ def test_install_sets_env_vars(harness):
     with (
         patch("snap.KafkaSnap.install"),
         patch("config.KafkaConfig.set_environment") as patched_kafka_opts,
+        patch("charm.sysctl.Config.configure"),
     ):
         harness.charm.on.install.emit()
 
@@ -317,6 +319,7 @@ def test_install_waits_until_zookeeper_relation(harness):
     with (
         patch("snap.KafkaSnap.install"),
         patch("config.KafkaConfig.set_environment"),
+        patch("charm.sysctl.Config.configure"),
     ):
         harness.charm.on.install.emit()
         assert isinstance(harness.charm.unit.status, BlockedStatus)
@@ -327,8 +330,32 @@ def test_install_blocks_snap_install_failure(harness):
     with (
         patch("snap.KafkaSnap.install", return_value=False),
         patch("config.KafkaConfig.set_environment"),
+        patch("charm.sysctl.Config.configure"),
     ):
         harness.charm.on.install.emit()
+        assert isinstance(harness.charm.unit.status, BlockedStatus)
+
+
+def test_install_configures_os(harness):
+    with (
+        patch("snap.KafkaSnap.install"),
+        patch("config.KafkaConfig.set_environment"),
+        patch("charm.sysctl.Config.configure") as patched_os_config,
+    ):
+        harness.charm.on.install.emit()
+
+        patched_os_config.assert_called_once_with(OS_REQUIREMENTS)
+
+
+def test_install_sets_status_if_os_config_fails(harness):
+    with (
+        patch("snap.KafkaSnap.install"),
+        patch("config.KafkaConfig.set_environment"),
+        patch("charm.sysctl.Config.configure") as patched_os_config,
+    ):
+        patched_os_config.side_effect = ApplyError("Error setting values")
+        harness.charm.on.install.emit()
+
         assert isinstance(harness.charm.unit.status, BlockedStatus)
 
 

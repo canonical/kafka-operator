@@ -10,6 +10,7 @@ from typing import MutableMapping, Optional
 
 from charms.data_platform_libs.v0.data_models import TypedCharmBase
 from charms.grafana_agent.v0.cos_agent import COSAgentProvider
+from charms.operator_libs_linux.v0 import sysctl
 from charms.operator_libs_linux.v1.snap import SnapError
 from charms.rolling_ops.v0.rollingops import RollingOpsManager, RunWithLock
 from ops.charm import (
@@ -35,6 +36,7 @@ from literals import (
     JMX_EXPORTER_PORT,
     LOGS_RULES_DIR,
     METRICS_RULES_DIR,
+    OS_REQUIREMENTS,
     PEER,
     REL_NAME,
     ZK,
@@ -66,6 +68,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.name = CHARM_KEY
         self.snap = KafkaSnap()
         self.kafka_config = KafkaConfig(self)
+        self.sysctl_config = sysctl.Config(name=CHARM_KEY)
         self.tls = KafkaTLS(self)
         self.provider = KafkaProvider(self)
         self.health = KafkaHealth(self)
@@ -75,6 +78,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.framework.observe(getattr(self.on, "install"), self._on_install)
         self.framework.observe(getattr(self.on, "config_changed"), self._on_config_changed)
         self.framework.observe(getattr(self.on, "update_status"), self._on_update_status)
+        self.framework.observe(getattr(self.on, "remove"), self._on_remove)
 
         self.framework.observe(self.on[PEER].relation_changed, self._on_config_changed)
 
@@ -183,6 +187,10 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         return True
 
+    def _on_remove(self, _) -> None:
+        """Handler for stop."""
+        self.sysctl_config.remove()
+
     def _on_update_status(self, event: EventBase) -> None:
         """Handler for `update-status` events."""
         if not self.healthy:
@@ -239,6 +247,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
         if self.snap.install():
+            self._set_os_config()
             self.kafka_config.set_environment()
             self._set_status(Status.ZK_NOT_RELATED)
         else:
@@ -478,6 +487,14 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             self._update_internal_user(username=username, password=password)
 
         return credentials
+
+    def _set_os_config(self) -> None:
+        """Sets sysctl config."""
+        try:
+            self.sysctl_config.configure(OS_REQUIREMENTS)
+        except (sysctl.ApplyError, sysctl.ValidationError, sysctl.CommandError) as e:
+            logger.error(f"Error setting values on sysctl: {e.message}")
+            self._set_status(Status.SYSCONF_NOT_POSSIBLE)
 
     def get_secret(self, scope: str, key: str) -> Optional[str]:
         """Get TLS secret from the secret storage.
