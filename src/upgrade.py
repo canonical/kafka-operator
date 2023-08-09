@@ -55,8 +55,7 @@ class KafkaUpgrade(DataUpgrade):
     @property
     def zookeeper_current_version(self) -> str:
         """Get current Zookeeper version."""
-        version = get_zookeeper_version(zookeeper_config=self.charm.kafka_config.zookeeper_config)
-        return version.split("-")[0]  # Remove build information from version
+        return get_zookeeper_version(zookeeper_config=self.charm.kafka_config.zookeeper_config)
 
     @override
     def pre_upgrade_check(self) -> None:
