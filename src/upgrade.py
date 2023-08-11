@@ -23,6 +23,11 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+ROLLBACK_INSTRUCTIONS = """Unit failed to upgrade and requires manual rollback to previous stable version.
+    1. Re-run `pre-upgrade-check` action on the leader unit to enter 'recovery' state
+    2. Run `juju refresh` to the previously deployed charm revision
+"""
+
 
 class KafkaDependencyModel(BaseModel):
     """Model for Kafka Operator dependencies."""
@@ -57,6 +62,10 @@ class KafkaUpgrade(DataUpgrade):
         """Get current Zookeeper version."""
         return get_zookeeper_version(zookeeper_config=self.charm.kafka_config.zookeeper_config)
 
+    def post_upgrade_check(self) -> None:
+        """Runs necessary checks validating the unit is in a healthy state after upgrade."""
+        self.pre_upgrade_check()
+
     @override
     def pre_upgrade_check(self) -> None:
         default_message = "Pre-upgrade check failed and cannot safely upgrade"
@@ -74,7 +83,7 @@ class KafkaUpgrade(DataUpgrade):
 
     @override
     def log_rollback_instructions(self) -> None:
-        logger.warning("SOME USEFUL INSTRUCTIONS")  # TODO
+        logger.critical(ROLLBACK_INSTRUCTIONS)
 
     @override
     def _on_upgrade_granted(self, event: UpgradeGrantedEvent) -> None:
@@ -99,7 +108,7 @@ class KafkaUpgrade(DataUpgrade):
 
         try:
             logger.debug("Running post-upgrade check...")
-            self.pre_upgrade_check()
+            self.post_upgrade_check()
 
             logger.debug("Marking unit completed...")
             self.set_unit_completed()
