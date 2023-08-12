@@ -82,3 +82,7 @@ options:
      description: 'Profile representing the scope of deployment, and used to enable high-level customisation of sysconfigs, resource checks/allocation, warning levels, etc. Allowed values are: “production”, “staging” and “testing”'
      type: string
      default: production
+  certificate_extra_sans:
+     description: Config options to add extra-sans to the ones used when requesting server certificates. The extra-sans are specified by comma-separated rule list to be added when requesting signed certificates.
+     type: string
+     default: ""

@@ -388,11 +388,21 @@ class KafkaTLS(Object):
         self.certificates.request_certificate_creation(certificate_signing_request=csr)
 
     @property
+    def _extra_sans(self) -> List[str]:
+        """Parse the certificate_extra_sans config option."""
+        extra_sans = self.charm.config.certificate_extra_sans or ""
+        parsed_sans = []
+        for sans in extra_sans.split(","):
+            parsed_sans.append(sans.replace("{unit}", self.charm.unit.name.split("/")[1]))
+
+        return parsed_sans
+
+    @property
     def _sans(self) -> Dict[str, List[str]]:
         """Builds a SAN dict of DNS names and IPs for the unit."""
         return {
             "sans_ip": [self.charm.unit_host],
-            "sans_dns": [self.charm.unit.name, socket.getfqdn()],
+            "sans_dns": [self.charm.unit.name, socket.getfqdn()] + self._extra_sans,
         }
 
     def generate_alias(self, app_name: str, relation_id: int) -> str:
