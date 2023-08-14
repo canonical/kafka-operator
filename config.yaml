@@ -83,6 +83,6 @@ options:
      type: string
      default: production
   certificate_extra_sans:
-     description: Config options to add extra-sans to the ones used when requesting server certificates. The extra-sans are specified by comma-separated rule list to be added when requesting signed certificates.
+     description: Config options to add extra-sans to the ones used when requesting server certificates. The extra-sans are specified by comma-separated names to be added when requesting signed certificates. Use "{unit}" as a placeholder to be filled with the unit number, e.g. "worker-{unit}" will be translated as "worker-0" for unit 0 and "worker-1" for unit 1 when requesting the certificate.
      type: string
      default: ""

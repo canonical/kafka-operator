@@ -24,7 +24,7 @@ from ops.charm import (
     RelationJoinedEvent,
 )
 from ops.framework import Object
-from ops.model import ActiveStatus, BlockedStatus, Relation
+from ops.model import ActiveStatus, BlockedStatus
 
 from literals import TLS_RELATION, TRUSTED_CA_RELATION, TRUSTED_CERTIFICATE_RELATION
 from utils import (
@@ -90,10 +90,10 @@ class KafkaTLS(Object):
 
     def _tls_relation_created(self, _) -> None:
         """Handler for `certificates_relation_created` event."""
-        if not self.charm.unit.is_leader() or not self.peer_relation:
+        if not self.charm.unit.is_leader() or not self.charm.peer_relation:
             return
 
-        self.peer_relation.data[self.charm.app].update({"tls": "enabled"})
+        self.charm.app_peer_data.update({"tls": "enabled"})
 
     def _tls_relation_joined(self, _) -> None:
         """Handler for `certificates_relation_joined` event."""
@@ -238,7 +238,7 @@ class KafkaTLS(Object):
 
     def _on_certificate_available(self, event: CertificateAvailableEvent) -> None:
         """Handler for `certificates_available` event after provider updates signed certs."""
-        if not self.peer_relation:
+        if not self.charm.peer_relation:
             logger.warning("No peer relation on certificate available")
             event.defer()
             return
@@ -259,12 +259,12 @@ class KafkaTLS(Object):
 
     def _on_certificate_expiring(self, _) -> None:
         """Handler for `certificate_expiring` event."""
-        if not self.private_key or not self.csr or not self.peer_relation:
+        if not self.private_key or not self.csr or not self.charm.peer_relation:
             logger.error("Missing unit private key and/or old csr")
             return
         new_csr = generate_csr(
             private_key=self.private_key.encode("utf-8"),
-            subject=self.peer_relation.data[self.charm.unit].get("private-address", ""),
+            subject=self.charm.unit_peer_data.get("private-address", ""),
             sans_ip=self._sans["sans_ip"],
             sans_dns=self._sans["sans_dns"],
         )
@@ -287,11 +287,6 @@ class KafkaTLS(Object):
         self.charm.set_secret(scope="unit", key="private-key", value=private_key)
 
         self._on_certificate_expiring(event)
-
-    @property
-    def peer_relation(self) -> Optional[Relation]:
-        """Get the peer relation of the charm."""
-        return self.charm.peer_relation
 
     @property
     def enabled(self) -> bool:
@@ -373,13 +368,13 @@ class KafkaTLS(Object):
 
     def _request_certificate(self):
         """Generates and submits CSR to provider."""
-        if not self.private_key or not self.peer_relation:
+        if not self.private_key or not self.charm.peer_relation:
             logger.error("Can't request certificate, missing private key")
             return
 
         csr = generate_csr(
             private_key=self.private_key.encode("utf-8"),
-            subject=self.peer_relation.data[self.charm.unit].get("private-address", ""),
+            subject=self.charm.unit_peer_data.get("private-address", ""),
             sans_ip=self._sans["sans_ip"],
             sans_dns=self._sans["sans_dns"],
         )
@@ -392,6 +387,10 @@ class KafkaTLS(Object):
         """Parse the certificate_extra_sans config option."""
         extra_sans = self.charm.config.certificate_extra_sans or ""
         parsed_sans = []
+
+        if extra_sans == "":
+            return parsed_sans
+
         for sans in extra_sans.split(","):
             parsed_sans.append(sans.replace("{unit}", self.charm.unit.name.split("/")[1]))
 

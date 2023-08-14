@@ -88,12 +88,14 @@ def test_extra_sans_config(harness: Harness):
     peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
     harness.add_relation_unit(peer_relation_id, "kafka/0")
     harness.update_relation_data(peer_relation_id, "kafka/0", {"private-address": "treebeard"})
-    harness.update_config({"certificate_extra_sans": "worker{unit}.com"})
 
+    harness.update_config({"certificate_extra_sans": ""})
+    assert harness.charm.tls._extra_sans == []
+
+    harness.update_config({"certificate_extra_sans": "worker{unit}.com"})
     assert harness.charm.tls._extra_sans == ["worker0.com"]
 
     harness.update_config({"certificate_extra_sans": "worker{unit}.com,{unit}.example"})
-
     assert harness.charm.tls._extra_sans == ["worker0.com", "0.example"]
 
 
