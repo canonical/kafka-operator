@@ -32,7 +32,7 @@ ROLLBACK_INSTRUCTIONS = """Unit failed to upgrade and requires manual rollback t
 class KafkaDependencyModel(BaseModel):
     """Model for Kafka Operator dependencies."""
 
-    service: DependencyModel
+    kafka_service: DependencyModel
 
 
 class KafkaUpgrade(DataUpgrade):
@@ -43,18 +43,9 @@ class KafkaUpgrade(DataUpgrade):
         self.charm = charm
 
     @property
-    def idle(self) -> bool:
-        """Checks if cluster state is idle.
-
-        Returns:
-            True if cluster state is idle. Otherwise False
-        """
-        return self.cluster_state == "idle"
-
-    @property
     def current_version(self) -> str:
         """Get current Kafka version."""
-        dependency_model: DependencyModel = getattr(self.dependency_model, "service")
+        dependency_model: DependencyModel = getattr(self.dependency_model, "kafka_service")
         return dependency_model.version
 
     @property
@@ -87,12 +78,16 @@ class KafkaUpgrade(DataUpgrade):
 
     @override
     def _on_upgrade_granted(self, event: UpgradeGrantedEvent) -> None:
-        dependency_model: DependencyModel = getattr(self.dependency_model, "service")
+        dependency_model: DependencyModel = getattr(self.dependency_model, "kafka_service")
         if not verify_requirements(
             version=self.zookeeper_current_version,
             requirement=dependency_model.dependencies["zookeeper"],
         ):
-            logger.error("ZooKeeper requirement not met")
+            logger.error(
+                "Current ZooKeeper version %s does not meet requirement %s",
+                self.zookeeper_current_version,
+                dependency_model.dependencies["zookeeper"],
+            )
             self.set_unit_failed()
             return
 
