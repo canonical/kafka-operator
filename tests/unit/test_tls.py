@@ -2,6 +2,7 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import socket
 from pathlib import Path
 
 import pytest
@@ -80,3 +81,33 @@ def test_mtls_flag_added(harness: Harness):
     peer_relation_data = harness.get_relation_data(peer_relation_id, "kafka")
     assert peer_relation_data.get("mtls", "disabled") == "enabled"
     assert isinstance(harness.charm.app.status, ActiveStatus)
+
+
+def test_extra_sans_config(harness: Harness):
+    # Create peer relation
+    peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
+    harness.add_relation_unit(peer_relation_id, "kafka/0")
+    harness.update_relation_data(peer_relation_id, "kafka/0", {"private-address": "treebeard"})
+
+    harness.update_config({"certificate_extra_sans": ""})
+    assert harness.charm.tls._extra_sans == []
+
+    harness.update_config({"certificate_extra_sans": "worker{unit}.com"})
+    assert harness.charm.tls._extra_sans == ["worker0.com"]
+
+    harness.update_config({"certificate_extra_sans": "worker{unit}.com,{unit}.example"})
+    assert harness.charm.tls._extra_sans == ["worker0.com", "0.example"]
+
+
+def test_sans(harness: Harness):
+    # Create peer relation
+    peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
+    harness.add_relation_unit(peer_relation_id, "kafka/0")
+    harness.update_relation_data(peer_relation_id, "kafka/0", {"private-address": "treebeard"})
+    harness.update_config({"certificate_extra_sans": "worker{unit}.com"})
+
+    sock_dns = socket.getfqdn()
+    assert harness.charm.tls._sans == {
+        "sans_ip": ["treebeard"],
+        "sans_dns": ["kafka/0", sock_dns, "worker0.com"],
+    }
