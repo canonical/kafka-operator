@@ -262,6 +262,17 @@ def produce_and_check_logs(
         message = f"Message #{i}"
         client.produce_message(topic_name=topic, message_content=message)
 
+    check_logs(model_full_name, kafka_unit_name, topic)
+
+
+def check_logs(model_full_name: str, kafka_unit_name: str, topic: str) -> None:
+    """Checks if messages for a topic have been produced.
+
+    Args:
+        model_full_name: the full name of the model
+        kafka_unit_name: the kafka unit to checks logs on
+        topic: the desired topic to check
+    """
     logs = check_output(
         f"JUJU_MODEL={model_full_name} juju ssh {kafka_unit_name} sudo -i 'find {KafkaSnap.DATA_PATH}/data'",
         stderr=PIPE,
