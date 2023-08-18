@@ -454,6 +454,18 @@ class KafkaConfig:
         )
 
     @property
+    def inter_broker_protocol_version(self) -> str:
+        """Creates the protocol version from the kafka version.
+
+        Returns:
+            string with the `major.minor` version
+        """
+        # Remove patch number from full vervion.
+        major_minor = self.charm.upgrade.current_version.split(".", maxsplit=2)
+        major_minor.pop()
+        return ".".join(major_minor)
+
+    @property
     def rack_properties(self) -> List[str]:
         """Builds all properties related to rack awareness configuration.
 
@@ -512,7 +524,7 @@ class KafkaConfig:
                 f"listeners={','.join(listeners_repr)}",
                 f"advertised.listeners={','.join(advertised_listeners)}",
                 f"inter.broker.listener.name={self.internal_listener.name}",
-                f"inter.broker.protocol.version={self.charm.upgrade.current_version}",
+                f"inter.broker.protocol.version={self.inter_broker_protocol_version}",
             ]
             + self.config_properties
             + self.scram_properties
