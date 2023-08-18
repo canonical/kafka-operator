@@ -458,7 +458,7 @@ class KafkaConfig:
         """Creates the protocol version from the kafka version.
 
         Returns:
-            string with the `major.minor` version
+            String with the `major.minor` version
         """
         # Remove patch number from full vervion.
         major_minor = self.charm.upgrade.current_version.split(".", maxsplit=2)
