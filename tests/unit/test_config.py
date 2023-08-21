@@ -13,6 +13,7 @@ from charm import KafkaCharm
 from literals import (
     ADMIN_USER,
     CHARM_KEY,
+    DEPENDENCIES,
     INTER_BROKER_USER,
     INTERNAL_USERS,
     JMX_EXPORTER_PORT,
@@ -400,6 +401,27 @@ def test_rack_properties(harness: Harness):
         )
     ):
         assert "broker.rack=gondor-west" in harness.charm.kafka_config.server_properties
+
+
+def test_inter_broker_protocol_version(harness):
+    """Checks that rack properties are added to server properties."""
+    harness.add_relation(PEER, CHARM_KEY)
+    zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
+    harness.update_relation_data(
+        zk_relation_id,
+        harness.charm.app.name,
+        {
+            "chroot": "/kafka",
+            "username": "moria",
+            "password": "mellon",
+            "endpoints": "1.1.1.1,2.2.2.2",
+            "uris": "1.1.1.1:2181/kafka,2.2.2.2:2181/kafka",
+            "tls": "disabled",
+        },
+    )
+    assert len(DEPENDENCIES["kafka_service"]["version"].split(".")) == 3
+
+    assert "inter.broker.protocol.version=3.3" in harness.charm.kafka_config.server_properties
 
 
 def test_super_users(harness):

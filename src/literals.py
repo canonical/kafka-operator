@@ -98,3 +98,13 @@ class Status(Enum):
         BlockedStatus("sysctl params cannot be set. Is the machine running on a container?"),
         "WARNING",
     )
+
+
+DEPENDENCIES = {
+    "kafka_service": {
+        "dependencies": {"zookeeper": "~3.6"},
+        "name": "kafka",
+        "upgrade_supported": ">3",
+        "version": "3.3.2",
+    },
+}

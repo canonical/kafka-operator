@@ -74,6 +74,24 @@ def get_active_brokers(zookeeper_config: Dict[str, str]) -> Set[str]:
     return brokers
 
 
+def get_zookeeper_version(zookeeper_config: Dict[str, str]) -> str:
+    """Get running zookeeper version.
+
+    Args:
+        zookeeper_config: the relation provided by ZooKeeper
+
+    Returns:
+        zookeeper version
+    """
+    hosts = zookeeper_config.get("endpoints", "").split(",")
+    username = zookeeper_config.get("username", "")
+    password = zookeeper_config.get("password", "")
+
+    zk = ZooKeeperManager(hosts=hosts, username=username, password=password)
+
+    return zk.get_version()
+
+
 def safe_get_file(filepath: str) -> Optional[List[str]]:
     """Load file contents from charm workload.
 

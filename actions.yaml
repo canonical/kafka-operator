@@ -30,3 +30,6 @@ get-admin-credentials:
   description: Get administrator authentication credentials for client commands
     The returned client_properties can be used for Kafka bin commands using `--bootstrap-server` and `--command-config` for admin level administration
     This action must be called on the leader unit.
+
+pre-upgrade-check:
+  description: Run necessary pre-upgrade checks before executing a charm upgrade.

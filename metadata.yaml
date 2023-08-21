@@ -19,6 +19,8 @@ peers:
     interface: cluster
   restart:
     interface: rolling_op
+  upgrade:
+    interface: upgrade
 
 requires:
   zookeeper:
