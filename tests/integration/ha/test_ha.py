@@ -6,8 +6,6 @@ import asyncio
 import logging
 
 import pytest
-from pytest_operator.plugin import OpsTest
-
 from helpers import (
     APP_NAME,
     REL_NAME_ADMIN,
@@ -15,6 +13,7 @@ from helpers import (
     check_logs,
     produce_and_check_logs,
 )
+from pytest_operator.plugin import OpsTest
 
 logger = logging.getLogger(__name__)
 
