@@ -8,7 +8,7 @@ import logging
 import pytest
 from pytest_operator.plugin import OpsTest
 
-from .helpers import (
+from helpers import (
     APP_NAME,
     REL_NAME_ADMIN,
     ZK_NAME,
