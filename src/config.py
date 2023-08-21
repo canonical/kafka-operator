@@ -462,8 +462,7 @@ class KafkaConfig:
         """
         # Remove patch number from full vervion.
         major_minor = self.charm.upgrade.current_version.split(".", maxsplit=2)
-        major_minor.pop()
-        return ".".join(major_minor)
+        return ".".join(major_minor[:2])
 
     @property
     def rack_properties(self) -> List[str]:
