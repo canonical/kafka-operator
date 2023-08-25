@@ -96,7 +96,7 @@ jobs:
       fail-fast: false
       matrix:
         tox-environments:
-          - integration-ha-ha
+          - integration-ha-replication
     name: ${{ matrix.tox-environments }}
     needs:
       - lint

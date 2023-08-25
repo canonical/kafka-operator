@@ -2,6 +2,7 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 import logging
+import re
 from pathlib import Path
 from subprocess import PIPE, check_output
 from typing import Any, Dict
@@ -9,6 +10,7 @@ from typing import Any, Dict
 import yaml
 from charms.kafka.v0.client import KafkaClient
 from kafka.admin import NewTopic
+from pytest_operator.plugin import OpsTest
 
 from snap import KafkaSnap
 
@@ -16,8 +18,61 @@ METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 APP_NAME = METADATA["name"]
 ZK_NAME = "zookeeper"
 REL_NAME_ADMIN = "kafka-client-admin"
+TEST_APP = "kafka-test-app"
+
+PROCESS = "kafka.Kafka"
 
 logger = logging.getLogger(__name__)
+
+
+def get_kafka_zk_relation_data(unit_name: str, model_full_name: str) -> Dict[str, str]:
+    result = show_unit(unit_name=unit_name, model_full_name=model_full_name)
+    relations_info = result[unit_name]["relation-info"]
+
+    zk_relation_data = {}
+    for info in relations_info:
+        if info["endpoint"] == "zookeeper":
+            zk_relation_data["chroot"] = info["application-data"]["chroot"]
+            zk_relation_data["endpoints"] = info["application-data"]["endpoints"]
+            zk_relation_data["password"] = info["application-data"]["password"]
+            zk_relation_data["uris"] = info["application-data"]["uris"]
+            zk_relation_data["username"] = info["application-data"]["username"]
+            zk_relation_data["tls"] = info["application-data"]["tls"]
+    return zk_relation_data
+
+
+def get_topic_leader(model_full_name: str, zookeeper_uri: str, topic: str) -> int:
+    """Get the broker with the topic leader.
+
+    Args:
+        model_full_name: the full name of the model
+        zookeeper_uri: uri from zookeeper
+        topic: the desired topic to check
+    """
+    result = check_output(
+        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.topics --describe --zookeeper {zookeeper_uri} --describe --topic {topic}'",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+
+    return re.search(r"Leader: (\d+)", result)[1]
+
+
+async def kill_unit_process(
+    ops_test: OpsTest, unit_name: str, kill_code: str, app_name: str = APP_NAME
+) -> None:
+    if len(ops_test.model.applications[app_name].units) < 2:
+        await ops_test.model.applications[app_name].add_unit(count=1)
+        await ops_test.model.wait_for_idle(apps=[app_name], status="active", timeout=1000)
+
+    kill_cmd = f"run --unit {unit_name} -- pkill --signal {kill_code} -f {PROCESS}"
+    return_code, _, _ = await ops_test.juju(*kill_cmd.split())
+
+    if return_code != 0:
+        raise Exception(
+            f"Expected kill command {kill_cmd} to succeed instead it failed: {return_code}"
+        )
 
 
 def produce_and_check_logs(
@@ -127,3 +182,18 @@ def show_unit(unit_name: str, model_full_name: str) -> Any:
     )
 
     return yaml.safe_load(result)
+
+
+def get_application_name(ops_test: OpsTest, application_name_substring: str) -> str:
+    """Returns the name of the application with the provided application name.
+
+    This enables us to retrieve the name of the deployed application in an existing model.
+
+    Note: if multiple applications with the application name exist,
+    the first one found will be returned.
+    """
+    for application in ops_test.model.applications:
+        if application_name_substring in application:
+            return application
+
+    return None
