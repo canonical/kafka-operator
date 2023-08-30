@@ -440,7 +440,7 @@ class KafkaTLS(Object):
         """Adds CA to JKS truststore."""
         try:
             subprocess.check_output(
-                f"keytool -import -v -alias ca -file ca.pem -keystore truststore.jks -storepass {self.truststore_password} -noprompt",
+                f"charmed-kafka.keytool -import -v -alias ca -file ca.pem -keystore truststore.jks -storepass {self.truststore_password} -noprompt",
                 stderr=subprocess.PIPE,
                 shell=True,
                 universal_newlines=True,
@@ -475,7 +475,7 @@ class KafkaTLS(Object):
         """Add a certificate to the truststore."""
         try:
             subprocess.check_output(
-                f"keytool -import -v -alias {alias} -file {filename} -keystore truststore.jks -storepass {self.truststore_password} -noprompt",
+                f"charmed-kafka.keytool -import -v -alias {alias} -file {filename} -keystore truststore.jks -storepass {self.truststore_password} -noprompt",
                 stderr=subprocess.PIPE,
                 shell=True,
                 universal_newlines=True,
@@ -493,7 +493,7 @@ class KafkaTLS(Object):
         """Remove a cert from the truststore."""
         try:
             subprocess.check_output(
-                f"keytool -delete -v -alias {alias} -keystore truststore.jks -storepass {self.truststore_password} -noprompt",
+                f"charmed-kafka.keytool -delete -v -alias {alias} -keystore truststore.jks -storepass {self.truststore_password} -noprompt",
                 stderr=subprocess.PIPE,
                 shell=True,
                 universal_newlines=True,

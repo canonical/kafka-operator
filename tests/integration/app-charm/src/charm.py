@@ -105,7 +105,7 @@ class ApplicationCharm(CharmBase):
         try:
             logger.info("creating the keystore")
             subprocess.check_output(
-                f'keytool -keystore client.keystore.jks -alias client-key -validity 90 -genkey -keyalg RSA -noprompt -storepass password -dname "CN=client" -ext SAN=DNS:{unit_name},IP:{unit_host}',
+                f'charmed-kafka.keytool -keystore client.keystore.jks -alias client-key -validity 90 -genkey -keyalg RSA -noprompt -storepass password -dname "CN=client" -ext SAN=DNS:{unit_name},IP:{unit_host}',
                 stderr=subprocess.PIPE,
                 shell=True,
                 universal_newlines=True,
@@ -124,7 +124,7 @@ class ApplicationCharm(CharmBase):
 
             logger.info("signing certificate")
             subprocess.check_output(
-                "keytool -keystore client.keystore.jks -alias client-key -certreq -file client.csr -storepass password",
+                "charmed-kafka.keytool -keystore client.keystore.jks -alias client-key -certreq -file client.csr -storepass password",
                 stderr=subprocess.PIPE,
                 shell=True,
                 universal_newlines=True,
@@ -141,7 +141,7 @@ class ApplicationCharm(CharmBase):
 
             logger.info("importing certificate to keystore")
             subprocess.check_output(
-                "keytool -keystore client.keystore.jks -alias client-cert -importcert -file client.cert -storepass password -noprompt",
+                "charmed-kafka.keytool -keystore client.keystore.jks -alias client-cert -importcert -file client.cert -storepass password -noprompt",
                 stderr=subprocess.PIPE,
                 shell=True,
                 universal_newlines=True,
@@ -175,7 +175,7 @@ class ApplicationCharm(CharmBase):
             try:
                 logger.info(f"adding {file} to truststore")
                 subprocess.check_output(
-                    f"keytool -keystore client.truststore.jks -alias {file.replace('.', '-')} -importcert -file {file} -storepass password -noprompt",
+                    f"charmed-kafka.keytool -keystore client.truststore.jks -alias {file.replace('.', '-')} -importcert -file {file} -storepass password -noprompt",
                     stderr=subprocess.PIPE,
                     shell=True,
                     universal_newlines=True,
