@@ -24,6 +24,7 @@ APP_NAME = METADATA["name"]
 ZK_NAME = "zookeeper"
 REL_NAME_ADMIN = "kafka-client-admin"
 DUMMY_NAME = "app"
+TEST_MESSAGE_COUNT = 15
 
 logger = logging.getLogger(__name__)
 
@@ -249,7 +250,7 @@ def consume_and_check(model_full_name: str, provider_unit_name: str, topic: str)
     client.subscribe_to_topic(topic_name=topic)
     messages = [*client.messages()]
 
-    assert len(messages) == 15
+    assert len(messages) == TEST_MESSAGE_COUNT
 
 
 def produce_and_check_logs(
@@ -294,7 +295,7 @@ def produce_and_check_logs(
     )
 
     client.create_topic(topic=topic_config)
-    for i in range(15):
+    for i in range(TEST_MESSAGE_COUNT):
         message = f"Message #{i}"
         client.produce_message(topic_name=topic, message_content=message)
 
