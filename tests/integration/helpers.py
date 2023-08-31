@@ -23,6 +23,8 @@ METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 APP_NAME = METADATA["name"]
 ZK_NAME = "zookeeper"
 REL_NAME_ADMIN = "kafka-client-admin"
+DUMMY_NAME = "app"
+TEST_MESSAGE_COUNT = 15
 
 logger = logging.getLogger(__name__)
 
@@ -216,10 +218,45 @@ def check_tls(ip: str, port: int) -> bool:
         return False
 
 
+def consume_and_check(model_full_name: str, provider_unit_name: str, topic: str) -> None:
+    """Consumes 15 messages created by `produce_and_check_logs` function.
+
+    Args:
+        model_full_name: the full name of the model
+        provider_unit_name: the app to grab credentials from
+        topic: the desired topic to consume from
+    """
+    relation_data = get_provider_data(
+        unit_name=provider_unit_name,
+        model_full_name=model_full_name,
+        endpoint="kafka-client-admin",
+    )
+    topic = topic
+    username = relation_data.get("username", None)
+    password = relation_data.get("password", None)
+    servers = relation_data.get("endpoints", "").split(",")
+    security_protocol = "SASL_PLAINTEXT"
+
+    if not (username and password and servers):
+        raise KeyError("missing relation data from app charm")
+
+    client = KafkaClient(
+        servers=servers,
+        username=username,
+        password=password,
+        security_protocol=security_protocol,
+    )
+
+    client.subscribe_to_topic(topic_name=topic)
+    messages = [*client.messages()]
+
+    assert len(messages) == TEST_MESSAGE_COUNT
+
+
 def produce_and_check_logs(
     model_full_name: str, kafka_unit_name: str, provider_unit_name: str, topic: str
 ) -> None:
-    """Produces messages from HN to chosen Kafka topic.
+    """Produces 15 messages from HN to chosen Kafka topic.
 
     Args:
         model_full_name: the full name of the model
@@ -258,7 +295,7 @@ def produce_and_check_logs(
     )
 
     client.create_topic(topic=topic_config)
-    for i in range(15):
+    for i in range(TEST_MESSAGE_COUNT):
         message = f"Message #{i}"
         client.produce_message(topic_name=topic, message_content=message)
 
