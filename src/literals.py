@@ -13,7 +13,7 @@ from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, StatusBase
 
 CHARM_KEY = "kafka"
 SNAP_NAME = "charmed-kafka"
-CHARMED_KAFKA_SNAP_REVISION = 16
+CHARMED_KAFKA_SNAP_REVISION = 19
 
 PEER = "cluster"
 ZK = "zookeeper"
