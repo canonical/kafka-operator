@@ -94,12 +94,11 @@ class ApplicationCharm(CharmBase):
     def _install_packages(self):
         logger.info("INSTALLING PACKAGES")
         apt.update()
-        apt.add_package(["snapd", "openjdk-17-jre-headless"])
+        apt.add_package(["snapd"])
         cache = snap.SnapCache()
         kafka = cache["charmed-kafka"]
 
-        if not kafka.present:
-            kafka.ensure(snap.SnapState.Latest, channel="3/edge")
+        kafka.ensure(snap.SnapState.Latest, channel="3/edge")
 
     def _create_keystore(self, unit_name: str, unit_host: str):
         try:
