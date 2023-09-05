@@ -141,7 +141,7 @@ class ApplicationCharm(CharmBase):
 
             logger.info("importing certificate to keystore")
             subprocess.check_output(
-                "charmed-kafka.keytool -keystore {SNAP_PATH}/client.keystore.jks -alias client-cert -importcert -file {SNAP_PATH}/client.cert -storepass password -noprompt",
+                f"charmed-kafka.keytool -keystore {SNAP_PATH}/client.keystore.jks -alias client-cert -importcert -file {SNAP_PATH}/client.cert -storepass password -noprompt",
                 stderr=subprocess.PIPE,
                 shell=True,
                 universal_newlines=True,
@@ -228,7 +228,7 @@ class ApplicationCharm(CharmBase):
         logger.info("running producer application")
         try:
             subprocess.check_output(
-                f"/snap/charmed-kafka/current/bin/kafka-console-producer.sh --bootstrap-server {bootstrap_servers} --topic=TEST-TOPIC --producer.config {SNAP_PATH}/client.properties < {SNAP_PATH}/data",
+                f"/snap/charmed-kafka/current/bin/kafka-console-producer.sh --bootstrap-server {bootstrap_servers} --topic=TEST-TOPIC --producer --command-config {SNAP_PATH}/client.properties < {SNAP_PATH}/data",
                 stderr=subprocess.PIPE,
                 shell=True,
                 universal_newlines=True,
