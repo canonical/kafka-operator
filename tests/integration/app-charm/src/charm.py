@@ -33,6 +33,7 @@ REL_NAME_ADMIN = "kafka-client-admin"
 ZK = "zookeeper"
 CONSUMER_GROUP_PREFIX = "test-prefix"
 SNAP_PATH = "/var/snap/charmed-kafka/current/etc/kafka"
+CHARMED_KAFKA_SNAP_REVISION = 19
 
 
 class ApplicationCharm(CharmBase):
@@ -99,7 +100,7 @@ class ApplicationCharm(CharmBase):
         cache = snap.SnapCache()
         kafka = cache["charmed-kafka"]
 
-        kafka.ensure(snap.SnapState.Latest, channel="3/edge")
+        kafka.ensure(snap.SnapState.Latest, channel="3/edge", revision=19)
 
     def _create_keystore(self, unit_name: str, unit_host: str):
         try:
