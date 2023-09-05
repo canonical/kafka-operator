@@ -177,9 +177,8 @@ class ApplicationCharm(CharmBase):
         for file in ["broker.cert", "ca.cert", "client.cert"]:
             try:
                 logger.info(f"adding {file} to truststore")
-                alias = f"{SNAP_PATH}/{file.replace('.', '-')}"
                 subprocess.check_output(
-                    f"charmed-kafka.keytool -keystore {SNAP_PATH}/client.truststore.jks -alias {alias} -importcert -file {SNAP_PATH}/{file} -storepass password -noprompt",
+                    f"charmed-kafka.keytool -keystore {SNAP_PATH}/client.truststore.jks -alias {file.replace('.', '-')} -importcert -file {SNAP_PATH}/{file} -storepass password -noprompt",
                     stderr=subprocess.PIPE,
                     shell=True,
                     universal_newlines=True,
