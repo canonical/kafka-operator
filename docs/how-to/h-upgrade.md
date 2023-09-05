@@ -4,13 +4,13 @@
 
 Charm upgrades allow admin to upgrade both operator code (e.g. the revision used by the charm) and/or the workload version. Note that since the charm code pin a particular version of the workload, a charm upgrade may or may not involve also a workload version upgrade. In general, the following guide only applies for in-place upgrade that involve at most minor version upgrade of Kafka workload, e.g. between Kafka 3.4.x to 3.5.x. Major workload upgrades are generally **NOT SUPPORTED** and they should be carried out using out-of-place migrations. Please refer to the how-to guide about cluster migration [here](/t/charmed-kafka-how-to-cluster-migration/10951) for more information on how this can be achieved.
 
-We strongly recommend to **NOT** perform any other straordinary operations on the Kafka cluster, while upgrading. As an examples, these may be (but not limited) to the following:
+We strongly recommend to **NOT** perform any other extraordinary operations on the Kafka cluster, while upgrading. As an examples, these may be (but not limited) to the following:
 1. Adding or removing units
 2. Creating or destroying new relations
 3. Changes in workload configuration
 4. Upgrading other connected applications (e.g. Zookeeper)
 
-The concurrency with other operations is not supported and it can lead the cluster into unconsistent states.
+The concurrency with other operations is not supported, and it can lead the cluster into inconsistent states.
 
 ## Minor upgrade process overview
 
@@ -19,7 +19,7 @@ When performing an in-place upgrade process, the full process is composed by the
 1. **Collect** all necessary pre-upgrade information, necessary for a rollback (if ever needed)
 2. **Prepare** the charm for the in-place upgrade, by running some preparatory tasks 
 3. **Upgrade** the charm and/or the workload. Once started all units in a cluster will refresh the charm code and undergo a workload restart/update. The upgrade will be aborted if the unit upgrade has failed, requiring the admin user to rollback.
-4. **Post-upgrade checks** to make ake sure all units are in the proper state and the cluster is healthy.
+4. **Post-upgrade checks** to make sure all units are in the proper state and the cluster is healthy.
 
 ## Step 1: Collect
 
