@@ -12,6 +12,7 @@ from charms.kafka.v0.client import KafkaClient
 from kafka.admin import NewTopic
 from pytest_operator.plugin import OpsTest
 
+from literals import SECURITY_PROTOCOL_PORTS
 from snap import KafkaSnap
 
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
@@ -41,16 +42,20 @@ def get_kafka_zk_relation_data(unit_name: str, model_full_name: str) -> Dict[str
     return zk_relation_data
 
 
-def get_topic_leader(model_full_name: str, zookeeper_uri: str, topic: str) -> int:
+async def get_topic_leader(ops_test: OpsTest, topic: str) -> int:
     """Get the broker with the topic leader.
 
     Args:
-        model_full_name: the full name of the model
-        zookeeper_uri: uri from zookeeper
+        ops_test: OpsTest utility class
         topic: the desired topic to check
     """
+    bootstrap_server = (
+        await get_address(ops_test=ops_test)
+        + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT'].client}"
+    )
+
     result = check_output(
-        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.topics --describe --zookeeper {zookeeper_uri} --describe --topic {topic}'",
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.topics --bootstrap-server {bootstrap_server} --command-config {KafkaSnap.CONF_PATH}/client.properties --describe --topic {topic}'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -197,3 +202,10 @@ def get_application_name(ops_test: OpsTest, application_name_substring: str) -> 
             return application
 
     return None
+
+
+async def get_address(ops_test: OpsTest, app_name=APP_NAME, unit_num=0) -> str:
+    """Get the address for a unit."""
+    status = await ops_test.model.get_status()  # noqa: F821
+    address = status["applications"][app_name]["units"][f"{app_name}/{unit_num}"]["public-address"]
+    return address

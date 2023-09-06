@@ -11,7 +11,6 @@ from ha_helpers import (
     REL_NAME_ADMIN,
     ZK_NAME,
     check_logs,
-    get_kafka_zk_relation_data,
     get_topic_leader,
     kill_unit_process,
     produce_and_check_logs,
@@ -120,16 +119,7 @@ async def test_replicated_events(ops_test: OpsTest):
 
 
 async def test_remove_topic_leader(ops_test: OpsTest):
-    relation_data = get_kafka_zk_relation_data(
-        unit_name=f"{APP_NAME}/0", model_full_name=ops_test.model_full_name
-    )
-    uri = relation_data["uris"].split(",")[-1]
-
-    leader_num = get_topic_leader(
-        model_full_name=ops_test.model_full_name,
-        zookeeper_uri=uri,
-        topic="replicated-topic",
-    )
+    leader_num = await get_topic_leader(ops_test=ops_test, topic="replicated-topic")
 
     await kill_unit_process(
         ops_test=ops_test, unit_name=f"{APP_NAME}/{leader_num}", kill_code="SIGKILL"
