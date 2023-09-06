@@ -45,6 +45,7 @@ jobs:
     secrets: inherit
     permissions:
       contents: write  # Needed to update tags
+      pull-requests: write # Need to create PR
 
   build:
     name: Build charms
