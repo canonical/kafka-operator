@@ -81,7 +81,11 @@ async def kill_unit_process(
 
 
 def produce_and_check_logs(
-    model_full_name: str, kafka_unit_name: str, provider_unit_name: str, topic: str
+    model_full_name: str,
+    kafka_unit_name: str,
+    provider_unit_name: str,
+    topic: str,
+    create_topic: bool = True,
 ) -> None:
     """Produces messages from HN to chosen Kafka topic.
 
@@ -90,6 +94,7 @@ def produce_and_check_logs(
         kafka_unit_name: the kafka unit to checks logs on
         provider_unit_name: the app to grab credentials from
         topic: the desired topic to produce to
+        create_topic: if the topic needs to be created
 
     Raises:
         KeyError: if missing relation data
@@ -121,7 +126,8 @@ def produce_and_check_logs(
         replication_factor=1,
     )
 
-    client.create_topic(topic=topic_config)
+    if create_topic:
+        client.create_topic(topic=topic_config)
     for i in range(15):
         message = f"Message #{i}"
         client.produce_message(topic_name=topic, message_content=message)

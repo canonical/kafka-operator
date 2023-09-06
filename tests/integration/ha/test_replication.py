@@ -130,4 +130,5 @@ async def test_remove_topic_leader(ops_test: OpsTest):
         kafka_unit_name=f"{APP_NAME}/0",
         provider_unit_name=f"{DUMMY_NAME}/0",
         topic="replicated-topic",
+        create_topic=False,
     )
