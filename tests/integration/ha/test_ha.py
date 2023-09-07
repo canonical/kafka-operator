@@ -80,9 +80,9 @@ async def test_replicated_events(ops_test: OpsTest):
 
 async def test_kill_broker_with_topic_leader(ops_test: OpsTest):
     initial_leader_num = await get_topic_leader(ops_test=ops_test, topic="replicated-topic")
-    logger.info(f"Killing broker of leader for topic 'replicated-topic': {leader_num}")
+    logger.info(f"Killing broker of leader for topic 'replicated-topic': {initial_leader_num}")
     await send_control_signal(
-        ops_test=ops_test, unit_name=f"{APP_NAME}/{leader_num}", kill_code="SIGKILL"
+        ops_test=ops_test, unit_name=f"{APP_NAME}/{initial_leader_num}", kill_code="SIGKILL"
     )
     # Give time for the service to restart
     time.sleep(15)
