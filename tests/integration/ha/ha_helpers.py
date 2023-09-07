@@ -39,6 +39,7 @@ def get_kafka_zk_relation_data(unit_name: str, model_full_name: str) -> Dict[str
             zk_relation_data["uris"] = info["application-data"]["uris"]
             zk_relation_data["username"] = info["application-data"]["username"]
             zk_relation_data["tls"] = info["application-data"]["tls"]
+            break
     return zk_relation_data
 
 
@@ -64,14 +65,14 @@ async def get_topic_leader(ops_test: OpsTest, topic: str) -> int:
     return re.search(r"Leader: (\d+)", result)[1]
 
 
-async def kill_unit_process(
+async def send_control_signal(
     ops_test: OpsTest, unit_name: str, kill_code: str, app_name: str = APP_NAME
 ) -> None:
-    if len(ops_test.model.applications[app_name].units) < 2:
+    if len(ops_test.model.applications[app_name].units) < 3:
         await ops_test.model.applications[app_name].add_unit(count=1)
         await ops_test.model.wait_for_idle(apps=[app_name], status="active", timeout=1000)
 
-    kill_cmd = f"run --unit {unit_name} -- pkill --signal {kill_code} -f {PROCESS}"
+    kill_cmd = f"exec --unit {unit_name} -- pkill --signal {kill_code} -f {PROCESS}"
     return_code, _, _ = await ops_test.juju(*kill_cmd.split())
 
     if return_code != 0:
@@ -109,20 +110,11 @@ def produce_and_check_logs(
         model_full_name=model_full_name,
         endpoint="kafka-client-admin",
     )
-    topic = topic
-    username = relation_data.get("username", None)
-    password = relation_data.get("password", None)
-    servers = relation_data.get("endpoints", "").split(",")
-    security_protocol = "SASL_PLAINTEXT"
-
-    if not (username and password and servers):
-        raise KeyError("missing relation data from app charm")
-
     client = KafkaClient(
-        servers=servers,
-        username=username,
-        password=password,
-        security_protocol=security_protocol,
+        servers=relation_data["servers"].split(","),
+        username=relation_data["username"],
+        password=relation_data["password"],
+        security_protocol="SASL_PLAINTEXT",
     )
 
     if create_topic:
