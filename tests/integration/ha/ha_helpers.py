@@ -111,7 +111,7 @@ def produce_and_check_logs(
         endpoint="kafka-client-admin",
     )
     client = KafkaClient(
-        servers=relation_data["servers"].split(","),
+        servers=relation_data["endpoints"].split(","),
         username=relation_data["username"],
         password=relation_data["password"],
         security_protocol="SASL_PLAINTEXT",
