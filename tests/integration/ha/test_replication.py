@@ -4,6 +4,7 @@
 
 import asyncio
 import logging
+import time
 
 import pytest
 from ha_helpers import (
@@ -50,7 +51,6 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm, app_charm):
     assert ops_test.model.applications[DUMMY_NAME].status == "active"
 
 
-@pytest.mark.skip
 async def test_second_cluster(ops_test: OpsTest, kafka_charm):
     second_kafka_name = f"{APP_NAME}-two"
     second_zk_name = f"{ZK_NAME}-two"
@@ -98,12 +98,14 @@ async def test_replicated_events(ops_test: OpsTest):
     await ops_test.model.wait_for_idle(
         apps=[APP_NAME], status="active", timeout=600, idle_period=120, wait_for_exact_units=3
     )
-
+    logger.info("Producing messages and checking on all units")
     produce_and_check_logs(
         model_full_name=ops_test.model_full_name,
         kafka_unit_name=f"{APP_NAME}/0",
         provider_unit_name=f"{DUMMY_NAME}/0",
         topic="replicated-topic",
+        replication_factor=3,
+        num_partitions=1,
     )
     # check logs in the two remaining units
     check_logs(
@@ -120,10 +122,12 @@ async def test_replicated_events(ops_test: OpsTest):
 
 async def test_remove_topic_leader(ops_test: OpsTest):
     leader_num = await get_topic_leader(ops_test=ops_test, topic="replicated-topic")
-
+    logger.info(f"Killing broker of leader for topic 'replicated-topic': {leader_num}")
     await kill_unit_process(
         ops_test=ops_test, unit_name=f"{APP_NAME}/{leader_num}", kill_code="SIGKILL"
     )
+    # Give time for the service to restart
+    time.sleep(15)
     # Check that is still possible to write to the same topic.
     produce_and_check_logs(
         model_full_name=ops_test.model_full_name,

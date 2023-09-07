@@ -86,6 +86,8 @@ def produce_and_check_logs(
     provider_unit_name: str,
     topic: str,
     create_topic: bool = True,
+    replication_factor: int = 1,
+    num_partitions: int = 5,
 ) -> None:
     """Produces messages from HN to chosen Kafka topic.
 
@@ -95,6 +97,8 @@ def produce_and_check_logs(
         provider_unit_name: the app to grab credentials from
         topic: the desired topic to produce to
         create_topic: if the topic needs to be created
+        replication_factor: replication factor of the created topic
+        num_partitions: number of partitions for the topic
 
     Raises:
         KeyError: if missing relation data
@@ -120,13 +124,13 @@ def produce_and_check_logs(
         password=password,
         security_protocol=security_protocol,
     )
-    topic_config = NewTopic(
-        name=topic,
-        num_partitions=5,
-        replication_factor=1,
-    )
 
     if create_topic:
+        topic_config = NewTopic(
+            name=topic,
+            num_partitions=num_partitions,
+            replication_factor=replication_factor,
+        )
         client.create_topic(topic=topic_config)
     for i in range(15):
         message = f"Message #{i}"
