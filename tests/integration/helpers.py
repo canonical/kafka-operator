@@ -120,6 +120,7 @@ def get_kafka_zk_relation_data(unit_name: str, model_full_name: str) -> Dict[str
             zk_relation_data["uris"] = info["application-data"]["uris"]
             zk_relation_data["username"] = info["application-data"]["username"]
             zk_relation_data["tls"] = info["application-data"]["tls"]
+            break
     return zk_relation_data
 
 
@@ -217,7 +218,13 @@ def check_tls(ip: str, port: int) -> bool:
 
 
 def produce_and_check_logs(
-    model_full_name: str, kafka_unit_name: str, provider_unit_name: str, topic: str
+    model_full_name: str,
+    kafka_unit_name: str,
+    provider_unit_name: str,
+    topic: str,
+    create_topic: bool = True,
+    replication_factor: int = 1,
+    num_partitions: int = 5,
 ) -> None:
     """Produces messages from HN to chosen Kafka topic.
 
@@ -226,6 +233,9 @@ def produce_and_check_logs(
         kafka_unit_name: the kafka unit to checks logs on
         provider_unit_name: the app to grab credentials from
         topic: the desired topic to produce to
+        create_topic: if the topic needs to be created
+        replication_factor: replication factor of the created topic
+        num_partitions: number of partitions for the topic
 
     Raises:
         KeyError: if missing relation data
@@ -236,28 +246,20 @@ def produce_and_check_logs(
         model_full_name=model_full_name,
         endpoint="kafka-client-admin",
     )
-    topic = topic
-    username = relation_data.get("username", None)
-    password = relation_data.get("password", None)
-    servers = relation_data.get("endpoints", "").split(",")
-    security_protocol = "SASL_PLAINTEXT"
-
-    if not (username and password and servers):
-        raise KeyError("missing relation data from app charm")
-
     client = KafkaClient(
-        servers=servers,
-        username=username,
-        password=password,
-        security_protocol=security_protocol,
-    )
-    topic_config = NewTopic(
-        name=topic,
-        num_partitions=5,
-        replication_factor=1,
+        servers=relation_data["endpoints"].split(","),
+        username=relation_data["username"],
+        password=relation_data["password"],
+        security_protocol="SASL_PLAINTEXT",
     )
 
-    client.create_topic(topic=topic_config)
+    if create_topic:
+        topic_config = NewTopic(
+            name=topic,
+            num_partitions=num_partitions,
+            replication_factor=replication_factor,
+        )
+        client.create_topic(topic=topic_config)
     for i in range(15):
         message = f"Message #{i}"
         client.produce_message(topic_name=topic, message_content=message)

@@ -8,20 +8,21 @@ import time
 
 import pytest
 from ha_helpers import (
+    DUMMY_NAME,
+    get_topic_leader,
+    get_topic_offsets,
+    send_control_signal,
+)
+from pytest_operator.plugin import OpsTest
+from tests.integration.helpers import (
     APP_NAME,
     REL_NAME_ADMIN,
     ZK_NAME,
     check_logs,
-    get_topic_leader,
     produce_and_check_logs,
-    send_control_signal,
 )
-from pytest_operator.plugin import OpsTest
 
 logger = logging.getLogger(__name__)
-
-
-DUMMY_NAME = "app"
 
 
 @pytest.mark.abort_on_fail
@@ -71,11 +72,17 @@ async def test_replicated_events(ops_test: OpsTest):
         kafka_unit_name=f"{APP_NAME}/1",
         topic="replicated-topic",
     )
+    assert get_topic_offsets(
+        ops_test=ops_test, topic="replicated-topic", unit_name=f"{APP_NAME}/1"
+    ) == ["0", "15"]
     check_logs(
         model_full_name=ops_test.model_full_name,
         kafka_unit_name=f"{APP_NAME}/2",
         topic="replicated-topic",
     )
+    assert get_topic_offsets(
+        ops_test=ops_test, topic="replicated-topic", unit_name=f"{APP_NAME}/2"
+    ) == ["0", "15"]
 
 
 async def test_kill_broker_with_topic_leader(ops_test: OpsTest):
