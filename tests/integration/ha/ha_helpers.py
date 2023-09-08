@@ -11,7 +11,6 @@ from tests.integration.helpers import APP_NAME, get_address
 from literals import SECURITY_PROTOCOL_PORTS
 from snap import KafkaSnap
 
-DUMMY_NAME = "app"
 PROCESS = "kafka.Kafka"
 
 logger = logging.getLogger(__name__)

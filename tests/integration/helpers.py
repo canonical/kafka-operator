@@ -22,6 +22,7 @@ from snap import KafkaSnap
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 APP_NAME = METADATA["name"]
 ZK_NAME = "zookeeper"
+DUMMY_NAME = "app"
 REL_NAME_ADMIN = "kafka-client-admin"
 
 logger = logging.getLogger(__name__)

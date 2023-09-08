@@ -16,6 +16,7 @@ from literals import JMX_EXPORTER_PORT, REL_NAME, SECURITY_PROTOCOL_PORTS
 
 from .helpers import (
     APP_NAME,
+    DUMMY_NAME,
     REL_NAME_ADMIN,
     ZK_NAME,
     check_socket,
@@ -26,7 +27,6 @@ from .helpers import (
 
 logger = logging.getLogger(__name__)
 
-DUMMY_NAME = "app"
 SAME_ZK = f"{ZK_NAME}-same"
 SAME_KAFKA = f"{APP_NAME}-same"
 

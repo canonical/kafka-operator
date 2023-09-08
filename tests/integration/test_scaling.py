@@ -5,10 +5,8 @@
 import asyncio
 import logging
 import time
-from pathlib import Path
 
 import pytest
-import yaml
 from pytest_operator.plugin import OpsTest
 
 from literals import CHARM_KEY, ZK
@@ -17,9 +15,6 @@ from utils import get_active_brokers
 from .helpers import get_kafka_zk_relation_data
 
 logger = logging.getLogger(__name__)
-
-METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
-DUMMY_NAME_1 = "app"
 
 
 @pytest.mark.abort_on_fail

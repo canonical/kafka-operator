@@ -93,7 +93,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 1
+LIBPATCH = 2
 
 
 class KafkaClient:
@@ -188,9 +188,16 @@ class KafkaClient:
 
         Args:
             topic: the configuration of the topic to create
-
         """
         self._admin_client.create_topics(new_topics=[topic], validate_only=False)
+
+    def delete_topics(self, topics: list[str]) -> None:
+        """Deletes a topic.
+
+        Args:
+            topics: list of topics to delete
+        """
+        self._admin_client.delete_topics(topics=topics)
 
     def subscribe_to_topic(
         self, topic_name: str, consumer_group_prefix: Optional[str] = None
@@ -242,6 +249,12 @@ class KafkaClient:
         future = self._producer_client.send(topic_name, str.encode(item_content))
         future.get(timeout=60)
         logger.info(f"Message published to topic={topic_name}, message content: {item_content}")
+
+    def close(self) -> None:
+        """Close the connection to the client."""
+        self._admin_client.close()
+        self._producer_client.close()
+        self._consumer_client.close()
 
 
 if __name__ == "__main__":

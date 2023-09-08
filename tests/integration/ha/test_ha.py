@@ -7,15 +7,16 @@ import logging
 import time
 
 import pytest
-from ha_helpers import (
-    DUMMY_NAME,
+from continuous_writes import ContinuousWrites
+from pytest_operator.plugin import OpsTest
+from tests.integration.ha.ha_helpers import (
     get_topic_leader,
     get_topic_offsets,
     send_control_signal,
 )
-from pytest_operator.plugin import OpsTest
 from tests.integration.helpers import (
     APP_NAME,
+    DUMMY_NAME,
     REL_NAME_ADMIN,
     ZK_NAME,
     check_logs,
@@ -23,6 +24,22 @@ from tests.integration.helpers import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+@pytest.fixture()
+async def c_writes(ops_test: OpsTest):
+    """Creates instance of the ContinuousWrites."""
+    app = APP_NAME
+    return ContinuousWrites(ops_test, app)
+
+
+@pytest.fixture()
+async def c_writes_runner(ops_test: OpsTest, c_writes: ContinuousWrites):
+    """Starts continuous write operations and clears writes at the end of the test."""
+    await c_writes.start()
+    yield
+    await c_writes.clear()
+    logger.info("\n\n\n\nThe writes have been cleared.\n\n\n\n")
 
 
 @pytest.mark.abort_on_fail
@@ -96,14 +113,6 @@ async def test_kill_broker_with_topic_leader(ops_test: OpsTest):
     # Check that is still possible to write to the same topic.
     final_leader_num = await get_topic_leader(ops_test=ops_test, topic="replicated-topic")
     assert initial_leader_num != final_leader_num
-
-    produce_and_check_logs(
-        model_full_name=ops_test.model_full_name,
-        kafka_unit_name=f"{APP_NAME}/0",
-        provider_unit_name=f"{DUMMY_NAME}/0",
-        topic="replicated-topic",
-        create_topic=False,
-    )
 
 
 async def test_multi_cluster_isolation(ops_test: OpsTest, kafka_charm):
