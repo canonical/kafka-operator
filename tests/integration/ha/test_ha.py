@@ -12,6 +12,8 @@ from pytest_operator.plugin import OpsTest
 from integration.ha.ha_helpers import (
     get_topic_leader,
     get_topic_offsets,
+    patch_restart_delay,
+    remove_restart_delay,
     send_control_signal,
 )
 from integration.helpers import (
@@ -40,6 +42,15 @@ async def c_writes_runner(ops_test: OpsTest, c_writes: ContinuousWrites):
     yield
     c_writes.clear()
     logger.info("\n\n\n\nThe writes have been cleared.\n\n\n\n")
+
+
+@pytest.fixture()
+async def restart_delay(ops_test: OpsTest):
+    for unit in ops_test.model.applications[APP_NAME].units:
+        await patch_restart_delay(ops_test=ops_test, unit_name=unit.name, delay=5)
+    yield
+    for unit in ops_test.model.applications[APP_NAME].units:
+        await remove_restart_delay(ops_test=ops_test, unit_name=unit.name)
 
 
 @pytest.mark.abort_on_fail
@@ -106,6 +117,7 @@ async def test_kill_broker_with_topic_leader(
     ops_test: OpsTest,
     c_writes: ContinuousWrites,
     c_writes_runner: ContinuousWrites,
+    restart_delay,
 ):
     initial_leader_num = await get_topic_leader(
         ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
