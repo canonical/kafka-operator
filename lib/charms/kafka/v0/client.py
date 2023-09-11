@@ -126,6 +126,7 @@ class KafkaClient:
         self.mtls = self.security_protocol == "SSL"
 
         self._subscription = None
+        self._consumer_group_prefix = None
 
     @cached_property
     def _admin_client(self) -> KafkaAdminClient:
@@ -174,7 +175,7 @@ class KafkaClient:
             ssl_certfile=self.certfile_path if self.ssl else None,
             ssl_keyfile=self.keyfile_path if self.mtls else None,
             api_version=KafkaClient.API_VERSION if self.mtls else None,
-            group_id=self._consumer_group_prefix or None,
+            group_id=self._consumer_group_prefix,
             enable_auto_commit=True,
             auto_offset_reset="earliest",
             consumer_timeout_ms=15000,

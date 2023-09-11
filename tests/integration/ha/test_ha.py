@@ -36,9 +36,9 @@ async def c_writes(ops_test: OpsTest):
 @pytest.fixture()
 async def c_writes_runner(ops_test: OpsTest, c_writes: ContinuousWrites):
     """Starts continuous write operations and clears writes at the end of the test."""
-    await c_writes.start()
+    c_writes.start()
     yield
-    await c_writes.clear()
+    c_writes.clear()
     logger.info("\n\n\n\nThe writes have been cleared.\n\n\n\n")
 
 
@@ -89,7 +89,7 @@ async def test_replicated_events(ops_test: OpsTest):
         kafka_unit_name=f"{APP_NAME}/1",
         topic="replicated-topic",
     )
-    assert get_topic_offsets(
+    assert await get_topic_offsets(
         ops_test=ops_test, topic="replicated-topic", unit_name=f"{APP_NAME}/1"
     ) == ["0", "15"]
     check_logs(
@@ -97,22 +97,46 @@ async def test_replicated_events(ops_test: OpsTest):
         kafka_unit_name=f"{APP_NAME}/2",
         topic="replicated-topic",
     )
-    assert get_topic_offsets(
+    assert await get_topic_offsets(
         ops_test=ops_test, topic="replicated-topic", unit_name=f"{APP_NAME}/2"
     ) == ["0", "15"]
 
 
-async def test_kill_broker_with_topic_leader(ops_test: OpsTest):
-    initial_leader_num = await get_topic_leader(ops_test=ops_test, topic="replicated-topic")
-    logger.info(f"Killing broker of leader for topic 'replicated-topic': {initial_leader_num}")
+async def test_kill_broker_with_topic_leader(
+    ops_test: OpsTest,
+    c_writes: ContinuousWrites,
+    c_writes_runner: ContinuousWrites,
+):
+    initial_leader_num = await get_topic_leader(
+        ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
+    )
+    initial_offsets = await get_topic_offsets(
+        ops_test=ops_test,
+        topic=ContinuousWrites.TOPIC_NAME,
+        unit_name=f"kafka/{initial_leader_num}",
+    )
+
+    logger.info(
+        f"Killing broker of leader for topic '{ContinuousWrites.TOPIC_NAME}': {initial_leader_num}"
+    )
     await send_control_signal(
         ops_test=ops_test, unit_name=f"{APP_NAME}/{initial_leader_num}", kill_code="SIGKILL"
     )
     # Give time for the service to restart
-    time.sleep(15)
-    # Check that is still possible to write to the same topic.
-    final_leader_num = await get_topic_leader(ops_test=ops_test, topic="replicated-topic")
-    assert initial_leader_num != final_leader_num
+    time.sleep(10)
+
+    # Check that leader changed
+    next_leader_num = await get_topic_leader(ops_test=ops_test, topic="replicated-topic")
+    next_offsets = await get_topic_offsets(
+        ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME, unit_name=f"kafka/{next_leader_num}"
+    )
+
+    assert initial_leader_num != next_leader_num
+    assert int(next_offsets[-1]) > int(initial_offsets[-1])
+
+    res = c_writes.stop()
+    assert res.lost_messages == 0
+    assert res.count - 1 == res.last_expected_message  # NOTE: Count starts by index 0
 
 
 async def test_multi_cluster_isolation(ops_test: OpsTest, kafka_charm):

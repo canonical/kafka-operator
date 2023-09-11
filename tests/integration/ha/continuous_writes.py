@@ -20,7 +20,8 @@ from tenacity import (
     wait_fixed,
     wait_random,
 )
-from tests.integration.helpers import DUMMY_NAME, get_provider_data
+
+from integration.helpers import DUMMY_NAME, get_provider_data
 
 logger = logging.getLogger(__name__)
 
@@ -43,10 +44,10 @@ class ContinuousWrites:
         wait=wait_fixed(wait=5) + wait_random(0, 5),
         stop=stop_after_attempt(5),
     )
-    async def start(self) -> None:
+    def start(self) -> None:
         """Run continuous writes in the background."""
         if not self._is_stopped:
-            await self.clear()
+            self.clear()
 
         # create topic
         self._create_replicated_topic()
@@ -60,7 +61,7 @@ class ContinuousWrites:
         # start writes
         self._process.start()
 
-    async def update(self):
+    def update(self):
         """Update cluster related conf. Useful in cases such as scaling, pwd change etc."""
         self._queue.put(SimpleNamespace(model_full_name=self._ops_test.model_full_name))
 
@@ -68,10 +69,10 @@ class ContinuousWrites:
         wait=wait_fixed(wait=5) + wait_random(0, 5),
         stop=stop_after_attempt(5),
     )
-    async def clear(self) -> None:
+    def clear(self) -> None:
         """Stop writes and delete the topic."""
         if not self._is_stopped:
-            await self.stop()
+            self.stop()
 
         client = self._client()
         try:
@@ -88,6 +89,7 @@ class ContinuousWrites:
         client = self._client()
         try:
             client.subscribe_to_topic(topic_name=self.TOPIC_NAME)
+            # FIXME: loading whole list of consumed messages into memory might not be the best idea
             return list(client.messages())
         finally:
             client.close()
@@ -106,7 +108,7 @@ class ContinuousWrites:
         wait=wait_fixed(wait=5) + wait_random(0, 5),
         stop=stop_after_attempt(5),
     )
-    async def stop(self) -> SimpleNamespace:
+    def stop(self) -> SimpleNamespace:
         """Stop the continuous writes process and return max inserted ID."""
         if not self._is_stopped:
             self._stop_process()
@@ -123,9 +125,11 @@ class ContinuousWrites:
             for attempt in Retrying(stop=stop_after_delay(60), wait=wait_fixed(5)):
                 with attempt:
                     with open(ContinuousWrites.LAST_WRITTEN_VAL_PATH, "r") as f:
-                        result.last_expected_message = int(f.read().rstrip())
+                        result.last_expected_message, result.lost_messages = (
+                            f.read().rstrip().split(",", maxsplit=2)
+                        )
         except RetryError:
-            result.last_expected_message = -1
+            result.last_expected_message = result.lost_messages = -1
 
         return result
 
@@ -136,7 +140,7 @@ class ContinuousWrites:
         self._process = Process(
             target=ContinuousWrites._run_async,
             name="continuous_writes",
-            args=(self._event, self._queue, 0, True),
+            args=(self._event, self._queue, 0),
         )
 
     def _stop_process(self):

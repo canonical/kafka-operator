@@ -6,8 +6,8 @@ import re
 from subprocess import PIPE, check_output
 
 from pytest_operator.plugin import OpsTest
-from tests.integration.helpers import APP_NAME, get_address
 
+from integration.helpers import APP_NAME, get_address
 from literals import SECURITY_PROTOCOL_PORTS
 from snap import KafkaSnap
 
@@ -51,6 +51,7 @@ async def get_topic_offsets(ops_test: OpsTest, topic: str, unit_name: str) -> li
         + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT'].client}"
     )
 
+    # example of topic offset output: 'test-topic:0:10'
     result = check_output(
         f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.get-offsets --bootstrap-server {bootstrap_server} --command-config {KafkaSnap.CONF_PATH}/client.properties --topic {topic}'",
         stderr=PIPE,
@@ -58,7 +59,6 @@ async def get_topic_offsets(ops_test: OpsTest, topic: str, unit_name: str) -> li
         universal_newlines=True,
     )
 
-    # example of topic offset output: 'test-topic:0:10'
     return re.search(rf"{topic}:(\d+:\d+)", result)[1].split(":")
 
 
