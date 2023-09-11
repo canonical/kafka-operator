@@ -147,8 +147,8 @@ async def test_kill_broker_with_topic_leader(
 
     assert initial_leader_num != next_leader_num
     assert int(next_offsets[-1]) > int(initial_offsets[-1])
-    assert res.lost_messages == 0
-    assert res.count - 1 == res.last_expected_message  # NOTE: Count starts by index 0
+    assert res.lost_messages == "0"
+    assert res.count - 1 == int(res.last_expected_message)  # NOTE: Count starts by index 0
 
 
 async def test_multi_cluster_isolation(ops_test: OpsTest, kafka_charm):
