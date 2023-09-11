@@ -3,10 +3,8 @@
 # See LICENSE file for licensing details.
 import logging
 import re
-import subprocess
 from subprocess import PIPE, check_output
 
-from ops.model import Unit
 from pytest_operator.plugin import OpsTest
 
 from integration.helpers import APP_NAME, get_address
@@ -109,9 +107,7 @@ async def patch_restart_delay(ops_test: OpsTest, unit_name: str, delay: int) -> 
 async def remove_restart_delay(ops_test: OpsTest, unit_name: str) -> None:
     """Removes the restart delay from the service."""
     remove_delay_cmd = (
-        f"exec --unit {unit_name} -- "
-        "sed -i -e '/^RestartSec=.*/d' "
-        f"{SERVICE_DEFAULT_PATH}"
+        f"exec --unit {unit_name} -- sed -i -e '/^RestartSec=.*/d' {SERVICE_DEFAULT_PATH}"
     )
     await ops_test.juju(*remove_delay_cmd.split(), check=True)
 

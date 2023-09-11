@@ -7,8 +7,9 @@ import logging
 import time
 
 import pytest
-from integration.ha.continuous_writes import ContinuousWrites
 from pytest_operator.plugin import OpsTest
+
+from integration.ha.continuous_writes import ContinuousWrites
 from integration.ha.ha_helpers import (
     get_topic_leader,
     get_topic_offsets,
