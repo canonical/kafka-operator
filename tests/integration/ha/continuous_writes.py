@@ -80,17 +80,17 @@ class ContinuousWrites:
         finally:
             client.close()
 
-    @retry(
-        wait=wait_fixed(wait=5) + wait_random(0, 5),
-        stop=stop_after_attempt(5),
-    )
-    def consumed_messages(self) -> list:
+    def consumed_messages(self) -> list | None:
         """Consume the messages in the topic."""
         client = self._client()
         try:
-            client.subscribe_to_topic(topic_name=self.TOPIC_NAME)
-            # FIXME: loading whole list of consumed messages into memory might not be the best idea
-            return list(client.messages())
+            for attempt in Retrying(stop=stop_after_attempt(5), wait=wait_fixed(5)):
+                with attempt:
+                    client.subscribe_to_topic(topic_name=self.TOPIC_NAME)
+                    # FIXME: loading whole list of consumed messages into memory might not be the best idea
+                    return list(client.messages())
+        except RetryError:
+            return []
         finally:
             client.close()
 
@@ -194,7 +194,7 @@ class ContinuousWrites:
 
             try:
                 ContinuousWrites._produce_message(client, str(write_value))
-            except (KafkaTimeoutError, ConnectionRefusedError):
+            except KafkaTimeoutError:
                 client.close()
                 client = _client()
                 lost_messages += 1

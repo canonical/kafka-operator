@@ -81,6 +81,7 @@ from typing import Generator, List, Optional
 
 from kafka import KafkaAdminClient, KafkaConsumer, KafkaProducer
 from kafka.admin import NewTopic
+from kafka.errors import KafkaError
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -248,8 +249,13 @@ class KafkaClient:
         """
         item_content = f"Message #{message_content}"
         future = self._producer_client.send(topic_name, str.encode(item_content))
-        future.get(timeout=60)
-        logger.info(f"Message published to topic={topic_name}, message content: {item_content}")
+        try:
+            future.get(timeout=60)
+            logger.info(
+                f"Message published to topic={topic_name}, message content: {item_content}"
+            )
+        except KafkaError as e:
+            logger.error(f"Error producing message {message_content} to topic {topic_name}: {e}")
 
     def close(self) -> None:
         """Close the connection to the client."""

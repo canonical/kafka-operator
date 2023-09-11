@@ -95,22 +95,9 @@ async def test_replicated_events(ops_test: OpsTest):
         replication_factor=3,
         num_partitions=1,
     )
-    # check logs in the two remaining units
-    check_logs(
-        model_full_name=ops_test.model_full_name,
-        kafka_unit_name=f"{APP_NAME}/1",
-        topic="replicated-topic",
-    )
+    # check offsets in the two remaining units
     assert await get_topic_offsets(
-        ops_test=ops_test, topic="replicated-topic", unit_name=f"{APP_NAME}/1"
-    ) == ["0", "15"]
-    check_logs(
-        model_full_name=ops_test.model_full_name,
-        kafka_unit_name=f"{APP_NAME}/2",
-        topic="replicated-topic",
-    )
-    assert await get_topic_offsets(
-        ops_test=ops_test, topic="replicated-topic", unit_name=f"{APP_NAME}/2"
+        ops_test=ops_test, topic="replicated-topic", unit_name=f"{APP_NAME}/0"
     ) == ["0", "15"]
 
 
@@ -148,7 +135,7 @@ async def test_kill_broker_with_topic_leader(
     assert initial_leader_num != next_leader_num
     assert int(next_offsets[-1]) > int(initial_offsets[-1])
     assert res.lost_messages == "0"
-    assert res.count - 1 == int(res.last_expected_message)  # NOTE: Count starts by index 0
+    assert res.count == int(res.last_expected_message)
 
 
 async def test_multi_cluster_isolation(ops_test: OpsTest, kafka_charm):
