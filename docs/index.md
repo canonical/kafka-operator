@@ -42,27 +42,29 @@ The Charmed Kafka Operator is free software, distributed under the Apache Softwa
 
 # Navigation
 
-| Level | Path                  | Navlink                                                                               |
-|-------|-----------------------|---------------------------------------------------------------------------------------|
-| 1     | tutorial              | [Tutorial]()                                                                          |
-| 2     | t-overview            | [1. Introduction](/t/charmed-kafka-tutorial-overview/10571)                           |
-| 2     | t-setup-environment   | [2. Set up the environment](/t/charmed-kafka-tutorial-setup-environment/10575)        |
-| 2     | t-deploy-kafka        | [3. Deploy Kafka](/t/charmed-kafka-tutorial-deploy-kafka/10567)                       |
-| 2     | t-manage-passwords    | [4. Manage passwords](/t/charmed-kafka-tutorial-manage-passwords/10569)               |
-| 2     | t-relate-kafka        | [5. Relate Kafka to other applications](/t/charmed-kafka-tutorial-relate-kafka/10573) |
-| 2     | t-cleanup-environment | [6. Cleanup your environment](/t/charmed-kafka-tutorial-cleanup-environment/10565)    |
-| 1     | how-to                | [How To]()                                                                            |
-| 2     | h-manage-units        | [Manage units](/t/charmed-kafka-how-to-manage-units/10287)                            |
-| 2     | h-enable-encryption   | [Enable encryption](/t/charmed-kafka-how-to-enable-encryption/10281)                  |
-| 2     | h-manage-app          | [Manage applications](/t/charmed-kafka-how-to-manage-app/10285)                       |
-| 2     | h-enable-monitoring   | [Enable Monitoring](/t/charmed-kafka-how-to-enable-monitoring/10283)                  |
-| 2     | h-upgrade             | [Upgrade](/t/TODO)                                                                    |
-| 1     | reference             | [Reference]()                                                                         |
-| 2     | r-actions             | [Actions](https://charmhub.io/kafka/actions?channel=3/stable)                         |
-| 2     | r-configurations      | [Configurations](https://charmhub.io/kafka/configure?channel=3/stable)                |
-| 2     | r-libraries           | [Libraries](https://charmhub.io/kafka/libraries/kafka_libs?channel=3/stable)          |
-| 2     | r-requirements        | [Requirements](/t/charmed-kafka-reference-requirements/10563)                         |
-| 2     | r-performance-tuning  | [Performance Tuning](/t/charmed-kafka-reference-performace-tuning/10561)              |
+| Level | Path                             | Navlink                                                                               |
+|-------|----------------------------------|---------------------------------------------------------------------------------------|
+| 1     | tutorial                         | [Tutorial]()                                                                          |
+| 2     | t-overview                       | [1. Introduction](/t/charmed-kafka-tutorial-overview/10571)                           |
+| 2     | t-setup-environment              | [2. Set up the environment](/t/charmed-kafka-tutorial-setup-environment/10575)        |
+| 2     | t-deploy-kafka                   | [3. Deploy Kafka](/t/charmed-kafka-tutorial-deploy-kafka/10567)                       |
+| 2     | t-manage-passwords               | [4. Manage passwords](/t/charmed-kafka-tutorial-manage-passwords/10569)               |
+| 2     | t-relate-kafka                   | [5. Relate Kafka to other applications](/t/charmed-kafka-tutorial-relate-kafka/10573) |
+| 2     | t-cleanup-environment            | [6. Cleanup your environment](/t/charmed-kafka-tutorial-cleanup-environment/10565)    |
+| 1     | how-to                           | [How To]()                                                                            |
+| 2     | h-manage-units                   | [Manage units](/t/charmed-kafka-how-to-manage-units/10287)                            |
+| 2     | h-enable-encryption              | [Enable encryption](/t/charmed-kafka-how-to-enable-encryption/10281)                  |
+| 2     | h-manage-app                     | [Manage applications](/t/charmed-kafka-how-to-manage-app/10285)                       |
+| 2     | h-enable-monitoring              | [Enable Monitoring](/t/charmed-kafka-how-to-enable-monitoring/10283)                  |
+| 2     | h-cluster-migration              | [Cluster Migration](/t/charmed-kafka-how-to-cluster-migration/10951)                  |
+| 2     | h-create-mtls-client-credentials | [Create mTLS Client Credentials](/t/create-mtls-client-credentials/11079)             |
+| 2     | h-upgrade                        | [Upgrade](/t/charmed-kafka-how-to-upgrade/11814)                                      |
+| 1     | reference                        | [Reference]()                                                                         |
+| 2     | r-actions                        | [Actions](https://charmhub.io/kafka/actions?channel=3/stable)                         |
+| 2     | r-configurations                 | [Configurations](https://charmhub.io/kafka/configure?channel=3/stable)                |
+| 2     | r-libraries                      | [Libraries](https://charmhub.io/kafka/libraries/kafka_libs?channel=3/stable)          |
+| 2     | r-requirements                   | [Requirements](/t/charmed-kafka-reference-requirements/10563)                         |
+| 2     | r-performance-tuning             | [Performance Tuning](/t/charmed-kafka-reference-performace-tuning/10561)              |
 
 # Redirects
 
