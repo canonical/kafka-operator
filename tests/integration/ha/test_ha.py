@@ -7,14 +7,14 @@ import logging
 import time
 
 import pytest
-from continuous_writes import ContinuousWrites
+from integration.ha.continuous_writes import ContinuousWrites
 from pytest_operator.plugin import OpsTest
-from tests.integration.ha.ha_helpers import (
+from integration.ha.ha_helpers import (
     get_topic_leader,
     get_topic_offsets,
     send_control_signal,
 )
-from tests.integration.helpers import (
+from integration.helpers import (
     APP_NAME,
     DUMMY_NAME,
     REL_NAME_ADMIN,
@@ -130,11 +130,10 @@ async def test_kill_broker_with_topic_leader(
     next_offsets = await get_topic_offsets(
         ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME, unit_name=f"kafka/{next_leader_num}"
     )
+    res = c_writes.stop()
 
     assert initial_leader_num != next_leader_num
     assert int(next_offsets[-1]) > int(initial_offsets[-1])
-
-    res = c_writes.stop()
     assert res.lost_messages == 0
     assert res.count - 1 == res.last_expected_message  # NOTE: Count starts by index 0
 
