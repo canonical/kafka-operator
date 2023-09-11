@@ -27,6 +27,11 @@ jobs:
     needs:
       - lib-check
     uses: ./.github/workflows/ci.yaml
+    secrets: inherit
+    permissions:
+      contents: write  # Needed to login to Discourse
+      pull-requests: write # Need to create PR
+      actions: write
 
   build:
     name: Build charm
