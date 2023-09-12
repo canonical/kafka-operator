@@ -1,7 +1,6 @@
 # Create mTLS Client Credentials
 
 Requirements:
-
 - Charmed Kafka cluster up and running
 - [Admin credentials](./h-manage-app.md)
 - [Encryption enabled](./h-enable-encryption.md)
@@ -12,7 +11,6 @@ Requirements:
 Goal: Create mTLS credentials for a client application to be able to connect to the Kafka cluster.
 
 ## Authentication
-
 ```bash
 # ---------- Environment
 SNAP_KAFKA_PATH=/var/snap/charmed-kafka/current/etc/kafka
@@ -46,7 +44,6 @@ juju show-unit tls-certificates-operator/0 --format json | jq -r '.[]."relation-
 
 # Get the root CA private key and password to be used by the client
 juju show-unit tls-certificates-operator/0 --format json | jq -r '.[]."relation-info"[]."application-data"."self_signed_ca_private_key" // empty' > ss_ca.key
-
 SS_KEY_PASSWORD=$(juju show-unit tls-certificates-operator/0 --format json | jq -r '.[]."relation-info"[]."application-data"."self_signed_ca_private_key_password" // empty')
 ```
 
@@ -61,7 +58,6 @@ juju show-unit kafka/0 --format json | jq -r '.[]."relation-info"[]."local-unit"
 ```
 
 ### Create Keystore (Client Cert)
-
 Create a client cert signed by the server
 
 ```bash
@@ -80,8 +76,8 @@ cat ss_ca.pem client_cert.pem client_key.pem > client_chain.pem
 
 # create p12 keystore from chain --> client.keystore.p12
 openssl pkcs12 -export -in client_chain.pem \
- -out client.keystore.p12 -password pass:$KAFKA_CLIENT_KEYSTORE_PASSWORD \
- -name client-chain -noiter -nomaciter
+-out client.keystore.p12 -password pass:$KAFKA_CLIENT_KEYSTORE_PASSWORD \
+-name client-chain -noiter -nomaciter
 ```
 
 ### Create Trustsore (Server Cert)
@@ -89,16 +85,19 @@ openssl pkcs12 -export -in client_chain.pem \
 Inject Root CA and Server CA into the truststore file:
 
 ```bash
+
 # ---------- Truststore
 keytool -keystore client.truststore.jks -storepass $KAFKA_CLIENT_TRUSTSTORE_PASSWORD -noprompt \
-  -importcert -alias kafka-ca -file kafka_ca.pem
+-importcert -alias kafka-ca -file kafka_ca.pem
+
 keytool -keystore client.truststore.jks -storepass $KAFKA_CLIENT_TRUSTSTORE_PASSWORD -noprompt \
-  -importcert -alias CARoot -file ss_ca.pem
+-importcert -alias CARoot -file ss_ca.pem
 ```
 
 ### Check certificates validity
 
 ```bash
+
 # ---------- Check certs validity
 echo "Client certs in Keystore:"
 keytool -list -keystore client.keystore.p12 -storepass $KAFKA_CLIENT_KEYSTORE_PASSWORD -rfc | grep "Alias name"
@@ -107,13 +106,13 @@ keytool -list -keystore client.keystore.p12 -storepass $KAFKA_CLIENT_KEYSTORE_PA
 echo "Server certs in Truststore:"
 keytool -list -keystore client.truststore.jks -storepass $KAFKA_CLIENT_TRUSTSTORE_PASSWORD -rfc | grep "Alias name"
 keytool -list -keystore client.truststore.jks -storepass $KAFKA_CLIENT_TRUSTSTORE_PASSWORD -v | grep until
+
 ```
-
 ### mTLS
-
 This is a mutual TLS communication which means:
 
 1. The client needs to trust the server certificates.
+
 2. Instead of username and passwords, the client needs its own certificate signed by a certificate trusted by the server for the authentication.
 
 ```bash
@@ -124,13 +123,13 @@ juju config kafka ssl_principal_mapping_rules='RULE:^.*[Cc][Nn]=([a-zA-Z0-9\.-]*
 ```bash
 # ---------- Create mTLS User credentials
 juju ssh kafka/leader "
-
 sudo charmed-kafka.configs \
-  --bootstrap-server $KAFKA_SERVERS_SASL \
-  --command-config $SNAP_KAFKA_PATH/client.properties \
-  --alter --entity-type=users \
-  --entity-name=$KAFKA_CLIENT_MTLS_CN \
+--bootstrap-server $KAFKA_SERVERS_SASL \
+--command-config $SNAP_KAFKA_PATH/client.properties \
+--alter --entity-type=users \
+--entity-name=$KAFKA_CLIENT_MTLS_CN \
 "
+
 ```
 
 Create a file called `client-mtls.properties` that should look like:
@@ -156,17 +155,17 @@ Grant read and write privileges to user over _group_, _topic_ and _transaction_ 
 ```bash
 juju ssh kafka/leader "
 echo 'LOG: Creating ACLs for SASL user'
-sudo charmed-kafka.acls --bootstrap-server $KAFKA_SERVERS_SASL --command-config $SNAP_KAFKA_PATH/client.properties \
-  --add --allow-principal User:$KAFKA_CLIENT_MTLS_CN \
-  --operation READ --operation DESCRIBE --group='*'
 
 sudo charmed-kafka.acls --bootstrap-server $KAFKA_SERVERS_SASL --command-config $SNAP_KAFKA_PATH/client.properties \
-  --add --allow-principal User:$KAFKA_CLIENT_MTLS_CN \
-  --operation READ --operation DESCRIBE --operation CREATE --operation WRITE --operation DELETE --operation ALTER --operation ALTERCONFIGS --topic='*'
+--add --allow-principal User:$KAFKA_CLIENT_MTLS_CN \
+--operation READ --operation DESCRIBE --group='*'
+sudo charmed-kafka.acls --bootstrap-server $KAFKA_SERVERS_SASL --command-config $SNAP_KAFKA_PATH/client.properties \
+--add --allow-principal User:$KAFKA_CLIENT_MTLS_CN \
+--operation READ --operation DESCRIBE --operation CREATE --operation WRITE --operation DELETE --operation ALTER --operation ALTERCONFIGS --topic='*'
 
 sudo charmed-kafka.acls --bootstrap-server $KAFKA_SERVERS_SASL --command-config $SNAP_KAFKA_PATH/client.properties \
-  --add --allow-principal User:$KAFKA_CLIENT_MTLS_CN \
-  --operation DESCRIBE --operation WRITE --transactional-id '*'
+--add --allow-principal User:$KAFKA_CLIENT_MTLS_CN \
+--operation DESCRIBE --operation WRITE --transactional-id '*'
 "
 ```
 
@@ -186,6 +185,7 @@ sudo chown snap_daemon:root $SNAP_KAFKA_PATH/client.truststore.jks
 
 # Use newly created credentials to create a topic and list existing topics
 sudo charmed-kafka.topics --bootstrap-server $KAFKA_SERVERS_MTLS --command-config $SNAP_KAFKA_PATH/client-mtls.properties \
-  --create --topic EXAMPLE-TOPIC
+--create --topic EXAMPLE-TOPIC
+
 sudo charmed-kafka.topics --list --bootstrap-server $KAFKA_SERVERS_MTLS --command-config $SNAP_KAFKA_PATH/client-mtls.properties
 ```

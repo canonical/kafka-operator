@@ -12,7 +12,6 @@ In this tutorial we will walk through how to:
 - Add high availability with replication.
 - Change the admin password.
 - Automatically create Kafka users via Juju relations. 
-- Enable secure connection with TLS.
 
 While this tutorial intends to guide and teach you as you deploy Charmed Kafka, it will be most beneficial if you already have a familiarity with: 
 - Basic terminal commands.
