@@ -79,11 +79,11 @@ async def send_control_signal(
         await ops_test.model.wait_for_idle(apps=[app_name], status="active", timeout=1000)
 
     kill_cmd = f"exec --unit {unit_name} -- pkill --signal {kill_code} -f {PROCESS}"
-    return_code, _, _ = await ops_test.juju(*kill_cmd.split())
+    return_code, stdout, stderr = await ops_test.juju(*kill_cmd.split())
 
     if return_code != 0:
         raise Exception(
-            f"Expected kill command {kill_cmd} to succeed instead it failed: {return_code}"
+            f"Expected kill command {kill_cmd} to succeed instead it failed: {return_code}, {stdout}, {stderr}"
         )
 
 

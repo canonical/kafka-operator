@@ -24,6 +24,7 @@ APP_NAME = METADATA["name"]
 ZK_NAME = "zookeeper"
 DUMMY_NAME = "app"
 REL_NAME_ADMIN = "kafka-client-admin"
+TEST_DEFAULT_MESSAGES = 15
 
 logger = logging.getLogger(__name__)
 
@@ -261,7 +262,7 @@ def produce_and_check_logs(
             replication_factor=replication_factor,
         )
         client.create_topic(topic=topic_config)
-    for i in range(15):
+    for i in range(TEST_DEFAULT_MESSAGES):
         message = f"Message #{i}"
         client.produce_message(topic_name=topic, message_content=message)
 

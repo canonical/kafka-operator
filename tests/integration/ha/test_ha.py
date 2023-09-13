@@ -21,6 +21,7 @@ from integration.helpers import (
     APP_NAME,
     DUMMY_NAME,
     REL_NAME_ADMIN,
+    TEST_DEFAULT_MESSAGES,
     ZK_NAME,
     check_logs,
     produce_and_check_logs,
@@ -95,10 +96,9 @@ async def test_replicated_events(ops_test: OpsTest):
         replication_factor=3,
         num_partitions=1,
     )
-    # check offsets in the two remaining units
     assert await get_topic_offsets(
         ops_test=ops_test, topic="replicated-topic", unit_name=f"{APP_NAME}/0"
-    ) == ["0", "15"]
+    ) == ["0", str(TEST_DEFAULT_MESSAGES)]
 
 
 async def test_kill_broker_with_topic_leader(
