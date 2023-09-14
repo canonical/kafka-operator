@@ -81,6 +81,7 @@ from typing import Generator, List, Optional
 
 from kafka import KafkaAdminClient, KafkaConsumer, KafkaProducer
 from kafka.admin import NewTopic
+from kafka.errors import KafkaError
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -93,7 +94,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 1
+LIBPATCH = 2
 
 
 class KafkaClient:
@@ -126,6 +127,7 @@ class KafkaClient:
         self.mtls = self.security_protocol == "SSL"
 
         self._subscription = None
+        self._consumer_group_prefix = None
 
     @cached_property
     def _admin_client(self) -> KafkaAdminClient:
@@ -174,7 +176,7 @@ class KafkaClient:
             ssl_certfile=self.certfile_path if self.ssl else None,
             ssl_keyfile=self.keyfile_path if self.mtls else None,
             api_version=KafkaClient.API_VERSION if self.mtls else None,
-            group_id=self._consumer_group_prefix or None,
+            group_id=self._consumer_group_prefix,
             enable_auto_commit=True,
             auto_offset_reset="earliest",
             consumer_timeout_ms=15000,
@@ -188,9 +190,16 @@ class KafkaClient:
 
         Args:
             topic: the configuration of the topic to create
-
         """
         self._admin_client.create_topics(new_topics=[topic], validate_only=False)
+
+    def delete_topics(self, topics: list[str]) -> None:
+        """Deletes a topic.
+
+        Args:
+            topics: list of topics to delete
+        """
+        self._admin_client.delete_topics(topics=topics)
 
     def subscribe_to_topic(
         self, topic_name: str, consumer_group_prefix: Optional[str] = None
@@ -240,8 +249,19 @@ class KafkaClient:
         """
         item_content = f"Message #{message_content}"
         future = self._producer_client.send(topic_name, str.encode(item_content))
-        future.get(timeout=60)
-        logger.info(f"Message published to topic={topic_name}, message content: {item_content}")
+        try:
+            future.get(timeout=60)
+            logger.info(
+                f"Message published to topic={topic_name}, message content: {item_content}"
+            )
+        except KafkaError as e:
+            logger.error(f"Error producing message {message_content} to topic {topic_name}: {e}")
+
+    def close(self) -> None:
+        """Close the connection to the client."""
+        self._admin_client.close()
+        self._producer_client.close()
+        self._consumer_client.close()
 
 
 if __name__ == "__main__":
