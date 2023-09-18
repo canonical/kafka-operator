@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ContinuousWritesResult:
-    count: Optional[int] = None
+    count: int = -1
     last_message: Optional[object] = None
     last_expected_message: int = -1
     lost_messages: int = -1
@@ -203,7 +203,9 @@ class ContinuousWrites:
                 client = _client()
 
             try:
-                ContinuousWrites._produce_message(client, str(write_value))
+                client.produce_message(
+                    topic_name=ContinuousWrites.TOPIC_NAME, message_content=str(write_value)
+                )
             except KafkaTimeoutError:
                 client.close()
                 client = _client()
@@ -221,11 +223,6 @@ class ContinuousWrites:
             os.fsync(f)
 
         client.close()
-
-    @staticmethod
-    def _produce_message(client: KafkaClient, write_value: str) -> None:
-        """Produce a single message."""
-        client.produce_message(topic_name=ContinuousWrites.TOPIC_NAME, message_content=write_value)
 
     @staticmethod
     def _run_async(event: Event, data_queue: Queue, starting_number: int):
