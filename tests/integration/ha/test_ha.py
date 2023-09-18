@@ -28,7 +28,7 @@ from integration.helpers import (
     produce_and_check_logs,
 )
 
-RESTART_DELAY = 10
+RESTART_DELAY = 20
 
 logger = logging.getLogger(__name__)
 
@@ -148,6 +148,7 @@ async def test_restart_broker_with_topic_leader(
     ops_test: OpsTest,
     c_writes: ContinuousWrites,
     c_writes_runner: ContinuousWrites,
+    restart_delay,
 ):
     initial_leader_num = await get_topic_leader(
         ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
@@ -196,7 +197,7 @@ async def test_freeze_broker_with_topic_leader(
     await send_control_signal(
         ops_test=ops_test, unit_name=f"{APP_NAME}/{initial_leader_num}", signal="SIGSTOP"
     )
-    await asyncio.sleep(1)
+    await asyncio.sleep(10)
 
     # verify the unit is not reachable
     assert not is_up(ops_test=ops_test, broker_id=initial_leader_num)
@@ -208,7 +209,7 @@ async def test_freeze_broker_with_topic_leader(
         topic=ContinuousWrites.TOPIC_NAME,
         unit_name=f"{APP_NAME}/{initial_leader_num}",
     )
-    await asyncio.sleep(5)
+    await asyncio.sleep(10)
     next_leader_num = await get_topic_leader(ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME)
     next_offsets = await get_topic_offsets(
         ops_test=ops_test,
@@ -224,7 +225,7 @@ async def test_freeze_broker_with_topic_leader(
     await send_control_signal(
         ops_test=ops_test, unit_name=f"{APP_NAME}/{initial_leader_num}", signal="SIGCONT"
     )
-    await asyncio.sleep(2)
+    await asyncio.sleep(15)
 
     # verify the unit is now rejoined the cluster
     assert is_up(ops_test=ops_test, broker_id=initial_leader_num)

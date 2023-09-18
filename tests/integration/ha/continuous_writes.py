@@ -18,7 +18,6 @@ from tenacity import (
     Retrying,
     retry,
     stop_after_attempt,
-    stop_after_delay,
     wait_fixed,
     wait_random,
 )
@@ -131,15 +130,10 @@ class ContinuousWrites:
         result.last_message = consumed_messages[-1]
 
         # last expected message stored on disk
-        try:
-            for attempt in Retrying(stop=stop_after_delay(60), wait=wait_fixed(5)):
-                with attempt:
-                    with open(ContinuousWrites.LAST_WRITTEN_VAL_PATH, "r") as f:
-                        result.last_expected_message, result.lost_messages = map(
-                            int, f.read().rstrip().split(",", maxsplit=2)
-                        )
-        except RetryError:
-            logger.error("RetryError on reading outputs from ContinousWrites stop call")
+        with open(ContinuousWrites.LAST_WRITTEN_VAL_PATH, "r") as f:
+            result.last_expected_message, result.lost_messages = map(
+                int, f.read().rstrip().split(",", maxsplit=2)
+            )
 
         return result
 
