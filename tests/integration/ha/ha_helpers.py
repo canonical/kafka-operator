@@ -6,8 +6,10 @@ import re
 from subprocess import PIPE, check_output
 
 from pytest_operator.plugin import OpsTest
+from src.utils import get_active_brokers
 
-from integration.helpers import APP_NAME, get_address
+from integration.ha.continuous_writes import ContinuousWritesResult
+from integration.helpers import APP_NAME, get_address, get_kafka_zk_relation_data
 from literals import SECURITY_PROTOCOL_PORTS
 from snap import KafkaSnap
 
@@ -72,18 +74,18 @@ async def get_topic_offsets(ops_test: OpsTest, topic: str, unit_name: str) -> li
 
 
 async def send_control_signal(
-    ops_test: OpsTest, unit_name: str, kill_code: str, app_name: str = APP_NAME
+    ops_test: OpsTest, unit_name: str, signal: str, app_name: str = APP_NAME
 ) -> None:
     if len(ops_test.model.applications[app_name].units) < 3:
         await ops_test.model.applications[app_name].add_unit(count=1)
         await ops_test.model.wait_for_idle(apps=[app_name], status="active", timeout=1000)
 
-    kill_cmd = f"exec --unit {unit_name} -- pkill --signal {kill_code} -f {PROCESS}"
-    return_code, stdout, stderr = await ops_test.juju(*kill_cmd.split())
+    kill_cmd = f"exec --unit {unit_name} -- pkill --signal {signal} -f {PROCESS}"
+    return_code, _, _ = await ops_test.juju(*kill_cmd.split())
 
     if return_code != 0:
         raise Exception(
-            f"Expected kill command {kill_cmd} to succeed instead it failed: {return_code}, {stdout}, {stderr}"
+            f"Expected kill command {kill_cmd} to succeed instead it failed: {return_code}"
         )
 
 
@@ -114,3 +116,27 @@ async def remove_restart_delay(ops_test: OpsTest, unit_name: str) -> None:
     # reload the daemon for systemd to reflect changes
     reload_cmd = f"exec --unit {unit_name} -- sudo systemctl daemon-reload"
     await ops_test.juju(*reload_cmd.split(), check=True)
+
+
+def is_up(ops_test: OpsTest, broker_id: int) -> bool:
+    """Return if node up."""
+    kafka_zk_relation_data = get_kafka_zk_relation_data(
+        unit_name="kafka/0", model_full_name=ops_test.model_full_name
+    )
+    active_brokers = get_active_brokers(zookeeper_config=kafka_zk_relation_data)
+    chroot = kafka_zk_relation_data.get("chroot", "")
+    return f"{chroot}/brokers/ids/{broker_id}" in active_brokers
+
+
+def assert_continuous_writes_consistency(
+    result: ContinuousWritesResult,
+    expected_lost_messages: int = 0,
+    compare_lost_messages: bool = False,
+):
+    """Check results of a stopped ContinuousWrites call against expected results."""
+    if compare_lost_messages:
+        assert result.lost_messages >= expected_lost_messages
+    else:
+        assert result.lost_messages == expected_lost_messages
+
+    assert result.count == result.last_expected_message

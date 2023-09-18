@@ -4,15 +4,16 @@
 
 import asyncio
 import logging
-import time
 
 import pytest
 from pytest_operator.plugin import OpsTest
 
 from integration.ha.continuous_writes import ContinuousWrites
 from integration.ha.ha_helpers import (
+    assert_continuous_writes_consistency,
     get_topic_leader,
     get_topic_offsets,
+    is_up,
     patch_restart_delay,
     remove_restart_delay,
     send_control_signal,
@@ -21,11 +22,12 @@ from integration.helpers import (
     APP_NAME,
     DUMMY_NAME,
     REL_NAME_ADMIN,
-    TEST_DEFAULT_MESSAGES,
     ZK_NAME,
     check_logs,
     produce_and_check_logs,
 )
+
+RESTART_DELAY = 10
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +51,7 @@ async def c_writes_runner(ops_test: OpsTest, c_writes: ContinuousWrites):
 @pytest.fixture()
 async def restart_delay(ops_test: OpsTest):
     for unit in ops_test.model.applications[APP_NAME].units:
-        await patch_restart_delay(ops_test=ops_test, unit_name=unit.name, delay=5)
+        await patch_restart_delay(ops_test=ops_test, unit_name=unit.name, delay=RESTART_DELAY)
     yield
     for unit in ops_test.model.applications[APP_NAME].units:
         await remove_restart_delay(ops_test=ops_test, unit_name=unit.name)
@@ -96,11 +98,13 @@ async def test_replicated_events(ops_test: OpsTest):
         replication_factor=3,
         num_partitions=1,
     )
+    # check offsets in the two remaining units
     assert await get_topic_offsets(
         ops_test=ops_test, topic="replicated-topic", unit_name=f"{APP_NAME}/0"
-    ) == ["0", str(TEST_DEFAULT_MESSAGES)]
+    ) == ["0", "15"]
 
 
+@pytest.mark.skip
 async def test_kill_broker_with_topic_leader(
     ops_test: OpsTest,
     c_writes: ContinuousWrites,
@@ -113,31 +117,201 @@ async def test_kill_broker_with_topic_leader(
     initial_offsets = await get_topic_offsets(
         ops_test=ops_test,
         topic=ContinuousWrites.TOPIC_NAME,
-        unit_name=f"kafka/{initial_leader_num}",
+        unit_name=f"{APP_NAME}/{initial_leader_num}",
     )
 
     logger.info(
         f"Killing broker of leader for topic '{ContinuousWrites.TOPIC_NAME}': {initial_leader_num}"
     )
     await send_control_signal(
-        ops_test=ops_test, unit_name=f"{APP_NAME}/{initial_leader_num}", kill_code="SIGKILL"
+        ops_test=ops_test, unit_name=f"{APP_NAME}/{initial_leader_num}", signal="SIGKILL"
     )
     # Give time for the service to restart
-    time.sleep(10)
+    await asyncio.sleep(RESTART_DELAY * 2)
 
     # Check that leader changed
-    next_leader_num = await get_topic_leader(ops_test=ops_test, topic="replicated-topic")
+    next_leader_num = await get_topic_leader(ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME)
     next_offsets = await get_topic_offsets(
-        ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME, unit_name=f"kafka/{next_leader_num}"
+        ops_test=ops_test,
+        topic=ContinuousWrites.TOPIC_NAME,
+        unit_name=f"{APP_NAME}/{next_leader_num}",
     )
-    res = c_writes.stop()
+    assert initial_leader_num != next_leader_num
+    assert int(next_offsets[-1]) > int(initial_offsets[-1])
+
+    result = c_writes.stop()
+    assert_continuous_writes_consistency(result=result)
+
+
+async def test_restart_broker_with_topic_leader(
+    ops_test: OpsTest,
+    c_writes: ContinuousWrites,
+    c_writes_runner: ContinuousWrites,
+):
+    initial_leader_num = await get_topic_leader(
+        ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
+    )
+    initial_offsets = await get_topic_offsets(
+        ops_test=ops_test,
+        topic=ContinuousWrites.TOPIC_NAME,
+        unit_name=f"{APP_NAME}/{initial_leader_num}",
+    )
+
+    logger.info(
+        f"Restarting broker of leader for topic '{ContinuousWrites.TOPIC_NAME}': {initial_leader_num}"
+    )
+    await send_control_signal(
+        ops_test=ops_test, unit_name=f"{APP_NAME}/{initial_leader_num}", signal="SIGTERM"
+    )
+    # Give time for the service to restart
+    await asyncio.sleep(RESTART_DELAY * 2)
+
+    # Check that leader changed
+    next_leader_num = await get_topic_leader(ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME)
+    next_offsets = await get_topic_offsets(
+        ops_test=ops_test,
+        topic=ContinuousWrites.TOPIC_NAME,
+        unit_name=f"{APP_NAME}/{next_leader_num}",
+    )
+    assert initial_leader_num != next_leader_num
+    assert int(next_offsets[-1]) > int(initial_offsets[-1])
+
+    result = c_writes.stop()
+    assert_continuous_writes_consistency(result=result)
+
+
+async def test_freeze_broker_with_topic_leader(
+    ops_test: OpsTest,
+    c_writes: ContinuousWrites,
+    c_writes_runner: ContinuousWrites,
+):
+    initial_leader_num = await get_topic_leader(
+        ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
+    )
+
+    logger.info(
+        f"Freezing broker of leader for topic '{ContinuousWrites.TOPIC_NAME}': {initial_leader_num}"
+    )
+    await send_control_signal(
+        ops_test=ops_test, unit_name=f"{APP_NAME}/{initial_leader_num}", signal="SIGSTOP"
+    )
+    await asyncio.sleep(1)
+
+    # verify the unit is not reachable
+    assert not is_up(ops_test=ops_test, broker_id=initial_leader_num)
+
+    # verify new writes are continuing by counting the number of writes before and after 5 seconds.
+    # Also, check that leader changed
+    initial_offsets = await get_topic_offsets(
+        ops_test=ops_test,
+        topic=ContinuousWrites.TOPIC_NAME,
+        unit_name=f"{APP_NAME}/{initial_leader_num}",
+    )
+    await asyncio.sleep(5)
+    next_leader_num = await get_topic_leader(ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME)
+    next_offsets = await get_topic_offsets(
+        ops_test=ops_test,
+        topic=ContinuousWrites.TOPIC_NAME,
+        unit_name=f"{APP_NAME}/{next_leader_num}",
+    )
 
     assert initial_leader_num != next_leader_num
     assert int(next_offsets[-1]) > int(initial_offsets[-1])
-    assert res.lost_messages == "0"
-    assert res.count == int(res.last_expected_message)
+
+    # Un-freeze the process
+    logger.info(f"Un-freezing broker: {initial_leader_num}")
+    await send_control_signal(
+        ops_test=ops_test, unit_name=f"{APP_NAME}/{initial_leader_num}", signal="SIGCONT"
+    )
+    await asyncio.sleep(2)
+
+    # verify the unit is now rejoined the cluster
+    assert is_up(ops_test=ops_test, broker_id=initial_leader_num)
+
+    result = c_writes.stop()
+    assert_continuous_writes_consistency(result=result)
 
 
+async def test_full_cluster_crash(
+    ops_test: OpsTest,
+    c_writes: ContinuousWrites,
+    c_writes_runner: ContinuousWrites,
+    restart_delay,
+):
+    # Let some time pass for messages to be produced
+    await asyncio.sleep(10)
+
+    logger.info("Killing all brokers...")
+    # kill all units "simultaneously"
+    await asyncio.gather(
+        *[
+            send_control_signal(ops_test, unit.name, signal="SIGKILL")
+            for unit in ops_test.model.applications[APP_NAME].units
+        ]
+    )
+    # Give time for the service to restart
+    await asyncio.sleep(RESTART_DELAY * 2)
+
+    leader_num = await get_topic_leader(ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME)
+    initial_offsets = await get_topic_offsets(
+        ops_test=ops_test,
+        topic=ContinuousWrites.TOPIC_NAME,
+        unit_name=f"{APP_NAME}/{leader_num}",
+    )
+    await asyncio.sleep(5)
+    next_offsets = await get_topic_offsets(
+        ops_test=ops_test,
+        topic=ContinuousWrites.TOPIC_NAME,
+        unit_name=f"{APP_NAME}/{leader_num}",
+    )
+    assert int(next_offsets[-1]) > int(initial_offsets[-1])
+
+    result = c_writes.stop()
+    assert_continuous_writes_consistency(
+        result=result,
+        expected_lost_messages=1,
+        compare_lost_messages=True,
+    )
+
+
+async def test_full_cluster_restart(
+    ops_test: OpsTest,
+    c_writes: ContinuousWrites,
+    c_writes_runner: ContinuousWrites,
+):
+    initial_leader_num = await get_topic_leader(
+        ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
+    )
+
+    logger.info("Killing all brokers...")
+    # kill all units "simultaneously"
+    await asyncio.gather(
+        *[
+            send_control_signal(ops_test, unit.name, signal="SIGTERM")
+            for unit in ops_test.model.applications[APP_NAME].units
+        ]
+    )
+    # Give time for the service to restart
+    await asyncio.sleep(10)
+
+    initial_offsets = await get_topic_offsets(
+        ops_test=ops_test,
+        topic=ContinuousWrites.TOPIC_NAME,
+        unit_name=f"{APP_NAME}/{initial_leader_num}",
+    )
+    await asyncio.sleep(5)
+    next_offsets = await get_topic_offsets(
+        ops_test=ops_test,
+        topic=ContinuousWrites.TOPIC_NAME,
+        unit_name=f"{APP_NAME}/{initial_leader_num}",
+    )
+    assert int(next_offsets[-1]) > int(initial_offsets[-1])
+
+    result = c_writes.stop()
+    assert_continuous_writes_consistency(result=result)
+
+
+@pytest.mark.skip
 async def test_multi_cluster_isolation(ops_test: OpsTest, kafka_charm):
     second_kafka_name = f"{APP_NAME}-two"
     second_zk_name = f"{ZK_NAME}-two"

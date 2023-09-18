@@ -4,8 +4,10 @@
 import asyncio
 import logging
 import os
+from dataclasses import dataclass
 from multiprocessing import Event, Process, Queue
 from types import SimpleNamespace
+from typing import Optional
 
 from charms.kafka.v0.client import KafkaClient
 from kafka.admin import NewTopic
@@ -24,6 +26,14 @@ from tenacity import (
 from integration.helpers import DUMMY_NAME, get_provider_data
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class ContinuousWritesResult:
+    count: Optional[int] = None
+    last_message: Optional[object] = None
+    last_expected_message: int = -1
+    lost_messages: int = -1
 
 
 class ContinuousWrites:
@@ -108,12 +118,12 @@ class ContinuousWrites:
         wait=wait_fixed(wait=5) + wait_random(0, 5),
         stop=stop_after_attempt(5),
     )
-    def stop(self) -> SimpleNamespace:
+    def stop(self) -> ContinuousWritesResult:
         """Stop the continuous writes process and return max inserted ID."""
         if not self._is_stopped:
             self._stop_process()
 
-        result = SimpleNamespace()
+        result = ContinuousWritesResult()
 
         # messages count
         consumed_messages = self.consumed_messages()
@@ -125,11 +135,11 @@ class ContinuousWrites:
             for attempt in Retrying(stop=stop_after_delay(60), wait=wait_fixed(5)):
                 with attempt:
                     with open(ContinuousWrites.LAST_WRITTEN_VAL_PATH, "r") as f:
-                        result.last_expected_message, result.lost_messages = (
-                            f.read().rstrip().split(",", maxsplit=2)
+                        result.last_expected_message, result.lost_messages = map(
+                            int, f.read().rstrip().split(",", maxsplit=2)
                         )
         except RetryError:
-            result.last_expected_message = result.lost_messages = -1
+            logger.error("RetryError on reading outputs from ContinousWrites stop call")
 
         return result
 
@@ -193,9 +203,7 @@ class ContinuousWrites:
                 client = _client()
 
             try:
-                client.produce_message(
-                    topic_name=ContinuousWrites.TOPIC_NAME, message_content=str(write_value)
-                )
+                ContinuousWrites._produce_message(client, str(write_value))
             except KafkaTimeoutError:
                 client.close()
                 client = _client()
@@ -213,6 +221,11 @@ class ContinuousWrites:
             os.fsync(f)
 
         client.close()
+
+    @staticmethod
+    def _produce_message(client: KafkaClient, write_value: str) -> None:
+        """Produce a single message."""
+        client.produce_message(topic_name=ContinuousWrites.TOPIC_NAME, message_content=write_value)
 
     @staticmethod
     def _run_async(event: Event, data_queue: Queue, starting_number: int):
