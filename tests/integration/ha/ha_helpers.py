@@ -6,12 +6,12 @@ import re
 from subprocess import PIPE, check_output
 
 from pytest_operator.plugin import OpsTest
-from src.utils import get_active_brokers
 
 from integration.ha.continuous_writes import ContinuousWritesResult
 from integration.helpers import APP_NAME, get_address, get_kafka_zk_relation_data
 from literals import SECURITY_PROTOCOL_PORTS
 from snap import KafkaSnap
+from utils import get_active_brokers
 
 PROCESS = "kafka.Kafka"
 SERVICE_DEFAULT_PATH = "/etc/systemd/system/snap.charmed-kafka.daemon.service"
