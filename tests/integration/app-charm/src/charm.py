@@ -142,7 +142,7 @@ class ApplicationCharm(CharmBase):
 
             logger.info("importing certificate to keystore")
             subprocess.check_output(
-                f"charmed-kafka.keytool -keystore {SNAP_PATH}/client.keystore.jks -alias client-cert -importcert -file {SNAP_PATH}/client.cert -storepass password -noprompt",
+                f"sudo charmed-kafka.keytool -keystore {SNAP_PATH}/client.keystore.jks -alias client-cert -importcert -file {SNAP_PATH}/client.cert -storepass password -noprompt",
                 stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
