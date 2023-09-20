@@ -3,6 +3,7 @@
 # See LICENSE file for licensing details.
 import logging
 import re
+from dataclasses import dataclass, field
 from subprocess import PIPE, check_output
 
 from pytest_operator.plugin import OpsTest
@@ -20,6 +21,12 @@ SERVICE_DEFAULT_PATH = "/etc/systemd/system/snap.charmed-kafka.daemon.service"
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class TopicDescription:
+    leader: int = -1
+    in_sync_replicas: set = field(default_factory=set)
+
+
 class ProcessError(Exception):
     """Raised when a process fails."""
 
@@ -28,7 +35,7 @@ class ProcessRunningError(Exception):
     """Raised when a process is running when it is not expected to be."""
 
 
-async def get_topic_leader(ops_test: OpsTest, topic: str) -> int:
+async def get_topic_description(ops_test: OpsTest, topic: str) -> TopicDescription:
     """Get the broker with the topic leader.
 
     Args:
@@ -40,23 +47,25 @@ async def get_topic_leader(ops_test: OpsTest, topic: str) -> int:
         + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT'].client}"
     )
 
-    result = check_output(
+    output = check_output(
         f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.topics --bootstrap-server {bootstrap_server} --command-config {KafkaSnap.CONF_PATH}/client.properties --describe --topic {topic}'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
     )
+    result = TopicDescription()
+    result.leader = int(re.search(r"Leader: (\d+)", output)[1])
+    result.in_sync_replicas = {int(i) for i in re.search(r"Isr: ([\d,]+)", output)[1].split(",")}
 
-    return re.search(r"Leader: (\d+)", result)[1]
+    return result
 
 
-async def get_topic_offsets(ops_test: OpsTest, topic: str, unit_name: str) -> list[str]:
+async def get_topic_offsets(ops_test: OpsTest, topic: str) -> list[str]:
     """Get the offsets of a topic on a unit.
 
     Args:
         ops_test: OpsTest utility class
         topic: the desired topic to check
-        unit_name: unit to check the offsets on
     """
     bootstrap_server = (
         await get_address(ops_test=ops_test)
@@ -65,7 +74,7 @@ async def get_topic_offsets(ops_test: OpsTest, topic: str, unit_name: str) -> li
 
     # example of topic offset output: 'test-topic:0:10'
     result = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.get-offsets --bootstrap-server {bootstrap_server} --command-config {KafkaSnap.CONF_PATH}/client.properties --topic {topic}'",
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.get-offsets --bootstrap-server {bootstrap_server} --command-config {KafkaSnap.CONF_PATH}/client.properties --topic {topic}'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -138,6 +147,9 @@ def assert_continuous_writes_consistency(
     if compare_lost_messages:
         assert result.lost_messages >= expected_lost_messages
     else:
-        assert result.lost_messages == expected_lost_messages
-
-    assert result.count == result.last_expected_message
+        assert (
+            result.lost_messages == expected_lost_messages
+        ), "Lost messages different from expected"
+    assert (
+        result.count + result.lost_messages == result.last_expected_message
+    ), f"Last expected message {result.last_expected_message} doesn't match count {result.count} + lost_messages {result.lost_messages}"

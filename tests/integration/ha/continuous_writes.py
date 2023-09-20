@@ -201,9 +201,9 @@ class ContinuousWrites:
                     topic_name=ContinuousWrites.TOPIC_NAME, message_content=str(write_value)
                 )
             except KafkaTimeoutError:
+                lost_messages += 1
                 client.close()
                 client = _client()
-                lost_messages += 1
             finally:
                 # process termination requested
                 if event.is_set():
