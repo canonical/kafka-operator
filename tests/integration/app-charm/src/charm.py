@@ -107,7 +107,7 @@ class ApplicationCharm(CharmBase):
             logger.info("creating the keystore")
             subprocess.check_output(
                 f'charmed-kafka.keytool -keystore {SNAP_PATH}/client.keystore.jks -alias client-key -validity 90 -genkey -keyalg RSA -noprompt -storepass password -dname "CN=client" -ext SAN=DNS:{unit_name},IP:{unit_host}',
-                stderr=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
             )
@@ -116,7 +116,7 @@ class ApplicationCharm(CharmBase):
             logger.info("creating a ca")
             subprocess.check_output(
                 f'openssl req -new -x509 -keyout {SNAP_PATH}/ca.key -out {SNAP_PATH}/ca.cert -days 90 -passout pass:password -subj "/CN=client-ca"',
-                stderr=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
             )
@@ -126,7 +126,7 @@ class ApplicationCharm(CharmBase):
             logger.info("signing certificate")
             subprocess.check_output(
                 f"charmed-kafka.keytool -keystore {SNAP_PATH}/client.keystore.jks -alias client-key -certreq -file {SNAP_PATH}/client.csr -storepass password",
-                stderr=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
             )
@@ -134,7 +134,7 @@ class ApplicationCharm(CharmBase):
 
             subprocess.check_output(
                 f"openssl x509 -req -CA {SNAP_PATH}/ca.cert -CAkey {SNAP_PATH}/ca.key -in {SNAP_PATH}/client.csr -out {SNAP_PATH}/client.cert -days 90 -CAcreateserial -passin pass:password",
-                stderr=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
             )
@@ -143,7 +143,7 @@ class ApplicationCharm(CharmBase):
             logger.info("importing certificate to keystore")
             subprocess.check_output(
                 f"charmed-kafka.keytool -keystore {SNAP_PATH}/client.keystore.jks -alias client-cert -importcert -file {SNAP_PATH}/client.cert -storepass password -noprompt",
-                stderr=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
             )
@@ -152,19 +152,19 @@ class ApplicationCharm(CharmBase):
             logger.info("grabbing cert content")
             certificate = subprocess.check_output(
                 f"cat {SNAP_PATH}/client.cert",
-                stderr=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
             )
             ca = subprocess.check_output(
                 f"cat {SNAP_PATH}/ca.cert",
-                stderr=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
             )
 
         except subprocess.CalledProcessError as e:
-            logger.error(e.output)
+            logger.exception(e)
             raise e
 
         return {"certificate": certificate, "ca": ca}
@@ -179,7 +179,7 @@ class ApplicationCharm(CharmBase):
                 logger.info(f"adding {file} to truststore")
                 subprocess.check_output(
                     f"charmed-kafka.keytool -keystore {SNAP_PATH}/client.truststore.jks -alias {file.replace('.', '-')} -importcert -file {SNAP_PATH}/{file} -storepass password -noprompt",
-                    stderr=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
                     shell=True,
                     universal_newlines=True,
                 )
@@ -189,7 +189,7 @@ class ApplicationCharm(CharmBase):
             except subprocess.CalledProcessError as e:
                 # in case this reruns and fails
                 if "already exists" in e.output:
-                    logger.warning(e.output)
+                    logger.exception(e)
                     continue
                 raise e
 
@@ -216,25 +216,25 @@ class ApplicationCharm(CharmBase):
         logger.info("Creating topic")
         try:
             subprocess.check_output(
-                f"/snap/charmed-kafka/current/bin/kafka-topics.sh --bootstrap-server {bootstrap_servers} --topic=TEST-TOPIC --create --command-config {SNAP_PATH}/client.properties",
-                stderr=subprocess.PIPE,
+                f"charmed-kafka.topics --bootstrap-server {bootstrap_servers} --topic=TEST-TOPIC --create --command-config {SNAP_PATH}/client.properties",
+                stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
             )
         except subprocess.CalledProcessError as e:
-            logger.error(e.output)
+            logger.exception(e.output)
             raise e
 
         logger.info("running producer application")
         try:
             subprocess.check_output(
-                f"/snap/charmed-kafka/current/bin/kafka-console-producer.sh --bootstrap-server {bootstrap_servers} --topic=TEST-TOPIC --producer --command-config {SNAP_PATH}/client.properties < {SNAP_PATH}/data",
-                stderr=subprocess.PIPE,
+                f"charmed-kafka.console-producer --bootstrap-server {bootstrap_servers} --topic=TEST-TOPIC --producer.config {SNAP_PATH}/client.properties < {SNAP_PATH}/data",
+                stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
             )
         except subprocess.CalledProcessError as e:
-            logger.error(e.output)
+            logger.exception(e.output)
             raise e
 
     def create_certificate(self, event: ActionEvent):
@@ -272,7 +272,7 @@ class ApplicationCharm(CharmBase):
                 bootstrap_servers=bootstrap_server, num_messages=num_messages
             )
         except Exception as e:
-            logger.error(e)
+            logger.exception(e)
             event.fail()
             return
 
@@ -284,14 +284,14 @@ class ApplicationCharm(CharmBase):
         logger.info("fetching offsets")
         try:
             output = subprocess.check_output(
-                f"/snap/charmed-kafka/current/bin/kafka-get-offsets.sh --bootstrap-server {bootstrap_server} --topic=TEST-TOPIC --command-config {SNAP_PATH}/client.properties",
-                stderr=subprocess.PIPE,
+                f"charmed-kafka.get-offsets --bootstrap-server {bootstrap_server} --topic=TEST-TOPIC --command-config {SNAP_PATH}/client.properties",
+                stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
             )
             event.set_results({"output": output})
         except subprocess.CalledProcessError as e:
-            logger.error(e.output)
+            logger.exception(e.output)
             event.fail()
 
         return
