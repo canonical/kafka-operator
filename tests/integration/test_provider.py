@@ -231,7 +231,7 @@ async def test_connection_updated_on_tls_enabled(ops_test: OpsTest, app_charm):
 
     # deploying tls
     tls_config = {"generate-self-signed-certificates": "true", "ca-common-name": "kafka"}
-    await ops_test.model.deploy(TLS_NAME, channel="beta", config=tls_config, series="jammy")
+    await ops_test.model.deploy(TLS_NAME, channel="stable", config=tls_config, series="jammy")
     await ops_test.model.wait_for_idle(
         apps=[TLS_NAME], idle_period=30, timeout=1800, status="active"
     )
