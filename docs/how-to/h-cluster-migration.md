@@ -157,9 +157,7 @@ To monitor the current consumer offsets, run the following on the original clust
 ```bash
 watch "bin/kafka-consumer-groups.sh --describe --offsets --bootstrap-server $OLD_SERVERS --all-groups
 ```
-
 An example output of which may look similar to this:
-
 ```
 GROUP           TOPIC               PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID                                             HOST            CLIENT-ID
 admin-group-1   NEW-TOPIC           0          95              95              0               kafka-python-2.0.2-a95b3f90-75e9-4a16-b63e-5e021b7344c5 /10.248.204.1   kafka-python-2.0.2
@@ -168,19 +166,12 @@ admin-group-1   NEW-TOPIC           1          82              82              0
 admin-group-1   NEW-TOPIC           2          89              90              1               kafka-python-2.0.2-a95b3f90-75e9-4a16-b63e-5e021b7344c5 /10.248.204.1   kafka-python-2.0.2
 admin-group-1   NEW-TOPIC           4          103             104             1               kafka-python-2.0.2-a95b3f90-75e9-4a16-b63e-5e021b7344c5 /10.248.204.1   kafka-python-2.0.2
 ```
-
 There is also a [range of different metrics](https://github.com/apache/kafka/blob/trunk/connect/mirror/README.md#monitoring-an-mm2-process) made available by MirrorMaker during the migration. These can be accessed with something similar to:
-
 ```
 curl 10.248.204.198:9099/metrics | grep records_count
 ```
-
 ### Switching client traffic from original cluster to Charmed Kafka cluster
-
 Once happy that all the necessary data has successfully migrated, stop all active consumer applications on the original cluster, and redirect them to the Charmed Kafka cluster, making sure to use the Charmed Kafka cluster server addresses and authentication. After doing so, they will re-join their original consumer groups at the last committed offset it had originally, and continue consuming as normal.
-
 Finally, the producer client applications can be stopped, updated with the Charmed Kafka cluster server addresses and authentication, and restarted, with any newly produced messages being received by the migrated consumer client applications, completing the migration of both the data, and the client applications.
-
 ### Stopping MirrorMaker replication
-
 Once confident in the successful completion of the data an client migration, the running processes on each of the charm units can be killed, stopping the MirrorMaker processes active on the Charmed Kafka cluster.
