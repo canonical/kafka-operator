@@ -106,12 +106,11 @@ class ApplicationCharm(CharmBase):
         try:
             logger.info("creating the keystore")
             subprocess.check_output(
-                f'charmed-kafka.keytool -keystore {SNAP_PATH}/client.keystore.jks -alias client-key -validity 90 -genkey -keyalg RSA -noprompt -storepass password -dname "CN=client" -ext SAN=DNS:{unit_name},IP:{unit_host}',
+                f'charmed-kafka.keytool -keystore client.keystore.jks -alias client-key -validity 90 -genkey -keyalg RSA -noprompt -storepass password -dname "CN=client" -ext SAN=DNS:{unit_name},IP:{unit_host}',
                 stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
             )
-            shutil.chown(f"{SNAP_PATH}/client.keystore.jks", user="snap_daemon", group="root")
 
             logger.info("creating a ca")
             subprocess.check_output(
@@ -125,7 +124,7 @@ class ApplicationCharm(CharmBase):
 
             logger.info("signing certificate")
             subprocess.check_output(
-                f"charmed-kafka.keytool -keystore {SNAP_PATH}/client.keystore.jks -alias client-key -certreq -file {SNAP_PATH}/client.csr -storepass password",
+                f"charmed-kafka.keytool -keystore client.keystore.jks -alias client-key -certreq -file {SNAP_PATH}/client.csr -storepass password",
                 stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
@@ -142,11 +141,12 @@ class ApplicationCharm(CharmBase):
 
             logger.info("importing certificate to keystore")
             subprocess.check_output(
-                f"sudo charmed-kafka.keytool -keystore {SNAP_PATH}/client.keystore.jks -alias client-cert -importcert -file {SNAP_PATH}/client.cert -storepass password -noprompt",
+                f"charmed-kafka.keytool -keystore client.keystore.jks -alias client-cert -importcert -file {SNAP_PATH}/client.cert -storepass password -noprompt",
                 stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
             )
+            shutil.copyfile(src="client.keystore.jks", dst=SNAP_PATH)
             shutil.chown(f"{SNAP_PATH}/client.keystore.jks", user="snap_daemon", group="root")
 
             logger.info("grabbing cert content")
