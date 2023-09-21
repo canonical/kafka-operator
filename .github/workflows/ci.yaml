@@ -94,6 +94,11 @@ jobs:
             echo Skipping unstable tests
             echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
           fi
+      - name: Set permissions
+        id: set-permissions
+        run: |
+          sudo usermod -aG root $USER
+          sudo -s -u ${USER} bash -c 'whoami && groups'
       - name: Run integration tests
         run: tox run -e ${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}'
         env:
