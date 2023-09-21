@@ -115,11 +115,11 @@ class ApplicationCharm(CharmBase):
     @staticmethod
     def set_snap_mode_bits(path: str) -> None:
         """Sets filepath mode bits."""
-        os.chmod(path, 0o770)
+        os.chmod(path, 0o774)
 
         for root, dirs, files in os.walk(path):
             for fp in dirs + files:
-                os.chmod(os.path.join(root, fp), 0o770)
+                os.chmod(os.path.join(root, fp), 0o774)
 
     def _create_keystore(self, unit_name: str, unit_host: str):
         try:
@@ -173,6 +173,7 @@ class ApplicationCharm(CharmBase):
                 cwd=SNAP_PATH,
             )
             self.set_snap_ownership(path=f"{SNAP_PATH}/client.keystore.jks")
+            self.set_snap_mode_bits(path=f"{SNAP_PATH}/client.keystore.jks")
 
             logger.info("grabbing cert content")
             certificate = subprocess.check_output(
@@ -243,22 +244,33 @@ class ApplicationCharm(CharmBase):
         logger.info("Creating topic")
         try:
             subprocess.check_output(
-                f"charmed-kafka.topics --bootstrap-server {bootstrap_servers} --topic=TEST-TOPIC --create --command-config {SNAP_PATH}/client.properties",
+                f"charmed-kafka.topics --bootstrap-server {bootstrap_servers} --topic=TEST-TOPIC --create --command-config client.properties",
                 stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
+                cwd=SNAP_PATH,
             )
         except subprocess.CalledProcessError as e:
             logger.exception(e.output)
             raise e
 
+        ls = subprocess.check_output(
+            f"sudo ls -lah {SNAP_PATH}",
+            stderr=subprocess.STDOUT,
+            shell=True,
+            universal_newlines=True,
+            cwd=SNAP_PATH,
+        )
+        logger.info(ls)
+
         logger.info("running producer application")
         try:
             subprocess.check_output(
-                f"charmed-kafka.console-producer --bootstrap-server {bootstrap_servers} --topic=TEST-TOPIC --producer.config {SNAP_PATH}/client.properties < {SNAP_PATH}/data",
+                f"charmed-kafka.console-producer --bootstrap-server {bootstrap_servers} --topic=TEST-TOPIC --producer.config client.properties < data",
                 stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
+                cwd=SNAP_PATH,
             )
         except subprocess.CalledProcessError as e:
             logger.exception(e.output)
