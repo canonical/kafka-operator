@@ -10,6 +10,7 @@ of the libraries in this repository.
 
 import base64
 import logging
+import os
 import shutil
 import subprocess
 from socket import getfqdn
@@ -102,60 +103,91 @@ class ApplicationCharm(CharmBase):
 
         kafka.ensure(snap.SnapState.Latest, channel="3/edge", revision=19)
 
+    @staticmethod
+    def set_snap_ownership(path: str) -> None:
+        """Sets a filepath `snap_daemon` ownership."""
+        shutil.chown(path, user="snap_daemon", group="root")
+
+        for root, dirs, files in os.walk(path):
+            for fp in dirs + files:
+                shutil.chown(os.path.join(root, fp), user="snap_daemon", group="root")
+
+    @staticmethod
+    def set_snap_mode_bits(path: str) -> None:
+        """Sets filepath mode bits."""
+        os.chmod(path, 0o770)
+
+        for root, dirs, files in os.walk(path):
+            for fp in dirs + files:
+                os.chmod(os.path.join(root, fp), 0o770)
+
     def _create_keystore(self, unit_name: str, unit_host: str):
         try:
             logger.info("creating the keystore")
             subprocess.check_output(
                 f'charmed-kafka.keytool -keystore client.keystore.jks -alias client-key -validity 90 -genkey -keyalg RSA -noprompt -storepass password -dname "CN=client" -ext SAN=DNS:{unit_name},IP:{unit_host}',
-                stderr=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
+                cwd=SNAP_PATH,
             )
-            shutil.chown("client.keystore.jks", user="snap_daemon", group="root")
+            self.set_snap_ownership(path=f"{SNAP_PATH}/client.keystore.jks")
+            self.set_snap_mode_bits(path=f"{SNAP_PATH}/client.keystore.jks")
 
             logger.info("creating a ca")
             subprocess.check_output(
                 'openssl req -new -x509 -keyout ca.key -out ca.cert -days 90 -passout pass:password -subj "/CN=client-ca"',
-                stderr=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
+                cwd=SNAP_PATH,
             )
-            shutil.chown("ca.key", user="snap_daemon", group="root")
-            shutil.chown("ca.cert", user="snap_daemon", group="root")
+            self.set_snap_ownership(path=f"{SNAP_PATH}/ca.key")
+            self.set_snap_ownership(path=f"{SNAP_PATH}/ca.cert")
 
             logger.info("signing certificate")
             subprocess.check_output(
                 "charmed-kafka.keytool -keystore client.keystore.jks -alias client-key -certreq -file client.csr -storepass password",
-                stderr=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
+                cwd=SNAP_PATH,
             )
-            shutil.chown("client.csr", user="snap_daemon", group="root")
+            self.set_snap_ownership(path=f"{SNAP_PATH}/client.csr")
 
             subprocess.check_output(
                 "openssl x509 -req -CA ca.cert -CAkey ca.key -in client.csr -out client.cert -days 90 -CAcreateserial -passin pass:password",
-                stderr=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
+                cwd=SNAP_PATH,
             )
-            shutil.chown("client.cert", user="snap_daemon", group="root")
+            self.set_snap_ownership(path=f"{SNAP_PATH}/client.cert")
 
             logger.info("importing certificate to keystore")
             subprocess.check_output(
                 "charmed-kafka.keytool -keystore client.keystore.jks -alias client-cert -importcert -file client.cert -storepass password -noprompt",
-                stderr=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
+                cwd=SNAP_PATH,
             )
-            shutil.chown("client.keystore.jks", user="snap_daemon", group="root")
-            shutil.copy(src="client.keystore.jks", dst=SNAP_PATH)
+            self.set_snap_ownership(path=f"{SNAP_PATH}/client.keystore.jks")
 
             logger.info("grabbing cert content")
             certificate = subprocess.check_output(
-                "cat client.cert", stderr=subprocess.PIPE, shell=True, universal_newlines=True
+                "cat client.cert",
+                stderr=subprocess.STDOUT,
+                shell=True,
+                universal_newlines=True,
+                cwd=SNAP_PATH,
             )
             ca = subprocess.check_output(
-                "cat ca.cert", stderr=subprocess.PIPE, shell=True, universal_newlines=True
+                "cat ca.cert",
+                stderr=subprocess.STDOUT,
+                shell=True,
+                universal_newlines=True,
+                cwd=SNAP_PATH,
             )
 
         except subprocess.CalledProcessError as e:
@@ -173,14 +205,14 @@ class ApplicationCharm(CharmBase):
             try:
                 logger.info(f"adding {file} to truststore")
                 subprocess.check_output(
-                    f"charmed-kafka.keytool -keystore {SNAP_PATH}/client.truststore.jks -alias {file.replace('.', '-')} -importcert -file {SNAP_PATH}/{file} -storepass password -noprompt",
+                    f"charmed-kafka.keytool -keystore client.truststore.jks -alias {file.replace('.', '-')} -importcert -file {file} -storepass password -noprompt",
                     stderr=subprocess.STDOUT,
                     shell=True,
                     universal_newlines=True,
+                    cwd=SNAP_PATH,
                 )
-                shutil.chown(
-                    f"{SNAP_PATH}/client.truststore.jks", user="snap_daemon", group="root"
-                )
+                self.set_snap_ownership(path=f"{SNAP_PATH}/client.truststore.jks")
+                self.set_snap_mode_bits(path=f"{SNAP_PATH}/client.truststore.jks")
             except subprocess.CalledProcessError as e:
                 # in case this reruns and fails
                 if "already exists" in e.output:
