@@ -106,61 +106,56 @@ class ApplicationCharm(CharmBase):
         try:
             logger.info("creating the keystore")
             subprocess.check_output(
-                f'charmed-kafka.keytool -keystore client.keystore.jks -alias client-key -validity 90 -genkey -keyalg RSA -noprompt -storepass password -dname "CN=client" -ext SAN=DNS:{unit_name},IP:{unit_host}',
-                stderr=subprocess.STDOUT,
+                f'keytool -keystore client.keystore.jks -alias client-key -validity 90 -genkey -keyalg RSA -noprompt -storepass password -dname "CN=client" -ext SAN=DNS:{unit_name},IP:{unit_host}',
+                stderr=subprocess.PIPE,
                 shell=True,
                 universal_newlines=True,
             )
+            shutil.chown("client.keystore.jks", user="snap_daemon", group="root")
 
             logger.info("creating a ca")
             subprocess.check_output(
-                f'openssl req -new -x509 -keyout {SNAP_PATH}/ca.key -out {SNAP_PATH}/ca.cert -days 90 -passout pass:password -subj "/CN=client-ca"',
-                stderr=subprocess.STDOUT,
+                'openssl req -new -x509 -keyout ca.key -out ca.cert -days 90 -passout pass:password -subj "/CN=client-ca"',
+                stderr=subprocess.PIPE,
                 shell=True,
                 universal_newlines=True,
             )
-            shutil.chown(f"{SNAP_PATH}/ca.key", user="snap_daemon", group="root")
-            shutil.chown(f"{SNAP_PATH}/ca.cert", user="snap_daemon", group="root")
+            shutil.chown("ca.key", user="snap_daemon", group="root")
+            shutil.chown("ca.cert", user="snap_daemon", group="root")
 
             logger.info("signing certificate")
             subprocess.check_output(
-                f"charmed-kafka.keytool -keystore client.keystore.jks -alias client-key -certreq -file {SNAP_PATH}/client.csr -storepass password",
-                stderr=subprocess.STDOUT,
+                "keytool -keystore client.keystore.jks -alias client-key -certreq -file client.csr -storepass password",
+                stderr=subprocess.PIPE,
                 shell=True,
                 universal_newlines=True,
             )
-            shutil.chown(f"{SNAP_PATH}/client.csr", user="snap_daemon", group="root")
+            shutil.chown("client.csr", user="snap_daemon", group="root")
 
             subprocess.check_output(
-                f"openssl x509 -req -CA {SNAP_PATH}/ca.cert -CAkey {SNAP_PATH}/ca.key -in {SNAP_PATH}/client.csr -out {SNAP_PATH}/client.cert -days 90 -CAcreateserial -passin pass:password",
-                stderr=subprocess.STDOUT,
+                "openssl x509 -req -CA ca.cert -CAkey ca.key -in client.csr -out client.cert -days 90 -CAcreateserial -passin pass:password",
+                stderr=subprocess.PIPE,
                 shell=True,
                 universal_newlines=True,
             )
-            shutil.chown(f"{SNAP_PATH}/client.cert", user="snap_daemon", group="root")
+            shutil.chown("client.cert", user="snap_daemon", group="root")
 
             logger.info("importing certificate to keystore")
             subprocess.check_output(
-                f"charmed-kafka.keytool -keystore client.keystore.jks -alias client-cert -importcert -file {SNAP_PATH}/client.cert -storepass password -noprompt",
-                stderr=subprocess.STDOUT,
+                "keytool -keystore client.keystore.jks -alias client-cert -importcert -file client.cert -storepass password -noprompt",
+                stderr=subprocess.PIPE,
                 shell=True,
                 universal_newlines=True,
             )
-            shutil.copyfile(src="client.keystore.jks", dst=SNAP_PATH)
-            shutil.chown(f"{SNAP_PATH}/client.keystore.jks", user="snap_daemon", group="root")
+            shutil.chown("client.keystore.jks", user="snap_daemon", group="root")
+            shutil.copy(src="client.keystore.jks", dst=SNAP_PATH)
 
             logger.info("grabbing cert content")
             certificate = subprocess.check_output(
-                f"cat {SNAP_PATH}/client.cert",
-                stderr=subprocess.STDOUT,
-                shell=True,
-                universal_newlines=True,
+                "cat client.cert", stderr=subprocess.PIPE, shell=True, universal_newlines=True
             )
             ca = subprocess.check_output(
-                f"cat {SNAP_PATH}/ca.cert",
-                stderr=subprocess.STDOUT,
-                shell=True,
-                universal_newlines=True,
+                "cat ca.cert", stderr=subprocess.PIPE, shell=True, universal_newlines=True
             )
 
         except subprocess.CalledProcessError as e:
