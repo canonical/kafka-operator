@@ -42,13 +42,15 @@ async def get_topic_description(ops_test: OpsTest, topic: str) -> TopicDescripti
         ops_test: OpsTest utility class
         topic: the desired topic to check
     """
-    bootstrap_server = (
-        await get_address(ops_test=ops_test)
-        + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT'].client}"
-    )
+    bootstrap_servers = []
+    for unit in ops_test.model.applications[APP_NAME].units:
+        bootstrap_servers.append(
+            await get_address(ops_test=ops_test, unit_num=unit.name.split("/")[-1])
+            + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT'].client}"
+        )
 
     output = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.topics --bootstrap-server {bootstrap_server} --command-config {KafkaSnap.CONF_PATH}/client.properties --describe --topic {topic}'",
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.topics --bootstrap-server {','.join(bootstrap_servers)} --command-config {KafkaSnap.CONF_PATH}/client.properties --describe --topic {topic}'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -67,14 +69,16 @@ async def get_topic_offsets(ops_test: OpsTest, topic: str) -> list[str]:
         ops_test: OpsTest utility class
         topic: the desired topic to check
     """
-    bootstrap_server = (
-        await get_address(ops_test=ops_test)
-        + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT'].client}"
-    )
+    bootstrap_servers = []
+    for unit in ops_test.model.applications[APP_NAME].units:
+        bootstrap_servers.append(
+            await get_address(ops_test=ops_test, unit_num=unit.name.split("/")[-1])
+            + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT'].client}"
+        )
 
     # example of topic offset output: 'test-topic:0:10'
     result = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.get-offsets --bootstrap-server {bootstrap_server} --command-config {KafkaSnap.CONF_PATH}/client.properties --topic {topic}'",
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.get-offsets --bootstrap-server {','.join(bootstrap_servers)} --command-config {KafkaSnap.CONF_PATH}/client.properties --topic {topic}'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,

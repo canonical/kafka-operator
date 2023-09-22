@@ -99,6 +99,7 @@ class ContinuousWrites:
                     # FIXME: loading whole list of consumed messages into memory might not be the best idea
                     return list(client.messages())
         except RetryError:
+            logger.error("Could not get consumed messages from Kafka.")
             return []
         finally:
             client.close()

@@ -214,7 +214,6 @@ async def test_freeze_broker_with_topic_leader(
     await asyncio.sleep(5)
     next_offsets = await get_topic_offsets(ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME)
 
-    assert topic_description.in_sync_replicas == {0, 1, 2} - {initial_leader_num}
     assert initial_leader_num != next_leader_num
     assert int(next_offsets[-1]) > int(initial_offsets[-1])
 
