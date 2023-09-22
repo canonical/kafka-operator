@@ -99,6 +99,8 @@ jobs:
         run: |
           sudo usermod -aG root $USER
           sudo -s -u ${USER} bash -c 'whoami && groups'
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
       - name: Run integration tests
         run: tox run -e ${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}'
         env:

@@ -13,6 +13,7 @@ import logging
 import os
 import shutil
 import subprocess
+import time
 from socket import getfqdn
 
 from charms.data_platform_libs.v0.data_interfaces import KafkaRequires, TopicCreatedEvent
@@ -262,6 +263,9 @@ class ApplicationCharm(CharmBase):
             cwd=SNAP_PATH,
         )
         logger.info(ls)
+
+        logger.info("SLEEPING")
+        time.sleep(10000)
 
         logger.info("running producer application")
         try:
