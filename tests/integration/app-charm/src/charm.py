@@ -265,7 +265,7 @@ class ApplicationCharm(CharmBase):
         logger.info(ls)
 
         logger.info("SLEEPING")
-        time.sleep(10000)
+        time.sleep(100000)
 
         logger.info("running producer application")
         try:
