@@ -82,6 +82,88 @@ This should output something like:
 
 Save the value listed under `bootstrap-server`, `username` and `password`. *(Note: your hostnames, usernames, and passwords will likely be different.)*
 
+### Produce/Consume messages
+
+We will now use the username and password to produce some messages to Kafka. To do so, we will first deploy a test charm that bundles some python scripts to push data to Kafka, e.g.
+
+```shell
+juju deploy kafka-test-app -n1 --channel edge
+```
+
+Once the charm is up and running, you can log into the container
+
+```shell
+juju ssh kafka-test-app/0 /bin/bash
+```
+
+and make sure that the Python virtual environment libraries are visible:
+
+```shell
+export PYTHONPATH="/var/lib/juju/agents/unit-kafka-test-app-0/charm/venv:/var/lib/juju/agents/unit-kafka-test-app-0/charm/lib"
+```
+
+Once this is setup, you should be able to use the `client.py` script that exposes some functionality to produce and consume messages. 
+You can explore the usage of the script
+
+```shell
+python3 -m charms.kafka.v0.client --help
+
+usage: client.py [-h] [-t TOPIC] [-u USERNAME] [-p PASSWORD] [-c CONSUMER_GROUP_PREFIX] [-s SERVERS] [-x SECURITY_PROTOCOL] [-n NUM_MESSAGES] [-r REPLICATION_FACTOR] [--num-partitions NUM_PARTITIONS]
+                 [--producer] [--consumer] [--cafile-path CAFILE_PATH] [--certfile-path CERTFILE_PATH] [--keyfile-path KEYFILE_PATH] [--mongo-uri MONGO_URI] [--origin ORIGIN]
+
+Handler for running a Kafka client
+
+options:
+  -h, --help            show this help message and exit
+  -t TOPIC, --topic TOPIC
+                        Kafka topic provided by Kafka Charm
+  -u USERNAME, --username USERNAME
+                        Kafka username provided by Kafka Charm
+  -p PASSWORD, --password PASSWORD
+                        Kafka password provided by Kafka Charm
+  -c CONSUMER_GROUP_PREFIX, --consumer-group-prefix CONSUMER_GROUP_PREFIX
+                        Kafka consumer-group-prefix provided by Kafka Charm
+  -s SERVERS, --servers SERVERS
+                        comma delimited list of Kafka bootstrap-server strings
+  -x SECURITY_PROTOCOL, --security-protocol SECURITY_PROTOCOL
+                        security protocol used for authentication
+  -n NUM_MESSAGES, --num-messages NUM_MESSAGES
+                        number of messages to send from a producer
+  -r REPLICATION_FACTOR, --replication-factor REPLICATION_FACTOR
+                        replcation.factor for created topics
+  --num-partitions NUM_PARTITIONS
+                        partitions for created topics
+  --producer
+  --consumer
+  --cafile-path CAFILE_PATH
+  --certfile-path CERTFILE_PATH
+  --keyfile-path KEYFILE_PATH
+  --mongo-uri MONGO_URI
+  --origin ORIGIN
+```
+
+Using this script, you can therefore start producing messages (change the values of `username`, `password` and `servers`)
+
+```shell
+python3 -m charms.kafka.v0.client \
+  -u relation-6 -p S4IeRaYaiiq0tsM7m2UZuP2mSI573IGV \
+  -t test-topic \
+  -s "10.244.26.43:9092,10.244.26.6:9092,10.244.26.19:9092" \
+  -n 10 --producer \
+  -r 3 --num-partitions 1
+```
+
+and consume them 
+
+```shell
+python3 -m charms.kafka.v0.client \
+  -u relation-6 -p S4IeRaYaiiq0tsM7m2UZuP2mSI573IGV \
+  -t test-topic \
+  -s "10.244.26.43:9092,10.244.26.6:9092,10.244.26.19:9092" \
+  --consumer \
+  -c "cg"
+```
+
 ### Remove the user
 To remove the user, remove the relation. Removing the relation automatically removes the user that was created when the relation was created. Enter the following to remove the relation:
 ```shell
