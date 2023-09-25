@@ -30,6 +30,7 @@ from integration.helpers import (
 
 RESTART_DELAY = 60
 CLIENT_TIMEOUT = 30
+REELECTION_TIME = 25
 
 logger = logging.getLogger(__name__)
 
@@ -128,6 +129,8 @@ async def test_kill_broker_with_topic_leader(
     await send_control_signal(
         ops_test=ops_test, unit_name=f"{APP_NAME}/{initial_leader_num}", signal="SIGKILL"
     )
+    # Give time for the remaining units to notice leader going down
+    await asyncio.sleep(REELECTION_TIME)
 
     # verify replica is not in sync
     topic_description = await get_topic_description(
@@ -171,7 +174,7 @@ async def test_restart_broker_with_topic_leader(
         ops_test=ops_test, unit_name=f"{APP_NAME}/{leader_num}", signal="SIGTERM"
     )
     # Give time for the service to restart
-    await asyncio.sleep(10)
+    await asyncio.sleep(REELECTION_TIME)
 
     topic_description = await get_topic_description(
         ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
@@ -201,7 +204,7 @@ async def test_freeze_broker_with_topic_leader(
     await send_control_signal(
         ops_test=ops_test, unit_name=f"{APP_NAME}/{initial_leader_num}", signal="SIGSTOP"
     )
-    await asyncio.sleep(25)
+    await asyncio.sleep(REELECTION_TIME)
 
     # verify replica is not in sync
     topic_description = await get_topic_description(
@@ -230,7 +233,7 @@ async def test_freeze_broker_with_topic_leader(
     await send_control_signal(
         ops_test=ops_test, unit_name=f"{APP_NAME}/{initial_leader_num}", signal="SIGCONT"
     )
-    await asyncio.sleep(15)
+    await asyncio.sleep(REELECTION_TIME)
     topic_description = await get_topic_description(
         ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
     )
@@ -296,7 +299,7 @@ async def test_full_cluster_restart(
         ]
     )
     # Give time for the service to restart
-    await asyncio.sleep(15)
+    await asyncio.sleep(REELECTION_TIME)
 
     initial_offsets = await get_topic_offsets(ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME)
     await asyncio.sleep(CLIENT_TIMEOUT * 2)
