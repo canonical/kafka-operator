@@ -3,7 +3,7 @@
 # See LICENSE file for licensing details.
 import logging
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from subprocess import PIPE, check_output
 
 from pytest_operator.plugin import OpsTest
@@ -23,8 +23,8 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class TopicDescription:
-    leader: int = -1
-    in_sync_replicas: set = field(default_factory=set)
+    leader: int
+    in_sync_replicas: set
 
 
 class ProcessError(Exception):
@@ -48,18 +48,19 @@ async def get_topic_description(ops_test: OpsTest, topic: str) -> TopicDescripti
             await get_address(ops_test=ops_test, unit_num=unit.name.split("/")[-1])
             + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT'].client}"
         )
+    unit_name = ops_test.model.applications[APP_NAME].units[0].name
 
     output = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.topics --bootstrap-server {','.join(bootstrap_servers)} --command-config {KafkaSnap.CONF_PATH}/client.properties --describe --topic {topic}'",
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.topics --bootstrap-server {','.join(bootstrap_servers)} --command-config {KafkaSnap.CONF_PATH}/client.properties --describe --topic {topic}'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
     )
-    result = TopicDescription()
-    result.leader = int(re.search(r"Leader: (\d+)", output)[1])
-    result.in_sync_replicas = {int(i) for i in re.search(r"Isr: ([\d,]+)", output)[1].split(",")}
 
-    return result
+    leader = int(re.search(r"Leader: (\d+)", output)[1])
+    in_sync_replicas = {int(i) for i in re.search(r"Isr: ([\d,]+)", output)[1].split(",")}
+
+    return TopicDescription(leader, in_sync_replicas)
 
 
 async def get_topic_offsets(ops_test: OpsTest, topic: str) -> list[str]:
@@ -75,10 +76,11 @@ async def get_topic_offsets(ops_test: OpsTest, topic: str) -> list[str]:
             await get_address(ops_test=ops_test, unit_num=unit.name.split("/")[-1])
             + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT'].client}"
         )
+    unit_name = ops_test.model.applications[APP_NAME].units[0].name
 
     # example of topic offset output: 'test-topic:0:10'
     result = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.get-offsets --bootstrap-server {','.join(bootstrap_servers)} --command-config {KafkaSnap.CONF_PATH}/client.properties --topic {topic}'",
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.get-offsets --bootstrap-server {','.join(bootstrap_servers)} --command-config {KafkaSnap.CONF_PATH}/client.properties --topic {topic}'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -134,8 +136,9 @@ async def remove_restart_delay(ops_test: OpsTest, unit_name: str) -> None:
 
 def is_up(ops_test: OpsTest, broker_id: int) -> bool:
     """Return if node up."""
+    unit_name = ops_test.model.applications[APP_NAME].units[0].name
     kafka_zk_relation_data = get_kafka_zk_relation_data(
-        unit_name="kafka/0", model_full_name=ops_test.model_full_name
+        unit_name=unit_name, model_full_name=ops_test.model_full_name
     )
     active_brokers = get_active_brokers(zookeeper_config=kafka_zk_relation_data)
     chroot = kafka_zk_relation_data.get("chroot", "")
@@ -155,5 +158,5 @@ def assert_continuous_writes_consistency(
             result.lost_messages == expected_lost_messages
         ), "Lost messages different from expected"
     assert (
-        result.count + result.lost_messages == result.last_expected_message
+        result.count + result.lost_messages - 1 == result.last_expected_message
     ), f"Last expected message {result.last_expected_message} doesn't match count {result.count} + lost_messages {result.lost_messages}"

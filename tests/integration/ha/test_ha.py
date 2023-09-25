@@ -29,6 +29,7 @@ from integration.helpers import (
 )
 
 RESTART_DELAY = 60
+CLIENT_TIMEOUT = 30
 
 logger = logging.getLogger(__name__)
 
@@ -127,6 +128,13 @@ async def test_kill_broker_with_topic_leader(
     await send_control_signal(
         ops_test=ops_test, unit_name=f"{APP_NAME}/{initial_leader_num}", signal="SIGKILL"
     )
+
+    # verify replica is not in sync
+    topic_description = await get_topic_description(
+        ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
+    )
+    assert topic_description.in_sync_replicas == {0, 1, 2} - {initial_leader_num}
+
     # Give time for the service to restart
     await asyncio.sleep(RESTART_DELAY * 2)
 
@@ -211,7 +219,7 @@ async def test_freeze_broker_with_topic_leader(
     )
     next_leader_num = topic_description.leader
     initial_offsets = await get_topic_offsets(ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME)
-    await asyncio.sleep(5)
+    await asyncio.sleep(CLIENT_TIMEOUT)
     next_offsets = await get_topic_offsets(ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME)
 
     assert initial_leader_num != next_leader_num
@@ -261,7 +269,7 @@ async def test_full_cluster_crash(
         ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
     )
     initial_offsets = await get_topic_offsets(ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME)
-    await asyncio.sleep(5)
+    await asyncio.sleep(CLIENT_TIMEOUT * 2)
     next_offsets = await get_topic_offsets(ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME)
 
     assert int(next_offsets[-1]) > int(initial_offsets[-1])
@@ -295,7 +303,7 @@ async def test_full_cluster_restart(
     await asyncio.sleep(15)
 
     initial_offsets = await get_topic_offsets(ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME)
-    await asyncio.sleep(5)
+    await asyncio.sleep(CLIENT_TIMEOUT * 2)
     next_offsets = await get_topic_offsets(ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME)
     topic_description = await get_topic_description(
         ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME

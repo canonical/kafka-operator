@@ -7,11 +7,11 @@ import os
 from dataclasses import dataclass
 from multiprocessing import Event, Process, Queue
 from types import SimpleNamespace
-from typing import Optional
 
 from charms.kafka.v0.client import KafkaClient
 from kafka.admin import NewTopic
-from kafka.errors import KafkaTimeoutError
+from kafka.consumer.fetcher import ConsumerRecord
+from kafka.errors import KafkaError
 from pytest_operator.plugin import OpsTest
 from tenacity import (
     RetryError,
@@ -29,10 +29,10 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ContinuousWritesResult:
-    count: int = -1
-    last_message: Optional[object] = None
-    last_expected_message: int = -1
-    lost_messages: int = -1
+    count: int
+    last_message: ConsumerRecord
+    last_expected_message: int
+    lost_messages: int
 
 
 class ContinuousWrites:
@@ -123,20 +123,21 @@ class ContinuousWrites:
         if not self._is_stopped:
             self._stop_process()
 
-        result = ContinuousWritesResult()
-
         # messages count
         consumed_messages = self.consumed_messages()
-        result.count = len(consumed_messages)
-        result.last_message = consumed_messages[-1]
+        count = len(consumed_messages)
+        last_message = consumed_messages[-1]
 
         # last expected message stored on disk
         with open(ContinuousWrites.LAST_WRITTEN_VAL_PATH, "r") as f:
-            result.last_expected_message, result.lost_messages = map(
+            last_expected_message, lost_messages = map(
                 int, f.read().rstrip().split(",", maxsplit=2)
             )
 
-        return result
+        logger.info(
+            f"\n\nSTOP RESULTS:\n\t- Count: {count}\n\t- Last message: {last_message}\n\t- Last expected message: {last_expected_message}\n\t- Lost messages: {lost_messages}\n"
+        )
+        return ContinuousWritesResult(count, last_message, last_expected_message, lost_messages)
 
     def _create_process(self):
         self._is_stopped = False
@@ -201,10 +202,9 @@ class ContinuousWrites:
                 client.produce_message(
                     topic_name=ContinuousWrites.TOPIC_NAME, message_content=str(write_value)
                 )
-            except KafkaTimeoutError:
+            except KafkaError as e:
+                logger.error(f"Error on Kafka Producer: {e}")
                 lost_messages += 1
-                client.close()
-                client = _client()
             finally:
                 # process termination requested
                 if event.is_set():
