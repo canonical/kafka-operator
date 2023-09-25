@@ -121,7 +121,6 @@ async def test_kill_broker_with_topic_leader(
         ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
     )
     initial_leader_num = topic_description.leader
-    initial_offsets = await get_topic_offsets(ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME)
 
     logger.info(
         f"Killing broker of leader for topic '{ContinuousWrites.TOPIC_NAME}': {initial_leader_num}"
@@ -129,27 +128,29 @@ async def test_kill_broker_with_topic_leader(
     await send_control_signal(
         ops_test=ops_test, unit_name=f"{APP_NAME}/{initial_leader_num}", signal="SIGKILL"
     )
+
     # Give time for the remaining units to notice leader going down
     await asyncio.sleep(REELECTION_TIME)
 
-    # verify replica is not in sync
+    # Check offsets after killing leader
+    initial_offsets = await get_topic_offsets(ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME)
+
+    # verify replica is not in sync and check that leader changed
     topic_description = await get_topic_description(
         ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
     )
+    assert initial_leader_num != topic_description.leader
     assert topic_description.in_sync_replicas == {0, 1, 2} - {initial_leader_num}
 
     # Give time for the service to restart
     await asyncio.sleep(RESTART_DELAY * 2)
 
-    # Check that leader changed
     topic_description = await get_topic_description(
         ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
     )
-    next_leader_num = topic_description.leader
     next_offsets = await get_topic_offsets(ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME)
 
     assert topic_description.in_sync_replicas == {0, 1, 2}
-    assert initial_leader_num != next_leader_num
     assert int(next_offsets[-1]) > int(initial_offsets[-1])
 
     result = c_writes.stop()
@@ -204,28 +205,26 @@ async def test_freeze_broker_with_topic_leader(
     await send_control_signal(
         ops_test=ops_test, unit_name=f"{APP_NAME}/{initial_leader_num}", signal="SIGSTOP"
     )
-    await asyncio.sleep(REELECTION_TIME)
+    await asyncio.sleep(REELECTION_TIME * 2)
 
     # verify replica is not in sync
     topic_description = await get_topic_description(
         ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
     )
     assert topic_description.in_sync_replicas == {0, 1, 2} - {initial_leader_num}
+    assert initial_leader_num != topic_description.leader
     assert not is_up(
         ops_test=ops_test, broker_id=initial_leader_num
     ), f"Broker {initial_leader_num} reported as up"
 
-    # verify new writes are continuing by counting the number of writes before and after 5 seconds.
-    # Also, check that leader changed
+    # verify new writes are continuing. Also, check that leader changed
     topic_description = await get_topic_description(
         ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
     )
-    next_leader_num = topic_description.leader
     initial_offsets = await get_topic_offsets(ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME)
-    await asyncio.sleep(CLIENT_TIMEOUT)
+    await asyncio.sleep(CLIENT_TIMEOUT * 2)
     next_offsets = await get_topic_offsets(ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME)
 
-    assert initial_leader_num != next_leader_num
     assert int(next_offsets[-1]) > int(initial_offsets[-1])
 
     # Un-freeze the process

@@ -202,6 +202,7 @@ class ContinuousWrites:
                 client.produce_message(
                     topic_name=ContinuousWrites.TOPIC_NAME, message_content=str(write_value)
                 )
+                await asyncio.sleep(0.1)
             except KafkaError as e:
                 logger.error(f"Error on Kafka Producer: {e}")
                 lost_messages += 1
