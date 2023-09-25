@@ -56,12 +56,12 @@ jobs:
       fail-fast: false
       matrix:
         tox-environments:
-          # - integration-charm
-          # - integration-provider
-          # - integration-scaling
-          # - integration-password-rotation
+          - integration-charm
+          - integration-provider
+          - integration-scaling
+          - integration-password-rotation
           - integration-tls
-          # - integration-upgrade
+          - integration-upgrade
     name: ${{ matrix.tox-environments }}
     needs:
       - lint
@@ -99,8 +99,6 @@ jobs:
         run: |
           sudo usermod -aG root $USER
           sudo -s -u ${USER} bash -c 'whoami && groups'
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
       - name: Run integration tests
         run: tox run -e ${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}'
         env:
