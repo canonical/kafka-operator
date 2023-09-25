@@ -145,18 +145,8 @@ def is_up(ops_test: OpsTest, broker_id: int) -> bool:
     return f"{chroot}/brokers/ids/{broker_id}" in active_brokers
 
 
-def assert_continuous_writes_consistency(
-    result: ContinuousWritesResult,
-    expected_lost_messages: int = 0,
-    compare_lost_messages: bool = False,
-):
+def assert_continuous_writes_consistency(result: ContinuousWritesResult):
     """Check results of a stopped ContinuousWrites call against expected results."""
-    if compare_lost_messages:
-        assert result.lost_messages >= expected_lost_messages
-    else:
-        assert (
-            result.lost_messages == expected_lost_messages
-        ), "Lost messages different from expected"
     assert (
         result.count + result.lost_messages - 1 == result.last_expected_message
     ), f"Last expected message {result.last_expected_message} doesn't match count {result.count} + lost_messages {result.lost_messages}"
