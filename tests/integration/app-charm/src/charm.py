@@ -13,7 +13,6 @@ import logging
 import os
 import shutil
 import subprocess
-import time
 from socket import getfqdn
 
 from charms.data_platform_libs.v0.data_interfaces import KafkaRequires, TopicCreatedEvent
@@ -255,22 +254,10 @@ class ApplicationCharm(CharmBase):
             logger.exception(e.output)
             raise e
 
-        ls = subprocess.check_output(
-            f"sudo ls -lah {SNAP_PATH}",
-            stderr=subprocess.STDOUT,
-            shell=True,
-            universal_newlines=True,
-            cwd=SNAP_PATH,
-        )
-        logger.info(ls)
-
-        logger.info("SLEEPING")
-        time.sleep(100000)
-
         logger.info("running producer application")
         try:
             subprocess.check_output(
-                f"charmed-kafka.console-producer --bootstrap-server {bootstrap_servers} --topic=TEST-TOPIC --producer.config client.properties < data",
+                f"cat data | charmed-kafka.console-producer --bootstrap-server {bootstrap_servers} --topic=TEST-TOPIC --producer.config client.properties -",
                 stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
@@ -291,12 +278,7 @@ class ApplicationCharm(CharmBase):
         unit_host = peer_relation.data[self.unit].get("private-address" "") or ""
         unit_name = getfqdn()
 
-        logger.info(f"{unit_host=}")
-        logger.info(f"{unit_name=}")
-
         response = self._create_keystore(unit_host=unit_host, unit_name=unit_name)
-
-        logger.info(f"{response=}")
 
         event.set_results(
             {"client-certificate": response["certificate"], "client-ca": response["ca"]}
@@ -327,10 +309,11 @@ class ApplicationCharm(CharmBase):
         logger.info("fetching offsets")
         try:
             output = subprocess.check_output(
-                f"charmed-kafka.get-offsets --bootstrap-server {bootstrap_server} --topic=TEST-TOPIC --command-config {SNAP_PATH}/client.properties",
+                f"charmed-kafka.get-offsets --bootstrap-server {bootstrap_server} --topic=TEST-TOPIC --command-config client.properties",
                 stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
+                cwd=SNAP_PATH,
             )
             event.set_results({"output": output})
         except subprocess.CalledProcessError as e:
