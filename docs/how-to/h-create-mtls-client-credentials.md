@@ -87,11 +87,10 @@ Inject Root CA and Server CA into the truststore file:
 ```bash
 
 # ---------- Truststore
-keytool -keystore client.truststore.jks -storepass $KAFKA_CLIENT_TRUSTSTORE_PASSWORD -noprompt \
--importcert -alias kafka-ca -file kafka_ca.pem
-
-keytool -keystore client.truststore.jks -storepass $KAFKA_CLIENT_TRUSTSTORE_PASSWORD -noprompt \
--importcert -alias CARoot -file ss_ca.pem
+charmed-kafka.keytool -keystore client.truststore.jks -storepass $KAFKA_CLIENT_TRUSTSTORE_PASSWORD -noprompt \
+  -importcert -alias kafka-ca -file kafka_ca.pem
+charmed-kafka.keytool -keystore client.truststore.jks -storepass $KAFKA_CLIENT_TRUSTSTORE_PASSWORD -noprompt \
+  -importcert -alias CARoot -file ss_ca.pem
 ```
 
 ### Check certificates validity
@@ -100,13 +99,12 @@ keytool -keystore client.truststore.jks -storepass $KAFKA_CLIENT_TRUSTSTORE_PASS
 
 # ---------- Check certs validity
 echo "Client certs in Keystore:"
-keytool -list -keystore client.keystore.p12 -storepass $KAFKA_CLIENT_KEYSTORE_PASSWORD -rfc | grep "Alias name"
-keytool -list -keystore client.keystore.p12 -storepass $KAFKA_CLIENT_KEYSTORE_PASSWORD -v | grep until
+charmed-kafka.keytool -list -keystore client.keystore.p12 -storepass $KAFKA_CLIENT_KEYSTORE_PASSWORD -rfc | grep "Alias name"
+charmed-kafka.keytool -list -keystore client.keystore.p12 -storepass $KAFKA_CLIENT_KEYSTORE_PASSWORD -v | grep until
 
 echo "Server certs in Truststore:"
-keytool -list -keystore client.truststore.jks -storepass $KAFKA_CLIENT_TRUSTSTORE_PASSWORD -rfc | grep "Alias name"
-keytool -list -keystore client.truststore.jks -storepass $KAFKA_CLIENT_TRUSTSTORE_PASSWORD -v | grep until
-
+charmed-kafka.keytool -list -keystore client.truststore.jks -storepass $KAFKA_CLIENT_TRUSTSTORE_PASSWORD -rfc | grep "Alias name"
+charmed-kafka.keytool -list -keystore client.truststore.jks -storepass $KAFKA_CLIENT_TRUSTSTORE_PASSWORD -v | grep until
 ```
 ### mTLS
 This is a mutual TLS communication which means:

@@ -10,6 +10,7 @@ of the libraries in this repository.
 
 import base64
 import logging
+import os
 import shutil
 import subprocess
 from socket import getfqdn
@@ -32,6 +33,8 @@ REL_NAME_PRODUCER = "kafka-client-producer"
 REL_NAME_ADMIN = "kafka-client-admin"
 ZK = "zookeeper"
 CONSUMER_GROUP_PREFIX = "test-prefix"
+SNAP_PATH = "/var/snap/charmed-kafka/current/etc/kafka"
+CHARMED_KAFKA_SNAP_REVISION = 19
 
 
 class ApplicationCharm(CharmBase):
@@ -76,7 +79,7 @@ class ApplicationCharm(CharmBase):
     def _on_start(self, _) -> None:
         self.unit.status = ActiveStatus()
 
-    def _log(self, event: RelationEvent):
+    def _log(self, _: RelationEvent):
         return
 
     def on_topic_created_consumer(self, event: TopicCreatedEvent):
@@ -94,145 +97,174 @@ class ApplicationCharm(CharmBase):
     def _install_packages(self):
         logger.info("INSTALLING PACKAGES")
         apt.update()
-        apt.add_package(["snapd", "openjdk-17-jre-headless"])
+        apt.add_package(["snapd"])
         cache = snap.SnapCache()
         kafka = cache["charmed-kafka"]
 
-        if not kafka.present:
-            kafka.ensure(snap.SnapState.Latest, channel="3/edge")
+        kafka.ensure(snap.SnapState.Latest, channel="3/edge", revision=19)
+
+    @staticmethod
+    def set_snap_ownership(path: str) -> None:
+        """Sets a filepath `snap_daemon` ownership."""
+        shutil.chown(path, user="snap_daemon", group="root")
+
+        for root, dirs, files in os.walk(path):
+            for fp in dirs + files:
+                shutil.chown(os.path.join(root, fp), user="snap_daemon", group="root")
+
+    @staticmethod
+    def set_snap_mode_bits(path: str) -> None:
+        """Sets filepath mode bits."""
+        os.chmod(path, 0o774)
+
+        for root, dirs, files in os.walk(path):
+            for fp in dirs + files:
+                os.chmod(os.path.join(root, fp), 0o774)
 
     def _create_keystore(self, unit_name: str, unit_host: str):
         try:
             logger.info("creating the keystore")
             subprocess.check_output(
-                f'keytool -keystore client.keystore.jks -alias client-key -validity 90 -genkey -keyalg RSA -noprompt -storepass password -dname "CN=client" -ext SAN=DNS:{unit_name},IP:{unit_host}',
-                stderr=subprocess.PIPE,
+                f'charmed-kafka.keytool -keystore client.keystore.jks -alias client-key -validity 90 -genkey -keyalg RSA -noprompt -storepass password -dname "CN=client" -ext SAN=DNS:{unit_name},IP:{unit_host}',
+                stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
+                cwd=SNAP_PATH,
             )
-            shutil.chown("client.keystore.jks", user="snap_daemon", group="root")
+            self.set_snap_ownership(path=f"{SNAP_PATH}/client.keystore.jks")
+            self.set_snap_mode_bits(path=f"{SNAP_PATH}/client.keystore.jks")
 
             logger.info("creating a ca")
             subprocess.check_output(
                 'openssl req -new -x509 -keyout ca.key -out ca.cert -days 90 -passout pass:password -subj "/CN=client-ca"',
-                stderr=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
+                cwd=SNAP_PATH,
             )
-            shutil.chown("ca.key", user="snap_daemon", group="root")
-            shutil.chown("ca.cert", user="snap_daemon", group="root")
+            self.set_snap_ownership(path=f"{SNAP_PATH}/ca.key")
+            self.set_snap_ownership(path=f"{SNAP_PATH}/ca.cert")
 
             logger.info("signing certificate")
             subprocess.check_output(
-                "keytool -keystore client.keystore.jks -alias client-key -certreq -file client.csr -storepass password",
-                stderr=subprocess.PIPE,
+                "charmed-kafka.keytool -keystore client.keystore.jks -alias client-key -certreq -file client.csr -storepass password",
+                stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
+                cwd=SNAP_PATH,
             )
-            shutil.chown("client.csr", user="snap_daemon", group="root")
+            self.set_snap_ownership(path=f"{SNAP_PATH}/client.csr")
 
             subprocess.check_output(
                 "openssl x509 -req -CA ca.cert -CAkey ca.key -in client.csr -out client.cert -days 90 -CAcreateserial -passin pass:password",
-                stderr=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
+                cwd=SNAP_PATH,
             )
-            shutil.chown("client.cert", user="snap_daemon", group="root")
+            self.set_snap_ownership(path=f"{SNAP_PATH}/client.cert")
 
             logger.info("importing certificate to keystore")
             subprocess.check_output(
-                "keytool -keystore client.keystore.jks -alias client-cert -importcert -file client.cert -storepass password -noprompt",
-                stderr=subprocess.PIPE,
+                "charmed-kafka.keytool -keystore client.keystore.jks -alias client-cert -importcert -file client.cert -storepass password -noprompt",
+                stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
+                cwd=SNAP_PATH,
             )
-            shutil.chown("client.keystore.jks", user="snap_daemon", group="root")
+            self.set_snap_ownership(path=f"{SNAP_PATH}/client.keystore.jks")
+            self.set_snap_mode_bits(path=f"{SNAP_PATH}/client.keystore.jks")
 
             logger.info("grabbing cert content")
             certificate = subprocess.check_output(
-                "cat client.cert", stderr=subprocess.PIPE, shell=True, universal_newlines=True
+                "cat client.cert",
+                stderr=subprocess.STDOUT,
+                shell=True,
+                universal_newlines=True,
+                cwd=SNAP_PATH,
             )
             ca = subprocess.check_output(
-                "cat ca.cert", stderr=subprocess.PIPE, shell=True, universal_newlines=True
+                "cat ca.cert",
+                stderr=subprocess.STDOUT,
+                shell=True,
+                universal_newlines=True,
+                cwd=SNAP_PATH,
             )
 
         except subprocess.CalledProcessError as e:
-            logger.error(e.output)
+            logger.exception(e)
             raise e
 
         return {"certificate": certificate, "ca": ca}
 
     def _create_truststore(self, broker_ca: str):
         logger.info("writing broker cert to unit")
-        unit_name = self.unit.name.replace("/", "-")
-
-        safe_write_to_file(
-            content=broker_ca, path=f"/var/lib/juju/agents/unit-{unit_name}/charm/broker.cert"
-        )
+        safe_write_to_file(content=broker_ca, path=f"{SNAP_PATH}/broker.cert")
 
         # creating truststore and importing cert files
         for file in ["broker.cert", "ca.cert", "client.cert"]:
             try:
                 logger.info(f"adding {file} to truststore")
                 subprocess.check_output(
-                    f"keytool -keystore client.truststore.jks -alias {file.replace('.', '-')} -importcert -file {file} -storepass password -noprompt",
-                    stderr=subprocess.PIPE,
+                    f"charmed-kafka.keytool -keystore client.truststore.jks -alias {file.replace('.', '-')} -importcert -file {file} -storepass password -noprompt",
+                    stderr=subprocess.STDOUT,
                     shell=True,
                     universal_newlines=True,
+                    cwd=SNAP_PATH,
                 )
-                shutil.chown("client.truststore.jks", user="snap_daemon", group="root")
+                self.set_snap_ownership(path=f"{SNAP_PATH}/client.truststore.jks")
+                self.set_snap_mode_bits(path=f"{SNAP_PATH}/client.truststore.jks")
             except subprocess.CalledProcessError as e:
                 # in case this reruns and fails
                 if "already exists" in e.output:
-                    logger.warning(e.output)
+                    logger.exception(e)
                     continue
                 raise e
 
         logger.info("creating client.properties file")
         properties = [
             "security.protocol=SSL",
-            "ssl.truststore.location=client.truststore.jks",
-            "ssl.keystore.location=client.keystore.jks",
+            f"ssl.truststore.location={SNAP_PATH}/client.truststore.jks",
+            f"ssl.keystore.location={SNAP_PATH}/client.keystore.jks",
             "ssl.truststore.password=password",
             "ssl.keystore.password=password",
             "ssl.key.password=password",
         ]
         safe_write_to_file(
             content="\n".join(properties),
-            path=f"/var/lib/juju/agents/unit-{unit_name}/charm/client.properties",
+            path=f"{SNAP_PATH}/client.properties",
         )
 
     def _attempt_mtls_connection(self, bootstrap_servers: str, num_messages: int):
         logger.info("creating data to feed to producer")
-        unit_name = self.unit.name.replace("/", "-")
         content = "\n".join(f"message: {ith}" for ith in range(num_messages))
 
-        safe_write_to_file(
-            content=content, path=f"/var/lib/juju/agents/unit-{unit_name}/charm/data"
-        )
+        safe_write_to_file(content=content, path=f"{SNAP_PATH}/data")
 
         logger.info("Creating topic")
         try:
             subprocess.check_output(
-                f"/snap/charmed-kafka/current/bin/kafka-topics.sh --bootstrap-server {bootstrap_servers} --topic=TEST-TOPIC --create --command-config client.properties",
-                stderr=subprocess.PIPE,
+                f"charmed-kafka.topics --bootstrap-server {bootstrap_servers} --topic=TEST-TOPIC --create --command-config client.properties",
+                stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
+                cwd=SNAP_PATH,
             )
         except subprocess.CalledProcessError as e:
-            logger.error(e.output)
+            logger.exception(e.output)
             raise e
 
         logger.info("running producer application")
         try:
             subprocess.check_output(
-                f"/snap/charmed-kafka/current/bin/kafka-console-producer.sh --bootstrap-server {bootstrap_servers} --topic=TEST-TOPIC --producer.config client.properties < data",
-                stderr=subprocess.PIPE,
+                f"cat data | charmed-kafka.console-producer --bootstrap-server {bootstrap_servers} --topic=TEST-TOPIC --producer.config client.properties -",
+                stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
+                cwd=SNAP_PATH,
             )
         except subprocess.CalledProcessError as e:
-            logger.error(e.output)
+            logger.exception(e.output)
             raise e
 
     def create_certificate(self, event: ActionEvent):
@@ -246,12 +278,7 @@ class ApplicationCharm(CharmBase):
         unit_host = peer_relation.data[self.unit].get("private-address" "") or ""
         unit_name = getfqdn()
 
-        logger.info(f"{unit_host=}")
-        logger.info(f"{unit_name=}")
-
         response = self._create_keystore(unit_host=unit_host, unit_name=unit_name)
-
-        logger.info(f"{response=}")
 
         event.set_results(
             {"client-certificate": response["certificate"], "client-ca": response["ca"]}
@@ -270,7 +297,7 @@ class ApplicationCharm(CharmBase):
                 bootstrap_servers=bootstrap_server, num_messages=num_messages
             )
         except Exception as e:
-            logger.error(e)
+            logger.exception(e)
             event.fail()
             return
 
@@ -282,14 +309,15 @@ class ApplicationCharm(CharmBase):
         logger.info("fetching offsets")
         try:
             output = subprocess.check_output(
-                f"/snap/charmed-kafka/current/bin/kafka-get-offsets.sh --bootstrap-server {bootstrap_server} --topic=TEST-TOPIC --command-config client.properties",
-                stderr=subprocess.PIPE,
+                f"charmed-kafka.get-offsets --bootstrap-server {bootstrap_server} --topic=TEST-TOPIC --command-config client.properties",
+                stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
+                cwd=SNAP_PATH,
             )
             event.set_results({"output": output})
         except subprocess.CalledProcessError as e:
-            logger.error(e.output)
+            logger.exception(e.output)
             event.fail()
 
         return
