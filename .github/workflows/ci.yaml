@@ -50,9 +50,9 @@ jobs:
       matrix:
         tox-environments:
           #- integration-charm
-          - integration-provider
+          #- integration-provider
           #- integration-scaling
-          #- integration-password-rotation
+          - integration-password-rotation
           #- integration-tls
     name: ${{ matrix.tox-environments }}
     needs:
