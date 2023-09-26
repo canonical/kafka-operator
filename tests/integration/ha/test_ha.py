@@ -60,6 +60,7 @@ async def restart_delay(ops_test: OpsTest):
         await remove_restart_delay(ops_test=ops_test, unit_name=unit.name)
 
 
+@pytest.mark.skip_if_deployed
 @pytest.mark.abort_on_fail
 async def test_build_and_deploy(ops_test: OpsTest, kafka_charm, app_charm):
     await asyncio.gather(

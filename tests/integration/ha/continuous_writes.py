@@ -7,6 +7,7 @@ import os
 from dataclasses import dataclass
 from multiprocessing import Event, Process, Queue
 from types import SimpleNamespace
+from typing import List, Optional
 
 from charms.kafka.v0.client import KafkaClient
 from kafka.admin import NewTopic
@@ -30,9 +31,9 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ContinuousWritesResult:
     count: int
-    last_message: ConsumerRecord
     last_expected_message: int
     lost_messages: int
+    consumed_messages: Optional[List[ConsumerRecord]]
 
 
 class ContinuousWrites:
@@ -89,7 +90,7 @@ class ContinuousWrites:
         finally:
             client.close()
 
-    def consumed_messages(self) -> list | None:
+    def consumed_messages(self) -> List[ConsumerRecord] | None:
         """Consume the messages in the topic."""
         client = self._client()
         try:
@@ -126,7 +127,7 @@ class ContinuousWrites:
         # messages count
         consumed_messages = self.consumed_messages()
         count = len(consumed_messages)
-        last_message = consumed_messages[-1]
+        message_list = [record.value.decode() for record in consumed_messages]
 
         # last expected message stored on disk
         with open(ContinuousWrites.LAST_WRITTEN_VAL_PATH, "r") as f:
@@ -135,9 +136,11 @@ class ContinuousWrites:
             )
 
         logger.info(
-            f"\n\nSTOP RESULTS:\n\t- Count: {count}\n\t- Last message: {last_message}\n\t- Last expected message: {last_expected_message}\n\t- Lost messages: {lost_messages}\n"
+            f"\n\nSTOP RESULTS:\n\t- Count: {count}\n\t- Last expected message: {last_expected_message}\n\t- Lost messages: {lost_messages}\n\t- Consumed messages: {message_list}\n"
         )
-        return ContinuousWritesResult(count, last_message, last_expected_message, lost_messages)
+        return ContinuousWritesResult(
+            count, last_expected_message, lost_messages, consumed_messages
+        )
 
     def _create_process(self):
         self._is_stopped = False
@@ -204,7 +207,7 @@ class ContinuousWrites:
                 )
                 await asyncio.sleep(0.1)
             except KafkaError as e:
-                logger.error(f"Error on Kafka Producer: {e}")
+                logger.error(f"Error on 'Message #{write_value}' Kafka Producer: {e}")
                 lost_messages += 1
             finally:
                 # process termination requested
