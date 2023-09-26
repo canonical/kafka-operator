@@ -166,7 +166,6 @@ async def test_restart_broker_with_topic_leader(
         ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
     )
     leader_num = topic_description.leader
-    initial_offsets = await get_topic_offsets(ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME)
 
     logger.info(
         f"Restarting broker of leader for topic '{ContinuousWrites.TOPIC_NAME}': {leader_num}"
@@ -175,13 +174,15 @@ async def test_restart_broker_with_topic_leader(
         ops_test=ops_test, unit_name=f"{APP_NAME}/{leader_num}", signal="SIGTERM"
     )
     # Give time for the service to restart
-    await asyncio.sleep(REELECTION_TIME)
+    await asyncio.sleep(REELECTION_TIME * 2)
+
+    initial_offsets = await get_topic_offsets(ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME)
+    await asyncio.sleep(CLIENT_TIMEOUT)
+    next_offsets = await get_topic_offsets(ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME)
 
     topic_description = await get_topic_description(
         ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
     )
-    next_offsets = await get_topic_offsets(ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME)
-
     assert topic_description.in_sync_replicas == {0, 1, 2}
     assert int(next_offsets[-1]) > int(initial_offsets[-1])
 
@@ -298,7 +299,7 @@ async def test_full_cluster_restart(
         ]
     )
     # Give time for the service to restart
-    await asyncio.sleep(REELECTION_TIME)
+    await asyncio.sleep(REELECTION_TIME * 2)
 
     initial_offsets = await get_topic_offsets(ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME)
     await asyncio.sleep(CLIENT_TIMEOUT * 2)
