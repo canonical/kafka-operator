@@ -81,7 +81,6 @@ from typing import Generator, List, Optional
 
 from kafka import KafkaAdminClient, KafkaConsumer, KafkaProducer
 from kafka.admin import NewTopic
-from kafka.errors import KafkaError
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -160,6 +159,9 @@ class KafkaClient:
             ssl_certfile=self.certfile_path if self.ssl else None,
             ssl_keyfile=self.keyfile_path if self.mtls else None,
             api_version=KafkaClient.API_VERSION if self.mtls else None,
+            acks="all",
+            retries=5,
+            retry_backoff_ms=1000,
         )
 
     @cached_property
@@ -246,16 +248,14 @@ class KafkaClient:
         Args:
             topic_name: the topic to send messages to
             message_content: the content of the message to send
+        
+        Raises:
+            KafkaTimeoutError, KafkaError (general)
         """
         item_content = f"Message #{message_content}"
         future = self._producer_client.send(topic_name, str.encode(item_content))
-        try:
-            future.get(timeout=60)
-            logger.info(
-                f"Message published to topic={topic_name}, message content: {item_content}"
-            )
-        except KafkaError as e:
-            logger.error(f"Error producing message {message_content} to topic {topic_name}: {e}")
+        future.get(timeout=30)
+        logger.debug(f"Message published to topic={topic_name}, message content: {item_content}")
 
     def close(self) -> None:
         """Close the connection to the client."""

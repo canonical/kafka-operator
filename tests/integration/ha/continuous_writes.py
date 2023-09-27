@@ -4,19 +4,21 @@
 import asyncio
 import logging
 import os
+from dataclasses import dataclass
 from multiprocessing import Event, Process, Queue
 from types import SimpleNamespace
+from typing import List, Optional
 
 from charms.kafka.v0.client import KafkaClient
 from kafka.admin import NewTopic
-from kafka.errors import KafkaTimeoutError
+from kafka.consumer.fetcher import ConsumerRecord
+from kafka.errors import KafkaError
 from pytest_operator.plugin import OpsTest
 from tenacity import (
     RetryError,
     Retrying,
     retry,
     stop_after_attempt,
-    stop_after_delay,
     wait_fixed,
     wait_random,
 )
@@ -24,6 +26,14 @@ from tenacity import (
 from integration.helpers import DUMMY_NAME, get_provider_data
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class ContinuousWritesResult:
+    count: int
+    last_expected_message: int
+    lost_messages: int
+    consumed_messages: Optional[List[ConsumerRecord]]
 
 
 class ContinuousWrites:
@@ -80,7 +90,7 @@ class ContinuousWrites:
         finally:
             client.close()
 
-    def consumed_messages(self) -> list | None:
+    def consumed_messages(self) -> List[ConsumerRecord] | None:
         """Consume the messages in the topic."""
         client = self._client()
         try:
@@ -90,6 +100,7 @@ class ContinuousWrites:
                     # FIXME: loading whole list of consumed messages into memory might not be the best idea
                     return list(client.messages())
         except RetryError:
+            logger.error("Could not get consumed messages from Kafka.")
             return []
         finally:
             client.close()
@@ -108,30 +119,28 @@ class ContinuousWrites:
         wait=wait_fixed(wait=5) + wait_random(0, 5),
         stop=stop_after_attempt(5),
     )
-    def stop(self) -> SimpleNamespace:
+    def stop(self) -> ContinuousWritesResult:
         """Stop the continuous writes process and return max inserted ID."""
         if not self._is_stopped:
             self._stop_process()
 
-        result = SimpleNamespace()
-
         # messages count
         consumed_messages = self.consumed_messages()
-        result.count = len(consumed_messages)
-        result.last_message = consumed_messages[-1]
+        count = len(consumed_messages)
+        message_list = [record.value.decode() for record in consumed_messages]
 
         # last expected message stored on disk
-        try:
-            for attempt in Retrying(stop=stop_after_delay(60), wait=wait_fixed(5)):
-                with attempt:
-                    with open(ContinuousWrites.LAST_WRITTEN_VAL_PATH, "r") as f:
-                        result.last_expected_message, result.lost_messages = (
-                            f.read().rstrip().split(",", maxsplit=2)
-                        )
-        except RetryError:
-            result.last_expected_message = result.lost_messages = -1
+        with open(ContinuousWrites.LAST_WRITTEN_VAL_PATH, "r") as f:
+            last_expected_message, lost_messages = map(
+                int, f.read().rstrip().split(",", maxsplit=2)
+            )
 
-        return result
+        logger.info(
+            f"\n\nSTOP RESULTS:\n\t- Count: {count}\n\t- Last expected message: {last_expected_message}\n\t- Lost messages: {lost_messages}\n\t- Consumed messages: {message_list}\n"
+        )
+        return ContinuousWritesResult(
+            count, last_expected_message, lost_messages, consumed_messages
+        )
 
     def _create_process(self):
         self._is_stopped = False
@@ -196,9 +205,9 @@ class ContinuousWrites:
                 client.produce_message(
                     topic_name=ContinuousWrites.TOPIC_NAME, message_content=str(write_value)
                 )
-            except KafkaTimeoutError:
-                client.close()
-                client = _client()
+                await asyncio.sleep(0.1)
+            except KafkaError as e:
+                logger.error(f"Error on 'Message #{write_value}' Kafka Producer: {e}")
                 lost_messages += 1
             finally:
                 # process termination requested
