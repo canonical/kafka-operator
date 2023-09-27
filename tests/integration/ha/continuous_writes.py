@@ -203,7 +203,9 @@ class ContinuousWrites:
 
             try:
                 client.produce_message(
-                    topic_name=ContinuousWrites.TOPIC_NAME, message_content=str(write_value)
+                    topic_name=ContinuousWrites.TOPIC_NAME,
+                    message_content=str(write_value),
+                    timeout=300,
                 )
                 await asyncio.sleep(0.1)
             except KafkaError as e:

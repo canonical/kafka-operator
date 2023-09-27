@@ -3,8 +3,10 @@
 # See LICENSE file for licensing details.
 import logging
 import re
+import subprocess
 from dataclasses import dataclass
 from subprocess import PIPE, check_output
+from typing import Optional
 
 from pytest_operator.plugin import OpsTest
 
@@ -35,12 +37,15 @@ class ProcessRunningError(Exception):
     """Raised when a process is running when it is not expected to be."""
 
 
-async def get_topic_description(ops_test: OpsTest, topic: str) -> TopicDescription:
+async def get_topic_description(
+    ops_test: OpsTest, topic: str, unit_name: Optional[str] = None
+) -> TopicDescription:
     """Get the broker with the topic leader.
 
     Args:
         ops_test: OpsTest utility class
         topic: the desired topic to check
+        unit_name: unit to run the command on
     """
     bootstrap_servers = []
     for unit in ops_test.model.applications[APP_NAME].units:
@@ -48,7 +53,7 @@ async def get_topic_description(ops_test: OpsTest, topic: str) -> TopicDescripti
             await get_address(ops_test=ops_test, unit_num=unit.name.split("/")[-1])
             + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT'].client}"
         )
-    unit_name = ops_test.model.applications[APP_NAME].units[0].name
+    unit_name = unit_name or ops_test.model.applications[APP_NAME].units[0].name
 
     output = check_output(
         f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.topics --bootstrap-server {','.join(bootstrap_servers)} --command-config {KafkaSnap.CONF_PATH}/client.properties --describe --topic {topic}'",
@@ -63,12 +68,15 @@ async def get_topic_description(ops_test: OpsTest, topic: str) -> TopicDescripti
     return TopicDescription(leader, in_sync_replicas)
 
 
-async def get_topic_offsets(ops_test: OpsTest, topic: str) -> list[str]:
+async def get_topic_offsets(
+    ops_test: OpsTest, topic: str, unit_name: Optional[str] = None
+) -> list[str]:
     """Get the offsets of a topic on a unit.
 
     Args:
         ops_test: OpsTest utility class
         topic: the desired topic to check
+        unit_name: unit to run the command on
     """
     bootstrap_servers = []
     for unit in ops_test.model.applications[APP_NAME].units:
@@ -76,7 +84,7 @@ async def get_topic_offsets(ops_test: OpsTest, topic: str) -> list[str]:
             await get_address(ops_test=ops_test, unit_num=unit.name.split("/")[-1])
             + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT'].client}"
         )
-    unit_name = ops_test.model.applications[APP_NAME].units[0].name
+    unit_name = unit_name or ops_test.model.applications[APP_NAME].units[0].name
 
     # example of topic offset output: 'test-topic:0:10'
     result = check_output(
@@ -132,6 +140,77 @@ async def remove_restart_delay(ops_test: OpsTest, unit_name: str) -> None:
     # reload the daemon for systemd to reflect changes
     reload_cmd = f"exec --unit {unit_name} -- sudo systemctl daemon-reload"
     await ops_test.juju(*reload_cmd.split(), check=True)
+
+
+async def get_unit_machine_name(ops_test: OpsTest, unit_name: str) -> str:
+    """Gets current LXD machine name for a given unit name.
+
+    Args:
+        ops_test: OpsTest
+        unit_name: the Juju unit name to get from
+
+    Returns:
+        String of LXD machine name
+            e.g juju-123456-0
+    """
+    _, raw_hostname, _ = await ops_test.juju("ssh", unit_name, "hostname")
+    return raw_hostname.strip()
+
+
+def network_throttle(machine_name: str) -> None:
+    """Cut network from a lxc container (without causing the change of the unit IP address).
+
+    Args:
+        machine_name: lxc container hostname
+    """
+    override_command = f"lxc config device override {machine_name} eth0"
+    try:
+        subprocess.check_call(override_command.split())
+    except subprocess.CalledProcessError:
+        # Ignore if the interface was already overridden.
+        pass
+    limit_set_command = f"lxc config device set {machine_name} eth0 limits.egress=0kbit"
+    subprocess.check_call(limit_set_command.split())
+    limit_set_command = f"lxc config device set {machine_name} eth0 limits.ingress=1kbit"
+    subprocess.check_call(limit_set_command.split())
+    limit_set_command = f"lxc config set {machine_name} limits.network.priority=10"
+    subprocess.check_call(limit_set_command.split())
+
+
+def network_release(machine_name: str) -> None:
+    """Restore network from a lxc container (without causing the change of the unit IP address).
+
+    Args:
+        machine_name: lxc container hostname
+    """
+    limit_set_command = f"lxc config device set {machine_name} eth0 limits.egress="
+    subprocess.check_call(limit_set_command.split())
+    limit_set_command = f"lxc config device set {machine_name} eth0 limits.ingress="
+    subprocess.check_call(limit_set_command.split())
+    limit_set_command = f"lxc config set {machine_name} limits.network.priority="
+    subprocess.check_call(limit_set_command.split())
+
+
+def network_cut(machine_name: str) -> None:
+    """Cut network from a lxc container.
+
+    Args:
+        machine_name: lxc container hostname
+    """
+    # apply a mask (device type `none`)
+    cut_network_command = f"lxc config device add {machine_name} eth0 none"
+    subprocess.check_call(cut_network_command.split())
+
+
+def network_restore(machine_name: str) -> None:
+    """Restore network from a lxc container.
+
+    Args:
+        machine_name: lxc container hostname
+    """
+    # remove mask from eth0
+    restore_network_command = f"lxc config device remove {machine_name} eth0"
+    subprocess.check_call(restore_network_command.split())
 
 
 def is_up(ops_test: OpsTest, broker_id: int) -> bool:
