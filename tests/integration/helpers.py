@@ -251,7 +251,7 @@ def consume_and_check(model_full_name: str, provider_unit_name: str, topic: str)
     client.subscribe_to_topic(topic_name=topic)
     messages = [*client.messages()]
 
-    assert len(messages) == TEST_MESSAGE_COUNT
+    assert len(messages) == TEST_DEFAULT_MESSAGES
 
 
 def produce_and_check_logs(
