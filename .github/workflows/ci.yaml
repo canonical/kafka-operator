@@ -61,6 +61,7 @@ jobs:
           #- integration-scaling
           - integration-password-rotation
           #- integration-tls
+          #- integration-upgrade
     name: ${{ matrix.tox-environments }}
     needs:
       - lint
