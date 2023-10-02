@@ -64,7 +64,7 @@ async def restart_delay(ops_test: OpsTest):
     for unit in ops_test.model.applications[APP_NAME].units:
         await remove_restart_delay(ops_test=ops_test, unit_name=unit.name)
 
-@pytest.mark.do_test
+
 @pytest.mark.skip_if_deployed
 @pytest.mark.abort_on_fail
 async def test_build_and_deploy(ops_test: OpsTest, kafka_charm, app_charm):
@@ -92,10 +92,6 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm, app_charm):
     assert ops_test.model.applications[APP_NAME].status == "active"
     assert ops_test.model.applications[DUMMY_NAME].status == "active"
 
-    await ops_test.model.applications[APP_NAME].add_units(count=2)
-    await ops_test.model.wait_for_idle(
-        apps=[APP_NAME], status="active", timeout=600, idle_period=120, wait_for_exact_units=3
-    )
 
 async def test_replicated_events(ops_test: OpsTest):
     await ops_test.model.applications[APP_NAME].add_units(count=2)
@@ -264,6 +260,9 @@ async def test_network_cut_without_ip_change(
     c_writes: ContinuousWrites,
     c_writes_runner: ContinuousWrites,
 ):
+    # Let some time pass for messages to be produced
+    await asyncio.sleep(10)
+
     topic_description = await get_topic_description(
         ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
     )
@@ -309,7 +308,7 @@ async def test_network_cut_without_ip_change(
     result = c_writes.stop()
     assert_continuous_writes_consistency(result=result)
 
-@pytest.mark.do_test
+
 @pytest.mark.abort_on_fail
 async def test_network_cut(
     ops_test: OpsTest,

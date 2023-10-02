@@ -38,7 +38,7 @@ class ProcessRunningError(Exception):
 
 
 async def get_topic_description(
-        ops_test: OpsTest, topic: str, unit_name: Optional[str] = None
+    ops_test: OpsTest, topic: str, unit_name: Optional[str] = None
 ) -> TopicDescription:
     """Get the broker with the topic leader.
 
@@ -69,7 +69,7 @@ async def get_topic_description(
 
 
 async def get_topic_offsets(
-        ops_test: OpsTest, topic: str, unit_name: Optional[str] = None
+    ops_test: OpsTest, topic: str, unit_name: Optional[str] = None
 ) -> list[str]:
     """Get the offsets of a topic on a unit.
 
