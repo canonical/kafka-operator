@@ -258,6 +258,9 @@ async def test_network_cut_without_ip_change(
     c_writes: ContinuousWrites,
     c_writes_runner: ContinuousWrites,
 ):
+    # Let some time pass for messages to be produced
+    await asyncio.sleep(10)
+
     topic_description = await get_topic_description(
         ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
     )
