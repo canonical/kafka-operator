@@ -160,7 +160,7 @@ class KafkaClient:
             ssl_keyfile=self.keyfile_path if self.mtls else None,
             api_version=KafkaClient.API_VERSION if self.mtls else None,
             acks="all",
-            retries=5,
+            retries=10,
             retry_backoff_ms=1000,
         )
 
@@ -239,7 +239,7 @@ class KafkaClient:
 
         yield from self._consumer_client
 
-    def produce_message(self, topic_name: str, message_content: str) -> None:
+    def produce_message(self, topic_name: str, message_content: str, timeout: int = 30) -> None:
         """Sends message to target topic on the cluster.
 
         Requires `KafkaClient` username to have `TOPIC WRITE` ACL permissions
@@ -248,13 +248,14 @@ class KafkaClient:
         Args:
             topic_name: the topic to send messages to
             message_content: the content of the message to send
+            timeout: timeout for blocking after sending the message, defaults to 30s
         
         Raises:
             KafkaTimeoutError, KafkaError (general)
         """
         item_content = f"Message #{message_content}"
         future = self._producer_client.send(topic_name, str.encode(item_content))
-        future.get(timeout=30)
+        future.get(timeout=timeout)
         logger.debug(f"Message published to topic={topic_name}, message content: {item_content}")
 
     def close(self) -> None:
