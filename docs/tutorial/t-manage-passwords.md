@@ -77,3 +77,65 @@ unit-kafka-1:
 The admin password under the result: `admin-password` should match whatever you passed in when you entered the command.
 
 *Note that when you change the admin password you will also need to update the admin password in the Kafka connection parameters, as the old password will no longer be valid.*
+
+### Kafka Users
+
+As mentioned in the previous section of the Tutorial, the recommended way to create and manage users is by means of the data-integrator charm. 
+This will allow us to encode users directly in the Juju model, and - as shown in the following - to rotate user credentials rotations with and without application downtime.   
+
+### Retrieve the password
+
+Similarly to the Kafka application, also the `data-integrator` exposes an action to retrieve the credentials, e.g. 
+```shell
+juju run-action data-integrator/leader get-credentials --wait
+```
+Running the command should output:
+```shell 
+Running operation 22 with 1 task
+  - task 23 on unit-data-integrator-0
+
+Waiting for task 23...
+kafka:
+  endpoints: 10.244.26.43:9092,10.244.26.6:9092,10.244.26.19:9092
+  password: S4IeRaYaiiq0tsM7m2UZuP2mSI573IGV
+  tls: disabled
+  topic: test-topic
+  username: relation-6
+  zookeeper-uris: 10.244.26.121:2181,10.244.26.129:2181,10.244.26.174:2181,10.244.26.251:2181,10.244.26.28:2181/kafka
+ok: "True"
+```
+
+As before, the admin password is under the result: `password`.
+
+### Rotate the password
+
+The easiest way to rotate user credentials using the `data-integrator` is by removing and then re-relating the `data-integrator` with the `kafka` charm
+
+```shell
+juju remove-relation kafka data-integrator
+# wait for the relation to be torn down 
+juju relate kafka data-integrator
+```
+
+The successful credential rotation can be confirmed by retrieving the new password with the action `get-credentials`
+
+```shell
+juju run-action data-integrator/leader get-credentials --wait
+```
+Running the command should now output a different password:
+```shell 
+Running operation 24 with 1 task
+  - task 25 on unit-data-integrator-0
+
+Waiting for task 25...
+kafka:
+  endpoints: 10.244.26.43:9092,10.244.26.6:9092,10.244.26.19:9092
+  password: ToVfqYQ7tWmNmjy2tJTqulZHmJxJqQ22
+  tls: disabled
+  topic: test-topic
+  username: relation-11
+  zookeeper-uris: 10.244.26.121:2181,10.244.26.129:2181,10.244.26.174:2181,10.244.26.251:2181,10.244.26.28:2181/kafka
+ok: "True"
+```
+
+In order to rotate external password with no or limited downtime, please refer to the how-to guide on [app management](/t/charmed-kafka-how-to-manage-app/10285).

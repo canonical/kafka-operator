@@ -132,11 +132,11 @@ charmed-kafka.topics \
     --command-config /var/snap/charmed-kafka/current/etc/kafka/client.properties
 ```
 
-However, although the commands above can run within the cluster, it is generally recommended during operations
-to enable external listeners and use these for running the admin commands from outside the cluster. 
-To do so, as we will see in the next section, we will deploy a [data-integrator](https://charmhub.io/data-integrator) charm and relate it to Kafka. 
-
-Available Kafka bin commands can be found with:
+Other available Kafka bin commands can also be found with:
 ```shell
 snap info charmed-kafka
 ```
+
+However, although the commands above can run within the cluster, it is generally recommended during operations
+to enable external listeners and use these for running the admin commands from outside the cluster. 
+To do so, as we will see in the next section, we will deploy a [data-integrator](https://charmhub.io/data-integrator) charm and relate it to Kafka. 
