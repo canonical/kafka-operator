@@ -206,13 +206,15 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         # NOTE: integration with kafka-broker-rack-awareness charm.
         # Load current properties set in the charm workload and check
-        # if rack.properties file exists
+        # if rack.properties file exists.
+        # Also, check if listeners changed (IP change)
         properties = safe_get_file(self.kafka_config.server_properties_filepath)
         if properties and (
-            self.kafka_config.rack_properties != []
+            (self.kafka_config.rack_properties != [] or not self.kafka_config.listeners_updated)
             and (set(self.kafka_config.server_properties) ^ set(properties))
         ):
             self._on_config_changed(event)
+            self._restart(event)
 
         if not broker_active(
             unit=self.unit,

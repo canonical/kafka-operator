@@ -315,6 +315,9 @@ async def test_network_cut(
     c_writes: ContinuousWrites,
     c_writes_runner: ContinuousWrites,
 ):
+    # Let some time pass for messages to be produced
+    await asyncio.sleep(10)
+
     topic_description = await get_topic_description(
         ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
     )
@@ -349,12 +352,11 @@ async def test_network_cut(
         ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME, unit_name=available_unit
     )
 
-    assert int(next_offsets[-1]) > int(initial_offsets[-1])
+    assert int(next_offsets[-1]) > int(initial_offsets[-1]), "Messages not increasing"
 
     # Release the network
     logger.info(f"Restoring network of broker: {initial_leader_num}")
     network_restore(machine_name=leader_machine_name)
-    await asyncio.sleep(REELECTION_TIME)
 
     async with ops_test.fast_forward():
         result = c_writes.stop()
