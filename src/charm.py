@@ -204,24 +204,16 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         if not self.healthy or not self.upgrade.idle:
             return
 
-        # NOTE: integration with kafka-broker-rack-awareness charm.
-        # Load current properties set in the charm workload and check
-        # if rack.properties file exists.
-        # Also, check if listeners changed (IP change)
-        properties = safe_get_file(self.kafka_config.server_properties_filepath)
-        if properties and (
-            (self.kafka_config.rack_properties != [] or not self.kafka_config.listeners_updated)
-            and (set(self.kafka_config.server_properties) ^ set(properties))
-        ):
-            self._on_config_changed(event)
-            self._restart(event)
-
         if not broker_active(
             unit=self.unit,
             zookeeper_config=self.kafka_config.zookeeper_config,
         ):
             self._set_status(Status.ZK_NOT_CONNECTED)
             return
+
+        # NOTE for situations like IP change and late integration with rack-awareness charm.
+        # If properties change, the broker will restart.
+        self._on_config_changed(event)
 
         try:
             if not self.health.machine_configured():

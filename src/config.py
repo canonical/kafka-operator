@@ -417,19 +417,6 @@ class KafkaConfig:
         return [self.internal_listener] + self.client_listeners
 
     @property
-    def listeners_updated(self) -> bool:
-        """Check if listeners in properties file match the ones expected.
-
-        This method can be used to verify if a IP change happened and there is a divergence between
-        the properties file and actual IP.
-        """
-        properties = safe_get_file(self.server_properties_filepath) or []
-        advertised_listeners = [listener.advertised_listener for listener in self.all_listeners]
-        advertised_listeners = f"advertised.listeners={','.join(advertised_listeners)}"
-
-        return advertised_listeners in properties
-
-    @property
     def super_users(self) -> str:
         """Generates all users with super/admin permissions for the cluster from relations.
 
