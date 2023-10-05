@@ -308,7 +308,7 @@ async def test_network_cut_without_ip_change(
     result = c_writes.stop()
     assert_continuous_writes_consistency(result=result)
 
-
+@pytest.mark.do_test
 @pytest.mark.abort_on_fail
 async def test_network_cut(
     ops_test: OpsTest,
@@ -358,9 +358,9 @@ async def test_network_cut(
     logger.info(f"Restoring network of broker: {initial_leader_num}")
     network_restore(machine_name=leader_machine_name)
 
-    async with ops_test.fast_forward():
+    async with ops_test.fast_forward(fast_interval="15s"):
         result = c_writes.stop()
-        await asyncio.sleep(CLIENT_TIMEOUT)
+        await asyncio.sleep(CLIENT_TIMEOUT * 8)
 
     topic_description = await get_topic_description(
         ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME

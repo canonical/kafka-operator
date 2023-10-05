@@ -356,6 +356,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
                     callback_override="_disable_enable_restart"
                 )
             else:
+                logger.info("Acquiring lock from _on_config_changed...")
                 self.on[f"{self.restart.name}"].acquire_lock.emit()
 
         # update client_properties whenever possible
