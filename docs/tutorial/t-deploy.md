@@ -84,17 +84,59 @@ unit-kafka-1:
     started: 2023-04-25 09:02:59 +0000 UTC
 ```
 
-Apache Kafka ships with `bin/*.sh` commands to do various administrative tasks, e.g `bin/kafka-config.sh` to update cluster configuration, `bin/kafka-topics.sh` for topic management, and many more! The Kafka Charmed Operator provides these commands to administrators to easily run their desired cluster configurations securely with SASL authentication, either from within the cluster or as an external client.
+Providing you the `username` and `password` of the Kafka cluster admin user. 
 
-If you wish to run a command from the cluster, in order to (for example) list the current topics on the Kafka cluster, you can run:
-```
-BOOTSTRAP_SERVERS=$(juju run-action kafka/leader get-admin-credentials --wait | grep "bootstrap.servers" | cut -d "=" -f 2)
-juju ssh kafka/leader 'charmed-kafka.topics --bootstrap-server $BOOTSTRAP_SERVERS --list --command-config /var/snap/charmed-kafka/common/client.properties'
-```
+**IMPORTANT** Note that when no other application is related to Kafka, the cluster is secured-by-default and external listeners (binded to port 9092) are disabled, thus preventing any external incoming connection. 
 
-Note that when no other application is related to Kafka, the cluster is secured-by-default and listeners are disabled, thus preventing any incoming connection. However, even for running the commands above, listeners must be enable. If there is no other application, deploy a [data-integrator](https://charmhub.io/data-integrator) charm and relate it to Kafka, as outlined in the Relation section to enable listeners.
+Nevertheless, it is still possible to run a command from within the Kafka cluster using the internal listeners in place of the external ones. 
+The internal endpoints can be constructed by replacing the 19092 port in the `bootstrap.servers` returned in the output above, e.g. 
 
-Available Kafka bin commands can be found with:
 ```shell
-snap info charmed-kafka --channel 3/edge
+INTERNAL_SERVERS=$(juju run kafka/leader get-admin-credentials | grep "bootstrap.servers" | cut -d "=" -f2 | sed -s "s/\:9092/:19092/g")
 ```
+
+Once you have fetched the `INTERNAL_SERVERS`, log in into one of the Kafka container in one of the units
+
+```shell
+juju ssh kafka/leader /bin/bash
+```
+
+The Charmed Kafka K8s image ships with the Apache Kafka `bin/*.sh` commands, that can be found under `/opt/kafka/bin/`.
+These allow admin to do various administrative tasks, e.g `bin/kafka-config.sh` to update cluster configuration, `bin/kafka-topics.sh` for topic management, and many more! 
+Within the image you can also find a `client.properties` file that already provides the relevant settings to connect to the cluster using the CLI. 
+
+For example, in order to create a topic, you can run:
+```shell
+charmed-kafka.topics \
+    --create --topic test_topic \
+    --bootstrap-server <INTERNAL_LISTENERS> \
+    --command-config /var/snap/charmed-kafka/current/etc/kafka/client.properties
+```
+
+You can similarly then list the topic, using
+```shell
+charmed-kafka.topics \
+    --list \
+    --bootstrap-server  $INTERNAL_LISTENERS \
+    --command-config /var/snap/charmed-kafka/current/etc/kafka/client.properties
+```
+
+making sure the topic was successfully created.
+
+You can finally delete the topic, using 
+
+```shell
+charmed-kafka.topics \
+    --delete --topic test_topic \
+    --bootstrap-server  $INTERNAL_LISTENERS \
+    --command-config /var/snap/charmed-kafka/current/etc/kafka/client.properties
+```
+
+Other available Kafka bin commands can also be found with:
+```shell
+snap info charmed-kafka
+```
+
+However, although the commands above can run within the cluster, it is generally recommended during operations
+to enable external listeners and use these for running the admin commands from outside the cluster. 
+To do so, as we will see in the next section, we will deploy a [data-integrator](https://charmhub.io/data-integrator) charm and relate it to Kafka.

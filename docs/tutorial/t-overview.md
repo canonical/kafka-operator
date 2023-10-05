@@ -24,4 +24,5 @@ Here’s an overview of the steps required with links to our separate tutorials 
 * [Deploy Kafka](/t/charmed-kafka-tutorial-deploy-kafka/10567)
 * [Manage passwords](/t/charmed-kafka-tutorial-manage-passwords/10569)
 * [Relate your Kafka to other applications](/t/charmed-kafka-tutorial-relate-kafka/10573)
+* [Enable encryption](/t/charmed-kafka-documentation-tutorial-enable-security/12043)
 * [Cleanup your environment](/t/charmed-kafka-tutorial-cleanup-environment/10565)
