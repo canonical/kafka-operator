@@ -308,7 +308,7 @@ async def test_network_cut_without_ip_change(
     result = c_writes.stop()
     assert_continuous_writes_consistency(result=result)
 
-@pytest.mark.do_test
+
 @pytest.mark.abort_on_fail
 async def test_network_cut(
     ops_test: OpsTest,
