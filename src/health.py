@@ -84,9 +84,12 @@ class KafkaHealth(Object):
             f"--bootstrap-server {','.join(self.charm.kafka_config.bootstrap_server)}",
             f"--command-config {self.charm.kafka_config.client_properties_filepath}",
         ]
-        log_dirs = self.charm.snap.run_bin_command(
-            bin_keyword="log-dirs", bin_args=log_dirs_command
-        )
+        try:
+            log_dirs = self.charm.snap.run_bin_command(
+                bin_keyword="log-dirs", bin_args=log_dirs_command
+            )
+        except subprocess.CalledProcessError:
+            return (0, 0)
 
         dirs = {}
         for line in log_dirs.splitlines():
