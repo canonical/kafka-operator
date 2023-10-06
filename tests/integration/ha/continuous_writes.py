@@ -4,6 +4,7 @@
 import asyncio
 import logging
 import os
+import time
 from dataclasses import dataclass
 from multiprocessing import Event, Process, Queue
 from types import SimpleNamespace
@@ -32,7 +33,6 @@ logger = logging.getLogger(__name__)
 class ContinuousWritesResult:
     count: int
     last_expected_message: int
-    lost_messages: int
     consumed_messages: Optional[List[ConsumerRecord]]
 
 
@@ -126,21 +126,17 @@ class ContinuousWrites:
 
         # messages count
         consumed_messages = self.consumed_messages()
-        count = len(consumed_messages)
         message_list = [record.value.decode() for record in consumed_messages]
+        count = len(set(message_list))
 
         # last expected message stored on disk
         with open(ContinuousWrites.LAST_WRITTEN_VAL_PATH, "r") as f:
-            last_expected_message, lost_messages = map(
-                int, f.read().rstrip().split(",", maxsplit=2)
-            )
+            last_expected_message = int(f.read().strip())
 
         logger.info(
-            f"\n\nSTOP RESULTS:\n\t- Count: {count}\n\t- Last expected message: {last_expected_message}\n\t- Lost messages: {lost_messages}\n\t- Consumed messages: {message_list}\n"
+            f"\n\nSTOP RESULTS:\n\t- Count: {count}\n\t- Last expected message: {last_expected_message}\n\t- Consumed messages: {message_list}\n"
         )
-        return ContinuousWritesResult(
-            count, last_expected_message, lost_messages, consumed_messages
-        )
+        return ContinuousWritesResult(count, last_expected_message, consumed_messages)
 
     def _create_process(self):
         self._is_stopped = False
@@ -192,7 +188,6 @@ class ContinuousWrites:
             )
 
         write_value = starting_number
-        lost_messages = 0
         client = _client()
 
         while True:
@@ -201,29 +196,36 @@ class ContinuousWrites:
                 client.close()
                 client = _client()
 
+            ContinuousWrites._produce_message(client=client, write_value=write_value)
+            await asyncio.sleep(0.1)
+
+            # process termination requested
+            if event.is_set():
+                break
+
+            write_value += 1
+
+        # write last expected written value on disk
+        with open(ContinuousWrites.LAST_WRITTEN_VAL_PATH, "w") as f:
+            f.write(f"{str(write_value)}")
+            os.fsync(f)
+
+        client.close()
+
+    @staticmethod
+    def _produce_message(client: KafkaClient, write_value: int) -> None:
+        ackd = False
+        while not ackd:
             try:
                 client.produce_message(
                     topic_name=ContinuousWrites.TOPIC_NAME,
                     message_content=str(write_value),
                     timeout=300,
                 )
-                await asyncio.sleep(0.1)
+                ackd = True
             except KafkaError as e:
                 logger.error(f"Error on 'Message #{write_value}' Kafka Producer: {e}")
-                lost_messages += 1
-            finally:
-                # process termination requested
-                if event.is_set():
-                    break
-
-            write_value += 1
-
-        # write last expected written value on disk
-        with open(ContinuousWrites.LAST_WRITTEN_VAL_PATH, "w") as f:
-            f.write(f"{str(write_value)},{str(lost_messages)}")
-            os.fsync(f)
-
-        client.close()
+                time.sleep(0.1)
 
     @staticmethod
     def _run_async(event: Event, data_queue: Queue, starting_number: int):

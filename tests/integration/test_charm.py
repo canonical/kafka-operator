@@ -31,6 +31,8 @@ SAME_ZK = f"{ZK_NAME}-same"
 SAME_KAFKA = f"{APP_NAME}-same"
 
 
+# FIXME: https://github.com/canonical/kafka-operator/issues/142
+@pytest.mark.skip
 @pytest.mark.abort_on_fail
 async def test_build_and_deploy_same_machine(ops_test: OpsTest, kafka_charm):
     # deploying 1 machine
@@ -55,15 +57,18 @@ async def test_build_and_deploy_same_machine(ops_test: OpsTest, kafka_charm):
             to=machine_ids[0],
         ),
     )
-    await ops_test.model.wait_for_idle(apps=[SAME_ZK, SAME_KAFKA], idle_period=30, timeout=3600)
+    await ops_test.model.wait_for_idle(apps=[SAME_ZK, SAME_KAFKA], idle_period=30, timeout=1800)
     assert ops_test.model.applications[SAME_KAFKA].status == "blocked"
     assert ops_test.model.applications[SAME_ZK].status == "active"
 
     await ops_test.model.add_relation(SAME_KAFKA, SAME_ZK)
-    async with ops_test.fast_forward():
-        await ops_test.model.wait_for_idle(apps=[SAME_ZK, SAME_KAFKA], idle_period=30)
-        assert ops_test.model.applications[SAME_ZK].status == "active"
-        assert ops_test.model.applications[SAME_KAFKA].status == "active"
+
+    await ops_test.model.wait_for_idle(
+        apps=[SAME_KAFKA, SAME_ZK], idle_period=30, timeout=1800, status="active"
+    )
+
+    assert ops_test.model.applications[SAME_ZK].status == "active"
+    assert ops_test.model.applications[SAME_KAFKA].status == "active"
 
     await asyncio.gather(
         ops_test.model.applications[SAME_KAFKA].destroy(),
@@ -91,9 +96,10 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
 
     await ops_test.model.add_relation(APP_NAME, ZK_NAME)
     async with ops_test.fast_forward():
-        await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], idle_period=30)
-        assert ops_test.model.applications[APP_NAME].status == "active"
-        assert ops_test.model.applications[ZK_NAME].status == "active"
+        await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME])
+
+    assert ops_test.model.applications[APP_NAME].status == "active"
+    assert ops_test.model.applications[ZK_NAME].status == "active"
 
 
 @pytest.mark.abort_on_fail

@@ -37,7 +37,7 @@ async def test_in_place_upgrade(ops_test: OpsTest, kafka_charm, app_charm):
         ops_test.model.deploy(
             APP_NAME,
             application_name=APP_NAME,
-            num_units=3,
+            num_units=1,
             channel=CHANNEL,
             series="jammy",
         ),
@@ -45,13 +45,21 @@ async def test_in_place_upgrade(ops_test: OpsTest, kafka_charm, app_charm):
     )
 
     await ops_test.model.add_relation(APP_NAME, ZK_NAME)
-    async with ops_test.fast_forward():
-        await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME, DUMMY_NAME], idle_period=30)
-        assert ops_test.model.applications[APP_NAME].status == "active"
-        assert ops_test.model.applications[ZK_NAME].status == "active"
+
+    await ops_test.model.wait_for_idle(
+        apps=[APP_NAME, ZK_NAME, DUMMY_NAME], idle_period=30, timeout=1800, status="active"
+    )
+
+    assert ops_test.model.applications[APP_NAME].status == "active"
+    assert ops_test.model.applications[ZK_NAME].status == "active"
 
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME, DUMMY_NAME])
+
+    await ops_test.model.applications[APP_NAME].add_units(count=2)
+    await ops_test.model.wait_for_idle(
+        apps=[APP_NAME], status="active", timeout=600, idle_period=30, wait_for_exact_units=3
+    )
 
     logger.info("Producing messages before upgrading")
     produce_and_check_logs(
@@ -59,6 +67,8 @@ async def test_in_place_upgrade(ops_test: OpsTest, kafka_charm, app_charm):
         kafka_unit_name=f"{APP_NAME}/0",
         provider_unit_name=f"{DUMMY_NAME}/0",
         topic="hot-topic",
+        replication_factor=3,
+        num_partitions=1,
     )
 
     leader_unit = None

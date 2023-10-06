@@ -227,5 +227,5 @@ def is_up(ops_test: OpsTest, broker_id: int) -> bool:
 def assert_continuous_writes_consistency(result: ContinuousWritesResult):
     """Check results of a stopped ContinuousWrites call against expected results."""
     assert (
-        result.count + result.lost_messages - 1 == result.last_expected_message
-    ), f"Last expected message {result.last_expected_message} doesn't match count {result.count} + lost_messages {result.lost_messages}"
+        result.count - 1 == result.last_expected_message
+    ), f"Last expected message {result.last_expected_message} doesn't match count {result.count}"

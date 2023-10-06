@@ -212,7 +212,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             return
 
         # NOTE for situations like IP change and late integration with rack-awareness charm.
-        # If properties change, the broker will restart.
+        # If properties have changed, the broker will restart.
         self._on_config_changed(event)
 
         try:
@@ -263,6 +263,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
     def _on_zookeeper_changed(self, event: RelationChangedEvent) -> None:
         """Handler for `zookeeper_relation_created/joined/changed` events, ensuring internal users get created."""
         if not self.kafka_config.zookeeper_connected:
+            logger.debug("No information found from ZooKeeper relation")
             self._set_status(Status.ZK_NO_DATA)
             return
 
@@ -319,6 +320,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         # start kafka service
         self.snap.start_snap_service()
+        logger.info("Kafka snap started")
 
         # check for connection
         self._on_update_status(event)
