@@ -61,7 +61,7 @@ unit-data-integrator-0:
 
 ### External clients
 
-#### With application downtime
+#### With client application downtime
 
 The easiest way to rotate user credentials of client applications is by removing and then re-relating 
 the application (either a charm supporting the `kafka-client` interface or a `data-integrator`) with the `kafka` charm
@@ -74,7 +74,7 @@ juju relate kafka <charm-or-data-integrator>
 
 The successful credential rotation can be confirmed by retrieving the new password with the action `get-credentials`.
 
-#### Without application downtime
+#### Without client application downtime
 
 In some use-cases credentials should be rotated with no or limited application downtime.
 If credentials should be rotated with no or limited downtine, you can deploy a new charm with the same permissions and resource definition, e.g. 

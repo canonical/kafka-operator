@@ -4,7 +4,7 @@ This is part of the [Charmed Kafka Tutorial](/t/charmed-kafka-tutorial-overview/
 
 ## Deploy
 
-To deploy Charmed Kafka, all you need to do is run the following command, which will fetch the needed charms([Kafka](https://charmhub.io/kafka?channel=3/stable) and [Zookeeper](https://charmhub.io/zookeeper?channel=3/stable)) from [Charmhub](https://charmhub.io/) and deploy it to your model:
+To deploy Charmed Kafka, all you need to do is run the following commands, which will automatically fetch [Kafka](https://charmhub.io/kafka?channel=3/stable) and [Zookeeper](https://charmhub.io/zookeeper?channel=3/stable) charms from [Charmhub](https://charmhub.io/) and deploy them to your model. For example, to deploy a 5 Zookeeper unit and 3 Kafka unit cluster, you can simply run
 
 ```shell
 $ juju deploy zookeeper -n 5
@@ -92,25 +92,28 @@ Nevertheless, it is still possible to run a command from within the Kafka cluste
 The internal endpoints can be constructed by replacing the 19092 port in the `bootstrap.servers` returned in the output above, e.g. 
 
 ```shell
-INTERNAL_SERVERS=$(juju run kafka/leader get-admin-credentials | grep "bootstrap.servers" | cut -d "=" -f2 | sed -s "s/\:9092/:19092/g")
+INTERNAL_LISTENERS=$(juju run kafka/leader get-admin-credentials | grep "bootstrap.servers" | cut -d "=" -f2 | sed -s "s/\:9092/:19092/g")
 ```
 
-Once you have fetched the `INTERNAL_SERVERS`, log in into one of the Kafka container in one of the units
+Once you have fetched the `INTERNAL_LISTENERS`, log in into one of the Kafka container in one of the units
 
 ```shell
-juju ssh kafka/leader /bin/bash
+juju ssh kafka/leader sudo -i
 ```
 
-The Charmed Kafka K8s image ships with the Apache Kafka `bin/*.sh` commands, that can be found under `/opt/kafka/bin/`.
-These allow admin to do various administrative tasks, e.g `bin/kafka-config.sh` to update cluster configuration, `bin/kafka-topics.sh` for topic management, and many more! 
-Within the image you can also find a `client.properties` file that already provides the relevant settings to connect to the cluster using the CLI. 
+When the unit is started, the Charmed Kafka Operator installs the [`charmed-kafka`](https://snapcraft.io/charmed-kafka) Snap in the unit that provides a number of entrypoints (that corresponds to the bin commands in the Kafka distribution) for performing various administrative tasks, e.g `charmed-kafka.config` to update cluster configuration, `charmed-kafka.topics` for topic management, and many more! 
+Within the machine, the Charmed Kafka Operator also creates a `client.properties` file that already provides the relevant settings to connect to the cluster using the CLI
+
+```shell
+CLIENT_PROPERTIES= /var/snap/charmed-kafka/current/etc/kafka/client.properties
+```
 
 For example, in order to create a topic, you can run:
 ```shell
 charmed-kafka.topics \
     --create --topic test_topic \
-    --bootstrap-server <INTERNAL_LISTENERS> \
-    --command-config /var/snap/charmed-kafka/current/etc/kafka/client.properties
+    --bootstrap-server $INTERNAL_LISTENERS \
+    --command-config $CLIENT_PROPERTIES
 ```
 
 You can similarly then list the topic, using
@@ -118,7 +121,7 @@ You can similarly then list the topic, using
 charmed-kafka.topics \
     --list \
     --bootstrap-server  $INTERNAL_LISTENERS \
-    --command-config /var/snap/charmed-kafka/current/etc/kafka/client.properties
+    --command-config $CLIENT_PROPERTIES
 ```
 
 making sure the topic was successfully created.
@@ -129,7 +132,7 @@ You can finally delete the topic, using
 charmed-kafka.topics \
     --delete --topic test_topic \
     --bootstrap-server  $INTERNAL_LISTENERS \
-    --command-config /var/snap/charmed-kafka/current/etc/kafka/client.properties
+    --command-config $CLIENT_PROPERTIES
 ```
 
 Other available Kafka bin commands can also be found with:

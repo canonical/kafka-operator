@@ -5,9 +5,10 @@ This is part of the [Charmed Kafka Tutorial](/t/charmed-kafka-tutorial-overview/
 ## Transport Layer Security (TLS)
 [TLS](https://en.wikipedia.org/wiki/Transport_Layer_Security) is used to encrypt data exchanged between two applications; it secures data transmitted over the network. Typically, enabling TLS within a highly available database, and between a highly available database and client/server applications, requires domain-specific knowledge and a high level of expertise. Fortunately, the domain-specific knowledge has been encoded into Charmed Kafka. This means (re-)configuring TLS on Charmed Kafka is readily available and requires minimal effort on your end.
 
-Again, relations come in handy here as TLS is enabled via relations; i.e. by relating Charmed Kafka to the [TLS Certificates Charm](https://charmhub.io/tls-certificates-operator). The TLS Certificates Charm centralises TLS certificate management in a consistent manner and handles providing, requesting, and renewing TLS certificates.
+Again, relations come in handy here as TLS is enabled via relations; i.e. by relating Charmed Kafka to the [TLS Certificates Charm](https://charmhub.io/tls-certificates-operator). The TLS Certificates Charm centralises TLS certificate management in a consistent manner and handles providing, requesting, and renewing TLS certificates. 
 
-> *Note: this tutorial uses [self-signed certificates](https://en.wikipedia.org/wiki/Self-signed_certificate); self-signed certificates should not be used in a production cluster.*
+> *Note: In this tutorial, we will distribute [self-signed certificates](https://en.wikipedia.org/wiki/Self-signed_certificate) to all charms (Kafka, Zookeeper and client applications) that are signed using a root self-signed CA
+that is also trusted by all applications. This setup is only for show-casing purposes and self-signed certificates should **never** be used in a production cluster.*
 
 ### Configure TLS
 Before enabling TLS on Charmed Kafka we must first deploy the `tls-certificates-operator` charm:
@@ -42,7 +43,7 @@ juju relate kafka tls-certificates-operator
 ```
 
 After the charms settle into `active/idle` states, the Kafka listeners should now have been swapped to the 
-default encrypted port 9093. This can be tested by testing whether the ports are open/close with `telnet`
+default encrypted port 9093. This can be tested by testing whether the ports are open/closed with `telnet`
 
 ```shell
 telnet <IP> 9092 
