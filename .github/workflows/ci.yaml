@@ -53,6 +53,7 @@ jobs:
 
   integration-test:
     strategy:
+      max-parallel: 1
       fail-fast: false
       matrix:
         tox-environments:
@@ -138,6 +139,6 @@ jobs:
             echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
           fi
       - name: Run integration tests
-        run: tox run -e ${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}'
+        run: tox run -e ${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models
         env:
           CI_PACKED_CHARMS: ${{ needs.build.outputs.charms }}
