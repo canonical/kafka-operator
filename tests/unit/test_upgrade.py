@@ -76,6 +76,31 @@ def test_build_upgrade_stack(harness):
     assert len(stack) == len(set(stack))
 
 
+@pytest.mark.parametrize("upgrade_state", ("idle", "ready"))
+@pytest.mark.parametrize("upgrade_stack", ([], [0]))
+def test_run_password_rotation_while_upgrading(harness, upgrade_state, upgrade_stack):
+    harness.charm.upgrade.peer_relation.data[harness.charm.unit].update({"state": upgrade_state})
+    harness.charm.upgrade.upgrade_stack = upgrade_stack
+    harness.set_leader(True)
+
+    mock_event = MagicMock()
+    mock_event.params = {"username": "admin"}
+
+    with (
+        patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
+        patch("auth.KafkaAuth.add_user"),
+    ):
+        harness.charm._set_password_action(mock_event)
+
+    if (not upgrade_stack) and (upgrade_state == "idle"):
+        mock_event.set_results.assert_called()
+    else:
+        mock_event.fail.assert_called_with(
+            f"Cannot set password while upgrading (upgrade_state: {upgrade_state}, "
+            + f"upgrade_stack: {upgrade_stack})"
+        )
+
+
 def test_kafka_dependency_model():
     assert sorted(KafkaDependencyModel.__fields__.keys()) == sorted(DEPENDENCIES.keys())
 

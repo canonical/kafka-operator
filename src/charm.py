@@ -409,6 +409,16 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             event.fail(msg)
             return
 
+        if not self.upgrade.idle or self.upgrade.upgrade_stack:
+            msg = (
+                "Cannot set password while upgrading "
+                + f"(upgrade_state: {self.upgrade.cluster_state}, "
+                + f"upgrade_stack: {self.upgrade.upgrade_stack})"
+            )
+            logger.error(msg)
+            event.fail(msg)
+            return
+
         if not self.healthy:
             event.defer()
             return
