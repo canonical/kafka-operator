@@ -263,7 +263,6 @@ class KafkaConfig:
         """
         opts = [
             f"-Djava.security.auth.login.config={self.zk_jaas_filepath}",
-            "-Djavax.net.debug=ssl:handshake:verbose:session:keymanager:trustmanager",
         ]
 
         return f"KAFKA_OPTS='{' '.join(opts)}'"
