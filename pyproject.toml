@@ -104,7 +104,7 @@ extend-ignore = [
     "D413",
 ]
 ignore = ["E501", "D107"]
-extend-exclude = ["__pycache__", "*.egg_info"]
+extend-exclude = ["__pycache__", "*.egg_info", "tests/integration/app-charm/lib"]
 per-file-ignores = {"tests/*" = ["D100","D101","D102","D103","D104", "E999"], "src/literals.py" = ["D101"]}
 target-version="py310"
 src = ["src", "tests"]
