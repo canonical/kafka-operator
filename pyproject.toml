@@ -26,7 +26,7 @@ profile = "black"
 name = "kafka-operator"
 version = "1.0"
 description = "kafka-operator"
-authors = [""]
+authors = []
 
 [tool.poetry.dependencies]
 python = ">=3.8"

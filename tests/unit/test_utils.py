@@ -20,7 +20,7 @@ def test_map_env_populated():
     assert sorted(env.keys()) == sorted(["KAFKA_OPTS", "SERVER_JVMFLAGS"])
 
     for value in env.values():
-        assert type(value) == str
+        assert isinstance(value, str)
         # checks handles multiple equals signs in value
         assert len(value.split()) == 3
 
@@ -38,7 +38,7 @@ def test_map_env_empty_item():
     assert sorted(env.keys()) == sorted(["PATH"])
 
     for value in env.values():
-        assert type(value) == str
+        assert isinstance(value, str)
 
 
 def test_get_env_empty():

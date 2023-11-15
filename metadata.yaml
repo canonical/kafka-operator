@@ -8,6 +8,7 @@ issues: https://github.com/canonical/kafka-operator/issues/new
 docs: https://discourse.charmhub.io/t/charmed-kafka-documentation/10288
 maintainers:
   - Marc Oppenheimer <marc.oppenheimer@canonical.com>
+  - Raul Zamora <raul.zamora@canonical.com>
 name: kafka
 series:
   - jammy
