@@ -29,7 +29,7 @@ description = "kafka-operator"
 authors = []
 
 [tool.poetry.dependencies]
-python = ">=3.8"
+python = ">=3.8,<4.0"
 ops = ">=2.4.1"
 kazoo = ">=2.8.0"
 
@@ -81,6 +81,10 @@ tenacity = ">=7.0"
 pure-sasl = ">=0.5"
 kafka-python = ">=2.0"
 requests = ">2.25"
+
+pytest-operator-cache = {git = "https://github.com/canonical/data-platform-workflows", tag = "v6.1.1", subdirectory = "python/pytest_plugins/pytest_operator_cache"}
+# To be enabled if we are using groups on integration tests
+# pytest-operator-groups = {git = "https://github.com/canonical/data-platform-workflows", tag = "v6.1.1", subdirectory = "python/pytest_plugins/pytest_operator_groups"}
 
 
 [tool.poetry.group.format.dependencies]
