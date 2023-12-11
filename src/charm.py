@@ -378,6 +378,10 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         self.snap.restart_snap_service()
 
+        # FIXME: This logic should be improved as part of ticket DPE-3155
+        # For more information, please refer to https://warthogs.atlassian.net/browse/DPE-3155
+        time.sleep(20.0)
+
         if self.healthy:
             logger.info(f'Broker {self.unit.name.split("/")[1]} restarted')
         else:
@@ -392,8 +396,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         self.snap.disable_enable()
         self.snap.start_snap_service()
-
-        time.sleep(20.0)
 
         if self.healthy:
             logger.info(f'Broker {self.unit.name.split("/")[1]} restarted')
