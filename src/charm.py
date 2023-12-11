@@ -6,6 +6,7 @@
 
 import logging
 import subprocess
+import time
 from typing import MutableMapping, Optional
 
 from charms.data_platform_libs.v0.data_models import TypedCharmBase
@@ -391,6 +392,8 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         self.snap.disable_enable()
         self.snap.start_snap_service()
+
+        time.sleep(20.0)
 
         if self.healthy:
             logger.info(f'Broker {self.unit.name.split("/")[1]} restarted')

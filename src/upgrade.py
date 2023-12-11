@@ -103,7 +103,7 @@ class KafkaUpgrade(DataUpgrade):
         self.charm.snap.restart_snap_service()
 
         # Allow for some time to settle down
-        time.sleep(60)
+        time.sleep(20)
 
         try:
             logger.debug("Running post-upgrade check...")
