@@ -420,7 +420,7 @@ def test_inter_broker_protocol_version(harness):
     )
     assert len(DEPENDENCIES["kafka_service"]["version"].split(".")) == 3
 
-    assert "inter.broker.protocol.version=3.3" in harness.charm.kafka_config.server_properties
+    assert "inter.broker.protocol.version=3.6" in harness.charm.kafka_config.server_properties
 
 
 def test_super_users(harness):

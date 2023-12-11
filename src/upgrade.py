@@ -4,6 +4,7 @@
 """Manager for handling Kafka in-place upgrades."""
 
 import logging
+import time
 from typing import TYPE_CHECKING
 
 from charms.data_platform_libs.v0.upgrade import (
@@ -100,6 +101,11 @@ class KafkaUpgrade(DataUpgrade):
 
         logger.info(f"{self.charm.unit.name} upgrading service...")
         self.charm.snap.restart_snap_service()
+
+        # Allow for some time to settle down
+        # FIXME: This logic should be improved as part of ticket DPE-3155
+        # For more information, please refer to https://warthogs.atlassian.net/browse/DPE-3155
+        time.sleep(20)
 
         try:
             logger.debug("Running post-upgrade check...")

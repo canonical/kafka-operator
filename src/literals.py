@@ -102,9 +102,9 @@ class Status(Enum):
 
 DEPENDENCIES = {
     "kafka_service": {
-        "dependencies": {"zookeeper": "~3.6"},
+        "dependencies": {"zookeeper": "^3.6"},
         "name": "kafka",
         "upgrade_supported": ">3",
-        "version": "3.3.2",
+        "version": "3.6.0",
     },
 }
