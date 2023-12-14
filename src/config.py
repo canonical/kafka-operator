@@ -115,7 +115,7 @@ class KafkaConfig:
         self.keystore_filepath = f"{self.charm.snap.CONF_PATH}/keystore.p12"
         self.truststore_filepath = f"{self.charm.snap.CONF_PATH}/truststore.jks"
         self.jmx_prometheus_javaagent_filepath = (
-            f"{self.charm.snap.BINARIES_PATH}/jmx_prometheus_javaagent.jar"
+            f"{self.charm.snap.BINARIES_PATH}/libs/jmx_prometheus_javaagent.jar"
         )
         self.jmx_prometheus_config_filepath = f"{self.charm.snap.CONF_PATH}/jmx_prometheus.yaml"
 
@@ -493,7 +493,8 @@ class KafkaConfig:
         client_properties = [
             f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";',
             "sasl.mechanism=SCRAM-SHA-512",
-            f"security.protocol={self.security_protocol}",  # FIXME: will need changing once multiple listener auth schemes
+            f"security.protocol={self.security_protocol}",
+            # FIXME: will need changing once multiple listener auth schemes
             f"bootstrap.servers={','.join(self.bootstrap_server)}",
         ]
 
@@ -541,14 +542,22 @@ class KafkaConfig:
 
         return properties
 
+    @staticmethod
+    def _translate_config_key(key):
+        """Format config names into server properties, blacklisted property are commented out.
+
+        Returns:
+            String with Kafka configuration name to be placed in the server.properties file
+        """
+        return key.replace("_", ".") if key not in SERVER_PROPERTIES_BLACKLIST else f"# {key}"
+
     @property
     def config_properties(self) -> List[str]:
         """Configure server properties from config."""
         return [
-            f"{conf_key.replace('_', '.')}={str(value)}"
+            f"{self._translate_config_key(conf_key)}={str(value)}"
             for conf_key, value in self.charm.config.dict().items()
             if value is not None
-            if conf_key not in SERVER_PROPERTIES_BLACKLIST
         ]
 
     def set_zk_jaas_config(self) -> None:

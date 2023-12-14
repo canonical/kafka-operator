@@ -3,6 +3,7 @@
 # See LICENSE file for licensing details.
 
 import logging
+import unittest.mock
 from pathlib import Path
 from unittest.mock import patch
 
@@ -40,9 +41,14 @@ def harness():
 
 
 def test_service_pid(harness):
-    example_log = "2023-03-29T16:57:48+01:00 charmed-kafka.daemon[1314231]: [2023-03-29 16:57:48,700] INFO [BrokerToControllerChannelManager broker=0 name=alterPartition]: Recorded new controller, from now on will use node marc-pc.localdomain:9092 (id: 0 rack: null) (kafka.server.BrokerToControllerRequestThread)"
-
-    with patch("snap.snap.Snap.logs", return_value=example_log):
+    with (
+            patch(
+                "builtins.open",
+                new_callable=unittest.mock.mock_open,
+                read_data="0::/system.slice/snap.charmed-kafka.daemon.service"
+        ) as mock_file,
+        patch("subprocess.check_output", return_value="1314231")
+    ):
         assert harness.charm.health._service_pid == 1314231
 
 

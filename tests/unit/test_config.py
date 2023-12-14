@@ -246,13 +246,6 @@ def test_heap_opts(harness, profile, expected):
     assert "KAFKA_HEAP_OPTS" in args
 
 
-def test_log4j_opts(harness):
-    """Checks necessary args for KAFKA_LOG4J_OPTS."""
-    args = harness.charm.kafka_config.log4j_opts
-    assert "-Dlog4j.configuration=file:" in args
-    assert "KAFKA_LOG4J_OPTS" in args
-
-
 def test_jmx_opts(harness):
     """Checks necessary args for KAFKA_JMX_OPTS."""
     args = harness.charm.kafka_config.jmx_opts

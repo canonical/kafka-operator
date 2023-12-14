@@ -3,7 +3,7 @@
 # See LICENSE file for licensing details.
 
 import subprocess
-from unittest.mock import patch
+from unittest.mock import patch, mock_open
 
 import pytest
 from charms.operator_libs_linux.v1.snap import SnapError
@@ -30,10 +30,21 @@ def test_run_bin_command_args():
 def test_get_service_pid_raises():
     """Checks get_service_pid raises if PID cannot be found."""
     with (
-        patch(
-            "snap.snap.Snap.logs",
-            return_value="2023-04-13T13:11:43+01:00 juju.fetch-oci[840]: /usr/bin/timeout",
-        ),
+            patch(
+                "builtins.open",
+                new_callable=mock_open,
+                read_data="0::/system.slice/snap.charmed-zookeeper.daemon.service"
+        ) as mock_file,
+        patch("subprocess.check_output", return_value="123"),
+        pytest.raises(SnapError),
+    ):
+        KafkaSnap().get_service_pid()
+
+
+def test_get_service_pid_raises():
+    """Checks get_service_pid raises if PID cannot be found."""
+    with (
+        patch("subprocess.check_output", return_value=""),
         pytest.raises(SnapError),
     ):
         KafkaSnap().get_service_pid()
