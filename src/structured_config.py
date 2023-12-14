@@ -39,6 +39,15 @@ class CompressionType(str, Enum):
     PRODUCER = "producer"
 
 
+class LogLevel(str, Enum):
+    """Enum for the `log_level` field."""
+
+    INFO = "INFO"
+    WARNING = "WARNING"
+    ERROR = "ERROR"
+    DEBUG = "DEBUG"
+
+
 class CharmConfig(BaseConfigModel):
     """Manager for the structured configuration."""
 
@@ -63,6 +72,7 @@ class CharmConfig(BaseConfigModel):
     zookeeper_ssl_cipher_suites: Optional[str]
     profile: str
     certificate_extra_sans: Optional[str]
+    log_level: str
 
     @validator("*", pre=True)
     @classmethod
@@ -213,4 +223,16 @@ class CharmConfig(BaseConfigModel):
         if value not in ["testing", "staging", "production"]:
             raise ValueError("Value not one of 'testing', 'staging' or 'production'")
 
+        return value
+
+    @validator("log_level")
+    @classmethod
+    def log_level_values(cls, value: str) -> Optional[str]:
+        """Check validity of `log_level` field."""
+        try:
+            _log_level = LogLevel(value)
+        except Exception as e:
+            raise ValueError(
+                f"Value out of the accepted values. Could not properly parsed the roles configuration: {e}"
+            )
         return value

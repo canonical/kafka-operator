@@ -23,6 +23,7 @@ from literals import (
     AuthMechanism,
     Scope,
 )
+from structured_config import LogLevel
 from utils import map_env, safe_get_file, safe_write_to_file, update_env
 
 if TYPE_CHECKING:
@@ -37,6 +38,8 @@ authorizer.class.name=kafka.security.authorizer.AclAuthorizer
 allow.everyone.if.no.acl.found=false
 auto.create.topics.enable=false
 """
+
+SERVER_PROPERTIES_BLACKLIST = ["profile", "log_level", "certificate_extra_sans"]
 
 
 class Listener:
@@ -111,7 +114,6 @@ class KafkaConfig:
         self.zk_jaas_filepath = f"{self.charm.snap.CONF_PATH}/zookeeper-jaas.cfg"
         self.keystore_filepath = f"{self.charm.snap.CONF_PATH}/keystore.p12"
         self.truststore_filepath = f"{self.charm.snap.CONF_PATH}/truststore.jks"
-        self.log4j_properties_filepath = f"{self.charm.snap.CONF_PATH}/log4j.properties"
         self.jmx_prometheus_javaagent_filepath = (
             f"{self.charm.snap.BINARIES_PATH}/jmx_prometheus_javaagent.jar"
         )
@@ -194,15 +196,16 @@ class KafkaConfig:
         return False
 
     @property
-    def log4j_opts(self) -> str:
-        """The Java config options for specifying log4j properties.
+    def log_level(self) -> str:
+        """Return the Java-compliant logging level set by the user.
 
         Returns:
-            String of Java config options
+            string with these possible values: DEBUG, INFO, WARN, ERROR
         """
-        opts = [f"-Dlog4j.configuration=file:{self.log4j_properties_filepath}"]
-
-        return f"KAFKA_LOG4J_OPTS='{' '.join(opts)}'"
+        # Remapping to WARN that is generally used in Java applications based on log4j and logback.
+        if self.charm.config.log_level == LogLevel.WARNING.value:
+            return "WARN"
+        return self.charm.config.log_level
 
     @property
     def jmx_opts(self) -> str:
@@ -263,6 +266,7 @@ class KafkaConfig:
         """
         opts = [
             f"-Djava.security.auth.login.config={self.zk_jaas_filepath}",
+            f"-Dcharmed.kafka.log.level={self.log_level}",
         ]
 
         return f"KAFKA_OPTS='{' '.join(opts)}'"
@@ -544,6 +548,7 @@ class KafkaConfig:
             f"{conf_key.replace('_', '.')}={str(value)}"
             for conf_key, value in self.charm.config.dict().items()
             if value is not None
+            if conf_key not in SERVER_PROPERTIES_BLACKLIST
         ]
 
     def set_zk_jaas_config(self) -> None:
@@ -578,7 +583,6 @@ class KafkaConfig:
         updated_env_list = [
             self.kafka_opts,
             self.jmx_opts,
-            self.log4j_opts,
             self.jvm_performance_opts,
             self.heap_opts,
         ]
