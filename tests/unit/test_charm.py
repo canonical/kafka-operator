@@ -8,13 +8,12 @@ from unittest.mock import PropertyMock, patch
 
 import pytest
 import yaml
-
-import snap
 from charms.operator_libs_linux.v0.sysctl import ApplyError
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 from ops.testing import Harness
 from tenacity.wait import wait_none
 
+import snap
 from charm import KafkaCharm
 from literals import CHARM_KEY, INTERNAL_USERS, OS_REQUIREMENTS, PEER, REL_NAME, ZK
 
@@ -176,9 +175,7 @@ def test_update_status_blocks_if_no_service(harness, zk_data, passwords_data):
         harness.update_relation_data(peer_rel_id, CHARM_KEY, passwords_data)
 
     with (
-        patch(
-            "health.KafkaHealth.machine_configured", side_effect=snap.snap.SnapError()
-        ),
+        patch("health.KafkaHealth.machine_configured", side_effect=snap.snap.SnapError()),
         patch("charm.KafkaCharm.healthy", return_value=True),
         patch("charm.broker_active", return_value=True),
         patch("upgrade.KafkaUpgrade.idle", return_value=True),
