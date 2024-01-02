@@ -494,7 +494,7 @@ class KafkaConfig:
             f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";',
             "sasl.mechanism=SCRAM-SHA-512",
             f"security.protocol={self.security_protocol}",
-            # FIXME: will need changing once multiple listener auth schemes
+            # FIXME: security.protocol will need changing once multiple listener auth schemes
             f"bootstrap.servers={','.join(self.bootstrap_server)}",
         ]
 

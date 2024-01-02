@@ -89,4 +89,4 @@ options:
   log_level:
     description: 'Level of logging for the different components operated by the charm. Possible values: ERROR, WARNING, INFO, DEBUG'
     type: string
-    default: INFO
+    default: "INFO"
