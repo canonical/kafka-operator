@@ -200,7 +200,7 @@ class KafkaConfig:
         """Return the Java-compliant logging level set by the user.
 
         Returns:
-            string with these possible values: DEBUG, INFO, WARN, ERROR
+            String with these possible values: DEBUG, INFO, WARN, ERROR
         """
         # Remapping to WARN that is generally used in Java applications based on log4j and logback.
         if self.charm.config.log_level == LogLevel.WARNING.value:

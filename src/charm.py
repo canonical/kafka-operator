@@ -221,7 +221,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
                 self._set_status(Status.SYSCONF_NOT_OPTIMAL)
                 return
         except SnapError as e:
-            logger.error(f"Error: {e}")
+            logger.debug(f"Error: {e}")
             self._set_status(Status.SNAP_NOT_RUNNING)
             return
 

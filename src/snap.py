@@ -150,7 +150,7 @@ class KafkaSnap:
                 content = "".join(fid.readlines())
 
                 if f"{self.SNAP_NAME}.{self.SNAP_SERVICE}" in content:
-                    logger.info(
+                    logger.debug(
                         f"Found Snap service {self.SNAP_SERVICE} for {self.SNAP_NAME} with PID {pid}"
                     )
                     return int(pid)
