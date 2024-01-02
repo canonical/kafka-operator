@@ -123,6 +123,7 @@ def test_upgrade_granted_sets_failed_if_failed_upgrade_check(harness):
         patch.object(KafkaSnap, "stop_snap_service"),
         patch.object(KafkaSnap, "restart_snap_service") as patched_restart,
         patch.object(KafkaSnap, "install", return_value=True),
+        patch("config.KafkaConfig.set_environment"),
         patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=False),
     ):
         mock_event = MagicMock()
@@ -139,6 +140,7 @@ def test_upgrade_granted_succeeds(harness):
             new_callable=PropertyMock,
             return_value="3.6",
         ),
+        patch("config.KafkaConfig.set_environment"),
         patch.object(KafkaSnap, "stop_snap_service"),
         patch.object(KafkaSnap, "restart_snap_service"),
         patch.object(KafkaSnap, "install", return_value=True),
@@ -160,6 +162,7 @@ def test_upgrade_granted_recurses_upgrade_changed_on_leader(harness):
             new_callable=PropertyMock,
             return_value="3.6",
         ),
+        patch("config.KafkaConfig.set_environment"),
         patch.object(KafkaSnap, "stop_snap_service"),
         patch.object(KafkaSnap, "restart_snap_service"),
         patch.object(KafkaSnap, "install", return_value=True),

@@ -194,5 +194,5 @@ def update_env(env: dict[str, str]) -> None:
         return
 
     updated_env = current_env | env
-    content = "\n".join([f'{key}={value}' for key, value in updated_env.items() if value])
+    content = "\n".join([f"{key}={value}" for key, value in updated_env.items() if value])
     safe_write_to_file(content=content, path="/etc/environment", mode="w")
