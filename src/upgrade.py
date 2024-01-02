@@ -99,6 +99,8 @@ class KafkaUpgrade(DataUpgrade):
             self.set_unit_failed()
             return
 
+        self.charm.kafka_config.set_environment()
+
         logger.info(f"{self.charm.unit.name} upgrading service...")
         self.charm.snap.restart_snap_service()
 
