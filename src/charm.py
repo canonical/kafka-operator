@@ -220,7 +220,8 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             if not self.health.machine_configured():
                 self._set_status(Status.SYSCONF_NOT_OPTIMAL)
                 return
-        except SnapError:
+        except SnapError as e:
+            logger.debug(f"Error: {e}")
             self._set_status(Status.SNAP_NOT_RUNNING)
             return
 
@@ -353,6 +354,8 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
                 )
             )
             self.kafka_config.set_server_properties()
+
+            self.kafka_config.set_environment()
 
             if isinstance(event, StorageEvent):  # to get new storages
                 self.on[f"{self.restart.name}"].acquire_lock.emit(

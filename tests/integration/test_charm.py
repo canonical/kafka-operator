@@ -20,6 +20,7 @@ from .helpers import (
     REL_NAME_ADMIN,
     ZK_NAME,
     check_socket,
+    count_lines_with,
     get_address,
     produce_and_check_logs,
     run_client_properties,
@@ -185,6 +186,44 @@ async def test_exporter_endpoints(ops_test: OpsTest):
     jmx_exporter_url = f"http://{unit_address}:{JMX_EXPORTER_PORT}/metrics"
     jmx_resp = requests.get(jmx_exporter_url)
     assert jmx_resp.ok
+
+
+@pytest.mark.abort_on_fail
+async def test_log_level_change(ops_test: OpsTest):
+
+    for unit in ops_test.model.applications[APP_NAME].units:
+        assert (
+            count_lines_with(
+                ops_test.model_full_name,
+                unit.name,
+                "/var/snap/charmed-kafka/common/var/log/kafka/server.log",
+                "DEBUG",
+            )
+            == 0
+        )
+
+    await ops_test.model.applications[APP_NAME].set_config({"log_level": "DEBUG"})
+
+    await ops_test.model.wait_for_idle(
+        apps=[APP_NAME], status="active", timeout=1000, idle_period=30
+    )
+
+    for unit in ops_test.model.applications[APP_NAME].units:
+        assert (
+            count_lines_with(
+                ops_test.model_full_name,
+                unit.name,
+                "/var/snap/charmed-kafka/common/var/log/kafka/server.log",
+                "DEBUG",
+            )
+            > 0
+        )
+
+    await ops_test.model.applications[APP_NAME].set_config({"log_level": "INFO"})
+
+    await ops_test.model.wait_for_idle(
+        apps=[APP_NAME], status="active", timeout=1000, idle_period=30
+    )
 
 
 @pytest.mark.abort_on_fail

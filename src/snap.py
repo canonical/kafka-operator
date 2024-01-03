@@ -5,7 +5,6 @@
 """KafkaSnap class and methods."""
 
 import logging
-import re
 import subprocess
 from typing import List
 
@@ -140,13 +139,23 @@ class KafkaSnap:
         Raises:
             SnapError if error occurs or if no pid string found in most recent log
         """
-        last_log = self.kafka.logs(services=[self.SNAP_SERVICE], num_lines=1)
-        pid_string = re.search(rf"{SNAP_NAME}.{self.SNAP_SERVICE}\[([0-9]+)\]", last_log)
+        java_processes = subprocess.check_output(
+            "pidof java", stderr=subprocess.PIPE, universal_newlines=True, shell=True
+        )
 
-        if not pid_string:
-            raise snap.SnapError("pid not found in snap logs")
+        logger.debug(f"Java processes: {java_processes}")
 
-        return int(pid_string[1])
+        for pid in java_processes.split():
+            with open(f"/proc/{pid}/cgroup", "r") as fid:
+                content = "".join(fid.readlines())
+
+                if f"{self.SNAP_NAME}.{self.SNAP_SERVICE}" in content:
+                    logger.debug(
+                        f"Found Snap service {self.SNAP_SERVICE} for {self.SNAP_NAME} with PID {pid}"
+                    )
+                    return int(pid)
+
+        raise snap.SnapError(f"Snap {self.SNAP_NAME} pid not found")
 
     @staticmethod
     def run_bin_command(bin_keyword: str, bin_args: List[str], opts: List[str] = []) -> str:
