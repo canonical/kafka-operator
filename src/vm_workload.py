@@ -157,9 +157,14 @@ class KafkaWorkload(WorkloadBase):
         self.set_snap_ownership(path=path)
 
     def exec(self, command: list[str], env: str = "", working_dir: str | None = None) -> str:
+        
         try:
             output = subprocess.check_output(
-                command, stderr=subprocess.PIPE, universal_newlines=True, shell=True
+                command,
+                stderr=subprocess.PIPE,
+                universal_newlines=True,
+                shell=True,
+                cwd=working_dir,
             )
             logger.debug(f"{output=}")
             return output

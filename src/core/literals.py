@@ -43,10 +43,10 @@ OS_REQUIREMENTS = {
 }
 
 PATHS = {
-    "CONF_PATH": f"/var/snap/{SNAP_NAME}/current/etc/kafka",
-    "LOGS_PATH": f"/var/snap/{SNAP_NAME}/common/var/log/kafka",
-    "DATA_PATH": f"/var/snap/{SNAP_NAME}/common/var/lib/kafka",
-    "BINARIES_PATH": f"/snap/{SNAP_NAME}/current/opt/kafka",
+    "CONF": f"/var/snap/{SNAP_NAME}/current/etc/kafka",
+    "LOGS": f"/var/snap/{SNAP_NAME}/common/var/log/kafka",
+    "DATA": f"/var/snap/{SNAP_NAME}/common/var/lib/kafka",
+    "BIN": f"/snap/{SNAP_NAME}/current/opt/kafka",
 }
 
 

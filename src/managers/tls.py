@@ -58,14 +58,9 @@ class TLSManager(Object):
 
     def set_truststore(self) -> None:
         """Adds CA to JKS truststore."""
+        command = f"charmed-kafka.keytool -import -v -alias ca -file ca.pem -keystore truststore.jks -storepass {self.charm.cluster.truststore_password} -noprompt"
         try:
-            subprocess.check_output(
-                f"charmed-kafka.keytool -import -v -alias ca -file ca.pem -keystore truststore.jks -storepass {self.charm.cluster.truststore_password} -noprompt",
-                stderr=subprocess.PIPE,
-                shell=True,
-                universal_newlines=True,
-                cwd=self.charm.workload.paths.conf_path,
-            )
+            self.charm.workload.exec(command=command.split(), working_dir=self.charm.workload.paths.conf_path)
             self.charm.workload.set_snap_ownership(path=f"{self.charm.workload.paths.conf_path}/truststore.jks")
             self.charm.workload.set_snap_mode_bits(path=f"{self.charm.workload.paths.conf_path}/truststore.jks")
         except subprocess.CalledProcessError as e:
@@ -77,14 +72,9 @@ class TLSManager(Object):
 
     def set_keystore(self) -> None:
         """Creates and adds unit cert and private-key to the keystore."""
+        command = f"openssl pkcs12 -export -in server.pem -inkey server.key -passin pass:{self.charm.cluster.keystore_password} -certfile server.pem -out keystore.p12 -password pass:{self.charm.cluster.keystore_password}"
         try:
-            subprocess.check_output(
-                f"openssl pkcs12 -export -in server.pem -inkey server.key -passin pass:{self.charm.cluster.keystore_password} -certfile server.pem -out keystore.p12 -password pass:{self.charm.cluster.keystore_password}",
-                stderr=subprocess.PIPE,
-                shell=True,
-                universal_newlines=True,
-                cwd=self.charm.workload.paths.conf_path,
-            )
+            self.charm.workload.exec(command=command.split(), working_dir=self.charm.workload.paths.conf_path)
             self.charm.workload.set_snap_ownership(path=f"{self.charm.workload.paths.conf_path}/keystore.p12")
             self.charm.workload.set_snap_mode_bits(path=f"{self.charm.workload.paths.conf_path}/keystore.p12")
         except subprocess.CalledProcessError as e:
@@ -93,14 +83,9 @@ class TLSManager(Object):
 
     def import_cert(self, alias: str, filename: str) -> None:
         """Add a certificate to the truststore."""
+        command = f"charmed-kafka.keytool -import -v -alias {alias} -file {filename} -keystore truststore.jks -storepass {self.charm.cluster.truststore_password} -noprompt"
         try:
-            subprocess.check_output(
-                f"charmed-kafka.keytool -import -v -alias {alias} -file {filename} -keystore truststore.jks -storepass {self.charm.cluster.truststore_password} -noprompt",
-                stderr=subprocess.PIPE,
-                shell=True,
-                universal_newlines=True,
-                cwd=self.charm.workload.paths.conf_path,
-            )
+            self.charm.workload.exec(command=command.split(), working_dir=self.charm.workload.paths.conf_path)
         except subprocess.CalledProcessError as e:
             # in case this reruns and fails
             if "already exists" in e.output:
@@ -112,19 +97,12 @@ class TLSManager(Object):
     def remove_cert(self, alias: str) -> None:
         """Remove a cert from the truststore."""
         try:
-            subprocess.check_output(
-                f"charmed-kafka.keytool -delete -v -alias {alias} -keystore truststore.jks -storepass {self.charm.cluster.truststore_password} -noprompt",
-                stderr=subprocess.PIPE,
-                shell=True,
-                universal_newlines=True,
-                cwd=self.charm.workload.paths.conf_path,
+            command = f"charmed-kafka.keytool -delete -v -alias {alias} -keystore truststore.jks -storepass {self.charm.cluster.truststore_password} -noprompt"
+            self.charm.workload.exec(
+                command=command.split(), working_dir=self.charm.workload.paths.conf_path
             )
-            subprocess.check_output(
-                f"rm -f {alias}.pem",
-                stderr=subprocess.PIPE,
-                shell=True,
-                universal_newlines=True,
-                cwd=self.charm.workload.paths.conf_path,
+            self.charm.workload.exec(
+                ["rm", "-f", f"{alias}.pem"], working_dir=self.charm.workload.paths.conf_path
             )
         except subprocess.CalledProcessError as e:
             if "does not exist" in e.output:
@@ -136,12 +114,9 @@ class TLSManager(Object):
     def remove_stores(self) -> None:
         """Cleans up all keys/certs/stores on a unit."""
         try:
-            subprocess.check_output(
-                "rm -rf *.pem *.key *.p12 *.jks",
-                stderr=subprocess.PIPE,
-                shell=True,
-                universal_newlines=True,
-                cwd=self.charm.workload.paths.conf_path,
+            self.charm.workload.exec(
+                command=["rm", "-rf", "*.pem", "*.key", "*.p12", "*.jks"],
+                working_dir=self.charm.workload.paths.conf_path,
             )
         except subprocess.CalledProcessError as e:
             logger.error(e.output)
