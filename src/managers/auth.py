@@ -10,11 +10,14 @@ import subprocess
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Optional, Set
 
-from literals import REL_NAME
-from snap import KafkaSnap
+from ops import Object
+
+from core.literals import REL_NAME
+from vm_workload import KafkaWorkload
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
+
 
 logger = logging.getLogger(__name__)
 
@@ -29,15 +32,17 @@ class Acl:
     username: str
 
 
-class KafkaAuth:
+class AuthManager(Object):
     """Object for updating Kafka users and ACLs."""
 
     def __init__(self, charm):
+        super().__init__(charm, "auth_manager")
         self.charm: "KafkaCharm" = charm
-        self.zookeeper_connect = self.charm.kafka_config.zookeeper_config.get("connect", "")
-        self.bootstrap_server = ",".join(self.charm.kafka_config.bootstrap_server)
-        self.client_properties = self.charm.kafka_config.client_properties_filepath
-        self.server_properties = self.charm.kafka_config.server_properties_filepath
+
+        self.zookeeper_connect = self.charm.zookeeper.zookeeper_config.get("connect", "")
+        self.bootstrap_server = ",".join(self.charm.cluster.bootstrap_server)
+        self.client_properties = self.charm.workload.paths.client_properties
+        self.server_properties = self.charm.workload.paths.server_properties
 
         self.new_user_acls: Set[Acl] = set()
 
@@ -54,7 +59,7 @@ class KafkaAuth:
             f"--command-config={self.client_properties}",
             "--list",
         ]
-        acls = KafkaSnap.run_bin_command(bin_keyword="acls", bin_args=command)
+        acls = self.charm.workload.run_bin_command(bin_keyword="acls", bin_args=command)
 
         return acls
 
@@ -172,7 +177,7 @@ class KafkaAuth:
             ]
             opts = []
 
-        KafkaSnap.run_bin_command(bin_keyword="configs", bin_args=command, opts=opts)
+        self.charm.workload.run_bin_command(bin_keyword="configs", bin_args=command, opts=opts)
 
     def delete_user(self, username: str) -> None:
         """Deletes user credentials from ZooKeeper.
@@ -192,7 +197,7 @@ class KafkaAuth:
             "--delete-config=SCRAM-SHA-512",
         ]
         try:
-            KafkaSnap.run_bin_command(bin_keyword="configs", bin_args=command)
+            self.charm.workload.run_bin_command(bin_keyword="configs", bin_args=command)
         except subprocess.CalledProcessError as e:
             if "delete a user credential that does not exist" in e.stderr:
                 logger.warning(f"User: {username} can't be deleted, it does not exist")
@@ -233,7 +238,7 @@ class KafkaAuth:
                 f"--group={resource_name}",
                 "--resource-pattern-type=PREFIXED",
             ]
-        KafkaSnap.run_bin_command(bin_keyword="acls", bin_args=command)
+        self.charm.workload.run_bin_command(bin_keyword="acls", bin_args=command)
 
     def remove_acl(
         self, username: str, operation: str, resource_type: str, resource_name: str
@@ -268,7 +273,7 @@ class KafkaAuth:
                 "--resource-pattern-type=PREFIXED",
             ]
 
-        KafkaSnap.run_bin_command(bin_keyword="acls", bin_args=command)
+        self.charm.workload.run_bin_command(bin_keyword="acls", bin_args=command)
 
     def remove_all_user_acls(self, username: str) -> None:
         """Removes all active ACLs for a given user.
@@ -339,4 +344,4 @@ class KafkaAuth:
             self.delete_user(username=username)
             # non-leader units need cluster_config_changed event to update their super.users
             # update on the peer relation data will trigger an update of server properties on all unit
-            self.charm.app_peer_data.update({username: ""})
+            self.charm.cluster.cluster_relation.update({username: ""})

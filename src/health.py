@@ -12,8 +12,7 @@ from typing import TYPE_CHECKING, Tuple
 
 from ops.framework import Object
 
-from literals import JVM_MEM_MAX_GB, JVM_MEM_MIN_GB
-from utils import safe_get_file
+from core.literals import JVM_MEM_MAX_GB, JVM_MEM_MIN_GB
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -31,61 +30,33 @@ class KafkaHealth(Object):
     @property
     def _service_pid(self) -> int:
         """Gets most recent Kafka service pid from the snap logs."""
-        return self.charm.snap.get_service_pid()
+        return self.charm.workload.get_service_pid()
 
     def _get_current_memory_maps(self) -> int:
         """Gets the current number of memory maps for the Kafka process."""
-        return int(
-            subprocess.check_output(
-                f"cat /proc/{self._service_pid}/maps | wc -l",
-                shell=True,
-                stderr=subprocess.PIPE,
-                universal_newlines=True,
-            )
-        )
+        return int(self.charm.workload.exec(["cat", f"/proc/{self._service_pid}/maps", "|", "wc", "-l"]))
 
     def _get_current_max_files(self) -> int:
         """Gets the current file descriptor limit for the Kafka process."""
-        return int(
-            subprocess.check_output(
-                rf"cat /proc/{self._service_pid}/limits | grep files | awk '{{print $5}}'",
-                shell=True,
-                stderr=subprocess.PIPE,
-                universal_newlines=True,
-            )
-        )
+        return int(self.charm.workload.exec(["cat", f"/proc/{self._service_pid}/limits", "|", "grep", "files", "|", "awk", rf"'{{print $5}}'"]))
 
     def _get_max_memory_maps(self) -> int:
         """Gets the current memory map limit for the machine."""
-        return int(
-            subprocess.check_output(
-                "sysctl -n vm.max_map_count",
-                shell=True,
-                stderr=subprocess.PIPE,
-                universal_newlines=True,
-            )
-        )
+        return int(self.charm.workload.exec(["sysctl", "-n", "vm.max_map_count"]))
 
     def _get_vm_swappiness(self) -> int:
         """Gets the current vm.swappiness configured for the machine."""
-        return int(
-            subprocess.check_output(
-                "sysctl -n vm.swappiness",
-                shell=True,
-                stderr=subprocess.PIPE,
-                universal_newlines=True,
-            )
-        )
+        return int(self.charm.workload.exec(["sysctl", "-n", "vm.swappiness"]))
 
     def _get_partitions_size(self) -> Tuple[int, int]:
         """Gets the number of partitions and their average size from the log dirs."""
         log_dirs_command = [
             "--describe",
-            f"--bootstrap-server {','.join(self.charm.kafka_config.bootstrap_server)}",
-            f"--command-config {self.charm.kafka_config.client_properties_filepath}",
+            f"--bootstrap-server {','.join(self.charm.cluster.bootstrap_server)}",
+            f"--command-config {self.charm.workload.paths.client_properties}",
         ]
         try:
-            log_dirs = self.charm.snap.run_bin_command(
+            log_dirs = self.charm.workload.run_bin_command(
                 bin_keyword="log-dirs", bin_args=log_dirs_command
             )
         except subprocess.CalledProcessError:
@@ -167,7 +138,7 @@ class KafkaHealth(Object):
 
     def _check_total_memory(self) -> bool:
         """Checks that the total available memory is sufficient for desired profile."""
-        if not (meminfo := safe_get_file(filepath="/proc/meminfo")):
+        if not (meminfo := self.charm.workload.read(path="/proc/meminfo")):
             return False
 
         total_memory_gb = int(meminfo[0].split()[1]) / 1000000

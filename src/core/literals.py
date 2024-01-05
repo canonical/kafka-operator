@@ -2,7 +2,6 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-
 """Collection of globals common to the KafkaCharm."""
 
 from dataclasses import dataclass
@@ -31,6 +30,8 @@ LOGS_RULES_DIR = "./src/alert_rules/loki"
 AuthMechanism = Literal["SASL_PLAINTEXT", "SASL_SSL", "SSL"]
 Scope = Literal["INTERNAL", "CLIENT"]
 DebugLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
+Substrate = Literal["vm", "k8s"]
+DatabagScope = Literal["unit", "app"]
 
 JVM_MEM_MIN_GB = 1
 JVM_MEM_MAX_GB = 6
@@ -39,6 +40,13 @@ OS_REQUIREMENTS = {
     "vm.swappiness": "1",
     "vm.dirty_ratio": "80",
     "vm.dirty_background_ratio": "5",
+}
+
+PATHS = {
+    "CONF_PATH": f"/var/snap/{SNAP_NAME}/current/etc/kafka",
+    "LOGS_PATH": f"/var/snap/{SNAP_NAME}/common/var/log/kafka",
+    "DATA_PATH": f"/var/snap/{SNAP_NAME}/common/var/lib/kafka",
+    "BINARIES_PATH": f"/snap/{SNAP_NAME}/current/opt/kafka",
 }
 
 

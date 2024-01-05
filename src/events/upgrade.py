@@ -17,8 +17,6 @@ from charms.data_platform_libs.v0.upgrade import (
 from pydantic import BaseModel
 from typing_extensions import override
 
-from utils import get_zookeeper_version
-
 if TYPE_CHECKING:
     from charm import KafkaCharm
 
@@ -52,7 +50,7 @@ class KafkaUpgrade(DataUpgrade):
     @property
     def zookeeper_current_version(self) -> str:
         """Get current Zookeeper version."""
-        return get_zookeeper_version(zookeeper_config=self.charm.kafka_config.zookeeper_config)
+        return self.charm.zookeeper.get_zookeeper_version()
 
     def post_upgrade_check(self) -> None:
         """Runs necessary checks validating the unit is in a healthy state after upgrade."""
@@ -61,7 +59,7 @@ class KafkaUpgrade(DataUpgrade):
     @override
     def pre_upgrade_check(self) -> None:
         default_message = "Pre-upgrade check failed and cannot safely upgrade"
-        if not self.charm.healthy:
+        if not self.charm.cluster.healthy:
             raise ClusterNotReadyError(message=default_message, cause="Cluster is not healthy")
 
     @override
@@ -92,9 +90,9 @@ class KafkaUpgrade(DataUpgrade):
             self.set_unit_failed()
             return
 
-        self.charm.snap.stop_snap_service()
+        self.charm.workload.stop()
 
-        if not self.charm.snap.install():
+        if not self.charm.workload.install():
             logger.error("Unable to install Snap")
             self.set_unit_failed()
             return
@@ -102,7 +100,7 @@ class KafkaUpgrade(DataUpgrade):
         self.charm.kafka_config.set_environment()
 
         logger.info(f"{self.charm.unit.name} upgrading service...")
-        self.charm.snap.restart_snap_service()
+        self.charm.workload.restart()
 
         # Allow for some time to settle down
         # FIXME: This logic should be improved as part of ticket DPE-3155
