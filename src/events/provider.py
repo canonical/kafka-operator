@@ -12,7 +12,6 @@ from charms.data_platform_libs.v0.data_interfaces import KafkaProvides, TopicReq
 from ops.charm import RelationBrokenEvent, RelationCreatedEvent
 from ops.framework import Object
 
-from managers.auth import AuthManager
 from core.literals import REL_NAME
 from utils import generate_password
 
@@ -28,7 +27,6 @@ class KafkaProvider(Object):
     def __init__(self, charm) -> None:
         super().__init__(charm, "kafka_client")
         self.charm: "KafkaCharm" = charm
-        self.kafka_auth = AuthManager(self.charm)
         self.kafka_provider = KafkaProvides(self.charm, REL_NAME)
 
         self.framework.observe(self.charm.on[REL_NAME].relation_created, self._on_relation_created)
@@ -65,7 +63,7 @@ class KafkaProvider(Object):
 
         # catching error here in case listeners not established for bootstrap-server auth
         try:
-            self.kafka_auth.add_user(
+            self.charm.auth_manager.add_user(
                 username=username,
                 password=password,
             )
@@ -77,7 +75,7 @@ class KafkaProvider(Object):
         # non-leader units need cluster_config_changed event to update their super.users
         self.charm.cluster.cluster_relation.update({username: password})
 
-        self.kafka_auth.update_user_acls(
+        self.charm.auth_manager.update_user_acls(
             username=username,
             topic=topic,
             extra_user_roles=extra_user_roles,
@@ -119,8 +117,8 @@ class KafkaProvider(Object):
 
         if event.relation.app != self.charm.app or not self.charm.app.planned_units() == 0:
             username = f"relation-{event.relation.id}"
-            self.kafka_auth.remove_all_user_acls(username=username)
-            self.kafka_auth.delete_user(username=username)
+            self.charm.auth_manager.remove_all_user_acls(username=username)
+            self.charm.auth_manager.delete_user(username=username)
             # non-leader units need cluster_config_changed event to update their super.users
             # update on the peer relation data will trigger an update of server properties on all unit
             self.charm.cluster.cluster_relation.update({username: ""})

@@ -7,11 +7,11 @@
 import logging
 import subprocess
 from typing import TYPE_CHECKING, Dict, Set
-from ops import Object, RelationChangedEvent, RelationCreatedEvent, RelationEvent, Unit
+from ops import Object, RelationChangedEvent, RelationEvent, Unit
 from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManager
 
 from core.relation_interfaces import ZooKeeperRelation
-from core.literals import Status
+from core.literals import ZK, Status
 from kazoo.exceptions import AuthFailedError, NoNodeError
 from tenacity import retry
 from tenacity.retry import retry_if_not_result
@@ -30,12 +30,17 @@ class ZooKeeperHandler(Object):
     def __init__(self, charm) -> None:
         super().__init__(charm, "zookeeper_client")
         self.charm: "KafkaCharm" = charm
-        self.zookeeper = ZooKeeperRelation(charm=charm)
+        self.zookeeper_relation = ZooKeeperRelation(charm=charm)
 
-    def _on_zookeeper_created(self, event: RelationCreatedEvent) -> None:
+        self.framework.observe(self.charm.on[ZK].relation_created, self._on_zookeeper_created)
+        self.framework.observe(self.charm.on[ZK].relation_joined, self._on_zookeeper_changed)
+        self.framework.observe(self.charm.on[ZK].relation_changed, self._on_zookeeper_changed)
+        self.framework.observe(self.charm.on[ZK].relation_broken, self._on_zookeeper_broken)
+
+    def _on_zookeeper_created(self, _) -> None:
         """Handler for `zookeeper_relation_created` events."""
         if self.model.unit.is_leader():
-            event.relation.data[self.model.app].update({"chroot": "/" + self.model.app.name})
+            self.zookeeper_relation.zookeeper_app_data.update({"chroot": "/" + self.model.app.name})
 
     def _on_zookeeper_changed(self, event: RelationChangedEvent) -> None:
         """Handler for `zookeeper_relation_created/joined/changed` events, ensuring internal users get created."""
@@ -94,12 +99,12 @@ class ZooKeeperHandler(Object):
         """
         zookeeper_config = {}
 
-        if not self.zookeeper.zookeeper_relation:
+        if not self.zookeeper_relation.zookeeper_relation:
             return zookeeper_config
 
         zk_keys = ["username", "password", "endpoints", "chroot", "uris", "tls"]
         missing_config = any(
-            self.zookeeper.remote_zookeeper_app_data.get(key, None) is None for key in zk_keys
+            self.zookeeper_relation.remote_zookeeper_app_data.get(key, None) is None for key in zk_keys
         )
 
         # skip if config is missing
@@ -107,7 +112,7 @@ class ZooKeeperHandler(Object):
             return zookeeper_config
 
         # set if exists
-        zookeeper_config.update(self.zookeeper.remote_zookeeper_app_data)
+        zookeeper_config.update(self.zookeeper_relation.remote_zookeeper_app_data)
 
         if zookeeper_config:
             sorted_uris = sorted(
@@ -125,7 +130,7 @@ class ZooKeeperHandler(Object):
         Returns:
             True if there is a ZooKeeper relation. Otherwise False
         """
-        return bool(self.zookeeper.zookeeper_relation)
+        return bool(self.zookeeper_relation.zookeeper_relation)
 
     @property
     def zookeeper_connected(self) -> bool:

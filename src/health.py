@@ -34,19 +34,19 @@ class KafkaHealth(Object):
 
     def _get_current_memory_maps(self) -> int:
         """Gets the current number of memory maps for the Kafka process."""
-        return int(self.charm.workload.exec(["cat", f"/proc/{self._service_pid}/maps", "|", "wc", "-l"]))
+        return int(self.charm.workload.exec(f"cat /proc/{self._service_pid}/maps | wc -l"))
 
     def _get_current_max_files(self) -> int:
         """Gets the current file descriptor limit for the Kafka process."""
-        return int(self.charm.workload.exec(["cat", f"/proc/{self._service_pid}/limits", "|", "grep", "files", "|", "awk", rf"'{{print $5}}'"]))
+        return int(self.charm.workload.exec(rf"cat /proc/{self._service_pid}/limits | grep files | awk '{{print $5}}'"))
 
     def _get_max_memory_maps(self) -> int:
         """Gets the current memory map limit for the machine."""
-        return int(self.charm.workload.exec(["sysctl", "-n", "vm.max_map_count"]))
+        return int(self.charm.workload.exec("sysctl -n vm.max_map_count"))
 
     def _get_vm_swappiness(self) -> int:
         """Gets the current vm.swappiness configured for the machine."""
-        return int(self.charm.workload.exec(["sysctl", "-n", "vm.swappiness"]))
+        return int(self.charm.workload.exec("sysctl -n vm.swappiness"))
 
     def _get_partitions_size(self) -> Tuple[int, int]:
         """Gets the number of partitions and their average size from the log dirs."""

@@ -65,6 +65,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.kafka_config = KafkaConfig(self)
         self.zookeeper = ZooKeeperHandler(self)
         self.tls = TLSHandler(self)
+        self.auth_manager = AuthManager(self)
         self.provider = KafkaProvider(self)
         self.health = KafkaHealth(self)
 
@@ -315,8 +316,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             )
 
         # do not start units until SCRAM users have been added to ZooKeeper for server-server auth
-        kafka_auth = AuthManager(self)
-        kafka_auth.add_user(
+        self.auth_manager.add_user(
             username=username,
             password=password,
             zk_auth=True,

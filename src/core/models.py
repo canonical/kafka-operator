@@ -4,7 +4,6 @@
 
 """Collection of globals common to the KafkaCharm."""
 
-
 import socket
 from typing import TYPE_CHECKING, Dict, List, Optional
 from ops import Object, Unit
@@ -15,6 +14,7 @@ from core.literals import INTERNAL_USERS, SECURITY_PROTOCOL_PORTS, Status
 if TYPE_CHECKING:
     from charm import KafkaCharm
 
+
 class ClusterState(Object):
     """Properties and relations of the charm."""
 
@@ -22,7 +22,6 @@ class ClusterState(Object):
         super().__init__(charm, "cluster_state")
         self.charm: "KafkaCharm" = charm
         self.cluster_relation = ClusterRelation(charm)
-        self.zookeeper_relation = ZooKeeperRelation(charm)
 
     def unit_host(self, unit: Unit | None = None) -> str:
         """Return the hostname of a unit."""
@@ -42,56 +41,6 @@ class ClusterState(Object):
         """Return list of application unit hosts."""
         hosts = [self.unit_host(unit) for unit in self.cluster_relation.units] + [self.unit_host()]
         return hosts
-
-    @property
-    def ready_to_start(self) -> bool:
-        """Check for active ZooKeeper relation and adding of inter-broker auth username.
-
-        Returns:
-            True if ZK is related and `sync` user has been added. False otherwise.
-        """
-        if not self.cluster_relation.peer_relation:
-            self.charm._set_status(Status.NO_PEER_RELATION)
-            return False
-
-        if not self.charm.zookeeper.zookeeper_related:
-            self.charm._set_status(Status.ZK_NOT_RELATED)
-            return False
-
-        if not self.charm.zookeeper.zookeeper_connected:
-            self.charm._set_status(Status.ZK_NO_DATA)
-            return False
-
-        # TLS must be enabled for Kafka and ZK or disabled for both
-        if self.tls_enabled ^ (
-            self.charm.zookeeper.zookeeper_config.get("tls", "disabled") == "enabled"
-        ):
-            self.charm._set_status(Status.ZK_TLS_MISMATCH)
-            return False
-
-        if not self.internal_user_credentials:
-            self.charm._set_status(Status.NO_BROKER_CREDS)
-            return False
-
-        return True
-
-    @property
-    def healthy(self) -> bool:
-        """Checks and updates various charm lifecycle states.
-
-        Is slow to fail due to retries, to be used sparingly.
-
-        Returns:
-            True if service is alive and active. Otherwise False
-        """
-        if not self.ready_to_start:
-            return False
-
-        if not self.charm.workload.active():
-            self.charm._set_status(Status.SNAP_NOT_RUNNING)
-            return False
-
-        return True
 
     @property
     def internal_user_credentials(self) -> Dict[str, str]:
@@ -229,3 +178,55 @@ class ClusterState(Object):
             "sans_ip": [self.unit_host()],
             "sans_dns": [self.model.unit.name, socket.getfqdn()] + self._extra_sans,
         }
+
+    ##### HEALTH #####
+
+    @property
+    def ready_to_start(self) -> bool:
+        """Check for active ZooKeeper relation and adding of inter-broker auth username.
+
+        Returns:
+            True if ZK is related and `sync` user has been added. False otherwise.
+        """
+        if not self.cluster_relation.peer_relation:
+            self.charm._set_status(Status.NO_PEER_RELATION)
+            return False
+
+        if not self.charm.zookeeper.zookeeper_related:
+            self.charm._set_status(Status.ZK_NOT_RELATED)
+            return False
+
+        if not self.charm.zookeeper.zookeeper_connected:
+            self.charm._set_status(Status.ZK_NO_DATA)
+            return False
+
+        # TLS must be enabled for Kafka and ZK or disabled for both
+        if self.tls_enabled ^ (
+            self.charm.zookeeper.zookeeper_config.get("tls", "disabled") == "enabled"
+        ):
+            self.charm._set_status(Status.ZK_TLS_MISMATCH)
+            return False
+
+        if not self.internal_user_credentials:
+            self.charm._set_status(Status.NO_BROKER_CREDS)
+            return False
+
+        return True
+
+    @property
+    def healthy(self) -> bool:
+        """Checks and updates various charm lifecycle states.
+
+        Is slow to fail due to retries, to be used sparingly.
+
+        Returns:
+            True if service is alive and active. Otherwise False
+        """
+        if not self.ready_to_start:
+            return False
+
+        if not self.charm.workload.active():
+            self.charm._set_status(Status.SNAP_NOT_RUNNING)
+            return False
+
+        return True

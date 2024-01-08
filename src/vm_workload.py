@@ -156,8 +156,7 @@ class KafkaWorkload(WorkloadBase):
 
         self.set_snap_ownership(path=path)
 
-    def exec(self, command: list[str], env: str = "", working_dir: str | None = None) -> str:
-        
+    def exec(self, command: str, env: str = "", working_dir: str | None = None) -> str:
         try:
             output = subprocess.check_output(
                 command,
@@ -251,8 +250,10 @@ class KafkaWorkload(WorkloadBase):
         Raises:
             `subprocess.CalledProcessError`: if the error returned a non-zero exit code
         """
-        command = opts + [f"{SNAP_NAME}.{bin_keyword}"] + bin_args
-        return self.exec(command=command, env="")
+        opts_str = " ".join(opts)
+        bin_str = " ".join(bin_args)
+        command =  f"{opts_str} {SNAP_NAME}.{bin_keyword} {bin_str}"
+        return self.exec(command)
 
     @staticmethod
     def set_snap_ownership(path: str) -> None:

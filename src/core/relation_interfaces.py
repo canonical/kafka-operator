@@ -57,7 +57,7 @@ class ClusterRelation(Object):
             values: dict with the values to update
         """
         if scope == "unit":
-            self.unit_peer_data.update(values)
+            self.unit_peer_data().update(values)
         elif scope == "app":
             self.app_peer_data.update(values)
         else:
@@ -75,7 +75,7 @@ class ClusterRelation(Object):
             None if non-existent key
         """
         if scope == "unit":
-            return self.unit_peer_data.get(key, None)
+            return self.unit_peer_data().get(key, None)
         elif scope == "app":
             return self.app_peer_data.get(key, None)
         else:
@@ -91,9 +91,9 @@ class ClusterRelation(Object):
         """
         if scope == "unit":
             if not value:
-                self.unit_peer_data.update({key: ""})
+                self.unit_peer_data().update({key: ""})
                 return
-            self.unit_peer_data.update({key: value})
+            self.unit_peer_data().update({key: value})
         elif scope == "app":
             if not value:
                 self.app_peer_data.update({key: ""})
@@ -111,26 +111,26 @@ class ZooKeeperRelation(Object):
 
     @property
     def zookeeper_relation(self) -> Optional[Relation]:
-        """The cluster peer relation."""
+        """The Zookeeper relation."""
         return self.model.get_relation(ZK)
 
-    # REMOTE ENTITIES DATA
-
-    @property
-    def remote_zookeeper_app(self) -> Application | None:
-        """Remote ZooKeeper application."""
-        if not self.zookeeper_relation:
-            return None
-
-        return self.zookeeper_relation.app
+    # APPLICATION DATA
 
     @property
     def remote_zookeeper_app_data(self) -> MutableMapping[str, str]:
-        """Application peer relation data object."""
-        if not self.remote_zookeeper_app or not self.zookeeper_relation:
+        """Zookeeper relation data object."""
+        if not self.zookeeper_relation or not self.zookeeper_relation.app:
             return {}
 
-        return self.zookeeper_relation.data[self.remote_zookeeper_app]
+        return self.zookeeper_relation.data[self.zookeeper_relation.app]
+
+    @property
+    def zookeeper_app_data(self) -> MutableMapping[str, str]:
+        """Zookeeper relation data object."""
+        if not self.zookeeper_relation:
+            return {}
+
+        return self.zookeeper_relation.data[self.model.app]
 
 
 class CertificatesRelation(Object):
@@ -141,7 +141,7 @@ class CertificatesRelation(Object):
 
     @property
     def certificates_relation(self) -> Optional[Relation]:
-        """The cluster peer relation."""
+        """The certificates relation."""
         return self.model.get_relation(TLS_RELATION)
 
     # REMOTE ENTITIES DATA
@@ -155,7 +155,7 @@ class CertificatesRelation(Object):
         return self.certificates_relation.app
 
     @property
-    def remote_zookeeper_app_data(self) -> MutableMapping[str, str]:
+    def remote_certificates_app_data(self) -> MutableMapping[str, str]:
         """Application peer relation data object."""
         if not self.remote_certificates_app or not self.certificates_relation:
             return {}
