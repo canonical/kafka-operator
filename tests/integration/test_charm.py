@@ -12,7 +12,7 @@ import pytest
 import requests
 from pytest_operator.plugin import OpsTest
 
-from literals import JMX_EXPORTER_PORT, REL_NAME, SECURITY_PROTOCOL_PORTS
+from core.literals import JMX_EXPORTER_PORT, REL_NAME, SECURITY_PROTOCOL_PORTS
 
 from .helpers import (
     APP_NAME,

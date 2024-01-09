@@ -10,7 +10,7 @@ import pytest
 from charms.tls_certificates_interface.v1.tls_certificates import generate_private_key
 from pytest_operator.plugin import OpsTest
 
-from literals import (
+from core.literals import (
     CHARM_KEY,
     REL_NAME,
     SECURITY_PROTOCOL_PORTS,
@@ -18,7 +18,6 @@ from literals import (
     TRUSTED_CERTIFICATE_RELATION,
     ZK,
 )
-from utils import get_active_brokers
 
 from .helpers import (
     REL_NAME_ADMIN,
@@ -30,6 +29,7 @@ from .helpers import (
     set_mtls_client_acls,
     set_tls_private_key,
     show_unit,
+    get_active_brokers,
 )
 from .test_charm import DUMMY_NAME
 
@@ -237,7 +237,7 @@ async def test_kafka_tls_scaling(ops_test: OpsTest):
     kafka_zk_relation_data = get_kafka_zk_relation_data(
         unit_name=f"{CHARM_KEY}/2", model_full_name=ops_test.model_full_name
     )
-    active_brokers = get_active_brokers(zookeeper_config=kafka_zk_relation_data)
+    active_brokers = get_active_brokers(config=kafka_zk_relation_data)
     chroot = kafka_zk_relation_data.get("chroot", "")
     assert f"{chroot}/brokers/ids/0" in active_brokers
     assert f"{chroot}/brokers/ids/1" in active_brokers

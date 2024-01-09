@@ -41,7 +41,7 @@ class TLSHandler(Object):
     def __init__(self, charm):
         super().__init__(charm, "tls")
         self.charm: "KafkaCharm" = charm
-        self.tls_manager = TLSManager(self)
+        self.tls_manager = TLSManager(self.charm)
         self.certificates_relation = CertificatesRelation(self.charm)
         self.certificates = TLSCertificatesRequiresV1(self.charm, TLS_RELATION)
 

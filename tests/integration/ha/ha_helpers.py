@@ -14,7 +14,8 @@ from integration.ha.continuous_writes import ContinuousWritesResult
 from integration.helpers import APP_NAME, get_address, get_kafka_zk_relation_data
 from literals import SECURITY_PROTOCOL_PORTS
 from snap import KafkaSnap
-from utils import get_active_brokers
+
+from helpers import get_active_brokers
 
 PROCESS = "kafka.Kafka"
 SERVICE_DEFAULT_PATH = "/etc/systemd/system/snap.charmed-kafka.daemon.service"
@@ -219,7 +220,7 @@ def is_up(ops_test: OpsTest, broker_id: int) -> bool:
     kafka_zk_relation_data = get_kafka_zk_relation_data(
         unit_name=unit_name, model_full_name=ops_test.model_full_name
     )
-    active_brokers = get_active_brokers(zookeeper_config=kafka_zk_relation_data)
+    active_brokers = get_active_brokers(config=kafka_zk_relation_data)
     chroot = kafka_zk_relation_data.get("chroot", "")
     return f"{chroot}/brokers/ids/{broker_id}" in active_brokers
 
