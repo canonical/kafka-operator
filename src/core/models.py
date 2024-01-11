@@ -9,7 +9,7 @@ from typing import Dict, MutableMapping, Optional, Set
 
 from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManager
 from kazoo.exceptions import AuthFailedError, NoNodeError
-from literals import INTERNAL_USERS, Substrate
+from core.literals import INTERNAL_USERS, Substrate
 from ops.model import Application, Relation, Unit
 from tenacity import retry, retry_if_not_result, stop_after_attempt, wait_fixed
 
