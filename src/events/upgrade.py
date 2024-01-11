@@ -50,7 +50,7 @@ class KafkaUpgrade(DataUpgrade):
     @property
     def zookeeper_current_version(self) -> str:
         """Get current Zookeeper version."""
-        return self.charm.zookeeper.get_zookeeper_version()
+        return self.charm.state.zookeeper.get_zookeeper_version()
 
     def post_upgrade_check(self) -> None:
         """Runs necessary checks validating the unit is in a healthy state after upgrade."""
@@ -59,7 +59,7 @@ class KafkaUpgrade(DataUpgrade):
     @override
     def pre_upgrade_check(self) -> None:
         default_message = "Pre-upgrade check failed and cannot safely upgrade"
-        if not self.charm.cluster.healthy:
+        if not self.charm.healthy:
             raise ClusterNotReadyError(message=default_message, cause="Cluster is not healthy")
 
     @override

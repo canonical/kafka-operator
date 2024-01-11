@@ -8,16 +8,10 @@ import logging
 import re
 import subprocess
 from dataclasses import asdict, dataclass
-from typing import TYPE_CHECKING, Optional, Set
+from typing import Optional, Set
 
-from ops import Object
-
-from core.literals import REL_NAME
+from core.cluster import ClusterState
 from vm_workload import KafkaWorkload
-
-if TYPE_CHECKING:
-    from charm import KafkaCharm
-
 
 logger = logging.getLogger(__name__)
 
@@ -31,18 +25,18 @@ class Acl:
     operation: str
     username: str
 
-
-class AuthManager(Object):
+class AuthManager:
     """Object for updating Kafka users and ACLs."""
 
-    def __init__(self, charm):
-        super().__init__(charm, "auth_manager")
-        self.charm: "KafkaCharm" = charm
+    def __init__(self, state: ClusterState, workload: KafkaWorkload, kafka_opts: str):
+        self.state = state
+        self.workload = workload
+        self.kafka_opts = kafka_opts
 
-        self.zookeeper_connect = self.charm.zookeeper.zookeeper_config.get("connect", "")
-        self.bootstrap_server = ",".join(self.charm.cluster.bootstrap_server)
-        self.client_properties = self.charm.workload.paths.client_properties
-        self.server_properties = self.charm.workload.paths.server_properties
+        self.zookeeper_connect = self.state.zookeeper.zookeeper_config.get("connect", "")
+        self.bootstrap_server = ",".join(self.state.bootstrap_server)
+        self.client_properties = self.workload.paths.client_properties
+        self.server_properties = self.workload.paths.server_properties
 
         self.new_user_acls: Set[Acl] = set()
 
@@ -59,7 +53,7 @@ class AuthManager(Object):
             f"--command-config={self.client_properties}",
             "--list",
         ]
-        acls = self.charm.workload.run_bin_command(bin_keyword="acls", bin_args=command)
+        acls = self.workload.run_bin_command(bin_keyword="acls", bin_args=command)
 
         return acls
 
@@ -169,7 +163,7 @@ class AuthManager(Object):
                 f"--zookeeper={self.zookeeper_connect}",
                 f"--zk-tls-config-file={self.server_properties}",
             ]
-            opts = [self.charm.kafka_config.kafka_opts]
+            opts = [self.kafka_opts]
         else:
             command = base_command + [
                 f"--bootstrap-server={self.bootstrap_server}",
@@ -177,7 +171,7 @@ class AuthManager(Object):
             ]
             opts = []
 
-        self.charm.workload.run_bin_command(bin_keyword="configs", bin_args=command, opts=opts)
+        self.workload.run_bin_command(bin_keyword="configs", bin_args=command, opts=opts)
 
     def delete_user(self, username: str) -> None:
         """Deletes user credentials from ZooKeeper.
@@ -197,7 +191,7 @@ class AuthManager(Object):
             "--delete-config=SCRAM-SHA-512",
         ]
         try:
-            self.charm.workload.run_bin_command(bin_keyword="configs", bin_args=command)
+            self.workload.run_bin_command(bin_keyword="configs", bin_args=command)
         except subprocess.CalledProcessError as e:
             if "delete a user credential that does not exist" in e.stderr:
                 logger.warning(f"User: {username} can't be deleted, it does not exist")
@@ -238,7 +232,7 @@ class AuthManager(Object):
                 f"--group={resource_name}",
                 "--resource-pattern-type=PREFIXED",
             ]
-        self.charm.workload.run_bin_command(bin_keyword="acls", bin_args=command)
+        self.workload.run_bin_command(bin_keyword="acls", bin_args=command)
 
     def remove_acl(
         self, username: str, operation: str, resource_type: str, resource_name: str
@@ -273,7 +267,7 @@ class AuthManager(Object):
                 "--resource-pattern-type=PREFIXED",
             ]
 
-        self.charm.workload.run_bin_command(bin_keyword="acls", bin_args=command)
+        self.workload.run_bin_command(bin_keyword="acls", bin_args=command)
 
     def remove_all_user_acls(self, username: str) -> None:
         """Removes all active ACLs for a given user.
@@ -328,20 +322,3 @@ class AuthManager(Object):
         acls_to_remove = current_user_acls - self.new_user_acls
         for acl in acls_to_remove:
             self.remove_acl(**asdict(acl))
-
-    def clear_users(self) -> None:
-        """Check existing relations and remove deleted users."""
-        current_usernames = [acl.username for acl in self.current_acls]
-        relation_usernames = [
-            f"relation-{relation.id}" for relation in self.charm.model.relations[REL_NAME]
-        ]
-        to_remove = [
-            username for username in current_usernames if username not in relation_usernames
-        ]
-
-        for username in to_remove:
-            self.remove_all_user_acls(username=username)
-            self.delete_user(username=username)
-            # non-leader units need cluster_config_changed event to update their super.users
-            # update on the peer relation data will trigger an update of server properties on all unit
-            self.charm.cluster.cluster_relation.update({username: ""})

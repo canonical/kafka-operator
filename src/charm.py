@@ -21,8 +21,7 @@ from ops.framework import EventBase
 from ops.main import main
 from ops.model import ActiveStatus, StatusBase
 
-from core.config import KafkaConfig
-from health import KafkaHealth
+from core.cluster import ClusterState
 from core.literals import (
     ADMIN_USER,
     CHARM_KEY,
@@ -36,16 +35,18 @@ from core.literals import (
     REL_NAME,
     DebugLevel,
     Status,
+    Substrate,
 )
-from events.provider import KafkaProvider
-from core.models import ClusterState
-from utils import generate_password
-from managers.auth import AuthManager
-from vm_workload import KafkaWorkload
 from core.structured_config import CharmConfig
+from events.provider import KafkaProvider
 from events.tls import TLSHandler
 from events.upgrade import KafkaDependencyModel, KafkaUpgrade
 from events.zookeeper import ZooKeeperHandler
+from health import KafkaHealth
+from managers.auth import AuthManager
+from managers.config import KafkaConfigManager
+from managers.tls import TLSManager
+from vm_workload import KafkaWorkload
 
 logger = logging.getLogger(__name__)
 
@@ -58,25 +59,32 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
     def __init__(self, *args):
         super().__init__(*args)
         self.name = CHARM_KEY
-        self.substrate = "vm"
+        self.substrate: Substrate = "vm"
         self.workload = KafkaWorkload()
-        self.cluster = ClusterState(self)
+        self.state = ClusterState(self, substrate=self.substrate)
 
-        self.kafka_config = KafkaConfig(self)
-        self.zookeeper = ZooKeeperHandler(self)
-        self.tls = TLSHandler(self)
-        self.auth_manager = AuthManager(self)
-        self.provider = KafkaProvider(self)
         self.health = KafkaHealth(self)
-
-        self.sysctl_config = sysctl.Config(name=CHARM_KEY)
-        self.restart = RollingOpsManager(self, relation="restart", callback=self._restart)
         self.upgrade = KafkaUpgrade(
             self,
             dependency_model=KafkaDependencyModel(
                 **DEPENDENCIES  # pyright: ignore[reportGeneralTypeIssues]
             ),
         )
+
+        # HANDLERS
+
+        self.zookeeper = ZooKeeperHandler(self)
+        self.tls = TLSHandler(self)
+        self.provider = KafkaProvider(self)
+
+        # MANAGERS
+
+        self.config_manager = KafkaConfigManager(self.state, self.workload, self.config, current_version=self.upgrade.current_version)
+        self.tls_manager = TLSManager(self.state, self.workload)
+        self.auth_manager = AuthManager(self.state, self.workload, self.config_manager.kafka_opts)
+
+        self.sysctl_config = sysctl.Config(name=CHARM_KEY)
+        self.restart = RollingOpsManager(self, relation="restart", callback=self._restart)
         self._grafana_agent = COSAgentProvider(
             self,
             metrics_endpoints=[
@@ -113,21 +121,23 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         """Handler for `install` event."""
         if self.workload.install():
             self._set_os_config()
-            self.kafka_config.set_environment()
+            self.config_manager.set_environment()
             self._set_status(Status.ZK_NOT_RELATED)
         else:
             self._set_status(Status.SNAP_NOT_INSTALLED)
 
     def _on_start(self, event: EventBase) -> None:
         """Handler for `start` event."""
-        if not self.cluster.ready_to_start:
+        ready_state = self.state.ready_to_start
+        if ready_state != Status.ACTIVE:
+            self._set_status(ready_state)
             event.defer()
             return
 
         # required settings given zookeeper connection config has been created
-        self.kafka_config.set_zk_jaas_config()
-        self.kafka_config.set_server_properties()
-        self.kafka_config.set_client_properties()
+        self.config_manager.set_zk_jaas_config()
+        self.config_manager.set_server_properties()
+        self.config_manager.set_client_properties()
 
         # start kafka service
         self.workload.start()
@@ -143,7 +153,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
     def _on_config_changed(self, event: EventBase) -> None:
         """Generic handler for most `config_changed` events across relations."""
         # only overwrite properties if service is already active
-        if not self.cluster.healthy or not self.upgrade.idle:
+        if not self.healthy or not self.upgrade.idle:
             event.defer()
             return
 
@@ -154,15 +164,15 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             event.defer()
             return
 
-        if set(properties) ^ set(self.kafka_config.server_properties):
+        if set(properties) ^ set(self.config_manager.server_properties):
             logger.info(
                 (
                     f'Broker {self.unit.name.split("/")[1]} updating config - '
-                    f"OLD PROPERTIES = {set(properties) - set(self.kafka_config.server_properties)}, "
-                    f"NEW PROPERTIES = {set(self.kafka_config.server_properties) - set(properties)}"
+                    f"OLD PROPERTIES = {set(properties) - set(self.config_manager.server_properties)}, "
+                    f"NEW PROPERTIES = {set(self.config_manager.server_properties) - set(properties)}"
                 )
             )
-            self.kafka_config.set_server_properties()
+            self.config_manager.set_server_properties()
 
             self.kafka_config.set_environment()
 
@@ -175,7 +185,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
                 self.on[f"{self.restart.name}"].acquire_lock.emit()
 
         # update client_properties whenever possible
-        self.kafka_config.set_client_properties()
+        self.config_manager.set_client_properties()
 
         # If Kafka is related to client charms, update their information.
         if self.model.relations.get(REL_NAME, None) and self.unit.is_leader():
@@ -183,13 +193,10 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
     def _on_update_status(self, event: EventBase) -> None:
         """Handler for `update-status` events."""
-        if not self.cluster.healthy or not self.upgrade.idle:
+        if not self.healthy or not self.upgrade.idle:
             return
 
-        if not self.zookeeper.broker_active(
-            unit=self.unit,
-            zookeeper_config=self.zookeeper.zookeeper_config,
-        ):
+        if not self.state.zookeeper.broker_active():
             self._set_status(Status.ZK_NOT_CONNECTED)
             return
 
@@ -225,7 +232,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
     def _on_storage_detaching(self, event: StorageDetachingEvent) -> None:
         """Handler for `storage_detaching` events."""
         # in the case where there may be replication recovery may be possible
-        if self.cluster.cluster_relation.peer_relation and len(self.cluster.cluster_relation.peer_relation.units):
+        if self.state.peer_relation and len(self.state.peer_relation.units):
             self._set_status(Status.REMOVED_STORAGE)
         else:
             self._set_status(Status.REMOVED_STORAGE_NO_REPL)
@@ -235,13 +242,13 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
     def _restart(self, event: EventBase) -> None:
         """Handler for `rolling_ops` restart events."""
         # only attempt restart if service is already active
-        if not self.cluster.healthy:
+        if not self.healthy:
             event.defer()
             return
 
         self.workload.restart()
 
-        if self.cluster.healthy:
+        if self.healthy:
             logger.info(f'Broker {self.unit.name.split("/")[1]} restarted')
         else:
             logger.error(f"Broker {self.unit.name.split('/')[1]} failed to restart")
@@ -257,14 +264,14 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             event.fail(msg)
             return
 
-        if not self.cluster.healthy:
+        if not self.healthy:
             event.defer()
             return
 
         username = event.params["username"]
-        new_password = event.params.get("password", generate_password())
+        new_password = event.params.get("password", self.workload.generate_password())
 
-        if new_password in self.cluster.internal_user_credentials.values():
+        if new_password in self.state.cluster.internal_user_credentials.values():
             msg = "Password already exists, please choose a different password."
             logger.error(msg)
             event.fail(msg)
@@ -277,7 +284,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             event.fail(f"unable to set password for {username}")
 
         # Store the password on application databag
-        self.cluster.cluster_relation.set_secret(scope="app", key=f"{username}-password", value=new_password)
+        self.state.cluster.relation_data.update({f"{username}-password": new_password})
         event.set_results({f"{username}-password": new_password})
 
     def _get_admin_credentials_action(self, event: ActionEvent) -> None:
@@ -289,12 +296,12 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             event.fail(msg)
             return
 
-        admin_properties = set(client_properties) - set(self.kafka_config.tls_properties)
+        admin_properties = set(client_properties) - set(self.config_manager.tls_properties)
 
         event.set_results(
             {
                 "username": ADMIN_USER,
-                "password": self.cluster.internal_user_credentials[ADMIN_USER],
+                "password": self.state.cluster.internal_user_credentials[ADMIN_USER],
                 "client-properties": "\n".join(admin_properties),
             }
         )
@@ -333,7 +340,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             KeyError if attempted to update non-leader unit
             subprocess.CalledProcessError if command to ZooKeeper failed
         """
-        credentials = [(username, generate_password()) for username in INTERNAL_USERS]
+        credentials = [(username, self.workload.generate_password()) for username in INTERNAL_USERS]
         for username, password in credentials:
             self._update_internal_user(username=username, password=password)
 
@@ -346,6 +353,26 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         except (sysctl.ApplyError, sysctl.ValidationError, sysctl.CommandError) as e:
             logger.error(f"Error setting values on sysctl: {e.message}")
             self._set_status(Status.SYSCONF_NOT_POSSIBLE)
+
+    @property
+    def healthy(self) -> bool:
+        """Checks and updates various charm lifecycle states.
+
+        Is slow to fail due to retries, to be used sparingly.
+
+        Returns:
+            True if service is alive and active. Otherwise False
+        """
+        ready_state = self.state.ready_to_start
+        if ready_state != Status.ACTIVE:
+            self._set_status(ready_state)
+            return False
+
+        if not self.workload.active():
+            self._set_status(Status.SNAP_NOT_RUNNING)
+            return False
+
+        return True
 
     def _set_status(self, key: Status) -> None:
         """Sets charm status."""

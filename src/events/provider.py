@@ -13,7 +13,6 @@ from ops.charm import RelationBrokenEvent, RelationCreatedEvent
 from ops.framework import Object
 
 from core.literals import REL_NAME
-from utils import generate_password
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -38,24 +37,24 @@ class KafkaProvider(Object):
 
     def on_topic_requested(self, event: TopicRequestedEvent):
         """Handle the on topic requested event."""
-        if not self.charm.cluster.healthy:
+        if not self.charm.healthy:
             event.defer()
             return
 
         # on all unit update the server properties to enable client listener if needed
         self.charm._on_config_changed(event)
 
-        if not self.charm.unit.is_leader() or not self.charm.cluster.cluster_relation.peer_relation:
+        if not self.charm.unit.is_leader() or not self.charm.state.peer_relation:
             return
 
         extra_user_roles = event.extra_user_roles or ""
         topic = event.topic or ""
         relation = event.relation
         username = f"relation-{relation.id}"
-        password = self.charm.cluster.cluster_relation.app_peer_data.get(username) or generate_password()
-        bootstrap_server = self.charm.cluster.bootstrap_server
-        zookeeper_uris = self.charm.zookeeper.zookeeper_config.get("connect", "")
-        tls = "enabled" if self.charm.cluster.tls_enabled else "disabled"
+        password = self.charm.state.cluster.relation_data.get(username) or self.charm.workload.generate_password()
+        bootstrap_server = self.charm.state.bootstrap_server
+        zookeeper_uris = self.charm.state.zookeeper.zookeeper_config.get("connect", "")
+        tls = "enabled" if self.charm.state.cluster.tls_enabled else "disabled"
 
         consumer_group_prefix = (
             event.consumer_group_prefix or f"{username}-" if "consumer" in extra_user_roles else ""
@@ -73,7 +72,7 @@ class KafkaProvider(Object):
             return
 
         # non-leader units need cluster_config_changed event to update their super.users
-        self.charm.cluster.cluster_relation.update({username: password})
+        self.charm.state.cluster.update({username: password})
 
         self.charm.auth_manager.update_user_acls(
             username=username,
@@ -83,7 +82,7 @@ class KafkaProvider(Object):
         )
 
         # non-leader units need cluster_config_changed event to update their super.users
-        self.charm.cluster.cluster_relation.update({"super-users": self.charm.kafka_config.super_users})
+        self.charm.state.cluster.update({"super-users": self.charm.state.super_users})
 
         self.kafka_provider.set_bootstrap_server(relation.id, ",".join(bootstrap_server))
         self.kafka_provider.set_consumer_group_prefix(relation.id, consumer_group_prefix)
@@ -108,10 +107,10 @@ class KafkaProvider(Object):
         if self.charm.app.planned_units == 0:
             return
 
-        if not self.charm.unit.is_leader() or not self.charm.cluster.cluster_relation.peer_relation:
+        if not self.charm.unit.is_leader() or not self.charm.state.peer_relation:
             return
 
-        if not self.charm.cluster.healthy:
+        if not self.charm.healthy:
             event.defer()
             return
 
@@ -121,19 +120,19 @@ class KafkaProvider(Object):
             self.charm.auth_manager.delete_user(username=username)
             # non-leader units need cluster_config_changed event to update their super.users
             # update on the peer relation data will trigger an update of server properties on all unit
-            self.charm.cluster.cluster_relation.update({username: ""})
+            self.charm.state.cluster.update({username: ""})
 
     def update_connection_info(self):
         """Updates all relations with current endpoints, bootstrap-server and tls data.
 
         If information didn't change, no events will trigger.
         """
-        bootstrap_server = self.charm.cluster.bootstrap_server
-        zookeeper_uris = self.charm.zookeeper.zookeeper_config.get("connect", "")
-        tls = "enabled" if self.charm.cluster.tls_enabled else "disabled"
+        bootstrap_server = self.charm.state.bootstrap_server
+        zookeeper_uris = self.charm.state.zookeeper.zookeeper_config.get("connect", "")
+        tls = "enabled" if self.charm.state.cluster.tls_enabled else "disabled"
 
         for relation in self.charm.model.relations[REL_NAME]:
-            if self.charm.cluster.cluster_relation.app_peer_data.get(f"relation-{relation.id}", None):
+            if self.charm.state.cluster.relation_data.get(f"relation-{relation.id}", None):
                 self.kafka_provider.set_bootstrap_server(
                     relation_id=relation.id, bootstrap_server=",".join(bootstrap_server)
                 )

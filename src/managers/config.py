@@ -5,24 +5,21 @@
 """Manager for handling Kafka configuration."""
 
 import logging
-import os
-from typing import TYPE_CHECKING, List, cast
+from typing import List, cast
 
+from core.cluster import ClusterState
 from core.literals import (
     ADMIN_USER,
     INTER_BROKER_USER,
-    INTERNAL_USERS,
     JMX_EXPORTER_PORT,
     JVM_MEM_MAX_GB,
     JVM_MEM_MIN_GB,
-    REL_NAME,
     SECURITY_PROTOCOL_PORTS,
     AuthMechanism,
     Scope,
 )
-
-if TYPE_CHECKING:
-    from charm import KafkaCharm
+from core.structured_config import CharmConfig
+from vm_workload import KafkaWorkload
 
 logger = logging.getLogger(__name__)
 
@@ -99,11 +96,20 @@ class Listener:
         return f"{self.name}://{self.host}:{self.port}"
 
 
-class KafkaConfig:
+class KafkaConfigManager:
     """Manager for handling Kafka configuration."""
 
-    def __init__(self, charm):
-        self.charm: "KafkaCharm" = charm
+    def __init__(
+            self,
+            state: ClusterState,
+            workload: KafkaWorkload,
+            config: CharmConfig,
+            current_version: str
+        ):
+        self.state = state
+        self.workload = workload
+        self.config = config
+        self.current_version = current_version
 
     @property
     def log_level(self) -> str:
@@ -112,7 +118,7 @@ class KafkaConfig:
         Returns:
             String with these possible values: DEBUG, INFO, WARN, ERROR
         """
-        opts = [f"-Dlog4j.configuration=file:{self.charm.workload.paths.log4j_properties}"]
+        opts = [f"-Dlog4j.configuration=file:{self.workload.paths.log4j_properties}"]
 
         return f"KAFKA_LOG4J_OPTS='{' '.join(opts)}'"
 
@@ -125,7 +131,7 @@ class KafkaConfig:
         """
         opts = [
             "-Dcom.sun.management.jmxremote",
-            f"-javaagent:{self.charm.workload.paths.jmx_prometheus_javaagent}={JMX_EXPORTER_PORT}:{self.charm.workload.paths.jmx_prometheus_config}",
+            f"-javaagent:{self.workload.paths.jmx_prometheus_javaagent}={JMX_EXPORTER_PORT}:{self.workload.paths.jmx_prometheus_config}",
         ]
 
         return f"KAFKA_JMX_OPTS='{' '.join(opts)}'"
@@ -157,7 +163,7 @@ class KafkaConfig:
             String of JVM heap memory options
         """
         target_memory = (
-            JVM_MEM_MIN_GB if self.charm.config.profile == "testing" else JVM_MEM_MAX_GB
+            JVM_MEM_MIN_GB if self.config.profile == "testing" else JVM_MEM_MAX_GB
         )
         opts = [
             f"-Xms{target_memory}G",
@@ -174,7 +180,7 @@ class KafkaConfig:
             String of Java config options
         """
         opts = [
-            f"-Djava.security.auth.login.config={self.charm.workload.paths.zk_jaas}",
+            f"-Djava.security.auth.login.config={self.workload.paths.zk_jaas}",
         ]
 
         return f"KAFKA_OPTS='{' '.join(opts)}'"
@@ -186,7 +192,7 @@ class KafkaConfig:
         Returns:
             List of properties to be set
         """
-        replication_factor = min([3, self.charm.app.planned_units()])
+        replication_factor = min([3, self.state.planned_units])
         min_isr = max([1, replication_factor - 1])
 
         return [
@@ -205,10 +211,9 @@ class KafkaConfig:
         Returns:
             List of properties to be set
         """
-        broker_id = self.charm.unit.name.split("/")[1]
         return [
-            f"broker.id={broker_id}",
-            f'zookeeper.connect={self.charm.zookeeper.zookeeper_config["connect"]}',
+            f"broker.id={self.state.broker.unit_id}",
+            f'zookeeper.connect={self.state.zookeeper.zookeeper_config["connect"]}',
         ]
 
     @property
@@ -220,8 +225,8 @@ class KafkaConfig:
         """
         return [
             "zookeeper.ssl.client.enable=true",
-            f"zookeeper.ssl.truststore.location={self.charm.workload.paths.truststore}",
-            f"zookeeper.ssl.truststore.password={self.charm.cluster.truststore_password}",
+            f"zookeeper.ssl.truststore.location={self.workload.paths.truststore}",
+            f"zookeeper.ssl.truststore.password={self.state.broker.truststore_password}",
             "zookeeper.clientCnxnSocket=org.apache.zookeeper.ClientCnxnSocketNetty",
         ]
 
@@ -232,12 +237,12 @@ class KafkaConfig:
         Returns:
             List of properties to be set
         """
-        mtls = "required" if self.charm.cluster.mtls_enabled else "none"
+        mtls = "required" if self.state.cluster.mtls_enabled else "none"
         return [
-            f"ssl.truststore.location={self.charm.workload.paths.truststore}",
-            f"ssl.truststore.password={self.charm.cluster.truststore_password}",
-            f"ssl.keystore.location={self.charm.workload.paths.keystore}",
-            f"ssl.keystore.password={self.charm.cluster.keystore_password}",
+            f"ssl.truststore.location={self.workload.paths.truststore}",
+            f"ssl.truststore.password={self.state.broker.truststore_password}",
+            f"ssl.keystore.location={self.workload.paths.keystore}",
+            f"ssl.keystore.password={self.state.broker.keystore_password}",
             f"ssl.client.auth={mtls}",
         ]
 
@@ -249,7 +254,7 @@ class KafkaConfig:
             list of scram properties to be set
         """
         username = INTER_BROKER_USER
-        password = self.charm.cluster.internal_user_credentials.get(INTER_BROKER_USER, "")
+        password = self.state.cluster.internal_user_credentials.get(INTER_BROKER_USER, "")
 
         scram_properties = [
             f'listener.name.{self.internal_listener.name.lower()}.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";'
@@ -270,7 +275,7 @@ class KafkaConfig:
         # FIXME: When we have multiple auth_mechanims/listeners, remove this method
         return (
             "SASL_SSL"
-            if (self.charm.cluster.tls_enabled and self.charm.cluster.certificate)
+            if (self.state.cluster.tls_enabled and self.state.broker.certificate)
             else "SASL_PLAINTEXT"
         )
 
@@ -280,7 +285,7 @@ class KafkaConfig:
         # TODO: At the moment only one mechanism for extra listeners. Will need to be
         # extended with more depending on configuration settings.
         protocol = [self.security_protocol]
-        if self.charm.cluster.mtls_enabled:
+        if self.state.cluster.mtls_enabled:
             protocol += ["SSL"]
 
         return cast(List[AuthMechanism], protocol)
@@ -289,17 +294,17 @@ class KafkaConfig:
     def internal_listener(self) -> Listener:
         """Return the internal listener."""
         protocol = self.security_protocol
-        return Listener(host=self.charm.cluster.unit_host(), protocol=protocol, scope="INTERNAL")
+        return Listener(host=self.state.broker.host, protocol=protocol, scope="INTERNAL")
 
     @property
     def client_listeners(self) -> List[Listener]:
         """Return a list of extra listeners."""
         # if there is a relation with kafka then add extra listener
-        if not self.charm.model.relations.get(REL_NAME, None):
+        if not self.state.client_relations:
             return []
 
         return [
-            Listener(host=self.charm.cluster.unit_host(), protocol=auth, scope="CLIENT")
+            Listener(host=self.state.broker.host, protocol=auth, scope="CLIENT")
             for auth in self.auth_mechanisms
         ]
 
@@ -307,44 +312,6 @@ class KafkaConfig:
     def all_listeners(self) -> List[Listener]:
         """Return a list with all expected listeners."""
         return [self.internal_listener] + self.client_listeners
-
-    # FIXME this feels out of place here
-    @property
-    def super_users(self) -> str:
-        """Generates all users with super/admin permissions for the cluster from relations.
-
-        Formatting allows passing to the `super.users` property.
-
-        Returns:
-            Semicolon delimited string of current super users
-        """
-        super_users = set(INTERNAL_USERS)
-        for relation in self.charm.model.relations[REL_NAME]:
-            if not relation or not relation.app:
-                continue
-
-            extra_user_roles = relation.data[relation.app].get("extra-user-roles", "")
-            password = self.charm.cluster.cluster_relation.app_peer_data.get(
-                f"relation-{relation.id}", None
-            )
-            # if passwords are set for client admins, they're good to load
-            if "admin" in extra_user_roles and password is not None:
-                super_users.add(f"relation-{relation.id}")
-
-        super_users_arg = sorted([f"User:{user}" for user in super_users])
-
-        return ";".join(super_users_arg)
-
-    @property
-    def log_dirs(self) -> str:
-        """Builds the necessary log.dirs based on mounted storage volumes.
-
-        Returns:
-            String of log.dirs property value to be set
-        """
-        return ",".join(
-            [os.fspath(storage.location) for storage in self.charm.model.storages["data"]]
-        )
 
     @property
     def inter_broker_protocol_version(self) -> str:
@@ -354,7 +321,7 @@ class KafkaConfig:
             String with the `major.minor` version
         """
         # Remove patch number from full vervion.
-        major_minor = self.charm.upgrade.current_version.split(".", maxsplit=2)
+        major_minor = self.current_version.split(".", maxsplit=2)
         return ".".join(major_minor[:2])
 
     @property
@@ -365,8 +332,8 @@ class KafkaConfig:
             List of properties to be set
         """
         # TODO: not sure if we should make this an instance attribute like the other paths
-        rack_path = f"{self.charm.workload.paths.conf_path}/rack.properties"
-        return self.charm.workload.read(rack_path) or []
+        rack_path = f"{self.workload.paths.conf_path}/rack.properties"
+        return self.workload.read(rack_path) or []
 
     @property
     def client_properties(self) -> List[str]:
@@ -378,16 +345,16 @@ class KafkaConfig:
             List of properties to be set
         """
         username = ADMIN_USER
-        password = self.charm.cluster.internal_user_credentials.get(ADMIN_USER, "")
+        password = self.state.cluster.internal_user_credentials.get(ADMIN_USER, "")
 
         client_properties = [
             f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";',
             "sasl.mechanism=SCRAM-SHA-512",
             f"security.protocol={self.security_protocol}",  # FIXME: will need changing once multiple listener auth schemes
-            f"bootstrap.servers={','.join(self.charm.cluster.bootstrap_server)}",
+            f"bootstrap.servers={','.join(self.state.bootstrap_server)}",
         ]
 
-        if self.charm.cluster.tls_enabled and self.charm.cluster.certificate:
+        if self.state.cluster.tls_enabled and self.state.broker.certificate:
             client_properties += self.tls_properties
 
         return client_properties
@@ -410,8 +377,8 @@ class KafkaConfig:
 
         properties = (
             [
-                f"super.users={self.super_users}",
-                f"log.dirs={self.log_dirs}",
+                f"super.users={self.state.super_users}",
+                f"log.dirs={self.state.log_dirs}",
                 f"listener.security.protocol.map={','.join(protocol_map)}",
                 f"listeners={','.join(listeners_repr)}",
                 f"advertised.listeners={','.join(advertised_listeners)}",
@@ -426,7 +393,7 @@ class KafkaConfig:
             + DEFAULT_CONFIG_OPTIONS.split("\n")
         )
 
-        if self.charm.cluster.tls_enabled and self.charm.cluster.certificate:
+        if self.state.cluster.tls_enabled and self.state.broker.certificate:
             properties += self.tls_properties + self.zookeeper_tls_properties
 
         return properties
@@ -444,8 +411,8 @@ class KafkaConfig:
     def config_properties(self) -> List[str]:
         """Configure server properties from config."""
         return [
-            f"{self._translate_config_key(conf_key)}={str(value)}"
-            for conf_key, value in self.charm.config.dict().items()
+            f"{conf_key.replace('_', '.')}={str(value)}"
+            for conf_key, value in self.config.dict().items()
             if value is not None
         ]
 
@@ -454,25 +421,25 @@ class KafkaConfig:
         jaas_config = f"""
             Client {{
                 org.apache.zookeeper.server.auth.DigestLoginModule required
-                username="{self.charm.zookeeper.zookeeper_config['username']}"
-                password="{self.charm.zookeeper.zookeeper_config['password']}";
+                username="{self.state.zookeeper.zookeeper_config['username']}"
+                password="{self.state.zookeeper.zookeeper_config['password']}";
             }};
         """
-        self.charm.workload.write(content=jaas_config, path=self.charm.workload.paths.zk_jaas, mode="w")
+        self.workload.write(content=jaas_config, path=self.workload.paths.zk_jaas, mode="w")
 
     def set_server_properties(self) -> None:
         """Writes all Kafka config properties to the `server.properties` path."""
-        self.charm.workload.write(
+        self.workload.write(
             content="\n".join(self.server_properties),
-            path=self.charm.workload.paths.server_properties,
+            path=self.workload.paths.server_properties,
             mode="w",
         )
 
     def set_client_properties(self) -> None:
         """Writes all client config properties to the `client.properties` path."""
-        self.charm.workload.write(
+        self.workload.write(
             content="\n".join(self.client_properties),
-            path=self.charm.workload.paths.client_properties,
+            path=self.workload.paths.client_properties,
             mode="w",
         )
 
@@ -484,6 +451,6 @@ class KafkaConfig:
             self.jvm_performance_opts,
             self.heap_opts,
         ]
-        self.charm.workload.update_environment(
-            env=self.charm.workload.map_env(env=updated_env_list)
+        self.workload.update_environment(
+            env=self.workload.map_env(env=updated_env_list)
         )

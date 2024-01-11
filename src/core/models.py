@@ -1,46 +1,52 @@
 #!/usr/bin/env python3
-# Copyright 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-"""Collection of globals common to the KafkaCharm."""
+"""Collection of state objects for the Kafka relations, apps and units."""
 
-import socket
-from typing import TYPE_CHECKING, Dict, List, Optional
-from ops import Object, Unit
+import logging
+from typing import Dict, MutableMapping, Optional, Set
 
-from core.relation_interfaces import ClusterRelation, ZooKeeperRelation
-from core.literals import INTERNAL_USERS, SECURITY_PROTOCOL_PORTS, Status
+from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManager
+from kazoo.exceptions import AuthFailedError, NoNodeError
+from literals import INTERNAL_USERS, Substrate
+from ops.model import Application, Relation, Unit
+from tenacity import retry, retry_if_not_result, stop_after_attempt, wait_fixed
 
-if TYPE_CHECKING:
-    from charm import KafkaCharm
+logger = logging.getLogger(__name__)
 
 
-class ClusterState(Object):
-    """Properties and relations of the charm."""
+class StateBase:
+    """Base state object."""
 
-    def __init__(self, charm):
-        super().__init__(charm, "cluster_state")
-        self.charm: "KafkaCharm" = charm
-        self.cluster_relation = ClusterRelation(charm)
-
-    def unit_host(self, unit: Unit | None = None) -> str:
-        """Return the hostname of a unit."""
-        host = ""
-        unit = unit or self.model.unit
-
-        if self.charm.substrate == "vm":
-            host = self.cluster_relation.unit_peer_data(unit).get("private-address", "")
-        if self.charm.substrate == "k8s":
-            broker_id = unit.name.split("/")[1]
-            host = f"{self.charm.app.name}-{broker_id}.{self.charm.app.name}-endpoints"
-
-        return host
+    def __init__(
+        self, relation: Relation | None, component: Unit | Application, substrate: Substrate
+    ):
+        self.relation = relation
+        self.component = component
+        self.substrate = substrate
 
     @property
-    def unit_hosts(self) -> List[str]:
-        """Return list of application unit hosts."""
-        hosts = [self.unit_host(unit) for unit in self.cluster_relation.units] + [self.unit_host()]
-        return hosts
+    def relation_data(self) -> MutableMapping[str, str]:
+        """The raw relation data."""
+        if not self.relation:
+            return {}
+
+        return self.relation.data[self.component]
+
+    def update(self, items: dict[str, str]) -> None:
+        """Writes to relation_data."""
+        if not self.relation:
+            return
+
+        self.relation_data.update(items)
+
+class KafkaCluster(StateBase):
+    """State collection metadata for the peer relation."""
+
+    def __init__(self, relation: Relation | None, component: Application, substrate: Substrate):
+        super().__init__(relation, component, substrate)
+        self.app = component
 
     @property
     def internal_user_credentials(self) -> Dict[str, str]:
@@ -52,7 +58,7 @@ class ClusterState(Object):
         credentials = {
             user: password
             for user in INTERNAL_USERS
-            if (password := self.cluster_relation.get_secret(scope="app", key=f"{user}-password"))
+            if (password := self.relation_data.get(f"{user}-password"))
         }
 
         if not len(credentials) == len(INTERNAL_USERS):
@@ -60,24 +66,7 @@ class ClusterState(Object):
 
         return credentials
 
-    @property
-    def bootstrap_server(self) -> List[str]:
-        """The current Kafka uris formatted for the `bootstrap-server` command flag.
-
-        Returns:
-            List of `bootstrap-server` servers
-        """
-        if not self.cluster_relation.peer_relation:
-            return []
-
-        port = (
-            SECURITY_PROTOCOL_PORTS["SASL_SSL"].client
-            if (self.tls_enabled and self.certificate)
-            else SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].client
-        )
-        return [f"{host}:{port}" for host in self.unit_hosts]
-
-    ##### TLS #####
+    # --- TLS ---
 
     @property
     def tls_enabled(self) -> bool:
@@ -86,7 +75,7 @@ class ClusterState(Object):
         Returns:
             True if TLS encryption should be active. Otherwise False
         """
-        return self.cluster_relation.app_peer_data.get("tls", "disabled") == "enabled"
+        return self.relation_data.get("tls", "disabled") == "enabled"
 
     @property
     def mtls_enabled(self) -> bool:
@@ -95,7 +84,37 @@ class ClusterState(Object):
         Returns:
             True if TLS encryption should be active. Otherwise False
         """
-        return self.cluster_relation.app_peer_data.get("mtls", "disabled") == "enabled"
+        return self.relation_data.get("mtls", "disabled") == "enabled"
+
+class KafkaBroker(StateBase):
+    """State collection metadata for a charm unit."""
+
+    def __init__(self, relation: Relation | None, component: Unit, substrate: Substrate):
+        super().__init__(relation, component, substrate)
+        self.unit = component
+
+    @property
+    def unit_id(self) -> int:
+        """The id of the unit from the unit name.
+
+        e.g kafka/2 --> 2
+        """
+        return int(self.component.name.split("/")[1])
+
+    @property
+    def host(self) -> str:
+        """Return the hostname of a unit."""
+        host = ""
+        if self.substrate == "vm":
+            for key in ["hostname", "ip", "private-address"]:
+                if host := self.relation_data.get(key, ""):
+                    break
+        if self.substrate == "k8s":
+            host = f"{self.component.name.split('/')[0]}-{self.unit_id}.{self.component.name.split('/')[0]}-endpoints"
+
+        return host
+
+    # --- TLS ---
 
     @property
     def private_key(self) -> Optional[str]:
@@ -105,7 +124,7 @@ class ClusterState(Object):
             String of key contents
             None if key not yet generated
         """
-        return self.cluster_relation.get_secret(scope="unit", key="private-key")
+        return self.relation_data.get("private-key")
 
     @property
     def csr(self) -> Optional[str]:
@@ -115,7 +134,7 @@ class ClusterState(Object):
             String of csr contents
             None if csr not yet generated
         """
-        return self.cluster_relation.get_secret(scope="unit", key="csr")
+        return self.relation_data.get("csr")
 
     @property
     def certificate(self) -> Optional[str]:
@@ -125,7 +144,7 @@ class ClusterState(Object):
             String of cert contents in PEM format
             None if cert not yet generated/signed
         """
-        return self.cluster_relation.get_secret(scope="unit", key="certificate")
+        return self.relation_data.get("certificate")
 
     @property
     def ca(self) -> Optional[str]:
@@ -135,7 +154,7 @@ class ClusterState(Object):
             String of ca contents in PEM format
             None if cert not yet generated/signed
         """
-        return self.cluster_relation.get_secret(scope="unit", key="ca")
+        return self.relation_data.get("ca")
 
     @property
     def keystore_password(self) -> Optional[str]:
@@ -145,7 +164,7 @@ class ClusterState(Object):
             String of password
             None if password not yet generated
         """
-        return self.cluster_relation.get_secret(scope="unit", key="keystore-password")
+        return self.relation_data.get("keystore-password")
 
     @property
     def truststore_password(self) -> Optional[str]:
@@ -155,78 +174,166 @@ class ClusterState(Object):
             String of password
             None if password not yet generated
         """
-        return self.cluster_relation.get_secret(scope="unit", key="truststore-password")
+        return self.relation_data.get("truststore-password")
+
+class ZooKeeper(StateBase):
+    """State collection metadata for a the Zookeeper relation."""
+    def __init__(
+            self,
+            relation: Relation | None,
+            component: Application,
+            substrate: Substrate,
+            local_unit: Unit,
+            local_app: Application | None = None,
+            ):
+        super().__init__(relation, component, substrate)
+        self._local_app = local_app
+        self._local_unit = local_unit
+
+    # APPLICATION DATA
 
     @property
-    def _extra_sans(self) -> List[str]:
-        """Parse the certificate_extra_sans config option."""
-        extra_sans = self.charm.config.certificate_extra_sans or ""
-        parsed_sans = []
+    def remote_app_data(self) -> MutableMapping[str, str]:
+        """Zookeeper relation data object."""
+        if not self.relation or not self.relation.app:
+            return {}
 
-        if extra_sans == "":
-            return parsed_sans
-
-        for sans in extra_sans.split(","):
-            parsed_sans.append(sans.replace("{unit}", self.charm.unit.name.split("/")[1]))
-
-        return parsed_sans
+        return self.relation.data[self.relation.app]
 
     @property
-    def _sans(self) -> Dict[str, List[str]]:
-        """Builds a SAN dict of DNS names and IPs for the unit."""
-        return {
-            "sans_ip": [self.unit_host()],
-            "sans_dns": [self.model.unit.name, socket.getfqdn()] + self._extra_sans,
-        }
+    def app_data(self) -> MutableMapping[str, str]:
+        """Zookeeper relation data object."""
+        if not self.relation or not self._local_app:
+            return {}
 
-    ##### HEALTH #####
+        return self.relation.data[self._local_app]
+
+    # --- RELATION PROPERTIES ---
 
     @property
-    def ready_to_start(self) -> bool:
-        """Check for active ZooKeeper relation and adding of inter-broker auth username.
+    def zookeeper_related(self) -> bool:
+        """Checks if there is a relation with ZooKeeper.
 
         Returns:
-            True if ZK is related and `sync` user has been added. False otherwise.
+            True if there is a ZooKeeper relation. Otherwise False
         """
-        if not self.cluster_relation.peer_relation:
-            self.charm._set_status(Status.NO_PEER_RELATION)
-            return False
-
-        if not self.charm.zookeeper.zookeeper_related:
-            self.charm._set_status(Status.ZK_NOT_RELATED)
-            return False
-
-        if not self.charm.zookeeper.zookeeper_connected:
-            self.charm._set_status(Status.ZK_NO_DATA)
-            return False
-
-        # TLS must be enabled for Kafka and ZK or disabled for both
-        if self.tls_enabled ^ (
-            self.charm.zookeeper.zookeeper_config.get("tls", "disabled") == "enabled"
-        ):
-            self.charm._set_status(Status.ZK_TLS_MISMATCH)
-            return False
-
-        if not self.internal_user_credentials:
-            self.charm._set_status(Status.NO_BROKER_CREDS)
-            return False
-
-        return True
+        return bool(self.relation)
 
     @property
-    def healthy(self) -> bool:
-        """Checks and updates various charm lifecycle states.
-
-        Is slow to fail due to retries, to be used sparingly.
+    def zookeeper_config(self) -> dict[str, str]:
+        """The config from current ZooKeeper relations for data necessary for broker connection.
 
         Returns:
-            True if service is alive and active. Otherwise False
+            Dict of ZooKeeeper:
+            `username`, `password`, `endpoints`, `chroot`, `connect`, `uris` and `tls`
         """
-        if not self.ready_to_start:
-            return False
+        zookeeper_config = {}
 
-        if not self.charm.workload.active():
-            self.charm._set_status(Status.SNAP_NOT_RUNNING)
-            return False
+        if not self.relation:
+            return zookeeper_config
 
-        return True
+        zk_keys = ["username", "password", "endpoints", "chroot", "uris", "tls"]
+        missing_config = any(
+            self.remote_app_data.get(key, None) is None for key in zk_keys
+        )
+
+        # skip if config is missing
+        if missing_config:
+            return zookeeper_config
+
+        # set if exists
+        zookeeper_config.update(self.remote_app_data)
+
+        if zookeeper_config:
+            sorted_uris = sorted(
+                zookeeper_config["uris"].replace(zookeeper_config["chroot"], "").split(",")
+            )
+            sorted_uris[-1] = sorted_uris[-1] + zookeeper_config["chroot"]
+            zookeeper_config["connect"] = ",".join(sorted_uris)
+
+        return zookeeper_config
+
+    @property
+    def zookeeper_connected(self) -> bool:
+        """Checks if there is an active ZooKeeper relation with all necessary data.
+
+        Returns:
+            True if ZooKeeper is currently related with sufficient relation data
+                for a broker to connect with. Otherwise False
+        """
+        if self.zookeeper_config.get("connect", None):
+            return True
+
+        return False
+
+    @property
+    def tls(self) -> bool:
+        """Check if TLS is enabled on ZooKeeper."""
+        return bool(self.zookeeper_config.get("tls", "disabled") == "enabled")
+
+    def get_zookeeper_version(self) -> str:
+        """Get running zookeeper version.
+
+        Args:
+            zookeeper_config: the relation provided by ZooKeeper
+
+        Returns:
+            zookeeper version
+        """
+        config = self.zookeeper_config
+        hosts = config.get("endpoints", "").split(",")
+        username = config.get("username", "")
+        password = config.get("password", "")
+
+        zk = ZooKeeperManager(hosts=hosts, username=username, password=password)
+
+        return zk.get_version()
+
+    def get_active_brokers(self) -> Set[str]:
+        """Gets all brokers currently connected to ZooKeeper.
+
+        Args:
+            zookeeper_config: the relation data provided by ZooKeeper
+
+        Returns:
+            Set of active broker ids
+        """
+        config = self.zookeeper_config
+        chroot = config.get("chroot", "")
+        hosts = config.get("endpoints", "").split(",")
+        username = config.get("username", "")
+        password = config.get("password", "")
+
+        zk = ZooKeeperManager(hosts=hosts, username=username, password=password)
+        path = f"{chroot}/brokers/ids/"
+
+        try:
+            brokers = zk.leader_znodes(path=path)
+        # auth might not be ready with ZK after relation yet
+        except (NoNodeError, AuthFailedError, QuorumLeaderNotFoundError) as e:
+            logger.debug(str(e))
+            return set()
+
+        return brokers
+
+    @retry(
+        # retry to give ZK time to update its broker zNodes before failing
+        wait=wait_fixed(6),
+        stop=stop_after_attempt(10),
+        retry_error_callback=(lambda state: state.outcome.result()),  # type: ignore
+        retry=retry_if_not_result(lambda result: True if result else False),
+    )
+    def broker_active(self) -> bool:
+        """Checks ZooKeeper for client connections, checks for specific broker id.
+
+        Args:
+            unit: the `Unit` to check connection of
+            zookeeper_config: the relation provided by ZooKeeper
+
+        Returns:
+            True if broker id is recognised as active by ZooKeeper. Otherwise False.
+        """
+        broker_id = self._local_unit.name.split("/")[1]
+        brokers = self.get_active_brokers()
+        chroot = self.zookeeper_config.get("chroot", "")
+        return f"{chroot}/brokers/ids/{broker_id}" in brokers

@@ -52,7 +52,7 @@ class KafkaHealth(Object):
         """Gets the number of partitions and their average size from the log dirs."""
         log_dirs_command = [
             "--describe",
-            f"--bootstrap-server {','.join(self.charm.cluster.bootstrap_server)}",
+            f"--bootstrap-server {','.join(self.charm.state.bootstrap_server)}",
             f"--command-config {self.charm.workload.paths.client_properties}",
         ]
         try:
@@ -106,7 +106,7 @@ class KafkaHealth(Object):
 
     def _check_file_descriptors(self) -> bool:
         """Checks that the number of used file descriptors is not approaching threshold."""
-        if not self.charm.kafka_config.client_listeners:
+        if not self.charm.config_manager.client_listeners:
             return True
 
         total_partitions, average_partition_size = self._get_partitions_size()

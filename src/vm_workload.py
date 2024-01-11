@@ -7,11 +7,12 @@
 import logging
 import os
 import re
+import secrets
 import shutil
+import string
 import subprocess
 from typing import Dict, List
 
-from core.workload import PathsBase, WorkloadBase
 from charms.operator_libs_linux.v0 import apt
 from charms.operator_libs_linux.v1 import snap
 from tenacity import retry
@@ -19,13 +20,15 @@ from tenacity.retry import retry_if_not_result
 from tenacity.stop import stop_after_attempt
 from tenacity.wait import wait_fixed
 
-from core.literals import CHARMED_KAFKA_SNAP_REVISION, SNAP_NAME, PATHS
+from core.literals import CHARMED_KAFKA_SNAP_REVISION, PATHS, SNAP_NAME
+from core.workload import PathsBase, WorkloadBase
 
 logger = logging.getLogger(__name__)
 
 
 class KafkaPaths(PathsBase):
-    def __init__(self):    
+    """Object to store common paths for Kafka."""
+    def __init__(self):
         conf_path = PATHS["CONF"]
         data_path = PATHS["DATA"]
         binaries_path = PATHS["BIN"]
@@ -51,7 +54,7 @@ class KafkaPaths(PathsBase):
     @property
     def truststore(self):
         return f"{self.conf_path}/truststore.jks"
-    
+
     @property
     def log4j_properties(self):
         return f"{self.conf_path}/log4j.properties"
@@ -77,68 +80,23 @@ class KafkaWorkload(WorkloadBase):
         self.paths = KafkaPaths()
         self.kafka = snap.SnapCache()[SNAP_NAME]
 
-    def install(self) -> bool:
-        """Loads the Kafka snap from LP.
-
-        Returns:
-            True if successfully installed. False otherwise.
-        """
-        try:
-            apt.update()
-            apt.add_package(["snapd"])
-            cache = snap.SnapCache()
-            kafka = cache[SNAP_NAME]
-
-            kafka.ensure(snap.SnapState.Present, revision=CHARMED_KAFKA_SNAP_REVISION)
-
-            self.kafka = kafka
-            self.kafka.connect(plug="removable-media")
-
-            self.kafka.hold()
-
-            return True
-        except (snap.SnapError, apt.PackageNotFoundError) as e:
-            logger.error(str(e))
-            return False
-
-    def start(self) -> bool:
-        """Starts snap service process.
-
-        Returns:
-            True if service successfully starts. False otherwise.
-        """
+    def start(self) -> None:
         try:
             self.kafka.start(services=[self.SNAP_SERVICE])
-            return True
         except snap.SnapError as e:
             logger.exception(str(e))
-            return False
 
-    def stop(self) -> bool:
-        """Stops snap service process.
-
-        Returns:
-            True if service successfully stops. False otherwise.
-        """
+    def stop(self) -> None:
         try:
             self.kafka.stop(services=[self.SNAP_SERVICE])
-            return True
         except snap.SnapError as e:
             logger.exception(str(e))
-            return False
 
-    def restart(self) -> bool:
-        """Restarts snap service process.
-
-        Returns:
-            True if service successfully restarts. False otherwise.
-        """
+    def restart(self) -> None:
         try:
             self.kafka.restart(services=[self.SNAP_SERVICE])
-            return True
         except snap.SnapError as e:
             logger.exception(str(e))
-            return False
 
     def read(self, path: str) -> List[str]:
         if not os.path.exists(path):
@@ -171,11 +129,41 @@ class KafkaWorkload(WorkloadBase):
             logger.debug(f"cmd failed - cmd={e.cmd}, stdout={e.stdout}, stderr={e.stderr}")
             raise e
 
-    def update_environment(self, env: Dict[str, str]) -> None:
-        """Updates /etc/environment file."""
-        updated_env = self.get_env() | env
-        content = "\n".join([f"{key}={value}" for key, value in updated_env.items()])
-        self.write(content=content, path="/etc/environment", mode="w")
+    @retry(
+    wait=wait_fixed(1),
+    stop=stop_after_attempt(5),
+    retry_error_callback=lambda state: state.outcome.result(),  # type: ignore
+    retry=retry_if_not_result(lambda result: True if result else False),
+    )
+    def active(self) -> bool:
+        try:
+            return bool(self.kafka.services[self.SNAP_SERVICE]["active"])
+        except KeyError:
+            return False
+
+    def install(self) -> bool:
+        """Loads the Kafka snap from LP.
+
+        Returns:
+            True if successfully installed. False otherwise.
+        """
+        try:
+            apt.update()
+            apt.add_package(["snapd"])
+            cache = snap.SnapCache()
+            kafka = cache[SNAP_NAME]
+
+            kafka.ensure(snap.SnapState.Present, revision=CHARMED_KAFKA_SNAP_REVISION)
+
+            self.kafka = kafka
+            self.kafka.connect(plug="removable-media")
+
+            self.kafka.hold()
+
+            return True
+        except (snap.SnapError, apt.PackageNotFoundError) as e:
+            logger.error(str(e))
+            return False
 
     def disable_enable(self) -> None:
         """Disables then enables snap service.
@@ -187,26 +175,6 @@ class KafkaWorkload(WorkloadBase):
         """
         subprocess.run(f"snap disable {self.SNAP_NAME}", shell=True)
         subprocess.run(f"snap enable {self.SNAP_NAME}", shell=True)
-
-    @retry(
-        wait=wait_fixed(1),
-        stop=stop_after_attempt(5),
-        retry_error_callback=lambda state: state.outcome.result(),  # type: ignore
-        retry=retry_if_not_result(lambda result: True if result else False),
-    )
-    def active(self) -> bool:
-        """Checks if service is active.
-
-        Returns:
-            True if service is active. Otherwise False
-
-        Raises:
-            KeyError if service does not exist
-        """
-        try:
-            return bool(self.kafka.services[self.SNAP_SERVICE]["active"])
-        except KeyError:
-            return False
 
     def get_service_pid(self) -> int:
         """Gets pid of a currently active snap service.
@@ -255,6 +223,12 @@ class KafkaWorkload(WorkloadBase):
         command =  f"{opts_str} {SNAP_NAME}.{bin_keyword} {bin_str}"
         return self.exec(command)
 
+    def update_environment(self, env: Dict[str, str]) -> None:
+        """Updates /etc/environment file."""
+        updated_env = self.get_env() | env
+        content = "\n".join([f"{key}={value}" for key, value in updated_env.items()])
+        self.write(content=content, path="/etc/environment", mode="w")
+
     @staticmethod
     def set_snap_ownership(path: str) -> None:
         """Sets a filepath `snap_daemon` ownership."""
@@ -298,3 +272,12 @@ class KafkaWorkload(WorkloadBase):
         """
         raw_env = self.read("/etc/environment")
         return self.map_env(env=raw_env)
+
+    @staticmethod
+    def generate_password() -> str:
+        """Creates randomized string for use as app passwords.
+
+        Returns:
+            String of 32 randomized letter+digit characters
+        """
+        return "".join([secrets.choice(string.ascii_letters + string.digits) for _ in range(32)])
