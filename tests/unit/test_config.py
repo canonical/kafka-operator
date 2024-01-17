@@ -7,9 +7,6 @@ from unittest.mock import PropertyMock, mock_open, patch
 
 import pytest
 import yaml
-from ops.testing import Harness
-
-from charm import KafkaCharm
 from literals import (
     ADMIN_USER,
     CHARM_KEY,
@@ -22,6 +19,9 @@ from literals import (
     PEER,
     ZK,
 )
+from ops.testing import Harness
+
+from charm import KafkaCharm
 
 CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
 ACTIONS = str(yaml.safe_load(Path("./actions.yaml").read_text()))

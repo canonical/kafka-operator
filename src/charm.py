@@ -79,8 +79,10 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         # MANAGERS
 
-        self.config_manager = KafkaConfigManager(self.state, self.workload, self.config, current_version=self.upgrade.current_version)
-        self.tls_manager = TLSManager(self.state, self.workload)
+        self.config_manager = KafkaConfigManager(
+            self.state, self.workload, self.config, current_version=self.upgrade.current_version
+        )
+        self.tls_manager = TLSManager(self.state, self.workload, substrate=self.substrate)
         self.auth_manager = AuthManager(self.state, self.workload, self.config_manager.kafka_opts)
 
         self.sysctl_config = sysctl.Config(name=CHARM_KEY)
@@ -265,7 +267,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             return
 
         if not self.healthy:
-            event.defer()
+            msg = "Unit is not healthy"
+            logger.error(msg)
+            event.fail(msg)
             return
 
         username = event.params["username"]
@@ -340,7 +344,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             KeyError if attempted to update non-leader unit
             subprocess.CalledProcessError if command to ZooKeeper failed
         """
-        credentials = [(username, self.workload.generate_password()) for username in INTERNAL_USERS]
+        credentials = [
+            (username, self.workload.generate_password()) for username in INTERNAL_USERS
+        ]
         for username, password in credentials:
             self._update_internal_user(username=username, password=password)
 

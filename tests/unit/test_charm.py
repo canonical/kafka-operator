@@ -9,13 +9,13 @@ from unittest.mock import PropertyMock, patch
 import pytest
 import yaml
 from charms.operator_libs_linux.v0.sysctl import ApplyError
+from literals import CHARM_KEY, INTERNAL_USERS, OS_REQUIREMENTS, PEER, REL_NAME, ZK
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 from ops.testing import Harness
 from tenacity.wait import wait_none
 
 import snap
 from charm import KafkaCharm
-from literals import CHARM_KEY, INTERNAL_USERS, OS_REQUIREMENTS, PEER, REL_NAME, ZK
 
 logger = logging.getLogger(__name__)
 

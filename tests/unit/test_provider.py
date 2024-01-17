@@ -8,10 +8,10 @@ from unittest.mock import PropertyMock, patch
 
 import pytest
 import yaml
+from literals import CHARM_KEY, PEER, REL_NAME
 from ops.testing import Harness
 
 from charm import KafkaCharm
-from literals import CHARM_KEY, PEER, REL_NAME
 
 logger = logging.getLogger(__name__)
 

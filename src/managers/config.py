@@ -100,12 +100,12 @@ class KafkaConfigManager:
     """Manager for handling Kafka configuration."""
 
     def __init__(
-            self,
-            state: ClusterState,
-            workload: KafkaWorkload,
-            config: CharmConfig,
-            current_version: str
-        ):
+        self,
+        state: ClusterState,
+        workload: KafkaWorkload,
+        config: CharmConfig,
+        current_version: str,
+    ):
         self.state = state
         self.workload = workload
         self.config = config
@@ -162,9 +162,7 @@ class KafkaConfigManager:
         Returns:
             String of JVM heap memory options
         """
-        target_memory = (
-            JVM_MEM_MIN_GB if self.config.profile == "testing" else JVM_MEM_MAX_GB
-        )
+        target_memory = JVM_MEM_MIN_GB if self.config.profile == "testing" else JVM_MEM_MAX_GB
         opts = [
             f"-Xms{target_memory}G",
             f"-Xmx{target_memory}G",
@@ -451,6 +449,4 @@ class KafkaConfigManager:
             self.jvm_performance_opts,
             self.heap_opts,
         ]
-        self.workload.update_environment(
-            env=self.workload.map_env(env=updated_env_list)
-        )
+        self.workload.update_environment(env=self.workload.map_env(env=updated_env_list))

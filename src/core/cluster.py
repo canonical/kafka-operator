@@ -108,9 +108,7 @@ class ClusterState(Object):
                 continue
 
             extra_user_roles = relation.data[relation.app].get("extra-user-roles", "")
-            password = self.cluster.relation_data.get(
-                f"relation-{relation.id}", None
-            )
+            password = self.cluster.relation_data.get(f"relation-{relation.id}", None)
             # if passwords are set for client admins, they're good to load
             if "admin" in extra_user_roles and password is not None:
                 super_users.add(f"relation-{relation.id}")
@@ -147,9 +145,7 @@ class ClusterState(Object):
         Returns:
             String of log.dirs property value to be set
         """
-        return ",".join(
-            [os.fspath(storage.location) for storage in self.model.storages["data"]]
-        )
+        return ",".join([os.fspath(storage.location) for storage in self.model.storages["data"]])
 
     @property
     def unit_hosts(self) -> List[str]:
@@ -179,9 +175,7 @@ class ClusterState(Object):
             return Status.ZK_NO_DATA
 
         # TLS must be enabled for Kafka and ZK or disabled for both
-        if self.cluster.tls_enabled ^ (
-            self.zookeeper.tls
-        ):
+        if self.cluster.tls_enabled ^ self.zookeeper.tls:
             return Status.ZK_TLS_MISMATCH
 
         if not self.cluster.internal_user_credentials:

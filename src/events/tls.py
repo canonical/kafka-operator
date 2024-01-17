@@ -44,7 +44,7 @@ class TLSHandler(Object):
 
         self.certificates = TLSCertificatesRequiresV1(self.charm, TLS_RELATION)
 
-    # Own certificates handlers
+        # Own certificates handlers
         self.framework.observe(
             self.charm.on[TLS_RELATION].relation_created, self._tls_relation_created
         )
@@ -98,9 +98,13 @@ class TLSHandler(Object):
 
         # generate unit private key if not already created by action
         if not self.charm.state.broker.keystore_password:
-            self.charm.state.broker.update({"keystore-password" :self.charm.workload.generate_password()})
+            self.charm.state.broker.update(
+                {"keystore-password": self.charm.workload.generate_password()}
+            )
         if not self.charm.state.broker.truststore_password:
-            self.charm.state.broker.update({"truststore-password": self.charm.workload.generate_password()})
+            self.charm.state.broker.update(
+                {"truststore-password": self.charm.workload.generate_password()}
+            )
 
         self._request_certificate()
 
@@ -190,7 +194,9 @@ class TLSHandler(Object):
             else provider_certificates[0]["ca"]
         )
         filename = f"{alias}.pem"
-        self.charm.workload.write(content=content, path=f"{self.charm.workload.paths.conf_path}/{filename}")
+        self.charm.workload.write(
+            content=content, path=f"{self.charm.workload.paths.conf_path}/{filename}"
+        )
         self.charm.tls_manager.import_cert(alias=f"{alias}", filename=filename)
 
         # ensuring new config gets applied
@@ -250,7 +256,11 @@ class TLSHandler(Object):
 
     def _on_certificate_expiring(self, _) -> None:
         """Handler for `certificate_expiring` event."""
-        if not self.charm.state.broker.private_key or not self.charm.state.broker.csr or not self.charm.state.peer_relation:
+        if (
+            not self.charm.state.broker.private_key
+            or not self.charm.state.broker.csr
+            or not self.charm.state.peer_relation
+        ):
             logger.error("Missing unit private key and/or old csr")
             return
         new_csr = generate_csr(

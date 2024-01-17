@@ -21,7 +21,6 @@ from charms.operator_libs_linux.v1 import snap
 from ops.charm import ActionEvent, CharmBase, RelationEvent
 from ops.main import main
 from ops.model import ActiveStatus
-
 from utils import safe_write_to_file
 
 logger = logging.getLogger(__name__)

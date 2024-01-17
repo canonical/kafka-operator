@@ -24,12 +24,12 @@ from .helpers import (
     check_tls,
     extract_ca,
     extract_private_key,
+    get_active_brokers,
     get_address,
     get_kafka_zk_relation_data,
     set_mtls_client_acls,
     set_tls_private_key,
     show_unit,
-    get_active_brokers,
 )
 from .test_charm import DUMMY_NAME
 

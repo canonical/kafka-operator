@@ -5,7 +5,6 @@
 from unittest.mock import patch
 
 from src.utils import map_env
-
 from utils import get_env, update_env
 
 

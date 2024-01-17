@@ -3,7 +3,6 @@
 # See LICENSE file for licensing details.
 
 import pytest
-
 from literals import INTERNAL_USERS
 
 

@@ -7,7 +7,10 @@
 import logging
 import subprocess
 
+from ops.pebble import ExecError
+
 from core.cluster import ClusterState
+from core.literals import Substrate
 from vm_workload import KafkaWorkload
 
 logger = logging.getLogger(__name__)
@@ -16,9 +19,10 @@ logger = logging.getLogger(__name__)
 class TLSManager:
     """Manager for building necessary files for Java TLS auth."""
 
-    def __init__(self, state: ClusterState, workload: KafkaWorkload):
+    def __init__(self, state: ClusterState, workload: KafkaWorkload, substrate: Substrate):
         self.state = state
         self.workload = workload
+        self.substrate = substrate
 
     def generate_alias(self, app_name: str, relation_id: int) -> str:
         """Generate an alias from a relation. Used to identify ca certs."""
@@ -31,7 +35,8 @@ class TLSManager:
             return
 
         self.workload.write(
-            content=self.state.broker.private_key, path=f"{self.workload.paths.conf_path}/server.key"
+            content=self.state.broker.private_key,
+            path=f"{self.workload.paths.conf_path}/server.key",
         )
 
     def set_ca(self) -> None:
@@ -40,7 +45,9 @@ class TLSManager:
             logger.error("Can't set CA to unit, missing CA in relation data")
             return
 
-        self.workload.write(content=self.state.broker.ca, path=f"{self.workload.paths.conf_path}/ca.pem")
+        self.workload.write(
+            content=self.state.broker.ca, path=f"{self.workload.paths.conf_path}/ca.pem"
+        )
 
     def set_certificate(self) -> None:
         """Sets the unit certificate."""
@@ -49,7 +56,8 @@ class TLSManager:
             return
 
         self.workload.write(
-            content=self.state.broker.certificate, path=f"{self.workload.paths.conf_path}/server.pem"
+            content=self.state.broker.certificate,
+            path=f"{self.workload.paths.conf_path}/server.pem",
         )
 
     def set_truststore(self) -> None:
@@ -57,13 +65,18 @@ class TLSManager:
         command = f"charmed-kafka.keytool -import -v -alias ca -file ca.pem -keystore truststore.jks -storepass {self.state.broker.truststore_password} -noprompt"
         try:
             self.workload.exec(command=command, working_dir=self.workload.paths.conf_path)
-            self.workload.set_snap_ownership(path=f"{self.workload.paths.conf_path}/truststore.jks")
-            self.workload.set_snap_mode_bits(path=f"{self.workload.paths.conf_path}/truststore.jks")
-        except subprocess.CalledProcessError as e:
+            if self.substrate == "vm":
+                self.workload.set_snap_ownership(
+                    path=f"{self.workload.paths.conf_path}/truststore.jks"
+                )
+                self.workload.set_snap_mode_bits(
+                    path=f"{self.workload.paths.conf_path}/truststore.jks"
+                )
+        except (subprocess.CalledProcessError, ExecError) as e:
             # in case this reruns and fails
-            if "already exists" in e.output:
+            if e.stdout and "already exists" in e.stdout:
                 return
-            logger.error(e.output)
+            logger.error(e.stdout)
             raise e
 
     def set_keystore(self) -> None:
@@ -71,10 +84,15 @@ class TLSManager:
         command = f"openssl pkcs12 -export -in server.pem -inkey server.key -passin pass:{self.state.broker.keystore_password} -certfile server.pem -out keystore.p12 -password pass:{self.state.broker.keystore_password}"
         try:
             self.workload.exec(command=command, working_dir=self.workload.paths.conf_path)
-            self.workload.set_snap_ownership(path=f"{self.workload.paths.conf_path}/keystore.p12")
-            self.workload.set_snap_mode_bits(path=f"{self.workload.paths.conf_path}/keystore.p12")
-        except subprocess.CalledProcessError as e:
-            logger.error(e.output)
+            if self.substrate == "vm":
+                self.workload.set_snap_ownership(
+                    path=f"{self.workload.paths.conf_path}/keystore.p12"
+                )
+                self.workload.set_snap_mode_bits(
+                    path=f"{self.workload.paths.conf_path}/keystore.p12"
+                )
+        except (subprocess.CalledProcessError, ExecError) as e:
+            logger.error(e.stdout)
             raise e
 
     def import_cert(self, alias: str, filename: str) -> None:
@@ -82,29 +100,25 @@ class TLSManager:
         command = f"charmed-kafka.keytool -import -v -alias {alias} -file {filename} -keystore truststore.jks -storepass {self.state.broker.truststore_password} -noprompt"
         try:
             self.workload.exec(command=command, working_dir=self.workload.paths.conf_path)
-        except subprocess.CalledProcessError as e:
+        except (subprocess.CalledProcessError, ExecError) as e:
             # in case this reruns and fails
-            if "already exists" in e.output:
-                logger.debug(e.output)
+            if e.stdout and "already exists" in e.stdout:
+                logger.debug(e.stdout)
                 return
-            logger.error(e.output)
+            logger.error(e.stdout)
             raise e
 
     def remove_cert(self, alias: str) -> None:
         """Remove a cert from the truststore."""
         try:
             command = f"charmed-kafka.keytool -delete -v -alias {alias} -keystore truststore.jks -storepass {self.state.broker.truststore_password} -noprompt"
-            self.workload.exec(
-                command=command, working_dir=self.workload.paths.conf_path
-            )
-            self.workload.exec(
-                f"rm -f {alias}.pem", working_dir=self.workload.paths.conf_path
-            )
-        except subprocess.CalledProcessError as e:
-            if "does not exist" in e.output:
-                logger.warning(e.output)
+            self.workload.exec(command=command, working_dir=self.workload.paths.conf_path)
+            self.workload.exec(f"rm -f {alias}.pem", working_dir=self.workload.paths.conf_path)
+        except (subprocess.CalledProcessError, ExecError) as e:
+            if e.stdout and "does not exist" in e.stdout:
+                logger.warning(e.stdout)
                 return
-            logger.error(e.output)
+            logger.error(e.stdout)
             raise e
 
     def remove_stores(self) -> None:
@@ -114,6 +128,6 @@ class TLSManager:
                 command="rm -rf *.pem *.key *.p12 *.jks",
                 working_dir=self.workload.paths.conf_path,
             )
-        except subprocess.CalledProcessError as e:
-            logger.error(e.output)
+        except (subprocess.CalledProcessError, ExecError) as e:
+            logger.error(e.stdout)
             raise e

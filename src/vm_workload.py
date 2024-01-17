@@ -19,6 +19,7 @@ from tenacity import retry
 from tenacity.retry import retry_if_not_result
 from tenacity.stop import stop_after_attempt
 from tenacity.wait import wait_fixed
+from typing_extensions import override
 
 from core.literals import CHARMED_KAFKA_SNAP_REVISION, PATHS, SNAP_NAME
 from core.workload import PathsBase, WorkloadBase
@@ -28,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 class KafkaPaths(PathsBase):
     """Object to store common paths for Kafka."""
+
     def __init__(self):
         conf_path = PATHS["CONF"]
         data_path = PATHS["DATA"]
@@ -37,34 +39,57 @@ class KafkaPaths(PathsBase):
 
     @property
     def server_properties(self):
+        """The main server.properties filepath.
+
+        Contains all the main configuration for the service.
+        """
         return f"{self.conf_path}/server.properties"
 
     @property
     def client_properties(self):
+        """The main client.properties filepath.
+
+        Contains all the client configuration for the service.
+        """
         return f"{self.conf_path}/client.properties"
 
     @property
     def zk_jaas(self):
+        """The zookeeper-jaas.cfg filepath.
+
+        Contains internal+external user credentials used in SASL auth.
+        """
         return f"{self.conf_path}/zookeeper-jaas.cfg"
 
     @property
     def keystore(self):
+        """The Java Keystore containing service private-key and signed certificates."""
         return f"{self.conf_path}/keystore.p12"
 
     @property
     def truststore(self):
+        """The Java Truststore containing trusted CAs + certificates."""
         return f"{self.conf_path}/truststore.jks"
 
     @property
     def log4j_properties(self):
+        """The Log4j properties filepath.
+
+        Contains the Log4j configuration options of the service.
+        """
         return f"{self.conf_path}/log4j.properties"
 
     @property
     def jmx_prometheus_javaagent(self):
+        """The JMX exporter JAR filepath.
+
+        Used for scraping and exposing mBeans of a JMX target.
+        """
         return f"{self.binaries_path}/jmx_prometheus_javaagent.jar"
 
     @property
     def jmx_prometheus_config(self):
+        """The configuration for the JMX exporter."""
         return f"{self.conf_path}/jmx_prometheus.yaml"
 
 
@@ -80,24 +105,28 @@ class KafkaWorkload(WorkloadBase):
         self.paths = KafkaPaths()
         self.kafka = snap.SnapCache()[SNAP_NAME]
 
+    @override
     def start(self) -> None:
         try:
             self.kafka.start(services=[self.SNAP_SERVICE])
         except snap.SnapError as e:
             logger.exception(str(e))
 
+    @override
     def stop(self) -> None:
         try:
             self.kafka.stop(services=[self.SNAP_SERVICE])
         except snap.SnapError as e:
             logger.exception(str(e))
 
+    @override
     def restart(self) -> None:
         try:
             self.kafka.restart(services=[self.SNAP_SERVICE])
         except snap.SnapError as e:
             logger.exception(str(e))
 
+    @override
     def read(self, path: str) -> List[str]:
         if not os.path.exists(path):
             return []
@@ -107,6 +136,7 @@ class KafkaWorkload(WorkloadBase):
 
         return content
 
+    @override
     def write(self, content: str, path: str, mode: str = "w") -> None:
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, mode) as f:
@@ -114,6 +144,7 @@ class KafkaWorkload(WorkloadBase):
 
         self.set_snap_ownership(path=path)
 
+    @override
     def exec(self, command: str, env: str = "", working_dir: str | None = None) -> str:
         try:
             output = subprocess.check_output(
@@ -130,11 +161,12 @@ class KafkaWorkload(WorkloadBase):
             raise e
 
     @retry(
-    wait=wait_fixed(1),
-    stop=stop_after_attempt(5),
-    retry_error_callback=lambda state: state.outcome.result(),  # type: ignore
-    retry=retry_if_not_result(lambda result: True if result else False),
+        wait=wait_fixed(1),
+        stop=stop_after_attempt(5),
+        retry_error_callback=lambda state: state.outcome.result(),  # type: ignore
+        retry=retry_if_not_result(lambda result: True if result else False),
     )
+    @override
     def active(self) -> bool:
         try:
             return bool(self.kafka.services[self.SNAP_SERVICE]["active"])
@@ -220,7 +252,7 @@ class KafkaWorkload(WorkloadBase):
         """
         opts_str = " ".join(opts)
         bin_str = " ".join(bin_args)
-        command =  f"{opts_str} {SNAP_NAME}.{bin_keyword} {bin_str}"
+        command = f"{opts_str} {SNAP_NAME}.{bin_keyword} {bin_str}"
         return self.exec(command)
 
     def update_environment(self, env: Dict[str, str]) -> None:

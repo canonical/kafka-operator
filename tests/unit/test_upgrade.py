@@ -10,12 +10,12 @@ import pytest
 import yaml
 from charms.data_platform_libs.v0.upgrade import ClusterNotReadyError, DependencyModel
 from kazoo.client import KazooClient
-from ops.testing import Harness
-
-from charm import KafkaCharm
 from literals import CHARM_KEY, DEPENDENCIES, PEER, ZK
+from ops.testing import Harness
 from snap import KafkaSnap
 from upgrade import KafkaDependencyModel, KafkaUpgrade
+
+from charm import KafkaCharm
 
 logger = logging.getLogger(__name__)
 

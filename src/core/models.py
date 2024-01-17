@@ -9,9 +9,10 @@ from typing import Dict, MutableMapping, Optional, Set
 
 from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManager
 from kazoo.exceptions import AuthFailedError, NoNodeError
-from core.literals import INTERNAL_USERS, Substrate
 from ops.model import Application, Relation, Unit
 from tenacity import retry, retry_if_not_result, stop_after_attempt, wait_fixed
+
+from core.literals import INTERNAL_USERS, Substrate
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,7 @@ class StateBase:
             return
 
         self.relation_data.update(items)
+
 
 class KafkaCluster(StateBase):
     """State collection metadata for the peer relation."""
@@ -85,6 +87,7 @@ class KafkaCluster(StateBase):
             True if TLS encryption should be active. Otherwise False
         """
         return self.relation_data.get("mtls", "disabled") == "enabled"
+
 
 class KafkaBroker(StateBase):
     """State collection metadata for a charm unit."""
@@ -176,16 +179,18 @@ class KafkaBroker(StateBase):
         """
         return self.relation_data.get("truststore-password")
 
+
 class ZooKeeper(StateBase):
     """State collection metadata for a the Zookeeper relation."""
+
     def __init__(
-            self,
-            relation: Relation | None,
-            component: Application,
-            substrate: Substrate,
-            local_unit: Unit,
-            local_app: Application | None = None,
-            ):
+        self,
+        relation: Relation | None,
+        component: Application,
+        substrate: Substrate,
+        local_unit: Unit,
+        local_app: Application | None = None,
+    ):
         super().__init__(relation, component, substrate)
         self._local_app = local_app
         self._local_unit = local_unit
@@ -233,9 +238,7 @@ class ZooKeeper(StateBase):
             return zookeeper_config
 
         zk_keys = ["username", "password", "endpoints", "chroot", "uris", "tls"]
-        missing_config = any(
-            self.remote_app_data.get(key, None) is None for key in zk_keys
-        )
+        missing_config = any(self.remote_app_data.get(key, None) is None for key in zk_keys)
 
         # skip if config is missing
         if missing_config:

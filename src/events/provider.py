@@ -51,7 +51,10 @@ class KafkaProvider(Object):
         topic = event.topic or ""
         relation = event.relation
         username = f"relation-{relation.id}"
-        password = self.charm.state.cluster.relation_data.get(username) or self.charm.workload.generate_password()
+        password = (
+            self.charm.state.cluster.relation_data.get(username)
+            or self.charm.workload.generate_password()
+        )
         bootstrap_server = self.charm.state.bootstrap_server
         zookeeper_uris = self.charm.state.zookeeper.zookeeper_config.get("connect", "")
         tls = "enabled" if self.charm.state.cluster.tls_enabled else "disabled"
@@ -119,7 +122,7 @@ class KafkaProvider(Object):
             self.charm.auth_manager.remove_all_user_acls(username=username)
             self.charm.auth_manager.delete_user(username=username)
             # non-leader units need cluster_config_changed event to update their super.users
-            # update on the peer relation data will trigger an update of server properties on all unit
+            # update on the peer relation data will trigger an update of server properties on all units
             self.charm.state.cluster.update({username: ""})
 
     def update_connection_info(self):

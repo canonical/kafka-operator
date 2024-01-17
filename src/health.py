@@ -38,7 +38,11 @@ class KafkaHealth(Object):
 
     def _get_current_max_files(self) -> int:
         """Gets the current file descriptor limit for the Kafka process."""
-        return int(self.charm.workload.exec(rf"cat /proc/{self._service_pid}/limits | grep files | awk '{{print $5}}'"))
+        return int(
+            self.charm.workload.exec(
+                rf"cat /proc/{self._service_pid}/limits | grep files | awk '{{print $5}}'"
+            )
+        )
 
     def _get_max_memory_maps(self) -> int:
         """Gets the current memory map limit for the machine."""

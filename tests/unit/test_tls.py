@@ -7,11 +7,11 @@ from pathlib import Path
 
 import pytest
 import yaml
+from literals import CHARM_KEY, PEER, ZK
 from ops.model import ActiveStatus, BlockedStatus
 from ops.testing import Harness
 
 from charm import KafkaCharm
-from literals import CHARM_KEY, PEER, ZK
 
 CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
 ACTIONS = str(yaml.safe_load(Path("./actions.yaml").read_text()))

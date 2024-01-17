@@ -7,7 +7,6 @@ from unittest.mock import mock_open, patch
 
 import pytest
 from charms.operator_libs_linux.v1.snap import SnapError
-
 from snap import KafkaSnap
 
 

@@ -11,7 +11,7 @@ from pytest_operator.plugin import OpsTest
 
 from core.literals import CHARM_KEY, ZK
 
-from .helpers import get_kafka_zk_relation_data, get_active_brokers
+from .helpers import get_active_brokers, get_kafka_zk_relation_data
 
 logger = logging.getLogger(__name__)
 

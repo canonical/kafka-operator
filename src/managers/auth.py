@@ -25,6 +25,7 @@ class Acl:
     operation: str
     username: str
 
+
 class AuthManager:
     """Object for updating Kafka users and ACLs."""
 

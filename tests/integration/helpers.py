@@ -12,13 +12,13 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 import yaml
 from charms.kafka.v0.client import KafkaClient
-from kafka.admin import NewTopic
-from pytest_operator.plugin import OpsTest
 from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManager
+from kafka.admin import NewTopic
 from kazoo.exceptions import AuthFailedError, NoNodeError
+from pytest_operator.plugin import OpsTest
 
+from core.literals import PATHS, SECURITY_PROTOCOL_PORTS
 from managers.auth import Acl, AuthManager
-from core.literals import SECURITY_PROTOCOL_PORTS, PATHS
 
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 APP_NAME = METADATA["name"]
@@ -151,30 +151,30 @@ def get_provider_data(
 
 
 def get_active_brokers(config: Dict) -> Set[str]:
-        """Gets all brokers currently connected to ZooKeeper.
+    """Gets all brokers currently connected to ZooKeeper.
 
-        Args:
-            config: the relation data provided by ZooKeeper
+    Args:
+        config: the relation data provided by ZooKeeper
 
-        Returns:
-            Set of active broker ids
-        """
-        chroot = config.get("chroot", "")
-        hosts = config.get("endpoints", "").split(",")
-        username = config.get("username", "")
-        password = config.get("password", "")
+    Returns:
+        Set of active broker ids
+    """
+    chroot = config.get("chroot", "")
+    hosts = config.get("endpoints", "").split(",")
+    username = config.get("username", "")
+    password = config.get("password", "")
 
-        zk = ZooKeeperManager(hosts=hosts, username=username, password=password)
-        path = f"{chroot}/brokers/ids/"
+    zk = ZooKeeperManager(hosts=hosts, username=username, password=password)
+    path = f"{chroot}/brokers/ids/"
 
-        try:
-            brokers = zk.leader_znodes(path=path)
-        # auth might not be ready with ZK after relation yet
-        except (NoNodeError, AuthFailedError, QuorumLeaderNotFoundError) as e:
-            logger.debug(str(e))
-            return set()
+    try:
+        brokers = zk.leader_znodes(path=path)
+    # auth might not be ready with ZK after relation yet
+    except (NoNodeError, AuthFailedError, QuorumLeaderNotFoundError) as e:
+        logger.debug(str(e))
+        return set()
 
-        return brokers
+    return brokers
 
 
 async def get_address(ops_test: OpsTest, app_name=APP_NAME, unit_num=0) -> str:
