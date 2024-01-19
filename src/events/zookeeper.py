@@ -9,6 +9,7 @@ import subprocess
 from typing import TYPE_CHECKING
 
 from ops import Object, RelationChangedEvent, RelationEvent
+from ops.pebble import ExecError
 
 from core.literals import ZK, Status
 
@@ -61,8 +62,8 @@ class ZooKeeperHandler(Object):
             self.charm.config_manager.set_server_properties()
 
             try:
-                internal_user_credentials = self.charm._create_internal_credentials()
-            except (KeyError, RuntimeError, subprocess.CalledProcessError) as e:
+                internal_user_credentials = self.charm.create_internal_credentials()
+            except (KeyError, RuntimeError, subprocess.CalledProcessError, ExecError) as e:
                 logger.warning(str(e))
                 event.defer()
                 return

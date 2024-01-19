@@ -8,13 +8,11 @@ from dataclasses import dataclass
 from subprocess import PIPE, check_output
 from typing import Optional
 
-from helpers import get_active_brokers
-from literals import SECURITY_PROTOCOL_PORTS
+from core.literals import SECURITY_PROTOCOL_PORTS, PATHS
 from pytest_operator.plugin import OpsTest
-from snap import KafkaSnap
 
 from integration.ha.continuous_writes import ContinuousWritesResult
-from integration.helpers import APP_NAME, get_address, get_kafka_zk_relation_data
+from integration.helpers import APP_NAME, get_address, get_kafka_zk_relation_data, get_active_brokers
 
 PROCESS = "kafka.Kafka"
 SERVICE_DEFAULT_PATH = "/etc/systemd/system/snap.charmed-kafka.daemon.service"
@@ -56,7 +54,7 @@ async def get_topic_description(
     unit_name = unit_name or ops_test.model.applications[APP_NAME].units[0].name
 
     output = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.topics --bootstrap-server {','.join(bootstrap_servers)} --command-config {KafkaSnap.CONF_PATH}/client.properties --describe --topic {topic}'",
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.topics --bootstrap-server {','.join(bootstrap_servers)} --command-config {PATHS['CONF']}/client.properties --describe --topic {topic}'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -88,7 +86,7 @@ async def get_topic_offsets(
 
     # example of topic offset output: 'test-topic:0:10'
     result = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.get-offsets --bootstrap-server {','.join(bootstrap_servers)} --command-config {KafkaSnap.CONF_PATH}/client.properties --topic {topic}'",
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.get-offsets --bootstrap-server {','.join(bootstrap_servers)} --command-config {PATHS['CONF']}/client.properties --topic {topic}'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,

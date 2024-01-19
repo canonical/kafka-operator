@@ -10,7 +10,7 @@ from charms.data_platform_libs.v0.data_models import TypedCharmBase
 from charms.grafana_agent.v0.cos_agent import COSAgentProvider
 from charms.operator_libs_linux.v0 import sysctl
 from charms.operator_libs_linux.v1.snap import SnapError
-from charms.rolling_ops.v0.rollingops import RollingOpsManager
+from charms.rolling_ops.v0.rollingops import RollingOpsManager, RunWithLock
 from ops.charm import (
     ActionEvent,
     StorageAttachedEvent,
@@ -255,6 +255,22 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         else:
             logger.error(f"Broker {self.unit.name.split('/')[1]} failed to restart")
 
+    def _disable_enable_restart(self, event: RunWithLock) -> None:
+        """Handler for `rolling_ops` disable_enable restart events."""
+        if not self.healthy:
+            logger.warning(f"Broker {self.unit.name.split('/')[1]} is not ready restart")
+            event.defer()
+            return
+
+        self.workload.disable_enable()
+        self.workload.start()
+
+        if self.healthy:
+            logger.info(f'Broker {self.unit.name.split("/")[1]} restarted')
+        else:
+            logger.error(f"Broker {self.unit.name.split('/')[1]} failed to restart")
+            return
+
     def _set_password_action(self, event: ActionEvent) -> None:
         """Handler for set-password action.
 
@@ -273,6 +289,11 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             return
 
         username = event.params["username"]
+        if username not in INTERNAL_USERS:
+            msg = f"Can only update internal charm users: {INTERNAL_USERS}, not {username}."
+            logger.error(msg)
+            event.fail(msg)
+
         new_password = event.params.get("password", self.workload.generate_password())
 
         if new_password in self.state.cluster.internal_user_credentials.values():
@@ -321,11 +342,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         if not self.unit.is_leader():
             raise RuntimeError("Cannot update internal user from non-leader unit.")
 
-        if username not in INTERNAL_USERS:
-            raise KeyError(
-                f"Can only update internal charm users: {INTERNAL_USERS}, not {username}."
-            )
-
         # do not start units until SCRAM users have been added to ZooKeeper for server-server auth
         self.auth_manager.add_user(
             username=username,
@@ -333,7 +349,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             zk_auth=True,
         )
 
-    def _create_internal_credentials(self) -> list[tuple[str, str]]:
+    def create_internal_credentials(self) -> list[tuple[str, str]]:
         """Creates internal SCRAM users during cluster start.
 
         Returns:

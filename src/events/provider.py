@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 from charms.data_platform_libs.v0.data_interfaces import KafkaProvides, TopicRequestedEvent
 from ops.charm import RelationBrokenEvent, RelationCreatedEvent
 from ops.framework import Object
+from ops.pebble import ExecError
 
 from core.literals import REL_NAME
 
@@ -69,8 +70,8 @@ class KafkaProvider(Object):
                 username=username,
                 password=password,
             )
-        except subprocess.CalledProcessError:
-            logger.warning("unable to create internal user just yet")
+        except (subprocess.CalledProcessError, ExecError):
+            logger.warning(f"unable to create user {username} just yet")
             event.defer()
             return
 

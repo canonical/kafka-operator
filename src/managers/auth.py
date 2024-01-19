@@ -10,6 +10,8 @@ import subprocess
 from dataclasses import asdict, dataclass
 from typing import Optional, Set
 
+from ops.pebble import ExecError
+
 from core.cluster import ClusterState
 from vm_workload import KafkaWorkload
 
@@ -148,7 +150,7 @@ class AuthManager:
                 For use before cluster start
 
         Raises:
-            `subprocess.CalledProcessError`: if the error returned a non-zero exit code
+            `(subprocess.CalledProcessError | ops.pebble.ExecError)`: if the error returned a non-zero exit code
         """
         base_command = [
             "--alter",
@@ -181,7 +183,7 @@ class AuthManager:
             username: the user name to delete
 
         Raises:
-            `subprocess.CalledProcessError`: if the error returned a non-zero exit code
+            `(subprocess.CalledProcessError | ops.pebble.ExecError)`: if the error returned a non-zero exit code
         """
         command = [
             f"--bootstrap-server={self.bootstrap_server}",
@@ -193,8 +195,8 @@ class AuthManager:
         ]
         try:
             self.workload.run_bin_command(bin_keyword="configs", bin_args=command)
-        except subprocess.CalledProcessError as e:
-            if "delete a user credential that does not exist" in e.stderr:
+        except (subprocess.CalledProcessError, ExecError) as e:
+            if e.stderr and "delete a user credential that does not exist" in e.stderr:
                 logger.warning(f"User: {username} can't be deleted, it does not exist")
                 return
             raise
@@ -216,7 +218,7 @@ class AuthManager:
             resource_name: the name of the resource to grant ACLs for
 
         Raises:
-            `subprocess.CalledProcessError`: if the error returned a non-zero exit code
+            `(subprocess.CalledProcessError | ops.pebble.ExecError)`: if the error returned a non-zero exit code
         """
         command = [
             f"--bootstrap-server={self.bootstrap_server}",
@@ -249,7 +251,7 @@ class AuthManager:
             resource_name: the name of the resource to remove ACLs for
 
         Raises:
-            `subprocess.CalledProcessError`: if the error returned a non-zero exit code
+            `(subprocess.CalledProcessError | ops.pebble.ExecError)`: if the error returned a non-zero exit code
         """
         command = [
             f"--bootstrap-server={self.bootstrap_server}",
@@ -277,7 +279,7 @@ class AuthManager:
             username: the user name to remove ACLs for
 
         Raises:
-            `subprocess.CalledProcessError`: if the error returned a non-zero exit code
+            `(subprocess.CalledProcessError | ops.pebble.ExecError)`: if the error returned a non-zero exit code
         """
         # getting subset of all cluster ACLs for only the provided user
         current_user_acls = {acl for acl in self.current_acls if acl.username == username}
@@ -304,7 +306,7 @@ class AuthManager:
             group: the consumer group
 
         Raises:
-            `subprocess.CalledProcessError`: if the error returned a non-zero exit code
+            `(subprocess.CalledProcessError | ops.pebble.ExecError)`: if the error returned a non-zero exit code
         """
         if "producer" in extra_user_roles:
             self.new_user_acls.update(self._generate_producer_acls(topic=topic, username=username))
