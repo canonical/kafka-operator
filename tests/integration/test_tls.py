@@ -10,7 +10,7 @@ import pytest
 from charms.tls_certificates_interface.v1.tls_certificates import generate_private_key
 from pytest_operator.plugin import OpsTest
 
-from core.literals import (
+from literals import (
     CHARM_KEY,
     REL_NAME,
     SECURITY_PROTOCOL_PORTS,

@@ -11,7 +11,6 @@ import secrets
 import shutil
 import string
 import subprocess
-from typing import Dict, List
 
 from charms.operator_libs_linux.v0 import apt
 from charms.operator_libs_linux.v1 import snap
@@ -21,8 +20,8 @@ from tenacity.stop import stop_after_attempt
 from tenacity.wait import wait_fixed
 from typing_extensions import override
 
-from core.literals import CHARMED_KAFKA_SNAP_REVISION, PATHS, SNAP_NAME
 from core.workload import PathsBase, WorkloadBase
+from literals import CHARMED_KAFKA_SNAP_REVISION, PATHS, SNAP_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +126,7 @@ class KafkaWorkload(WorkloadBase):
             logger.exception(str(e))
 
     @override
-    def read(self, path: str) -> List[str]:
+    def read(self, path: str) -> list[str]:
         if not os.path.exists(path):
             return []
         else:
@@ -235,7 +234,7 @@ class KafkaWorkload(WorkloadBase):
 
         raise snap.SnapError(f"Snap {self.SNAP_NAME} pid not found")
 
-    def run_bin_command(self, bin_keyword: str, bin_args: List[str], opts: List[str] = []) -> str:
+    def run_bin_command(self, bin_keyword: str, bin_args: list[str], opts: list[str] = []) -> str:
         """Runs kafka bin command with desired args.
 
         Args:
@@ -255,11 +254,11 @@ class KafkaWorkload(WorkloadBase):
         command = f"{opts_str} {SNAP_NAME}.{bin_keyword} {bin_str}"
         return self.exec(command)
 
-    def update_environment(self, env: Dict[str, str]) -> None:
+    def update_environment(self, env: dict[str, str]) -> None:
         """Updates /etc/environment file."""
         updated_env = self.get_env() | env
         content = "\n".join([f"{key}={value}" for key, value in updated_env.items()])
-        self.write(content=content, path="/etc/environment", mode="w")
+        self.write(content=content, path="/etc/environment")
 
     @staticmethod
     def set_snap_ownership(path: str) -> None:

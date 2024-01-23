@@ -6,13 +6,14 @@
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Literal
+from typing import Literal
 
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, StatusBase, WaitingStatus
 
 CHARM_KEY = "kafka"
 SNAP_NAME = "charmed-kafka"
-CHARMED_KAFKA_SNAP_REVISION = 30
+CHARMED_KAFKA_SNAP_REVISION = 24
+CONTAINER = "kafka"
 
 PEER = "cluster"
 ZK = "zookeeper"
@@ -26,6 +27,8 @@ INTERNAL_USERS = [INTER_BROKER_USER, ADMIN_USER]
 JMX_EXPORTER_PORT = 9101
 METRICS_RULES_DIR = "./src/alert_rules/prometheus"
 LOGS_RULES_DIR = "./src/alert_rules/loki"
+
+SUBSTRATE = "vm"
 
 AuthMechanism = Literal["SASL_PLAINTEXT", "SASL_SSL", "SSL"]
 Scope = Literal["INTERNAL", "CLIENT"]
@@ -58,7 +61,7 @@ class Ports:
     internal: int
 
 
-SECURITY_PROTOCOL_PORTS: Dict[AuthMechanism, Ports] = {
+SECURITY_PROTOCOL_PORTS: dict[AuthMechanism, Ports] = {
     "SASL_PLAINTEXT": Ports(9092, 19092),
     "SASL_SSL": Ports(9093, 19093),
     "SSL": Ports(9094, 19094),

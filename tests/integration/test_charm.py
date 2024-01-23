@@ -6,13 +6,12 @@ import asyncio
 import logging
 import time
 from subprocess import PIPE, check_output
-from typing import Dict
 
 import pytest
 import requests
 from pytest_operator.plugin import OpsTest
 
-from core.literals import JMX_EXPORTER_PORT, REL_NAME, SECURITY_PROTOCOL_PORTS
+from literals import JMX_EXPORTER_PORT, REL_NAME, SECURITY_PROTOCOL_PORTS
 
 from .helpers import (
     APP_NAME,
@@ -268,7 +267,7 @@ async def test_observability_integration(ops_test: OpsTest):
     agent_units = ops_test.model.applications["agent"].units
 
     # Get all the "targets" from all grafana-agent units
-    machine_targets: Dict[str, str] = {
+    machine_targets: dict[str, str] = {
         unit.machine.id: await unit.machine.ssh(
             "curl localhost:12345/agent/api/v1/metrics/targets"
         )

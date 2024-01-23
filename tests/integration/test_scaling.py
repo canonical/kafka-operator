@@ -9,7 +9,7 @@ import time
 import pytest
 from pytest_operator.plugin import OpsTest
 
-from core.literals import CHARM_KEY, ZK
+from literals import CHARM_KEY, ZK
 
 from .helpers import get_active_brokers, get_kafka_zk_relation_data
 

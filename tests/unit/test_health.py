@@ -9,10 +9,10 @@ from unittest.mock import patch
 
 import pytest
 import yaml
-from literals import CHARM_KEY, JVM_MEM_MAX_GB, JVM_MEM_MIN_GB
 from ops.testing import Harness
 
 from charm import KafkaCharm
+from literals import CHARM_KEY, JVM_MEM_MAX_GB, JVM_MEM_MIN_GB
 
 logger = logging.getLogger(__name__)
 

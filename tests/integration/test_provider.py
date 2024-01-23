@@ -4,7 +4,6 @@
 
 import asyncio
 import logging
-from typing import Set
 
 import pytest
 from pytest_operator.plugin import OpsTest
@@ -33,7 +32,7 @@ REL_NAME_CERTIFICATES = "certificates"
 
 @pytest.mark.abort_on_fail
 async def test_deploy_charms_relate_active(
-    ops_test: OpsTest, kafka_charm, app_charm, usernames: Set[str]
+    ops_test: OpsTest, kafka_charm, app_charm, usernames: set[str]
 ):
     """Test deploy and relate operations."""
     await asyncio.gather(
@@ -82,7 +81,7 @@ async def test_deploy_charms_relate_active(
 
 @pytest.mark.abort_on_fail
 async def test_deploy_multiple_charms_same_topic_relate_active(
-    ops_test: OpsTest, app_charm, usernames: Set[str]
+    ops_test: OpsTest, app_charm, usernames: set[str]
 ):
     """Test relation with multiple applications."""
     await ops_test.model.deploy(app_charm, application_name=DUMMY_NAME_2, num_units=1)
@@ -114,7 +113,7 @@ async def test_deploy_multiple_charms_same_topic_relate_active(
 
 
 @pytest.mark.abort_on_fail
-async def test_remove_application_removes_user_and_acls(ops_test: OpsTest, usernames: Set[str]):
+async def test_remove_application_removes_user_and_acls(ops_test: OpsTest, usernames: set[str]):
     """Test the correct removal of user and permission after relation removal."""
     await ops_test.model.remove_application(DUMMY_NAME_1, block_until_done=True)
     await ops_test.model.wait_for_idle(apps=[APP_NAME])
@@ -143,7 +142,7 @@ async def test_remove_application_removes_user_and_acls(ops_test: OpsTest, usern
 
 
 @pytest.mark.abort_on_fail
-async def test_deploy_producer_same_topic(ops_test: OpsTest, app_charm, usernames: Set[str]):
+async def test_deploy_producer_same_topic(ops_test: OpsTest, app_charm, usernames: set[str]):
     """Test the correct deployment and relation with role producer."""
     await asyncio.gather(
         ops_test.model.deploy(

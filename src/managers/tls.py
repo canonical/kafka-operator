@@ -10,7 +10,7 @@ import subprocess
 from ops.pebble import ExecError
 
 from core.cluster import ClusterState
-from core.literals import Substrate
+from literals import Substrate
 from vm_workload import KafkaWorkload
 
 logger = logging.getLogger(__name__)

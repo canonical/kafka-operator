@@ -8,11 +8,10 @@ from unittest.mock import patch
 
 import pytest
 import yaml
-from auth import Acl, KafkaAuth
-from literals import CHARM_KEY
 from ops.testing import Harness
-
-from charm import KafkaCharm
+from src.charm import KafkaCharm
+from src.literals import CHARM_KEY
+from src.managers.auth import Acl, AuthManager
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +55,7 @@ def test_parse_acls():
         (principal=User:relation-81, host=*, operation=READ, permissionType=ALLOW)
     """
 
-    parsed_acls = KafkaAuth._parse_acls(acls=acls)
+    parsed_acls = AuthManager._parse_acls(acls=acls)
 
     assert len(parsed_acls) == 5
     assert type(list(parsed_acls)[0]) == Acl
@@ -64,7 +63,7 @@ def test_parse_acls():
 
 def test_generate_producer_acls():
     """Checks correct resourceType for producer ACLs."""
-    generated_acls = KafkaAuth._generate_producer_acls(topic="theonering", username="frodo")
+    generated_acls = AuthManager._generate_producer_acls(topic="theonering", username="frodo")
     assert len(generated_acls) == 3
 
     operations = set()
@@ -79,7 +78,7 @@ def test_generate_producer_acls():
 
 def test_generate_consumer_acls():
     """Checks correct resourceType for consumer ACLs."""
-    generated_acls = KafkaAuth._generate_consumer_acls(topic="theonering", username="frodo")
+    generated_acls = AuthManager._generate_consumer_acls(topic="theonering", username="frodo")
     assert len(generated_acls) == 3
 
     operations = set()
@@ -98,8 +97,7 @@ def test_generate_consumer_acls():
 def test_add_user_adds_zk_tls_flag(harness):
     """Checks zk-tls-config-file flag is called for configs bin command."""
     with patch("subprocess.check_output") as patched_check_output:
-        auth = KafkaAuth(harness.charm)
-        auth.add_user("samwise", "gamgee", zk_auth=True)
+        harness.charm.auth_manager.add_user("samwise", "gamgee", zk_auth=True)
 
         found_tls = False
         found_zk = False

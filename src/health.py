@@ -8,11 +8,11 @@ import json
 import logging
 import subprocess
 from statistics import mean
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING
 
 from ops.framework import Object
 
-from core.literals import JVM_MEM_MAX_GB, JVM_MEM_MIN_GB
+from literals import JVM_MEM_MAX_GB, JVM_MEM_MIN_GB
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -52,7 +52,7 @@ class KafkaHealth(Object):
         """Gets the current vm.swappiness configured for the machine."""
         return int(self.charm.workload.exec("sysctl -n vm.swappiness"))
 
-    def _get_partitions_size(self) -> Tuple[int, int]:
+    def _get_partitions_size(self) -> tuple[int, int]:
         """Gets the number of partitions and their average size from the log dirs."""
         log_dirs_command = [
             "--describe",

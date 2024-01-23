@@ -6,13 +6,17 @@ import re
 import subprocess
 from dataclasses import dataclass
 from subprocess import PIPE, check_output
-from typing import Optional
 
-from core.literals import SECURITY_PROTOCOL_PORTS, PATHS
 from pytest_operator.plugin import OpsTest
 
 from integration.ha.continuous_writes import ContinuousWritesResult
-from integration.helpers import APP_NAME, get_address, get_kafka_zk_relation_data, get_active_brokers
+from integration.helpers import (
+    APP_NAME,
+    get_active_brokers,
+    get_address,
+    get_kafka_zk_relation_data,
+)
+from literals import PATHS, SECURITY_PROTOCOL_PORTS
 
 PROCESS = "kafka.Kafka"
 SERVICE_DEFAULT_PATH = "/etc/systemd/system/snap.charmed-kafka.daemon.service"
@@ -36,7 +40,7 @@ class ProcessRunningError(Exception):
 
 
 async def get_topic_description(
-    ops_test: OpsTest, topic: str, unit_name: Optional[str] = None
+    ops_test: OpsTest, topic: str, unit_name: str | None = None
 ) -> TopicDescription:
     """Get the broker with the topic leader.
 
@@ -67,7 +71,7 @@ async def get_topic_description(
 
 
 async def get_topic_offsets(
-    ops_test: OpsTest, topic: str, unit_name: Optional[str] = None
+    ops_test: OpsTest, topic: str, unit_name: str | None = None
 ) -> list[str]:
     """Get the offsets of a topic on a unit.
 

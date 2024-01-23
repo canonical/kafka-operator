@@ -5,11 +5,11 @@
 """Collection of globals common to the KafkaCharm."""
 
 import os
-from typing import List, Set
 
 from ops import Framework, Object, Relation
 
-from core.literals import (
+from core.models import KafkaBroker, KafkaCluster, ZooKeeper
+from literals import (
     INTERNAL_USERS,
     PEER,
     REL_NAME,
@@ -18,7 +18,6 @@ from core.literals import (
     Status,
     Substrate,
 )
-from core.models import KafkaBroker, KafkaCluster, ZooKeeper
 
 
 class ClusterState(Object):
@@ -41,7 +40,7 @@ class ClusterState(Object):
         return self.model.get_relation(ZK)
 
     @property
-    def client_relations(self) -> Set[Relation]:
+    def client_relations(self) -> set[Relation]:
         """The relations of all client applications."""
         return set(self.model.relations[REL_NAME])
 
@@ -62,11 +61,11 @@ class ClusterState(Object):
         )
 
     @property
-    def brokers(self) -> Set[KafkaBroker]:
+    def brokers(self) -> set[KafkaBroker]:
         """Grabs all servers in the current peer relation, including the running unit server.
 
         Returns:
-            Set of ZKServers in the current peer relation, including the running unit server.
+            Set of KafkaBrokers in the current peer relation, including the running unit server.
         """
         if not self.peer_relation:
             return set()
@@ -127,7 +126,7 @@ class ClusterState(Object):
         )
 
     @property
-    def bootstrap_server(self) -> List[str]:
+    def bootstrap_server(self) -> list[str]:
         """The current Kafka uris formatted for the `bootstrap-server` command flag.
 
         Returns:
@@ -148,7 +147,7 @@ class ClusterState(Object):
         return ",".join([os.fspath(storage.location) for storage in self.model.storages["data"]])
 
     @property
-    def unit_hosts(self) -> List[str]:
+    def unit_hosts(self) -> list[str]:
         """Return list of application unit hosts."""
         hosts = [broker.host for broker in self.brokers]
         return hosts

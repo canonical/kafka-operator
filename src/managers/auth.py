@@ -8,7 +8,6 @@ import logging
 import re
 import subprocess
 from dataclasses import asdict, dataclass
-from typing import Optional, Set
 
 from ops.pebble import ExecError
 
@@ -41,10 +40,10 @@ class AuthManager:
         self.client_properties = self.workload.paths.client_properties
         self.server_properties = self.workload.paths.server_properties
 
-        self.new_user_acls: Set[Acl] = set()
+        self.new_user_acls: set[Acl] = set()
 
     @property
-    def current_acls(self) -> Set[Acl]:
+    def current_acls(self) -> set[Acl]:
         """Sets the current cluster ACLs."""
         acls = self._get_acls_from_cluster()
         return self._parse_acls(acls=acls)
@@ -61,7 +60,7 @@ class AuthManager:
         return acls
 
     @staticmethod
-    def _parse_acls(acls: str) -> Set[Acl]:
+    def _parse_acls(acls: str) -> set[Acl]:
         """Parses output from raw ACLs provided by the cluster."""
         current_acls = set()
         resource_type, name, user, operation = None, None, None, None
@@ -97,7 +96,7 @@ class AuthManager:
         return current_acls
 
     @staticmethod
-    def _generate_producer_acls(topic: str, username: str, **_) -> Set[Acl]:
+    def _generate_producer_acls(topic: str, username: str, **_) -> set[Acl]:
         """Generates expected set of `Acl`s for a producer client application."""
         producer_acls = set()
         for operation in ["CREATE", "WRITE", "DESCRIBE"]:
@@ -113,9 +112,7 @@ class AuthManager:
         return producer_acls
 
     @staticmethod
-    def _generate_consumer_acls(
-        topic: str, username: str, group: Optional[str] = None
-    ) -> Set[Acl]:
+    def _generate_consumer_acls(topic: str, username: str, group: str | None = None) -> set[Acl]:
         """Generates expected set of `Acl`s for a consumer client application."""
         group = group or f"{username}-"  # not needed, just for safety
 
@@ -288,7 +285,7 @@ class AuthManager:
             self.remove_acl(**asdict(acl))
 
     def update_user_acls(
-        self, username: str, topic: str, extra_user_roles: str, group: Optional[str], **_
+        self, username: str, topic: str, extra_user_roles: str, group: str | None, **_
     ) -> None:
         """Compares data passed from the client relation, and updating cluster ACLs to match.
 

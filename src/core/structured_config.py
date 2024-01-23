@@ -6,7 +6,6 @@
 import logging
 import re
 from enum import Enum
-from typing import Optional
 
 from charms.data_platform_libs.v0.data_models import BaseConfigModel
 from pydantic import validator
@@ -53,7 +52,7 @@ class CharmConfig(BaseConfigModel):
 
     compression_type: str
     log_flush_interval_messages: int  # int  # long
-    log_flush_interval_ms: Optional[int]  # long
+    log_flush_interval_ms: int | None  # long
     log_flush_offset_checkpoint_interval_ms: int
     log_retention_bytes: int  # long
     log_retention_ms: int  # long
@@ -66,13 +65,12 @@ class CharmConfig(BaseConfigModel):
     log_cleaner_min_compaction_lag_ms: int  # long
     log_cleanup_policy: str
     log_message_timestamp_type: str
-    ssl_cipher_suites: Optional[str]
+    ssl_cipher_suites: str | None
     ssl_principal_mapping_rules: str
     replication_quota_window_num: int
-    zookeeper_ssl_cipher_suites: Optional[str]
+    zookeeper_ssl_cipher_suites: str | None
     profile: str
-    certificate_extra_sans: Optional[str]
-    log_level: str
+    certificate_extra_sans: str | None
 
     @validator("*", pre=True)
     @classmethod
@@ -84,7 +82,7 @@ class CharmConfig(BaseConfigModel):
 
     @validator("log_message_timestamp_type")
     @classmethod
-    def log_message_timestamp_type_validator(cls, value: str) -> Optional[str]:
+    def log_message_timestamp_type_validator(cls, value: str) -> str | None:
         """Check validity of `log_message_timestamp_type` field."""
         try:
             _log_message_timestap_type = LogMessageTimestampType(value)
@@ -96,7 +94,7 @@ class CharmConfig(BaseConfigModel):
 
     @validator("log_cleanup_policy")
     @classmethod
-    def log_cleanup_policy_validator(cls, value: str) -> Optional[str]:
+    def log_cleanup_policy_validator(cls, value: str) -> str | None:
         """Check validity of `log_cleanup_policy` field."""
         try:
             _log_cleanup_policy = LogCleanupPolicy(value)
@@ -108,7 +106,7 @@ class CharmConfig(BaseConfigModel):
 
     @validator("log_cleaner_min_compaction_lag_ms")
     @classmethod
-    def log_cleaner_min_compaction_lag_ms_validator(cls, value: str) -> Optional[int]:
+    def log_cleaner_min_compaction_lag_ms_validator(cls, value: str) -> int | None:
         """Check validity of `log_cleaner_min_compaction_lag_ms` field."""
         int_value = int(value)
         if int_value >= 0 and int_value <= 1000 * 60 * 60 * 24 * 7:
@@ -117,7 +115,7 @@ class CharmConfig(BaseConfigModel):
 
     @validator("log_cleaner_delete_retention_ms")
     @classmethod
-    def log_cleaner_delete_retention_ms_validator(cls, value: str) -> Optional[int]:
+    def log_cleaner_delete_retention_ms_validator(cls, value: str) -> int | None:
         """Check validity of `log_cleaner_delete_retention_ms` field."""
         int_value = int(value)
         if int_value > 0 and int_value <= 1000 * 60 * 60 * 24 * 90:
@@ -126,7 +124,7 @@ class CharmConfig(BaseConfigModel):
 
     @validator("ssl_principal_mapping_rules")
     @classmethod
-    def ssl_principal_mapping_rules_validator(cls, value: str) -> Optional[str]:
+    def ssl_principal_mapping_rules_validator(cls, value: str) -> str | None:
         """Check that the list is formed by valid regex values."""
         # get all regex up until replacement position "/"
         # TODO: check that there is a replacement as well, not: RULE:regex/
@@ -141,7 +139,7 @@ class CharmConfig(BaseConfigModel):
 
     @validator("transaction_state_log_num_partitions", "offsets_topic_num_partitions")
     @classmethod
-    def between_zero_and_10k(cls, value: int) -> Optional[int]:
+    def between_zero_and_10k(cls, value: int) -> int | None:
         """Check that the integer value is between zero and 10000."""
         if value >= 0 and value <= 10000:
             return value
@@ -149,7 +147,7 @@ class CharmConfig(BaseConfigModel):
 
     @validator("log_retention_bytes", "log_retention_ms")
     @classmethod
-    def greater_than_minus_one(cls, value: str) -> Optional[int]:
+    def greater_than_minus_one(cls, value: str) -> int | None:
         """Check value greater than -1."""
         int_value = int(value)
         if int_value < -1:
@@ -158,7 +156,7 @@ class CharmConfig(BaseConfigModel):
 
     @validator("log_flush_interval_messages", "log_flush_interval_ms")
     @classmethod
-    def greater_than_one(cls, value: str) -> Optional[int]:
+    def greater_than_one(cls, value: str) -> int | None:
         """Check value greater than one."""
         int_value = int(value)
         if int_value < 1:
@@ -167,7 +165,7 @@ class CharmConfig(BaseConfigModel):
 
     @validator("replication_quota_window_num", "log_segment_bytes", "message_max_bytes")
     @classmethod
-    def greater_than_zero(cls, value: int) -> Optional[int]:
+    def greater_than_zero(cls, value: int) -> int | None:
         """Check value greater than zero."""
         if value < 0:
             raise ValueError("Value below -1. Accepted value are greater or equal than -1.")
@@ -175,7 +173,7 @@ class CharmConfig(BaseConfigModel):
 
     @validator("compression_type")
     @classmethod
-    def value_compression_type(cls, value: str) -> Optional[str]:
+    def value_compression_type(cls, value: str) -> str | None:
         """Check validity of `compression_type` field."""
         try:
             _compression_type = CompressionType(value)
@@ -194,7 +192,7 @@ class CharmConfig(BaseConfigModel):
         "replication_quota_window_num",
     )
     @classmethod
-    def integer_value(cls, value: int) -> Optional[int]:
+    def integer_value(cls, value: int) -> int | None:
         """Check that the value is an integer (-2147483648,2147483647)."""
         if value >= -2147483648 and value <= 2147483647:
             return value
@@ -209,7 +207,7 @@ class CharmConfig(BaseConfigModel):
         "log_cleaner_min_compaction_lag_ms",
     )
     @classmethod
-    def long_value(cls, value: str) -> Optional[int]:
+    def long_value(cls, value: str) -> int | None:
         """Check that the value is a long (-2^63 , 2^63 -1)."""
         int_value = int(value)
         if int_value >= -9223372036854775807 and int_value <= 9223372036854775808:
@@ -218,7 +216,7 @@ class CharmConfig(BaseConfigModel):
 
     @validator("profile")
     @classmethod
-    def profile_values(cls, value: str) -> Optional[str]:
+    def profile_values(cls, value: str) -> str | None:
         """Check profile config option is one of `testing`, `staging` or `production`."""
         if value not in ["testing", "staging", "production"]:
             raise ValueError("Value not one of 'testing', 'staging' or 'production'")

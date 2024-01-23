@@ -36,6 +36,7 @@ from integration.helpers import (
 RESTART_DELAY = 60
 CLIENT_TIMEOUT = 30
 REELECTION_TIME = 25
+PRODUCING_MESSAGES = 10
 
 logger = logging.getLogger(__name__)
 
@@ -312,7 +313,7 @@ async def test_full_cluster_crash(
     restart_delay,
 ):
     # Let some time pass for messages to be produced
-    await asyncio.sleep(10)
+    await asyncio.sleep(PRODUCING_MESSAGES)
 
     logger.info("Killing all brokers...")
     # kill all units "simultaneously"
@@ -345,7 +346,7 @@ async def test_full_cluster_restart(
     c_writes_runner: ContinuousWrites,
 ):
     # Let some time pass for messages to be produced
-    await asyncio.sleep(10)
+    await asyncio.sleep(PRODUCING_MESSAGES)
 
     logger.info("Restarting all brokers...")
     # Restart all units "simultaneously"
@@ -380,7 +381,7 @@ async def test_network_cut_without_ip_change(
     c_writes_runner: ContinuousWrites,
 ):
     # Let some time pass for messages to be produced
-    await asyncio.sleep(10)
+    await asyncio.sleep(PRODUCING_MESSAGES)
 
     topic_description = await get_topic_description(
         ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
@@ -436,7 +437,7 @@ async def test_network_cut(
     c_writes_runner: ContinuousWrites,
 ):
     # Let some time pass for messages to be produced
-    await asyncio.sleep(10)
+    await asyncio.sleep(PRODUCING_MESSAGES)
 
     topic_description = await get_topic_description(
         ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME

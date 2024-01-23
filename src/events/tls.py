@@ -9,7 +9,7 @@ import json
 import logging
 import re
 import socket
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING
 
 from charms.tls_certificates_interface.v1.tls_certificates import (
     CertificateAvailableEvent,
@@ -27,7 +27,7 @@ from ops.charm import (
 from ops.framework import Object
 from ops.model import ActiveStatus, BlockedStatus
 
-from core.literals import TLS_RELATION, TRUSTED_CA_RELATION, TRUSTED_CERTIFICATE_RELATION
+from literals import TLS_RELATION, TRUSTED_CA_RELATION, TRUSTED_CERTIFICATE_RELATION
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -306,7 +306,7 @@ class TLSHandler(Object):
         self.certificates.request_certificate_creation(certificate_signing_request=csr)
 
     @property
-    def _sans(self) -> Dict[str, List[str]]:
+    def _sans(self) -> dict[str, list[str]]:
         """Builds a SAN dict of DNS names and IPs for the unit."""
         return {
             "sans_ip": [self.charm.state.broker.host],
@@ -314,7 +314,7 @@ class TLSHandler(Object):
         }
 
     @property
-    def _extra_sans(self) -> List[str]:
+    def _extra_sans(self) -> list[str]:
         """Parse the certificate_extra_sans config option."""
         extra_sans = self.charm.config.certificate_extra_sans or ""
         parsed_sans = []

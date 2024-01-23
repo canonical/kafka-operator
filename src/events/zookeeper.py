@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 from ops import Object, RelationChangedEvent, RelationEvent
 from ops.pebble import ExecError
 
-from core.literals import ZK, Status
+from literals import ZK, Status
 
 if TYPE_CHECKING:
     from charm import KafkaCharm

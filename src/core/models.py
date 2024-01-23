@@ -5,14 +5,14 @@
 """Collection of state objects for the Kafka relations, apps and units."""
 
 import logging
-from typing import Dict, MutableMapping, Optional, Set
+from typing import MutableMapping
 
 from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManager
 from kazoo.exceptions import AuthFailedError, NoNodeError
 from ops.model import Application, Relation, Unit
 from tenacity import retry, retry_if_not_result, stop_after_attempt, wait_fixed
 
-from core.literals import INTERNAL_USERS, Substrate
+from literals import INTERNAL_USERS, Substrate
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ class KafkaCluster(StateBase):
         self.app = component
 
     @property
-    def internal_user_credentials(self) -> Dict[str, str]:
+    def internal_user_credentials(self) -> dict[str, str]:
         """The charm internal usernames and passwords, e.g `sync` and `admin`.
 
         Returns:
@@ -120,7 +120,7 @@ class KafkaBroker(StateBase):
     # --- TLS ---
 
     @property
-    def private_key(self) -> Optional[str]:
+    def private_key(self) -> str | None:
         """The unit private-key set during `certificates_joined`.
 
         Returns:
@@ -130,7 +130,7 @@ class KafkaBroker(StateBase):
         return self.relation_data.get("private-key")
 
     @property
-    def csr(self) -> Optional[str]:
+    def csr(self) -> str | None:
         """The unit cert signing request.
 
         Returns:
@@ -140,7 +140,7 @@ class KafkaBroker(StateBase):
         return self.relation_data.get("csr")
 
     @property
-    def certificate(self) -> Optional[str]:
+    def certificate(self) -> str | None:
         """The signed unit certificate from the provider relation.
 
         Returns:
@@ -150,7 +150,7 @@ class KafkaBroker(StateBase):
         return self.relation_data.get("certificate")
 
     @property
-    def ca(self) -> Optional[str]:
+    def ca(self) -> str | None:
         """The ca used to sign unit cert.
 
         Returns:
@@ -160,7 +160,7 @@ class KafkaBroker(StateBase):
         return self.relation_data.get("ca")
 
     @property
-    def keystore_password(self) -> Optional[str]:
+    def keystore_password(self) -> str | None:
         """The unit keystore password set during `certificates_joined`.
 
         Returns:
@@ -170,7 +170,7 @@ class KafkaBroker(StateBase):
         return self.relation_data.get("keystore-password")
 
     @property
-    def truststore_password(self) -> Optional[str]:
+    def truststore_password(self) -> str | None:
         """The unit truststore password set during `certificates_joined`.
 
         Returns:
@@ -292,7 +292,7 @@ class ZooKeeper(StateBase):
 
         return zk.get_version()
 
-    def get_active_brokers(self) -> Set[str]:
+    def get_active_brokers(self) -> set[str]:
         """Gets all brokers currently connected to ZooKeeper.
 
         Args:

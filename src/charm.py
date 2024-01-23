@@ -22,7 +22,13 @@ from ops.main import main
 from ops.model import ActiveStatus, StatusBase
 
 from core.cluster import ClusterState
-from core.literals import (
+from core.structured_config import CharmConfig
+from events.provider import KafkaProvider
+from events.tls import TLSHandler
+from events.upgrade import KafkaDependencyModel, KafkaUpgrade
+from events.zookeeper import ZooKeeperHandler
+from health import KafkaHealth
+from literals import (
     ADMIN_USER,
     CHARM_KEY,
     DEPENDENCIES,
@@ -37,12 +43,6 @@ from core.literals import (
     Status,
     Substrate,
 )
-from core.structured_config import CharmConfig
-from events.provider import KafkaProvider
-from events.tls import TLSHandler
-from events.upgrade import KafkaDependencyModel, KafkaUpgrade
-from events.zookeeper import ZooKeeperHandler
-from health import KafkaHealth
 from managers.auth import AuthManager
 from managers.config import KafkaConfigManager
 from managers.tls import TLSManager
@@ -64,18 +64,18 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.state = ClusterState(self, substrate=self.substrate)
 
         self.health = KafkaHealth(self)
-        self.upgrade = KafkaUpgrade(
-            self,
-            dependency_model=KafkaDependencyModel(
-                **DEPENDENCIES  # pyright: ignore[reportGeneralTypeIssues]
-            ),
-        )
 
         # HANDLERS
 
         self.zookeeper = ZooKeeperHandler(self)
         self.tls = TLSHandler(self)
         self.provider = KafkaProvider(self)
+        self.upgrade = KafkaUpgrade(
+            self,
+            dependency_model=KafkaDependencyModel(
+                **DEPENDENCIES  # pyright: ignore[reportGeneralTypeIssues]
+            ),
+        )
 
         # MANAGERS
 
@@ -124,7 +124,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         if self.workload.install():
             self._set_os_config()
             self.config_manager.set_environment()
-            self._set_status(Status.ZK_NOT_RELATED)
         else:
             self._set_status(Status.SNAP_NOT_INSTALLED)
 
@@ -161,6 +160,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         # Load current properties set in the charm workload
         properties = self.workload.read(self.workload.paths.server_properties)
+        print(f"properties: {properties}")
         if not properties:
             # Event fired before charm has properly started
             event.defer()
@@ -385,6 +385,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         Returns:
             True if service is alive and active. Otherwise False
         """
+        print("in healthy")
         ready_state = self.state.ready_to_start
         if ready_state != Status.ACTIVE:
             self._set_status(ready_state)
@@ -400,6 +401,8 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         """Sets charm status."""
         status: StatusBase = key.value.status
         log_level: DebugLevel = key.value.log_level
+        print(key)
+        print(log_level)
 
         getattr(logger, log_level.lower())(status.message)
         self.unit.status = status

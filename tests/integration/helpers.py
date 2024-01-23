@@ -17,7 +17,7 @@ from kafka.admin import NewTopic
 from kazoo.exceptions import AuthFailedError, NoNodeError
 from pytest_operator.plugin import OpsTest
 
-from core.literals import PATHS, SECURITY_PROTOCOL_PORTS
+from literals import PATHS, SECURITY_PROTOCOL_PORTS
 from managers.auth import Acl, AuthManager
 
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
