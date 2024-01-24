@@ -68,6 +68,11 @@ class KafkaCluster(StateBase):
 
         return credentials
 
+    @property
+    def client_passwords(self) -> dict[str, str]:
+        """Usernames and passwords of related client applications."""
+        return {key: value for key, value in self.relation_data.items() if "relation-" in key}
+
     # --- TLS ---
 
     @property
@@ -225,36 +230,41 @@ class ZooKeeper(StateBase):
         return bool(self.relation)
 
     @property
-    def zookeeper_config(self) -> dict[str, str]:
-        """The config from current ZooKeeper relations for data necessary for broker connection.
+    def username(self) -> str:
+        """Username to connect to ZooKeeper."""
+        return self.remote_app_data.get("username", "")
 
-        Returns:
-            Dict of ZooKeeeper:
-            `username`, `password`, `endpoints`, `chroot`, `connect`, `uris` and `tls`
-        """
-        zookeeper_config = {}
+    @property
+    def password(self) -> str:
+        """Password of the ZooKeeper user."""
+        return self.remote_app_data.get("password", "")
 
-        if not self.relation:
-            return zookeeper_config
+    @property
+    def endpoints(self) -> str:
+        """IP/host where ZooKeeper is located."""
+        return self.remote_app_data.get("endpoints", "")
 
-        zk_keys = ["username", "password", "endpoints", "chroot", "uris", "tls"]
-        missing_config = any(self.remote_app_data.get(key, None) is None for key in zk_keys)
+    @property
+    def chroot(self) -> str:
+        """Path allocated for Kafka on ZooKeeper."""
+        return self.remote_app_data.get("chroot", "")
 
-        # skip if config is missing
-        if missing_config:
-            return zookeeper_config
+    @property
+    def uris(self) -> str:
+        """Comma separated connection string, containing endpoints + chroot."""
+        return self.remote_app_data.get("uris", "")
 
-        # set if exists
-        zookeeper_config.update(self.remote_app_data)
+    @property
+    def tls(self) -> bool:
+        """Check if TLS is enabled on ZooKeeper."""
+        return bool(self.remote_app_data.get("tls", "disabled") == "enabled")
 
-        if zookeeper_config:
-            sorted_uris = sorted(
-                zookeeper_config["uris"].replace(zookeeper_config["chroot"], "").split(",")
-            )
-            sorted_uris[-1] = sorted_uris[-1] + zookeeper_config["chroot"]
-            zookeeper_config["connect"] = ",".join(sorted_uris)
-
-        return zookeeper_config
+    @property
+    def connect(self) -> str:
+        """Full connection string of sorted uris."""
+        sorted_uris = sorted(self.uris.replace(self.chroot, "").split(","))
+        sorted_uris[-1] = sorted_uris[-1] + self.chroot
+        return ",".join(sorted_uris)
 
     @property
     def zookeeper_connected(self) -> bool:
@@ -264,60 +274,18 @@ class ZooKeeper(StateBase):
             True if ZooKeeper is currently related with sufficient relation data
                 for a broker to connect with. Otherwise False
         """
-        if self.zookeeper_config.get("connect", None):
-            return True
+        if not all([self.username, self.password, self.endpoints, self.chroot, self.uris]):
+            return False
 
-        return False
+        return True
 
     @property
-    def tls(self) -> bool:
-        """Check if TLS is enabled on ZooKeeper."""
-        return bool(self.zookeeper_config.get("tls", "disabled") == "enabled")
-
-    def get_zookeeper_version(self) -> str:
-        """Get running zookeeper version.
-
-        Args:
-            zookeeper_config: the relation provided by ZooKeeper
-
-        Returns:
-            zookeeper version
-        """
-        config = self.zookeeper_config
-        hosts = config.get("endpoints", "").split(",")
-        username = config.get("username", "")
-        password = config.get("password", "")
-
-        zk = ZooKeeperManager(hosts=hosts, username=username, password=password)
+    def zookeeper_version(self) -> str:
+        """Get running zookeeper version."""
+        hosts = self.endpoints.split(",")
+        zk = ZooKeeperManager(hosts=hosts, username=self.username, password=self.password)
 
         return zk.get_version()
-
-    def get_active_brokers(self) -> set[str]:
-        """Gets all brokers currently connected to ZooKeeper.
-
-        Args:
-            zookeeper_config: the relation data provided by ZooKeeper
-
-        Returns:
-            Set of active broker ids
-        """
-        config = self.zookeeper_config
-        chroot = config.get("chroot", "")
-        hosts = config.get("endpoints", "").split(",")
-        username = config.get("username", "")
-        password = config.get("password", "")
-
-        zk = ZooKeeperManager(hosts=hosts, username=username, password=password)
-        path = f"{chroot}/brokers/ids/"
-
-        try:
-            brokers = zk.leader_znodes(path=path)
-        # auth might not be ready with ZK after relation yet
-        except (NoNodeError, AuthFailedError, QuorumLeaderNotFoundError) as e:
-            logger.debug(str(e))
-            return set()
-
-        return brokers
 
     @retry(
         # retry to give ZK time to update its broker zNodes before failing
@@ -327,16 +295,22 @@ class ZooKeeper(StateBase):
         retry=retry_if_not_result(lambda result: True if result else False),
     )
     def broker_active(self) -> bool:
-        """Checks ZooKeeper for client connections, checks for specific broker id.
-
-        Args:
-            unit: the `Unit` to check connection of
-            zookeeper_config: the relation provided by ZooKeeper
-
-        Returns:
-            True if broker id is recognised as active by ZooKeeper. Otherwise False.
-        """
+        """Checks if broker id is recognised as active by ZooKeeper."""
         broker_id = self._local_unit.name.split("/")[1]
         brokers = self.get_active_brokers()
-        chroot = self.zookeeper_config.get("chroot", "")
-        return f"{chroot}/brokers/ids/{broker_id}" in brokers
+        return f"{self.chroot}/brokers/ids/{broker_id}" in brokers
+
+    def get_active_brokers(self) -> set[str]:
+        """Gets all brokers currently connected to ZooKeeper."""
+        hosts = self.endpoints.split(",")
+        zk = ZooKeeperManager(hosts=hosts, username=self.username, password=self.password)
+        path = f"{self.chroot}/brokers/ids/"
+
+        try:
+            brokers = zk.leader_znodes(path=path)
+        # auth might not be ready with ZK after relation yet
+        except (NoNodeError, AuthFailedError, QuorumLeaderNotFoundError) as e:
+            logger.debug(str(e))
+            return set()
+
+        return brokers

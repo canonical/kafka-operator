@@ -6,7 +6,6 @@
 
 import logging
 import os
-import re
 import secrets
 import shutil
 import string
@@ -84,7 +83,7 @@ class KafkaPaths(PathsBase):
 
         Used for scraping and exposing mBeans of a JMX target.
         """
-        return f"{self.binaries_path}/jmx_prometheus_javaagent.jar"
+        return f"{self.binaries_path}/libs/jmx_prometheus_javaagent.jar"
 
     @property
     def jmx_prometheus_config(self):
@@ -219,7 +218,6 @@ class KafkaWorkload(WorkloadBase):
         java_processes = subprocess.check_output(
             "pidof java", stderr=subprocess.PIPE, universal_newlines=True, shell=True
         )
-
         logger.debug(f"Java processes: {java_processes}")
 
         for pid in java_processes.split():
@@ -254,12 +252,6 @@ class KafkaWorkload(WorkloadBase):
         command = f"{opts_str} {SNAP_NAME}.{bin_keyword} {bin_str}"
         return self.exec(command)
 
-    def update_environment(self, env: dict[str, str]) -> None:
-        """Updates /etc/environment file."""
-        updated_env = self.get_env() | env
-        content = "\n".join([f"{key}={value}" for key, value in updated_env.items()])
-        self.write(content=content, path="/etc/environment")
-
     @staticmethod
     def set_snap_ownership(path: str) -> None:
         """Sets a filepath `snap_daemon` ownership."""
@@ -277,32 +269,6 @@ class KafkaWorkload(WorkloadBase):
         for root, dirs, files in os.walk(path):
             for fp in dirs + files:
                 os.chmod(os.path.join(root, fp), 0o770)
-
-    @staticmethod
-    def map_env(env: list[str]) -> dict[str, str]:
-        """Builds environment map for arbitrary env-var strings.
-
-        Returns:
-            Dict of env-var and value
-        """
-        map_env = {}
-        for var in env:
-            key = "".join(var.split("=", maxsplit=1)[0])
-            value = "".join(var.split("=", maxsplit=1)[1:])
-            if key:
-                # only check for keys, as we can have an empty value for a variable
-                map_env[key] = value
-
-        return map_env
-
-    def get_env(self) -> dict[str, str]:
-        """Builds map of current basic environment for all processes.
-
-        Returns:
-            Dict of env-var and value
-        """
-        raw_env = self.read("/etc/environment")
-        return self.map_env(env=raw_env)
 
     @staticmethod
     def generate_password() -> str:

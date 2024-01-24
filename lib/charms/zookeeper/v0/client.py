@@ -4,9 +4,9 @@
 
 """ZooKeeperManager and ZooKeeperClient classes
 
-`ZooKeeperManager` provides an interface for performing actions that requires
+`ZooKeeperManager` provides an interface for performing actions that requires 
 a connection to the current ZK quorum leader, e.g updating zNodes, ACLs and quorum members.
-On `__init__`, it loops through all passed hosts, attempts a `ZooKeeperClient` connection, and
+On `__init__`, it loops through all passed hosts, attempts a `ZooKeeperClient` connection, and 
 checks leadership of each unit, storing the current quorum leader host as an attribute.
 
 In most cases, custom `Exception`s raised by `ZooKeeperManager` should trigger an `event.defer()`,
@@ -51,8 +51,7 @@ def update_cluster(new_members: List[str], event: EventBase) -> None:
     ) as e:
         logger.info(str(e))
         event.defer()
-
-Return:
+        return
 ```
 """
 

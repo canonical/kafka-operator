@@ -5,7 +5,6 @@ from unittest.mock import patch
 
 import pytest
 from src.literals import INTERNAL_USERS, SUBSTRATE
-from tests.unit.test_charm import PropertyMock
 
 
 @pytest.fixture(scope="module")
@@ -31,11 +30,6 @@ def patched_pebble_restart(mocker):
 
 
 @pytest.fixture(autouse=True)
-def patched_healthy(mocker):
-    mocker.patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True)
-
-
-@pytest.fixture(autouse=True)
 def patched_sysctl_config():
     with patch("charm.sysctl.Config.configure") as sysctl_config:
         yield sysctl_config
@@ -43,7 +37,7 @@ def patched_sysctl_config():
 
 @pytest.fixture(autouse=True)
 def patched_etc_environment():
-    with patch("vm_workload.KafkaWorkload.update_environment") as etc_env:
+    with patch("managers.config.KafkaConfigManager.set_environment") as etc_env:
         yield etc_env
 
 

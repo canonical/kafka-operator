@@ -50,7 +50,7 @@ class KafkaUpgrade(DataUpgrade):
     @property
     def zookeeper_current_version(self) -> str:
         """Get current Zookeeper version."""
-        return self.charm.state.zookeeper.get_zookeeper_version()
+        return self.charm.state.zookeeper.zookeeper_version
 
     def post_upgrade_check(self) -> None:
         """Runs necessary checks validating the unit is in a healthy state after upgrade."""
@@ -65,7 +65,7 @@ class KafkaUpgrade(DataUpgrade):
     @override
     def build_upgrade_stack(self) -> list[int]:
         upgrade_stack = []
-        units = set([self.charm.unit] + list(self.charm.peer_relation.units))  # type: ignore[reportOptionalMemberAccess]
+        units = set([self.charm.unit] + list(self.charm.state.peer_relation.units))  # type: ignore[reportOptionalMemberAccess]
         for unit in units:
             upgrade_stack.append(int(unit.name.split("/")[-1]))
 
@@ -97,7 +97,7 @@ class KafkaUpgrade(DataUpgrade):
             self.set_unit_failed()
             return
 
-        self.charm.kafka_config.set_environment()
+        self.charm.config_manager.set_environment()
 
         logger.info(f"{self.charm.unit.name} upgrading service...")
         self.charm.workload.restart()

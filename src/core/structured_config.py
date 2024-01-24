@@ -71,6 +71,7 @@ class CharmConfig(BaseConfigModel):
     zookeeper_ssl_cipher_suites: str | None
     profile: str
     certificate_extra_sans: str | None
+    log_level: str
 
     @validator("*", pre=True)
     @classmethod
@@ -225,7 +226,7 @@ class CharmConfig(BaseConfigModel):
 
     @validator("log_level")
     @classmethod
-    def log_level_values(cls, value: str) -> Optional[str]:
+    def log_level_values(cls, value: str) -> str | None:
         """Check validity of `log_level` field."""
         try:
             _log_level = LogLevel(value)

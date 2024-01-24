@@ -2,7 +2,7 @@
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-"""Collection of globals common to the KafkaCharm."""
+"""Objects representing the state of KafkaCharm."""
 
 import os
 

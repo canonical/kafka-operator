@@ -9,10 +9,12 @@ from unittest.mock import PropertyMock, patch
 import pytest
 import yaml
 from charms.operator_libs_linux.v0.sysctl import ApplyError
+from charms.operator_libs_linux.v1.snap import SnapError
 from ops.model import BlockedStatus
 from ops.testing import Harness
-from src.charm import KafkaCharm
-from src.literals import (
+
+from charm import KafkaCharm
+from literals import (
     CHARM_KEY,
     CONTAINER,
     INTERNAL_USERS,
@@ -68,12 +70,14 @@ def test_install_sets_env_vars(harness: Harness, patched_etc_environment):
         patched_etc_environment.assert_called_once()
 
 
+@pytest.mark.skipif(SUBSTRATE == "k8s", reason="sysctl config not used on K8s")
 def test_install_configures_os(harness: Harness, patched_sysctl_config):
     with patch("vm_workload.KafkaWorkload.install"):
         harness.charm.on.install.emit()
         patched_sysctl_config.assert_called_once_with(OS_REQUIREMENTS)
 
 
+@pytest.mark.skipif(SUBSTRATE == "k8s", reason="sysctl config not used on K8s")
 def test_install_sets_status_if_os_config_fails(harness: Harness, patched_sysctl_config):
     with patch("vm_workload.KafkaWorkload.install"):
         patched_sysctl_config.side_effect = ApplyError("Error setting values")
@@ -190,7 +194,7 @@ def test_start_sets_necessary_config(harness: Harness, zk_data, passwords_data):
         harness.update_relation_data(peer_rel_id, CHARM_KEY, passwords_data)
 
     with (
-        patch("charm.KafkaCharm._update_internal_user"),
+        patch("managers.auth.AuthManager.add_user"),
         patch("managers.config.KafkaConfigManager.set_zk_jaas_config") as patched_jaas,
         patch(
             "managers.config.KafkaConfigManager.set_server_properties"
@@ -284,16 +288,30 @@ def test_update_status_blocks_if_no_service(harness: Harness, zk_data, passwords
         harness.update_relation_data(peer_rel_id, CHARM_KEY, passwords_data)
 
     with (
-        patch(
-            "vm_workload.snap.Snap.logs",
-            return_value="2023-04-13T13:11:43+01:00 juju.fetch-oci[840]: /usr/bin/timeout",
-        ),
+        patch("health.KafkaHealth.machine_configured", side_effect=SnapError()),
         patch("charm.KafkaCharm.healthy", return_value=True),
         patch("core.cluster.ZooKeeper.broker_active", return_value=True),
         patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
     ):
         harness.charm.on.update_status.emit()
         assert harness.charm.unit.status == Status.SNAP_NOT_RUNNING.value.status
+
+
+def test_update_status_sets_sysconf_warning(harness: Harness, zk_data, passwords_data):
+    with harness.hooks_disabled():
+        peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
+        zk_rel_id = harness.add_relation(ZK, ZK)
+        harness.update_relation_data(zk_rel_id, ZK, zk_data)
+        harness.update_relation_data(peer_rel_id, CHARM_KEY, passwords_data)
+
+    with (
+        patch("vm_workload.KafkaWorkload.active", return_value=True),
+        patch("core.cluster.ZooKeeper.broker_active", return_value=True),
+        patch("health.KafkaHealth.machine_configured", return_value=False),
+        patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
+    ):
+        harness.charm.on.update_status.emit()
+        assert harness.charm.unit.status == Status.SYSCONF_NOT_OPTIMAL.value.status
 
 
 def test_update_status_sets_active(harness: Harness, zk_data, passwords_data):
@@ -375,6 +393,7 @@ def test_storage_add_disableenables_and_starts(
         patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
         patch("managers.config.KafkaConfigManager.set_server_properties"),
         patch("managers.config.KafkaConfigManager.set_client_properties"),
+        patch("managers.config.KafkaConfigManager.set_environment"),
         patch("vm_workload.KafkaWorkload.read", return_value=["gandalf=grey"]),
         patch("vm_workload.KafkaWorkload.disable_enable") as patched_disable_enable,
         patch("vm_workload.KafkaWorkload.start") as patched_start,
@@ -488,7 +507,7 @@ def test_config_changed_updates_server_properties(harness: Harness, zk_data):
             new_callable=PropertyMock,
             return_value=["gandalf=white"],
         ),
-        patch("harness.charm.healthy", return_value=True),
+        patch("charm.KafkaCharm.healthy", return_value=True),
         patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
         patch("vm_workload.KafkaWorkload.read", return_value=["gandalf=grey"]),
         patch("managers.config.KafkaConfigManager.set_server_properties") as set_server_properties,
@@ -584,3 +603,14 @@ def test_config_changed_restarts(harness: Harness, patched_workload_write):
 
         harness.charm.on.config_changed.emit()
         patched_restart_snap_service.assert_called_once()
+
+
+@pytest.mark.skipif(SUBSTRATE == "k8s", reason="sysctl config not used on K8s")
+def test_on_remove_sysctl_is_deleted(harness: Harness):
+    peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
+    harness.add_relation_unit(peer_rel_id, f"{CHARM_KEY}/0")
+
+    with patch("charm.sysctl.Config.remove") as patched_sysctl_remove:
+        harness.charm.on.remove.emit()
+
+        patched_sysctl_remove.assert_called_once()

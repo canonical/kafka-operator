@@ -5,34 +5,29 @@
 """Charmed Machine Operator for Apache Kafka."""
 
 import logging
+import time
 
 from charms.data_platform_libs.v0.data_models import TypedCharmBase
 from charms.grafana_agent.v0.cos_agent import COSAgentProvider
 from charms.operator_libs_linux.v0 import sysctl
 from charms.operator_libs_linux.v1.snap import SnapError
 from charms.rolling_ops.v0.rollingops import RollingOpsManager, RunWithLock
-from ops.charm import (
-    ActionEvent,
-    StorageAttachedEvent,
-    StorageDetachingEvent,
-    StorageEvent,
-)
+from ops.charm import StorageAttachedEvent, StorageDetachingEvent, StorageEvent
 from ops.framework import EventBase
 from ops.main import main
 from ops.model import ActiveStatus, StatusBase
 
 from core.cluster import ClusterState
 from core.structured_config import CharmConfig
+from events.password_actions import PasswordActionEvents
 from events.provider import KafkaProvider
 from events.tls import TLSHandler
 from events.upgrade import KafkaDependencyModel, KafkaUpgrade
 from events.zookeeper import ZooKeeperHandler
 from health import KafkaHealth
 from literals import (
-    ADMIN_USER,
     CHARM_KEY,
     DEPENDENCIES,
-    INTERNAL_USERS,
     JMX_EXPORTER_PORT,
     LOGS_RULES_DIR,
     METRICS_RULES_DIR,
@@ -67,13 +62,14 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         # HANDLERS
 
+        self.password_action_events = PasswordActionEvents(self)
         self.zookeeper = ZooKeeperHandler(self)
         self.tls = TLSHandler(self)
         self.provider = KafkaProvider(self)
         self.upgrade = KafkaUpgrade(
             self,
             dependency_model=KafkaDependencyModel(
-                **DEPENDENCIES  # pyright: ignore[reportGeneralTypeIssues]
+                **DEPENDENCIES  # pyright: ignore[reportGeneralTypeIssues, reportArgumentType]
             ),
         )
 
@@ -84,6 +80,8 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         )
         self.tls_manager = TLSManager(self.state, self.workload, substrate=self.substrate)
         self.auth_manager = AuthManager(self.state, self.workload, self.config_manager.kafka_opts)
+
+        # LIB HANDLERS
 
         self.sysctl_config = sysctl.Config(name=CHARM_KEY)
         self.restart = RollingOpsManager(self, relation="restart", callback=self._restart)
@@ -107,11 +105,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         self.framework.observe(self.on[PEER].relation_changed, self._on_config_changed)
 
-        self.framework.observe(getattr(self.on, "set_password_action"), self._set_password_action)
-        self.framework.observe(
-            getattr(self.on, "get_admin_credentials_action"), self._get_admin_credentials_action
-        )
-
         self.framework.observe(
             getattr(self.on, "data_storage_attached"), self._on_storage_attached
         )
@@ -129,9 +122,8 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
     def _on_start(self, event: EventBase) -> None:
         """Handler for `start` event."""
-        ready_state = self.state.ready_to_start
-        if ready_state != Status.ACTIVE:
-            self._set_status(ready_state)
+        self._set_status(self.state.ready_to_start)
+        if not isinstance(self.unit.status, ActiveStatus):
             event.defer()
             return
 
@@ -160,7 +152,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         # Load current properties set in the charm workload
         properties = self.workload.read(self.workload.paths.server_properties)
-        print(f"properties: {properties}")
         if not properties:
             # Event fired before charm has properly started
             event.defer()
@@ -175,6 +166,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
                 )
             )
             self.config_manager.set_server_properties()
+            self.config_manager.set_environment()
 
             self.kafka_config.set_environment()
 
@@ -210,7 +202,8 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             if not self.health.machine_configured():
                 self._set_status(Status.SYSCONF_NOT_OPTIMAL)
                 return
-        except SnapError:
+        except SnapError as e:
+            logger.debug(f"Error: {e}")
             self._set_status(Status.SNAP_NOT_RUNNING)
             return
 
@@ -234,7 +227,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
     def _on_storage_detaching(self, event: StorageDetachingEvent) -> None:
         """Handler for `storage_detaching` events."""
         # in the case where there may be replication recovery may be possible
-        if self.state.peer_relation and len(self.state.peer_relation.units):
+        if self.state.brokers and len(self.state.brokers) > 1:
             self._set_status(Status.REMOVED_STORAGE)
         else:
             self._set_status(Status.REMOVED_STORAGE_NO_REPL)
@@ -250,7 +243,11 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         self.workload.restart()
 
-        if self.healthy:
+        # FIXME: This logic should be improved as part of ticket DPE-3155
+        # For more information, please refer to https://warthogs.atlassian.net/browse/DPE-3155
+        time.sleep(10.0)
+
+        if self.workload.active():
             logger.info(f'Broker {self.unit.name.split("/")[1]} restarted')
         else:
             logger.error(f"Broker {self.unit.name.split('/')[1]} failed to restart")
@@ -265,108 +262,11 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.workload.disable_enable()
         self.workload.start()
 
-        if self.healthy:
+        if self.workload.active():
             logger.info(f'Broker {self.unit.name.split("/")[1]} restarted')
         else:
             logger.error(f"Broker {self.unit.name.split('/')[1]} failed to restart")
             return
-
-    def _set_password_action(self, event: ActionEvent) -> None:
-        """Handler for set-password action.
-
-        Set the password for a specific user, if no passwords are passed, generate them.
-        """
-        if not self.unit.is_leader():
-            msg = "Password rotation must be called on leader unit"
-            logger.error(msg)
-            event.fail(msg)
-            return
-
-        if not self.healthy:
-            msg = "Unit is not healthy"
-            logger.error(msg)
-            event.fail(msg)
-            return
-
-        username = event.params["username"]
-        if username not in INTERNAL_USERS:
-            msg = f"Can only update internal charm users: {INTERNAL_USERS}, not {username}."
-            logger.error(msg)
-            event.fail(msg)
-
-        new_password = event.params.get("password", self.workload.generate_password())
-
-        if new_password in self.state.cluster.internal_user_credentials.values():
-            msg = "Password already exists, please choose a different password."
-            logger.error(msg)
-            event.fail(msg)
-            return
-
-        try:
-            self._update_internal_user(username=username, password=new_password)
-        except Exception as e:
-            logger.error(str(e))
-            event.fail(f"unable to set password for {username}")
-
-        # Store the password on application databag
-        self.state.cluster.relation_data.update({f"{username}-password": new_password})
-        event.set_results({f"{username}-password": new_password})
-
-    def _get_admin_credentials_action(self, event: ActionEvent) -> None:
-        client_properties = self.workload.read(self.workload.paths.client_properties)
-
-        if not client_properties:
-            msg = "client.properties file not found on target unit."
-            logger.error(msg)
-            event.fail(msg)
-            return
-
-        admin_properties = set(client_properties) - set(self.config_manager.tls_properties)
-
-        event.set_results(
-            {
-                "username": ADMIN_USER,
-                "password": self.state.cluster.internal_user_credentials[ADMIN_USER],
-                "client-properties": "\n".join(admin_properties),
-            }
-        )
-
-    def _update_internal_user(self, username: str, password: str) -> None:
-        """Updates internal SCRAM usernames and passwords.
-
-        Raises:
-            RuntimeError if called from non-leader unit
-            KeyError if attempted to update non-leader unit
-            subprocess.CalledProcessError if command to ZooKeeper failed
-        """
-        if not self.unit.is_leader():
-            raise RuntimeError("Cannot update internal user from non-leader unit.")
-
-        # do not start units until SCRAM users have been added to ZooKeeper for server-server auth
-        self.auth_manager.add_user(
-            username=username,
-            password=password,
-            zk_auth=True,
-        )
-
-    def create_internal_credentials(self) -> list[tuple[str, str]]:
-        """Creates internal SCRAM users during cluster start.
-
-        Returns:
-            List of (username, password) for all internal users
-
-        Raises:
-            RuntimeError if called from non-leader unit
-            KeyError if attempted to update non-leader unit
-            subprocess.CalledProcessError if command to ZooKeeper failed
-        """
-        credentials = [
-            (username, self.workload.generate_password()) for username in INTERNAL_USERS
-        ]
-        for username, password in credentials:
-            self._update_internal_user(username=username, password=password)
-
-        return credentials
 
     def _set_os_config(self) -> None:
         """Sets sysctl config."""
@@ -385,10 +285,8 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         Returns:
             True if service is alive and active. Otherwise False
         """
-        print("in healthy")
-        ready_state = self.state.ready_to_start
-        if ready_state != Status.ACTIVE:
-            self._set_status(ready_state)
+        self._set_status(self.state.ready_to_start)
+        if not isinstance(self.unit.status, ActiveStatus):
             return False
 
         if not self.workload.active():
@@ -401,8 +299,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         """Sets charm status."""
         status: StatusBase = key.value.status
         log_level: DebugLevel = key.value.log_level
-        print(key)
-        print(log_level)
 
         getattr(logger, log_level.lower())(status.message)
         self.unit.status = status

@@ -8,7 +8,7 @@ import logging
 from typing import cast
 
 from core.cluster import ClusterState
-from core.structured_config import CharmConfig
+from core.structured_config import CharmConfig, LogLevel
 from literals import (
     ADMIN_USER,
     INTER_BROKER_USER,
@@ -118,9 +118,10 @@ class KafkaConfigManager:
         Returns:
             String with these possible values: DEBUG, INFO, WARN, ERROR
         """
-        opts = [f"-Dlog4j.configuration=file:{self.workload.paths.log4j_properties}"]
-
-        return f"KAFKA_LOG4J_OPTS='{' '.join(opts)}'"
+        # Remapping to WARN that is generally used in Java applications based on log4j and logback.
+        if self.config.log_level == LogLevel.WARNING.value:
+            return "WARN"
+        return self.config.log_level
 
     @property
     def jmx_opts(self) -> str:
@@ -179,6 +180,7 @@ class KafkaConfigManager:
         """
         opts = [
             f"-Djava.security.auth.login.config={self.workload.paths.zk_jaas}",
+            f"-Dcharmed.kafka.log.level={self.log_level}",
         ]
 
         return f"KAFKA_OPTS='{' '.join(opts)}'"
@@ -211,7 +213,7 @@ class KafkaConfigManager:
         """
         return [
             f"broker.id={self.state.broker.unit_id}",
-            f'zookeeper.connect={self.state.zookeeper.zookeeper_config["connect"]}',
+            f"zookeeper.connect={self.state.zookeeper.connect}",
         ]
 
     @property
@@ -348,7 +350,8 @@ class KafkaConfigManager:
         client_properties = [
             f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";',
             "sasl.mechanism=SCRAM-SHA-512",
-            f"security.protocol={self.security_protocol}",  # FIXME: will need changing once multiple listener auth schemes
+            f"security.protocol={self.security_protocol}",
+            # FIXME: security.protocol will need changing once multiple listener auth schemes
             f"bootstrap.servers={','.join(self.state.bootstrap_server)}",
         ]
 
@@ -409,7 +412,7 @@ class KafkaConfigManager:
     def config_properties(self) -> list[str]:
         """Configure server properties from config."""
         return [
-            f"{conf_key.replace('_', '.')}={str(value)}"
+            f"{self._translate_config_key(conf_key)}={str(value)}"
             for conf_key, value in self.config.dict().items()
             if value is not None
         ]
@@ -419,8 +422,8 @@ class KafkaConfigManager:
         jaas_config = f"""
             Client {{
                 org.apache.zookeeper.server.auth.DigestLoginModule required
-                username="{self.state.zookeeper.zookeeper_config['username']}"
-                password="{self.state.zookeeper.zookeeper_config['password']}";
+                username="{self.state.zookeeper.username}"
+                password="{self.state.zookeeper.password}";
             }};
         """
         self.workload.write(content=jaas_config, path=self.workload.paths.zk_jaas)
@@ -445,4 +448,29 @@ class KafkaConfigManager:
             self.jvm_performance_opts,
             self.heap_opts,
         ]
-        self.workload.update_environment(env=self.workload.map_env(env=updated_env_list))
+
+        def map_env(env: list[str]) -> dict[str, str]:
+            map_env = {}
+            for var in env:
+                key = "".join(var.split("=", maxsplit=1)[0])
+                value = "".join(var.split("=", maxsplit=1)[1:])
+                if key:
+                    # only check for keys, as we can have an empty value for a variable
+                    map_env[key] = value
+            return map_env
+
+        raw_current_env = self.workload.read("/etc/environment")
+        current_env = map_env(raw_current_env)
+
+        updated_env = map_env(updated_env_list) | current_env
+        content = "\n".join([f"{key}={value}" for key, value in updated_env.items()])
+        self.workload.write(content=content, path="/etc/environment")
+
+    @staticmethod
+    def _translate_config_key(key: str):
+        """Format config names into server properties, blacklisted property are commented out.
+
+        Returns:
+            String with Kafka configuration name to be placed in the server.properties file
+        """
+        return key.replace("_", ".") if key not in SERVER_PROPERTIES_BLACKLIST else f"# {key}"

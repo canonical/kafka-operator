@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 from ops import Object, RelationChangedEvent, RelationEvent
 from ops.pebble import ExecError
 
-from literals import ZK, Status
+from literals import INTERNAL_USERS, ZK, Status
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -62,7 +62,7 @@ class ZooKeeperHandler(Object):
             self.charm.config_manager.set_server_properties()
 
             try:
-                internal_user_credentials = self.charm.create_internal_credentials()
+                internal_user_credentials = self._create_internal_credentials()
             except (KeyError, RuntimeError, subprocess.CalledProcessError, ExecError) as e:
                 logger.warning(str(e))
                 event.defer()
@@ -80,3 +80,22 @@ class ZooKeeperHandler(Object):
 
         logger.info(f'Broker {self.model.unit.name.split("/")[1]} disconnected')
         self.charm._set_status(Status.ZK_NOT_RELATED)
+
+    def _create_internal_credentials(self) -> list[tuple[str, str]]:
+        """Creates internal SCRAM users during cluster start.
+
+        Returns:
+            List of (username, password) for all internal users
+
+        Raises:
+            RuntimeError if called from non-leader unit
+            KeyError if attempted to update non-leader unit
+            subprocess.CalledProcessError if command to ZooKeeper failed
+        """
+        credentials = [
+            (username, self.charm.workload.generate_password()) for username in INTERNAL_USERS
+        ]
+        for username, password in credentials:
+            self.charm.auth_manager.add_user(username=username, password=password, zk_auth=True)
+
+        return credentials

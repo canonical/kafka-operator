@@ -20,7 +20,7 @@ METADATA = str(yaml.safe_load(Path("./metadata.yaml").read_text()))
 
 @pytest.fixture
 def harness():
-    harness = Harness(KafkaCharm, meta=METADATA)
+    harness = Harness(KafkaCharm, meta=METADATA, actions=ACTIONS, config=CONFIG)
     harness.add_relation("restart", CHARM_KEY)
     harness._update_config(
         {

@@ -35,7 +35,7 @@ class AuthManager:
         self.workload = workload
         self.kafka_opts = kafka_opts
 
-        self.zookeeper_connect = self.state.zookeeper.zookeeper_config.get("connect", "")
+        self.zookeeper_connect = self.state.zookeeper.connect
         self.bootstrap_server = ",".join(self.state.bootstrap_server)
         self.client_properties = self.workload.paths.client_properties
         self.server_properties = self.workload.paths.server_properties

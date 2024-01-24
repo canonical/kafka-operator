@@ -5,7 +5,7 @@
 import logging
 import unittest.mock
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import mock_open, patch
 
 import pytest
 import yaml
@@ -23,7 +23,7 @@ METADATA = str(yaml.safe_load(Path("./metadata.yaml").read_text()))
 
 @pytest.fixture
 def harness():
-    harness = Harness(KafkaCharm, meta=METADATA)
+    harness = Harness(KafkaCharm, meta=METADATA, actions=ACTIONS, config=CONFIG)
     harness.add_relation("restart", CHARM_KEY)
     harness._update_config(
         {
@@ -44,7 +44,7 @@ def test_service_pid(harness):
     with (
         patch(
             "builtins.open",
-            new_callable=unittest.mock.mock_open,
+            new_callable=mock_open,
             read_data="0::/system.slice/snap.charmed-kafka.daemon.service",
         ),
         patch("subprocess.check_output", return_value="1314231"),
@@ -70,7 +70,9 @@ def test_check_vm_swappiness(harness):
 def test_check_total_memory_testing_profile(harness, total_mem_kb, profile, limit):
     harness._update_config({"profile": profile})
 
-    with patch("health.safe_get_file", return_value=[f"MemTotal:      {total_mem_kb} kB"]):
+    with patch(
+        "vm_workload.KafkaWorkload.read", return_value=[f"MemTotal:      {total_mem_kb} kB"]
+    ):
         if total_mem_kb / 1000000 <= limit:
             assert not harness.charm.health._check_total_memory()
         else:
@@ -80,12 +82,12 @@ def test_check_total_memory_testing_profile(harness, total_mem_kb, profile, limi
 def test_get_partitions_size(harness):
     example_log_dirs = 'Querying brokers for log directories information\nReceived log directory information from brokers 0\n{"version":1,"brokers":[{"broker":0,"logDirs":[{"logDir":"/var/snap/charmed-kafka/common/var/lib/kafka/data/0","error":null,"partitions":[{"partition":"NEW-TOPIC-2-4","size":394,"offsetLag":0,"isFuture":false},{"partition":"NEW-TOPIC-2-3","size":394,"offsetLag":0,"isFuture":false},{"partition":"NEW-TOPIC-2-2","size":392,"offsetLag":0,"isFuture":false},{"partition":"NEW-TOPIC-2-1","size":392,"offsetLag":0,"isFuture":false},{"partition":"NEW-TOPIC-2-0","size":393,"offsetLag":0,"isFuture":false}]}]}]}\n'
 
-    with patch("snap.KafkaSnap.run_bin_command", return_value=example_log_dirs):
+    with patch("vm_workload.KafkaWorkload.run_bin_command", return_value=example_log_dirs):
         assert harness.charm.health._get_partitions_size() == (5, 393)
 
 
 def test_check_file_descriptors_no_listeners(harness):
-    with patch("snap.KafkaSnap.run_bin_command") as patched_run_bin:
+    with patch("vm_workload.KafkaWorkload.run_bin_command") as patched_run_bin:
         assert harness.charm.health._check_file_descriptors()
         assert patched_run_bin.call_count == 0
 
