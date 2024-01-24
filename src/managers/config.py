@@ -399,15 +399,6 @@ class KafkaConfigManager:
 
         return properties
 
-    @staticmethod
-    def _translate_config_key(key):
-        """Format config names into server properties, blacklisted property are commented out.
-
-        Returns:
-            String with Kafka configuration name to be placed in the server.properties file
-        """
-        return key.replace("_", ".") if key not in SERVER_PROPERTIES_BLACKLIST else f"# {key}"
-
     @property
     def config_properties(self) -> list[str]:
         """Configure server properties from config."""
