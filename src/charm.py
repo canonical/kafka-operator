@@ -157,6 +157,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             event.defer()
             return
 
+        # update environment
+        self.config_manager.set_environment()
+
         if set(properties) ^ set(self.config_manager.server_properties):
             logger.info(
                 (
@@ -166,7 +169,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
                 )
             )
             self.config_manager.set_server_properties()
-            self.config_manager.set_environment()
 
             if isinstance(event, StorageEvent):  # to get new storages
                 self.on[f"{self.restart.name}"].acquire_lock.emit(

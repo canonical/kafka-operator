@@ -52,8 +52,8 @@ class ZooKeeperHandler(Object):
         # do not create users until certificate + keystores created
         # otherwise unable to authenticate to ZK
         if self.charm.state.cluster.tls_enabled and not self.charm.state.broker.certificate:
-            event.defer()
             self.charm._set_status(Status.NO_CERT)
+            event.defer()
             return
 
         if not self.charm.state.cluster.internal_user_credentials and self.model.unit.is_leader():
@@ -92,6 +92,7 @@ class ZooKeeperHandler(Object):
             KeyError if attempted to update non-leader unit
             subprocess.CalledProcessError if command to ZooKeeper failed
         """
+        logger.error("In _create_internal_credentials")
         credentials = [
             (username, self.charm.workload.generate_password()) for username in INTERNAL_USERS
         ]
