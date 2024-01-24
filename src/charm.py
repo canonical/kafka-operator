@@ -168,8 +168,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             self.config_manager.set_server_properties()
             self.config_manager.set_environment()
 
-            self.kafka_config.set_environment()
-
             if isinstance(event, StorageEvent):  # to get new storages
                 self.on[f"{self.restart.name}"].acquire_lock.emit(
                     callback_override="_disable_enable_restart"
