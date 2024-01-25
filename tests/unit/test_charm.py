@@ -2,8 +2,8 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-import re
 import logging
+import re
 from pathlib import Path
 from unittest.mock import PropertyMock, patch
 
@@ -496,6 +496,7 @@ def test_zookeeper_broken_stops_service_and_removes_meta_properties(harness: Har
         assert re.match(r"rm .*/meta.properties", patched_exec.call_args_list[0].args[0])
         assert isinstance(harness.charm.unit.status, BlockedStatus)
 
+
 def test_zookeeper_broken_cleans_internal_user_credentials(harness: Harness):
     """Checks chroot is added to ZK relation data on ZKrelationjoined hook."""
     with harness.hooks_disabled():
@@ -509,8 +510,8 @@ def test_zookeeper_broken_cleans_internal_user_credentials(harness: Harness):
         patch("core.models.StateBase.update") as patched_update,
         patch(
             "core.models.KafkaCluster.internal_user_credentials",
-            new_callable=PropertyMock, 
-            return_value={"saruman": "orthanc"}
+            new_callable=PropertyMock,
+            return_value={"saruman": "orthanc"},
         ),
     ):
         harness.remove_relation(zk_rel_id)
