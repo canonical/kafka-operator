@@ -152,7 +152,12 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         # Load current properties set in the charm workload
         properties = self.workload.read(self.workload.paths.server_properties)
-        if not properties:
+        properties_changed = set(properties) ^ set(self.config_manager.server_properties)
+
+        zk_jaas = self.workload.read(self.workload.paths.zk_jaas)
+        zk_jaas_changed = set(zk_jaas) ^ set(self.config_manager.zk_jaas_config.splitlines())
+
+        if not properties and zk_jaas:
             # Event fired before charm has properly started
             event.defer()
             return
@@ -160,7 +165,21 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         # update environment
         self.config_manager.set_environment()
 
-        if set(properties) ^ set(self.config_manager.server_properties):
+        if zk_jaas_changed:
+            clean_broker_jaas = [conf.strip() for conf in zk_jaas]
+            clean_config_jaas = [
+                conf.strip() for conf in self.config_manager.zk_jaas_config.splitlines()
+            ]
+            logger.info(
+                (
+                    f'Broker {self.unit.name.split("/")[1]} updating JAAS config - '
+                    f"OLD JAAS = {set(clean_broker_jaas) - set(clean_config_jaas)}, "
+                    f"NEW JAAS = {set(clean_config_jaas) - set(clean_broker_jaas)}"
+                )
+            )
+            self.config_manager.set_zk_jaas_config()
+
+        if properties_changed:
             logger.info(
                 (
                     f'Broker {self.unit.name.split("/")[1]} updating config - '
@@ -170,6 +189,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             )
             self.config_manager.set_server_properties()
 
+        if zk_jaas_changed or properties_changed:
             if isinstance(event, StorageEvent):  # to get new storages
                 self.on[f"{self.restart.name}"].acquire_lock.emit(
                     callback_override="_disable_enable_restart"

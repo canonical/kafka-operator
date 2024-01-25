@@ -408,16 +408,24 @@ class KafkaConfigManager:
             if value is not None
         ]
 
-    def set_zk_jaas_config(self) -> None:
-        """Writes the ZooKeeper JAAS config using ZooKeeper relation data."""
-        jaas_config = f"""
+    @property
+    def zk_jaas_config(self) -> str:
+        """Builds the JAAS config for Client authentication with ZooKeeper.
+
+        Returns:
+            String of Jaas config for ZooKeeper auth
+        """
+        return f"""
             Client {{
                 org.apache.zookeeper.server.auth.DigestLoginModule required
                 username="{self.state.zookeeper.username}"
                 password="{self.state.zookeeper.password}";
             }};
         """
-        self.workload.write(content=jaas_config, path=self.workload.paths.zk_jaas)
+
+    def set_zk_jaas_config(self) -> None:
+        """Writes the ZooKeeper JAAS config using ZooKeeper relation data."""
+        self.workload.write(content=self.zk_jaas_config, path=self.workload.paths.zk_jaas)
 
     def set_server_properties(self) -> None:
         """Writes all Kafka config properties to the `server.properties` path."""
