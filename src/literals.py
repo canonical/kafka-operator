@@ -83,12 +83,12 @@ class Status(Enum):
     NO_PEER_RELATION = StatusLevel(MaintenanceStatus("no peer relation yet"), "DEBUG")
     SNAP_NOT_INSTALLED = StatusLevel(BlockedStatus(f"unable to install {SNAP_NAME} snap"), "ERROR")
     SNAP_NOT_RUNNING = StatusLevel(BlockedStatus("snap service not running"), "WARNING")
-    ZK_NOT_RELATED = StatusLevel(BlockedStatus("missing required zookeeper relation"), "ERROR")
+    ZK_NOT_RELATED = StatusLevel(BlockedStatus("missing required zookeeper relation"), "DEBUG")
     ZK_NOT_CONNECTED = StatusLevel(BlockedStatus("unit not connected to zookeeper"), "ERROR")
     ZK_TLS_MISMATCH = StatusLevel(
         BlockedStatus("tls must be enabled on both kafka and zookeeper"), "ERROR"
     )
-    ZK_NO_DATA = StatusLevel(WaitingStatus("zookeeper credentials not created yet"), "INFO")
+    ZK_NO_DATA = StatusLevel(WaitingStatus("zookeeper credentials not created yet"), "DEBUG")
     ADDED_STORAGE = StatusLevel(
         ActiveStatus("manual partition reassignment may be needed to utilize new storage volumes"),
         "WARNING",
@@ -104,7 +104,7 @@ class Status(Enum):
         "ERROR",
     )
     NO_BROKER_CREDS = StatusLevel(
-        WaitingStatus("internal broker credentials not yet added"), "INFO"
+        WaitingStatus("internal broker credentials not yet added"), "DEBUG"
     )
     NO_CERT = StatusLevel(WaitingStatus("unit waiting for signed certificates"), "INFO")
     SYSCONF_NOT_OPTIMAL = StatusLevel(
