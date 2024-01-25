@@ -87,7 +87,8 @@ class ZooKeeperHandler(Object):
         self.charm._set_status(Status.ZK_NOT_RELATED)
 
         # Kafka keeps a meta.properties in every log.dir with a unique ClusterID
-        # this ID is provided by ZK, and removing it on relation-broken allows re-joining to another ZK cluster
+        # this ID is provided by ZK, and removing it on relation-broken allows
+        # re-joining to another ZK cluster.
         for storage in self.charm.model.storages["data"]:
             self.charm.workload.exec(f"rm {storage.location}/meta.properties")
 
@@ -110,7 +111,6 @@ class ZooKeeperHandler(Object):
             KeyError if attempted to update non-leader unit
             subprocess.CalledProcessError if command to ZooKeeper failed
         """
-        logger.error("In _create_internal_credentials")
         credentials = [
             (username, self.charm.workload.generate_password()) for username in INTERNAL_USERS
         ]

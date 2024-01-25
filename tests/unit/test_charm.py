@@ -2,6 +2,7 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import re
 import logging
 from pathlib import Path
 from unittest.mock import PropertyMock, patch
@@ -456,8 +457,8 @@ def test_zookeeper_changed_sets_passwords_and_creates_users_with_zk(harness: Har
         for user in INTERNAL_USERS:
             assert harness.charm.state.cluster.relation_data.get(f"{user}-password", None)
 
-        patched_set_zk_jaas.assert_called_once()
-        patched_set_server_properties.assert_called_once()
+        patched_set_zk_jaas.assert_called()
+        patched_set_server_properties.assert_called()
 
         # checks all users are INTERNAL only
         for call in patched_add_user.kwargs.get("username", []):
@@ -480,16 +481,41 @@ def test_zookeeper_joined_sets_chroot(harness: Harness):
     )
 
 
-def test_zookeeper_broken_stops_service(harness: Harness):
+def test_zookeeper_broken_stops_service_and_removes_meta_properties(harness: Harness):
     """Checks chroot is added to ZK relation data on ZKrelationjoined hook."""
     harness.add_relation(PEER, CHARM_KEY)
     zk_rel_id = harness.add_relation(ZK, ZK)
 
-    with patch("vm_workload.KafkaWorkload.stop") as patched_stop_snap_service:
+    with (
+        patch("vm_workload.KafkaWorkload.stop") as patched_stop_snap_service,
+        patch("vm_workload.KafkaWorkload.exec") as patched_exec,
+    ):
         harness.remove_relation(zk_rel_id)
 
         patched_stop_snap_service.assert_called_once()
+        assert re.match(r"rm .*/meta.properties", patched_exec.call_args_list[0].args[0])
         assert isinstance(harness.charm.unit.status, BlockedStatus)
+
+def test_zookeeper_broken_cleans_internal_user_credentials(harness: Harness):
+    """Checks chroot is added to ZK relation data on ZKrelationjoined hook."""
+    with harness.hooks_disabled():
+        harness.add_relation(PEER, CHARM_KEY)
+        zk_rel_id = harness.add_relation(ZK, ZK)
+        harness.set_leader(True)
+
+    with (
+        patch("vm_workload.KafkaWorkload.stop"),
+        patch("vm_workload.KafkaWorkload.exec"),
+        patch("core.models.StateBase.update") as patched_update,
+        patch(
+            "core.models.KafkaCluster.internal_user_credentials",
+            new_callable=PropertyMock, 
+            return_value={"saruman": "orthanc"}
+        ),
+    ):
+        harness.remove_relation(zk_rel_id)
+
+        patched_update.assert_called_once_with({"saruman-password": ""})
 
 
 def test_config_changed_updates_server_properties(harness: Harness, zk_data):

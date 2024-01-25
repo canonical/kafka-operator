@@ -13,7 +13,7 @@ from charm import KafkaCharm
 from literals import (
     ADMIN_USER,
     CHARM_KEY,
-    # DEPENDENCIES,
+    DEPENDENCIES,
     INTER_BROKER_USER,
     INTERNAL_USERS,
     JMX_EXPORTER_PORT,
@@ -22,6 +22,7 @@ from literals import (
     PEER,
     ZK,
 )
+from managers.config import KafkaConfigManager
 
 CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
 ACTIONS = str(yaml.safe_load(Path("./actions.yaml").read_text()))
@@ -231,13 +232,18 @@ def test_kafka_opts(harness: Harness):
 
 @pytest.mark.parametrize(
     "profile,expected",
-    [("testing", JVM_MEM_MIN_GB), ("production", JVM_MEM_MAX_GB)],
+    [("production", JVM_MEM_MAX_GB), ("testing", JVM_MEM_MIN_GB)],
 )
 def test_heap_opts(harness: Harness, profile, expected):
     """Checks necessary args for KAFKA_HEAP_OPTS."""
-    with harness.hooks_disabled():
-        harness.update_config({"profile": profile})
-    args = harness.charm.config_manager.heap_opts
+    # Harness doesn't reinitialize KafkaCharm when calling update_config, which means that
+    # self.config is not passed again to KafkaConfigManager
+    harness.update_config({"profile": profile})
+    conf_manager = KafkaConfigManager(
+        harness.charm.state, harness.charm.workload, harness.charm.config, "1"
+    )
+    args = conf_manager.heap_opts
+
     assert f"Xms{expected}G" in args
     assert f"Xmx{expected}G" in args
     assert "KAFKA_HEAP_OPTS" in args
@@ -268,6 +274,68 @@ def test_set_environment(harness: Harness):
             assert "KAFKA_HEAP_OPTS" in call.kwargs.get("content", "")
             assert "KAFKA_JVM_PERFORMANCE_OPTS" in call.kwargs.get("content", "")
             assert "/etc/environment" == call.kwargs.get("path", "")
+
+
+# def test_map_env_populated():
+#     example_env = [
+#         "KAFKA_OPTS=orcs -Djava=wargs -Dkafka=goblins",
+#         "SERVER_JVMFLAGS=dwarves -Djava=elves -Dzookeeper=men",
+#     ]
+#     env = map_env(env=example_env)
+
+#     assert len(env) == 2
+#     assert sorted(env.keys()) == sorted(["KAFKA_OPTS", "SERVER_JVMFLAGS"])
+
+#     for value in env.values():
+#         assert isinstance(value, str)
+#         # checks handles multiple equals signs in value
+#         assert len(value.split()) == 3
+
+
+# def test_map_env_empty_item():
+#     # we get this after reading the default /etc/environment from a stock 22.04 because of safe_get_file,
+#     # see: https://github.com/verterok/zookeeper-operator/blob/fix-invalid-etc-env/src/utils.py#L44
+#     example_env = [
+#         'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin"',
+#         "",
+#     ]
+#     env = map_env(env=example_env)
+
+#     assert len(env) == 1
+#     assert sorted(env.keys()) == sorted(["PATH"])
+
+#     for value in env.values():
+#         assert isinstance(value, str)
+
+
+# def test_get_env_empty():
+#     with patch("utils.safe_get_file", return_value=[]):
+#         assert not get_env()
+#         assert get_env() == {}
+
+
+# def test_update_env():
+#     example_get_env = {
+#         "KAFKA_OPTS": "orcs -Djava=wargs -Dkafka=goblins",
+#         "SERVER_JVMFLAGS": "dwarves -Djava=elves -Dzookeeper=men",
+#     }
+#     example_update_env = {
+#         "SERVER_JVMFLAGS": "gimli -Djava=legolas -Dzookeeper=aragorn",
+#     }
+
+#     with (
+#         patch("utils.get_env", return_value=example_get_env),
+#         patch("utils.safe_write_to_file") as safe_write,
+#     ):
+#         update_env(env=example_update_env)
+
+#         assert all(
+#             updated in safe_write.call_args.kwargs["content"]
+#             for updated in ["gimli", "legolas", "aragorn"]
+#         )
+#         assert "KAFKA_OPTS" in safe_write.call_args.kwargs["content"]
+#         assert safe_write.call_args.kwargs["path"] == "/etc/environment"
+#         assert safe_write.call_args.kwargs["mode"] == "w"
 
 
 def test_bootstrap_server(harness: Harness):
@@ -333,174 +401,118 @@ def test_ssl_principal_mapping_rules(harness: Harness):
             return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
         )
     ):
-        with harness.hooks_disabled():
-            harness.update_config({"ssl_principal_mapping_rules": "RULE:^(erebor)$/$1,DEFAULT"})
-            assert (
-                "ssl.principal.mapping.rules=RULE:^(erebor)$/$1,DEFAULT"
-                in harness.charm.config_manager.server_properties
-            )
+        # Harness doesn't reinitialize KafkaCharm when calling update_config, which means that
+        # self.config is not passed again to KafkaConfigManager
+        harness._update_config({"ssl_principal_mapping_rules": "RULE:^(erebor)$/$1,DEFAULT"})
+        conf_manager = KafkaConfigManager(
+            harness.charm.state, harness.charm.workload, harness.charm.config, "1"
+        )
+
+        assert (
+            "ssl.principal.mapping.rules=RULE:^(erebor)$/$1,DEFAULT"
+            in conf_manager.server_properties
+        )
 
 
-# def test_auth_properties(harness: Harness):
-#     """Checks necessary auth properties are present."""
-#     zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
-#     peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
-#     harness.update_relation_data(
-#         peer_relation_id, harness.charm.app.name, {"sync_password": "mellon"}
-#     )
-#     harness.update_relation_data(
-#         zk_relation_id,
-#         harness.charm.app.name,
-#         {
-#             "chroot": "/kafka",
-#             "username": "moria",
-#             "password": "mellon",
-#             "endpoints": "1.1.1.1,2.2.2.2",
-#             "uris": "1.1.1.1:2181/kafka,2.2.2.2:2181/kafka",
-#             "tls": "disabled",
-#         },
-#     )
+def test_auth_properties(harness: Harness):
+    """Checks necessary auth properties are present."""
+    zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
+    peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
+    harness.update_relation_data(
+        peer_relation_id, harness.charm.app.name, {"sync_password": "mellon"}
+    )
+    harness.update_relation_data(
+        zk_relation_id,
+        harness.charm.app.name,
+        {
+            "chroot": "/kafka",
+            "username": "moria",
+            "password": "mellon",
+            "endpoints": "1.1.1.1,2.2.2.2",
+            "uris": "1.1.1.1:2181/kafka,2.2.2.2:2181/kafka",
+            "tls": "disabled",
+        },
+    )
 
-#     assert "broker.id=0" in harness.charm.kafka_config.auth_properties
-#     assert (
-#         f"zookeeper.connect={harness.charm.kafka_config.zookeeper_config['connect']}"
-#         in harness.charm.kafka_config.auth_properties
-#     )
-
-
-# def test_rack_properties(harness: Harness):
-#     """Checks that rack properties are added to server properties."""
-#     harness.add_relation(PEER, CHARM_KEY)
-#     zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
-#     harness.update_relation_data(
-#         zk_relation_id,
-#         harness.charm.app.name,
-#         {
-#             "chroot": "/kafka",
-#             "username": "moria",
-#             "password": "mellon",
-#             "endpoints": "1.1.1.1,2.2.2.2",
-#             "uris": "1.1.1.1:2181/kafka,2.2.2.2:2181/kafka",
-#             "tls": "disabled",
-#         },
-#     )
-
-#     with (
-#         patch(
-#             "config.KafkaConfig.rack_properties",
-#             new_callable=PropertyMock,
-#             return_value=["broker.rack=gondor-west"],
-#         )
-#     ):
-#         assert "broker.rack=gondor-west" in harness.charm.kafka_config.server_properties
+    assert "broker.id=0" in harness.charm.config_manager.auth_properties
+    assert (
+        f"zookeeper.connect={harness.charm.state.zookeeper.connect}"
+        in harness.charm.config_manager.auth_properties
+    )
 
 
-# def test_inter_broker_protocol_version(harness: Harness):
-#     """Checks that rack properties are added to server properties."""
-#     harness.add_relation(PEER, CHARM_KEY)
-#     zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
-#     harness.update_relation_data(
-#         zk_relation_id,
-#         harness.charm.app.name,
-#         {
-#             "chroot": "/kafka",
-#             "username": "moria",
-#             "password": "mellon",
-#             "endpoints": "1.1.1.1,2.2.2.2",
-#             "uris": "1.1.1.1:2181/kafka,2.2.2.2:2181/kafka",
-#             "tls": "disabled",
-#         },
-#     )
-#     assert len(DEPENDENCIES["kafka_service"]["version"].split(".")) == 3
+def test_rack_properties(harness: Harness):
+    """Checks that rack properties are added to server properties."""
+    harness.add_relation(PEER, CHARM_KEY)
+    zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
+    harness.update_relation_data(
+        zk_relation_id,
+        harness.charm.app.name,
+        {
+            "chroot": "/kafka",
+            "username": "moria",
+            "password": "mellon",
+            "endpoints": "1.1.1.1,2.2.2.2",
+            "uris": "1.1.1.1:2181/kafka,2.2.2.2:2181/kafka",
+            "tls": "disabled",
+        },
+    )
 
-#     assert "inter.broker.protocol.version=3.6" in harness.charm.kafka_config.server_properties
-
-
-# def test_super_users(harness: Harness):
-#     """Checks super-users property is updated for new admin clients."""
-#     peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
-#     app_relation_id = harness.add_relation("kafka-client", "app")
-#     harness.update_relation_data(app_relation_id, "app", {"extra-user-roles": "admin,producer"})
-#     appii_relation_id = harness.add_relation("kafka-client", "appii")
-#     harness.update_relation_data(
-#         appii_relation_id, "appii", {"extra-user-roles": "admin,consumer"}
-#     )
-
-#     assert len(harness.charm.kafka_config.super_users.split(";")) == len(INTERNAL_USERS)
-
-#     harness.update_relation_data(
-#         peer_relation_id, harness.charm.app.name, {f"relation-{app_relation_id}": "mellon"}
-#     )
-
-#     assert len(harness.charm.kafka_config.super_users.split(";")) == (len(INTERNAL_USERS) + 1)
-
-#     harness.update_relation_data(
-#         peer_relation_id, harness.charm.app.name, {f"relation-{appii_relation_id}": "mellon"}
-#     )
-
-#     assert len(harness.charm.kafka_config.super_users.split(";")) == (len(INTERNAL_USERS) + 2)
-
-#     harness.update_relation_data(appii_relation_id, "appii", {"extra-user-roles": "consumer"})
-
-#     assert len(harness.charm.kafka_config.super_users.split(";")) == (len(INTERNAL_USERS) + 1)
-
-# def test_map_env_populated():
-#     example_env = [
-#         "KAFKA_OPTS=orcs -Djava=wargs -Dkafka=goblins",
-#         "SERVER_JVMFLAGS=dwarves -Djava=elves -Dzookeeper=men",
-#     ]
-#     env = map_env(env=example_env)
-
-#     assert len(env) == 2
-#     assert sorted(env.keys()) == sorted(["KAFKA_OPTS", "SERVER_JVMFLAGS"])
-
-#     for value in env.values():
-#         assert isinstance(value, str)
-#         # checks handles multiple equals signs in value
-#         assert len(value.split()) == 3
+    with (
+        patch(
+            "managers.config.KafkaConfigManager.rack_properties",
+            new_callable=PropertyMock,
+            return_value=["broker.rack=gondor-west"],
+        )
+    ):
+        assert "broker.rack=gondor-west" in harness.charm.config_manager.server_properties
 
 
-# def test_map_env_empty_item():
-#     # we get this after reading the default /etc/environment from a stock 22.04 because of safe_get_file,
-#     # see: https://github.com/verterok/zookeeper-operator/blob/fix-invalid-etc-env/src/utils.py#L44
-#     example_env = [
-#         'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin"',
-#         "",
-#     ]
-#     env = map_env(env=example_env)
+def test_inter_broker_protocol_version(harness: Harness):
+    """Checks that rack properties are added to server properties."""
+    harness.add_relation(PEER, CHARM_KEY)
+    zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
+    harness.update_relation_data(
+        zk_relation_id,
+        harness.charm.app.name,
+        {
+            "chroot": "/kafka",
+            "username": "moria",
+            "password": "mellon",
+            "endpoints": "1.1.1.1,2.2.2.2",
+            "uris": "1.1.1.1:2181/kafka,2.2.2.2:2181/kafka",
+            "tls": "disabled",
+        },
+    )
+    assert len(DEPENDENCIES["kafka_service"]["version"].split(".")) == 3
 
-#     assert len(env) == 1
-#     assert sorted(env.keys()) == sorted(["PATH"])
-
-#     for value in env.values():
-#         assert isinstance(value, str)
+    assert "inter.broker.protocol.version=3.6" in harness.charm.config_manager.server_properties
 
 
-# def test_get_env_empty():
-#     with patch("utils.safe_get_file", return_value=[]):
-#         assert not get_env()
-#         assert get_env() == {}
+def test_super_users(harness: Harness):
+    """Checks super-users property is updated for new admin clients."""
+    peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
+    app_relation_id = harness.add_relation("kafka-client", "app")
+    harness.update_relation_data(app_relation_id, "app", {"extra-user-roles": "admin,producer"})
+    appii_relation_id = harness.add_relation("kafka-client", "appii")
+    harness.update_relation_data(
+        appii_relation_id, "appii", {"extra-user-roles": "admin,consumer"}
+    )
 
+    assert len(harness.charm.state.super_users.split(";")) == len(INTERNAL_USERS)
 
-# def test_update_env():
-#     example_get_env = {
-#         "KAFKA_OPTS": "orcs -Djava=wargs -Dkafka=goblins",
-#         "SERVER_JVMFLAGS": "dwarves -Djava=elves -Dzookeeper=men",
-#     }
-#     example_update_env = {
-#         "SERVER_JVMFLAGS": "gimli -Djava=legolas -Dzookeeper=aragorn",
-#     }
+    harness.update_relation_data(
+        peer_relation_id, harness.charm.app.name, {f"relation-{app_relation_id}": "mellon"}
+    )
 
-#     with (
-#         patch("utils.get_env", return_value=example_get_env),
-#         patch("utils.safe_write_to_file") as safe_write,
-#     ):
-#         update_env(env=example_update_env)
+    assert len(harness.charm.state.super_users.split(";")) == (len(INTERNAL_USERS) + 1)
 
-#         assert all(
-#             updated in safe_write.call_args.kwargs["content"]
-#             for updated in ["gimli", "legolas", "aragorn"]
-#         )
-#         assert "KAFKA_OPTS" in safe_write.call_args.kwargs["content"]
-#         assert safe_write.call_args.kwargs["path"] == "/etc/environment"
-#         assert safe_write.call_args.kwargs["mode"] == "w"
+    harness.update_relation_data(
+        peer_relation_id, harness.charm.app.name, {f"relation-{appii_relation_id}": "mellon"}
+    )
+
+    assert len(harness.charm.state.super_users.split(";")) == (len(INTERNAL_USERS) + 2)
+
+    harness.update_relation_data(appii_relation_id, "appii", {"extra-user-roles": "consumer"})
+
+    assert len(harness.charm.state.super_users.split(";")) == (len(INTERNAL_USERS) + 1)

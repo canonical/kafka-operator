@@ -416,11 +416,12 @@ class KafkaConfigManager:
             String of Jaas config for ZooKeeper auth
         """
         return f"""
-            Client {{
-                org.apache.zookeeper.server.auth.DigestLoginModule required
-                username="{self.state.zookeeper.username}"
-                password="{self.state.zookeeper.password}";
-            }};
+Client {{
+    org.apache.zookeeper.server.auth.DigestLoginModule required
+    username="{self.state.zookeeper.username}"
+    password="{self.state.zookeeper.password}";
+}};
+
         """
 
     def set_zk_jaas_config(self) -> None:
