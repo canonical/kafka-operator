@@ -72,6 +72,11 @@ class ZooKeeperHandler(Object):
             for username, password in internal_user_credentials:
                 self.charm.state.cluster.update({f"{username}-password": password})
 
+        # attempt re-start of Kafka for all units on zookeeper-changed
+        # avoids relying on deferred events elsewhere that may not exist after cluster init
+        if not self.charm.healthy and self.charm.state.cluster.internal_user_credentials:
+            self.charm._on_start(event)
+
         self.charm._on_config_changed(event)
 
     def _on_zookeeper_broken(self, _: RelationEvent) -> None:
@@ -80,6 +85,19 @@ class ZooKeeperHandler(Object):
 
         logger.info(f'Broker {self.model.unit.name.split("/")[1]} disconnected')
         self.charm._set_status(Status.ZK_NOT_RELATED)
+
+        # Kafka keeps a meta.properties in every log.dir with a unique ClusterID
+        # this ID is provided by ZK, and removing it on relation-broken allows re-joining to another ZK cluster
+        for storage in self.charm.model.storages["data"]:
+            self.charm.workload.exec(f"rm {storage.location}/meta.properties")
+
+        if not self.charm.unit.is_leader():
+            return
+
+        # other charm methods assume credentials == ACLs
+        # necessary to clean-up credentials once ZK relation is lost
+        for username in self.charm.state.cluster.internal_user_credentials:
+            self.charm.state.cluster.update({f"{username}-password": ""})
 
     def _create_internal_credentials(self) -> list[tuple[str, str]]:
         """Creates internal SCRAM users during cluster start.
