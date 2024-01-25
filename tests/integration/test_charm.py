@@ -101,6 +101,16 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
     assert ops_test.model.applications[APP_NAME].status == "active"
     assert ops_test.model.applications[ZK_NAME].status == "active"
 
+@pytest.mark.abort_on_fail
+async def test_remove_zk_relation_relate(ops_test: OpsTest):
+    await ops_test.model.applications[APP_NAME].remove_relation(
+        APP_NAME, ZK_NAME
+    )
+    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], idle_period=30, timeout=3600)
+    await ops_test.model.add_relation(APP_NAME, ZK_NAME)
+    async with ops_test.fast_forward():
+        await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], status="active", idle_period=30, timeout=1000)
+
 
 @pytest.mark.abort_on_fail
 async def test_listeners(ops_test: OpsTest, app_charm):
