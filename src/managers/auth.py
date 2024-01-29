@@ -12,7 +12,7 @@ from dataclasses import asdict, dataclass
 from ops.pebble import ExecError
 
 from core.cluster import ClusterState
-from vm_workload import KafkaWorkload
+from core.workload import WorkloadBase
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ class Acl:
 class AuthManager:
     """Object for updating Kafka users and ACLs."""
 
-    def __init__(self, state: ClusterState, workload: KafkaWorkload, kafka_opts: str):
+    def __init__(self, state: ClusterState, workload: WorkloadBase, kafka_opts: str):
         self.state = state
         self.workload = workload
         self.kafka_opts = kafka_opts

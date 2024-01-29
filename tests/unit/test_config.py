@@ -260,8 +260,8 @@ def test_jmx_opts(harness: Harness):
 def test_set_environment(harness: Harness):
     """Checks all necessary env-vars are written to /etc/environment."""
     with (
-        patch("vm_workload.KafkaWorkload.write") as patched_write,
-        patch("vm_workload.KafkaWorkload.set_snap_ownership"),
+        patch("workload.KafkaWorkload.write") as patched_write,
+        patch("core.workload.WorkloadBase.set_snap_ownership"),
         patch("builtins.open", mock_open()),
         patch("shutil.chown"),
     ):

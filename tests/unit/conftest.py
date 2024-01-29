@@ -43,7 +43,7 @@ def patched_etc_environment():
 
 @pytest.fixture(autouse=True)
 def patched_workload_write():
-    with patch("vm_workload.KafkaWorkload.write") as workload_write:
+    with patch("workload.KafkaWorkload.write") as workload_write:
         yield workload_write
 
 
@@ -51,8 +51,8 @@ def patched_workload_write():
 def patched_ownership_and_mode():
     if SUBSTRATE == "vm":
         with (
-            patch("vm_workload.KafkaWorkload.set_snap_ownership"),
-            patch("vm_workload.KafkaWorkload.set_snap_mode_bits"),
+            patch("core.workload.WorkloadBase.set_snap_ownership"),
+            patch("core.workload.WorkloadBase.set_snap_mode_bits"),
         ):
             yield
     else:

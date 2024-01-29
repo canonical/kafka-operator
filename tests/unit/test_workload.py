@@ -8,7 +8,7 @@ from unittest.mock import mock_open, patch
 import pytest
 from charms.operator_libs_linux.v1.snap import SnapError
 
-from vm_workload import KafkaWorkload
+from workload import KafkaWorkload
 
 
 def test_run_bin_command_raises():

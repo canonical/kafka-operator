@@ -9,6 +9,7 @@ from typing import cast
 
 from core.cluster import ClusterState
 from core.structured_config import CharmConfig, LogLevel
+from core.workload import WorkloadBase
 from literals import (
     ADMIN_USER,
     INTER_BROKER_USER,
@@ -19,7 +20,6 @@ from literals import (
     AuthMechanism,
     Scope,
 )
-from vm_workload import KafkaWorkload
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +102,7 @@ class KafkaConfigManager:
     def __init__(
         self,
         state: ClusterState,
-        workload: KafkaWorkload,
+        workload: WorkloadBase,
         config: CharmConfig,
         current_version: str,
     ):

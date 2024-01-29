@@ -114,8 +114,8 @@ def test_upgrade_granted_sets_failed_if_failed_snap(harness: Harness):
             new_callable=PropertyMock,
             return_value="3.6",
         ),
-        patch("vm_workload.KafkaWorkload.stop") as patched_stop,
-        patch("vm_workload.KafkaWorkload.install", return_value=False),
+        patch("workload.KafkaWorkload.stop") as patched_stop,
+        patch("workload.KafkaWorkload.install", return_value=False),
     ):
         mock_event = MagicMock()
         harness.charm.upgrade._on_upgrade_granted(mock_event)
@@ -131,9 +131,9 @@ def test_upgrade_granted_sets_failed_if_failed_upgrade_check(harness: Harness):
             new_callable=PropertyMock,
             return_value="3.6",
         ),
-        patch("vm_workload.KafkaWorkload.stop"),
-        patch("vm_workload.KafkaWorkload.restart") as patched_restart,
-        patch("vm_workload.KafkaWorkload.install", return_value=True),
+        patch("workload.KafkaWorkload.stop"),
+        patch("workload.KafkaWorkload.restart") as patched_restart,
+        patch("workload.KafkaWorkload.install", return_value=True),
         patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=False),
     ):
         mock_event = MagicMock()
@@ -150,9 +150,9 @@ def test_upgrade_granted_succeeds(harness: Harness):
             new_callable=PropertyMock,
             return_value="3.6",
         ),
-        patch("vm_workload.KafkaWorkload.stop"),
-        patch("vm_workload.KafkaWorkload.restart"),
-        patch("vm_workload.KafkaWorkload.install", return_value=True),
+        patch("workload.KafkaWorkload.stop"),
+        patch("workload.KafkaWorkload.restart"),
+        patch("workload.KafkaWorkload.install", return_value=True),
         patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
     ):
         mock_event = MagicMock()
@@ -171,9 +171,9 @@ def test_upgrade_granted_recurses_upgrade_changed_on_leader(harness: Harness):
             new_callable=PropertyMock,
             return_value="3.6",
         ),
-        patch("vm_workload.KafkaWorkload.stop"),
-        patch("vm_workload.KafkaWorkload.restart"),
-        patch("vm_workload.KafkaWorkload.install", return_value=True),
+        patch("workload.KafkaWorkload.stop"),
+        patch("workload.KafkaWorkload.restart"),
+        patch("workload.KafkaWorkload.install", return_value=True),
         patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
         patch("events.upgrade.KafkaUpgrade.on_upgrade_changed") as patched_upgrade,
     ):

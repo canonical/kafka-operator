@@ -66,7 +66,7 @@ def test_client_relation_created_adds_user(harness: Harness):
     with (
         patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
         patch("managers.auth.AuthManager.add_user") as patched_add_user,
-        patch("vm_workload.KafkaWorkload.run_bin_command"),
+        patch("workload.KafkaWorkload.run_bin_command"),
         patch("core.cluster.ZooKeeper.connect", new_callable=PropertyMock, return_value="yes"),
     ):
         harness.set_leader(True)
@@ -91,7 +91,7 @@ def test_client_relation_broken_removes_user(harness: Harness):
         patch("managers.auth.AuthManager.add_user"),
         patch("managers.auth.AuthManager.delete_user") as patched_delete_user,
         patch("managers.auth.AuthManager.remove_all_user_acls") as patched_remove_acls,
-        patch("vm_workload.KafkaWorkload.run_bin_command"),
+        patch("workload.KafkaWorkload.run_bin_command"),
         patch("core.cluster.ZooKeeper.connect", new_callable=PropertyMock, return_value="yes"),
     ):
         harness.set_leader(True)
@@ -121,7 +121,7 @@ def test_client_relation_joined_sets_necessary_relation_data(harness: Harness):
     with (
         patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
         patch("managers.auth.AuthManager.add_user"),
-        patch("vm_workload.KafkaWorkload.run_bin_command"),
+        patch("workload.KafkaWorkload.run_bin_command"),
         patch("core.cluster.ZooKeeper.connect", new_callable=PropertyMock, return_value="yes"),
     ):
         harness.set_leader(True)

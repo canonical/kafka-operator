@@ -10,8 +10,8 @@ import subprocess
 from ops.pebble import ExecError
 
 from core.cluster import ClusterState
+from core.workload import WorkloadBase
 from literals import Substrate
-from vm_workload import KafkaWorkload
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class TLSManager:
     """Manager for building necessary files for Java TLS auth."""
 
-    def __init__(self, state: ClusterState, workload: KafkaWorkload, substrate: Substrate):
+    def __init__(self, state: ClusterState, workload: WorkloadBase, substrate: Substrate):
         self.state = state
         self.workload = workload
         self.substrate = substrate
