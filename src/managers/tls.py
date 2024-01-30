@@ -66,12 +66,8 @@ class TLSManager:
         try:
             self.workload.exec(command=command, working_dir=self.workload.paths.conf_path)
             if self.substrate == "vm":
-                self.workload.set_snap_ownership(
-                    path=f"{self.workload.paths.conf_path}/truststore.jks"
-                )
-                self.workload.set_snap_mode_bits(
-                    path=f"{self.workload.paths.conf_path}/truststore.jks"
-                )
+                self.workload.set_ownership(path=f"{self.workload.paths.conf_path}/truststore.jks")
+                self.workload.set_mode_bits(path=f"{self.workload.paths.conf_path}/truststore.jks")
         except (subprocess.CalledProcessError, ExecError) as e:
             # in case this reruns and fails
             if e.stdout and "already exists" in e.stdout:
@@ -85,12 +81,8 @@ class TLSManager:
         try:
             self.workload.exec(command=command, working_dir=self.workload.paths.conf_path)
             if self.substrate == "vm":
-                self.workload.set_snap_ownership(
-                    path=f"{self.workload.paths.conf_path}/keystore.p12"
-                )
-                self.workload.set_snap_mode_bits(
-                    path=f"{self.workload.paths.conf_path}/keystore.p12"
-                )
+                self.workload.set_ownership(path=f"{self.workload.paths.conf_path}/keystore.p12")
+                self.workload.set_mode_bits(path=f"{self.workload.paths.conf_path}/keystore.p12")
         except (subprocess.CalledProcessError, ExecError) as e:
             logger.error(e.stdout)
             raise e

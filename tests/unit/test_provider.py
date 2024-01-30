@@ -11,7 +11,7 @@ import yaml
 from ops.testing import Harness
 
 from charm import KafkaCharm
-from literals import CHARM_KEY, PEER, REL_NAME
+from literals import CHARM_KEY, CONTAINER, PEER, REL_NAME, SUBSTRATE
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +23,10 @@ METADATA = str(yaml.safe_load(Path("./metadata.yaml").read_text()))
 @pytest.fixture
 def harness():
     harness = Harness(KafkaCharm, meta=METADATA, actions=ACTIONS, config=CONFIG)
+
+    if SUBSTRATE == "k8s":
+        harness.set_can_connect(CONTAINER, True)
+
     harness.add_relation("restart", CHARM_KEY)
     harness._update_config(
         {
@@ -62,6 +66,8 @@ def test_client_relation_created_adds_user(harness: Harness):
     """Checks if new users are added on clientrelationcreated hook."""
     with harness.hooks_disabled():
         harness.add_relation(PEER, CHARM_KEY)
+        harness.set_leader(True)
+        client_rel_id = harness.add_relation(REL_NAME, "app")
 
     with (
         patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
@@ -69,8 +75,6 @@ def test_client_relation_created_adds_user(harness: Harness):
         patch("workload.KafkaWorkload.run_bin_command"),
         patch("core.cluster.ZooKeeper.connect", new_callable=PropertyMock, return_value="yes"),
     ):
-        harness.set_leader(True)
-        client_rel_id = harness.add_relation(REL_NAME, "app")
         harness.update_relation_data(
             client_rel_id,
             "app",

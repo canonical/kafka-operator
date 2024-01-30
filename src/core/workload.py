@@ -149,7 +149,7 @@ class WorkloadBase(ABC):
         ...
 
     @staticmethod
-    def set_snap_ownership(path: str) -> None:
+    def set_ownership(path: str) -> None:
         """Sets a filepath `snap_daemon` ownership."""
         shutil.chown(path, user="snap_daemon", group="root")
 
@@ -158,7 +158,7 @@ class WorkloadBase(ABC):
                 shutil.chown(os.path.join(root, fp), user="snap_daemon", group="root")
 
     @staticmethod
-    def set_snap_mode_bits(path: str) -> None:
+    def set_mode_bits(path: str) -> None:
         """Sets filepath mode bits."""
         os.chmod(path, 0o770)
 

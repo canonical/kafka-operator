@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 from pathlib import Path
@@ -13,6 +13,7 @@ from charm import KafkaCharm
 from literals import (
     ADMIN_USER,
     CHARM_KEY,
+    CONTAINER,
     DEPENDENCIES,
     INTER_BROKER_USER,
     INTERNAL_USERS,
@@ -20,6 +21,7 @@ from literals import (
     JVM_MEM_MAX_GB,
     JVM_MEM_MIN_GB,
     PEER,
+    SUBSTRATE,
     ZK,
 )
 from managers.config import KafkaConfigManager
@@ -31,7 +33,11 @@ METADATA = str(yaml.safe_load(Path("./metadata.yaml").read_text()))
 
 @pytest.fixture
 def harness():
-    harness = Harness(KafkaCharm, meta=METADATA)
+    harness = Harness(KafkaCharm, meta=METADATA, actions=ACTIONS, config=CONFIG)
+
+    if SUBSTRATE == "k8s":
+        harness.set_can_connect(CONTAINER, True)
+
     harness.add_relation("restart", CHARM_KEY)
     harness._update_config(
         {
@@ -46,7 +52,7 @@ def harness():
 def test_all_storages_in_log_dirs(harness: Harness):
     """Checks that the log.dirs property updates with all available storages."""
     storage_metadata = harness.charm.meta.storages["data"]
-    min_storages = storage_metadata.multiple_range[0] if storage_metadata.multiple_range else 0
+    min_storages = storage_metadata.multiple_range[0] if storage_metadata.multiple_range else 1
     with harness.hooks_disabled():
         harness.add_storage(storage_name="data", count=min_storages, attach=True)
 
@@ -86,8 +92,10 @@ def test_log_dirs_in_server_properties(harness: Harness):
         },
     )
     peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
-    harness.add_relation_unit(peer_relation_id, "kafka/1")
-    harness.update_relation_data(peer_relation_id, "kafka/0", {"private-address": "treebeard"})
+    harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/1")
+    harness.update_relation_data(
+        peer_relation_id, f"{CHARM_KEY}/0", {"private-address": "treebeard"}
+    )
 
     found_log_dirs = False
     with (
@@ -120,13 +128,13 @@ def test_listeners_in_server_properties(harness: Harness):
         },
     )
     peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
-    harness.add_relation_unit(peer_relation_id, "kafka/1")
-    harness.update_relation_data(peer_relation_id, "kafka/0", {"private-address": "treebeard"})
+    harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/1")
+    harness.update_relation_data(
+        peer_relation_id, f"{CHARM_KEY}/0", {"private-address": "treebeard"}
+    )
 
     expected_listeners = "listeners=INTERNAL_SASL_PLAINTEXT://:19092"
-    expected_advertised_listeners = (
-        "advertised.listeners=INTERNAL_SASL_PLAINTEXT://treebeard:19092"
-    )
+    expected_advertised_listeners = f"advertised.listeners=INTERNAL_SASL_PLAINTEXT://{'treebeard' if SUBSTRATE == 'vm' else 'kafka-k8s-0.kafka-k8s-endpoints'}:19092"
 
     with (
         patch(
@@ -163,18 +171,22 @@ def test_ssl_listeners_in_server_properties(harness: Harness):
         },
     )
     peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
-    harness.add_relation_unit(peer_relation_id, "kafka/1")
+    harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/1")
     harness.update_relation_data(
         peer_relation_id,
-        "kafka/0",
+        f"{CHARM_KEY}/0",
         {"private-address": "treebeard", "certificate": "keepitsecret"},
     )
-    harness.update_relation_data(peer_relation_id, "kafka", {"tls": "enabled", "mtls": "enabled"})
 
+    harness.update_relation_data(
+        peer_relation_id, CHARM_KEY, {"tls": "enabled", "mtls": "enabled"}
+    )
+
+    host = "treebeard" if SUBSTRATE == "vm" else "kafka-k8s-0.kafka-k8s-endpoints"
     expected_listeners = (
         "listeners=INTERNAL_SASL_SSL://:19093,CLIENT_SASL_SSL://:9093,CLIENT_SSL://:9094"
     )
-    expected_advertised_listeners = "advertised.listeners=INTERNAL_SASL_SSL://treebeard:19093,CLIENT_SASL_SSL://treebeard:9093,CLIENT_SSL://treebeard:9094"
+    expected_advertised_listeners = f"advertised.listeners=INTERNAL_SASL_SSL://{host}:19093,CLIENT_SASL_SSL://{host}:9093,CLIENT_SSL://{host}:9094"
 
     with (
         patch(
@@ -261,7 +273,7 @@ def test_set_environment(harness: Harness):
     """Checks all necessary env-vars are written to /etc/environment."""
     with (
         patch("workload.KafkaWorkload.write") as patched_write,
-        patch("core.workload.WorkloadBase.set_snap_ownership"),
+        patch("core.workload.WorkloadBase.set_ownership"),
         patch("builtins.open", mock_open()),
         patch("shutil.chown"),
     ):
@@ -276,74 +288,14 @@ def test_set_environment(harness: Harness):
             assert "/etc/environment" == call.kwargs.get("path", "")
 
 
-# def test_map_env_populated():
-#     example_env = [
-#         "KAFKA_OPTS=orcs -Djava=wargs -Dkafka=goblins",
-#         "SERVER_JVMFLAGS=dwarves -Djava=elves -Dzookeeper=men",
-#     ]
-#     env = map_env(env=example_env)
-
-#     assert len(env) == 2
-#     assert sorted(env.keys()) == sorted(["KAFKA_OPTS", "SERVER_JVMFLAGS"])
-
-#     for value in env.values():
-#         assert isinstance(value, str)
-#         # checks handles multiple equals signs in value
-#         assert len(value.split()) == 3
-
-
-# def test_map_env_empty_item():
-#     # we get this after reading the default /etc/environment from a stock 22.04 because of safe_get_file,
-#     # see: https://github.com/verterok/zookeeper-operator/blob/fix-invalid-etc-env/src/utils.py#L44
-#     example_env = [
-#         'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin"',
-#         "",
-#     ]
-#     env = map_env(env=example_env)
-
-#     assert len(env) == 1
-#     assert sorted(env.keys()) == sorted(["PATH"])
-
-#     for value in env.values():
-#         assert isinstance(value, str)
-
-
-# def test_get_env_empty():
-#     with patch("utils.safe_get_file", return_value=[]):
-#         assert not get_env()
-#         assert get_env() == {}
-
-
-# def test_update_env():
-#     example_get_env = {
-#         "KAFKA_OPTS": "orcs -Djava=wargs -Dkafka=goblins",
-#         "SERVER_JVMFLAGS": "dwarves -Djava=elves -Dzookeeper=men",
-#     }
-#     example_update_env = {
-#         "SERVER_JVMFLAGS": "gimli -Djava=legolas -Dzookeeper=aragorn",
-#     }
-
-#     with (
-#         patch("utils.get_env", return_value=example_get_env),
-#         patch("utils.safe_write_to_file") as safe_write,
-#     ):
-#         update_env(env=example_update_env)
-
-#         assert all(
-#             updated in safe_write.call_args.kwargs["content"]
-#             for updated in ["gimli", "legolas", "aragorn"]
-#         )
-#         assert "KAFKA_OPTS" in safe_write.call_args.kwargs["content"]
-#         assert safe_write.call_args.kwargs["path"] == "/etc/environment"
-#         assert safe_write.call_args.kwargs["mode"] == "w"
-
-
 def test_bootstrap_server(harness: Harness):
     """Checks the bootstrap-server property setting."""
     peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
-    harness.add_relation_unit(peer_relation_id, "kafka/1")
-    harness.update_relation_data(peer_relation_id, "kafka/0", {"private-address": "treebeard"})
-    harness.update_relation_data(peer_relation_id, "kafka/1", {"private-address": "shelob"})
+    harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/1")
+    harness.update_relation_data(
+        peer_relation_id, f"{CHARM_KEY}/0", {"private-address": "treebeard"}
+    )
+    harness.update_relation_data(peer_relation_id, f"{CHARM_KEY}/1", {"private-address": "shelob"})
 
     assert len(harness.charm.state.bootstrap_server) == 2
     for server in harness.charm.state.bootstrap_server:
@@ -363,11 +315,11 @@ def test_default_replication_properties_less_than_three(harness: Harness):
 def test_default_replication_properties_more_than_three(harness: Harness):
     """Checks replication property defaults updates with units > 3."""
     peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
-    harness.add_relation_unit(peer_relation_id, "kafka/1")
-    harness.add_relation_unit(peer_relation_id, "kafka/2")
-    harness.add_relation_unit(peer_relation_id, "kafka/3")
-    harness.add_relation_unit(peer_relation_id, "kafka/4")
-    harness.add_relation_unit(peer_relation_id, "kafka/5")
+    harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/1")
+    harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/2")
+    harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/3")
+    harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/4")
+    harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/5")
 
     assert "num.partitions=3" in harness.charm.config_manager.default_replication_properties
     assert (

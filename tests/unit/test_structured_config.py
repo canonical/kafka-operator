@@ -10,7 +10,7 @@ import yaml
 from ops.testing import Harness
 
 from charm import KafkaCharm
-from literals import CHARM_KEY
+from literals import CHARM_KEY, CONTAINER, SUBSTRATE
 
 CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
 ACTIONS = str(yaml.safe_load(Path("./actions.yaml").read_text()))
@@ -22,6 +22,10 @@ logger = logging.getLogger(__name__)
 @pytest.fixture
 def harness():
     harness = Harness(KafkaCharm, meta=METADATA, config=CONFIG, actions=ACTIONS)
+
+    if SUBSTRATE == "k8s":
+        harness.set_can_connect(CONTAINER, True)
+
     harness.add_relation("restart", CHARM_KEY)
     harness.begin()
     return harness

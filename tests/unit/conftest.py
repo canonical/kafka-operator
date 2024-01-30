@@ -30,12 +30,6 @@ def patched_pebble_restart(mocker):
 
 
 @pytest.fixture(autouse=True)
-def patched_sysctl_config():
-    with patch("charm.sysctl.Config.configure") as sysctl_config:
-        yield sysctl_config
-
-
-@pytest.fixture(autouse=True)
 def patched_etc_environment():
     with patch("managers.config.KafkaConfigManager.set_environment") as etc_env:
         yield etc_env
@@ -47,12 +41,32 @@ def patched_workload_write():
         yield workload_write
 
 
+@pytest.fixture(autouse=True)
+def patched_sysctl_config():
+    if SUBSTRATE == "vm":
+        with patch("charm.sysctl.Config.configure") as sysctl_config:
+            yield sysctl_config
+    else:
+        yield
+
+
+@pytest.fixture()
+def patched_health_machine_configured():
+    if SUBSTRATE == "vm":
+        with patch(
+            "health.KafkaHealth.machine_configured", return_value=True
+        ) as machine_configured:
+            yield machine_configured
+    else:
+        yield
+
+
 @pytest.fixture()
 def patched_ownership_and_mode():
     if SUBSTRATE == "vm":
         with (
-            patch("core.workload.WorkloadBase.set_snap_ownership"),
-            patch("core.workload.WorkloadBase.set_snap_mode_bits"),
+            patch("core.workload.WorkloadBase.set_ownership"),
+            patch("core.workload.WorkloadBase.set_mode_bits"),
         ):
             yield
     else:

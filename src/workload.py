@@ -70,7 +70,7 @@ class KafkaWorkload(WorkloadBase):
         with open(path, mode) as f:
             f.write(content)
 
-        self.set_snap_ownership(path=path)
+        self.set_ownership(path=path)
 
     @override
     def exec(

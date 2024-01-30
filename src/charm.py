@@ -157,7 +157,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         zk_jaas = self.workload.read(self.workload.paths.zk_jaas)
         zk_jaas_changed = set(zk_jaas) ^ set(self.config_manager.zk_jaas_config.splitlines())
 
-        if not properties and zk_jaas:
+        if not properties or not zk_jaas:
             # Event fired before charm has properly started
             event.defer()
             return
@@ -240,8 +240,8 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         # set status only for running services, not on startup
         if self.workload.active():
             self._set_status(Status.ADDED_STORAGE)
-            self.workload.set_snap_ownership(path=self.workload.paths.data_path)
-            self.workload.set_snap_mode_bits(path=self.workload.paths.data_path)
+            self.workload.set_ownership(path=self.workload.paths.data_path)
+            self.workload.set_mode_bits(path=self.workload.paths.data_path)
             self._on_config_changed(event)
 
     def _on_storage_detaching(self, event: StorageDetachingEvent) -> None:

@@ -69,9 +69,7 @@ def test_check_vm_swappiness(harness):
 def test_check_total_memory_testing_profile(harness, total_mem_kb, profile, limit):
     harness._update_config({"profile": profile})
 
-    with patch(
-        "workload.KafkaWorkload.read", return_value=[f"MemTotal:      {total_mem_kb} kB"]
-    ):
+    with patch("workload.KafkaWorkload.read", return_value=[f"MemTotal:      {total_mem_kb} kB"]):
         if total_mem_kb / 1000000 <= limit:
             assert not harness.charm.health._check_total_memory()
         else:

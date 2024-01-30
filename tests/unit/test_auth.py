@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 import logging
@@ -9,9 +9,10 @@ from unittest.mock import patch
 import pytest
 import yaml
 from ops.testing import Harness
-from src.charm import KafkaCharm
-from src.literals import CHARM_KEY
-from src.managers.auth import Acl, AuthManager
+
+from charm import KafkaCharm
+from literals import CHARM_KEY, CONTAINER, SUBSTRATE
+from managers.auth import Acl, AuthManager
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,10 @@ METADATA = str(yaml.safe_load(Path("./metadata.yaml").read_text()))
 @pytest.fixture
 def harness():
     harness = Harness(KafkaCharm, meta=METADATA)
+
+    if SUBSTRATE == "k8s":
+        harness.set_can_connect(CONTAINER, True)
+
     harness.add_relation("restart", CHARM_KEY)
     harness._update_config(
         {
@@ -96,16 +101,12 @@ def test_generate_consumer_acls():
 
 def test_add_user_adds_zk_tls_flag(harness):
     """Checks zk-tls-config-file flag is called for configs bin command."""
-    with patch("subprocess.check_output") as patched_check_output:
+    with patch("workload.KafkaWorkload.run_bin_command") as patched_exec:
         harness.charm.auth_manager.add_user("samwise", "gamgee", zk_auth=True)
+        args = patched_exec.call_args_list[0][1]
 
-        found_tls = False
-        found_zk = False
-        for arg in patched_check_output.call_args.args:
-            if "--zk-tls-config-file" in arg:
-                found_tls = True
-            if "--zookeeper" in arg:
-                found_zk = True
-
-        assert found_tls, "--zk-tls-config-file flag not found"
-        assert found_zk, "--zookeeper flag not found"
+        assert (
+            f"--zk-tls-config-file={harness.charm.workload.paths.server_properties}"
+            in args["bin_args"]
+        ), "--zk-tls-config-file flag not found"
+        assert "--zookeeper=" in args["bin_args"], "--zookeeper flag not found"
