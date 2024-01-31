@@ -54,6 +54,7 @@ class PasswordActionEvents(Object):
             msg = f"Can only update internal charm users: {INTERNAL_USERS}, not {username}."
             logger.error(msg)
             event.fail(msg)
+            return
 
         new_password = event.params.get("password", self.charm.workload.generate_password())
 
@@ -64,10 +65,13 @@ class PasswordActionEvents(Object):
             return
 
         try:
-            self.charm.auth_manager.add_user(username=username, password=new_password)
+            self.charm.auth_manager.add_user(
+                username=username, password=new_password, zk_auth=True
+            )
         except Exception as e:
             logger.error(str(e))
             event.fail(f"unable to set password for {username}")
+            return
 
         # Store the password on application databag
         self.charm.state.cluster.relation_data.update({f"{username}-password": new_password})

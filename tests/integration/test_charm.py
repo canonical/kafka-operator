@@ -104,8 +104,9 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
 
 @pytest.mark.abort_on_fail
 async def test_remove_zk_relation_relate(ops_test: OpsTest):
-    await ops_test.juju(f"remove-relation {APP_NAME} {ZK_NAME}")
-    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], idle_period=30, timeout=3600)
+    remove_relation_cmd = f"remove-relation {APP_NAME} {ZK_NAME}"
+    await ops_test.juju(*remove_relation_cmd.split(), check=True)
+    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], idle_period=40, timeout=3600)
 
     assert ops_test.model.applications[APP_NAME].status == "blocked"
     assert ops_test.model.applications[ZK_NAME].status == "active"
