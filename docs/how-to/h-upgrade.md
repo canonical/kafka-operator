@@ -1,7 +1,5 @@
 # How to upgrade between minor versions
 
-> **:warning: WARNING:** this is currently a feature in "edge" or "beta" risk channels. We do NOT recommend to use features in production that are not supported in the `stable` channel.
-
 Charm upgrades allow admins to upgrade both operator code (e.g. the revision used by the charm) and/or the workload version. Note that since the charm code pins a particular version of the workload, a charm upgrade may or may not involve also a workload version upgrade. In general, the following guide only applies for in-place upgrades that involve (at most) minor version upgrade of Kafka workload, e.g. between Kafka 3.4.x to 3.5.x. Major workload upgrades are generally **NOT SUPPORTED**, and they should be carried out using full cluster to cluster migrations. Please refer to the how-to guide about cluster migration [here](/t/charmed-kafka-how-to-cluster-migration/10951) for more information on how this can be achieved.
 
 Perform other extraordinary operations on the Kafka cluster while upgrading is not supported. As an examples, these may be (but not limited to) the following:
