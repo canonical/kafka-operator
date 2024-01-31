@@ -87,6 +87,8 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm):
         await ops_test.model.wait_for_idle(
             apps=[ZK], idle_period=15, timeout=1000, status="active"
         )
+
+        # Unit is on 'blocked' but whole app is on 'waiting'
         assert ops_test.model.applications[CHARM_KEY].status == "blocked"
 
     # Set a custom private key, by running set-tls-private-key action with no parameters,
@@ -100,8 +102,8 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm):
     )
 
     async with ops_test.fast_forward():
-        await ops_test.model.add_relation(f"{CHARM_KEY}:{TLS_RELATION}", TLS_NAME)
         logger.info("Relate Kafka to TLS")
+        await ops_test.model.add_relation(f"{CHARM_KEY}:{TLS_RELATION}", TLS_NAME)
         await ops_test.model.wait_for_idle(
             apps=[CHARM_KEY, ZK, TLS_NAME], idle_period=30, timeout=1200, status="active"
         )
@@ -110,6 +112,7 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm):
     assert ops_test.model.applications[ZK].status == "active"
 
     kafka_address = await get_address(ops_test=ops_test, app_name=CHARM_KEY)
+    logger.info("Check for Kafka TLS")
     assert not check_tls(ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL"].client)
 
     async with ops_test.fast_forward():
