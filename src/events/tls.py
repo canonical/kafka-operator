@@ -7,6 +7,7 @@
 import base64
 import json
 import logging
+import os
 import re
 import socket
 from typing import TYPE_CHECKING
@@ -149,13 +150,14 @@ class TLSHandler(Object):
             app_name=event.app.name,  # pyright: ignore[reportOptionalMemberAccess]
             relation_id=event.relation.id,
         )
+        subject = os.uname()[1] if self.charm.substrate == "k8s" else self.charm.state.broker.host
         csr = (
             generate_csr(
                 add_unique_id_to_subject_name=bool(alias),
                 private_key=self.charm.state.broker.private_key.encode(  # pyright: ignore[reportOptionalMemberAccess]
                     "utf-8"
                 ),
-                subject=self.charm.state.broker.relation_data.get("private-address", ""),
+                subject=subject,
                 sans_ip=self._sans["sans_ip"],
                 sans_dns=self._sans["sans_dns"],
             )
@@ -306,12 +308,27 @@ class TLSHandler(Object):
         self.certificates.request_certificate_creation(certificate_signing_request=csr)
 
     @property
-    def _sans(self) -> dict[str, list[str]]:
+    def _sans(self) -> dict[str, list[str] | None]:
         """Builds a SAN dict of DNS names and IPs for the unit."""
-        return {
-            "sans_ip": [self.charm.state.broker.host],
-            "sans_dns": [self.model.unit.name, socket.getfqdn()] + self._extra_sans,
-        }
+        if self.charm.substrate == "vm":
+            return {
+                "sans_ip": [self.charm.state.broker.host],
+                "sans_dns": [self.model.unit.name, socket.getfqdn()] + self._extra_sans,
+            }
+        else:
+            bind_address = ""
+            if self.charm.state.peer_relation:
+                if binding := self.charm.model.get_binding(self.charm.state.peer_relation):
+                    bind_address = binding.network.bind_address
+            return {
+                "sans_ip": [str(bind_address)],
+                "sans_dns": [
+                    self.charm.state.broker.host.split(".")[0],
+                    self.charm.state.broker.host,
+                    socket.getfqdn(),
+                ]
+                + self._extra_sans,
+            }
 
     @property
     def _extra_sans(self) -> list[str]:

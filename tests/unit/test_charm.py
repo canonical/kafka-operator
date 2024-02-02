@@ -389,9 +389,7 @@ def test_update_status_sets_active(
 
 
 @pytest.mark.skipif(SUBSTRATE == "k8s", reason="multiple storage not supported in K8s")
-def test_storage_add_does_nothing_if_snap_not_active(
-    harness: Harness, zk_data, passwords_data, patched_ownership_and_mode
-):
+def test_storage_add_does_nothing_if_snap_not_active(harness: Harness, zk_data, passwords_data):
     with harness.hooks_disabled():
         peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
         harness.add_relation_unit(peer_rel_id, f"{CHARM_KEY}/0")
@@ -411,9 +409,7 @@ def test_storage_add_does_nothing_if_snap_not_active(
 
 
 @pytest.mark.skipif(SUBSTRATE == "k8s", reason="multiple storage not supported in K8s")
-def test_storage_add_defers_if_service_not_healthy(
-    harness: Harness, zk_data, passwords_data, patched_ownership_and_mode
-):
+def test_storage_add_defers_if_service_not_healthy(harness: Harness, zk_data, passwords_data):
     with harness.hooks_disabled():
         peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
         harness.add_relation_unit(peer_rel_id, f"{CHARM_KEY}/0")
@@ -436,9 +432,7 @@ def test_storage_add_defers_if_service_not_healthy(
 
 
 @pytest.mark.skipif(SUBSTRATE == "k8s", reason="multiple storage not supported in K8s")
-def test_storage_add_disableenables_and_starts(
-    harness: Harness, zk_data, passwords_data, patched_ownership_and_mode
-):
+def test_storage_add_disableenables_and_starts(harness: Harness, zk_data, passwords_data):
     with harness.hooks_disabled():
         peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
         harness.add_relation_unit(peer_rel_id, f"{CHARM_KEY}/0")

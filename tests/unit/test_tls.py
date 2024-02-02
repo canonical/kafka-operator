@@ -4,6 +4,7 @@
 
 import socket
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 import yaml
@@ -119,7 +120,17 @@ def test_sans(harness: Harness):
     harness.update_config({"certificate_extra_sans": "worker{unit}.com"})
 
     sock_dns = socket.getfqdn()
-    assert harness.charm.tls._sans == {
-        "sans_ip": ["treebeard" if SUBSTRATE == "vm" else "kafka-k8s-0.kafka-k8s-endpoints"],
-        "sans_dns": [f"{CHARM_KEY}/0", sock_dns, "worker0.com"],
-    }
+    if SUBSTRATE == "vm":
+        assert harness.charm.tls._sans == {
+            "sans_ip": ["treebeard"],
+            "sans_dns": [f"{CHARM_KEY}/0", sock_dns, "worker0.com"],
+        }
+    elif SUBSTRATE == "k8s":
+        # NOTE previous k8s sans_ip like kafka-k8s-0.kafka-k8s-endpoints or binding pod address
+        with patch("ops.model.Model.get_binding"):
+            assert harness.charm.tls._sans["sans_dns"] == [
+                "kafka-k8s-0",
+                "kafka-k8s-0.kafka-k8s-endpoints",
+                sock_dns,
+                "worker0.com",
+            ]

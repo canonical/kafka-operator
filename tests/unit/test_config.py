@@ -273,7 +273,6 @@ def test_set_environment(harness: Harness):
     """Checks all necessary env-vars are written to /etc/environment."""
     with (
         patch("workload.KafkaWorkload.write") as patched_write,
-        patch("core.workload.WorkloadBase.set_ownership"),
         patch("builtins.open", mock_open()),
         patch("shutil.chown"),
     ):

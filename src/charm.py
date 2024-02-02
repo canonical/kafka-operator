@@ -28,12 +28,14 @@ from health import KafkaHealth
 from literals import (
     CHARM_KEY,
     DEPENDENCIES,
+    GROUP,
     JMX_EXPORTER_PORT,
     LOGS_RULES_DIR,
     METRICS_RULES_DIR,
     OS_REQUIREMENTS,
     PEER,
     REL_NAME,
+    USER,
     DebugLevel,
     Status,
     Substrate,
@@ -240,8 +242,8 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         # set status only for running services, not on startup
         if self.workload.active():
             self._set_status(Status.ADDED_STORAGE)
-            self.workload.set_ownership(path=self.workload.paths.data_path)
-            self.workload.set_mode_bits(path=self.workload.paths.data_path)
+            self.workload.exec(f"chown -R {USER}:{GROUP} {self.workload.paths.data_path}")
+            self.workload.exec(f"chmod -R 770 {self.workload.paths.data_path}")
             self._on_config_changed(event)
 
     def _on_storage_detaching(self, event: StorageDetachingEvent) -> None:

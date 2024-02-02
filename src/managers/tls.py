@@ -11,7 +11,7 @@ from ops.pebble import ExecError
 
 from core.cluster import ClusterState
 from core.workload import WorkloadBase
-from literals import Substrate
+from literals import GROUP, USER, Substrate
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +23,8 @@ class TLSManager:
         self.state = state
         self.workload = workload
         self.substrate = substrate
+
+        self.keytool = "charmed-kafka.keytool" if self.substrate == "vm" else "keytool"
 
     def generate_alias(self, app_name: str, relation_id: int) -> str:
         """Generate an alias from a relation. Used to identify ca certs."""
@@ -62,12 +64,11 @@ class TLSManager:
 
     def set_truststore(self) -> None:
         """Adds CA to JKS truststore."""
-        command = f"charmed-kafka.keytool -import -v -alias ca -file ca.pem -keystore truststore.jks -storepass {self.state.broker.truststore_password} -noprompt"
+        command = f"{self.keytool} -import -v -alias ca -file ca.pem -keystore truststore.jks -storepass {self.state.broker.truststore_password} -noprompt"
         try:
             self.workload.exec(command=command, working_dir=self.workload.paths.conf_path)
-            if self.substrate == "vm":
-                self.workload.set_ownership(path=f"{self.workload.paths.conf_path}/truststore.jks")
-                self.workload.set_mode_bits(path=f"{self.workload.paths.conf_path}/truststore.jks")
+            self.workload.exec(f"chown {USER}:{GROUP} {self.workload.paths.truststore}")
+            self.workload.exec(f"chmod 770 {self.workload.paths.truststore}")
         except (subprocess.CalledProcessError, ExecError) as e:
             # in case this reruns and fails
             if e.stdout and "already exists" in e.stdout:
@@ -80,16 +81,15 @@ class TLSManager:
         command = f"openssl pkcs12 -export -in server.pem -inkey server.key -passin pass:{self.state.broker.keystore_password} -certfile server.pem -out keystore.p12 -password pass:{self.state.broker.keystore_password}"
         try:
             self.workload.exec(command=command, working_dir=self.workload.paths.conf_path)
-            if self.substrate == "vm":
-                self.workload.set_ownership(path=f"{self.workload.paths.conf_path}/keystore.p12")
-                self.workload.set_mode_bits(path=f"{self.workload.paths.conf_path}/keystore.p12")
+            self.workload.exec(f"chown {USER}:{GROUP} {self.workload.paths.keystore}")
+            self.workload.exec(f"chmod 770 {self.workload.paths.keystore}")
         except (subprocess.CalledProcessError, ExecError) as e:
             logger.error(e.stdout)
             raise e
 
     def import_cert(self, alias: str, filename: str) -> None:
         """Add a certificate to the truststore."""
-        command = f"charmed-kafka.keytool -import -v -alias {alias} -file {filename} -keystore truststore.jks -storepass {self.state.broker.truststore_password} -noprompt"
+        command = f"{self.keytool} -import -v -alias {alias} -file {filename} -keystore truststore.jks -storepass {self.state.broker.truststore_password} -noprompt"
         try:
             self.workload.exec(command=command, working_dir=self.workload.paths.conf_path)
         except (subprocess.CalledProcessError, ExecError) as e:
@@ -103,7 +103,7 @@ class TLSManager:
     def remove_cert(self, alias: str) -> None:
         """Remove a cert from the truststore."""
         try:
-            command = f"charmed-kafka.keytool -delete -v -alias {alias} -keystore truststore.jks -storepass {self.state.broker.truststore_password} -noprompt"
+            command = f"{self.keytool} -delete -v -alias {alias} -keystore truststore.jks -storepass {self.state.broker.truststore_password} -noprompt"
             self.workload.exec(command=command, working_dir=self.workload.paths.conf_path)
             self.workload.exec(f"rm -f {alias}.pem", working_dir=self.workload.paths.conf_path)
         except (subprocess.CalledProcessError, ExecError) as e:

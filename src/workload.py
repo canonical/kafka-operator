@@ -17,7 +17,7 @@ from tenacity.wait import wait_fixed
 from typing_extensions import override
 
 from core.workload import WorkloadBase
-from literals import CHARMED_KAFKA_SNAP_REVISION, SNAP_NAME
+from literals import CHARMED_KAFKA_SNAP_REVISION, GROUP, SNAP_NAME, USER
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ class KafkaWorkload(WorkloadBase):
         with open(path, mode) as f:
             f.write(content)
 
-        self.set_ownership(path=path)
+        self.exec(f"chown -R {USER}:{GROUP} {path}")
 
     @override
     def exec(

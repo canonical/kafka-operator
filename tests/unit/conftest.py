@@ -50,6 +50,12 @@ def patched_sysctl_config():
         yield
 
 
+@pytest.fixture(autouse=True)
+def patched_exec():
+    with patch("workload.KafkaWorkload.exec") as patched_exec:
+        yield patched_exec
+
+
 @pytest.fixture()
 def patched_health_machine_configured():
     if SUBSTRATE == "vm":
@@ -57,17 +63,5 @@ def patched_health_machine_configured():
             "health.KafkaHealth.machine_configured", return_value=True
         ) as machine_configured:
             yield machine_configured
-    else:
-        yield
-
-
-@pytest.fixture()
-def patched_ownership_and_mode():
-    if SUBSTRATE == "vm":
-        with (
-            patch("core.workload.WorkloadBase.set_ownership"),
-            patch("core.workload.WorkloadBase.set_mode_bits"),
-        ):
-            yield
     else:
         yield
