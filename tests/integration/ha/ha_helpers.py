@@ -6,15 +6,17 @@ import re
 import subprocess
 from dataclasses import dataclass
 from subprocess import PIPE, check_output
-from typing import Optional
 
 from pytest_operator.plugin import OpsTest
 
 from integration.ha.continuous_writes import ContinuousWritesResult
-from integration.helpers import APP_NAME, get_address, get_kafka_zk_relation_data
-from literals import SECURITY_PROTOCOL_PORTS
-from snap import KafkaSnap
-from utils import get_active_brokers
+from integration.helpers import (
+    APP_NAME,
+    get_active_brokers,
+    get_address,
+    get_kafka_zk_relation_data,
+)
+from literals import PATHS, SECURITY_PROTOCOL_PORTS
 
 PROCESS = "kafka.Kafka"
 SERVICE_DEFAULT_PATH = "/etc/systemd/system/snap.charmed-kafka.daemon.service"
@@ -38,7 +40,7 @@ class ProcessRunningError(Exception):
 
 
 async def get_topic_description(
-    ops_test: OpsTest, topic: str, unit_name: Optional[str] = None
+    ops_test: OpsTest, topic: str, unit_name: str | None = None
 ) -> TopicDescription:
     """Get the broker with the topic leader.
 
@@ -56,7 +58,7 @@ async def get_topic_description(
     unit_name = unit_name or ops_test.model.applications[APP_NAME].units[0].name
 
     output = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.topics --bootstrap-server {','.join(bootstrap_servers)} --command-config {KafkaSnap.CONF_PATH}/client.properties --describe --topic {topic}'",
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.topics --bootstrap-server {','.join(bootstrap_servers)} --command-config {PATHS['CONF']}/client.properties --describe --topic {topic}'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -69,7 +71,7 @@ async def get_topic_description(
 
 
 async def get_topic_offsets(
-    ops_test: OpsTest, topic: str, unit_name: Optional[str] = None
+    ops_test: OpsTest, topic: str, unit_name: str | None = None
 ) -> list[str]:
     """Get the offsets of a topic on a unit.
 
@@ -88,7 +90,7 @@ async def get_topic_offsets(
 
     # example of topic offset output: 'test-topic:0:10'
     result = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.get-offsets --bootstrap-server {','.join(bootstrap_servers)} --command-config {KafkaSnap.CONF_PATH}/client.properties --topic {topic}'",
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.get-offsets --bootstrap-server {','.join(bootstrap_servers)} --command-config {PATHS['CONF']}/client.properties --topic {topic}'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -219,7 +221,7 @@ def is_up(ops_test: OpsTest, broker_id: int) -> bool:
     kafka_zk_relation_data = get_kafka_zk_relation_data(
         unit_name=unit_name, model_full_name=ops_test.model_full_name
     )
-    active_brokers = get_active_brokers(zookeeper_config=kafka_zk_relation_data)
+    active_brokers = get_active_brokers(config=kafka_zk_relation_data)
     chroot = kafka_zk_relation_data.get("chroot", "")
     return f"{chroot}/brokers/ids/{broker_id}" in active_brokers
 

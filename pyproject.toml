@@ -40,7 +40,7 @@ cosl = ">= 0.0.5"
 tenacity = ">=8.0.1"
 pure-sasl = ">=0.6.2"
 jsonschema = ">=4.10"
-cryptography = "^39.0.0"
+cryptography = ">39.0.0"
 pydantic ="^1.10.7"
 pyyaml = "^6.0.1"
 
@@ -67,6 +67,7 @@ optional = true
 [tool.poetry.group.unit.dependencies]
 pytest = ">=7.2"
 coverage = {extras = ["toml"], version = ">7.0"}
+pytest-mock = "^3.11.1"
 
 [tool.poetry.group.integration]
 optional = true
@@ -82,9 +83,9 @@ pure-sasl = ">=0.5"
 kafka-python = ">=2.0"
 requests = ">2.25"
 
-pytest-operator-cache = {git = "https://github.com/canonical/data-platform-workflows", tag = "v6.1.1", subdirectory = "python/pytest_plugins/pytest_operator_cache"}
+pytest-operator-cache = {git = "https://github.com/canonical/data-platform-workflows", tag = "v7", subdirectory = "python/pytest_plugins/pytest_operator_cache"}
 # To be enabled if we are using groups on integration tests
-# pytest-operator-groups = {git = "https://github.com/canonical/data-platform-workflows", tag = "v6.1.1", subdirectory = "python/pytest_plugins/pytest_operator_groups"}
+# pytest-operator-groups = {git = "https://github.com/canonical/data-platform-workflows", tag = "v7", subdirectory = "python/pytest_plugins/pytest_operator_groups"}
 
 
 [tool.poetry.group.format.dependencies]

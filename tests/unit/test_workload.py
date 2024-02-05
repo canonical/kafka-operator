@@ -2,29 +2,21 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-import subprocess
 from unittest.mock import mock_open, patch
 
 import pytest
 from charms.operator_libs_linux.v1.snap import SnapError
 
-from snap import KafkaSnap
+from workload import KafkaWorkload
 
 
-def test_run_bin_command_raises():
-    """Checks failed snap command raises CalledProcessError."""
-    with pytest.raises(subprocess.CalledProcessError):
-        KafkaSnap.run_bin_command("stuff", ["to"], ["fail"])
-
-
-def test_run_bin_command_args():
+def test_run_bin_command_args(patched_exec):
     """Checks KAFKA_OPTS env-var and zk-tls flag present in all snap commands."""
-    with patch("subprocess.check_output") as patched:
-        KafkaSnap.run_bin_command(bin_keyword="configs", bin_args=["--list"], opts=["-Djava"])
+    KafkaWorkload().run_bin_command(bin_keyword="configs", bin_args=["--list"], opts=["-Djava"])
 
-        assert "charmed-kafka.configs" in patched.call_args.args[0].split()
-        assert "-Djava" == patched.call_args.args[0].split()[0]
-        assert "--list" == patched.call_args.args[0].split()[-1]
+    assert "charmed-kafka.configs" in patched_exec.call_args.args[0].split()
+    assert "-Djava" == patched_exec.call_args.args[0].split()[0]
+    assert "--list" == patched_exec.call_args.args[0].split()[-1]
 
 
 def test_get_service_pid_raises():
@@ -38,7 +30,7 @@ def test_get_service_pid_raises():
         patch("subprocess.check_output", return_value="123"),
         pytest.raises(SnapError),
     ):
-        KafkaSnap().get_service_pid()
+        KafkaWorkload().get_service_pid()
 
 
 def test_get_service_pid_raises_no_pid():
@@ -47,4 +39,4 @@ def test_get_service_pid_raises_no_pid():
         patch("subprocess.check_output", return_value=""),
         pytest.raises(SnapError),
     ):
-        KafkaSnap().get_service_pid()
+        KafkaWorkload().get_service_pid()

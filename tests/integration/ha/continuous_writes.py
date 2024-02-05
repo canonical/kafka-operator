@@ -8,7 +8,6 @@ import time
 from dataclasses import dataclass
 from multiprocessing import Event, Process, Queue
 from types import SimpleNamespace
-from typing import List, Optional
 
 from charms.kafka.v0.client import KafkaClient
 from kafka.admin import NewTopic
@@ -33,14 +32,14 @@ logger = logging.getLogger(__name__)
 class ContinuousWritesResult:
     count: int
     last_expected_message: int
-    consumed_messages: Optional[List[ConsumerRecord]]
+    consumed_messages: list[ConsumerRecord] | None
 
 
 class ContinuousWrites:
     """Utility class for managing continuous writes."""
 
     TOPIC_NAME = "ha-test-topic"
-    LAST_WRITTEN_VAL_PATH = "last_written_value"
+    LAST_WRITTEN_VAL_PATH = "/tmp/last_written_value"
 
     def __init__(self, ops_test: OpsTest, app: str):
         self._ops_test = ops_test
@@ -90,7 +89,7 @@ class ContinuousWrites:
         finally:
             client.close()
 
-    def consumed_messages(self) -> List[ConsumerRecord] | None:
+    def consumed_messages(self) -> list[ConsumerRecord] | None:
         """Consume the messages in the topic."""
         client = self._client()
         try:

@@ -12,12 +12,13 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 import yaml
 from charms.kafka.v0.client import KafkaClient
+from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManager
 from kafka.admin import NewTopic
+from kazoo.exceptions import AuthFailedError, NoNodeError
 from pytest_operator.plugin import OpsTest
 
-from auth import Acl, KafkaAuth
-from literals import SECURITY_PROTOCOL_PORTS
-from snap import KafkaSnap
+from literals import PATHS, SECURITY_PROTOCOL_PORTS
+from managers.auth import Acl, AuthManager
 
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 APP_NAME = METADATA["name"]
@@ -37,7 +38,7 @@ def load_acls(model_full_name: str, zookeeper_uri: str) -> Set[Acl]:
         universal_newlines=True,
     )
 
-    return KafkaAuth._parse_acls(acls=result)
+    return AuthManager._parse_acls(acls=result)
 
 
 def load_super_users(model_full_name: str) -> List[str]:
@@ -147,6 +148,33 @@ def get_provider_data(
                 ]
             provider_relation_data["topic"] = info["application-data"]["topic"]
     return provider_relation_data
+
+
+def get_active_brokers(config: Dict) -> Set[str]:
+    """Gets all brokers currently connected to ZooKeeper.
+
+    Args:
+        config: the relation data provided by ZooKeeper
+
+    Returns:
+        Set of active broker ids
+    """
+    chroot = config.get("chroot", "")
+    hosts = config.get("endpoints", "").split(",")
+    username = config.get("username", "")
+    password = config.get("password", "")
+
+    zk = ZooKeeperManager(hosts=hosts, username=username, password=password)
+    path = f"{chroot}/brokers/ids/"
+
+    try:
+        brokers = zk.leader_znodes(path=path)
+    # auth might not be ready with ZK after relation yet
+    except (NoNodeError, AuthFailedError, QuorumLeaderNotFoundError) as e:
+        logger.debug(str(e))
+        return set()
+
+    return brokers
 
 
 async def get_address(ops_test: OpsTest, app_name=APP_NAME, unit_num=0) -> str:
@@ -313,7 +341,7 @@ def check_logs(model_full_name: str, kafka_unit_name: str, topic: str) -> None:
         topic: the desired topic to check
     """
     logs = check_output(
-        f"JUJU_MODEL={model_full_name} juju ssh {kafka_unit_name} sudo -i 'find {KafkaSnap.DATA_PATH}/data'",
+        f"JUJU_MODEL={model_full_name} juju ssh {kafka_unit_name} sudo -i 'find {PATHS['DATA']}/data'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -337,7 +365,7 @@ async def run_client_properties(ops_test: OpsTest) -> str:
         + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT'].client}"
     )
     result = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.configs --bootstrap-server {bootstrap_server} --describe --all --command-config {KafkaSnap.CONF_PATH}/client.properties --entity-type users'",
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.configs --bootstrap-server {bootstrap_server} --describe --all --command-config {PATHS['CONF']}/client.properties --entity-type users'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -349,7 +377,7 @@ async def run_client_properties(ops_test: OpsTest) -> str:
 async def set_mtls_client_acls(ops_test: OpsTest, bootstrap_server: str) -> str:
     """Adds ACLs for principal `User:client` and `TEST-TOPIC`."""
     result = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'sudo charmed-kafka.acls --bootstrap-server {bootstrap_server} --add --allow-principal=User:client --operation READ --operation WRITE --operation CREATE --topic TEST-TOPIC --command-config {KafkaSnap.CONF_PATH}/client.properties'",
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'sudo charmed-kafka.acls --bootstrap-server {bootstrap_server} --add --allow-principal=User:client --operation READ --operation WRITE --operation CREATE --topic TEST-TOPIC --command-config {PATHS['CONF']}/client.properties'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,

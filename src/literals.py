@@ -2,18 +2,18 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-
 """Collection of globals common to the KafkaCharm."""
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Literal
+from typing import Literal
 
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, StatusBase, WaitingStatus
 
 CHARM_KEY = "kafka"
 SNAP_NAME = "charmed-kafka"
 CHARMED_KAFKA_SNAP_REVISION = 30
+CONTAINER = "kafka"
 
 PEER = "cluster"
 ZK = "zookeeper"
@@ -28,9 +28,15 @@ JMX_EXPORTER_PORT = 9101
 METRICS_RULES_DIR = "./src/alert_rules/prometheus"
 LOGS_RULES_DIR = "./src/alert_rules/loki"
 
+SUBSTRATE = "vm"
+USER = "snap_daemon"
+GROUP = "root"
+
 AuthMechanism = Literal["SASL_PLAINTEXT", "SASL_SSL", "SSL"]
 Scope = Literal["INTERNAL", "CLIENT"]
 DebugLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
+Substrate = Literal["vm", "k8s"]
+DatabagScope = Literal["unit", "app"]
 
 JVM_MEM_MIN_GB = 1
 JVM_MEM_MAX_GB = 6
@@ -41,14 +47,23 @@ OS_REQUIREMENTS = {
     "vm.dirty_background_ratio": "5",
 }
 
+PATHS = {
+    "CONF": f"/var/snap/{SNAP_NAME}/current/etc/kafka",
+    "LOGS": f"/var/snap/{SNAP_NAME}/common/var/log/kafka",
+    "DATA": f"/var/snap/{SNAP_NAME}/common/var/lib/kafka",
+    "BIN": f"/snap/{SNAP_NAME}/current/opt/kafka",
+}
+
 
 @dataclass
 class Ports:
+    """Types of ports for a Kafka broker."""
+
     client: int
     internal: int
 
 
-SECURITY_PROTOCOL_PORTS: Dict[AuthMechanism, Ports] = {
+SECURITY_PROTOCOL_PORTS: dict[AuthMechanism, Ports] = {
     "SASL_PLAINTEXT": Ports(9092, 19092),
     "SASL_SSL": Ports(9093, 19093),
     "SSL": Ports(9094, 19094),
@@ -57,21 +72,25 @@ SECURITY_PROTOCOL_PORTS: Dict[AuthMechanism, Ports] = {
 
 @dataclass
 class StatusLevel:
+    """Status object helper."""
+
     status: StatusBase
     log_level: DebugLevel
 
 
 class Status(Enum):
+    """Collection of possible statuses for the charm."""
+
     ACTIVE = StatusLevel(ActiveStatus(), "DEBUG")
     NO_PEER_RELATION = StatusLevel(MaintenanceStatus("no peer relation yet"), "DEBUG")
     SNAP_NOT_INSTALLED = StatusLevel(BlockedStatus(f"unable to install {SNAP_NAME} snap"), "ERROR")
     SNAP_NOT_RUNNING = StatusLevel(BlockedStatus("snap service not running"), "WARNING")
-    ZK_NOT_RELATED = StatusLevel(BlockedStatus("missing required zookeeper relation"), "ERROR")
+    ZK_NOT_RELATED = StatusLevel(BlockedStatus("missing required zookeeper relation"), "DEBUG")
     ZK_NOT_CONNECTED = StatusLevel(BlockedStatus("unit not connected to zookeeper"), "ERROR")
     ZK_TLS_MISMATCH = StatusLevel(
         BlockedStatus("tls must be enabled on both kafka and zookeeper"), "ERROR"
     )
-    ZK_NO_DATA = StatusLevel(WaitingStatus("zookeeper credentials not created yet"), "INFO")
+    ZK_NO_DATA = StatusLevel(WaitingStatus("zookeeper credentials not created yet"), "DEBUG")
     ADDED_STORAGE = StatusLevel(
         ActiveStatus("manual partition reassignment may be needed to utilize new storage volumes"),
         "WARNING",
@@ -87,7 +106,7 @@ class Status(Enum):
         "ERROR",
     )
     NO_BROKER_CREDS = StatusLevel(
-        WaitingStatus("internal broker credentials not yet added"), "INFO"
+        WaitingStatus("internal broker credentials not yet added"), "DEBUG"
     )
     NO_CERT = StatusLevel(WaitingStatus("unit waiting for signed certificates"), "INFO")
     SYSCONF_NOT_OPTIMAL = StatusLevel(

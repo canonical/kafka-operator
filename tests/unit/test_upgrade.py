@@ -13,9 +13,8 @@ from kazoo.client import KazooClient
 from ops.testing import Harness
 
 from charm import KafkaCharm
+from events.upgrade import KafkaDependencyModel
 from literals import CHARM_KEY, DEPENDENCIES, PEER, ZK
-from snap import KafkaSnap
-from upgrade import KafkaDependencyModel, KafkaUpgrade
 
 logger = logging.getLogger(__name__)
 
@@ -49,25 +48,29 @@ def harness(zk_data):
     return harness
 
 
-def test_pre_upgrade_check_raises_not_stable(harness):
+def test_pre_upgrade_check_raises_not_stable(harness: Harness):
     with pytest.raises(ClusterNotReadyError):
         harness.charm.upgrade.pre_upgrade_check()
 
 
-def test_pre_upgrade_check_succeeds(harness):
+def test_pre_upgrade_check_succeeds(harness: Harness):
     with patch("charm.KafkaCharm.healthy", return_value=True):
         harness.charm.upgrade.pre_upgrade_check()
 
 
-def test_build_upgrade_stack(harness):
+def test_build_upgrade_stack(harness: Harness):
     with harness.hooks_disabled():
-        harness.add_relation_unit(harness.charm.peer_relation.id, f"{CHARM_KEY}/1")
+        harness.add_relation_unit(harness.charm.state.peer_relation.id, f"{CHARM_KEY}/1")
         harness.update_relation_data(
-            harness.charm.peer_relation.id, f"{CHARM_KEY}/1", {"private-address": "111.111.111"}
+            harness.charm.state.peer_relation.id,
+            f"{CHARM_KEY}/1",
+            {"private-address": "111.111.111"},
         )
-        harness.add_relation_unit(harness.charm.peer_relation.id, f"{CHARM_KEY}/2")
+        harness.add_relation_unit(harness.charm.state.peer_relation.id, f"{CHARM_KEY}/2")
         harness.update_relation_data(
-            harness.charm.peer_relation.id, f"{CHARM_KEY}/2", {"private-address": "222.222.222"}
+            harness.charm.state.peer_relation.id,
+            f"{CHARM_KEY}/2",
+            {"private-address": "222.222.222"},
         )
 
     stack = harness.charm.upgrade.build_upgrade_stack()
@@ -83,12 +86,20 @@ def test_kafka_dependency_model():
         assert DependencyModel(**value)
 
 
-def test_upgrade_granted_sets_failed_if_zookeeper_dependency_check_fails(harness):
+def test_upgrade_granted_sets_failed_if_zookeeper_dependency_check_fails(harness: Harness):
     with (
         patch.object(KazooClient, "start"),
-        patch("utils.ZooKeeperManager.get_leader", return_value="000.000.000"),
+        patch(
+            "core.models.ZooKeeperManager.get_leader",
+            new_callable=PropertyMock,
+            return_value="000.000.000",
+        ),
         # NOTE: Dependency requires >3
-        patch("utils.ZooKeeperManager.get_version", return_value="1.2.3"),
+        patch(
+            "core.models.ZooKeeper.zookeeper_version",
+            new_callable=PropertyMock,
+            return_value="1.2.3",
+        ),
     ):
         mock_event = MagicMock()
         harness.charm.upgrade._on_upgrade_granted(mock_event)
@@ -96,15 +107,15 @@ def test_upgrade_granted_sets_failed_if_zookeeper_dependency_check_fails(harness
     assert harness.charm.upgrade.state == "failed"
 
 
-def test_upgrade_granted_sets_failed_if_failed_snap(harness):
+def test_upgrade_granted_sets_failed_if_failed_snap(harness: Harness):
     with (
         patch(
-            "upgrade.KafkaUpgrade.zookeeper_current_version",
+            "events.upgrade.KafkaUpgrade.zookeeper_current_version",
             new_callable=PropertyMock,
             return_value="3.6",
         ),
-        patch.object(KafkaSnap, "stop_snap_service") as patched_stop,
-        patch.object(KafkaSnap, "install", return_value=False),
+        patch("workload.KafkaWorkload.stop") as patched_stop,
+        patch("workload.KafkaWorkload.install", return_value=False),
     ):
         mock_event = MagicMock()
         harness.charm.upgrade._on_upgrade_granted(mock_event)
@@ -113,17 +124,16 @@ def test_upgrade_granted_sets_failed_if_failed_snap(harness):
     assert harness.charm.upgrade.state == "failed"
 
 
-def test_upgrade_granted_sets_failed_if_failed_upgrade_check(harness):
+def test_upgrade_granted_sets_failed_if_failed_upgrade_check(harness: Harness):
     with (
         patch(
-            "upgrade.KafkaUpgrade.zookeeper_current_version",
+            "events.upgrade.KafkaUpgrade.zookeeper_current_version",
             new_callable=PropertyMock,
             return_value="3.6",
         ),
-        patch.object(KafkaSnap, "stop_snap_service"),
-        patch.object(KafkaSnap, "restart_snap_service") as patched_restart,
-        patch.object(KafkaSnap, "install", return_value=True),
-        patch("config.KafkaConfig.set_environment"),
+        patch("workload.KafkaWorkload.stop"),
+        patch("workload.KafkaWorkload.restart") as patched_restart,
+        patch("workload.KafkaWorkload.install", return_value=True),
         patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=False),
     ):
         mock_event = MagicMock()
@@ -133,17 +143,16 @@ def test_upgrade_granted_sets_failed_if_failed_upgrade_check(harness):
     assert harness.charm.upgrade.state == "failed"
 
 
-def test_upgrade_granted_succeeds(harness):
+def test_upgrade_granted_succeeds(harness: Harness):
     with (
         patch(
-            "upgrade.KafkaUpgrade.zookeeper_current_version",
+            "events.upgrade.KafkaUpgrade.zookeeper_current_version",
             new_callable=PropertyMock,
             return_value="3.6",
         ),
-        patch("config.KafkaConfig.set_environment"),
-        patch.object(KafkaSnap, "stop_snap_service"),
-        patch.object(KafkaSnap, "restart_snap_service"),
-        patch.object(KafkaSnap, "install", return_value=True),
+        patch("workload.KafkaWorkload.stop"),
+        patch("workload.KafkaWorkload.restart"),
+        patch("workload.KafkaWorkload.install", return_value=True),
         patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
     ):
         mock_event = MagicMock()
@@ -152,22 +161,21 @@ def test_upgrade_granted_succeeds(harness):
     assert harness.charm.upgrade.state == "completed"
 
 
-def test_upgrade_granted_recurses_upgrade_changed_on_leader(harness):
+def test_upgrade_granted_recurses_upgrade_changed_on_leader(harness: Harness):
     with harness.hooks_disabled():
         harness.set_leader(True)
 
     with (
         patch(
-            "upgrade.KafkaUpgrade.zookeeper_current_version",
+            "events.upgrade.KafkaUpgrade.zookeeper_current_version",
             new_callable=PropertyMock,
             return_value="3.6",
         ),
-        patch("config.KafkaConfig.set_environment"),
-        patch.object(KafkaSnap, "stop_snap_service"),
-        patch.object(KafkaSnap, "restart_snap_service"),
-        patch.object(KafkaSnap, "install", return_value=True),
+        patch("workload.KafkaWorkload.stop"),
+        patch("workload.KafkaWorkload.restart"),
+        patch("workload.KafkaWorkload.install", return_value=True),
         patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
-        patch.object(KafkaUpgrade, "on_upgrade_changed") as patched_upgrade,
+        patch("events.upgrade.KafkaUpgrade.on_upgrade_changed") as patched_upgrade,
     ):
         mock_event = MagicMock()
         harness.charm.upgrade._on_upgrade_granted(mock_event)

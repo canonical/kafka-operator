@@ -27,7 +27,7 @@ Example usage for `ZooKeeperManager`:
 ```python
 
 def update_cluster(new_members: List[str], event: EventBase) -> None:
-    
+
     try:
         zk = ZooKeeperManager(
             hosts=["10.141.73.20", "10.141.73.21"],
@@ -35,12 +35,12 @@ def update_cluster(new_members: List[str], event: EventBase) -> None:
             username="super",
             password="password"
         )
-        
+
         current_quorum_members = zk.server_members
 
         servers_to_remove = list(current_quorum_members - new_members)
         zk.remove_members(servers_to_remove)
-        
+
         servers_to_add = sorted(new_members - current_quorum_members)
         zk.add_members(servers_to_add)
 

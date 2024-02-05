@@ -8,13 +8,11 @@ import logging
 import re
 import subprocess
 from dataclasses import asdict, dataclass
-from typing import TYPE_CHECKING, Optional, Set
 
-from literals import REL_NAME
-from snap import KafkaSnap
+from ops.pebble import ExecError
 
-if TYPE_CHECKING:
-    from charm import KafkaCharm
+from core.cluster import ClusterState
+from core.workload import WorkloadBase
 
 logger = logging.getLogger(__name__)
 
@@ -29,20 +27,23 @@ class Acl:
     username: str
 
 
-class KafkaAuth:
+class AuthManager:
     """Object for updating Kafka users and ACLs."""
 
-    def __init__(self, charm):
-        self.charm: "KafkaCharm" = charm
-        self.zookeeper_connect = self.charm.kafka_config.zookeeper_config.get("connect", "")
-        self.bootstrap_server = ",".join(self.charm.kafka_config.bootstrap_server)
-        self.client_properties = self.charm.kafka_config.client_properties_filepath
-        self.server_properties = self.charm.kafka_config.server_properties_filepath
+    def __init__(self, state: ClusterState, workload: WorkloadBase, kafka_opts: str):
+        self.state = state
+        self.workload = workload
+        self.kafka_opts = kafka_opts
 
-        self.new_user_acls: Set[Acl] = set()
+        self.zookeeper_connect = self.state.zookeeper.connect
+        self.bootstrap_server = ",".join(self.state.bootstrap_server)
+        self.client_properties = self.workload.paths.client_properties
+        self.server_properties = self.workload.paths.server_properties
+
+        self.new_user_acls: set[Acl] = set()
 
     @property
-    def current_acls(self) -> Set[Acl]:
+    def current_acls(self) -> set[Acl]:
         """Sets the current cluster ACLs."""
         acls = self._get_acls_from_cluster()
         return self._parse_acls(acls=acls)
@@ -54,12 +55,12 @@ class KafkaAuth:
             f"--command-config={self.client_properties}",
             "--list",
         ]
-        acls = KafkaSnap.run_bin_command(bin_keyword="acls", bin_args=command)
+        acls = self.workload.run_bin_command(bin_keyword="acls", bin_args=command)
 
         return acls
 
     @staticmethod
-    def _parse_acls(acls: str) -> Set[Acl]:
+    def _parse_acls(acls: str) -> set[Acl]:
         """Parses output from raw ACLs provided by the cluster."""
         current_acls = set()
         resource_type, name, user, operation = None, None, None, None
@@ -95,7 +96,7 @@ class KafkaAuth:
         return current_acls
 
     @staticmethod
-    def _generate_producer_acls(topic: str, username: str, **_) -> Set[Acl]:
+    def _generate_producer_acls(topic: str, username: str, **_) -> set[Acl]:
         """Generates expected set of `Acl`s for a producer client application."""
         producer_acls = set()
         for operation in ["CREATE", "WRITE", "DESCRIBE"]:
@@ -111,9 +112,7 @@ class KafkaAuth:
         return producer_acls
 
     @staticmethod
-    def _generate_consumer_acls(
-        topic: str, username: str, group: Optional[str] = None
-    ) -> Set[Acl]:
+    def _generate_consumer_acls(topic: str, username: str, group: str | None = None) -> set[Acl]:
         """Generates expected set of `Acl`s for a consumer client application."""
         group = group or f"{username}-"  # not needed, just for safety
 
@@ -148,7 +147,7 @@ class KafkaAuth:
                 For use before cluster start
 
         Raises:
-            `subprocess.CalledProcessError`: if the error returned a non-zero exit code
+            `(subprocess.CalledProcessError | ops.pebble.ExecError)`: if the error returned a non-zero exit code
         """
         base_command = [
             "--alter",
@@ -164,7 +163,7 @@ class KafkaAuth:
                 f"--zookeeper={self.zookeeper_connect}",
                 f"--zk-tls-config-file={self.server_properties}",
             ]
-            opts = [self.charm.kafka_config.kafka_opts]
+            opts = [self.kafka_opts]
         else:
             command = base_command + [
                 f"--bootstrap-server={self.bootstrap_server}",
@@ -172,7 +171,7 @@ class KafkaAuth:
             ]
             opts = []
 
-        KafkaSnap.run_bin_command(bin_keyword="configs", bin_args=command, opts=opts)
+        self.workload.run_bin_command(bin_keyword="configs", bin_args=command, opts=opts)
 
     def delete_user(self, username: str) -> None:
         """Deletes user credentials from ZooKeeper.
@@ -181,7 +180,7 @@ class KafkaAuth:
             username: the user name to delete
 
         Raises:
-            `subprocess.CalledProcessError`: if the error returned a non-zero exit code
+            `(subprocess.CalledProcessError | ops.pebble.ExecError)`: if the error returned a non-zero exit code
         """
         command = [
             f"--bootstrap-server={self.bootstrap_server}",
@@ -192,9 +191,9 @@ class KafkaAuth:
             "--delete-config=SCRAM-SHA-512",
         ]
         try:
-            KafkaSnap.run_bin_command(bin_keyword="configs", bin_args=command)
-        except subprocess.CalledProcessError as e:
-            if "delete a user credential that does not exist" in e.stderr:
+            self.workload.run_bin_command(bin_keyword="configs", bin_args=command)
+        except (subprocess.CalledProcessError, ExecError) as e:
+            if e.stderr and "delete a user credential that does not exist" in e.stderr:
                 logger.warning(f"User: {username} can't be deleted, it does not exist")
                 return
             raise
@@ -216,7 +215,7 @@ class KafkaAuth:
             resource_name: the name of the resource to grant ACLs for
 
         Raises:
-            `subprocess.CalledProcessError`: if the error returned a non-zero exit code
+            `(subprocess.CalledProcessError | ops.pebble.ExecError)`: if the error returned a non-zero exit code
         """
         command = [
             f"--bootstrap-server={self.bootstrap_server}",
@@ -233,7 +232,7 @@ class KafkaAuth:
                 f"--group={resource_name}",
                 "--resource-pattern-type=PREFIXED",
             ]
-        KafkaSnap.run_bin_command(bin_keyword="acls", bin_args=command)
+        self.workload.run_bin_command(bin_keyword="acls", bin_args=command)
 
     def remove_acl(
         self, username: str, operation: str, resource_type: str, resource_name: str
@@ -249,7 +248,7 @@ class KafkaAuth:
             resource_name: the name of the resource to remove ACLs for
 
         Raises:
-            `subprocess.CalledProcessError`: if the error returned a non-zero exit code
+            `(subprocess.CalledProcessError | ops.pebble.ExecError)`: if the error returned a non-zero exit code
         """
         command = [
             f"--bootstrap-server={self.bootstrap_server}",
@@ -268,7 +267,7 @@ class KafkaAuth:
                 "--resource-pattern-type=PREFIXED",
             ]
 
-        KafkaSnap.run_bin_command(bin_keyword="acls", bin_args=command)
+        self.workload.run_bin_command(bin_keyword="acls", bin_args=command)
 
     def remove_all_user_acls(self, username: str) -> None:
         """Removes all active ACLs for a given user.
@@ -277,7 +276,7 @@ class KafkaAuth:
             username: the user name to remove ACLs for
 
         Raises:
-            `subprocess.CalledProcessError`: if the error returned a non-zero exit code
+            `(subprocess.CalledProcessError | ops.pebble.ExecError)`: if the error returned a non-zero exit code
         """
         # getting subset of all cluster ACLs for only the provided user
         current_user_acls = {acl for acl in self.current_acls if acl.username == username}
@@ -286,7 +285,7 @@ class KafkaAuth:
             self.remove_acl(**asdict(acl))
 
     def update_user_acls(
-        self, username: str, topic: str, extra_user_roles: str, group: Optional[str], **_
+        self, username: str, topic: str, extra_user_roles: str, group: str | None, **_
     ) -> None:
         """Compares data passed from the client relation, and updating cluster ACLs to match.
 
@@ -304,7 +303,7 @@ class KafkaAuth:
             group: the consumer group
 
         Raises:
-            `subprocess.CalledProcessError`: if the error returned a non-zero exit code
+            `(subprocess.CalledProcessError | ops.pebble.ExecError)`: if the error returned a non-zero exit code
         """
         if "producer" in extra_user_roles:
             self.new_user_acls.update(self._generate_producer_acls(topic=topic, username=username))
@@ -323,20 +322,3 @@ class KafkaAuth:
         acls_to_remove = current_user_acls - self.new_user_acls
         for acl in acls_to_remove:
             self.remove_acl(**asdict(acl))
-
-    def clear_users(self) -> None:
-        """Check existing relations and remove deleted users."""
-        current_usernames = [acl.username for acl in self.current_acls]
-        relation_usernames = [
-            f"relation-{relation.id}" for relation in self.charm.model.relations[REL_NAME]
-        ]
-        to_remove = [
-            username for username in current_usernames if username not in relation_usernames
-        ]
-
-        for username in to_remove:
-            self.remove_all_user_acls(username=username)
-            self.delete_user(username=username)
-            # non-leader units need cluster_config_changed event to update their super.users
-            # update on the peer relation data will trigger an update of server properties on all unit
-            self.charm.app_peer_data.update({username: ""})

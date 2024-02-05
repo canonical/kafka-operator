@@ -6,7 +6,6 @@ import asyncio
 import logging
 import time
 from subprocess import PIPE, check_output
-from typing import Dict
 
 import pytest
 import requests
@@ -101,6 +100,22 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
 
     assert ops_test.model.applications[APP_NAME].status == "active"
     assert ops_test.model.applications[ZK_NAME].status == "active"
+
+
+@pytest.mark.abort_on_fail
+async def test_remove_zk_relation_relate(ops_test: OpsTest):
+    remove_relation_cmd = f"remove-relation {APP_NAME} {ZK_NAME}"
+    await ops_test.juju(*remove_relation_cmd.split(), check=True)
+    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], idle_period=40, timeout=3600)
+
+    assert ops_test.model.applications[APP_NAME].status == "blocked"
+    assert ops_test.model.applications[ZK_NAME].status == "active"
+
+    await ops_test.model.add_relation(APP_NAME, ZK_NAME)
+    async with ops_test.fast_forward():
+        await ops_test.model.wait_for_idle(
+            apps=[APP_NAME, ZK_NAME], status="active", idle_period=30, timeout=1000
+        )
 
 
 @pytest.mark.abort_on_fail
@@ -268,7 +283,7 @@ async def test_observability_integration(ops_test: OpsTest):
     agent_units = ops_test.model.applications["agent"].units
 
     # Get all the "targets" from all grafana-agent units
-    machine_targets: Dict[str, str] = {
+    machine_targets: dict[str, str] = {
         unit.machine.id: await unit.machine.ssh(
             "curl localhost:12345/agent/api/v1/metrics/targets"
         )
