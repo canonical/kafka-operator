@@ -33,28 +33,19 @@ juju relate data-integrator kafka
 
 To retrieve information, enter:
 ```shell
-juju run-action data-integrator/leader get-credentials --wait
+juju run data-integrator/leader get-credentials
 ```
 
 This should output something like:
 ```yaml
-unit-data-integrator-0:
-  UnitId: data-integrator/0
-  id: "4"
-  results:
-    kafka:
-      consumer-group-prefix: relation-27-
-      endpoints: 10.123.8.133:19092
-      password: ejMp4SblzxkMCF0yUXjaspneflXqcyXK
-      tls: disabled
-      username: relation-27
-      zookeeper-uris: 10.123.8.154:2181,10.123.8.181:2181,10.123.8.61:2181/kafka
-    ok: "True"
-  status: completed
-  timing:
-    completed: 2023-01-27 14:22:51 +0000 UTC
-    enqueued: 2023-01-27 14:22:50 +0000 UTC
-    started: 2023-01-27 14:22:51 +0000 UTC
+kafka:
+  consumer-group-prefix: relation-27-
+  endpoints: 10.123.8.133:19092
+  password: ejMp4SblzxkMCF0yUXjaspneflXqcyXK
+  tls: disabled
+  username: relation-27
+  zookeeper-uris: 10.123.8.154:2181,10.123.8.181:2181,10.123.8.61:2181/kafka
+ok: "True"
 ```
 
 ## Password rotation
@@ -105,8 +96,8 @@ juju remove-application data-integrator
 The operator user is used internally by the Charmed Kafka Operator, the `set-password` action can be used to rotate its password.
 ```shell
 # to set a specific password for the operator user
-juju run-action kafka/leader set-password password=<password> --wait
+juju run kafka/leader set-password password=<password>
 
 # to randomly generate a password for the operator user
-juju run-action kafka/leader set-password --wait
+juju run kafka/leader set-password
 ```

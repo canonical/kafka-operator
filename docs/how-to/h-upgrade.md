@@ -1,5 +1,7 @@
 # How to upgrade between minor versions
 
+> **Note** This feature is available on Charmed Kafka and Charmed ZooKeeper from revisions 134 and 103, respectively. Upgrade from previous versions is **not supported**, although possible (see e.g. [here](https://github.com/deusebio/kafka-pre-upgrade-patch) for a custom example).
+
 Charm upgrades allow admins to upgrade both operator code (e.g. the revision used by the charm) and/or the workload version. Note that since the charm code pins a particular version of the workload, a charm upgrade may or may not involve also a workload version upgrade. In general, the following guide only applies for in-place upgrades that involve (at most) minor version upgrade of Kafka workload, e.g. between Kafka 3.4.x to 3.5.x. Major workload upgrades are generally **NOT SUPPORTED**, and they should be carried out using full cluster to cluster migrations. Please refer to the how-to guide about cluster migration [here](/t/charmed-kafka-how-to-cluster-migration/10951) for more information on how this can be achieved.
 
 Perform other extraordinary operations on the Kafka cluster while upgrading is not supported. As an examples, these may be (but not limited to) the following:
@@ -36,18 +38,10 @@ Before upgrading, the charm needs to perform some preparatory tasks to define th
 To do so, run the `pre-upgrade-check` action against the leader unit:
 
 ```shell
-juju run-action kafka/leader pre-upgrade-check --wait
+juju run kafka/leader pre-upgrade-check 
 ```
 
-Make sure that the output of the action is successful, e.g. the output should read:
-
-```shell
-unit-kafka-0:
-  ...
-  results: {}
-  status: completed
-  ...
-```
+Make sure that the output of the action is successful.
 
 > Note that you won't be able to upgrade successfully unless you complete successfully this action. 
 The action will also configure the charm to minimize high-availability reduction and ensure a safe upgrade process. After successful execution, the charm is ready to be upgraded.
@@ -77,8 +71,8 @@ The upgrade process can be monitored using `juju status` command, where the mess
 ```shell
 ...
 
-App        Version  Status  Scale  Charm      Channel  Rev  Exposed  Message
-kafka               active      3  kafka      3/edge   135  no
+App        Version  Status  Scale  Charm      Channel   Rev  Exposed  Message
+kafka               active      3  kafka      3/stable  147  no
 
 Unit          Workload  Agent  Machine  Public address  Ports  Message
 ...
@@ -101,7 +95,7 @@ If some of these checks fail, the upgrade will be aborted. When this happens, th
 In order to roll back the upgrade, re-run steps 2 and 3, using the revision taken in step 1, i.e.
 
 ```shell
-juju run-action kafka/leader pre-upgrade-check --wait
+juju run kafka/leader pre-upgrade-check
 
 juju refresh kafka --revision=${KAFKA_CHARM_REVISION}
 ```

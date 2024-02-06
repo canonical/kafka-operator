@@ -13,29 +13,22 @@ As currently Kafka requires a paired ZooKeeper deployment in production, this op
 
 The Charmed Kafka operator comes in two flavours to deploy and operate Kafka on [physical/virtual machines](https://github.com/canonical/kafka-operator) and [Kubernetes](https://github.com/canonical/kafka-k8s-operator). Both offer features such as replication, TLS, password rotation, and easy to use integration with applications. The Charmed Kafka Operator meets the need of deploying Kafka in a structured and consistent manner while allowing the user flexibility in configuration. It simplifies deployment, scaling, configuration and management of Kafka in production at scale in a reliable way.
 
-## Charm version, environment and OS
-
-A charm version is a combination of both the application version and / (slash) the channel, e.g. 3/stable, 3/candidate, 3/edge. The channels are ordered from the most stable to the least stable, candidate, and edge. More risky channels like edge are always implicitly available. So, if the candidate is listed, you can pull the candidate and edge. When stable is listed, all three are available. 
-
-You can deploy the charm a stand-alone machine or cloud and cloud-like environments, including AWS, Azure, OpenStack and VMWare.
-
-The upper portion of this page describes the Operating System (OS) where the charm can run e.g. 3/stable is compatible and should run in a machine with Ubuntu 22.04 OS.
-
-
-## Security, Bugs and feature request
-
-If you find a bug in this snap or want to request a specific feature, here are the useful links:
-
-* Raise issues or feature requests in [Github](https://github.com/canonical/kafka-operator/issues)
-
-* Security issues in the Charmed Kafka Operator can be reported through [LaunchPad](https://wiki.ubuntu.com/DebuggingSecurity#How%20to%20File). Please do not file GitHub issues about security issues.
-
-* Meet the community and chat with us if there are issues and feature requests in our [Mattermost Channel](https://chat.charmhub.io/charmhub/channels/data-platform)
-
-## Contributing
-
-Please see the [Juju SDK docs](https://juju.is/docs/sdk) for guidelines on enhancements to this charm following best practice guidelines, and [CONTRIBUTING.md](https://github.com/canonical/kafka-operator/blob/main/CONTRIBUTING.md) for developer guidance.
-
-## License
+### License
 
 The Charmed Kafka Operator is free software, distributed under the Apache Software License, version 2.0. See [LICENSE](https://github.com/canonical/kafka-operator/blob/main/LICENSE) for more information.
+
+## Project and community
+
+Charmed Kafka is an official distribution of Apache Kafka. It’s an open-source project that welcomes community contributions, suggestions, fixes and constructive feedback.
+- [Read our Code of Conduct](https://ubuntu.com/community/code-of-conduct)
+- [Join the Discourse forum](/tag/kafka)
+- [Contribute](https://github.com/canonical/kafka-operator/blob/main/CONTRIBUTING.md) and report [issues](https://github.com/canonical/kafka-operator/issues/new)
+- Explore [Canonical Data Fabric solutions](https://canonical.com/data)
+- [Contacts us]([/t/13107) for all further questions
+
+## In this documentation
+
+| | |
+|--|--|
+|  [Tutorials](/t/charmed-kafka-tutorial-overview/10571)</br>  Get started - a hands-on introduction to using Charmed MySQL operator for new users </br> |  [How-to guides](/t/charmed-kafka-how-to-manage-units/10287) </br> Step-by-step guides covering key operations and common tasks |
+| [Reference](https://charmhub.io/kafka/actions?channel=3/stable) </br> Technical information - specifications, APIs, architecture | [Explanation]() </br> Concepts - discussion and clarification of key topics  |

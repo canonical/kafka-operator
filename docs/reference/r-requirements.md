@@ -7,4 +7,4 @@ For production environments, it is recommended to deploy at least 5 nodes for Zo
 - 12 storage devices
 - 10 GbE card
 
-The charm is meant to be deployed using `juju>=2.9.37`.
+The charm is meant to be deployed using `juju>=3.1.6`.

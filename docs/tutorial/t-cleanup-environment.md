@@ -27,7 +27,7 @@ In this tutorial we've successfully deployed Kafka, added/removed replicas, adde
 You may now keep your Charmed Kafka deployment running or remove it entirely using the steps in [Remove Charmed Kafka and Juju](#remove-charmed-kafka-and-juju). 
 If you're looking for what to do next you can:
 - Run [Charmed Kafka on Kubernetes](https://github.com/canonical/kafka-k8s-operator).
-- Check out our Charmed offerings of [PostGres](https://charmhub.io/postgresql?channel=edge) and [MongoDB](https://charmhub.io/mongodb?channel=5/edge).
+- Check out our Charmed offerings of [PostgreSQL](https://charmhub.io/postgresql?channel=edge) and [MongoDB](https://charmhub.io/mongodb?channel=5/edge).
 - Read about [High Availability Best Practices](https://canonical.com/blog/database-high-availability)
 - [Report](https://github.com/canonical/kafka-operator/issues) any problems you encountered.
 - [Give us your feedback](https://chat.charmhub.io/charmhub/channels/data-platform).

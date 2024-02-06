@@ -10,7 +10,7 @@ Passwords help to secure our cluster and are essential for security. Over time i
 ### Retrieve the admin password
 As previously mentioned, the admin password can be retrieved by running the `get-admin-credentials` action on the Charmed Kafka application:
 ```shell
-juju run-action kafka/leader get-admin-credentials --wait
+juju run kafka/leader get-admin-credentials
 ```
 Running the command should output:
 ```yaml
@@ -37,7 +37,7 @@ The admin password is under the result: `password`.
 ### Rotate the admin password
 You can change the admin password to a new random password by entering:
 ```shell
-juju run-action kafka/leader set-password username=admin --wait
+juju run kafka/leader set-password username=admin
 ```
 Running the command should output:
 ```yaml
@@ -54,12 +54,12 @@ unit-kafka-1:
 ```
 The admin password is under the result: `admin-password`. It should be different from your previous password.
 
-*Note when you change the admin password you will also need to update the admin password the in Kafka connection parameters; as the old password will no longer be valid.*
+> **Note** When changing the admin password you will also need to update the admin password the in Kafka connection parameters; as the old password will no longer be valid.*
 
 ### Set the admin password
 You can change the admin password to a specific password by entering:
 ```shell
-juju run-action kafka/leader set-password username=admin password=<password> --wait
+juju run kafka/leader set-password username=admin password=<password>
 ```
 Running the command should output:
 ```yaml
@@ -76,25 +76,37 @@ unit-kafka-1:
 ```
 The admin password under the result: `admin-password` should match whatever you passed in when you entered the command.
 
-*Note that when you change the admin password you will also need to update the admin password in the Kafka connection parameters, as the old password will no longer be valid.*
+> **Note** When changing the admin password you will also need to update the admin password in the Kafka connection parameters, as the old password will no longer be valid.*
 
 ### Kafka Users
 
 As mentioned in the previous section of the Tutorial, the recommended way to create and manage users is by means of the data-integrator charm. 
 This will allow us to encode users directly in the Juju model, and - as shown in the following - to rotate user credentials rotations with and without application downtime.   
 
+### Deploy the data-integrator 
+
+To deploy a `data-integrator` simply issue the following command:
+
+```
+juju deploy data-integrator --config extra-user-roles=producer --config topic-name=test-topic
+```
+
+*(here we assumed to create an producer user (possible roles for Kafka are producer, consumer and admin)*
+ 
+Then related the `data-integrator` with `kafka`:
+
+```
+juju relate data-integrator kafka
+```
+
 ### Retrieve the password
 
 Similarly to the Kafka application, also the `data-integrator` exposes an action to retrieve the credentials, e.g. 
 ```shell
-juju run-action data-integrator/leader get-credentials --wait
+juju run data-integrator/leader get-credentials
 ```
 Running the command should output:
 ```shell 
-Running operation 22 with 1 task
-  - task 23 on unit-data-integrator-0
-
-Waiting for task 23...
 kafka:
   endpoints: 10.244.26.43:9092,10.244.26.6:9092,10.244.26.19:9092
   password: S4IeRaYaiiq0tsM7m2UZuP2mSI573IGV
@@ -120,14 +132,11 @@ juju relate kafka data-integrator
 The successful credential rotation can be confirmed by retrieving the new password with the action `get-credentials`
 
 ```shell
-juju run-action data-integrator/leader get-credentials --wait
+juju run data-integrator/leader get-credentials 
 ```
+
 Running the command should now output a different password:
 ```shell 
-Running operation 24 with 1 task
-  - task 25 on unit-data-integrator-0
-
-Waiting for task 25...
 kafka:
   endpoints: 10.244.26.43:9092,10.244.26.6:9092,10.244.26.19:9092
   password: ToVfqYQ7tWmNmjy2tJTqulZHmJxJqQ22
