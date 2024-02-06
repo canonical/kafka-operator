@@ -379,7 +379,7 @@ class KafkaConfigManager:
                     "brokerId": str(broker.unit_id),
                     "capacity": {
                         "DISK": broker.storages,
-                        "CPU": 100,
+                        "CPU": {"num.cores": broker.cores},
                         "NW_IN": self.config.network_bandwidth,
                         "NW_OUT": self.config.network_bandwidth,
                     },

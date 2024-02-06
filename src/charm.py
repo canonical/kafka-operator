@@ -133,7 +133,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             getattr(self.on, "data_storage_detaching"), self._on_storage_detaching
         )
 
-    def _on_install(self, _: InstallEvent) -> None:
+    def _on_install(self, event: InstallEvent) -> None:
         """Handler for `install` event."""
         # if self.workload.install():
         self._set_os_config()
@@ -143,6 +143,12 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         logger.info("COPY SNAP NOW")
         time.sleep(100)
+
+        if not self.state.peer_relation:
+            event.defer()
+            return
+
+        self.state.broker.update({"cores": str(self.cruisecontrol_manager.cores)})
 
     def _on_leader_elected(self, event: LeaderElectedEvent) -> None:
         """Handler for `leader-elected` event."""

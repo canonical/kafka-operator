@@ -30,6 +30,11 @@ class CruiseControlManager:
         return int(self.workload.exec(f"df --output=size {path} | sed 1d"))
 
     @property
+    def cores(self) -> int:
+        """Gets the total number of CPU cores for the machine."""
+        return int(self.workload.exec("ncproc --all"))
+
+    @property
     def storages(self) -> str:
         """A string of JSON containing key storage-path, value storage size for all unit storages."""
         return json.dumps(

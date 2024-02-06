@@ -125,10 +125,17 @@ class KafkaBroker(StateBase):
 
         return host
 
+    # --- CRUISE CONTROL ---
+
     @property
     def storages(self) -> JSON:
         """The current Juju storages for the unit."""
         return json.loads(self.relation_data.get("storages", ""))
+
+    @property
+    def cores(self) -> int:
+        """The number of CPU cores for the unit machine."""
+        return int(self.relation_data.get("cores", ""))
 
     # --- TLS ---
 
