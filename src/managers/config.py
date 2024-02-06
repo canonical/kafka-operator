@@ -33,9 +33,31 @@ auto.create.topics.enable=false
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
 """
 
+DEFAULT_CRUISE_CONTROL_GOALS = [
+    "MinTopicLeadersPerBroker",
+    "ReplicaCapacity",
+    "DiskCapacity",
+    "NetworkInboundCapacity",
+    "NetworkOutboundCapacity",
+    "CpuCapacity",
+    "ReplicaDistribution",
+    "PotentialNwOut",
+    "DiskUsageDistribution",
+    "NetworkInboundUsageDistribution",
+    "NetworkOutboundUsageDistribution",
+    "CpuUsageDistribution",
+    "LeaderReplicaDistribution",
+    "LeaderBytesInDistribution",
+    "TopicReplicaDistribution",
+    "PreferredLeaderElection",
+    "IntraBrokerDiskCapacity",
+    "IntraBrokerDiskUsageDistribution",
+]
+
 CRUISE_CONTROL_CONFIG_OPTIONS = """
 """
 
+# FIXME: This is a hack, figure out a better, more long-lasting solution
 SERVER_PROPERTIES_BLACKLIST = ["profile", "log_level", "certificate_extra_sans"]
 
 
@@ -390,17 +412,50 @@ class KafkaConfigManager:
         return json.dumps({"brokerCapacities": broker_capacities}, indent=4)
 
     @property
+    def cruise_control_goals(self) -> list[str]:
+        """Builds all pluggable Goals properties for CruiseControl.
+
+        Returns:
+            List of properties to be set
+        """
+        simple_goals = DEFAULT_CRUISE_CONTROL_GOALS
+        for prop in self.rack_properties:  # i.e rack awareness enabled
+            num_racks = 0
+            if "num.racks" in prop:
+                num_racks = int(prop.split("=")[1])
+
+            if (
+                min([3, self.state.planned_units]) > num_racks
+            ):  # replication-factor > racks is not ideal
+                simple_goals = simple_goals + ["RackAwareDistribution"]
+            else:
+                simple_goals = simple_goals + ["RackAware"]
+
+        supported_goals = [
+            f"com.linkedin.kafka.cruisecontrol.analyser.goals.{goal}Goal" for goal in simple_goals
+        ]
+
+        goals_prop = f"goals={','.join(supported_goals)}"
+        intra_broker_goals_prop = f"intra.broker.goals={','.join([goal for goal in supported_goals if 'IntraBroker' in goal])}"
+
+        return [goals_prop, intra_broker_goals_prop]
+
+    @property
     def cruise_control_properties(self) -> list[str]:
         """Builds all properties necessary for starting Cruise Control service.
 
         Returns:
             List of properties to be set
         """
-        properties = [
-            f"bootstrap.servers={','.join(self.state.bootstrap_server)}",
-            f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
-            f"zookeeper.connect={self.state.zookeeper.connect}",
-        ] + CRUISE_CONTROL_CONFIG_OPTIONS.split("\n")
+        properties = (
+            [
+                f"bootstrap.servers={','.join(self.state.bootstrap_server)}",
+                f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
+                f"zookeeper.connect={self.state.zookeeper.connect}",
+            ]
+            + self.cruise_control_goals
+            + CRUISE_CONTROL_CONFIG_OPTIONS.split("\n")
+        )
 
         return properties
 
