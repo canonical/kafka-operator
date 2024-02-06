@@ -128,11 +128,14 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
-        if self.workload.install():
-            self._set_os_config()
-            self.config_manager.set_environment()
-        else:
-            self._set_status(Status.SNAP_NOT_INSTALLED)
+        # if self.workload.install():
+        self._set_os_config()
+        self.config_manager.set_environment()
+        # else:
+        #     self._set_status(Status.SNAP_NOT_INSTALLED)
+
+        logger.info("COPY SNAP NOW")
+        time.sleep(100)
 
     def _on_start(self, event: EventBase) -> None:
         """Handler for `start` event."""

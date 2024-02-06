@@ -30,6 +30,10 @@ sasl.mechanism.inter.broker.protocol=SCRAM-SHA-512
 authorizer.class.name=kafka.security.authorizer.AclAuthorizer
 allow.everyone.if.no.acl.found=false
 auto.create.topics.enable=false
+metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
+"""
+
+CRUISE_CONTROL_CONFIG_OPTIONS = """
 """
 
 SERVER_PROPERTIES_BLACKLIST = ["profile", "log_level", "certificate_extra_sans"]
@@ -436,6 +440,9 @@ class KafkaConfigManager:
 
         if self.state.cluster.tls_enabled and self.state.broker.certificate:
             properties += self.tls_properties + self.zookeeper_tls_properties
+            properties += [
+                f"cruise.control.metrics.reporter.{prop}" for prop in self.tls_properties
+            ]
 
         return properties
 
@@ -453,7 +460,7 @@ class KafkaConfigManager:
         """Builds the JAAS config for Client authentication with ZooKeeper.
 
         Returns:
-            String of Jaas config for ZooKeeper auth
+            String of JAAS config for ZooKeeper auth
         """
         return f"""
 Client {{
@@ -461,12 +468,32 @@ Client {{
     username="{self.state.zookeeper.username}"
     password="{self.state.zookeeper.password}";
 }};
+        """
 
+    @property
+    def cruise_control_jaas_config(self) -> str:
+        """Builds the JAAS config for KafkaClient authentication with Kafka.
+
+        Returns:
+            String of JAAS config for Kafka auth
+        """
+        return f"""
+KafkaClient {{
+    org.apache.kafka.common.security.scram.ScramLoginModule required
+    username="{ADMIN_USER}"
+    password="{self.state.cluster.internal_user_credentials.get(ADMIN_USER)}";
+}};
         """
 
     def set_zk_jaas_config(self) -> None:
         """Writes the ZooKeeper JAAS config using ZooKeeper relation data."""
-        self.workload.write(content=self.zk_jaas_config, path=self.workload.paths.zk_jaas)
+        # normally we would need to also write a JAAS specifically for CC to authenticate to ZooKeeper + Kafka
+        # however the path is fixed to be inferred from where the snap squashfs is
+        # however, it KAFKA_OPTS for -Djava.security.auth.login.config, so we can add both there
+        self.workload.write(
+            content="\n".join([self.zk_jaas_config, self.cruise_control_jaas_config]),
+            path=self.workload.paths.zk_jaas,
+        )
 
     def set_server_properties(self) -> None:
         """Writes all Kafka config properties to the `server.properties` path."""
