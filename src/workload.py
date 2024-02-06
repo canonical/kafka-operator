@@ -34,23 +34,26 @@ class KafkaWorkload(WorkloadBase):
         self.kafka = snap.SnapCache()[SNAP_NAME]
 
     @override
-    def start(self) -> None:
+    def start(self, service: str = "") -> None:
+        service = service or self.SNAP_SERVICE
         try:
-            self.kafka.start(services=[self.SNAP_SERVICE])
+            self.kafka.start(services=[service])
         except snap.SnapError as e:
             logger.exception(str(e))
 
     @override
-    def stop(self) -> None:
+    def stop(self, service: str = "") -> None:
+        service = service or self.SNAP_SERVICE
         try:
-            self.kafka.stop(services=[self.SNAP_SERVICE])
+            self.kafka.stop(services=[service])
         except snap.SnapError as e:
             logger.exception(str(e))
 
     @override
-    def restart(self) -> None:
+    def restart(self, service: str = "") -> None:
+        service = service or self.SNAP_SERVICE
         try:
-            self.kafka.restart(services=[self.SNAP_SERVICE])
+            self.kafka.restart(services=[service])
         except snap.SnapError as e:
             logger.exception(str(e))
 

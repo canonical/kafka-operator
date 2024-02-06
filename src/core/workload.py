@@ -92,18 +92,30 @@ class WorkloadBase(ABC):
     paths = KafkaPaths()
 
     @abstractmethod
-    def start(self) -> None:
-        """Starts the workload service."""
+    def start(self, service: str = "") -> None:
+        """Starts the workload service.
+
+        Args:
+            service: the service to start
+        """
         ...
 
     @abstractmethod
-    def stop(self) -> None:
-        """Stops the workload service."""
+    def stop(self, service: str = "") -> None:
+        """Stops the workload service.
+
+        Args:
+            service: the service to stop
+        """
         ...
 
     @abstractmethod
-    def restart(self) -> None:
-        """Restarts the workload service."""
+    def restart(self, service: str = "") -> None:
+        """Restarts the workload service.
+
+        Args:
+            service: the service to restart
+        """
         ...
 
     @abstractmethod

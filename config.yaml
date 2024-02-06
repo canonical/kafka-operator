@@ -90,6 +90,10 @@ options:
     description: 'Level of logging for the different components operated by the charm. Possible values: ERROR, WARNING, INFO, DEBUG'
     type: string
     default: "INFO"
+  enable_cruise_control:
+    description: Flag to enable CruiseControl
+    type: bool
+    default: true
   network_bandwidth:
     description: The network bandwidth available for the cloud that the charm is deployed to, in KB.
     type: int

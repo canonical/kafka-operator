@@ -12,7 +12,13 @@ from charms.grafana_agent.v0.cos_agent import COSAgentProvider
 from charms.operator_libs_linux.v0 import sysctl
 from charms.operator_libs_linux.v1.snap import SnapError
 from charms.rolling_ops.v0.rollingops import RollingOpsManager, RunWithLock
-from ops.charm import StorageAttachedEvent, StorageDetachingEvent, StorageEvent
+from ops.charm import (
+    InstallEvent,
+    LeaderElectedEvent,
+    StorageAttachedEvent,
+    StorageDetachingEvent,
+    StorageEvent,
+)
 from ops.framework import EventBase
 from ops.main import main
 from ops.model import ActiveStatus, StatusBase
@@ -112,6 +118,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         )
 
         self.framework.observe(getattr(self.on, "install"), self._on_install)
+        self.framework.observe(getattr(self.on, "leader_elected"), self._on_leader_elected)
         self.framework.observe(getattr(self.on, "start"), self._on_start)
         self.framework.observe(getattr(self.on, "config_changed"), self._on_config_changed)
         self.framework.observe(getattr(self.on, "update_status"), self._on_update_status)
@@ -126,7 +133,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             getattr(self.on, "data_storage_detaching"), self._on_storage_detaching
         )
 
-    def _on_install(self, _) -> None:
+    def _on_install(self, _: InstallEvent) -> None:
         """Handler for `install` event."""
         # if self.workload.install():
         self._set_os_config()
@@ -136,6 +143,15 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         logger.info("COPY SNAP NOW")
         time.sleep(100)
+
+    def _on_leader_elected(self, event: LeaderElectedEvent) -> None:
+        """Handler for `leader-elected` event."""
+        if not self.workload.active():
+            event.defer()
+            return
+
+        if self.config.enable_cruise_control:
+            self.workload.start(service="cruise-control")
 
     def _on_start(self, event: EventBase) -> None:
         """Handler for `start` event."""
@@ -162,12 +178,13 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
     def _on_config_changed(self, event: EventBase) -> None:
         """Generic handler for most `config_changed` events across relations."""
-        # TODO: restart cruise-control if leader, and storage changed
-
         # only overwrite properties if service is already active
         if not self.healthy or not self.upgrade.idle:
             event.defer()
             return
+
+        if self.unit.is_leader() and not self.config.enable_cruise_control:
+            self.workload.stop(service="cruise-control")
 
         # Load current properties set in the charm workload
         properties = self.workload.read(self.workload.paths.server_properties)
@@ -289,6 +306,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         self.workload.restart()
 
+        if self.unit.is_leader() and self.config.enable_cruise_control:
+            self.workload.restart(service="cruise-control")
+
         # FIXME: This logic should be improved as part of ticket DPE-3155
         # For more information, please refer to https://warthogs.atlassian.net/browse/DPE-3155
         time.sleep(10.0)
@@ -307,6 +327,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         self.workload.disable_enable()
         self.workload.start()
+
+        if self.unit.is_leader() and self.config.enable_cruise_control:
+            self.workload.start(service="cruise-control")
 
         if self.workload.active():
             logger.info(f'Broker {self.unit.name.split("/")[1]} restarted')

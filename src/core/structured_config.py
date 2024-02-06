@@ -73,6 +73,7 @@ class CharmConfig(BaseConfigModel):
     certificate_extra_sans: str | None
     log_level: str
     network_bandwidth: int
+    enable_cruise_control: bool
 
     @validator("*", pre=True)
     @classmethod
