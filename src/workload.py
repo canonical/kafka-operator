@@ -83,6 +83,7 @@ class KafkaWorkload(WorkloadBase):
                 universal_newlines=True,
                 shell=True,
                 cwd=working_dir,
+                env=env,
             )
             logger.debug(f"{output=}")
             return output
