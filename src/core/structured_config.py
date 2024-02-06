@@ -72,6 +72,7 @@ class CharmConfig(BaseConfigModel):
     profile: str
     certificate_extra_sans: str | None
     log_level: str
+    network_bandwidth: int
 
     @validator("*", pre=True)
     @classmethod

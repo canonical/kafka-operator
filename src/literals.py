@@ -16,6 +16,7 @@ CHARMED_KAFKA_SNAP_REVISION = 32
 CONTAINER = "kafka"
 
 PEER = "cluster"
+STORAGE = "data"
 ZK = "zookeeper"
 REL_NAME = "kafka-client"
 INTER_BROKER_USER = "sync"

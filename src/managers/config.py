@@ -4,6 +4,7 @@
 
 """Manager for handling Kafka configuration."""
 
+import json
 import logging
 from typing import cast
 
@@ -361,6 +362,45 @@ class KafkaConfigManager:
         return client_properties
 
     @property
+    def broker_capacities(self) -> str:
+        """Builds the capacityJBOD JSON configuration for broker storages.
+
+        Returns:
+            String of JSON to be set
+        """
+        broker_capacities = []
+        for broker in self.state.brokers:
+            broker_capacities.append(
+                {
+                    "brokerId": str(broker.unit_id),
+                    "capacity": {
+                        "DISK": broker.storages,
+                        "CPU": 100,
+                        "NW_IN": self.config.network_bandwidth,
+                        "NW_OUT": self.config.network_bandwidth,
+                    },
+                    "doc": broker.component.name,
+                }
+            )
+
+        return json.dumps({"brokerCapacities": broker_capacities}, indent=4)
+
+    @property
+    def cruise_control_properties(self) -> list[str]:
+        """Builds all properties necessary for starting Cruise Control service.
+
+        Returns:
+            List of properties to be set
+        """
+        properties = [
+            f"bootstrap.servers={','.join(self.state.bootstrap_server)}",
+            f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
+            f"zookeeper.connect={self.state.zookeeper.connect}",
+        ] + CRUISE_CONTROL_CONFIG_OPTIONS.split("\n")
+
+        return properties
+
+    @property
     def server_properties(self) -> list[str]:
         """Builds all properties necessary for starting Kafka service.
 
@@ -438,6 +478,19 @@ Client {{
         """Writes all client config properties to the `client.properties` path."""
         self.workload.write(
             content="\n".join(self.client_properties), path=self.workload.paths.client_properties
+        )
+
+    def set_cruise_control_properties(self) -> None:
+        """Writes all broker storage capacities to `capacityJBOD.json`."""
+        self.workload.write(
+            content="\n".join(self.cruise_control_properties),
+            path=self.workload.paths.cruise_control_properties,
+        )
+
+    def set_broker_capacities(self) -> None:
+        """Writes all broker storage capacities to `capacityJBOD.json`."""
+        self.workload.write(
+            content=self.broker_capacities, path=self.workload.paths.capacity_jbod_json
         )
 
     def set_environment(self) -> None:

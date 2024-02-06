@@ -90,3 +90,7 @@ options:
     description: 'Level of logging for the different components operated by the charm. Possible values: ERROR, WARNING, INFO, DEBUG'
     type: string
     default: "INFO"
+  network_bandwidth:
+    description: The network bandwidth available for the cloud that the charm is deployed to, in KB.
+    type: int
+    default: 50000
