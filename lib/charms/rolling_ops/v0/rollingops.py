@@ -88,7 +88,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 3
+LIBPATCH = 5
 
 
 class LockNoRelationError(Exception):
@@ -374,7 +374,8 @@ class RollingOpsManager(Object):
                 self.charm.on[self.name].run_with_lock.emit()
             return
 
-        self.model.app.status = ActiveStatus()
+        if self.model.app.status.message == f"Beginning rolling {self.name}":
+            self.model.app.status = ActiveStatus()
 
     def _on_acquire_lock(self: CharmBase, event: ActionEvent):
         """Request a lock."""
@@ -385,7 +386,8 @@ class RollingOpsManager(Object):
 
             # persist callback override for eventual run
             relation.data[self.charm.unit].update({"callback_override": event.callback_override})
-            self.charm.on[self.name].relation_changed.emit(relation)
+            self.charm.on[self.name].relation_changed.emit(relation, app=self.charm.app)
+
         except LockNoRelationError:
             logger.debug("No {} peer relation yet. Delaying rolling op.".format(self.name))
             event.defer()
@@ -408,4 +410,6 @@ class RollingOpsManager(Object):
 
         # cleanup old callback overrides
         relation.data[self.charm.unit].update({"callback_override": ""})
-        self.model.unit.status = ActiveStatus()
+
+        if self.model.unit.status.message == f"Executing {self.name} operation":
+            self.model.unit.status = ActiveStatus()
