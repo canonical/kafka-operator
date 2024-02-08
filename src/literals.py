@@ -12,12 +12,13 @@ from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, StatusBase
 
 CHARM_KEY = "kafka"
 SNAP_NAME = "charmed-kafka"
-CHARMED_KAFKA_SNAP_REVISION = 30
+CHARMED_KAFKA_SNAP_REVISION = 31
 CONTAINER = "kafka"
 
 PEER = "cluster"
 ZK = "zookeeper"
 REL_NAME = "kafka-client"
+OAUTH_REL_NAME = "oauth"
 INTER_BROKER_USER = "sync"
 ADMIN_USER = "admin"
 TLS_RELATION = "certificates"
@@ -32,7 +33,8 @@ SUBSTRATE = "vm"
 USER = "snap_daemon"
 GROUP = "root"
 
-AuthMechanism = Literal["SASL_PLAINTEXT", "SASL_SSL", "SSL"]
+AuthProtocol = Literal["SASL_PLAINTEXT", "SASL_SSL", "SSL"]
+AuthMechanism = Literal["SCRAM-SHA-512", "OAUTHBEARER", "SSL"]
 Scope = Literal["INTERNAL", "CLIENT"]
 DebugLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
 Substrate = Literal["vm", "k8s"]
@@ -63,10 +65,10 @@ class Ports:
     internal: int
 
 
-SECURITY_PROTOCOL_PORTS: dict[AuthMechanism, Ports] = {
-    "SASL_PLAINTEXT": Ports(9092, 19092),
-    "SASL_SSL": Ports(9093, 19093),
-    "SSL": Ports(9094, 19094),
+SECURITY_PROTOCOL_PORTS: dict[AuthProtocol, dict[AuthMechanism, Ports]] = {
+    "SASL_PLAINTEXT": {"SCRAM-SHA-512": Ports(9092, 19092), "OAUTHBEARER": Ports(9095, 19095)},
+    "SASL_SSL": {"SCRAM-SHA-512": Ports(9093, 19093), "OAUTHBEARER": Ports(9096, 19096)},
+    "SSL": {"SSL": Ports(9094, 19094)},
 }
 
 

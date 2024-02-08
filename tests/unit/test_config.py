@@ -20,6 +20,7 @@ from literals import (
     JMX_EXPORTER_PORT,
     JVM_MEM_MAX_GB,
     JVM_MEM_MIN_GB,
+    OAUTH_REL_NAME,
     PEER,
     SUBSTRATE,
     ZK,
@@ -133,8 +134,10 @@ def test_listeners_in_server_properties(harness: Harness):
         peer_relation_id, f"{CHARM_KEY}/0", {"private-address": "treebeard"}
     )
 
-    expected_listeners = "listeners=INTERNAL_SASL_PLAINTEXT://:19092"
-    expected_advertised_listeners = f"advertised.listeners=INTERNAL_SASL_PLAINTEXT://{'treebeard' if SUBSTRATE == 'vm' else 'kafka-k8s-0.kafka-k8s-endpoints'}:19092"
+    host = "treebeard" if SUBSTRATE == "vm" else "kafka-k8s-0.kafka-k8s-endpoints"
+    sasl_pm = "SASL_PLAINTEXT_SCRAM_SHA_512"
+    expected_listeners = f"listeners=INTERNAL_{sasl_pm}://:19092"
+    expected_advertised_listeners = f"advertised.listeners=INTERNAL_{sasl_pm}://{host}:19092"
 
     with (
         patch(
@@ -145,6 +148,45 @@ def test_listeners_in_server_properties(harness: Harness):
     ):
         assert expected_listeners in harness.charm.config_manager.server_properties
         assert expected_advertised_listeners in harness.charm.config_manager.server_properties
+
+
+def test_oauth_client_listeners_in_server_properties(harness):
+    """Checks that oauth client listeners are properly set when a relating through oauth."""
+    harness.add_relation(ZK, CHARM_KEY)
+    peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
+    harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/1")
+    harness.update_relation_data(
+        peer_relation_id, f"{CHARM_KEY}/0", {"private-address": "treebeard"}
+    )
+
+    oauth_relation_id = harness.add_relation(OAUTH_REL_NAME, "hydra")
+    harness.update_relation_data(
+        oauth_relation_id, "hydra", {"issuer_url": "google.issuer", "jwks_endpoint": "google.jwks"}
+    )
+    peer_relation_id = harness.charm.model.get_relation(PEER).id
+    harness.update_relation_data(peer_relation_id, harness.charm.app.name, {"oauth": "enabled"})
+
+    # let's add a scram client just for fun
+    client_relation_id = harness.add_relation("kafka-client", "app")
+    harness.update_relation_data(client_relation_id, "app", {"extra-user-roles": "admin,producer"})
+
+    host = "treebeard" if SUBSTRATE == "vm" else "kafka-k8s-0.kafka-k8s-endpoints"
+    internal_protocol, internal_port = "INTERNAL_SASL_PLAINTEXT_SCRAM_SHA_512", "19092"
+    scram_client_protocol, scram_client_port = "CLIENT_SASL_PLAINTEXT_SCRAM_SHA_512", "9092"
+    oauth_client_protocol, oauth_client_port = "CLIENT_SASL_PLAINTEXT_OAUTHBEARER", "9095"
+
+    expected_listeners = (
+        f"listeners={internal_protocol}://:{internal_port},"
+        f"{scram_client_protocol}://:{scram_client_port},"
+        f"{oauth_client_protocol}://:{oauth_client_port}"
+    )
+    expected_advertised_listeners = (
+        f"advertised.listeners={internal_protocol}://{host}:{internal_port},"
+        f"{scram_client_protocol}://{host}:{scram_client_port},"
+        f"{oauth_client_protocol}://{host}:{oauth_client_port}"
+    )
+    assert expected_listeners in harness.charm.config_manager.server_properties
+    assert expected_advertised_listeners in harness.charm.config_manager.server_properties
 
 
 def test_ssl_listeners_in_server_properties(harness: Harness):
@@ -183,10 +225,12 @@ def test_ssl_listeners_in_server_properties(harness: Harness):
     )
 
     host = "treebeard" if SUBSTRATE == "vm" else "kafka-k8s-0.kafka-k8s-endpoints"
+    sasl_pm = "SASL_SSL_SCRAM_SHA_512"
+    ssl_pm = "SSL_SSL"
     expected_listeners = (
-        "listeners=INTERNAL_SASL_SSL://:19093,CLIENT_SASL_SSL://:9093,CLIENT_SSL://:9094"
+        f"listeners=INTERNAL_{sasl_pm}://:19093,CLIENT_{sasl_pm}://:9093,CLIENT_{ssl_pm}://:9094"
     )
-    expected_advertised_listeners = f"advertised.listeners=INTERNAL_SASL_SSL://{host}:19093,CLIENT_SASL_SSL://{host}:9093,CLIENT_SSL://{host}:9094"
+    expected_advertised_listeners = f"advertised.listeners=INTERNAL_{sasl_pm}://{host}:19093,CLIENT_{sasl_pm}://{host}:9093,CLIENT_{ssl_pm}://{host}:9094"
 
     with (
         patch(

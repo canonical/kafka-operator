@@ -5,7 +5,6 @@
 """Manager for handling Kafka configuration."""
 
 import logging
-from typing import cast
 
 from core.cluster import ClusterState
 from core.structured_config import CharmConfig, LogLevel
@@ -18,13 +17,13 @@ from literals import (
     JVM_MEM_MIN_GB,
     SECURITY_PROTOCOL_PORTS,
     AuthMechanism,
+    AuthProtocol,
     Scope,
 )
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_CONFIG_OPTIONS = """
-sasl.enabled.mechanisms=SCRAM-SHA-512
 sasl.mechanism.inter.broker.protocol=SCRAM-SHA-512
 authorizer.class.name=kafka.security.authorizer.AclAuthorizer
 allow.everyone.if.no.acl.found=false
@@ -43,8 +42,9 @@ class Listener:
         scope: scope of the listener, CLIENT or INTERNAL
     """
 
-    def __init__(self, host: str, protocol: AuthMechanism, scope: Scope):
-        self.protocol: AuthMechanism = protocol
+    def __init__(self, host: str, protocol: AuthProtocol, mechanism: AuthMechanism, scope: Scope):
+        self.protocol: AuthProtocol = protocol
+        self.mechanism: AuthMechanism = mechanism
         self.host = host
         self.scope = scope
 
@@ -70,15 +70,15 @@ class Listener:
         Returns:
             Integer of port number
         """
+        port = SECURITY_PROTOCOL_PORTS[self.protocol][self.mechanism]
         if self.scope == "CLIENT":
-            return SECURITY_PROTOCOL_PORTS[self.protocol].client
-
-        return SECURITY_PROTOCOL_PORTS[self.protocol].internal
+            return port.client
+        return port.internal
 
     @property
     def name(self) -> str:
         """Name of the listener."""
-        return f"{self.scope}_{self.protocol}"
+        return f"{self.scope}_{self.protocol}_{self.mechanism.replace('-','_')}"
 
     @property
     def protocol_map(self) -> str:
@@ -186,6 +186,21 @@ class KafkaConfigManager:
         return f"KAFKA_OPTS='{' '.join(opts)}'"
 
     @property
+    def oauth_config(self) -> dict[str, str]:
+        """The oauth config which could come from the oauth relation (ex: hydra).
+
+        Returns:
+            Dict of OAuth config:
+            `authorization_endpoint`, `introspection_endpoint`, `issuer_url`, `jwks_endpoint`,
+            `scope`, `token_endpoint` and `userinfo_endpoint`.
+        """
+        oauth_config = {}
+        oauth_relation = self.state.oauth_relation
+        if self.state.cluster.oauth_enabled and oauth_relation and oauth_relation.app:
+            oauth_config.update(oauth_relation.data[oauth_relation.app])
+        return oauth_config
+
+    @property
     def default_replication_properties(self) -> list[str]:
         """Builds replication-related properties based on the expected app size.
 
@@ -256,56 +271,107 @@ class KafkaConfigManager:
         username = INTER_BROKER_USER
         password = self.state.cluster.internal_user_credentials.get(INTER_BROKER_USER, "")
 
+        listener_name = self.internal_listener.name.lower()
+        listener_mechanism = self.internal_listener.mechanism.lower()
+
         scram_properties = [
-            f'listener.name.{self.internal_listener.name.lower()}.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";'
+            f"listener.name.{listener_name}.{listener_mechanism}.sasl.jaas.config="
+            f"org.apache.kafka.common.security.scram.ScramLoginModule "
+            f'required username="{username}" password="{password}";',
+            f"listener.name.{listener_name}.sasl.enabled.mechanisms="
+            f"{self.internal_listener.mechanism}",
         ]
         client_scram = [
-            auth.name for auth in self.client_listeners if auth.protocol.startswith("SASL_")
+            (auth.name, auth.mechanism)
+            for auth in self.client_listeners
+            if auth.mechanism.startswith("SCRAM")
         ]
-        for name in client_scram:
+        for name, mechanism in client_scram:
             scram_properties.append(
-                f'listener.name.{name.lower()}.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";'
+                f"listener.name.{name.lower()}.{mechanism.lower()}.sasl.jaas.config="
+                f"org.apache.kafka.common.security.scram.ScramLoginModule "
+                f'required username="{username}" password="{password}";'
+            )
+            scram_properties.append(
+                f"listener.name.{name.lower()}.sasl.enabled.mechanisms={mechanism}"
             )
 
         return scram_properties
 
     @property
-    def security_protocol(self) -> AuthMechanism:
-        """Infers current charm security.protocol based on current relations."""
-        # FIXME: When we have multiple auth_mechanims/listeners, remove this method
-        return (
-            "SASL_SSL"
-            if (self.state.cluster.tls_enabled and self.state.broker.certificate)
-            else "SASL_PLAINTEXT"
-        )
+    def oauth_properties(self) -> list[str]:
+        """Builds the properties for the oauth listener.
+
+        Returns:
+            list of oauth properties to be set.
+        """
+        oauth_properties: list[str] = []
+        for listener in self.client_listeners:
+            if not listener.mechanism.startswith("OAUTH"):
+                continue
+            oauth_properties.append(
+                f"listener.name.{listener.name.lower()}.{listener.mechanism.lower()}.sasl.jaas.config="
+                "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \\\n"
+                '\toauth.client.id="kafka" \\\n'
+                f'\toauth.valid.issuer.uri="{self.oauth_config["issuer_url"]}" \\\n'
+                f'\toauth.jwks.endpoint.uri="{self.oauth_config["jwks_endpoint"]}" \\\n'
+                '\toauth.username.claim="email" \\\n'
+                '\toauth.check.audience="true" \\\n'
+                '\toauth.check.access.token.type="false" \\\n'
+                f'\toauth.config.id="{listener.name}" \\\n'
+                '\tunsecuredLoginStringClaim_sub="unused";'
+            )
+            oauth_properties.append(
+                f"listener.name.{listener.name.lower()}.{listener.mechanism.lower()}.sasl.server.callback.handler.class"
+                "=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler"
+            )
+            oauth_properties.append(
+                f"listener.name.{listener.name.lower()}.sasl.enabled.mechanisms="
+                f"{listener.mechanism}"
+            )
+        if oauth_properties:
+            oauth_properties.append(
+                "principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder"
+            )
+        return oauth_properties
 
     @property
-    def auth_mechanisms(self) -> list[AuthMechanism]:
-        """Return a list of enabled auth mechanisms."""
-        # TODO: At the moment only one mechanism for extra listeners. Will need to be
-        # extended with more depending on configuration settings.
-        protocol = [self.security_protocol]
-        if self.state.cluster.mtls_enabled:
-            protocol += ["SSL"]
-
-        return cast(list[AuthMechanism], protocol)
+    def security_protocol(self) -> AuthProtocol:
+        """Returns the primary security protocol based on current relations."""
+        # FIXME: When we have multiple auth_mechanims/listeners, remove this method
+        if self.state.cluster.tls_enabled and self.state.broker.certificate:
+            return "SASL_SSL"
+        return "SASL_PLAINTEXT"
 
     @property
     def internal_listener(self) -> Listener:
         """Return the internal listener."""
         protocol = self.security_protocol
-        return Listener(host=self.state.broker.host, protocol=protocol, scope="INTERNAL")
+        mechanism: AuthMechanism = "SCRAM-SHA-512"
+        return Listener(
+            host=self.state.broker.host, protocol=protocol, mechanism=mechanism, scope="INTERNAL"
+        )
 
     @property
     def client_listeners(self) -> list[Listener]:
         """Return a list of extra listeners."""
-        # if there is a relation with kafka then add extra listener
-        if not self.state.client_relations:
-            return []
+        protocol_mechanism_dict: list[tuple[AuthProtocol, AuthMechanism]] = []
+        if self.state.client_relations:
+            protocol_mechanism_dict.append((self.security_protocol, "SCRAM-SHA-512"))
+        # if there is a relation to hydra (or oauth integrator), then add an oauthbearer mechanism
+        if self.oauth_config:
+            protocol_mechanism_dict.append((self.security_protocol, "OAUTHBEARER"))
+        if self.state.cluster.mtls_enabled:
+            protocol_mechanism_dict.append(("SSL", "SSL"))
 
         return [
-            Listener(host=self.state.broker.host, protocol=auth, scope="CLIENT")
-            for auth in self.auth_mechanisms
+            Listener(
+                host=self.state.broker.host,
+                protocol=protocol,
+                mechanism=mechanism,
+                scope="CLIENT",
+            )
+            for protocol, mechanism in protocol_mechanism_dict
         ]
 
     @property
@@ -350,8 +416,8 @@ class KafkaConfigManager:
         client_properties = [
             f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";',
             "sasl.mechanism=SCRAM-SHA-512",
+            # FIXME: security.protocol will need changing once multiple internal protocols/mechanisms are supported
             f"security.protocol={self.security_protocol}",
-            # FIXME: security.protocol will need changing once multiple listener auth schemes
             f"bootstrap.servers={','.join(self.state.bootstrap_server)}",
         ]
 
@@ -386,8 +452,9 @@ class KafkaConfigManager:
                 f"inter.broker.listener.name={self.internal_listener.name}",
                 f"inter.broker.protocol.version={self.inter_broker_protocol_version}",
             ]
-            + self.config_properties
             + self.scram_properties
+            + self.oauth_properties
+            + self.config_properties
             + self.default_replication_properties
             + self.auth_properties
             + self.rack_properties

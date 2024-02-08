@@ -11,10 +11,12 @@ from ops import Framework, Object, Relation
 from core.models import KafkaBroker, KafkaCluster, ZooKeeper
 from literals import (
     INTERNAL_USERS,
+    OAUTH_REL_NAME,
     PEER,
     REL_NAME,
     SECURITY_PROTOCOL_PORTS,
     ZK,
+    AuthMechanism,
     Status,
     Substrate,
 )
@@ -43,6 +45,11 @@ class ClusterState(Object):
     def client_relations(self) -> set[Relation]:
         """The relations of all client applications."""
         return set(self.model.relations[REL_NAME])
+
+    @property
+    def oauth_relation(self) -> Relation | None:
+        """The OAuth relation."""
+        return self.model.get_relation(OAUTH_REL_NAME)
 
     # --- CORE COMPONENTS ---
 
@@ -118,11 +125,12 @@ class ClusterState(Object):
 
     @property
     def port(self) -> int:
-        """Return the port to be used internally."""
+        """Return the port to be used externally."""
+        mechanism: AuthMechanism = "SCRAM-SHA-512"
         return (
-            SECURITY_PROTOCOL_PORTS["SASL_SSL"].client
+            SECURITY_PROTOCOL_PORTS["SASL_SSL"][mechanism].client
             if (self.cluster.tls_enabled and self.broker.certificate)
-            else SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].client
+            else SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"][mechanism].client
         )
 
     @property
@@ -132,6 +140,7 @@ class ClusterState(Object):
         Returns:
             List of `bootstrap-server` servers
         """
+        # FIXME: this method should return a dictionary [mechanism, url] in order to support multiple enabled listeners
         if not self.peer_relation:
             return []
 
