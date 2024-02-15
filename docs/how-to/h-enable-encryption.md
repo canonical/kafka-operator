@@ -22,7 +22,7 @@ Please refer to [this post](https://charmhub.io/topics/security-with-x-509-certi
 
 ```
 juju relate <tls-certificates> zookeeper
-juju relate <tls-certificates> kafka
+juju relate <tls-certificates> kafka:certificates
 ```
 
 where `<tls-certificates>` is the name of the TLS certificate provider charm deployed.

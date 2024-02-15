@@ -37,7 +37,7 @@ To enable TLS on Charmed Kafka, relate the both the `kafka` and `zookeeper` char
 `self-signed-certificates` charm:
 ```shell
 juju relate zookeeper self-signed-certificates
-juju relate kafka self-signed-certificates
+juju relate kafka:certificates self-signed-certificates
 ```
 
 After the charms settle into `active/idle` states, the Kafka listeners should now have been swapped to the 
