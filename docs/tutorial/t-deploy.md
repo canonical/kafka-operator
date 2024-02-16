@@ -28,11 +28,11 @@ The command updates the status of the cluster every second and as the applicatio
 Wait until the application is ready - when it is ready, `juju status --watch 1s` will show:
 ```shell
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
-tutorial  overlord    localhost/localhost  2.9.38   unsupported  08:20:12Z
+tutorial  overlord    localhost/localhost  3.1.6    unsupported  08:20:12Z
 
 App        Version  Status  Scale  Charm      Channel      Rev  Exposed  Message
-kafka               active      3  kafka      3/stable     117  no       
-zookeeper           active      5  zookeeper  3/stable      99  no       
+kafka               active      3  kafka      3/stable     147  no       
+zookeeper           active      5  zookeeper  3/stable     114  no       
 
 Unit          Workload  Agent  Machine  Public address  Ports  Message
 kafka/0       active    idle   5        10.244.26.43           machine system settings are not optimal - see logs for info
@@ -56,37 +56,27 @@ Machine  State    Address        Inst id        Series  AZ  Message
 ```
 To exit the screen with `juju status --watch 1s`, enter `Ctrl+c`.
 
-
 ## Access Kafka cluster
 
 To watch the process, `juju status` can be used. Once all the units show as `active|idle` the credentials to access a broker can be queried with:
 ```shell
-juju run-action kafka/leader get-admin-credentials --wait
+juju run kafka/leader get-admin-credentials
 ```
 
 The output of the previous command is something like this:
 ```shell
-unit-kafka-1:
-  UnitId: kafka/1
-  id: "2"
-  results:
-    client-properties: |-
-      sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="admin" password="e2sMfYLQg7sbbBMFTx1qlaZQKTUxr09x";
-      bootstrap.servers=10.244.26.19:9092,10.244.26.6:9092,10.244.26.43:9092
-      security.protocol=SASL_PLAINTEXT
-      sasl.mechanism=SCRAM-SHA-512
-    password: e2sMfYLQg7sbbBMFTx1qlaZQKTUxr09x
-    username: admin
-  status: completed
-  timing:
-    completed: 2023-04-25 09:03:00 +0000 UTC
-    enqueued: 2023-04-25 09:02:58 +0000 UTC
-    started: 2023-04-25 09:02:59 +0000 UTC
+client-properties: |-
+  sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="admin" password="e2sMfYLQg7sbbBMFTx1qlaZQKTUxr09x";
+  bootstrap.servers=10.244.26.19:9092,10.244.26.6:9092,10.244.26.43:9092
+  security.protocol=SASL_PLAINTEXT
+  sasl.mechanism=SCRAM-SHA-512
+password: e2sMfYLQg7sbbBMFTx1qlaZQKTUxr09x
+username: admin
 ```
 
 Providing you the `username` and `password` of the Kafka cluster admin user. 
 
-**IMPORTANT** Note that when no other application is related to Kafka, the cluster is secured-by-default and external listeners (binded to port 9092) are disabled, thus preventing any external incoming connection. 
+> **IMPORTANT** Note that when no other application is related to Kafka, the cluster is secured-by-default and external listeners (binded to port 9092) are disabled, thus preventing any external incoming connection. 
 
 Nevertheless, it is still possible to run a command from within the Kafka cluster using the internal listeners in place of the external ones. 
 The internal endpoints can be constructed by replacing the 19092 port in the `bootstrap.servers` returned in the output above, e.g. 

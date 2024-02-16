@@ -25,12 +25,12 @@ juju relate data-integrator kafka
 Wait for `juju status --watch 1s` to show:
 ```shell
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
-tutorial  overlord    localhost/localhost  2.9.38   unsupported  10:04:50Z
+tutorial  overlord    localhost/localhost  3.1.6    unsupported  10:04:50Z
 
 App              Version  Status  Scale  Charm            Channel      Rev  Exposed  Message
 data-integrator           active      1  data-integrator  stable        11  no       
-kafka                     active      3  kafka            3/stable     117  no       
-zookeeper                 active      5  zookeeper        3/stable      99  no       
+kafka                     active      3  kafka            3/stable     147  no       
+zookeeper                 active      5  zookeeper        3/stable     114  no       
 
 Unit                Workload  Agent  Machine  Public address  Ports  Message
 data-integrator/0*  active    idle   8        10.244.26.4            
@@ -56,28 +56,19 @@ Machine  State    Address        Inst id        Series  AZ  Message
 ```
 To retrieve information such as the username, password, and topic. Enter:
 ```shell
-juju run-action data-integrator/leader get-credentials --wait
+juju run data-integrator/leader get-credentials
 ```
 This should output something like:
 ```yaml
-​unit-data-integrator-0:
-  UnitId: data-integrator/0
-  id: "4"
-  results:
-    kafka:
-      consumer-group-prefix: relation-6-
-      endpoints: 10.244.26.43:9092,10.244.26.6:9092,10.244.26.19:9092
-      password: ILg8C5msYRvqOnGATeFPyw2DKHncritf
-      tls: disabled
-      topic: test-topic
-      username: relation-6
-      zookeeper-uris: 10.244.26.121:2181,10.244.26.129:2181,10.244.26.174:2181,10.244.26.251:2181,10.244.26.28:2181/kafka
-    ok: "True"
-  status: completed
-  timing:
-    completed: 2023-04-25 10:09:26 +0000 UTC
-    enqueued: 2023-04-25 10:09:20 +0000 UTC
-    started: 2023-04-25 10:09:21 +0000 UTC
+kafka:
+  consumer-group-prefix: relation-6-
+  endpoints: 10.244.26.43:9092,10.244.26.6:9092,10.244.26.19:9092
+  password: ILg8C5msYRvqOnGATeFPyw2DKHncritf
+  tls: disabled
+  topic: test-topic
+  username: relation-6
+  zookeeper-uris: 10.244.26.121:2181,10.244.26.129:2181,10.244.26.174:2181,10.244.26.251:2181,10.244.26.28:2181/kafka
+ok: "True"
 ```
 
 Save the value listed under `bootstrap-server`, `username` and `password`. *(Note: your hostnames, usernames, and passwords will likely be different.)*
@@ -174,12 +165,12 @@ The output of the juju model should be something like this:
 
 ```shell
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
-tutorial  overlord    localhost/localhost  2.9.38   unsupported  10:20:59Z
+tutorial  overlord    localhost/localhost  3.1.6    unsupported  10:20:59Z
 
 App              Version  Status   Scale  Charm            Channel      Rev  Exposed  Message
 data-integrator           blocked      1  data-integrator  stable        11  no       Please relate the data-integrator with the desired product
-kafka                     active       3  kafka            3/stable     117  no       
-zookeeper                 active       5  zookeeper        3/stable      99  no       
+kafka                     active       3  kafka            3/stable     147  no       
+zookeeper                 active       5  zookeeper        3/stable     114  no       
 
 Unit                Workload  Agent  Machine  Public address  Ports  Message
 data-integrator/0*  blocked   idle   8        10.244.26.4            Please relate the data-integrator with the desired product

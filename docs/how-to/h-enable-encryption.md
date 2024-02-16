@@ -1,41 +1,54 @@
 # How to enable encryption
 
-Note: The TLS settings here are for self-signed-certificates which are not recommended for production clusters, the `tls-certificates-operator` charm offers a variety of configurations, read more on the TLS charm [here](https://charmhub.io/tls-certificates-operator)
+## Deploy a TLS Provider charm
 
-## Enable TLS
+To enable encryption, you should first deploy a TLS certificates Provider charm. The Kafka and ZooKeeper charms implements the Requirer side of the [`tls-certificates/v1`](https://github.com/canonical/charm-relation-interfaces/blob/main/interfaces/tls_certificates/v1/README.md) charm relation. 
+Therefore, any charm implementing the Provider side could be used. 
+
+One possible option, suitable for testing, could be to use the `self-signed-certificates`, although this setup is however not recommended for production clusters. 
+
+To deploy a `self-signed-certificates` charm:
 
 ```shell
 # deploy the TLS charm
-juju deploy tls-certificates-operator --channel=edge
+juju deploy self-signed-certificates --channel=edge
 # add the necessary configurations for TLS
-juju config tls-certificates-operator generate-self-signed-certificates="true" ca-common-name="Test CA"
-# to enable TLS relate the two applications
-juju relate tls-certificates-operator zookeeper
-juju relate tls-certificates-operator kafka
+juju config self-signed-certificates ca-common-name="Test CA"
 ```
+
+Please refer to [this post](https://charmhub.io/topics/security-with-x-509-certificates) for an overview of the TLS certificates Providers charms and some guidance on how to choose the right charm for your use-case. 
+
+## Enable TLS on Kafka and ZooKeeper
+
+```
+juju relate <tls-certificates> zookeeper
+juju relate <tls-certificates> kafka:certificates
+```
+
+where `<tls-certificates>` is the name of the TLS certificate provider charm deployed.
+
+> **Note** If Kafka and ZooKeeper are already related, they will start renegotiating the relation to provide each other certificates and enable/open to correct ports/connections. Otherwise relate them after the both relations with the `<tls-certificates>` .
 
 ## Manage keys
 
 Updates to private keys for certificate signing requests (CSR) can be made via the `set-tls-private-key` action.
 ```shell
 # Updates can be done with auto-generated keys with
-juju run-action kafka/0 set-tls-private-key --wait
-juju run-action kafka/1 set-tls-private-key --wait
-juju run-action kafka/2 set-tls-private-key --wait
+juju run kafka/<unit_id> set-tls-private-key
 ```
 
-Passing keys to external/internal keys should *only be done with* `base64 -w0` *not* `cat`. With three brokers this schema should be followed:
+Passing keys to external/internal keys should *only be done with* `base64 -w0` *not* `cat`, as follows
 ```shell
 # generate shared internal key
 openssl genrsa -out internal-key.pem 3072
 # apply keys on each unit
-juju run-action kafka/0 set-tls-private-key "internal-key=$(base64 -w0 internal-key.pem)"  --wait
-juju run-action kafka/1 set-tls-private-key "internal-key=$(base64 -w0 internal-key.pem)"  --wait
-juju run-action kafka/2 set-tls-private-key "internal-key=$(base64 -w0 internal-key.pem)"  --wait
+juju run kafka/<unit_id> set-tls-private-key "internal-key=$(base64 -w0 internal-key.pem)"
 ```
 
 To disable TLS remove the relation
 ```shell
-juju remove-relation kafka tls-certificates-operator
-juju remove-relation zookeeper tls-certificates-operator
+juju remove-relation kafka <tls-certificates>
+juju remove-relation zookeeper <tls-certificates>
 ```
+
+where `<tls-certificates>` is the name of the TLS certificate provider charm deployed.

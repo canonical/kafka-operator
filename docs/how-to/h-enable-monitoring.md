@@ -1,7 +1,7 @@
 # Enable Monitoring
 
-The Charmed Kafka Operator comes with the [JMX exporter](https://github.com/prometheus/jmx_exporter/).
-The metrics can be queried by accessing the `http://<unit-ip>:9101/metrics` endpoints.
+Both Charmed Kafka and Charmed ZooKeeper comes with the [JMX exporter](https://github.com/prometheus/jmx_exporter/).
+The metrics can be queried by accessing the `http://<kafka-unit-ip>:9101/metrics` and `http://<zookeeper-unit-ip>:9998/metrics` endpoints, respectively.
 
 Additionally, the charm provides integration with the [Canonical Observability Stack](https://charmhub.io/topics/canonical-observability-stack).
 
@@ -49,9 +49,30 @@ Now, deploy `grafana-agent` (subordinate charm) and relate it with Charmed Kafka
 ```shell
 juju deploy grafana-agent
 juju relate kafka:cos-agent grafana-agent
+juju relate zookeeper:cos-agent grafana-agent
 juju relate grafana-agent grafana-dashboards
 juju relate grafana-agent loki-logging
 juju relate grafana-agent prometheus-receive-remote-write
 ```
 
-After this is complete, Grafana will show the new dashboards: `Kafka Exporter` and allows access for Charmed Kafka logs on Loki.
+After this is complete, Grafana will show the new dashboards (one for Kafka and one for ZooKeeper) as well as allows access to Kafka and ZooKeeper server logs on Loki.
+
+## Tune server logging level
+
+In order to tune the level of the server logs for Kafka and ZooKeeper, configure the `log-level` and `log_level` properties accordingly
+
+### Kafka 
+
+```
+juju config kafka log_level=<LOG_LEVEL>
+```
+
+Possible values are `ERROR`, `WARNING`, `INFO`, `DEBUG`.
+
+### ZooKeeper
+
+```
+juju config kafka log-level=<LOG_LEVEL>
+```
+
+Possible values are `ERROR`, `WARNING`, `INFO`, `DEBUG`.

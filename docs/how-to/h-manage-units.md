@@ -15,14 +15,14 @@ $ juju relate kafka zookeeper
 
 To watch the process, `juju status` can be used. Once all the units show as `active|idle` the credentials to access a broker can be queried with:
 ```shell
-juju run-action kafka/leader get-admin-credentials --wait
+juju run kafka/leader get-admin-credentials
 ```
 
 Apache Kafka ships with `bin/*.sh` commands to do various administrative tasks, e.g `bin/kafka-config.sh` to update cluster configuration, `bin/kafka-topics.sh` for topic management, and many more! The Kafka Charmed Operator provides these commands to administrators to easily run their desired cluster configurations securely with SASL authentication, either from within the cluster or as an external client.
 
 If you wish to run a command from the cluster, in order to (for example) list the current topics on the Kafka cluster, you can run:
 ```
-BOOTSTRAP_SERVERS=$(juju run-action kafka/leader get-admin-credentials --wait | grep "bootstrap.servers" | cut -d "=" -f 2)
+BOOTSTRAP_SERVERS=$(juju run kafka/leader get-admin-credentials | grep "bootstrap.servers" | cut -d "=" -f 2)
 juju ssh kafka/leader 'charmed-kafka.topics --bootstrap-server $BOOTSTRAP_SERVERS --list --command-config /var/snap/charmed-kafka/common/client.properties'
 ```
 
