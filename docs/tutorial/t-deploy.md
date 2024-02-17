@@ -1,8 +1,6 @@
-# Get a Charmed Kafka and Zookeeper up and running
-
 This is part of the [Charmed Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571). Please refer to this page for more information and the overview of the content. 
 
-## Deploy
+## Deploy Charmed Kafka (and Charmed Zookeeper)
 
 To deploy Charmed Kafka, all you need to do is run the following commands, which will automatically fetch [Kafka](https://charmhub.io/kafka?channel=3/stable) and [Zookeeper](https://charmhub.io/zookeeper?channel=3/stable) charms from [Charmhub](https://charmhub.io/) and deploy them to your model. For example, to deploy a 5 Zookeeper unit and 3 Kafka unit cluster, you can simply run
 
@@ -129,6 +127,8 @@ Other available Kafka bin commands can also be found with:
 ```shell
 snap info charmed-kafka
 ```
+
+## What's next?
 
 However, although the commands above can run within the cluster, it is generally recommended during operations
 to enable external listeners and use these for running the admin commands from outside the cluster. 

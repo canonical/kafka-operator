@@ -1,12 +1,14 @@
-# Relate your Kafka deployment 
-
 This is part of the [Charmed Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571). Please refer to this page for more information and the overview of the content. 
 
-## Relations
-Relations, or what Juju documentation [describes as Integration](https://juju.is/docs/sdk/integration), are the easiest way to create a user for Kafka in Charmed Kafka. Relations automatically create a username, password, and topic for the desired user/application. 
+## Integrate with client applications
+
+As mentioned in the previous section of the Tutorial, the recommended way to create and manage users is by means of another charm: the [Data Integrator Charm](https://charmhub.io/data-integrator). This will allow us to encode users directly in the Juju model, and - as shown in the following - to rotate user credentials rotations with and without application downtime using Relations.
+
+> Relations, or what Juju documentation describes also as [Integration](https://juju.is/docs/sdk/integration), allow two charms to exchange information and interact with one another. Creating a relation between Kafka and the Data Integrator will allow us to automatically create a username, password, and topic for the desired user/application, and this is indeed the easiest way to create and manage users for Kafka in Charmed Kafka.
 
 ### Data Integrator Charm
-To start using the Kafka cluster, we will now relate our application to the [Data Integrator Charm](https://charmhub.io/data-integrator). This is a bare-bones charm that allows for central management of database users, providing support for different kinds of data platforms (e.g. MongoDB, MySQL, PostgreSQL, Kafka, OpenSearch, etc) with a consistent, opinionated and robust user experience. In order to deploy the Data Integrator Charm we can use the command `juju deploy` we have learned above:
+
+The [Data Integrator Charm](https://charmhub.io/data-integrator) is a bare-bones charm that allows for central management of database users, providing support for different kinds of data platforms (e.g. MongoDB, MySQL, PostgreSQL, Kafka, OpenSearch, etc) with a consistent, opinionated and robust user experience. In order to deploy the Data Integrator Charm we can use the command `juju deploy` we have learned above:
 
 ```shell
 juju deploy data-integrator --channel stable --config topic-name=test-topic --config extra-user-roles=producer,consumer
@@ -155,42 +157,75 @@ python3 -m charms.kafka.v0.client \
   -c "cg"
 ```
 
-### Remove the user
-To remove the user, remove the relation. Removing the relation automatically removes the user that was created when the relation was created. Enter the following to remove the relation:
+### Charm Client Applications
+
+Actually, the Data Integrator is only a very special client charm,  that implements the `kafka_client` relation for exchanging data with the Kafka charm and allowing user management via relations. 
+
+For example,  the steps above for producing and consuming messages to Kafka have been implemented in a simple app: the `kafka-test-app` charm (available [here](https://charmhub.io/kafka-test-app)), providing a fully integrated charmed user-experience. 
+
+#### Deploy the Kafka Test App
+
+Let's start by deploying the Kafka Test App
+
 ```shell
-juju remove-relation kafka data-integrator
+juju deploy kafka-test-app
 ```
 
-The output of the juju model should be something like this:
+and configure it to act as producer, publishing messages to a specific topic
+
+```shell
+juju config kafka-test-app topic_name=test_kafka_app_topic role=producer num_messages=20
+```
+
+#### Producing messages
+
+In order to start to produce messages to Kafka, we JUST simply relate the Kafka Test App with Kafka
+
+```shell
+juju relate kafka-test-app kafka
+```
+
+> **Note** This will both take care of creating a dedicated user (as much as done for the data-integrator) as well as start a producer process publishing messages to the `test_kafka_app_topic` topic. 
+
+After some time, the `juju status` output should show
 
 ```shell
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
-tutorial  overlord    localhost/localhost  3.1.6    unsupported  10:20:59Z
+tutorial  overlord    localhost/localhost  3.1.6    unsupported  18:58:47+02:00
 
-App              Version  Status   Scale  Charm            Channel      Rev  Exposed  Message
-data-integrator           blocked      1  data-integrator  stable        11  no       Please relate the data-integrator with the desired product
-kafka                     active       3  kafka            3/stable     147  no       
-zookeeper                 active       5  zookeeper        3/stable     114  no       
+App              Version  Status  Scale  Charm            Channel  Rev  Address         Exposed  Message
+...
+kafka-test-app            active      1  kafka-test-app   edge       8  10.152.183.60   no       Topic test_kafka_app_topic enabled with process producer
+...
 
-Unit                Workload  Agent  Machine  Public address  Ports  Message
-data-integrator/0*  blocked   idle   8        10.244.26.4            Please relate the data-integrator with the desired product
-kafka/0             active    idle   5        10.244.26.43           
-kafka/1*            active    idle   6        10.244.26.6            
-kafka/2             active    idle   7        10.244.26.19           
-zookeeper/0         active    idle   0        10.244.26.251          
-zookeeper/1         active    idle   1        10.244.26.129          
-zookeeper/2         active    idle   2        10.244.26.121          
-zookeeper/3*        active    idle   3        10.244.26.28           
-zookeeper/4         active    idle   4        10.244.26.174          
-
-Machine  State    Address        Inst id        Series  AZ  Message
-0        started  10.244.26.251  juju-f1a2cd-0  jammy       Running
-1        started  10.244.26.129  juju-f1a2cd-1  jammy       Running
-2        started  10.244.26.121  juju-f1a2cd-2  jammy       Running
-3        started  10.244.26.28   juju-f1a2cd-3  jammy       Running
-4        started  10.244.26.174  juju-f1a2cd-4  jammy       Running
-5        started  10.244.26.43   juju-f1a2cd-5  jammy       Running
-6        started  10.244.26.6    juju-f1a2cd-6  jammy       Running
-7        started  10.244.26.19   juju-f1a2cd-7  jammy       Running
-8        started  10.244.26.4    juju-f1a2cd-8  jammy       Running
+Unit                Workload  Agent  Address     Ports  Message
+...
+kafka-test-app/0*   active    idle   10.1.36.88         Topic test_kafka_app_topic enabled with process producer
+...
 ```
+
+indicating that the process has started. To make sure that this is indeed the case, you can check the logs of the process:
+
+```shell
+juju exec --application kafka-test-app "tail /tmp/*.log"
+```
+
+To stop the process (although it is very likely that the process has already stopped given the low number of messages that were provided) and remove the user,  you can just remove the relation 
+
+```shell
+juju remove-relation kafka-test-app kafka
+```
+
+#### Consuming messages
+
+Note that the `kafka-test-app` charm can also similarly be used to consume messages by changing its configuration to
+
+```shell
+juju config kafka-test-app topic_name=test_kafka_app_topic role=consumer consumer_group_prefix=cg
+```
+
+After configuring the Kafka Test App, just relate it again with the Kafka charm. This will again create a new user and start the consumer process. 
+
+## What's next?
+
+In the next section, we will learn how to rotate and manage the passwords for the Kafka users, both the admin one and the ones managed by the data-integrator.
