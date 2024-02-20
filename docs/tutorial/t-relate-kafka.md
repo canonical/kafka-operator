@@ -77,7 +77,7 @@ Save the value listed under `bootstrap-server`, `username` and `password`. *(Not
 
 ### Produce/Consume messages
 
-We will now use the username and password to produce some messages to Kafka. To do so, we will first deploy a test charm that bundles some python scripts to push data to Kafka, e.g.
+We will now use the username and password to produce some messages to Kafka. To do so, we will first deploy the Kafka Test App (available [here](https://charmhub.io/kafka-test-app)): a test charm that also bundles some python scripts to push data to Kafka, e.g.
 
 ```shell
 juju deploy kafka-test-app -n1 --channel edge
@@ -161,31 +161,23 @@ python3 -m charms.kafka.v0.client \
 
 Actually, the Data Integrator is only a very special client charm,  that implements the `kafka_client` relation for exchanging data with the Kafka charm and allowing user management via relations. 
 
-For example,  the steps above for producing and consuming messages to Kafka have been implemented in a simple app: the `kafka-test-app` charm (available [here](https://charmhub.io/kafka-test-app)), providing a fully integrated charmed user-experience. 
+For example,  the steps above for producing and consuming messages to Kafka have also been implemented in the `kafka-test-app` charm (that also implement the `kafka_client` relation) providing a fully integrated charmed user-experience, where producing/consuming messages can simply be achieved using relations.  
 
-#### Deploy the Kafka Test App
+#### Producing messages
 
-Let's start by deploying the Kafka Test App
-
-```shell
-juju deploy kafka-test-app
-```
-
-and configure it to act as producer, publishing messages to a specific topic
+To produce messages to Kafka, we need to configure the kafka-test-app to act as producer, publishing messages to a specific topic
 
 ```shell
 juju config kafka-test-app topic_name=test_kafka_app_topic role=producer num_messages=20
 ```
 
-#### Producing messages
-
-In order to start to produce messages to Kafka, we JUST simply relate the Kafka Test App with Kafka
+To start producing messages to Kafka, we **JUST** simply relate the Kafka Test App with Kafka
 
 ```shell
 juju relate kafka-test-app kafka
 ```
 
-> **Note** This will both take care of creating a dedicated user (as much as done for the data-integrator) as well as start a producer process publishing messages to the `test_kafka_app_topic` topic. 
+> **Note** This will both take care of creating a dedicated user (as much as done for the data-integrator) as well as start a producer process publishing messages to the `test_kafka_app_topic` topic, basically automating what was done before by hands. 
 
 After some time, the `juju status` output should show
 
