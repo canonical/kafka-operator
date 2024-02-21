@@ -4,7 +4,7 @@ The Charmed Kafka Operator delivers automated operations management from day 0 t
 
 This operator charm comes with features such as:
 - Fault-tolerance, replication, scalability and high-availability out-of-the-box.
-- SASL/SCRAM auth for Broker-Broker and Client-Broker authenticaion enabled by default.
+- SASL/SCRAM auth for Broker-Broker and Client-Broker authentication enabled by default.
 - Access control management supported with user-provided ACL lists.
 
 The Kafka Operator uses the latest upstream Kafka binaries released by the The Apache Software Foundation that comes with Kafka, made available using the [`charmed-kafka` snap ](https://snapcraft.io/charmed-kafka) distributed by Canonical.
