@@ -15,7 +15,7 @@ After this, it is necessary to connect them:
 $ juju relate kafka zookeeper
 ```
 
-Juju will now fetch Charmed Kafka and Zookeeper and begin deploying it to the LXD cloud. This process can take several minutes depending on how provisioned (RAM, CPU,etc) your machine is. You can track the progress by running:
+Juju will now fetch Charmed Kafka and Zookeeper and begin deploying it to the LXD cloud. This process can take several minutes depending on how provisioned (RAM, CPU, etc) your machine is. You can track the progress by running:
 ```shell
 juju status --watch 1s
 ```
@@ -93,7 +93,7 @@ When the unit is started, the Charmed Kafka Operator installs the [`charmed-kafk
 Within the machine, the Charmed Kafka Operator also creates a `client.properties` file that already provides the relevant settings to connect to the cluster using the CLI
 
 ```shell
-CLIENT_PROPERTIES= /var/snap/charmed-kafka/current/etc/kafka/client.properties
+CLIENT_PROPERTIES=/var/snap/charmed-kafka/current/etc/kafka/client.properties
 ```
 
 For example, in order to create a topic, you can run:

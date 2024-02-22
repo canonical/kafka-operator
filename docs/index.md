@@ -24,7 +24,7 @@ Charmed Kafka is an official distribution of Apache Kafka. It’s an open-source
 - [Join the Discourse forum](/tag/kafka)
 - [Contribute](https://github.com/canonical/kafka-operator/blob/main/CONTRIBUTING.md) and report [issues](https://github.com/canonical/kafka-operator/issues/new)
 - Explore [Canonical Data Fabric solutions](https://canonical.com/data)
-- [Contacts us]([/t/13107) for all further questions
+- [Contact us]([/t/13107) for all further questions
 
 ## In this documentation
 
