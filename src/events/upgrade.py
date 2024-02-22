@@ -42,6 +42,15 @@ class KafkaUpgrade(DataUpgrade):
         self.charm = charm
 
     @property
+    def idle(self) -> bool:
+        """Checks if cluster state is idle.
+
+        Returns:
+            True if cluster state is idle. Otherwise False
+        """
+        return not bool(self.upgrade_stack)
+
+    @property
     def current_version(self) -> str:
         """Get current Kafka version."""
         dependency_model: DependencyModel = getattr(self.dependency_model, "kafka_service")

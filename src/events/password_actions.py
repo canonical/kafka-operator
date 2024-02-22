@@ -43,11 +43,9 @@ class PasswordActionEvents(Object):
             event.fail(msg)
             return
 
-        if not self.charm.upgrade.idle or self.charm.upgrade.upgrade_stack:
+        if not self.charm.upgrade.idle:
             msg = (
-                "Cannot set password while upgrading "
-                + f"(upgrade_state: {self.charm.upgrade.cluster_state}, "
-                + f"upgrade_stack: {self.charm.upgrade.upgrade_stack})"
+                    f"Cannot set password while upgrading (upgrade_stack: {self.charm.upgrade.upgrade_stack})"
             )
             logger.error(msg)
             event.fail(msg)

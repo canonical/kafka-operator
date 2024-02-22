@@ -79,10 +79,8 @@ def test_build_upgrade_stack(harness: Harness):
     assert len(stack) == len(set(stack))
 
 
-@pytest.mark.parametrize("upgrade_state", ("idle", "ready"))
 @pytest.mark.parametrize("upgrade_stack", ([], [0]))
-def test_run_password_rotation_while_upgrading(harness, upgrade_state, upgrade_stack):
-    harness.charm.upgrade.peer_relation.data[harness.charm.unit].update({"state": upgrade_state})
+def test_run_password_rotation_while_upgrading(harness, upgrade_stack):
     harness.charm.upgrade.upgrade_stack = upgrade_stack
     harness.set_leader(True)
 
@@ -95,12 +93,11 @@ def test_run_password_rotation_while_upgrading(harness, upgrade_state, upgrade_s
     ):
         harness.charm.password_action_events._set_password_action(mock_event)
 
-    if (not upgrade_stack) and (upgrade_state == "idle"):
+    if (not upgrade_stack):
         mock_event.set_results.assert_called()
     else:
         mock_event.fail.assert_called_with(
-            f"Cannot set password while upgrading (upgrade_state: {upgrade_state}, "
-            + f"upgrade_stack: {upgrade_stack})"
+            f"Cannot set password while upgrading (upgrade_stack: {upgrade_stack})"
         )
 
 
