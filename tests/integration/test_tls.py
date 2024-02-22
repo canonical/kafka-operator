@@ -225,9 +225,7 @@ async def test_mtls(ops_test: OpsTest):
 
 @pytest.mark.abort_on_fail
 async def test_mtls_broken(ops_test: OpsTest):
-    remove_relation_cmd = f"remove-relation {CHARM_KEY} {TRUSTED_CERTIFICATE_RELATION}"
-    await ops_test.juju(*remove_relation_cmd.split(), check=True)
-
+    await ops_test.model.remove_application(MTLS_NAME, block_until_done=True)
     await ops_test.model.wait_for_idle(
         apps=[CHARM_KEY],
         status="active",
