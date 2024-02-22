@@ -7,8 +7,8 @@ Additionally, the charm provides integration with the [Canonical Observability S
 
 Deploy cos-lite bundle in a Kubernetes environment. This can be done by following the
 [deployment tutorial](https://charmhub.io/topics/canonical-observability-stack/tutorials/install-microk8s).
-Since the Charmed Kafka Operator is deployed on a machine environment, it is needed to offer the endpoints
-of the COS relations. The [offers-overlay](https://github.com/canonical/cos-lite-bundle/blob/main/overlays/offers-overlay.yaml)
+Since the Charmed Kafka Operator is deployed on a machine environment, it is 
+needed to offer the endpoints of the COS relations. The [offers-overlay](https://github.com/canonical/cos-lite-bundle/blob/main/overlays/offers-overlay.yaml)
 can be used, and this step is shown in the COS tutorial.
 
 Switch to COS K8s environment and offer COS interfaces to be cross-model related with Charmed Kafka VM model:
@@ -45,11 +45,16 @@ juju consume k8s:admin/cos.loki-logging
 juju consume k8s:admin/cos.grafana-dashboards
 ```
 
-Now, deploy `grafana-agent` (subordinate charm) and relate it with Charmed Kafka, later relate `grafana-agent` with consumed COS offers:
+Now, deploy `grafana-agent` (subordinate charm) and relate it with Charmed Kafka and Charmed ZooKeeper:
 ```shell
 juju deploy grafana-agent
 juju relate kafka:cos-agent grafana-agent
 juju relate zookeeper:cos-agent grafana-agent
+```
+
+Finally, relate `grafana-agent` with consumed COS offers:
+
+```
 juju relate grafana-agent grafana-dashboards
 juju relate grafana-agent loki-logging
 juju relate grafana-agent prometheus-receive-remote-write
