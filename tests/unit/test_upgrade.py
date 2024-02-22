@@ -93,7 +93,7 @@ def test_run_password_rotation_while_upgrading(harness, upgrade_stack):
     ):
         harness.charm.password_action_events._set_password_action(mock_event)
 
-    if (not upgrade_stack):
+    if not upgrade_stack:
         mock_event.set_results.assert_called()
     else:
         mock_event.fail.assert_called_with(
