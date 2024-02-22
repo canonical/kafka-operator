@@ -224,6 +224,17 @@ async def test_mtls(ops_test: OpsTest):
 
 
 @pytest.mark.abort_on_fail
+async def test_mtls_broken(ops_test: OpsTest):
+    await ops_test.model.remove_application(MTLS_NAME, block_until_done=True)
+    await ops_test.model.wait_for_idle(
+        apps=[CHARM_KEY],
+        status="active",
+        idle_period=30,
+        timeout=2000,
+    )
+
+
+@pytest.mark.abort_on_fail
 async def test_kafka_tls_scaling(ops_test: OpsTest):
     """Scale the application while using TLS to check that new units will configure correctly."""
     await ops_test.model.applications[CHARM_KEY].add_units(count=2)
