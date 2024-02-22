@@ -91,9 +91,9 @@ def test_run_password_rotation_while_upgrading(harness, upgrade_state, upgrade_s
 
     with (
         patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
-        patch("auth.KafkaAuth.add_user"),
+        patch("managers.auth.AuthManager.add_user"),
     ):
-        harness.charm._set_password_action(mock_event)
+        harness.charm.password_action_events._set_password_action(mock_event)
 
     if (not upgrade_stack) and (upgrade_state == "idle"):
         mock_event.set_results.assert_called()
