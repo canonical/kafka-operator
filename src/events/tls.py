@@ -217,22 +217,24 @@ class TLSHandler(Object):
             app_name=event.relation.app.name,  # pyright: ignore[reportOptionalMemberAccess]
             relation_id=event.relation.id,
         )
+
+        logger.info(f"Removing {alias=} from truststore...")
         self.charm.tls_manager.remove_cert(alias=alias)
 
         # The leader will also handle removing the "mtls" flag if needed
         if not self.charm.unit.is_leader():
             return
 
-        # Get all relations, and remove the one being broken
-        all_relations = (
+        mtls_relations = set(
             self.model.relations[TRUSTED_CA_RELATION]
             + self.model.relations[TRUSTED_CERTIFICATE_RELATION]
         )
-        all_relations.remove(event.relation)
-        logger.debug(f"Remaining relations: {all_relations}")
+        for relation in mtls_relations:
+            if relation == event.relation:
+                mtls_relations.remove(event.relation)
 
         # No relations means that there are no certificates left in the truststore
-        if not all_relations:
+        if not mtls_relations:
             self.charm.state.cluster.update({"mtls": ""})
 
     def _on_certificate_available(self, event: CertificateAvailableEvent) -> None:
