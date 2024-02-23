@@ -43,6 +43,12 @@ class PasswordActionEvents(Object):
             event.fail(msg)
             return
 
+        if not self.charm.upgrade.idle:
+            msg = f"Cannot set password while upgrading (upgrade_stack: {self.charm.upgrade.upgrade_stack})"
+            logger.error(msg)
+            event.fail(msg)
+            return
+
         if not self.charm.healthy:
             msg = "Unit is not healthy"
             logger.error(msg)
