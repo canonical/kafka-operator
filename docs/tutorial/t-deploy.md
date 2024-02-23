@@ -1,8 +1,6 @@
-# Get a Charmed Kafka and Zookeeper up and running
-
 This is part of the [Charmed Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571). Please refer to this page for more information and the overview of the content. 
 
-## Deploy
+## Deploy Charmed Kafka (and Charmed Zookeeper)
 
 To deploy Charmed Kafka, all you need to do is run the following commands, which will automatically fetch [Kafka](https://charmhub.io/kafka?channel=3/stable) and [Zookeeper](https://charmhub.io/zookeeper?channel=3/stable) charms from [Charmhub](https://charmhub.io/) and deploy them to your model. For example, to deploy a 5 Zookeeper unit and 3 Kafka unit cluster, you can simply run
 
@@ -17,7 +15,7 @@ After this, it is necessary to connect them:
 $ juju relate kafka zookeeper
 ```
 
-Juju will now fetch Charmed Kafka and Zookeeper and begin deploying it to the LXD cloud. This process can take several minutes depending on how provisioned (RAM, CPU,etc) your machine is. You can track the progress by running:
+Juju will now fetch Charmed Kafka and Zookeeper and begin deploying it to the LXD cloud. This process can take several minutes depending on how provisioned (RAM, CPU, etc) your machine is. You can track the progress by running:
 ```shell
 juju status --watch 1s
 ```
@@ -95,7 +93,7 @@ When the unit is started, the Charmed Kafka Operator installs the [`charmed-kafk
 Within the machine, the Charmed Kafka Operator also creates a `client.properties` file that already provides the relevant settings to connect to the cluster using the CLI
 
 ```shell
-CLIENT_PROPERTIES= /var/snap/charmed-kafka/current/etc/kafka/client.properties
+CLIENT_PROPERTIES=/var/snap/charmed-kafka/current/etc/kafka/client.properties
 ```
 
 For example, in order to create a topic, you can run:
@@ -129,6 +127,8 @@ Other available Kafka bin commands can also be found with:
 ```shell
 snap info charmed-kafka
 ```
+
+## What's next?
 
 However, although the commands above can run within the cluster, it is generally recommended during operations
 to enable external listeners and use these for running the admin commands from outside the cluster. 

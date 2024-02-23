@@ -1,8 +1,7 @@
-# Enable Security in your Kafka deployment 
-
 This is part of the [Charmed Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571). Please refer to this page for more information and the overview of the content. 
 
 ## Transport Layer Security (TLS)
+
 [TLS](https://en.wikipedia.org/wiki/Transport_Layer_Security) is used to encrypt data exchanged between two applications; it secures data transmitted over the network. Typically, enabling TLS within a highly available database, and between a highly available database and client/server applications, requires domain-specific knowledge and a high level of expertise. Fortunately, the domain-specific knowledge has been encoded into Charmed Kafka. This means (re-)configuring TLS on Charmed Kafka is readily available and requires minimal effort on your end.
 
 Again, relations come in handy here as TLS is enabled via relations; i.e. by relating Charmed Kafka to the [Self-signed Certificates Charm](https://charmhub.io/self-signed-certificates) via the [`tls-certificates`](https://github.com/canonical/charm-relation-interfaces/blob/main/interfaces/tls_certificates/v1/README.md) charm relations. The `tls-certificates` relation centralises TLS certificate management in a consistent manner and handles providing, requesting, and renewing TLS certificates, making it possible to use different providers, like the self-signed certificates but also other services, e.g. Let's Encrypt. 
@@ -11,7 +10,7 @@ Again, relations come in handy here as TLS is enabled via relations; i.e. by rel
 that is also trusted by all applications. This setup is only for show-casing purposes and self-signed certificates should **never** be used in a production cluster. For more information about which charm may better suit your use-case, please refer to [this post](https://charmhub.io/topics/security-with-x-509-certificates).* 
 
 ### Configure TLS
-Before enabling TLS on Charmed Kafka we must first deploy the `tls-certificates-operator` charm:
+Before enabling TLS on Charmed Kafka we must first deploy the `self-signed-certificates` charm:
 ```shell
 juju deploy self-signed-certificates --config ca-common-name="Tutorial CA"
 ```
@@ -59,7 +58,7 @@ Make sure that the `kafka-test-app` is not connected to the Kafka charm, by remo
 juju remove-relation kafka-test-app kafka
 ```
 
-Then enable encryption on the `kafka-test-app` by relating with the `tls-certificates-operator` charm
+Then enable encryption on the `kafka-test-app` by relating with the ` self-signed-certificates` charm
 
 ```shell
 juju relate kafka-test-app self-signed-certificates

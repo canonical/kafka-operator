@@ -1,8 +1,13 @@
-# Environment Setup
-
 This is part of the [Charmed Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571). Please refer to this page for more information and the overview of the content. 
 
-## Prepare LXD
+## Setup the environment
+
+For this tutorial, we will need to setup the enviroment with two main components:
+* LXD that is a simple and lightweight virtual machine provisioner
+* Juju that will help us to deploy and manage Kafka and related applications
+
+### Prepare LXD
+
 The fastest, simplest way to get started with Charmed Kafka is to set up a local LXD cloud. LXD is a system container and virtual machine manager; Charmed Kafka will be run in one of these containers and managed by Juju. While this tutorial covers the basics of LXD, you can [explore more LXD here](https://linuxcontainers.org/lxd/getting-started-cli/). LXD comes pre-installed on Ubuntu 20.04. Verify that LXD is installed by entering the command `which lxd` into the command line, this will output:
 ```
 /snap/bin/lxd
@@ -22,7 +27,8 @@ You can list all LXD containers by entering the command `lxc list` in to the com
 ```
 
 
-## Install and prepare Juju
+### Install and prepare Juju
+
 [Juju](https://juju.is/) is an Operator Lifecycle Manager (OLM) for clouds, bare metal, LXD or Kubernetes. We will be using it to deploy and manage Charmed Kafka. As with LXD, Juju is installed from a snap package:
 ```shell
 sudo snap install juju --channel 3.1/stable

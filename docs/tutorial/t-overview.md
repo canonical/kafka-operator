@@ -17,12 +17,22 @@ While this tutorial intends to guide and teach you as you deploy Charmed Kafka, 
 - Basic terminal commands.
 - Kafka concepts such as replication and users.
 
+## Minimum requirements
+
+Before we start, make sure your machine meets the following requirements:
+
+* Ubuntu 20.04 (Focal) or later.
+* 8GB of RAM.
+* 2 CPU threads.
+* At least 20GB of available storage.
+* Access to the internet for downloading the required snaps and charms.
+
 ## Step-by-step guide
 
 Here’s an overview of the steps required with links to our separate tutorials that deal with each individual step:
 * [Set up the environment](/t/charmed-kafka-tutorial-setup-environment/10575)
 * [Deploy Kafka](/t/charmed-kafka-tutorial-deploy-kafka/10567)
+* [Integrate with client applications](/t/charmed-kafka-tutorial-relate-kafka/10573)
 * [Manage passwords](/t/charmed-kafka-tutorial-manage-passwords/10569)
-* [Relate your Kafka to other applications](/t/charmed-kafka-tutorial-relate-kafka/10573)
 * [Enable encryption](/t/charmed-kafka-documentation-tutorial-enable-security/12043)
 * [Cleanup your environment](/t/charmed-kafka-tutorial-cleanup-environment/10565)
