@@ -21,10 +21,10 @@ The Charmed Kafka Operator is free software, distributed under the Apache Softwa
 
 Charmed Kafka is an official distribution of Apache Kafka. It’s an open-source project that welcomes community contributions, suggestions, fixes and constructive feedback.
 - [Read our Code of Conduct](https://ubuntu.com/community/code-of-conduct)
-- [Join the Discourse forum](/tag/kafka)
+- [Join the Discourse forum](https://discourse.charmhub.io/tag/kafka)
 - [Contribute](https://github.com/canonical/kafka-operator/blob/main/CONTRIBUTING.md) and report [issues](https://github.com/canonical/kafka-operator/issues/new)
 - Explore [Canonical Data Fabric solutions](https://canonical.com/data)
-- [Contact us]([/t/13107) for all further questions
+- [Contact us](/t/13107) for all further questions
 
 ## In this documentation
 
