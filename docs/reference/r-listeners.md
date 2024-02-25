@@ -5,11 +5,11 @@ inter- and intra-cluster communication.
 
 *Internal listeners* are used for internal traffic and exchange of information 
 between Kafka brokers, whereas *external listeners* are used for external clients
-to are to be optionally enabled based the relations created on particular
+to be optionally enabled based the relations created on particular
 charm endpoints. Each listener is characterized by a specific port, scope and protocol. 
 
 In the following table we summarize the protocols, the port and
-the relation that each listener is binded to. Nota that based on whether `certificates`
+the relation that each listener is bound to. Nota that based on whether a `certificates`
 relation is present, one of two mutually exclusive type of listener can be 
 opened. 
 
@@ -22,4 +22,4 @@ opened.
 | SSL_EXTERNAL  | `trusted-certificate` + `certificates` | SSL            | 9094  | external |
 | SSL_EXTERNAL  | `trusted-ca` + `certificates`          | SSL            | 9094  | external |
 
-Note that since `cluster` is a peer-relation, the `SASL_INTERNAL` listener is always enabled.     
+> **Note** Since `cluster` is a peer-relation, the `SASL_INTERNAL` listener is always enabled.     

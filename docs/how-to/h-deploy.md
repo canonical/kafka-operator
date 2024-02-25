@@ -23,7 +23,7 @@ The cloud information can be retrieved with the following command
 juju show-controller | yq '.[].details.cloud'
 ```
 
-> **IMPORTANT** If the cloud is `k8s`, please refer to the [Charmed Kafka K8s documentation](https://discourse.charmhub.io/t/charmed-kafka-k8s-documentation/10296) instead.
+> **IMPORTANT** If the cloud is `k8s`, please refer to the [Charmed Kafka K8s documentation](/t/charmed-kafka-k8s-documentation/10296) instead.
 
 You can find more information on how to bootstrap and configure a controller for different 
 clouds [here](https://juju.is/docs/juju/manage-controllers#heading--bootstrap-a-controller). 
