@@ -71,7 +71,7 @@ async def restart_delay(ops_test: OpsTest):
 async def test_build_and_deploy(ops_test: OpsTest, kafka_charm, app_charm):
     await asyncio.gather(
         ops_test.model.deploy(kafka_charm, application_name=APP_NAME, num_units=1, series="jammy"),
-        ops_test.model.deploy(ZK_NAME, channel="edge", num_units=1, series="jammy"),
+        ops_test.model.deploy(ZK_NAME, channel="candidate", num_units=1, series="jammy"),
         ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series="jammy"),
     )
     await ops_test.model.wait_for_idle(

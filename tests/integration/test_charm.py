@@ -43,7 +43,7 @@ async def test_build_and_deploy_same_machine(ops_test: OpsTest, kafka_charm):
     await asyncio.gather(
         ops_test.model.deploy(
             ZK_NAME,
-            channel="edge",
+            channel="candidate",
             application_name=SAME_ZK,
             num_units=1,
             series="jammy",
