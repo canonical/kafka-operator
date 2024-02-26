@@ -12,7 +12,7 @@ administrators to automate Apache Kafka operations from day 0 to day 2, across m
 Canonical has also developed the [Charmed Kafka K8s operator]((/t/charmed-kafka-k8s-documentation/10296)) to support Kafka in Kubernetes environments.
 [/note]
 
-Charmed Kafka is developed and supported by [Canonical](https://ubuntu.com/), as part of its commitment to 
+Charmed Kafka is developed and supported by [Canonical](https://canonical.com/), as part of its commitment to 
 provide open-source, self-driving solutions, seamlessly integrated using the Operator Framework Juju. Please 
 refer to [charmhub.io](https://charmhub.io/), for more charmed operators integrated in the Juju ecosystem.
 
