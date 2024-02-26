@@ -47,7 +47,7 @@ more information about the mapping between the Kafka bin commands and the snap e
 > SASL/SCRAM listener, just integrate a client application using the data-integrator, 
 > as described [here](TODO).
 
-To run most of the scripts, you are required to provide:
+To run most of the scripts, you need to provide:
 1. the Kafka service endpoints, generally referred to as *bootstrap servers* 
 2. authentication information 
 
