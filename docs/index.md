@@ -6,7 +6,7 @@ Charmed Kafka is built on top of [Juju](https://juju.is/) and reliably simplifie
 Charmed Kafka operates Apache Kafka on physical systems, Virtual Machines (VM) and a wide range of cloud and cloud-like environments, including AWS, Azure, OpenStack and VMWare. 
 
 Charmed Kafka is a solution designed and developed for helping organizations and 
-DB administrators automating Apache Kafka operations management from day 0 to day 2, across multiple cloud environments and substrates.
+administrators to automate Apache Kafka operations from day 0 to day 2, across multiple cloud environments and platforms.
 
 [note]
 Canonical has also developed the [Charmed Kafka K8s operator]((/t/charmed-kafka-k8s-documentation/10296)) to support Kafka in Kubernetes environments.
