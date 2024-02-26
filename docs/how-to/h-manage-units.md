@@ -60,7 +60,7 @@ be obtained using
 BOOTSTRAP_SERVERS=$(juju run kafka/leader get-admin-credentials | grep "bootstrap.servers" | cut -d "=" -f 2)
 ```
 
-Admin client authentication information are stored in the 
+Admin client authentication information is stored in the 
 `/var/snap/charmed-kafka/common/client.properties` file present on every Kafka
 broker. The content of the file can be accessed using 
 
