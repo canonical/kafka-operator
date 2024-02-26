@@ -68,7 +68,7 @@ $ juju relate kafka zookeeper
 ```
 
 > We recommend values for `<kafka-units>` of at least 3 and for `<zookeeper-units>` of 5, to 
-ensuring reasonable high-availability margins.
+ensure reasonable high-availability margins.
 
 Once all the units show as `active|idle` in the `juju status` output, the deployment 
 should be ready to be used. 
