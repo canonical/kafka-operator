@@ -37,7 +37,7 @@ You can create a new Juju model using
 juju add-model <model>
 ```
 
-Alternatively, you can use a pre-existing Juju model and switch to it by 
+Alternatively, you can use a pre-existing Juju model and switch to it by running the following command:
 
 ```
 juju switch <model-name>
