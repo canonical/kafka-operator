@@ -42,7 +42,7 @@ accessible via `charmed-kafka.<command>`. Please refer to [this table](TODO) for
 more information about the mapping between the Kafka bin commands and the snap entrypoints.
 
 > **IMPORTANT** Before running bash scripts, make sure that some listeners have been correctly 
-> opened by creating appropriate relations. Please refer to [this table](TODO) for more 
+> opened by creating appropriate integrations. Please refer to [this table](TODO) for more 
 > information about how listeners are opened based on relations. To simply open a 
 > SASL/SCRAM listener, just relate a client application as the data-integrator, 
 > as described [here](TODO).
