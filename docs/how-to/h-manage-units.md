@@ -1,5 +1,32 @@
 # How to manage units
 
+## Replication and Scaling
+
+Increasing the number of Kafka brokers can simply be achieved by adding more units
+to the Charmed Kafka application, e.g. 
+
+```shell
+juju add-unit kafka -n <num_brokers_to_add>
+```
+
+For more information on how to manage units, please refer to the [Juju documentation](https://juju.is/docs/juju/manage-units)
+
+It is important to note that when adding more units, the Kafka cluster will not 
+*automatically* rebalance existing topics and partitions. New storage and new brokers
+will be used only when new topics and new partitions will be created. 
+
+Partition reassigment can still be done manually by the admin user by using the 
+`charmed-kafka.reassign-partitions` Kafka bin utility script. Please refer to 
+its documentation for more information. 
+
+> **IMPORTANT** Scaling down is currently NOT SUPPORTED in the charm automation.  
+> If partition reassignment is not manually performed before scaling down in order 
+> to makes sure the decommisioned units does not hold any data, **this may 
+> lead to data loss**. 
+
+
+## Running Kafka Admin utility scripts
+
 Apache Kafka ships with `bin/*.sh` commands to do various administrative tasks such as:
 * `bin/kafka-config.sh` to update cluster configuration
 * `bin/kafka-topics.sh` for topic management
@@ -13,8 +40,6 @@ bash command.
 The most important commands are also exposed via the [Charmed Kafka snap](https://snapcraft.io/charmed-kafka), 
 accessible via `charmed-kafka.<command>`. Please refer to [this table](TODO) for 
 more information about the mapping between the Kafka bin commands and the snap entrypoints.
-
-## Running the Kafka Bin commands
 
 > **IMPORTANT** Before running bash scripts, make sure that some listeners have been correctly 
 > opened by creating appropriate relations. Please refer to [this table](TODO) for more 
@@ -77,26 +102,3 @@ USERNAME=$(juju run data-integrator/leader get-credentials --format yaml | yq .k
 PASSWORD=$(juju run data-integrator/leader get-credentials --format yaml | yq .kafka.password )
 ```
 
-## Replication and Scaling
-
-Increasing the number of Kafka brokers can simply be achieved by adding more units
-to the Charmed Kafka application, e.g. 
-
-```shell
-juju add-unit kafka -n <num_brokers_to_add>
-```
-
-For more information on how to manage units, please refer to the [Juju documentation](https://juju.is/docs/juju/manage-units)
-
-It is important to note that when adding more units, the Kafka cluster will not 
-*automatically* rebalance existing topics and partitions. New storage and new brokers
-will be used only when new topics and new partitions will be created. 
-
-Partition reassigment can still be done manually by the admin user by using the 
-`charmed-kafka.reassign-partitions` Kafka bin utility script. Please refer to 
-its documentation for more information. 
-
-> **IMPORTANT** Scaling down is currently NOT SUPPORTED in the charm automation.  
-> If partition reassignment is not manually performed before scaling down in order 
-> to makes sure the decommisioned units does not hold any data, **this may 
-> lead to data loss**. 
