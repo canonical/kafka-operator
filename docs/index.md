@@ -2,7 +2,7 @@
 
 Charmed Kafka is an open-source operator that makes it easier to operate Apache Kafka with built-in support for enterprise features. 
 
-Charmed Kafka is build on top of [Juju](https://juju.is/) and it simplifies the deployment, scaling, design and management of Apache Kafka in production in a reliable way. In addition, you can use the operator to manage your Kafka clusters with automation capabilities. It also offers replication, TLS, password rotation, easy-to-use application integration, and monitoring.
+Charmed Kafka is built on top of [Juju](https://juju.is/) and reliably simplifies the deployment, scaling, design, and management of Apache Kafka in production. Additionally, you can use the charm to manage your Kafka clusters with automation capabilities. It also offers replication, TLS, password rotation, easy-to-use application integration, and monitoring.
 Charmed Kafka operates Apache Kafka on physical, Virtual Machines (VM) and other wide range of cloud and cloud-like environments, including AWS, Azure, OpenStack and VMWare. 
 
 Charmed Kafka is a solution designed and developed for helping organizations and 
