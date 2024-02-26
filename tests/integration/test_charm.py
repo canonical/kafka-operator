@@ -87,7 +87,7 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
             kafka_charm, application_name=APP_NAME, num_units=1, series="jammy", to=machine_ids[0]
         ),
         ops_test.model.deploy(
-            ZK_NAME, channel="edge", application_name=ZK_NAME, num_units=1, series="jammy"
+            ZK_NAME, channel="candidate", application_name=ZK_NAME, num_units=1, series="jammy"
         ),
     )
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], idle_period=30, timeout=3600)
