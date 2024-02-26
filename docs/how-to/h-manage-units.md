@@ -1,6 +1,6 @@
 # How to manage units
 
-Apache Kafka ships with `bin/*.sh` commands to do various administrative tasks, among which
+Apache Kafka ships with `bin/*.sh` commands to do various administrative tasks such as:
 * `bin/kafka-config.sh` to update cluster configuration
 * `bin/kafka-topics.sh` for topic management
 * `bin/kafka-acls.sh` for management of ACLs of Kafka users
