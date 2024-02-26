@@ -16,9 +16,12 @@ Charmed Kafka is developed and supported by [Canonical](https://ubuntu.com/), as
 provide open-source, self-driving solutions, seamlessly integrated using the Operator Framework Juju. Please 
 refer to [charmhub.io](https://charmhub.io/), for more charmed operators integrated in the Juju ecosystem.
 
-### License
+## In this documentation
 
-The Charmed Kafka Operator is free software, distributed under the Apache Software License, version 2.0. See [LICENSE](https://github.com/canonical/kafka-operator/blob/main/LICENSE) for more information.
+| | |
+|--|--|
+|  [Tutorials](/t/charmed-kafka-tutorial-overview/10571)</br>  Get started - a hands-on introduction to using Charmed MySQL operator for new users </br> |  [How-to guides](/t/charmed-kafka-how-to-manage-units/10287) </br> Step-by-step guides covering key operations and common tasks |
+| [Reference](https://charmhub.io/kafka/actions?channel=3/stable) </br> Technical information - specifications, APIs, architecture | [Explanation]() </br> Concepts - discussion and clarification of key topics  |
 
 ## Project and community
 
@@ -29,9 +32,7 @@ Charmed Kafka is an official distribution of Apache Kafka. It’s an open-source
 - Explore [Canonical Data Fabric solutions](https://canonical.com/data)
 - [Contact us]([/t/13107) for all further questions
 
-## In this documentation
+## License
 
-| | |
-|--|--|
-|  [Tutorials](/t/charmed-kafka-tutorial-overview/10571)</br>  Get started - a hands-on introduction to using Charmed MySQL operator for new users </br> |  [How-to guides](/t/charmed-kafka-how-to-manage-units/10287) </br> Step-by-step guides covering key operations and common tasks |
-| [Reference](https://charmhub.io/kafka/actions?channel=3/stable) </br> Technical information - specifications, APIs, architecture | [Explanation]() </br> Concepts - discussion and clarification of key topics  |
+The Charmed Kafka Operator is free software, distributed under the Apache Software License, version 2.0. See [LICENSE](https://github.com/canonical/kafka-operator/blob/main/LICENSE) for more information.
+
