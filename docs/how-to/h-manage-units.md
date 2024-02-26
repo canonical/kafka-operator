@@ -70,7 +70,7 @@ juju ssh kafka/leader `cat /var/snap/charmed-kafka/common/client.properties`
 
 This file can be provided to the Kafka bin commands via the `--command-config`
 argument. Note that `client.properties` may also refer to other files (
-e.g. trustore and keystore for TLS-enabled connections) for which also those
+e.g. trustore and keystore for TLS-enabled connections). Those
 files need to be accessible and correctly specified. 
 
 Commands can also be run within a Kafka broker, since both the authentication 
