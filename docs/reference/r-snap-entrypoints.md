@@ -1,9 +1,9 @@
 # Charmed Kafka Snap Entrypoints
 
-The Snap entrypoints wrap the Kafka Distribution Bash scripts and they make sure
-that these scripts are run with the correct environment settings 
-(configuration files, logging files, etc). Here below, we provide a reference
-table for the mapping between entrypoints and wrapped bash script. 
+Snap entrypoints wrap the Kafka Distribution Bash scripts and make sure
+that they run with the correct environment settings (configuration files, logging files, etc). 
+
+Below is a reference table for the mapping between entrypoints and wrapped bash script:
 
 | Snap Entrypoint                                 | Kafka Distribution Bash Script                           |
 |-------------------------------------------------|----------------------------------------------------------|
