@@ -8,7 +8,7 @@ To deploy a Charmed Kafka cluster on a bare environment, it is necessary to:
 
 In the next subsections we will cover these steps separately by referring to 
 relevant Juju documentation and providing details on the Charmed Kafka specifics.
-If you already have a Juju controller and/or a Juju model, skip the related steps.
+If you already have a Juju controller and/or a Juju model, you can skip the associated steps.
 
 ## Juju Controller setup
 
