@@ -135,7 +135,7 @@ class ClusterState(Object):
         if not self.peer_relation:
             return []
 
-        return [f"{host}:{self.port}" for host in self.unit_hosts]
+        return sorted([f"{host}:{self.port}" for host in self.unit_hosts])
 
     @property
     def log_dirs(self) -> str:
