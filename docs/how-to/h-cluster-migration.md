@@ -22,7 +22,7 @@ In short, MirrorMaker runs as a distributed service on the new cluster, and cons
 - An existing Kafka cluster to migrate from
 - A bootstrapped Juju VM machine cloud running Charmed Kafka to migrate to
     - A tutorial on how to set-up a Charmed Kafka deployment can be found as part of the [Charmed Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571)
-    - CLI file processor tool `yq` - https://github.com/mikefarah/yq
+    - The CLI tool `yq` - https://github.com/mikefarah/yq
     - `snap install yq --channel=v3/stable`
 
 ### Getting Charmed Kafka cluster details and admin credentials
