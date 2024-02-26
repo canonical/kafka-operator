@@ -74,7 +74,7 @@ e.g. trustore and keystore for TLS-enabled connections). Those
 files also need to be accessible and correctly specified. 
 
 Commands can also be run within a Kafka broker, since both the authentication 
-file (alongside with truststore if needed) and the Charmed Kafka snap are 
+file (along with the truststore if needed) and the Charmed Kafka snap are 
 already present. 
 
 #### Example (Listing topics)
