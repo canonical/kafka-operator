@@ -61,16 +61,16 @@ BOOTSTRAP_SERVERS=$(juju run kafka/leader get-admin-credentials | grep "bootstra
 ```
 
 Admin client authentication information is stored in the 
-`/var/snap/charmed-kafka/common/client.properties` file present on every Kafka
+`/var/snap/charmed-kafka/common/etc/kafka/client.properties` file present on every Kafka
 broker. The content of the file can be accessed using 
 
 ```
-juju ssh kafka/leader `cat /var/snap/charmed-kafka/common/client.properties`
+juju ssh kafka/leader `cat /etc/kafka/client.properties`
 ```
 
 This file can be provided to the Kafka bin commands via the `--command-config`
 argument. Note that `client.properties` may also refer to other files (
-e.g. trustore and keystore for TLS-enabled connections). Those
+e.g. truststore and keystore for TLS-enabled connections). Those
 files also need to be accessible and correctly specified. 
 
 Commands can also be run within a Kafka broker, since both the authentication 
@@ -81,7 +81,7 @@ already present.
 
 For instance, in order to list the current topics on the Kafka cluster, you can run:
 ```
-juju ssh kafka/leader 'charmed-kafka.topics --bootstrap-server $BOOTSTRAP_SERVERS --list --command-config /var/snap/charmed-kafka/common/client.properties'
+juju ssh kafka/leader 'charmed-kafka.topics --bootstrap-server $BOOTSTRAP_SERVERS --list --command-config /var/snap/charmed-kafka/common/etc/kafka/client.properties'
 ```
 
 ### Juju External users
