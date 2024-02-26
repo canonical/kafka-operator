@@ -16,7 +16,7 @@ Before deploying Kafka, make sure you have a Juju controller accessible from
 your local environment using the [Juju client snap](https://snapcraft.io/juju). 
 
 The properties of your current controller can be listed using `juju show-controller`. 
-Make sure that the controller substrate (cloud) is **NOT** K8s. 
+Make sure that the controller's back-end cloud is **not** K8s. 
 The cloud information can be retrieved with the following command
 
 ```commandline
