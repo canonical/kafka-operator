@@ -38,14 +38,14 @@ use `--help` argument for printing a short summary of the argument for a given
 bash command. 
 
 The most important commands are also exposed via the [Charmed Kafka snap](https://snapcraft.io/charmed-kafka), 
-accessible via `charmed-kafka.<command>`. Please refer to [this table](TODO) for 
+accessible via `charmed-kafka.<command>`. Please refer to [this table](/t/charmed-kafka-documentation-reference-snap-entrypoints/13263) for 
 more information about the mapping between the Kafka bin commands and the snap entrypoints.
 
 > **IMPORTANT** Before running bash scripts, make sure that some listeners have been correctly 
-> opened by creating appropriate integrations. Please refer to [this table](TODO) for more 
+> opened by creating appropriate integrations. Please refer to [this table](/t/charmed-kafka-documentation-reference-listeners/13264) for more 
 > information about how listeners are opened based on relations. To simply open a 
 > SASL/SCRAM listener, just integrate a client application using the data-integrator, 
-> as described [here](TODO).
+> as described [here](/t/charmed-kafka-how-to-manage-app/10285).
 
 To run most of the scripts, you need to provide:
 1. the Kafka service endpoints, generally referred to as *bootstrap servers* 

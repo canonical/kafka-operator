@@ -78,7 +78,7 @@ should be ready to be used.
 Charmed Kafka aims to follow the _secure by default_ paradigm. As a consequence, after being deployed the Kafka cluster 
 won't expose any external listener. 
 In fact, ports are only opened when client applications are related, also 
-depending on the protocols to be used. Please refer to [this table](TODO) for 
+depending on the protocols to be used. Please refer to [this table](/t/charmed-kafka-documentation-reference-listeners/13264) for 
 more information about the available listeners and protocols. 
 
 It is however generally useful for most of the use-cases to create a first admin user
