@@ -2,7 +2,7 @@
 
 To deploy a Charmed Kafka cluster on a bare environment, it is necessary to:
 1. Setup a Juju Controller
-2. Setup a Juju Model
+2. Set up a Juju Model
 3. Deploy Charmed Kafka and Charmed ZooKeeper
 4. (Optional) Create an external admin user
 
