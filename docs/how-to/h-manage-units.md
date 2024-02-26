@@ -86,7 +86,7 @@ to the Charmed Kafka application, e.g.
 juju add-unit kafka -n <num_brokers_to_add>
 ```
 
-For more information on how to manage units, please refer to [this](https://juju.is/docs/juju/manage-units)
+For more information on how to manage units, please refer to the [Juju documentation](https://juju.is/docs/juju/manage-units)
 
 It is important to note that when adding more units, the Kafka cluster will not 
 *automatically* rebalance existing topics and partitions. New storage and new brokers
