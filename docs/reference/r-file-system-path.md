@@ -1,6 +1,6 @@
 # File System Path
 
-In the following table, we summarize some of the most relevant file path used in 
+In the following table, we summarize some of the most relevant file paths used in 
 the Kafka and ZooKeeper charms.
 
 ## Kafka 
