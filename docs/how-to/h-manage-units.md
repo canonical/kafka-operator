@@ -23,7 +23,7 @@ more information about the mapping between the Kafka bin commands and the snap e
 > as described [here](TODO).
 
 To run most of the scripts, you are required to provide:
-1. the Kafka service endpoints, generally referred to as *boostrap servers* 
+1. the Kafka service endpoints, generally referred to as *bootstrap servers* 
 2. authentication information 
 
 ### Juju admins of the Kafka deployment
