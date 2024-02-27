@@ -87,7 +87,7 @@ groups:
       description: 'After successful leader election, if the leader for partition dies, then the partition moves to the OfflinePartition state. Offline partitions are not available for reading and writing. Restart the brokers, if needed, and check the logs for errors.'
 
   - alert: High Partitions Count
-    expr: kafka_server_replicamanager_partitioncount{juju_charm!=".*"} > 3000
+    expr: kafka_server_replicamanager_partitioncount{juju_charm!=".*"} > 4000
     for: 1m
     labels:
       severity: warning
@@ -223,12 +223,12 @@ groups:
   # ==========
   - alert: JVM Usage
     expr: ((sum without(area)(jvm_memory_bytes_used{juju_charm!=".*"}) / 1024 / 1024) / (sum without(area)(jvm_memory_bytes_max{juju_charm!=".*"}) / 1024 / 1024)) * 100 > 70
-    for: 60s
+    for: 5m
     labels:
       severity: critical
     annotations:
-      summary: "Broker {{ $labels.instance }} :: Critical :: Heap memory usage is {{ $value }}%"
-      description: " The borker {{ $labels.instance }} has high memory usage ({{ $value }}>70%) for more than 1 minutes."
+      summary: "Broker {{ $labels.instance }} :: Critical :: Memory usage is {{ $value }}%"
+      description: " The broker {{ $labels.instance }} has high memory usage ({{ $value }}>70%) for more than 5 minutes."
 
   - alert: Offline Log Directory
     expr: kafka_log_logmanager_offlinelogdirectorycount{juju_charm!=".*"} > 0
