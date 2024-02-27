@@ -9,7 +9,7 @@ Charmed Kafka is a solution designed and developed for helping ops teams and
 administrators to automate Apache Kafka operations from day 0 to day 2, across multiple cloud environments and platforms.
 
 [note]
-Canonical has also developed the [Charmed Kafka K8s operator]((/t/charmed-kafka-k8s-documentation/10296)) to support Kafka in Kubernetes environments.
+Canonical has also developed the [Charmed Kafka K8s operator](/t/charmed-kafka-k8s-documentation/10296) to support Kafka in Kubernetes environments.
 [/note]
 
 Charmed Kafka is developed and supported by [Canonical](https://canonical.com/), as part of its commitment to 

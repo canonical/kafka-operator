@@ -40,9 +40,9 @@ k8s        admin/cos.prometheus-receive-remote-write  admin   prometheus-receive
 
 Consume offers to be reachable in the current model:
 ```shell
-juju consume k8s:admin/cos.prometheus-receive-remote-write
-juju consume k8s:admin/cos.loki-logging
-juju consume k8s:admin/cos.grafana-dashboards
+juju consume <k8s_controller>:admin/<cos_model_name>.prometheus-receive-remote-write
+juju consume <k8s_controller>:admin/<cos_model_name>.loki-logging
+juju consume <k8s_controller>:admin/<cos_model_name>.grafana-dashboards
 ```
 
 Now, deploy `grafana-agent` (subordinate charm) and relate it with Charmed Kafka and Charmed ZooKeeper:
@@ -60,7 +60,16 @@ juju relate grafana-agent loki-logging
 juju relate grafana-agent prometheus-receive-remote-write
 ```
 
-After this is complete, Grafana will show the new dashboards (one for Kafka and one for ZooKeeper) as well as allows access to Kafka and ZooKeeper server logs on Loki.
+Wait for all components to settle down on a `active/idle` state on both 
+models, e.g. `<kafka_model_name>` and `<cos_model_name>`.
+
+After this is complete, the monitoring COS stack should be up and running and ready to be used. 
+
+### Connect Grafana web interface
+To connect to the Grafana web interface, follow the [Browse dashboards](https://charmhub.io/topics/canonical-observability-stack/tutorials/install-microk8s?_ga=2.201254254.1948444620.1704703837-757109492.1701777558#heading--browse-dashboards) section of the MicroK8s "Getting started" guide.
+```shell
+juju run grafana/leader get-admin-password --model <k8s_cos_controller>:<cos_model_name>
+```
 
 ## Tune server logging level
 
