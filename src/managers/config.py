@@ -5,7 +5,8 @@
 """Manager for handling Kafka configuration."""
 
 import logging
-
+import os
+import re
 from core.cluster import ClusterState
 from core.structured_config import CharmConfig, LogLevel
 from core.workload import WorkloadBase
@@ -182,6 +183,20 @@ class KafkaConfigManager:
             f"-Djava.security.auth.login.config={self.workload.paths.zk_jaas}",
             f"-Dcharmed.kafka.log.level={self.log_level}",
         ]
+
+        http_proxy = os.environ.get("JUJU_CHARM_HTTP_PROXY")
+        https_proxy = os.environ.get("JUJU_CHARM_HTTPS_PROXY")
+        no_proxy = os.environ.get("JUJU_CHARM_NO_PROXY")
+
+        for prot, proxy in {'http': http_proxy, 'https': https_proxy}.items():
+            if proxy:
+                proxy = re.sub(r'^https?://', '', proxy)
+                [host, port] = proxy.split(':') if ':' in proxy else [proxy, '8080']
+                opts.append(
+                    f"-D{prot}.proxyHost={host} -D{prot}.proxyPort={port}"
+                )
+        if no_proxy:
+            opts.append(f"-Dhttp.nonProxyHosts={no_proxy}")
 
         return f"KAFKA_OPTS='{' '.join(opts)}'"
 
