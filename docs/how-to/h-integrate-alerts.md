@@ -59,8 +59,17 @@ juju run traefik/0 show-proxied-endpoints --format=yaml \
   | jq
 ```
 
-You should obtain a URL for Prometheus in the form of `"http://10.66.236.72/cos-prometheus-0"`. If you followed this guide to the letter, you should see an `High Availability Not Achieved` alert firing with the value "2".
+You should obtain a URL for Prometheus in the form of `"http://10.66.236.72/cos-prometheus-0"`.
+If you followed this guide to the letter, you should see an `High Availability Not Achieved` alert firing with the value "2".
 If you want to observe how the monitoring stack keeps up with the deployment, add a unit to the Kafka cluster in the `kafka-dev` model to see the alert go from "firing" to "inactive".
+
+
+The [COS configuration](https://charmhub.io/cos-configuration-k8s) charm keeps the monitoring stack in sync with our repo.
+Adding, updating or deleting a rule in the repo will be reflected in the monitoring stack.
+
+[Note]
+You need to manually refresh `cos-config`'s local repo with the *sync-now* action if you do no want to wait for the next [update-status event]() to pull the latest changes.
+[/Note]
 
 ## Apply those concepts to a dashboard
 
@@ -192,9 +201,6 @@ Finally, relate the charm to Grafana:
 juju relate cos-config grafana
 ```
 
-[Note]
-You might need to manually refresh `cos-config`'s content with the *sync-now* action, or wait for the next [update-status event]() to pull the latest changes.
-[/Note]
 
 To connect to the Grafana web interface, follow once again the [Browse dashboards](https://charmhub.io/topics/canonical-observability-stack/tutorials/install-microk8s#heading--browse-dashboards) section of the MicroK8s “Getting started” guide or the [Enable Monitoring](/t/charmed-kafka-documentation-how-to-enable-monitoring/10283) guide.
 
