@@ -68,7 +68,7 @@ The [COS configuration](https://charmhub.io/cos-configuration-k8s) charm keeps t
 Adding, updating or deleting a rule in the repo will be reflected in the monitoring stack.
 
 [Note]
-You need to manually refresh `cos-config`'s local repo with the *sync-now* action if you do no want to wait for the next [update-status event]() to pull the latest changes.
+You need to manually refresh `cos-config`'s local repo with the *sync-now* action if you do no want to wait for the next [update-status event](/t/event-update-status/6484) to pull the latest changes.
 [/Note]
 
 ## Apply those concepts to a dashboard
