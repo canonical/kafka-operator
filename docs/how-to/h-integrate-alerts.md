@@ -6,207 +6,60 @@ To do so, we will sync resources stored in a git repo to COS Lite.
 ## Prerequisites
 
 Deploy the cos-lite bundle in a Kubernetes environment and relate Charmed Kafka and Charmed ZooKeeper to the COS offers, as show in the [How to Enable Monitoring](/t/charmed-kafka-documentation-how-to-enable-monitoring/10283) guide.
-The rest of this guide will refer to the models that charms are deployed into as `<cos-model>` for the one containing observabilities charms (and deployed on k8s), and `<apps-model>` for the one containing Charmed Kafka and Charmed ZooKeeper, along with other optional charms (e.g. tls-certificates operators, grafana-agent, data-integrator, etc).
-If your configuration differs, you will have to adapt this guide's content to your deployment.
+The rest of this guide will refer to the models that charms are deployed into as `<cos-model>` for the one containing observabilities charms (and deployed on k8s), and `<apps-model>` for the one containing Charmed Kafka and Charmed ZooKeeper, along with other optional charms (e.g. tls-certificates operators, grafana-agent, data-integrator, etc.).
 
-## Create a repo with alert rules
+## Create a repository with a custom monitoring setup
 
-To keep things simple, we will illustrate this guide with a single alert rule that Prometheus will fire if our Kafka cluster does not achieve high availability.
+
+Create an empty git repository, or in an existing one, save your alert rules and dashboard models under the `<path_to_prom_rules>`, `<path_to_loki_rules>` and `<path_to_models>` folders.
+
 If you want a primer to rule writing, refer to the [Prometheus documentation](https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/).  
-Create an empty git repository, and save the following rule under `prometheus/rules/config.rules.yml`.
+You may also find an example in the [kafka-test-app repository](https://github.com/canonical/kafka-test-app)(TODO: link to exact file once PR is merged)
+
 Then, push your changes to the remote repository.
 
-```yaml
-groups:
-- name: availability
-  rules:
-  - alert: High Availability Not Achieved
-    expr: count(kafka_server_replicamanager_leadercount) < 3
-    for: 30s
-    labels:
-      severity: page
-    annotations:
-      summary: The number of active brokers do not achieve high availability
-```
 
+## Deploy the COS configuration charm
 
-## Forward the configuration to the COS bundle
-
-Deploy the [COS configuration](https://charmhub.io/cos-configuration-k8s) charm to sync our repo's files to the various COS operators, starting with Prometheus.
-Deploy the charm in the `<cos-model>` model:
+Deploy the [COS configuration](https://charmhub.io/cos-configuration-k8s) charm in the `<cos-model>` model:
 
 ```shell
 juju deploy cos-configuration-k8s cos-config \
   --config git_repo=<repository_url> \
-  --config git_branch=main \
-  --config prometheus_alert_rules_path=/prometheus/rules
+  --config git_branch=<branch> \
 ```
 
-Refer to the [documentation](https://charmhub.io/cos-configuration-k8s/configure) for all config options, including how to access a private repository.  
-Then, relate the charm to the Prometheus operator:
+The COS configuration charm keeps the monitoring stack in sync with our repository, by forwarding resources to Prometheus, Loki and Grafana.
+Refer to the [documentation](https://charmhub.io/cos-configuration-k8s/configure) for all configuration options, including how to access a private repository.  
+Adding, updating or deleting an alert rule or a dashboard in the repository will be reflected in the monitoring stack.
+
+[Note]
+You need to manually refresh `cos-config`'s local repository with the *sync-now* action if you do not want to wait for the next [update-status event](/t/event-update-status/6484) to pull the latest changes.
+[/Note]
+
+
+## Forward the rules and dashboards
+
+The path to the resource folders can be set after deployment:
+
+```shell
+juju config cos-config \
+  --config prometheus_alert_rules_path=<path_to_prom_rules>
+  --config loki_alert_rules_path=<path_to_loki_rules>
+  --config grafana_dashboards_path=<path_to_models>
+```
+
+Then, relate the charm to the COS operator to forward the rules and dashboards:
 
 ```shell
 juju relate cos-config prometheus
-```
-
-After this is complete, the monitoring COS stack should be up, and ready to fire alerts based on our rule.
-
-To connect to the Prometheus web interface, follow the [Browse dashboards](https://charmhub.io/topics/canonical-observability-stack/tutorials/install-microk8s#heading--browse-dashboards) section of the MicroK8s “Getting started” guide.
-
-```shell
-juju run traefik/0 show-proxied-endpoints --format=yaml \
-  | yq '."traefik/0".results."proxied-endpoints"' \
-  | jq
-```
-
-You should obtain a URL for Prometheus in the form of `"http://10.66.236.72/cos-prometheus-0"`.
-If you followed this guide to the letter, you should see an `High Availability Not Achieved` alert firing with the value "2".
-If you want to observe how the monitoring stack keeps up with the deployment, add a unit to the Kafka cluster in the `<apps-model>` model to see the alert go from "firing" to "inactive".
-
-
-The [COS configuration](https://charmhub.io/cos-configuration-k8s) charm keeps the monitoring stack in sync with our repo.
-Adding, updating or deleting a rule in the repo will be reflected in the monitoring stack.
-
-[Note]
-You need to manually refresh `cos-config`'s local repo with the *sync-now* action if you do no want to wait for the next [update-status event](/t/event-update-status/6484) to pull the latest changes.
-[/Note]
-
-## Apply those concepts to a dashboard
-
-As before, this guide will use the simplest dashboard possible to demonstrate how to integrate an existing Grafana dashboard to our COS stack. We will use the following dashboard model in our previous git repository.
-
-<details><summary>Expand to see model</summary>
-
-```json
-{
-  "annotations": {
-    "list": [
-      {
-        "builtIn": 1,
-        "datasource": {
-          "type": "grafana",
-          "uid": "-- Grafana --"
-        },
-        "enable": true,
-        "hide": true,
-        "iconColor": "rgba(0, 211, 255, 1)",
-        "name": "Annotations & Alerts",
-        "type": "dashboard"
-      }
-    ]
-  },
-  "editable": true,
-  "fiscalYearStartMonth": 0,
-  "graphTooltip": 0,
-  "id": 10,
-  "links": [],
-  "liveNow": false,
-  "panels": [
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${prometheusds}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 3
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 9,
-        "x": 0,
-        "y": 0
-      },
-      "id": 1,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "pluginVersion": "9.5.3",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${prometheusds}"
-          },
-          "editorMode": "code",
-          "expr": "count(kafka_server_replicamanager_leadercount)",
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "# Number of active brokers",
-      "type": "stat"
-    }
-  ],
-  "refresh": "",
-  "schemaVersion": 38,
-  "style": "dark",
-  "tags": [],
-  "templating": {
-    "list": []
-  },
-  "time": {
-    "from": "now-6h",
-    "to": "now"
-  },
-  "timepicker": {},
-  "timezone": "",
-  "title": "Kafka cluster",
-  "uid": "d05ae829-3279-4af5-99df-de8b9b32fc10",
-  "version": 3,
-  "weekStart": ""
-}
-```
-
-</details>
-
-Save this model under `grafana/dashboards/kafka_cluster.json`, and push your changes to the remote repo.
-Then, switch to the `<cos-model>` model if needed and specify the path to the dashboard with the corresponding configuration option:
-
-```
-juju config cos-config grafana_dashboards_path=grafana/dashboards
-```
-
-Finally, relate the charm to Grafana:
-
-```
 juju relate cos-config grafana
+juju relate cos-config loki
 ```
 
-
-To connect to the Grafana web interface, follow once again the [Browse dashboards](https://charmhub.io/topics/canonical-observability-stack/tutorials/install-microk8s#heading--browse-dashboards) section of the MicroK8s “Getting started” guide or the [Enable Monitoring](/t/charmed-kafka-documentation-how-to-enable-monitoring/10283) guide.
-
-You should find your new "Kafka cluster" dashboard listed in Grafana.
-Accessing it will display a panel with the number of active Kafka brokers in the cluster.
+After this is complete, the monitoring COS stack should be up, and ready to fire alerts based on our rules.
+As for the dashboards, they should be available in the Grafana interface.
 
 ## Conclusion
 
-In this guide, we enabled monitoring on a Kafka deployment and integrated an alert rule and a dashboard by syncing a git repository to the COS stack.
+In this guide, we enabled monitoring on a Kafka deployment and integrated alert rules and dashboards by syncing a git repository to the COS stack.
