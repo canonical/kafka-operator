@@ -1,12 +1,12 @@
 # Integrate customer alerting rules and dashboards
 
-This guide shows you how to integrate an existing set of rules to your Charmed Kafka and Charmed Zookeeper deployment to be consumed with the [Canonical Observability Stack (COS)](https://charmhub.io/topics/canonical-observability-stack).
-To do so, we will sync the alert rules stored in a git repo to COS Lite.
+This guide shows you how to integrate an existing set of rules and/or dashboards to your Charmed Kafka and Charmed Zookeeper deployment to be consumed with the [Canonical Observability Stack (COS)](https://charmhub.io/topics/canonical-observability-stack).
+To do so, we will sync resources stored in a git repo to COS Lite.
 
 ## Prerequisites
 
-Refer to the [Enable Monitoring](/t/charmed-kafka-documentation-how-to-enable-monitoring/10283) guide to deploy the cos-lite bundle in a Kubernetes environment and relate the Charmed Kafka model to the COS offers.
-The rest of this guide works on the assumption that two models are deployed: `cos` (on k8s) containing the cos-lite bundle and `kafka-dev` (on VM **TODO: adapt for k8s version**) containing 5 Zookeeper units and **2** Kafka.
+Deploy the cos-lite bundle in a Kubernetes environment and relate Charmed Kafka and Charmed ZooKeeper to the COS offers, as show in the [How to Enable Monitoring](/t/charmed-kafka-documentation-how-to-enable-monitoring/10283) guide.
+The rest of this guide will refer to the models that charms are deployed into as `<cos-model>` for the one containing observabilities charms (and deployed on k8s), and `<apps-model>` for the one containing Charmed Kafka and Charmed ZooKeeper, along with other optional charms (e.g. tls-certificates operators, grafana-agent, data-integrator, etc).
 If your configuration differs, you will have to adapt this guide's content to your deployment.
 
 ## Create a repo with alert rules
@@ -32,7 +32,7 @@ groups:
 
 ## Forward the configuration to the COS bundle
 
-We will deploy the [COS configuration](https://charmhub.io/cos-configuration-k8s) charm to sync our repo's files to the various COS operators, starting with Prometheus.
+Deploy the [COS configuration](https://charmhub.io/cos-configuration-k8s) charm to sync our repo's files to the various COS operators, starting with Prometheus.
 Deploy the charm in the `cos` model:
 
 ```shell
