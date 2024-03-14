@@ -33,7 +33,7 @@ groups:
 ## Forward the configuration to the COS bundle
 
 Deploy the [COS configuration](https://charmhub.io/cos-configuration-k8s) charm to sync our repo's files to the various COS operators, starting with Prometheus.
-Deploy the charm in the `cos` model:
+Deploy the charm in the `<cos-model>` model:
 
 ```shell
 juju deploy cos-configuration-k8s cos-config \
@@ -61,7 +61,7 @@ juju run traefik/0 show-proxied-endpoints --format=yaml \
 
 You should obtain a URL for Prometheus in the form of `"http://10.66.236.72/cos-prometheus-0"`.
 If you followed this guide to the letter, you should see an `High Availability Not Achieved` alert firing with the value "2".
-If you want to observe how the monitoring stack keeps up with the deployment, add a unit to the Kafka cluster in the `kafka-dev` model to see the alert go from "firing" to "inactive".
+If you want to observe how the monitoring stack keeps up with the deployment, add a unit to the Kafka cluster in the `<apps-model>` model to see the alert go from "firing" to "inactive".
 
 
 The [COS configuration](https://charmhub.io/cos-configuration-k8s) charm keeps the monitoring stack in sync with our repo.
@@ -189,7 +189,7 @@ As before, this guide will use the simplest dashboard possible to demonstrate ho
 </details>
 
 Save this model under `grafana/dashboards/kafka_cluster.json`, and push your changes to the remote repo.
-Then, switch to the `cos` model if needed and specify the path to the dashboard with the corresponding configuration option:
+Then, switch to the `<cos-model>` model if needed and specify the path to the dashboard with the corresponding configuration option:
 
 ```
 juju config cos-config grafana_dashboards_path=grafana/dashboards
