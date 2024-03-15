@@ -12,7 +12,7 @@ from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, StatusBase
 
 CHARM_KEY = "kafka"
 SNAP_NAME = "charmed-kafka"
-CHARMED_KAFKA_SNAP_REVISION = 30
+CHARMED_KAFKA_SNAP_REVISION = 32
 CONTAINER = "kafka"
 
 PEER = "cluster"
@@ -124,6 +124,6 @@ DEPENDENCIES = {
         "dependencies": {"zookeeper": "^3.6"},
         "name": "kafka",
         "upgrade_supported": ">3",
-        "version": "3.6.0",
+        "version": "3.6.1",
     },
 }
