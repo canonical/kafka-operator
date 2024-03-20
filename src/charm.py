@@ -12,7 +12,13 @@ from charms.grafana_agent.v0.cos_agent import COSAgentProvider
 from charms.operator_libs_linux.v0 import sysctl
 from charms.operator_libs_linux.v1.snap import SnapError
 from charms.rolling_ops.v0.rollingops import RollingOpsManager, RunWithLock
-from ops.charm import StorageAttachedEvent, StorageDetachingEvent, StorageEvent
+from ops.charm import (
+    InstallEvent,
+    LeaderElectedEvent,
+    StorageAttachedEvent,
+    StorageDetachingEvent,
+    StorageEvent,
+)
 from ops.framework import EventBase
 from ops.main import main
 from ops.model import ActiveStatus, StatusBase
@@ -35,6 +41,7 @@ from literals import (
     OS_REQUIREMENTS,
     PEER,
     REL_NAME,
+    STORAGE,
     USER,
     DebugLevel,
     Status,
@@ -42,6 +49,7 @@ from literals import (
 )
 from managers.auth import AuthManager
 from managers.config import KafkaConfigManager
+from managers.cruisecontrol import CruiseControlManager
 from managers.tls import TLSManager
 from workload import KafkaWorkload
 
@@ -89,6 +97,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.auth_manager = AuthManager(
             state=self.state, workload=self.workload, kafka_opts=self.config_manager.kafka_opts
         )
+        self.cruisecontrol_manager = CruiseControlManager(
+            self.state, self.workload, unit_storages=self.model.storages[STORAGE]
+        )
 
         # LIB HANDLERS
 
@@ -107,6 +118,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         )
 
         self.framework.observe(getattr(self.on, "install"), self._on_install)
+        self.framework.observe(getattr(self.on, "leader_elected"), self._on_leader_elected)
         self.framework.observe(getattr(self.on, "start"), self._on_start)
         self.framework.observe(getattr(self.on, "config_changed"), self._on_config_changed)
         self.framework.observe(getattr(self.on, "update_status"), self._on_update_status)
@@ -121,13 +133,31 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             getattr(self.on, "data_storage_detaching"), self._on_storage_detaching
         )
 
-    def _on_install(self, _) -> None:
+    def _on_install(self, event: InstallEvent) -> None:
         """Handler for `install` event."""
-        if self.workload.install():
-            self._set_os_config()
-            self.config_manager.set_environment()
-        else:
-            self._set_status(Status.SNAP_NOT_INSTALLED)
+        # if self.workload.install():
+        self._set_os_config()
+        self.config_manager.set_environment()
+        # else:
+        #     self._set_status(Status.SNAP_NOT_INSTALLED)
+
+        logger.info("COPY SNAP NOW")
+        time.sleep(100)
+
+        if not self.state.peer_relation:
+            event.defer()
+            return
+
+        self.state.broker.update({"cores": str(self.cruisecontrol_manager.cores)})
+
+    def _on_leader_elected(self, event: LeaderElectedEvent) -> None:
+        """Handler for `leader-elected` event."""
+        if not self.workload.active():
+            event.defer()
+            return
+
+        if self.config.enable_cruise_control:
+            self.workload.start(service="cruise-control")
 
     def _on_start(self, event: EventBase) -> None:
         """Handler for `start` event."""
@@ -158,6 +188,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         if not self.healthy or not self.upgrade.idle:
             event.defer()
             return
+
+        if self.unit.is_leader() and not self.config.enable_cruise_control:
+            self.workload.stop(service="cruise-control")
 
         # Load current properties set in the charm workload
         properties = self.workload.read(self.workload.paths.server_properties)
@@ -244,8 +277,13 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
     def _on_storage_attached(self, event: StorageAttachedEvent) -> None:
         """Handler for `storage_attached` events."""
-        # new dirs won't be used until topic partitions are assigned to it
-        # either automatically for new topics, or manually for existing
+        # storage-attached usually fires before relation-created/joined
+        if not self.state.peer_relation:
+            event.defer()
+            return
+
+        self.state.broker.update({"storages": self.cruisecontrol_manager.storages})
+
         # set status only for running services, not on startup
         if self.workload.active():
             self._set_status(Status.ADDED_STORAGE)
@@ -261,6 +299,8 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         else:
             self._set_status(Status.REMOVED_STORAGE_NO_REPL)
 
+        self.state.broker.update({"storages": self.cruisecontrol_manager.storages})
+
         self._on_config_changed(event)
 
     def _restart(self, event: EventBase) -> None:
@@ -271,6 +311,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             return
 
         self.workload.restart()
+
+        if self.unit.is_leader() and self.config.enable_cruise_control:
+            self.workload.restart(service="cruise-control")
 
         # FIXME: This logic should be improved as part of ticket DPE-3155
         # For more information, please refer to https://warthogs.atlassian.net/browse/DPE-3155
@@ -290,6 +333,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         self.workload.disable_enable()
         self.workload.start()
+
+        if self.unit.is_leader() and self.config.enable_cruise_control:
+            self.workload.start(service="cruise-control")
 
         if self.workload.active():
             logger.info(f'Broker {self.unit.name.split("/")[1]} restarted')

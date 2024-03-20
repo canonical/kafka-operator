@@ -75,6 +75,16 @@ class KafkaPaths:
         """The configuration for the JMX exporter."""
         return f"{self.conf_path}/jmx_prometheus.yaml"
 
+    @property
+    def cruise_control_properties(self):
+        """The cruisecontrol.properties filepath."""
+        return f"{self.conf_path}/cruisecontrol.properties"
+
+    @property
+    def capacity_jbod_json(self):
+        """The JBOD capacity JSON."""
+        return f"{self.conf_path}/capacityJBOD.json"
+
 
 class WorkloadBase(ABC):
     """Base interface for common workload operations."""
@@ -82,18 +92,30 @@ class WorkloadBase(ABC):
     paths = KafkaPaths()
 
     @abstractmethod
-    def start(self) -> None:
-        """Starts the workload service."""
+    def start(self, service: str = "") -> None:
+        """Starts the workload service.
+
+        Args:
+            service: the service to start
+        """
         ...
 
     @abstractmethod
-    def stop(self) -> None:
-        """Stops the workload service."""
+    def stop(self, service: str = "") -> None:
+        """Stops the workload service.
+
+        Args:
+            service: the service to stop
+        """
         ...
 
     @abstractmethod
-    def restart(self) -> None:
-        """Restarts the workload service."""
+    def restart(self, service: str = "") -> None:
+        """Restarts the workload service.
+
+        Args:
+            service: the service to restart
+        """
         ...
 
     @abstractmethod

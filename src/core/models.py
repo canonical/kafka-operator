@@ -4,8 +4,9 @@
 
 """Collection of state objects for the Kafka relations, apps and units."""
 
+import json
 import logging
-from typing import MutableMapping
+from typing import MutableMapping, TypeAlias
 
 from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManager
 from kazoo.exceptions import AuthFailedError, NoNodeError
@@ -15,6 +16,8 @@ from tenacity import retry, retry_if_not_result, stop_after_attempt, wait_fixed
 from literals import INTERNAL_USERS, Substrate
 
 logger = logging.getLogger(__name__)
+
+JSON: TypeAlias = dict[str, "JSON"] | list["JSON"] | str | int | float | bool | None
 
 
 class StateBase:
@@ -121,6 +124,18 @@ class KafkaBroker(StateBase):
             host = f"{self.component.name.split('/')[0]}-{self.unit_id}.{self.component.name.split('/')[0]}-endpoints"
 
         return host
+
+    # --- CRUISE CONTROL ---
+
+    @property
+    def storages(self) -> JSON:
+        """The current Juju storages for the unit."""
+        return json.loads(self.relation_data.get("storages", ""))
+
+    @property
+    def cores(self) -> int:
+        """The number of CPU cores for the unit machine."""
+        return int(self.relation_data.get("cores", ""))
 
     # --- TLS ---
 

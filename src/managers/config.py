@@ -4,6 +4,7 @@
 
 """Manager for handling Kafka configuration."""
 
+import json
 import logging
 from typing import cast
 
@@ -29,8 +30,34 @@ sasl.mechanism.inter.broker.protocol=SCRAM-SHA-512
 authorizer.class.name=kafka.security.authorizer.AclAuthorizer
 allow.everyone.if.no.acl.found=false
 auto.create.topics.enable=false
+metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
 """
 
+DEFAULT_CRUISE_CONTROL_GOALS = [
+    "MinTopicLeadersPerBroker",
+    "ReplicaCapacity",
+    "DiskCapacity",
+    "NetworkInboundCapacity",
+    "NetworkOutboundCapacity",
+    "CpuCapacity",
+    "ReplicaDistribution",
+    "PotentialNwOut",
+    "DiskUsageDistribution",
+    "NetworkInboundUsageDistribution",
+    "NetworkOutboundUsageDistribution",
+    "CpuUsageDistribution",
+    "LeaderReplicaDistribution",
+    "LeaderBytesInDistribution",
+    "TopicReplicaDistribution",
+    "PreferredLeaderElection",
+    "IntraBrokerDiskCapacity",
+    "IntraBrokerDiskUsageDistribution",
+]
+
+CRUISE_CONTROL_CONFIG_OPTIONS = """
+"""
+
+# FIXME: This is a hack, figure out a better, more long-lasting solution
 SERVER_PROPERTIES_BLACKLIST = ["profile", "log_level", "certificate_extra_sans"]
 
 
@@ -361,6 +388,78 @@ class KafkaConfigManager:
         return client_properties
 
     @property
+    def broker_capacities(self) -> str:
+        """Builds the capacityJBOD JSON configuration for broker storages.
+
+        Returns:
+            String of JSON to be set
+        """
+        broker_capacities = []
+        for broker in self.state.brokers:
+            broker_capacities.append(
+                {
+                    "brokerId": str(broker.unit_id),
+                    "capacity": {
+                        "DISK": broker.storages,
+                        "CPU": {"num.cores": broker.cores},
+                        "NW_IN": self.config.network_bandwidth,
+                        "NW_OUT": self.config.network_bandwidth,
+                    },
+                    "doc": broker.component.name,
+                }
+            )
+
+        return json.dumps({"brokerCapacities": broker_capacities}, indent=4)
+
+    @property
+    def cruise_control_goals(self) -> list[str]:
+        """Builds all pluggable Goals properties for CruiseControl.
+
+        Returns:
+            List of properties to be set
+        """
+        simple_goals = DEFAULT_CRUISE_CONTROL_GOALS
+        for prop in self.rack_properties:  # i.e rack awareness enabled
+            num_racks = 0
+            if "num.racks" in prop:
+                num_racks = int(prop.split("=")[1])
+
+            if (
+                min([3, self.state.planned_units]) > num_racks
+            ):  # replication-factor > racks is not ideal
+                simple_goals = simple_goals + ["RackAwareDistribution"]
+            else:
+                simple_goals = simple_goals + ["RackAware"]
+
+        supported_goals = [
+            f"com.linkedin.kafka.cruisecontrol.analyser.goals.{goal}Goal" for goal in simple_goals
+        ]
+
+        goals_prop = f"goals={','.join(supported_goals)}"
+        intra_broker_goals_prop = f"intra.broker.goals={','.join([goal for goal in supported_goals if 'IntraBroker' in goal])}"
+
+        return [goals_prop, intra_broker_goals_prop]
+
+    @property
+    def cruise_control_properties(self) -> list[str]:
+        """Builds all properties necessary for starting Cruise Control service.
+
+        Returns:
+            List of properties to be set
+        """
+        properties = (
+            [
+                f"bootstrap.servers={','.join(self.state.bootstrap_server)}",
+                f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
+                f"zookeeper.connect={self.state.zookeeper.connect}",
+            ]
+            + self.cruise_control_goals
+            + CRUISE_CONTROL_CONFIG_OPTIONS.split("\n")
+        )
+
+        return properties
+
+    @property
     def server_properties(self) -> list[str]:
         """Builds all properties necessary for starting Kafka service.
 
@@ -396,6 +495,9 @@ class KafkaConfigManager:
 
         if self.state.cluster.tls_enabled and self.state.broker.certificate:
             properties += self.tls_properties + self.zookeeper_tls_properties
+            properties += [
+                f"cruise.control.metrics.reporter.{prop}" for prop in self.tls_properties
+            ]
 
         return properties
 
@@ -413,7 +515,7 @@ class KafkaConfigManager:
         """Builds the JAAS config for Client authentication with ZooKeeper.
 
         Returns:
-            String of Jaas config for ZooKeeper auth
+            String of JAAS config for ZooKeeper auth
         """
         return f"""
 Client {{
@@ -421,12 +523,32 @@ Client {{
     username="{self.state.zookeeper.username}"
     password="{self.state.zookeeper.password}";
 }};
+        """
 
+    @property
+    def cruise_control_jaas_config(self) -> str:
+        """Builds the JAAS config for KafkaClient authentication with Kafka.
+
+        Returns:
+            String of JAAS config for Kafka auth
+        """
+        return f"""
+KafkaClient {{
+    org.apache.kafka.common.security.scram.ScramLoginModule required
+    username="{ADMIN_USER}"
+    password="{self.state.cluster.internal_user_credentials.get(ADMIN_USER)}";
+}};
         """
 
     def set_zk_jaas_config(self) -> None:
         """Writes the ZooKeeper JAAS config using ZooKeeper relation data."""
-        self.workload.write(content=self.zk_jaas_config, path=self.workload.paths.zk_jaas)
+        # normally we would need to also write a JAAS specifically for CC to authenticate to ZooKeeper + Kafka
+        # however the path is fixed to be inferred from where the snap squashfs is
+        # however, it KAFKA_OPTS for -Djava.security.auth.login.config, so we can add both there
+        self.workload.write(
+            content="\n".join([self.zk_jaas_config, self.cruise_control_jaas_config]),
+            path=self.workload.paths.zk_jaas,
+        )
 
     def set_server_properties(self) -> None:
         """Writes all Kafka config properties to the `server.properties` path."""
@@ -438,6 +560,19 @@ Client {{
         """Writes all client config properties to the `client.properties` path."""
         self.workload.write(
             content="\n".join(self.client_properties), path=self.workload.paths.client_properties
+        )
+
+    def set_cruise_control_properties(self) -> None:
+        """Writes all broker storage capacities to `capacityJBOD.json`."""
+        self.workload.write(
+            content="\n".join(self.cruise_control_properties),
+            path=self.workload.paths.cruise_control_properties,
+        )
+
+    def set_broker_capacities(self) -> None:
+        """Writes all broker storage capacities to `capacityJBOD.json`."""
+        self.workload.write(
+            content=self.broker_capacities, path=self.workload.paths.capacity_jbod_json
         )
 
     def set_environment(self) -> None:
