@@ -5,8 +5,14 @@ To do so, we will sync resources stored in a git repo to COS Lite.
 
 ## Prerequisites
 
-Deploy the cos-lite bundle in a Kubernetes environment and relate Charmed Kafka and Charmed ZooKeeper to the COS offers, as shown in the [How to Enable Monitoring](/t/charmed-kafka-documentation-how-to-enable-monitoring/10283) guide.
-The rest of this guide will refer to the models that charms are deployed into as `<cos-model>` for the one containing observabilities charms (and deployed on k8s), and `<apps-model>` for the one containing Charmed Kafka and Charmed ZooKeeper, along with other optional charms (e.g. tls-certificates operators, grafana-agent, data-integrator, etc.).
+Deploy the cos-lite bundle in a Kubernetes environment and integrate Charmed Kafka and Charmed ZooKeeper to the COS offers, as shown in the [How to Enable Monitoring](/t/charmed-kafka-documentation-how-to-enable-monitoring/10283) guide.
+This guide will refer to the models that charms are deployed into as:
+
+* `<cos-model>` for the model containing observabilities charms (and deployed on k8s)
+
+* `<apps-model>` for the model containing Charmed Kafka and Charmed ZooKeeper
+
+* `<apps-model>` for other optional charms (e.g. tls-certificates operators, `grafana-agent`, `data-integrator`, etc.).
 
 ## Create a repository with a custom monitoring setup
 
@@ -49,12 +55,12 @@ juju config cos-config \
   --config grafana_dashboards_path=<path_to_models>
 ```
 
-Then, relate the charm to the COS operator to forward the rules and dashboards:
+Then, integrate the charm to the COS operator to forward the rules and dashboards:
 
 ```shell
-juju relate cos-config prometheus
-juju relate cos-config grafana
-juju relate cos-config loki
+juju integrate cos-config prometheus
+juju integrate cos-config grafana
+juju integrate cos-config loki
 ```
 
 After this is complete, the monitoring COS stack should be up, and ready to fire alerts based on our rules.
