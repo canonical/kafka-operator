@@ -175,6 +175,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         # update environment
         self.config_manager.set_environment()
+        self.unit.set_workload_version(self.version)
 
         if zk_jaas_changed:
             clean_broker_jaas = [conf.strip() for conf in zk_jaas]
