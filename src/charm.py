@@ -126,6 +126,8 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         if self.workload.install():
             self._set_os_config()
             self.config_manager.set_environment()
+            self.unit.set_workload_version(self.version)
+
         else:
             self._set_status(Status.SNAP_NOT_INSTALLED)
 
@@ -331,6 +333,11 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         getattr(logger, log_level.lower())(status.message)
         self.unit.status = status
+
+    @property
+    def version(self) -> str:
+        """Reports the current workload (Kafka) version."""
+        return self.workload.get_version()
 
 
 if __name__ == "__main__":

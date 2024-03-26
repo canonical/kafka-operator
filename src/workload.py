@@ -165,3 +165,9 @@ class KafkaWorkload(WorkloadBase):
                     return int(pid)
 
         raise snap.SnapError(f"Snap {self.SNAP_NAME} pid not found")
+
+    @override
+    def get_version(self) -> str:
+        if not self.kafka.present:
+            return ""
+        return self.kafka._snap_client.get_snap_information(self.SNAP_NAME).get("version", "")
