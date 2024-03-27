@@ -5,7 +5,7 @@
 import logging
 import re
 from pathlib import Path
-from unittest.mock import PropertyMock, patch
+from unittest.mock import Mock, PropertyMock, patch
 
 import pytest
 import yaml
@@ -697,3 +697,8 @@ def test_on_remove_sysctl_is_deleted(harness: Harness):
         harness.charm.on.remove.emit()
 
         patched_sysctl_remove.assert_called_once()
+
+
+def test_workload_version(harness, monkeypatch):
+    monkeypatch.setattr(harness.charm.workload, "get_version", Mock(return_value="1.2.3"))
+    assert harness.charm.version == "1.2.3"

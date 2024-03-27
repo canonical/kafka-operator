@@ -4,7 +4,7 @@
 
 import logging
 from pathlib import Path
-from unittest.mock import Mock, mock_open, patch
+from unittest.mock import mock_open, patch
 
 import pytest
 import yaml
@@ -104,8 +104,3 @@ def test_machine_configured_succeeds_and_fails(harness, mmap, fd, swap, mem):
             assert harness.charm.health.machine_configured()
         else:
             assert not harness.charm.health.machine_configured()
-
-
-def test_workload_version(harness, monkeypatch):
-    monkeypatch.setattr(harness.charm.workload, "get_version", Mock(return_value="1.2.3"))
-    assert harness.charm.version == "1.2.3"
