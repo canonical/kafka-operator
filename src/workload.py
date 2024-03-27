@@ -6,6 +6,7 @@
 
 import logging
 import os
+import re
 import subprocess
 
 from charms.operator_libs_linux.v0 import apt
@@ -170,4 +171,8 @@ class KafkaWorkload(WorkloadBase):
     def get_version(self) -> str:
         if not self.kafka.present:
             return ""
-        return self.kafka._snap_client.get_snap_information(self.SNAP_NAME).get("version", "")
+        try:
+            version = re.split(r"[\s\-]", self.run_bin_command("topics", ["--version"]))[0]
+        except Exception:
+            version = ""
+        return version
