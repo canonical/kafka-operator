@@ -126,7 +126,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         if self.workload.install():
             self._set_os_config()
             self.config_manager.set_environment()
-            self.unit.set_workload_version(self.version)
+            self.unit.set_workload_version(self.workload.get_version())
 
         else:
             self._set_status(Status.SNAP_NOT_INSTALLED)
@@ -175,7 +175,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         # update environment
         self.config_manager.set_environment()
-        self.unit.set_workload_version(self.version)
+        self.unit.set_workload_version(self.workload.get_version())
 
         if zk_jaas_changed:
             clean_broker_jaas = [conf.strip() for conf in zk_jaas]
@@ -334,11 +334,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         getattr(logger, log_level.lower())(status.message)
         self.unit.status = status
-
-    @property
-    def version(self) -> str:
-        """Reports the current workload (Kafka) version."""
-        return self.workload.get_version()
 
 
 if __name__ == "__main__":
