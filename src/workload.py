@@ -8,7 +8,6 @@ import logging
 import os
 import subprocess
 
-from charms.operator_libs_linux.v0 import apt
 from charms.operator_libs_linux.v1 import snap
 from tenacity import retry
 from tenacity.retry import retry_if_not_result
@@ -117,15 +116,12 @@ class KafkaWorkload(WorkloadBase):
             True if successfully installed. False otherwise.
         """
         try:
-            apt.update()
-            apt.add_package(["snapd"])
-
             self.kafka.ensure(snap.SnapState.Present, revision=CHARMED_KAFKA_SNAP_REVISION)
             self.kafka.connect(plug="removable-media")
             self.kafka.hold()
 
             return True
-        except (snap.SnapError, apt.PackageNotFoundError) as e:
+        except (snap.SnapError) as e:
             logger.error(str(e))
             return False
 
