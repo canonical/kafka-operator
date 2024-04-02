@@ -11,6 +11,7 @@ parts:
       - libssl-dev
       - rustc
       - cargo
+      - pkg-config
 bases:
   - build-on:
       - name: "ubuntu"
