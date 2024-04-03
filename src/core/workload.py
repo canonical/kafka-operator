@@ -146,6 +146,15 @@ class WorkloadBase(ABC):
         """
         ...
 
+    @abstractmethod
+    def get_version(self) -> str:
+        """Get the workload version.
+
+        Returns:
+            String of kafka version
+        """
+        ...
+
     @staticmethod
     def generate_password() -> str:
         """Creates randomized string for use as app passwords.

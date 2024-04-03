@@ -5,7 +5,7 @@
 import logging
 import re
 from pathlib import Path
-from unittest.mock import PropertyMock, patch
+from unittest.mock import Mock, PropertyMock, patch
 
 import pytest
 import yaml
@@ -697,3 +697,32 @@ def test_on_remove_sysctl_is_deleted(harness: Harness):
         harness.charm.on.remove.emit()
 
         patched_sysctl_remove.assert_called_once()
+
+
+def test_workload_version_is_setted(harness, monkeypatch):
+    output_install = "3.6.0-ubuntu0"
+    output_changed = "3.6.1-ubuntu0"
+    monkeypatch.setattr(
+        harness.charm.workload,
+        "run_bin_command",
+        Mock(side_effect=[output_install, output_changed]),
+    )
+    monkeypatch.setattr(harness.charm.workload, "install", Mock(return_value=True))
+
+    harness.charm.on.install.emit()
+    assert harness.get_workload_version() == "3.6.0"
+
+    with (
+        patch(
+            "managers.config.KafkaConfigManager.server_properties",
+            new_callable=PropertyMock,
+            return_value=["gandalf=grey"],
+        ),
+        patch("charm.KafkaCharm.healthy", return_value=True),
+        patch("workload.KafkaWorkload.read", return_value=["gandalf=white"]),
+        patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
+    ):
+
+        harness.charm.on.config_changed.emit()
+
+    assert harness.get_workload_version() == "3.6.1"

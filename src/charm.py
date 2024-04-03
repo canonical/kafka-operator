@@ -126,6 +126,8 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         if self.workload.install():
             self._set_os_config()
             self.config_manager.set_environment()
+            self.unit.set_workload_version(self.workload.get_version())
+
         else:
             self._set_status(Status.SNAP_NOT_INSTALLED)
 
@@ -173,6 +175,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         # update environment
         self.config_manager.set_environment()
+        self.unit.set_workload_version(self.workload.get_version())
 
         if zk_jaas_changed:
             clean_broker_jaas = [conf.strip() for conf in zk_jaas]
