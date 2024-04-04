@@ -1,19 +1,24 @@
-# Copyright 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
-
-description: |
-  Kafka is an event streaming platform. This charm deploys and operates Kafka.
-display-name: Kafka
-issues: https://github.com/canonical/kafka-operator/issues/new
-docs: https://discourse.charmhub.io/t/charmed-kafka-documentation/10288
-maintainers:
-  - Marc Oppenheimer <marc.oppenheimer@canonical.com>
-  - Raul Zamora <raul.zamora@canonical.com>
 name: kafka
+display-name: Charmed Kafka
+description: |
+  Kafka is an event streaming platform. This charm deploys and operates Kafka on 
+  a VM machines environment.
+summary: Charmed Kafka Operator
+docs: https://discourse.charmhub.io/t/charmed-kafka-documentation/10288
+source: https://github.com/canonical/kafka-operator
+issues: https://github.com/canonical/kafka-operator/issues
+website:
+  - https://ubuntu.com/data/kafka
+  - https://canonical.com/data/docs/kafka/iaas
+  - https://charmhub.io/kafka
+  - https://github.com/canonical/kafka-operator
+  - https://matrix.to/#/#charmhub-data-platform:ubuntu.com
+maintainers:
+  - Canonical Data Platform <data-platform@lists.launchpad.net>
 series:
   - jammy
-source: https://github.com/canonical/kafka-operator
-summary: The Charmed Kafka Operator
 
 peers:
   cluster:
