@@ -1,0 +1,94 @@
+name: Bug Report
+description: Something's not working right in Charmed Kafka? Use this 
+  template.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for pointing out this issue. Please provide info below so we could diagnose and fix it fast.
+
+  - type: textarea
+    id: Description
+    attributes:
+      label: Description
+      description: "Please describe the bug for us: "
+      placeholder: ex. "charmed kafka is breaking with this field set to value."
+
+  - type: dropdown
+    id: Urgency
+    attributes:
+      label: Urgency
+      description: How urgent is this issue for you?
+      options:
+        - Casually reporting
+        - Annoying bug in our test suite
+        - Blocker for our release
+        - Impacting a customer, please help now!
+    validations:
+      required: true
+
+  - type: input
+    id: Juju-CLI-Version
+    attributes:
+      label: Juju client version
+      description: Version of the Juju client. Run `juju version` to obtain it.
+      placeholder: 3.1.7
+    validations:
+      required: true
+
+  - type: input
+    id: Juju-Version
+    attributes:
+      label: Juju client version
+      description: What version of the Juju client are you running? Run `juju version` to obtain it.
+      placeholder: 3.1.7
+    validations:
+      required: true
+
+  - type: input
+    id: Charm-Revision
+    attributes:
+      label: Charm revision version
+      description: What version of the Juju agent are you running? Run `juju status` to obtain it.
+      placeholder: 3.1.7
+    validations:
+      required: true
+
+  - type: input
+    id: Substrate-Specifics
+    attributes:
+      label: Substrate version or specification
+      description: Provide information about the substrate where you are running. For instance, on LXD use `lxd version`.
+      placeholder: "LXD: 5.0.3"
+    validations:
+      required: true
+
+  - type: textarea
+    id: Juju-Status
+    attributes:
+      label: Juju Status
+      description: "Provide the output of the `juju status` output."
+      render: shell
+
+  - type: textarea
+    id: Reproduce-Commands
+    attributes:
+      label: "Reproduce / Test"
+      description: "Please add the commands to run to reproduce this problem."
+      placeholder: ex. juju deploy kafka --channel 3/edge
+
+  - type: textarea
+    id: Info-Output
+    attributes:
+      label: "Debug/Panic Output"
+      description: "Please add the debug output you see when running the 
+      commands above. Consider also making a gist containing output of the `crash.log` too."
+      render: shell
+
+  - type: textarea
+    id: Info-Notes
+    attributes:
+      label: "Notes & References"
+      description: "Please add relevant notes, links to mattermost chats, 
+      other related issues/PRs, anything to help diagnose and solve the issue."
