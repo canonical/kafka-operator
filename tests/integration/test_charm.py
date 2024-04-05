@@ -11,7 +11,7 @@ import pytest
 import requests
 from pytest_operator.plugin import OpsTest
 
-from literals import JMX_EXPORTER_PORT, REL_NAME, SECURITY_PROTOCOL_PORTS
+from literals import DEPENDENCIES, JMX_EXPORTER_PORT, REL_NAME, SECURITY_PROTOCOL_PORTS
 
 from .helpers import (
     APP_NAME,
@@ -100,6 +100,12 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
 
     assert ops_test.model.applications[APP_NAME].status == "active"
     assert ops_test.model.applications[ZK_NAME].status == "active"
+
+
+@pytest.mark.abort_on_fail
+async def test_consistency_between_workload_and_metadata(ops_test: OpsTest):
+    application = ops_test.model.applications[APP_NAME]
+    assert application.data.get("workload-version", "") == DEPENDENCIES["kafka_service"]["version"]
 
 
 @pytest.mark.abort_on_fail
