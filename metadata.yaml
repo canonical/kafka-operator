@@ -14,6 +14,7 @@ website:
   - https://canonical.com/data/docs/kafka/iaas
   - https://charmhub.io/kafka
   - https://github.com/canonical/kafka-operator
+  - https://matrix.to/#/%23charmhub-data-platform%3Aubuntu.com
 maintainers:
   - Canonical Data Platform <data-platform@lists.launchpad.net>
 series:
