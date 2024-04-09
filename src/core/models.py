@@ -53,12 +53,36 @@ class RelationState:
         for field in delete_fields:
             del self.relation_data[field]
 
-class KafkaCluster(StateBase):
+
+class KafkaCluster(RelationState):
     """State collection metadata for the peer relation."""
 
-    def __init__(self, relation: Relation | None, component: Application, substrate: Substrate):
-        super().__init__(relation, component, substrate)
+    def __init__(
+        self,
+        relation: Relation,
+        data_interface: DataPeerData,
+        component: Application,
+        substrate: SUBSTRATES,
+    ):
+        super().__init__(relation, data_interface, component, substrate)
+        self.data_interface = data_interface
         self.app = component
+
+    @override
+    def update(self, items: dict[str, str]) -> None:
+        """Overridden update to allow for same interface, but writing to local app bag."""
+        if not self.relation:
+            return
+
+        for key, value in items.items():
+            # note: relation- check accounts for dynamically created secrets
+            if key in INTERNAL_USERS or key.startswith("relation-"):
+                if value:
+                    self.data_interface.set_secret(self.relation.id, key, value)
+                else:
+                    self.data_interface.delete_secret(self.relation.id, key)
+            else:
+                self.data_interface.update_relation_data(self.relation.id, {key: value})
 
     @property
     def internal_user_credentials(self) -> dict[str, str]:
