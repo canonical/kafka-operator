@@ -17,7 +17,7 @@ from tenacity.stop import stop_after_attempt
 from tenacity.wait import wait_fixed
 from typing_extensions import override
 
-from literals import INTERNAL_USERS
+from literals import SECRETS_APP
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +78,7 @@ class KafkaCluster(RelationState):
 
         for key, value in items.items():
             # note: relation- check accounts for dynamically created secrets
-            if key in INTERNAL_USERS or key.startswith("relation-"):
+            if key in SECRETS_APP or key.startswith("relation-"):
                 if value:
                     self.data_interface.set_secret(self.relation.id, key, value)
                 else:
