@@ -5,10 +5,16 @@
 """Collection of state objects for the Kafka relations, apps and units."""
 
 import logging
+from collections.abc import MutableMapping
 from typing import Literal, MutableMapping
 
 from charms.data_platform_libs.v0.data_interfaces import Data, DataPeerData, DataPeerUnitData
+from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManager
+from kazoo.client import AuthFailedError, NoNodeError
 from ops.model import Application, Relation, Unit
+from tenacity import retry
+from tenacity.stop import stop_after_attempt
+from tenacity.wait import wait_fixed
 from typing_extensions import override
 
 from literals import INTERNAL_USERS
@@ -295,38 +301,32 @@ class ZooKeeper(RelationState):
 
         return True
 
-    # @property
-    # def zookeeper_version(self) -> str:
-    #     """Get running zookeeper version."""
-    #     hosts = self.endpoints.split(",")
-    #     zk = ZooKeeperManager(hosts=hosts, username=self.username, password=self.password)
-    #
-    #     return zk.get_version()
-    #
-    # @retry(
-    #     # retry to give ZK time to update its broker zNodes before failing
-    #     wait=wait_fixed(6),
-    #     stop=stop_after_attempt(10),
-    #     retry_error_callback=(lambda state: state.outcome.result()),  # type: ignore
-    #     retry=retry_if_not_result(lambda result: True if result else False),
-    # )
-    # def broker_active(self) -> bool:
-    #     """Checks if broker id is recognised as active by ZooKeeper."""
-    #     broker_id = self._local_unit.name.split("/")[1]
-    #     brokers = self.get_active_brokers()
-    #     return f"{self.chroot}/brokers/ids/{broker_id}" in brokers
-    #
-    # def get_active_brokers(self) -> set[str]:
-    #     """Gets all brokers currently connected to ZooKeeper."""
-    #     hosts = self.endpoints.split(",")
-    #     zk = ZooKeeperManager(hosts=hosts, username=self.username, password=self.password)
-    #     path = f"{self.chroot}/brokers/ids/"
-    #
-    #     try:
-    #         brokers = zk.leader_znodes(path=path)
-    #     # auth might not be ready with ZK after relation yet
-    #     except (NoNodeError, AuthFailedError, QuorumLeaderNotFoundError) as e:
-    #         logger.debug(str(e))
-    #         return set()
-    #
-    #     return brokers
+    @property
+    def zookeeper_version(self) -> str:
+        """Get running zookeeper version."""
+        hosts = self.endpoints.split(",")
+        zk = ZooKeeperManager(hosts=hosts, username=self.username, password=self.password)
+
+        return zk.get_version()
+
+    @retry(
+        # retry to give ZK time to update its broker zNodes before failing
+        wait=wait_fixed(6),
+        stop=stop_after_attempt(10),
+        retry_error_callback=(lambda state: state.outcome.result()),  # type: ignore
+        retry=retry.retry_if_not_result(lambda result: True if result else False),
+    )
+    def broker_active(self) -> bool:
+        """Checks if broker id is recognised as active by ZooKeeper."""
+        broker_id = self.data_interface.local_unit.name.split("/")[0]
+        hosts = self.endpoints.split(",")
+        path = f"{self.chroot}/brokers/ids/"
+
+        zk = ZooKeeperManager(hosts=hosts, username=self.username, password=self.password)
+        try:
+            brokers = zk.leader_znodes(path=path)
+        except (NoNodeError, AuthFailedError, QuorumLeaderNotFoundError) as e:
+            logger.debug(str(e))
+            brokers = set()
+
+        return f"{path}{broker_id}" in brokers
