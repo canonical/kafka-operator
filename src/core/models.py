@@ -5,14 +5,10 @@
 """Collection of state objects for the Kafka relations, apps and units."""
 
 import logging
-from collections.abc import MutableMapping
 from typing import Literal, MutableMapping
 
-from charms.data_platform_libs.v0.data_interfaces import Data, DataPeerData
-from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManager
-from kazoo.exceptions import AuthFailedError, NoNodeError
+from charms.data_platform_libs.v0.data_interfaces import Data, DataPeerData, DataPeerUnitData
 from ops.model import Application, Relation, Unit
-from tenacity import retry, retry_if_not_result, stop_after_attempt, wait_fixed
 from typing_extensions import override
 
 from literals import INTERNAL_USERS
@@ -128,11 +124,18 @@ class KafkaCluster(RelationState):
         return self.relation_data.get("mtls", "disabled") == "enabled"
 
 
-class KafkaBroker(StateBase):
-    """State collection metadata for a charm unit."""
+class KafkaBroker(RelationState):
+    """State collection metadata for a unit."""
 
-    def __init__(self, relation: Relation | None, component: Unit, substrate: Substrate):
-        super().__init__(relation, component, substrate)
+    def __init__(
+        self,
+        relation: Relation,
+        data_interface: DataPeerUnitData,
+        component: Application,
+        substrate: SUBSTRATES,
+    ):
+        super().__init__(relation, data_interface, component, substrate)
+        self.data_interface = data_interface
         self.unit = component
 
     @property
@@ -159,100 +162,79 @@ class KafkaBroker(StateBase):
     # --- TLS ---
 
     @property
-    def private_key(self) -> str | None:
+    def private_key(self) -> str:
         """The unit private-key set during `certificates_joined`.
 
         Returns:
             String of key contents
             None if key not yet generated
         """
-        return self.relation_data.get("private-key")
+        return self.relation_data.get("private-key", "")
 
     @property
-    def csr(self) -> str | None:
+    def csr(self) -> str:
         """The unit cert signing request.
 
         Returns:
             String of csr contents
             None if csr not yet generated
         """
-        return self.relation_data.get("csr")
+        return self.relation_data.get("csr", "")
 
     @property
-    def certificate(self) -> str | None:
+    def certificate(self) -> str:
         """The signed unit certificate from the provider relation.
 
         Returns:
             String of cert contents in PEM format
             None if cert not yet generated/signed
         """
-        return self.relation_data.get("certificate")
+        return self.relation_data.get("certificate", "")
 
     @property
-    def ca(self) -> str | None:
+    def ca(self) -> str:
         """The ca used to sign unit cert.
 
         Returns:
             String of ca contents in PEM format
             None if cert not yet generated/signed
         """
-        return self.relation_data.get("ca")
+        return self.relation_data.get("ca", "")
 
     @property
-    def keystore_password(self) -> str | None:
+    def keystore_password(self) -> str:
         """The unit keystore password set during `certificates_joined`.
 
         Returns:
             String of password
             None if password not yet generated
         """
-        return self.relation_data.get("keystore-password")
+        return self.relation_data.get("keystore-password", "")
 
     @property
-    def truststore_password(self) -> str | None:
+    def truststore_password(self) -> str:
         """The unit truststore password set during `certificates_joined`.
 
         Returns:
             String of password
             None if password not yet generated
         """
-        return self.relation_data.get("truststore-password")
+        return self.relation_data.get("truststore-password", "")
 
 
-class ZooKeeper(StateBase):
+class ZooKeeper(RelationState):
     """State collection metadata for a the Zookeeper relation."""
 
     def __init__(
         self,
-        relation: Relation | None,
+        relation: Relation,
+        data_interface: Data,
         component: Application,
-        substrate: Substrate,
-        local_unit: Unit,
+        substrate: SUBSTRATES,
         local_app: Application | None = None,
     ):
-        super().__init__(relation, component, substrate)
+        super().__init__(relation, data_interface, component, substrate)
         self._local_app = local_app
-        self._local_unit = local_unit
-
-    # APPLICATION DATA
-
-    @property
-    def remote_app_data(self) -> MutableMapping[str, str]:
-        """Zookeeper relation data object."""
-        if not self.relation or not self.relation.app:
-            return {}
-
-        return self.relation.data[self.relation.app]
-
-    @property
-    def app_data(self) -> MutableMapping[str, str]:
-        """Zookeeper relation data object."""
-        if not self.relation or not self._local_app:
-            return {}
-
-        return self.relation.data[self._local_app]
-
-    # --- RELATION PROPERTIES ---
 
     @property
     def zookeeper_related(self) -> bool:
@@ -266,32 +248,32 @@ class ZooKeeper(StateBase):
     @property
     def username(self) -> str:
         """Username to connect to ZooKeeper."""
-        return self.remote_app_data.get("username", "")
+        return self.relation_data.get("username", "")
 
     @property
     def password(self) -> str:
         """Password of the ZooKeeper user."""
-        return self.remote_app_data.get("password", "")
+        return self.relation_data.get("password", "")
 
     @property
     def endpoints(self) -> str:
         """IP/host where ZooKeeper is located."""
-        return self.remote_app_data.get("endpoints", "")
+        return self.relation_data.get("endpoints", "")
 
     @property
     def chroot(self) -> str:
         """Path allocated for Kafka on ZooKeeper."""
-        return self.remote_app_data.get("chroot", "")
+        return self.relation_data.get("chroot", "")
 
     @property
     def uris(self) -> str:
         """Comma separated connection string, containing endpoints + chroot."""
-        return self.remote_app_data.get("uris", "")
+        return self.relation_data.get("uris", "")
 
     @property
     def tls(self) -> bool:
         """Check if TLS is enabled on ZooKeeper."""
-        return bool(self.remote_app_data.get("tls", "disabled") == "enabled")
+        return self.relation_data.get("tls", "disabled") == "enabled"
 
     @property
     def connect(self) -> str:
