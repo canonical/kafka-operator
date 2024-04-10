@@ -213,6 +213,11 @@ class ClusterState(Object):
         return ",".join([os.fspath(storage.location) for storage in self.model.storages["data"]])
 
     @property
+    def planned_units(self) -> int:
+        """Return the planned units for the charm."""
+        return self.model.app.planned_units()
+
+    @property
     def ready_to_start(self) -> Status:
         """Check for active ZooKeeper relation and adding of inter-broker auth username.
 
