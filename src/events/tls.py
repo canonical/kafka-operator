@@ -94,16 +94,18 @@ class TLSHandler(Object):
     def _tls_relation_joined(self, _) -> None:
         """Handler for `certificates_relation_joined` event."""
         # generate unit private key if not already created by action
-        if not self.charm.state.broker.private_key:
-            self.charm.state.broker.update({"private-key": generate_private_key().decode("utf-8")})
+        if not self.charm.state.unit_broker.private_key:
+            self.charm.state.unit_broker.update(
+                {"private-key": generate_private_key().decode("utf-8")}
+            )
 
         # generate unit private key if not already created by action
-        if not self.charm.state.broker.keystore_password:
-            self.charm.state.broker.update(
+        if not self.charm.state.unit_broker.keystore_password:
+            self.charm.state.unit_broker.update(
                 {"keystore-password": self.charm.workload.generate_password()}
             )
-        if not self.charm.state.broker.truststore_password:
-            self.charm.state.broker.update(
+        if not self.charm.state.unit_broker.truststore_password:
+            self.charm.state.unit_broker.update(
                 {"truststore-password": self.charm.workload.generate_password()}
             )
 
@@ -111,9 +113,9 @@ class TLSHandler(Object):
 
     def _tls_relation_broken(self, _) -> None:
         """Handler for `certificates_relation_broken` event."""
-        self.charm.state.broker.update({"csr": ""})
-        self.charm.state.broker.update({"certificate": ""})
-        self.charm.state.broker.update({"ca": ""})
+        self.charm.state.unit_broker.update({"csr": ""})
+        self.charm.state.unit_broker.update({"certificate": ""})
+        self.charm.state.unit_broker.update({"ca": ""})
 
         # remove all existing keystores from the unit so we don't preserve certs
         self.charm.tls_manager.remove_stores()
@@ -141,7 +143,7 @@ class TLSHandler(Object):
     def _trusted_relation_joined(self, event: RelationJoinedEvent) -> None:
         """Generate a CSR so the tls-certificates operator works as expected."""
         # Once the certificates have been added, TLS setup has finished
-        if not self.charm.state.broker.certificate:
+        if not self.charm.state.unit_broker.certificate:
             logger.debug("Missing TLS relation, deferring")
             event.defer()
             return
@@ -150,11 +152,13 @@ class TLSHandler(Object):
             app_name=event.app.name,  # pyright: ignore[reportOptionalMemberAccess]
             relation_id=event.relation.id,
         )
-        subject = os.uname()[1] if self.charm.substrate == "k8s" else self.charm.state.broker.host
+        subject = (
+            os.uname()[1] if self.charm.substrate == "k8s" else self.charm.state.unit_broker.host
+        )
         csr = (
             generate_csr(
                 add_unique_id_to_subject_name=bool(alias),
-                private_key=self.charm.state.broker.private_key.encode(  # pyright: ignore[reportOptionalMemberAccess]
+                private_key=self.charm.state.unit_broker.private_key.encode(  # pyright: ignore[reportOptionalMemberAccess]
                     "utf-8"
                 ),
                 subject=subject,
@@ -171,7 +175,7 @@ class TLSHandler(Object):
     def _trusted_relation_changed(self, event: RelationChangedEvent) -> None:
         """Overrides the requirer logic of TLSInterface."""
         # Once the certificates have been added, TLS setup has finished
-        if not self.charm.state.broker.certificate:
+        if not self.charm.state.unit_broker.certificate:
             logger.debug("Missing TLS relation, deferring")
             event.defer()
             return
@@ -207,7 +211,7 @@ class TLSHandler(Object):
     def _trusted_relation_broken(self, event: RelationBrokenEvent) -> None:
         """Handle relation broken for a trusted certificate/ca relation."""
         # Once the certificates have been added, TLS setup has finished
-        if not self.charm.state.broker.certificate:
+        if not self.charm.state.unit_broker.certificate:
             logger.debug("Missing TLS relation, deferring")
             event.defer()
             return
@@ -245,12 +249,12 @@ class TLSHandler(Object):
             return
 
         # avoid setting tls files and restarting
-        if event.certificate_signing_request != self.charm.state.broker.csr:
+        if event.certificate_signing_request != self.charm.state.unit_broker.csr:
             logger.error("Can't use certificate, found unknown CSR")
             return
 
-        self.charm.state.broker.update({"certificate": event.certificate})
-        self.charm.state.broker.update({"ca": event.ca})
+        self.charm.state.unit_broker.update({"certificate": event.certificate})
+        self.charm.state.unit_broker.update({"ca": event.ca})
 
         self.charm.tls_manager.set_server_key()
         self.charm.tls_manager.set_ca()
@@ -261,25 +265,25 @@ class TLSHandler(Object):
     def _on_certificate_expiring(self, _) -> None:
         """Handler for `certificate_expiring` event."""
         if (
-            not self.charm.state.broker.private_key
-            or not self.charm.state.broker.csr
+            not self.charm.state.unit_broker.private_key
+            or not self.charm.state.unit_broker.csr
             or not self.charm.state.peer_relation
         ):
             logger.error("Missing unit private key and/or old csr")
             return
         new_csr = generate_csr(
-            private_key=self.charm.state.broker.private_key.encode("utf-8"),
-            subject=self.charm.state.broker.relation_data.get("private-address", ""),
+            private_key=self.charm.state.unit_broker.private_key.encode("utf-8"),
+            subject=self.charm.state.unit_broker.relation_data.get("private-address", ""),
             sans_ip=self._sans["sans_ip"],
             sans_dns=self._sans["sans_dns"],
         )
 
         self.certificates.request_certificate_renewal(
-            old_certificate_signing_request=self.charm.state.broker.csr.encode("utf-8"),
+            old_certificate_signing_request=self.charm.state.unit_broker.csr.encode("utf-8"),
             new_certificate_signing_request=new_csr,
         )
 
-        self.charm.state.broker.update({"csr": new_csr.decode("utf-8").strip()})
+        self.charm.state.unit_broker.update({"csr": new_csr.decode("utf-8").strip()})
 
     def _set_tls_private_key(self, event: ActionEvent) -> None:
         """Handler for `set_tls_private_key` action."""
@@ -290,22 +294,22 @@ class TLSHandler(Object):
             else base64.b64decode(key).decode("utf-8")
         )
 
-        self.charm.state.broker.update({"private-key": private_key})
+        self.charm.state.unit_broker.update({"private-key": private_key})
         self._on_certificate_expiring(event)
 
     def _request_certificate(self):
         """Generates and submits CSR to provider."""
-        if not self.charm.state.broker.private_key or not self.charm.state.peer_relation:
+        if not self.charm.state.unit_broker.private_key or not self.charm.state.peer_relation:
             logger.error("Can't request certificate, missing private key")
             return
 
         csr = generate_csr(
-            private_key=self.charm.state.broker.private_key.encode("utf-8"),
-            subject=self.charm.state.broker.relation_data.get("private-address", ""),
+            private_key=self.charm.state.unit_broker.private_key.encode("utf-8"),
+            subject=self.charm.state.unit_broker.relation_data.get("private-address", ""),
             sans_ip=self._sans["sans_ip"],
             sans_dns=self._sans["sans_dns"],
         )
-        self.charm.state.broker.update({"csr": csr.decode("utf-8").strip()})
+        self.charm.state.unit_broker.update({"csr": csr.decode("utf-8").strip()})
 
         self.certificates.request_certificate_creation(certificate_signing_request=csr)
 
@@ -314,7 +318,7 @@ class TLSHandler(Object):
         """Builds a SAN dict of DNS names and IPs for the unit."""
         if self.charm.substrate == "vm":
             return {
-                "sans_ip": [self.charm.state.broker.host],
+                "sans_ip": [self.charm.state.unit_broker.host],
                 "sans_dns": [self.model.unit.name, socket.getfqdn()] + self._extra_sans,
             }
         else:
@@ -325,8 +329,8 @@ class TLSHandler(Object):
             return {
                 "sans_ip": [str(bind_address)],
                 "sans_dns": [
-                    self.charm.state.broker.host.split(".")[0],
-                    self.charm.state.broker.host,
+                    self.charm.state.unit_broker.host.split(".")[0],
+                    self.charm.state.unit_broker.host,
                     socket.getfqdn(),
                 ]
                 + self._extra_sans,

@@ -255,7 +255,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             PEER,
             self.state.cluster.relation.id,
             "extra",  # pyright: ignore[reportArgumentType] -- Changes with the https://github.com/canonical/data-platform-libs/issues/124
-
         ):
             self._on_config_changed(event)
 

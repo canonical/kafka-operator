@@ -51,7 +51,7 @@ class ZooKeeperHandler(Object):
 
         # do not create users until certificate + keystores created
         # otherwise unable to authenticate to ZK
-        if self.charm.state.cluster.tls_enabled and not self.charm.state.broker.certificate:
+        if self.charm.state.cluster.tls_enabled and not self.charm.state.unit_broker.certificate:
             self.charm._set_status(Status.NO_CERT)
             event.defer()
             return
