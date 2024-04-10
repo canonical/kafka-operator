@@ -113,9 +113,9 @@ class TLSHandler(Object):
 
     def _tls_relation_broken(self, _) -> None:
         """Handler for `certificates_relation_broken` event."""
-        self.charm.state.unit_broker.update({"csr": ""})
-        self.charm.state.unit_broker.update({"certificate": ""})
-        self.charm.state.unit_broker.update({"ca": ""})
+        self.charm.state.unit_broker.update(
+            {"csr": "", "certificate": "", "ca": "", "ca-cert": ""}
+        )
 
         # remove all existing keystores from the unit so we don't preserve certs
         self.charm.tls_manager.remove_stores()
@@ -253,8 +253,13 @@ class TLSHandler(Object):
             logger.error("Can't use certificate, found unknown CSR")
             return
 
-        self.charm.state.unit_broker.update({"certificate": event.certificate})
-        self.charm.state.unit_broker.update({"ca": event.ca})
+        # if certificate already exists, this event must be new, flag manual restart
+        if self.charm.state.unit_broker.certificate:
+            self.charm.on[f"{self.charm.restart.name}"].acquire_lock.emit()
+
+        self.charm.state.unit_broker.update(
+            {"certificate": event.certificate, "ca-cert": event.ca, "ca": ""}
+        )
 
         self.charm.tls_manager.set_server_key()
         self.charm.tls_manager.set_ca()
@@ -271,6 +276,7 @@ class TLSHandler(Object):
         ):
             logger.error("Missing unit private key and/or old csr")
             return
+
         new_csr = generate_csr(
             private_key=self.charm.state.unit_broker.private_key.encode("utf-8"),
             subject=self.charm.state.unit_broker.relation_data.get("private-address", ""),
