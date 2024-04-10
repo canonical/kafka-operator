@@ -201,7 +201,7 @@ class ClusterState(Object):
         if not self.peer_relation:
             return []
 
-        return sorted([f"{host}:{self.port}" for host in self.unit_hosts])
+        return sorted([f"{broker.host}:{self.port}" for broker in self.brokers])
 
     @property
     def log_dirs(self) -> str:
@@ -211,17 +211,6 @@ class ClusterState(Object):
             String of log.dirs property value to be set
         """
         return ",".join([os.fspath(storage.location) for storage in self.model.storages["data"]])
-
-    @property
-    def unit_hosts(self) -> list[str]:
-        """Return list of application unit hosts."""
-        hosts = [broker.host for broker in self.brokers]
-        return hosts
-
-    @property
-    def planned_units(self) -> int:
-        """Return the planned units for the charm."""
-        return self.model.app.planned_units()
 
     @property
     def ready_to_start(self) -> Status:
