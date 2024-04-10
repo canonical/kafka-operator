@@ -12,7 +12,7 @@ from charms.grafana_agent.v0.cos_agent import COSAgentProvider
 from charms.operator_libs_linux.v0 import sysctl
 from charms.operator_libs_linux.v1.snap import SnapError
 from charms.rolling_ops.v0.rollingops import RollingOpsManager, RunWithLock
-from ops.charm import StorageAttachedEvent, StorageDetachingEvent, StorageEvent
+from ops.charm import SecretChangedEvent, StorageAttachedEvent, StorageDetachingEvent, StorageEvent
 from ops.framework import EventBase
 from ops.main import main
 from ops.model import ActiveStatus, StatusBase
@@ -111,6 +111,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.framework.observe(getattr(self.on, "config_changed"), self._on_config_changed)
         self.framework.observe(getattr(self.on, "update_status"), self._on_update_status)
         self.framework.observe(getattr(self.on, "remove"), self._on_remove)
+        self.framework.observe(getattr(self.on, "secret_changed"), self._on_secret_changed)
 
         self.framework.observe(self.on[PEER].relation_changed, self._on_config_changed)
 
@@ -244,6 +245,19 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
     def _on_remove(self, _) -> None:
         """Handler for stop."""
         self.sysctl_config.remove()
+
+    def _on_secret_changed(self, event: SecretChangedEvent) -> None:
+        """Handler for `secret_changed` events."""
+        if not (event.secret.label or self.state.cluster.relation):
+            return
+
+        if event.secret.label == self.state.cluster.data_interface._generate_secret_label(
+            PEER,
+            self.state.cluster.relation.id,
+            "extra",  # pyright: ignore[reportArgumentType] -- Changes with the https://github.com/canonical/data-platform-libs/issues/124
+
+        ):
+            self._on_config_changed(event)
 
     def _on_storage_attached(self, event: StorageAttachedEvent) -> None:
         """Handler for `storage_attached` events."""
