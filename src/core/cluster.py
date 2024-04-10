@@ -5,39 +5,63 @@
 """Objects representing the state of KafkaCharm."""
 
 import os
+from functools import cached_property
 
+from charms.data_platform_libs.v0.data_interfaces import (
+    DatabaseRequirerData,
+    DataPeerData,
+    DataPeerOtherUnitData,
+    DataPeerUnitData,
+    KafkaProvidesData,
+)
 from ops import Framework, Object, Relation
+from ops.model import Unit
 
-from core.models import KafkaBroker, KafkaCluster, ZooKeeper
+from core.models import SUBSTRATES, KafkaBroker, KafkaClient, KafkaCluster, ZooKeeper
 from literals import (
     INTERNAL_USERS,
     PEER,
     REL_NAME,
+    SECRETS_UNIT,
     SECURITY_PROTOCOL_PORTS,
     ZK,
     Status,
-    Substrate,
 )
 
 
 class ClusterState(Object):
-    """Properties and relations of the charm."""
+    """Collection of global cluster state for the Kafka services."""
 
-    def __init__(self, charm: Framework | Object, substrate: Substrate):
+    def __init__(self, charm: Framework | Object, substrate: SUBSTRATES):
         super().__init__(parent=charm, key="charm_state")
-        self.substrate: Substrate = substrate
+        self.substrate: SUBSTRATES = substrate
+
+        self.peer_app_interface = DataPeerData(self.model, relation_name=PEER)
+        self.peer_unit_interface = DataPeerUnitData(
+            self.model, relation_name=PEER, additional_secret_fields=SECRETS_UNIT
+        )
+        self.zookeeper_requires_interface = DatabaseRequirerData(
+            self.model, relation_name=REL_NAME, database_name=f"/{self.model.app.name}"
+        )
+        self.client_provider_interface = KafkaProvidesData(self.model, relation_name=REL_NAME)
 
     # --- RELATIONS ---
 
     @property
-    def peer_relation(self) -> Relation | None:
+    def peer_relation(self) -> Relation:
         """The cluster peer relation."""
-        return self.model.get_relation(PEER)
+        if not (peer_relation := self.model.get_relation(PEER)):
+            raise AttributeError(f"No peer relation {PEER} found.")
+
+        return peer_relation
 
     @property
-    def zookeeper_relation(self) -> Relation | None:
+    def zookeeper_relation(self) -> Relation:
         """The ZooKeeper relation."""
-        return self.model.get_relation(ZK)
+        if not (zk_relation := self.model.get_relation(ZK)):
+            raise AttributeError(f"No peer relation {ZK} found.")
+
+        return zk_relation
 
     @property
     def client_relations(self) -> set[Relation]:
@@ -47,17 +71,33 @@ class ClusterState(Object):
     # --- CORE COMPONENTS ---
 
     @property
-    def broker(self) -> KafkaBroker:
-        """The server state of the current running Unit."""
+    def unit_broker(self) -> KafkaBroker:
+        """The broker state of the current running Unit."""
         return KafkaBroker(
-            relation=self.peer_relation, component=self.model.unit, substrate=self.substrate
+            relation=self.peer_relation,
+            data_interface=self.peer_unit_interface,
+            component=self.model.unit,
+            substrate=self.substrate,
         )
+
+    @cached_property
+    def peer_units_data_interfaces(self) -> dict[Unit, DataPeerOtherUnitData]:
+        """The cluster peer relation."""
+        if not self.peer_relation or not self.peer_relation.units:
+            return {}
+        return {
+            unit: DataPeerOtherUnitData(model=self.model, unit=unit, relation_name=PEER)
+            for unit in self.peer_relation.units
+        }
 
     @property
     def cluster(self) -> KafkaCluster:
         """The cluster state of the current running App."""
         return KafkaCluster(
-            relation=self.peer_relation, component=self.model.app, substrate=self.substrate
+            relation=self.peer_relation,
+            data_interface=self.peer_app_interface,
+            component=self.model.app,
+            substrate=self.substrate,
         )
 
     @property
@@ -67,28 +107,54 @@ class ClusterState(Object):
         Returns:
             Set of KafkaBrokers in the current peer relation, including the running unit server.
         """
-        if not self.peer_relation:
-            return set()
-
-        servers = set()
-        for unit in self.peer_relation.units:
-            servers.add(
-                KafkaBroker(relation=self.peer_relation, component=unit, substrate=self.substrate)
+        brokers = set()
+        for unit, data_interface in self.peer_units_data_interfaces.items():
+            brokers.add(
+                KafkaBroker(
+                    relation=self.peer_relation,
+                    data_interface=data_interface,
+                    component=unit,
+                    substrate=self.substrate,
+                )
             )
-        servers.add(self.broker)
+        brokers.add(self.unit_broker)
 
-        return servers
+        return brokers
 
     @property
     def zookeeper(self) -> ZooKeeper:
         """The ZooKeeper relation state."""
         return ZooKeeper(
             relation=self.zookeeper_relation,
+            data_interface=self.zookeeper_requires_interface,
             component=self.model.app,
             substrate=self.substrate,
             local_app=self.model.app,
-            local_unit=self.model.unit,
         )
+
+    @property
+    def clients(self) -> set[KafkaClient]:
+        """The state for all related client Applications."""
+        clients = set()
+        for relation in self.client_relations:
+            if not relation.app:
+                continue
+
+            clients.add(
+                KafkaClient(
+                    relation=relation,
+                    data_interface=self.client_provider_interface,
+                    component=relation.app,
+                    substrate=self.substrate,
+                    local_app=self.cluster.app,
+                    bootstrap_server=",".join(self.bootstrap_server),
+                    password=self.cluster.client_passwords.get(f"relation-{relation.id}", ""),
+                    tls="enabled" if self.cluster.tls_enabled else "disabled",
+                    zookeeper_uris=self.zookeeper.uris,
+                )
+            )
+
+        return clients
 
     # ---- GENERAL VALUES ----
 
@@ -121,7 +187,7 @@ class ClusterState(Object):
         """Return the port to be used internally."""
         return (
             SECURITY_PROTOCOL_PORTS["SASL_SSL"].client
-            if (self.cluster.tls_enabled and self.broker.certificate)
+            if (self.cluster.tls_enabled and self.unit_broker.certificate)
             else SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].client
         )
 
