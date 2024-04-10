@@ -5,7 +5,6 @@
 """Collection of state objects for the Kafka relations, apps and units."""
 
 import logging
-from collections.abc import MutableMapping
 from typing import Literal, MutableMapping
 
 from charms.data_platform_libs.v0.data_interfaces import Data, DataPeerData, DataPeerUnitData
@@ -17,7 +16,7 @@ from tenacity.stop import stop_after_attempt
 from tenacity.wait import wait_fixed
 from typing_extensions import override
 
-from literals import SECRETS_APP
+from literals import INTERNAL_USERS, SECRETS_APP
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +136,7 @@ class KafkaBroker(RelationState):
         self,
         relation: Relation,
         data_interface: DataPeerUnitData,
-        component: Application,
+        component: Unit,
         substrate: SUBSTRATES,
     ):
         super().__init__(relation, data_interface, component, substrate)
@@ -330,3 +329,75 @@ class ZooKeeper(RelationState):
             brokers = set()
 
         return f"{path}{broker_id}" in brokers
+
+
+class KafkaClient(RelationState):
+    """State collection metadata for a single related client application."""
+
+    def __init__(
+        self,
+        relation: Relation,
+        data_interface: Data,
+        component: Application,
+        substrate: SUBSTRATES,
+        local_app: Application | None = None,
+        bootstrap_server: str = "",
+        password: str = "",
+        tls: str = "",
+        zookeeper_uris: str = "",
+    ):
+        super().__init__(relation, data_interface, component, substrate)
+        self.app = component
+        self._local_app = local_app
+        self._bootstrap_server = bootstrap_server
+        self._password = password
+        self._tls = tls
+        self._zookeeper_uris = zookeeper_uris
+
+    @property
+    def username(self) -> str:
+        """The generated username for the client application."""
+        return f"relation-{getattr(self.relation, 'id', '')}"
+
+    @property
+    def bootstrap_server(self) -> str:
+        """The Kafka server endpoints for the client application to connect with."""
+        return self._bootstrap_server
+
+    @property
+    def password(self) -> str:
+        """The generated password for the client application."""
+        return self._password
+
+    @property
+    def consumer_group_prefix(self) -> str:
+        """The assigned consumer group prefix for a client application presenting consumer role."""
+        return f"{self.username}-" if "consumer" in self.extra_user_roles else ""
+
+    @property
+    def tls(self) -> str:
+        """Flag to confirm whether or not ZooKeeper has TLS enabled.
+
+        Returns:
+            String of either 'enabled' or 'disabled'
+        """
+        return self._tls
+
+    @property
+    def zookeeper_uris(self) -> str:
+        """The ZooKeeper connection endpoints for the client application to connect with."""
+        return self._zookeeper_uris
+
+    @property
+    def topic(self) -> str:
+        """The ZooKeeper connection endpoints for the client application to connect with."""
+        return self.relation_data.get("topic", "")
+
+    @property
+    def extra_user_roles(self) -> str:
+        """The client defined roles for their application.
+
+        Can be any comma-delimited selection of `producer`, `consumer` and `admin`.
+        When `admin` is set, the Kafka charm interprets this as a new super.user.
+        """
+        return self.relation_data.get("extra_user_roles", "")
