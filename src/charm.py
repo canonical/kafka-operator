@@ -16,6 +16,7 @@ from ops.charm import SecretChangedEvent, StorageAttachedEvent, StorageDetaching
 from ops.framework import EventBase
 from ops.main import main
 from ops.model import ActiveStatus, StatusBase
+from src.core.models import SUBSTRATES
 
 from core.cluster import ClusterState
 from core.structured_config import CharmConfig
@@ -42,7 +43,6 @@ from literals import (
 from managers.auth import AuthManager
 from managers.config import KafkaConfigManager
 from managers.tls import TLSManager
-from src.core.models import SUBSTRATES
 from workload import KafkaWorkload
 
 logger = logging.getLogger(__name__)
@@ -347,21 +347,22 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         for client in self.state.clients:
             if not client.password:
-                logger.debug(f"Skipping update of {client.component.name}, user has not yet been added...")
+                logger.debug(
+                    f"Skipping update of {client.component.name}, user has not yet been added..."
+                )
                 continue
 
             client.update(
-                    {
-                        "endpoints":client.bootstrap_server,
-                        "zookeeper-uris": client.zookeeper_uris,
-                        "consumer-group-prefix": client.consumer_group_prefix,
-                        "topic": client.topic,
-                        "username": client.username,
-                        "password": client.password,
-                        "tls": client.tls,
-                        "tls-ca": client.tls,  # TODO: fix tls-ca
-                    }
-
+                {
+                    "endpoints": client.bootstrap_server,
+                    "zookeeper-uris": client.zookeeper_uris,
+                    "consumer-group-prefix": client.consumer_group_prefix,
+                    "topic": client.topic,
+                    "username": client.username,
+                    "password": client.password,
+                    "tls": client.tls,
+                    "tls-ca": client.tls,  # TODO: fix tls-ca
+                }
             )
 
     def _set_status(self, key: Status) -> None:

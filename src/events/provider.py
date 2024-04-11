@@ -48,7 +48,9 @@ class KafkaProvider(Object):
         if not self.charm.unit.is_leader() or not self.charm.state.peer_relation:
             return
 
-        client = [client for client in self.charm.state.clients if client.relation == event.relation][0]
+        client = [
+            client for client in self.charm.state.clients if client.relation == event.relation
+        ][0]
         password = client.password or self.charm.workload.generate_password()
 
         # catching error here in case listeners not established for bootstrap-server auth
