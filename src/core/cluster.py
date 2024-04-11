@@ -56,12 +56,9 @@ class ClusterState(Object):
         return peer_relation
 
     @property
-    def zookeeper_relation(self) -> Relation:
+    def zookeeper_relation(self) -> Relation | None:
         """The ZooKeeper relation."""
-        if not (zk_relation := self.model.get_relation(ZK)):
-            raise AttributeError(f"No peer relation {ZK} found.")
-
-        return zk_relation
+        return self.model.get_relation(ZK)
 
     @property
     def client_relations(self) -> set[Relation]:
@@ -127,9 +124,8 @@ class ClusterState(Object):
         return ZooKeeper(
             relation=self.zookeeper_relation,
             data_interface=self.zookeeper_requires_interface,
-            component=self.model.app,
             substrate=self.substrate,
-            local_app=self.model.app,
+            local_app=self.cluster.app,
         )
 
     @property
@@ -150,7 +146,7 @@ class ClusterState(Object):
                     bootstrap_server=",".join(self.bootstrap_server),
                     password=self.cluster.client_passwords.get(f"relation-{relation.id}", ""),
                     tls="enabled" if self.cluster.tls_enabled else "disabled",
-                    zookeeper_uris=self.zookeeper.uris,
+                    zookeeper_uris=self.zookeeper.uris if self.zookeeper else "",
                 )
             )
 
@@ -227,7 +223,7 @@ class ClusterState(Object):
         if not self.peer_relation:
             return Status.NO_PEER_RELATION
 
-        if not self.zookeeper.zookeeper_related:
+        if not self.zookeeper or not self.zookeeper.relation:
             return Status.ZK_NOT_RELATED
 
         if not self.zookeeper.zookeeper_connected:

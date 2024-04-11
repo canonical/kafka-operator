@@ -12,6 +12,7 @@ from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManag
 from kazoo.client import AuthFailedError, NoNodeError
 from ops.model import Application, Relation, Unit
 from tenacity import retry
+from tenacity.retry import retry_if_not_result
 from tenacity.stop import stop_after_attempt
 from tenacity.wait import wait_fixed
 from typing_extensions import override
@@ -28,16 +29,16 @@ class RelationState:
 
     def __init__(
         self,
-        relation: Relation,
+        relation: Relation | None,
         data_interface: Data,
-        component: Unit | Application,
+        component: Unit | Application | None,
         substrate: SUBSTRATES,
     ):
         self.relation = relation
         self.data_interface = data_interface
         self.component = component
         self.substrate = substrate
-        self.relation_data = self.data_interface.as_dict(self.relation.id)
+        self.relation_data = self.data_interface.as_dict(self.relation.id) if self.relation else {}
 
     @property
     def data(self) -> MutableMapping:
@@ -65,7 +66,7 @@ class KafkaCluster(RelationState):
         component: Application,
         substrate: SUBSTRATES,
     ):
-        super().__init__(relation, data_interface, component, substrate)
+        super().__init__(relation, data_interface, None, substrate)
         self.data_interface = data_interface
         self.app = component
 
@@ -149,7 +150,7 @@ class KafkaBroker(RelationState):
 
         e.g kafka/2 --> 2
         """
-        return int(self.component.name.split("/")[1])
+        return int(self.unit.name.split("/")[1])
 
     @property
     def host(self) -> str:
@@ -160,7 +161,7 @@ class KafkaBroker(RelationState):
                 if host := self.relation_data.get(key, ""):
                     break
         if self.substrate == "k8s":
-            host = f"{self.component.name.split('/')[0]}-{self.unit_id}.{self.component.name.split('/')[0]}-endpoints"
+            host = f"{self.unit.name.split('/')[0]}-{self.unit_id}.{self.unit.name.split('/')[0]}-endpoints"
 
         return host
 
@@ -232,23 +233,13 @@ class ZooKeeper(RelationState):
 
     def __init__(
         self,
-        relation: Relation,
+        relation: Relation | None,
         data_interface: Data,
-        component: Application,
         substrate: SUBSTRATES,
         local_app: Application | None = None,
     ):
-        super().__init__(relation, data_interface, component, substrate)
+        super().__init__(relation, data_interface, None, substrate)
         self._local_app = local_app
-
-    @property
-    def zookeeper_related(self) -> bool:
-        """Checks if there is a relation with ZooKeeper.
-
-        Returns:
-            True if there is a ZooKeeper relation. Otherwise False
-        """
-        return bool(self.relation)
 
     @property
     def username(self) -> str:
@@ -313,7 +304,7 @@ class ZooKeeper(RelationState):
         wait=wait_fixed(6),
         stop=stop_after_attempt(10),
         retry_error_callback=(lambda state: state.outcome.result()),  # type: ignore
-        retry=retry.retry_if_not_result(lambda result: True if result else False),
+        retry=retry_if_not_result(lambda result: True if result else False),
     )
     def broker_active(self) -> bool:
         """Checks if broker id is recognised as active by ZooKeeper."""

@@ -8,7 +8,10 @@ import logging
 import subprocess
 from typing import TYPE_CHECKING
 
-from charms.data_platform_libs.v0.data_interfaces import KafkaProvides, TopicRequestedEvent
+from charms.data_platform_libs.v0.data_interfaces import (
+    KafkaProvidesEventHandlers,
+    TopicRequestedEvent,
+)
 from ops.charm import RelationBrokenEvent, RelationCreatedEvent
 from ops.framework import Object
 from ops.pebble import ExecError
@@ -27,7 +30,9 @@ class KafkaProvider(Object):
     def __init__(self, charm) -> None:
         super().__init__(charm, "kafka_client")
         self.charm: "KafkaCharm" = charm
-        self.kafka_provider = KafkaProvides(self.charm, REL_NAME)
+        self.kafka_provider = KafkaProvidesEventHandlers(
+            self.charm, self.charm.state.client_provider_interface
+        )
 
         self.framework.observe(self.charm.on[REL_NAME].relation_created, self._on_relation_created)
         self.framework.observe(self.charm.on[REL_NAME].relation_broken, self._on_relation_broken)

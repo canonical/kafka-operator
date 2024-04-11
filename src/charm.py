@@ -16,9 +16,9 @@ from ops.charm import SecretChangedEvent, StorageAttachedEvent, StorageDetaching
 from ops.framework import EventBase
 from ops.main import main
 from ops.model import ActiveStatus, StatusBase
-from src.core.models import SUBSTRATES
 
 from core.cluster import ClusterState
+from core.models import SUBSTRATES
 from core.structured_config import CharmConfig
 from events.password_actions import PasswordActionEvents
 from events.provider import KafkaProvider
@@ -248,7 +248,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
     def _on_secret_changed(self, event: SecretChangedEvent) -> None:
         """Handler for `secret_changed` events."""
-        if not (event.secret.label or self.state.cluster.relation):
+        if not event.secret.label or not self.state.cluster.relation:
             return
 
         if event.secret.label == self.state.cluster.data_interface._generate_secret_label(
@@ -348,7 +348,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         for client in self.state.clients:
             if not client.password:
                 logger.debug(
-                    f"Skipping update of {client.component.name}, user has not yet been added..."
+                    f"Skipping update of {client.app.name}, user has not yet been added..."
                 )
                 continue
 

@@ -488,7 +488,7 @@ def leader_only(f):
     def wrapper(self, *args, **kwargs):
         if self.component == self.local_app and not self.local_unit.is_leader():
             logger.error(
-                "This operation (%s()) can only be performed by the leader unit", f.__name__
+                f"{args=},{kwargs=} operation ({f.__name__}()) can only be performed by the leader unit"
             )
             return
         return f(self, *args, **kwargs)
