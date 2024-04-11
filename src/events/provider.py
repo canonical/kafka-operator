@@ -48,52 +48,34 @@ class KafkaProvider(Object):
         if not self.charm.unit.is_leader() or not self.charm.state.peer_relation:
             return
 
-        extra_user_roles = event.extra_user_roles or ""
-        topic = event.topic or ""
-        relation = event.relation
-        username = f"relation-{relation.id}"
-        password = (
-            self.charm.state.cluster.client_passwords.get(username)
-            or self.charm.workload.generate_password()
-        )
-        bootstrap_server = self.charm.state.bootstrap_server
-        zookeeper_uris = self.charm.state.zookeeper.connect
-        tls = "enabled" if self.charm.state.cluster.tls_enabled else "disabled"
-
-        consumer_group_prefix = (
-            event.consumer_group_prefix or f"{username}-" if "consumer" in extra_user_roles else ""
-        )
+        client = [client for client in self.charm.state.clients if client.relation == event.relation][0]
+        password = client.password or self.charm.workload.generate_password()
 
         # catching error here in case listeners not established for bootstrap-server auth
         try:
             self.charm.auth_manager.add_user(
-                username=username,
+                username=client.username,
                 password=password,
             )
         except (subprocess.CalledProcessError, ExecError):
-            logger.warning(f"unable to create user {username} just yet")
+            logger.warning(f"unable to create user {client.username} just yet")
             event.defer()
             return
 
         # non-leader units need cluster_config_changed event to update their super.users
-        self.charm.state.cluster.update({username: password})
+        self.charm.state.cluster.update({client.username: password})
 
         self.charm.auth_manager.update_user_acls(
-            username=username,
-            topic=topic,
-            extra_user_roles=extra_user_roles,
-            group=consumer_group_prefix,
+            username=client.username,
+            topic=client.topic,
+            extra_user_roles=client.extra_user_roles,
+            group=client.consumer_group_prefix,
         )
 
         # non-leader units need cluster_config_changed event to update their super.users
         self.charm.state.cluster.update({"super-users": self.charm.state.super_users})
 
-        self.kafka_provider.set_bootstrap_server(relation.id, ",".join(bootstrap_server))
-        self.kafka_provider.set_consumer_group_prefix(relation.id, consumer_group_prefix)
-        self.kafka_provider.set_credentials(relation.id, username, password)
-        self.kafka_provider.set_tls(relation.id, tls)
-        self.kafka_provider.set_zookeeper_uris(relation.id, zookeeper_uris)
-        self.kafka_provider.set_topic(relation.id, topic)
+        self.charm.update_client_data()
 
     def _on_relation_created(self, event: RelationCreatedEvent) -> None:
         """Handler for `kafka-client-relation-created` event."""
@@ -126,21 +108,4 @@ class KafkaProvider(Object):
             # update on the peer relation data will trigger an update of server properties on all units
             self.charm.state.cluster.update({username: ""})
 
-    def update_connection_info(self):
-        """Updates all relations with current endpoints, bootstrap-server and tls data.
-
-        If information didn't change, no events will trigger.
-        """
-        bootstrap_server = self.charm.state.bootstrap_server
-        zookeeper_uris = self.charm.state.zookeeper.connect
-        tls = "enabled" if self.charm.state.cluster.tls_enabled else "disabled"
-
-        for relation in self.charm.model.relations[REL_NAME]:
-            if f"relation-{relation.id}" in self.charm.state.cluster.client_passwords:
-                self.kafka_provider.set_bootstrap_server(
-                    relation_id=relation.id, bootstrap_server=",".join(bootstrap_server)
-                )
-                self.kafka_provider.set_tls(relation_id=relation.id, tls=tls)
-                self.kafka_provider.set_zookeeper_uris(
-                    relation_id=relation.id, zookeeper_uris=zookeeper_uris
-                )
+        self.charm.update_client_data()

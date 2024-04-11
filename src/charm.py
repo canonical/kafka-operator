@@ -38,11 +38,11 @@ from literals import (
     USER,
     DebugLevel,
     Status,
-    Substrate,
 )
 from managers.auth import AuthManager
 from managers.config import KafkaConfigManager
 from managers.tls import TLSManager
+from src.core.models import SUBSTRATES
 from workload import KafkaWorkload
 
 logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
     def __init__(self, *args):
         super().__init__(*args)
         self.name = CHARM_KEY
-        self.substrate: Substrate = "vm"
+        self.substrate: SUBSTRATES = "vm"
         self.workload = KafkaWorkload()
         self.state = ClusterState(self, substrate=self.substrate)
 
@@ -216,7 +216,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         # If Kafka is related to client charms, update their information.
         if self.model.relations.get(REL_NAME, None) and self.unit.is_leader():
-            self.provider.update_connection_info()
+            self.update_client_data()
 
     def _on_update_status(self, event: EventBase) -> None:
         """Handler for `update-status` events."""
@@ -339,6 +339,30 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             return False
 
         return True
+
+    def update_client_data(self) -> None:
+        """Writes necessary relation data to all related client applications."""
+        if not self.unit.is_leader() or not self.healthy:
+            return
+
+        for client in self.state.clients:
+            if not client.password:
+                logger.debug(f"Skipping update of {client.component.name}, user has not yet been added...")
+                continue
+
+            client.update(
+                    {
+                        "endpoints":client.bootstrap_server,
+                        "zookeeper-uris": client.zookeeper_uris,
+                        "consumer-group-prefix": client.consumer_group_prefix,
+                        "topic": client.topic,
+                        "username": client.username,
+                        "password": client.password,
+                        "tls": client.tls,
+                        "tls-ca": client.tls,  # TODO: fix tls-ca
+                    }
+
+            )
 
     def _set_status(self, key: Status) -> None:
         """Sets charm status."""
