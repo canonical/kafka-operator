@@ -41,7 +41,7 @@ class ClusterState(Object):
             self.model, relation_name=PEER, additional_secret_fields=SECRETS_UNIT
         )
         self.zookeeper_requires_interface = DatabaseRequirerData(
-            self.model, relation_name=REL_NAME, database_name=f"/{self.model.app.name}"
+            self.model, relation_name=ZK, database_name=f"/{self.model.app.name}"
         )
         self.client_provider_interface = KafkaProvidesData(self.model, relation_name=REL_NAME)
 
