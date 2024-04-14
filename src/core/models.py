@@ -308,7 +308,7 @@ class ZooKeeper(RelationState):
     )
     def broker_active(self) -> bool:
         """Checks if broker id is recognised as active by ZooKeeper."""
-        broker_id = self.data_interface.local_unit.name.split("/")[0]
+        broker_id = self.data_interface.local_unit.name.split("/")[1]
         hosts = self.endpoints.split(",")
         path = f"{self.chroot}/brokers/ids/"
 
