@@ -244,32 +244,74 @@ class ZooKeeper(RelationState):
     @property
     def username(self) -> str:
         """Username to connect to ZooKeeper."""
-        return self.relation_data.get("username", "")
+        if not self.relation:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="username"
+            )
+            or ""
+        )
 
     @property
     def password(self) -> str:
         """Password of the ZooKeeper user."""
-        return self.relation_data.get("password", "")
+        if not self.relation:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="password"
+            )
+            or ""
+        )
 
     @property
     def endpoints(self) -> str:
         """IP/host where ZooKeeper is located."""
-        return self.relation_data.get("endpoints", "")
+        if not self.relation:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="endpoints"
+            )
+            or ""
+        )
 
     @property
     def chroot(self) -> str:
         """Path allocated for Kafka on ZooKeeper."""
-        return self.relation_data.get("chroot", "")
+        if not self.relation:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(relation_id=self.relation.id, field="chroot")
+            or ""
+        )
 
     @property
     def uris(self) -> str:
         """Comma separated connection string, containing endpoints + chroot."""
-        return self.relation_data.get("uris", "")
+        if not self.relation:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(relation_id=self.relation.id, field="uris")
+            or ""
+        )
 
     @property
     def tls(self) -> bool:
         """Check if TLS is enabled on ZooKeeper."""
-        return self.relation_data.get("tls", "disabled") == "enabled"
+        if not self.relation:
+            return False
+
+        return (
+            self.data_interface.fetch_relation_field(relation_id=self.relation.id, field="tls")
+            or ""
+        ) == "enabled"
 
     @property
     def connect(self) -> str:

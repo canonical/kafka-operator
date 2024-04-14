@@ -8,6 +8,7 @@ import logging
 import subprocess
 from typing import TYPE_CHECKING
 
+from charms.data_platform_libs.v0.data_interfaces import DatabaseRequirerEventHandlers
 from ops import Object, RelationChangedEvent, RelationEvent
 from ops.pebble import ExecError
 
@@ -25,6 +26,9 @@ class ZooKeeperHandler(Object):
     def __init__(self, charm) -> None:
         super().__init__(charm, "zookeeper_client")
         self.charm: "KafkaCharm" = charm
+        self.zookeeper_requires = DatabaseRequirerEventHandlers(
+            self.charm, self.charm.state.zookeeper_requires_interface
+        )
 
         self.framework.observe(self.charm.on[ZK].relation_created, self._on_zookeeper_created)
         self.framework.observe(self.charm.on[ZK].relation_joined, self._on_zookeeper_changed)
