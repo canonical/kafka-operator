@@ -82,6 +82,7 @@ class ClusterState(Object):
         """The cluster peer relation."""
         if not self.peer_relation or not self.peer_relation.units:
             return {}
+
         return {
             unit: DataPeerOtherUnitData(model=self.model, unit=unit, relation_name=PEER)
             for unit in self.peer_relation.units
