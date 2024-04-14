@@ -205,7 +205,7 @@ class KafkaBroker(RelationState):
             String of ca contents in PEM format
             None if cert not yet generated/signed
         """
-        return self.relation_data.get("ca", "")
+        return self.relation_data.get("ca-cert", "")
 
     @property
     def keystore_password(self) -> str:
