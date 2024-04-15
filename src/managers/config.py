@@ -352,7 +352,7 @@ class KafkaConfigManager:
             "sasl.mechanism=SCRAM-SHA-512",
             f"security.protocol={self.security_protocol}",
             # FIXME: security.protocol will need changing once multiple listener auth schemes
-            f"bootstrap.servers={','.join(self.state.bootstrap_server)}",
+            f"bootstrap.servers={self.state.bootstrap_server}",
         ]
 
         if self.state.cluster.tls_enabled and self.state.unit_broker.certificate:

@@ -141,7 +141,7 @@ class ClusterState(Object):
                     component=relation.app,
                     substrate=self.substrate,
                     local_app=self.cluster.app,
-                    bootstrap_server=",".join(self.bootstrap_server),
+                    bootstrap_server=self.bootstrap_server,
                     password=self.cluster.client_passwords.get(f"relation-{relation.id}", ""),
                     tls="enabled" if self.cluster.tls_enabled else "disabled",
                     zookeeper_uris=self.zookeeper.uris,
@@ -186,16 +186,16 @@ class ClusterState(Object):
         )
 
     @property
-    def bootstrap_server(self) -> list[str]:
+    def bootstrap_server(self) -> str:
         """The current Kafka uris formatted for the `bootstrap-server` command flag.
 
         Returns:
             List of `bootstrap-server` servers
         """
         if not self.peer_relation:
-            return []
+            return ""
 
-        return sorted([f"{broker.host}:{self.port}" for broker in self.brokers])
+        return ",".join(sorted([f"{broker.host}:{self.port}" for broker in self.brokers]))
 
     @property
     def log_dirs(self) -> str:
