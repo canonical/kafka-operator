@@ -562,7 +562,7 @@ def test_zookeeper_broken_cleans_internal_user_credentials(harness: Harness):
     with (
         patch("workload.KafkaWorkload.stop"),
         patch("workload.KafkaWorkload.exec"),
-        patch("core.models.StateBase.update") as patched_update,
+        patch("core.models.KafkaCluster.update") as patched_update,
         patch(
             "core.models.KafkaCluster.internal_user_credentials",
             new_callable=PropertyMock,
@@ -643,9 +643,7 @@ def test_config_changed_updates_client_data(harness: Harness):
         patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
         patch("workload.KafkaWorkload.read", return_value=["gandalf=white"]),
         patch("managers.config.KafkaConfigManager.set_zk_jaas_config"),
-        patch(
-            "events.provider.KafkaProvider.update_connection_info"
-        ) as patched_update_connection_info,
+        patch("charm.KafkaCharm.update_client_data") as patched_update_client_data,
         patch(
             "managers.config.KafkaConfigManager.set_client_properties"
         ) as patched_set_client_properties,
@@ -654,7 +652,7 @@ def test_config_changed_updates_client_data(harness: Harness):
         harness.charm.on.config_changed.emit()
 
         patched_set_client_properties.assert_called_once()
-        patched_update_connection_info.assert_called_once()
+        patched_update_client_data.assert_called_once()
 
 
 def test_config_changed_restarts(harness: Harness):
