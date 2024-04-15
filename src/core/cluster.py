@@ -48,12 +48,9 @@ class ClusterState(Object):
     # --- RELATIONS ---
 
     @property
-    def peer_relation(self) -> Relation:
+    def peer_relation(self) -> Relation | None:
         """The cluster peer relation."""
-        if not (peer_relation := self.model.get_relation(PEER)):
-            raise AttributeError(f"No peer relation {PEER} found.")
-
-        return peer_relation
+        return self.model.get_relation(PEER)
 
     @property
     def zookeeper_relation(self) -> Relation | None:
@@ -147,7 +144,7 @@ class ClusterState(Object):
                     bootstrap_server=",".join(self.bootstrap_server),
                     password=self.cluster.client_passwords.get(f"relation-{relation.id}", ""),
                     tls="enabled" if self.cluster.tls_enabled else "disabled",
-                    zookeeper_uris=self.zookeeper.uris if self.zookeeper else "",
+                    zookeeper_uris=self.zookeeper.uris,
                 )
             )
 

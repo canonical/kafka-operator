@@ -61,7 +61,7 @@ class KafkaCluster(RelationState):
 
     def __init__(
         self,
-        relation: Relation,
+        relation: Relation | None,
         data_interface: DataPeerData,
         component: Application,
         substrate: SUBSTRATES,
@@ -135,7 +135,7 @@ class KafkaBroker(RelationState):
 
     def __init__(
         self,
-        relation: Relation,
+        relation: Relation | None,
         data_interface: DataPeerUnitData,
         component: Unit,
         substrate: SUBSTRATES,
@@ -369,7 +369,7 @@ class KafkaClient(RelationState):
 
     def __init__(
         self,
-        relation: Relation,
+        relation: Relation | None,
         data_interface: Data,
         component: Application,
         substrate: SUBSTRATES,
