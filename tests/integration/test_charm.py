@@ -130,24 +130,31 @@ async def test_listeners(ops_test: OpsTest, app_charm):
     assert check_socket(
         address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].internal
     )  # Internal listener
+
     # Client listener should not be enabled if there is no relations
     assert not check_socket(address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].client)
+
     # Add relation with dummy app
     await asyncio.gather(
         ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series="jammy"),
     )
     await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME, ZK_NAME])
+
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
+
     assert ops_test.model.applications[APP_NAME].status == "active"
     assert ops_test.model.applications[DUMMY_NAME].status == "active"
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME, DUMMY_NAME])
+
     # check that client listener is active
     assert check_socket(address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].client)
+
     # remove relation and check that client listener is not active
     await ops_test.model.applications[APP_NAME].remove_relation(
         f"{APP_NAME}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_ADMIN}"
     )
     await ops_test.model.wait_for_idle(apps=[APP_NAME])
+
     assert not check_socket(address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].client)
 
 
