@@ -433,4 +433,4 @@ class KafkaClient(RelationState):
         Can be any comma-delimited selection of `producer`, `consumer` and `admin`.
         When `admin` is set, the Kafka charm interprets this as a new super.user.
         """
-        return self.relation_data.get("extra_user_roles", "")
+        return self.relation_data.get("extra-user-roles", "")
