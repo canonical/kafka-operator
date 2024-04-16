@@ -186,9 +186,10 @@ async def test_logs_write_to_storage(ops_test: OpsTest):
     time.sleep(10)
     assert ops_test.model.applications[APP_NAME].status == "active"
     assert ops_test.model.applications[DUMMY_NAME].status == "active"
-    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME, DUMMY_NAME])
+    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME, DUMMY_NAME], idle_period=30)
+
     produce_and_check_logs(
-        model_full_name=ops_test.model_full_name,
+        ops_test=ops_test,
         kafka_unit_name=f"{APP_NAME}/0",
         provider_unit_name=f"{DUMMY_NAME}/0",
         topic="hot-topic",
@@ -266,7 +267,7 @@ async def test_logs_write_to_new_storage(ops_test: OpsTest):
     time.sleep(5)  # to give time for storage to complete
 
     produce_and_check_logs(
-        model_full_name=ops_test.model_full_name,
+        ops_test=ops_test,
         kafka_unit_name=f"{APP_NAME}/0",
         provider_unit_name=f"{DUMMY_NAME}/0",
         topic="cold-topic",

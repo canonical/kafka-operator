@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
+import json
 import logging
-import re
 import socket
 import subprocess
 from contextlib import closing
 from pathlib import Path
 from subprocess import PIPE, check_output
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set
 
 import yaml
 from charms.kafka.v0.client import KafkaClient
@@ -30,7 +30,7 @@ TEST_DEFAULT_MESSAGES = 15
 logger = logging.getLogger(__name__)
 
 
-def load_acls(model_full_name: str, zookeeper_uri: str) -> Set[Acl]:
+def load_acls(model_full_name: str | None, zookeeper_uri: str) -> Set[Acl]:
     result = check_output(
         f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.acls --authorizer-properties zookeeper.connect={zookeeper_uri} --list'",
         stderr=PIPE,
@@ -41,7 +41,7 @@ def load_acls(model_full_name: str, zookeeper_uri: str) -> Set[Acl]:
     return AuthManager._parse_acls(acls=result)
 
 
-def load_super_users(model_full_name: str) -> List[str]:
+def load_super_users(model_full_name: str | None) -> List[str]:
     result = check_output(
         f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'cat /var/snap/charmed-kafka/current/etc/kafka/server.properties'",
         stderr=PIPE,
@@ -57,7 +57,7 @@ def load_super_users(model_full_name: str) -> List[str]:
     return []
 
 
-def check_user(model_full_name: str, username: str, zookeeper_uri: str) -> None:
+def check_user(model_full_name: str | None, username: str, zookeeper_uri: str) -> None:
     result = check_output(
         f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.configs --zookeeper {zookeeper_uri} --describe --entity-type users --entity-name {username}'",
         stderr=PIPE,
@@ -67,7 +67,7 @@ def check_user(model_full_name: str, username: str, zookeeper_uri: str) -> None:
     assert "SCRAM-SHA-512" in result
 
 
-def get_user(model_full_name: str, username: str, zookeeper_uri: str) -> str:
+def get_user(model_full_name: str | None, username: str, zookeeper_uri: str) -> str:
     result = check_output(
         f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.configs --zookeeper {zookeeper_uri} --describe --entity-type users --entity-name {username}'",
         stderr=PIPE,
@@ -76,112 +76,6 @@ def get_user(model_full_name: str, username: str, zookeeper_uri: str) -> str:
     )
 
     return result
-
-
-def show_unit(unit_name: str, model_full_name: str) -> Any:
-    result = check_output(
-        f"JUJU_MODEL={model_full_name} juju show-unit {unit_name}",
-        stderr=PIPE,
-        shell=True,
-        universal_newlines=True,
-    )
-
-    return yaml.safe_load(result)
-
-
-def get_zookeeper_connection(unit_name: str, model_full_name: str) -> Tuple[List[str], str]:
-    result = show_unit(unit_name=unit_name, model_full_name=model_full_name)
-
-    relations_info = result[unit_name]["relation-info"]
-
-    usernames = []
-    zookeeper_uri = ""
-    for info in relations_info:
-        if info["endpoint"] == "cluster":
-            for key in info["application-data"].keys():
-                if re.match(r"(relation\-[\d]+)", key):
-                    usernames.append(key)
-        if info["endpoint"] == "zookeeper":
-            zookeeper_uri = info["application-data"]["uris"]
-
-    if zookeeper_uri and usernames:
-        return usernames, zookeeper_uri
-    else:
-        raise Exception("config not found")
-
-
-def get_kafka_zk_relation_data(unit_name: str, model_full_name: str) -> Dict[str, str]:
-    result = show_unit(unit_name=unit_name, model_full_name=model_full_name)
-    relations_info = result[unit_name]["relation-info"]
-
-    zk_relation_data = {}
-    for info in relations_info:
-        if info["endpoint"] == "zookeeper":
-            zk_relation_data["chroot"] = info["application-data"]["chroot"]
-            zk_relation_data["endpoints"] = info["application-data"]["endpoints"]
-            zk_relation_data["password"] = info["application-data"]["password"]
-            zk_relation_data["uris"] = info["application-data"]["uris"]
-            zk_relation_data["username"] = info["application-data"]["username"]
-            zk_relation_data["tls"] = info["application-data"]["tls"]
-            break
-    return zk_relation_data
-
-
-def get_provider_data(
-    unit_name: str, model_full_name: str, endpoint: str = "kafka-client"
-) -> Dict[str, str]:
-    result = show_unit(unit_name=unit_name, model_full_name=model_full_name)
-    relations_info = result[unit_name]["relation-info"]
-    logger.info(f"Relation info: {relations_info}")
-    provider_relation_data = {}
-    for info in relations_info:
-        if info["endpoint"] == endpoint:
-            logger.info(f"Relation data: {info}")
-            provider_relation_data["username"] = info["application-data"]["username"]
-            provider_relation_data["password"] = info["application-data"]["password"]
-            provider_relation_data["endpoints"] = info["application-data"]["endpoints"]
-            provider_relation_data["zookeeper-uris"] = info["application-data"]["zookeeper-uris"]
-            provider_relation_data["tls"] = info["application-data"]["tls"]
-            if "consumer-group-prefix" in info["application-data"]:
-                provider_relation_data["consumer-group-prefix"] = info["application-data"][
-                    "consumer-group-prefix"
-                ]
-            provider_relation_data["topic"] = info["application-data"]["topic"]
-    return provider_relation_data
-
-
-def get_active_brokers(config: Dict) -> Set[str]:
-    """Gets all brokers currently connected to ZooKeeper.
-
-    Args:
-        config: the relation data provided by ZooKeeper
-
-    Returns:
-        Set of active broker ids
-    """
-    chroot = config.get("chroot", "")
-    hosts = config.get("endpoints", "").split(",")
-    username = config.get("username", "")
-    password = config.get("password", "")
-
-    zk = ZooKeeperManager(hosts=hosts, username=username, password=password)
-    path = f"{chroot}/brokers/ids/"
-
-    try:
-        brokers = zk.leader_znodes(path=path)
-    # auth might not be ready with ZK after relation yet
-    except (NoNodeError, AuthFailedError, QuorumLeaderNotFoundError) as e:
-        logger.debug(str(e))
-        return set()
-
-    return brokers
-
-
-async def get_address(ops_test: OpsTest, app_name=APP_NAME, unit_num=0) -> str:
-    """Get the address for a unit."""
-    status = await ops_test.model.get_status()  # noqa: F821
-    address = status["applications"][app_name]["units"][f"{app_name}/{unit_num}"]["public-address"]
-    return address
 
 
 async def set_password(ops_test: OpsTest, username="sync", password=None, num_unit=0) -> Any:
@@ -247,18 +141,18 @@ def check_tls(ip: str, port: int) -> bool:
         return False
 
 
-def consume_and_check(model_full_name: str, provider_unit_name: str, topic: str) -> None:
+def consume_and_check(ops_test: OpsTest, provider_unit_name: str, topic: str) -> None:
     """Consumes 15 messages created by `produce_and_check_logs` function.
 
     Args:
-        model_full_name: the full name of the model
+        ops_test: OpsTest
         provider_unit_name: the app to grab credentials from
         topic: the desired topic to consume from
     """
     relation_data = get_provider_data(
+        ops_test=ops_test,
         unit_name=provider_unit_name,
-        model_full_name=model_full_name,
-        endpoint="kafka-client-admin",
+        owner=APP_NAME,
     )
     topic = topic
     username = relation_data.get("username", None)
@@ -283,7 +177,7 @@ def consume_and_check(model_full_name: str, provider_unit_name: str, topic: str)
 
 
 def produce_and_check_logs(
-    model_full_name: str,
+    ops_test: OpsTest,
     kafka_unit_name: str,
     provider_unit_name: str,
     topic: str,
@@ -294,7 +188,7 @@ def produce_and_check_logs(
     """Produces 15 messages from HN to chosen Kafka topic.
 
     Args:
-        model_full_name: the full name of the model
+        ops_test: OpsTest
         kafka_unit_name: the kafka unit to checks logs on
         provider_unit_name: the app to grab credentials from
         topic: the desired topic to produce to
@@ -307,9 +201,9 @@ def produce_and_check_logs(
         AssertionError: if logs aren't found for desired topic
     """
     relation_data = get_provider_data(
+        ops_test=ops_test,
         unit_name=provider_unit_name,
-        model_full_name=model_full_name,
-        endpoint="kafka-client-admin",
+        owner=APP_NAME,
     )
     client = KafkaClient(
         servers=relation_data["endpoints"].split(","),
@@ -325,29 +219,28 @@ def produce_and_check_logs(
             replication_factor=replication_factor,
         )
         client.create_topic(topic=topic_config)
+
     for i in range(TEST_DEFAULT_MESSAGES):
         message = f"Message #{i}"
         client.produce_message(topic_name=topic, message_content=message)
 
-    check_logs(model_full_name, kafka_unit_name, topic)
+    check_logs(ops_test, kafka_unit_name, topic)
 
 
-def check_logs(model_full_name: str, kafka_unit_name: str, topic: str) -> None:
+def check_logs(ops_test: OpsTest, kafka_unit_name: str, topic: str) -> None:
     """Checks if messages for a topic have been produced.
 
     Args:
-        model_full_name: the full name of the model
+        ops_test: OpsTest
         kafka_unit_name: the kafka unit to checks logs on
         topic: the desired topic to check
     """
     logs = check_output(
-        f"JUJU_MODEL={model_full_name} juju ssh {kafka_unit_name} sudo -i 'find {PATHS['DATA']}/data'",
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {kafka_unit_name} sudo -i 'find {PATHS['DATA']}/data'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
     ).splitlines()
-
-    logger.debug(f"{logs=}")
 
     passed = False
     for log in logs:
@@ -386,7 +279,7 @@ async def set_mtls_client_acls(ops_test: OpsTest, bootstrap_server: str) -> str:
     return result
 
 
-def count_lines_with(model_full_name: str, unit: str, file: str, pattern: str) -> int:
+def count_lines_with(model_full_name: str | None, unit: str, file: str, pattern: str) -> int:
     result = check_output(
         f"JUJU_MODEL={model_full_name} juju ssh {unit} sudo -i 'grep \"{pattern}\" {file} | wc -l'",
         stderr=PIPE,
@@ -395,3 +288,138 @@ def count_lines_with(model_full_name: str, unit: str, file: str, pattern: str) -
     )
 
     return int(result)
+
+
+def get_secret_by_label(ops_test: OpsTest, label: str, owner: str) -> dict[str, str]:
+    secrets_meta_raw = check_output(
+        f"JUJU_MODEL={ops_test.model_full_name} juju list-secrets --format json",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    ).strip()
+    secrets_meta = json.loads(secrets_meta_raw)
+
+    for secret_id in secrets_meta:
+        if owner and not secrets_meta[secret_id]["owner"] == owner:
+            continue
+        if secrets_meta[secret_id]["label"] == label:
+            break
+
+    secrets_data_raw = check_output(
+        f"JUJU_MODEL={ops_test.model_full_name} juju show-secret --format json --reveal {secret_id}",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+
+    secret_data = json.loads(secrets_data_raw)
+    return secret_data[secret_id]["content"]["Data"]
+
+
+def show_unit(ops_test: OpsTest, unit_name: str) -> Any:
+    result = check_output(
+        f"JUJU_MODEL={ops_test.model_full_name} juju show-unit {unit_name}",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+
+    return yaml.safe_load(result)
+
+
+# FIXME: will need updating after zookeeper_client is implemented in full
+def get_kafka_zk_relation_data(
+    ops_test: OpsTest, owner: str, unit_name: str, relation_name: str = ZK_NAME
+) -> dict[str, str]:
+    unit_data = show_unit(ops_test, unit_name)
+
+    kafka_zk_relation_data = {}
+    for info in unit_data[unit_name]["relation-info"]:
+        if info["endpoint"] == relation_name:
+            kafka_zk_relation_data["relation-id"] = info["relation-id"]
+            kafka_zk_relation_data["chroot"] = info["application-data"]["chroot"]
+            kafka_zk_relation_data["endpoints"] = info["application-data"]["endpoints"]
+
+    user_secret = get_secret_by_label(
+        ops_test,
+        label=f"{relation_name}.{kafka_zk_relation_data['relation-id']}.user.secret",
+        owner=owner,
+    )
+    tls_secret = get_secret_by_label(
+        ops_test,
+        label=f"{relation_name}.{kafka_zk_relation_data['relation-id']}.tls.secret",
+        owner=owner,
+    )
+
+    return kafka_zk_relation_data | user_secret | tls_secret
+
+
+def get_provider_data(
+    ops_test: OpsTest,
+    owner: str,
+    unit_name: str,
+    relation_name: str = "kafka-client",
+    relation_interface: str = "kafka-client-admin",
+) -> dict[str, str]:
+    unit_data = show_unit(ops_test, unit_name)
+
+    provider_relation_data = {}
+    for info in unit_data[unit_name]["relation-info"]:
+        if info["endpoint"] == relation_interface:
+            provider_relation_data["relation-id"] = info["relation-id"]
+            provider_relation_data["endpoints"] = info["application-data"]["endpoints"]
+            provider_relation_data["topic"] = info["application-data"]["topic"]
+            provider_relation_data["zookeeper-uris"] = info["application-data"]["zookeeper-uris"]
+
+    logger.info(f"{provider_relation_data=}")
+
+    user_secret = get_secret_by_label(
+        ops_test,
+        label=f"{relation_name}.{provider_relation_data['relation-id']}.user.secret",
+        owner=owner,
+    )
+    logger.info(f"{user_secret=}")
+
+    tls_secret = get_secret_by_label(
+        ops_test,
+        label=f"{relation_name}.{provider_relation_data['relation-id']}.tls.secret",
+        owner=owner,
+    )
+    logger.info(f"{tls_secret=}")
+
+    logger.info(f"{(provider_relation_data | user_secret | tls_secret)=}")
+    return provider_relation_data | user_secret | tls_secret
+
+
+def get_active_brokers(config: Dict) -> Set[str]:
+    """Gets all brokers currently connected to ZooKeeper.
+
+    Args:
+        config: the relation data provided by ZooKeeper
+
+    Returns:
+        Set of active broker ids
+    """
+    chroot = config.get("chroot", "")
+    hosts = config.get("endpoints", "").split(",")
+    username = config.get("username", "")
+    password = config.get("password", "")
+
+    zk = ZooKeeperManager(hosts=hosts, username=username, password=password)
+    path = f"{chroot}/brokers/ids/"
+
+    try:
+        brokers = zk.leader_znodes(path=path)
+    # auth might not be ready with ZK after relation yet
+    except (NoNodeError, AuthFailedError, QuorumLeaderNotFoundError) as e:
+        logger.debug(str(e))
+        return set()
+
+    return brokers
+
+
+async def get_address(ops_test: OpsTest, app_name=APP_NAME, unit_num=0) -> str:
+    """Get the address for a unit."""
+    status = await ops_test.model.get_status()  # noqa: F821
+    address = status["applications"][app_name]["units"][f"{app_name}/{unit_num}"]["public-address"]
+    return address

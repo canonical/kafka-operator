@@ -253,9 +253,10 @@ async def test_connection_updated_on_tls_enabled(ops_test: OpsTest, app_charm):
 
     # Check that related application has updated information
     provider_data = get_provider_data(
+        ops_test=ops_test,
         unit_name=f"{DUMMY_NAME_1}/3",
-        model_full_name=ops_test.model_full_name,
-        endpoint="kafka-client-consumer",
+        relation_name="kafka-client-consumer",
+        owner=APP_NAME,
     )
 
     assert provider_data["tls"] == "enabled"

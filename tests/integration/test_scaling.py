@@ -38,7 +38,9 @@ async def test_kafka_simple_scale_up(ops_test: OpsTest, kafka_charm):
     )
 
     kafka_zk_relation_data = get_kafka_zk_relation_data(
-        unit_name="kafka/2", model_full_name=ops_test.model_full_name
+        ops_test=ops_test,
+        unit_name="kafka/2",
+        owner=CHARM_KEY,
     )
     active_brokers = get_active_brokers(config=kafka_zk_relation_data)
     chroot = kafka_zk_relation_data.get("chroot", "")
@@ -57,7 +59,9 @@ async def test_kafka_simple_scale_down(ops_test: OpsTest):
     time.sleep(30)
 
     kafka_zk_relation_data = get_kafka_zk_relation_data(
-        unit_name="kafka/2", model_full_name=ops_test.model_full_name
+        ops_test=ops_test,
+        unit_name="kafka/2",
+        owner=CHARM_KEY,
     )
     active_brokers = get_active_brokers(config=kafka_zk_relation_data)
     chroot = kafka_zk_relation_data.get("chroot", "")

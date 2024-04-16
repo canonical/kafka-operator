@@ -99,7 +99,7 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm):
 
     # Extract the key
     private_key = extract_private_key(
-        show_unit(f"{CHARM_KEY}/{num_unit}", model_full_name=ops_test.model_full_name), unit=0
+        show_unit(unit_name=f"{CHARM_KEY}/{num_unit}", ops_test=ops_test), unit=num_unit
     )
 
     async with ops_test.fast_forward():
@@ -142,7 +142,7 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm):
 
     # Extract the key
     private_key_2 = extract_private_key(
-        show_unit(f"{CHARM_KEY}/{num_unit}", model_full_name=ops_test.model_full_name), unit=0
+        show_unit(unit_name=f"{CHARM_KEY}/{num_unit}", ops_test=ops_test), unit=num_unit
     )
 
     assert private_key != private_key_2
@@ -181,7 +181,7 @@ async def test_mtls(ops_test: OpsTest):
         )
 
     # getting kafka ca and address
-    broker_ca = extract_ca(show_unit(f"{CHARM_KEY}/0", model_full_name=ops_test.model_full_name))
+    broker_ca = extract_ca(show_unit(unit_name=f"{CHARM_KEY}/0", ops_test=ops_test))
     address = await get_address(ops_test, app_name=CHARM_KEY)
     ssl_port = SECURITY_PROTOCOL_PORTS["SSL"].client
     sasl_port = SECURITY_PROTOCOL_PORTS["SASL_SSL"].client
@@ -250,7 +250,9 @@ async def test_kafka_tls_scaling(ops_test: OpsTest):
     )
 
     kafka_zk_relation_data = get_kafka_zk_relation_data(
-        unit_name=f"{CHARM_KEY}/2", model_full_name=ops_test.model_full_name
+        unit_name=f"{CHARM_KEY}/2",
+        ops_test=ops_test,
+        owner=CHARM_KEY,
     )
     active_brokers = get_active_brokers(config=kafka_zk_relation_data)
     chroot = kafka_zk_relation_data.get("chroot", "")

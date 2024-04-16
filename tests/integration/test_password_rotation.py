@@ -39,7 +39,9 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
 async def test_password_rotation(ops_test: OpsTest):
     """Check that password stored on ZK has changed after a password rotation."""
     relation_data = get_kafka_zk_relation_data(
-        unit_name=f"{APP_NAME}/0", model_full_name=ops_test.model_full_name
+        ops_test=ops_test,
+        unit_name=f"{APP_NAME}/0",
+        owner=APP_NAME,
     )
     uri = relation_data["uris"].split(",")[-1]
 
