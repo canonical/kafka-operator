@@ -184,8 +184,10 @@ class AuthManager:
             f"--entity-name={username}",
             "--delete-config=SCRAM-SHA-512",
         ]
+        logger.info(f"DELETING USER - {command=}")
         try:
-            self.workload.run_bin_command(bin_keyword="configs", bin_args=command)
+            result = self.workload.run_bin_command(bin_keyword="configs", bin_args=command)
+            logger.info(f"{result=}")
         except (subprocess.CalledProcessError, ExecError) as e:
             if e.stderr and "delete a user credential that does not exist" in e.stderr:
                 logger.warning(f"User: {username} can't be deleted, it does not exist")
@@ -274,8 +276,10 @@ class AuthManager:
         """
         # getting subset of all cluster ACLs for only the provided user
         current_user_acls = {acl for acl in self.current_acls if acl.username == username}
+        logger.info(f"REMOVING ALL USER ACLS - {current_user_acls=}")
 
         for acl in current_user_acls:
+            logger.info(f"REMOVING ACL - {acl=}")
             self.remove_acl(**asdict(acl))
 
     def update_user_acls(

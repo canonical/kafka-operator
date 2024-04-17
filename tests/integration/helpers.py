@@ -30,9 +30,9 @@ TEST_DEFAULT_MESSAGES = 15
 logger = logging.getLogger(__name__)
 
 
-def load_acls(model_full_name: str | None, zookeeper_uri: str) -> Set[Acl]:
+def load_acls(model_full_name: str | None, zk_uris: str) -> Set[Acl]:
     result = check_output(
-        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.acls --authorizer-properties zookeeper.connect={zookeeper_uri} --list'",
+        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.acls --authorizer-properties zookeeper.connect={zk_uris} --list'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -57,19 +57,20 @@ def load_super_users(model_full_name: str | None) -> List[str]:
     return []
 
 
-def check_user(model_full_name: str | None, username: str, zookeeper_uri: str) -> None:
+def check_user(model_full_name: str | None, username: str) -> None:
     result = check_output(
-        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.configs --zookeeper {zookeeper_uri} --describe --entity-type users --entity-name {username}'",
+        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.configs --bootstrap-server localhost:9092 --describe --entity-type users --entity-name {username}' --command-config /var/snap/charmed-kafka/current/etc/kafka/client.properties",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
     )
-    assert "SCRAM-SHA-512" in result
+
+    assert f"SCRAM credential configs for user-principal '{username}' are SCRAM-SHA-512" in result
 
 
-def get_user(model_full_name: str | None, username: str, zookeeper_uri: str) -> str:
+def get_user(model_full_name: str | None, username: str) -> str:
     result = check_output(
-        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.configs --zookeeper {zookeeper_uri} --describe --entity-type users --entity-name {username}'",
+        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.configs --bootstrap-server localhost:9092 --describe --entity-type users --entity-name {username}' --command-config /var/snap/charmed-kafka/current/etc/kafka/client.properties",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -327,6 +328,19 @@ def show_unit(ops_test: OpsTest, unit_name: str) -> Any:
     return yaml.safe_load(result)
 
 
+def get_client_usernames(ops_test: OpsTest, owner: str = APP_NAME) -> set[str]:
+    app_secret = get_secret_by_label(ops_test, label=f"{owner}.app", owner=owner)
+
+    usernames = set()
+    for key in app_secret.keys():
+        if "password" in key:
+            usernames.add(key.split("-")[0])
+        if "relation" in key:
+            usernames.add(key)
+
+    return usernames
+
+
 # FIXME: will need updating after zookeeper_client is implemented in full
 def get_kafka_zk_relation_data(
     ops_test: OpsTest, owner: str, unit_name: str, relation_name: str = ZK_NAME
@@ -339,6 +353,9 @@ def get_kafka_zk_relation_data(
             kafka_zk_relation_data["relation-id"] = info["relation-id"]
             kafka_zk_relation_data["chroot"] = info["application-data"]["chroot"]
             kafka_zk_relation_data["endpoints"] = info["application-data"]["endpoints"]
+
+            if uris := info["application-data"].get("uris"):
+                kafka_zk_relation_data["uris"] = uris
 
     user_secret = get_secret_by_label(
         ops_test,
