@@ -69,10 +69,7 @@ async def test_deploy_tls(ops_test: OpsTest, kafka_charm):
     # Relate Zookeeper to TLS
     async with ops_test.fast_forward():
         await ops_test.model.add_relation(TLS_NAME, ZK)
-        await ops_test.model.wait_for_idle(apps=[TLS_NAME, ZK], idle_period=15)
-
-        assert ops_test.model.applications[TLS_NAME].status == "active"
-        assert ops_test.model.applications[ZK].status == "active"
+        await ops_test.model.wait_for_idle(apps=[TLS_NAME, ZK], idle_period=15, status="active")
 
 
 @pytest.mark.abort_on_fail
