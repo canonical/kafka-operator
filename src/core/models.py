@@ -66,7 +66,7 @@ class KafkaCluster(RelationState):
         component: Application,
         substrate: SUBSTRATES,
     ):
-        super().__init__(relation, data_interface, None, substrate)
+        super().__init__(relation, data_interface, component, substrate)
         self.data_interface = data_interface
         self.app = component
 
