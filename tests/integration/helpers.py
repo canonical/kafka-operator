@@ -351,23 +351,23 @@ def get_kafka_zk_relation_data(
     for info in unit_data[unit_name]["relation-info"]:
         if info["endpoint"] == relation_name:
             kafka_zk_relation_data["relation-id"] = info["relation-id"]
-            kafka_zk_relation_data["chroot"] = info["application-data"]["chroot"]
-            kafka_zk_relation_data["endpoints"] = info["application-data"]["endpoints"]
 
-            if uris := info["application-data"].get("uris"):
-                kafka_zk_relation_data["uris"] = uris
+            # initially collects all non-secret keys
+            kafka_zk_relation_data.update(dict(info["application-data"]))
 
     user_secret = get_secret_by_label(
         ops_test,
         label=f"{relation_name}.{kafka_zk_relation_data['relation-id']}.user.secret",
         owner=owner,
     )
+
     tls_secret = get_secret_by_label(
         ops_test,
         label=f"{relation_name}.{kafka_zk_relation_data['relation-id']}.tls.secret",
         owner=owner,
     )
 
+    # overrides to secret keys if found
     return kafka_zk_relation_data | user_secret | tls_secret
 
 
@@ -384,27 +384,23 @@ def get_provider_data(
     for info in unit_data[unit_name]["relation-info"]:
         if info["endpoint"] == relation_interface:
             provider_relation_data["relation-id"] = info["relation-id"]
-            provider_relation_data["endpoints"] = info["application-data"]["endpoints"]
-            provider_relation_data["topic"] = info["application-data"]["topic"]
-            provider_relation_data["zookeeper-uris"] = info["application-data"]["zookeeper-uris"]
 
-    logger.info(f"{provider_relation_data=}")
+            # initially collects all non-secret keys
+            provider_relation_data.update(dict(info["application-data"]))
 
     user_secret = get_secret_by_label(
         ops_test,
         label=f"{relation_name}.{provider_relation_data['relation-id']}.user.secret",
         owner=owner,
     )
-    logger.info(f"{user_secret=}")
 
     tls_secret = get_secret_by_label(
         ops_test,
         label=f"{relation_name}.{provider_relation_data['relation-id']}.tls.secret",
         owner=owner,
     )
-    logger.info(f"{tls_secret=}")
 
-    logger.info(f"{(provider_relation_data | user_secret | tls_secret)=}")
+    # overrides to secret keys if found
     return provider_relation_data | user_secret | tls_secret
 
 
@@ -429,7 +425,7 @@ def get_active_brokers(config: Dict) -> Set[str]:
         brokers = zk.leader_znodes(path=path)
     # auth might not be ready with ZK after relation yet
     except (NoNodeError, AuthFailedError, QuorumLeaderNotFoundError) as e:
-        logger.debug(str(e))
+        logger.warning(str(e))
         return set()
 
     return brokers
