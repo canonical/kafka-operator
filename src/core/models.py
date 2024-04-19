@@ -405,7 +405,10 @@ class KafkaClient(RelationState):
     @property
     def consumer_group_prefix(self) -> str:
         """The assigned consumer group prefix for a client application presenting consumer role."""
-        return f"{self.username}-" if "consumer" in self.extra_user_roles else ""
+        return self.relation_data.get(
+            "consumer-group-prefix",
+            f"{self.username}-" if "consumer" in self.extra_user_roles else "",
+        )
 
     @property
     def tls(self) -> str:
