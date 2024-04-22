@@ -20,8 +20,7 @@ from .helpers import (
 
 logger = logging.getLogger(__name__)
 
-# FIXME: update this to 'stable' when `pre-upgrade-check` is released to 'stable'
-CHANNEL = "edge"
+CHANNEL = "3/stable"
 
 
 @pytest.mark.abort_on_fail
@@ -29,7 +28,7 @@ async def test_in_place_upgrade(ops_test: OpsTest, kafka_charm, app_charm):
     await asyncio.gather(
         ops_test.model.deploy(
             ZK_NAME,
-            channel="edge",
+            channel="3/edge",
             application_name=ZK_NAME,
             num_units=1,
             series="jammy",
