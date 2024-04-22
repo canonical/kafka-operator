@@ -14,6 +14,8 @@ body:
       label: Description
       description: "Please describe the bug for us: "
       placeholder: ex. "charmed kafka is breaking with this field set to value."
+    validations:
+      required: true
 
   - type: dropdown
     id: Urgency
@@ -28,21 +30,33 @@ body:
     validations:
       required: true
 
+  - type: textarea
+    id: ExpectedBehaviour
+    attributes:
+      label: Expected behaviour
+      description: "Provide a description of the expected behaviour observed."
+
+  - type: textarea
+    id: ActualBehaviour
+    attributes:
+      label: Actual behaviour
+      description: "Provide a description of the actual behaviour observed."
+
   - type: input
     id: Juju-CLI-Version
     attributes:
       label: Juju client version
       description: Version of the Juju client. Run `juju version` to obtain it.
-      placeholder: 3.1.7
+      placeholder: 3.4.2
     validations:
       required: true
 
   - type: input
     id: Juju-Version
     attributes:
-      label: Juju client version
-      description: What version of the Juju client are you running? Run `juju version` to obtain it.
-      placeholder: 3.1.7
+      label: Juju controller version
+      description: What version of the Juju agent are you running? Run `juju status --format yaml | yq .model.version` (with `yq` installed) to obtain it.
+      placeholder: 3.4.2
     validations:
       required: true
 
@@ -50,8 +64,8 @@ body:
     id: Charm-Revision
     attributes:
       label: Charm revision version
-      description: What version of the Juju agent are you running? Run `juju status` to obtain it.
-      placeholder: 3.1.7
+      description: What version of the Kafka charm are you running? Run `juju status` to obtain it.
+      placeholder: "150"
     validations:
       required: true
 
@@ -60,7 +74,7 @@ body:
     attributes:
       label: Substrate version or specification
       description: Provide information about the substrate where you are running. For instance, on LXD use `lxd version`.
-      placeholder: "LXD: 5.0.3"
+      placeholder: "e.g. LXD: 5.20, MicroK8s 1.29.0-strict (revision 12345), GKE: 1.29.1"
     validations:
       required: true
 
