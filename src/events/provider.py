@@ -140,7 +140,10 @@ class KafkaProvider(Object):
                 self.kafka_provider.set_bootstrap_server(
                     relation_id=relation.id, bootstrap_server=",".join(bootstrap_server)
                 )
-                self.kafka_provider.set_tls(relation_id=relation.id, tls=tls)
+                # this is a quick fix for the secret revision burst
+                current_tls = self.kafka_provider._fetch_my_specific_relation_data(relation, ['tls'])['tls']
+                if tls != current_tls:
+                    self.kafka_provider.set_tls(relation_id=relation.id, tls=tls)
                 self.kafka_provider.set_zookeeper_uris(
                     relation_id=relation.id, zookeeper_uris=zookeeper_uris
                 )
