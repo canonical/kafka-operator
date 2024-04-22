@@ -3,6 +3,7 @@
 # See LICENSE file for licensing details.
 
 import asyncio
+import json
 import logging
 import time
 from subprocess import PIPE, check_output
@@ -81,10 +82,16 @@ async def test_build_and_deploy_same_machine(ops_test: OpsTest, kafka_charm):
 async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
     await ops_test.model.add_machine(series="jammy")
     machine_ids = await ops_test.model.get_machines()
+    await ops_test.model.create_storage_pool("test_pool", "lxd")
 
     await asyncio.gather(
         ops_test.model.deploy(
-            kafka_charm, application_name=APP_NAME, num_units=1, series="jammy", to=machine_ids[0]
+            kafka_charm,
+            application_name=APP_NAME,
+            num_units=1,
+            series="jammy",
+            to=machine_ids[0],
+            storage={"data": {"pool": "test_pool", "size": 10240}},
         ),
         ops_test.model.deploy(
             ZK_NAME, channel="edge", application_name=ZK_NAME, num_units=1, series="jammy"
@@ -298,3 +305,30 @@ async def test_observability_integration(ops_test: OpsTest):
     for targets in machine_targets.values():
         assert '"state":"up"' in targets
         assert '"state":"down"' not in targets
+
+
+@pytest.mark.abort_on_fail
+async def test_deploy_with_existing_storage(ops_test: OpsTest):
+    unit_to_remove, *_ = await ops_test.model.applications[APP_NAME].add_units(count=3)
+    await ops_test.model.block_until(lambda: len(ops_test.model.applications[APP_NAME].units) == 4)
+    await ops_test.model.wait_for_idle(
+        apps=[APP_NAME], status="active", timeout=1000, idle_period=30
+    )
+
+    _, stdout, _ = await ops_test.juju("storage", "--format", "json")
+    storages = json.loads(stdout)["storage"]
+
+    for data_storage_id, content in storages.items():
+        units = content["attachments"]["units"].keys()
+        if unit_to_remove.name not in units:
+            continue
+        break
+
+    await unit_to_remove.remove(destroy_storage=False)
+    await ops_test.model.block_until(lambda: len(ops_test.model.applications[APP_NAME].units) == 3)
+
+    add_unit_cmd = f"add-unit {APP_NAME} --model={ops_test.model.info.name} --attach-storage={data_storage_id}".split()
+    await ops_test.juju(*add_unit_cmd)
+    await ops_test.model.wait_for_idle(
+        apps=[APP_NAME], status="active", timeout=1000, idle_period=60
+    )

@@ -12,7 +12,7 @@ from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, StatusBase
 
 CHARM_KEY = "kafka"
 SNAP_NAME = "charmed-kafka"
-CHARMED_KAFKA_SNAP_REVISION = 32
+CHARMED_KAFKA_SNAP_REVISION = 34
 CONTAINER = "kafka"
 
 PEER = "cluster"
@@ -29,7 +29,7 @@ METRICS_RULES_DIR = "./src/alert_rules/prometheus"
 LOGS_RULES_DIR = "./src/alert_rules/loki"
 
 SUBSTRATE = "vm"
-USER = "snap_daemon"
+USER = 584788
 GROUP = "root"
 
 AuthMechanism = Literal["SASL_PLAINTEXT", "SASL_SSL", "SSL"]
