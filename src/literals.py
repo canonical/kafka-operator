@@ -29,6 +29,11 @@ METRICS_RULES_DIR = "./src/alert_rules/prometheus"
 LOGS_RULES_DIR = "./src/alert_rules/loki"
 
 SUBSTRATE = "vm"
+# '584788' refers to snap_daemon, which do not exists on the storage-attached hook prior to the
+# snap install.
+# FIXME (24.04): From snapd 2.61 onwards, snap_daemon is being deprecated and replaced with _daemon_,
+# which now possesses a UID of 584792.
+# See https://snapcraft.io/docs/system-usernames.
 USER = 584788
 GROUP = "root"
 
