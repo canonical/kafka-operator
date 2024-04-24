@@ -329,7 +329,7 @@ def show_unit(ops_test: OpsTest, unit_name: str) -> Any:
 
 
 def get_client_usernames(ops_test: OpsTest, owner: str = APP_NAME) -> set[str]:
-    app_secret = get_secret_by_label(ops_test, label=f"{owner}.app", owner=owner)
+    app_secret = get_secret_by_label(ops_test, label=f"cluster.{owner}.app", owner=owner)
 
     usernames = set()
     for key in app_secret.keys():

@@ -49,19 +49,20 @@ async def test_deploy_charms_relate_active(
     await ops_test.model.add_relation(APP_NAME, ZK)
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_CONSUMER}")
 
-    async with ops_test.fast_forward(fast_interval="30s"):
+    async with ops_test.fast_forward(fast_interval="60s"):
         await ops_test.model.wait_for_idle(
             apps=[APP_NAME, DUMMY_NAME_1, ZK], idle_period=30, status="active"
         )
 
     usernames.update(get_client_usernames(ops_test))
+
     for username in usernames:
         check_user(
             username=username,
             model_full_name=ops_test.model_full_name,
         )
 
-    zk_data = get_kafka_zk_relation_data(ops_test, APP_NAME, f"{APP_NAME}/0")
+    zk_data = get_kafka_zk_relation_data(ops_test=ops_test, owner=ZK, unit_name=f"{APP_NAME}/0")
     zk_uris = zk_data.get("uris", "").split("/")[0]
 
     for acl in load_acls(model_full_name=ops_test.model_full_name, zk_uris=zk_uris):
@@ -94,7 +95,7 @@ async def test_deploy_multiple_charms_same_topic_relate_active(
             model_full_name=ops_test.model_full_name,
         )
 
-    zk_data = get_kafka_zk_relation_data(ops_test, APP_NAME, f"{APP_NAME}/0")
+    zk_data = get_kafka_zk_relation_data(ops_test=ops_test, owner=ZK, unit_name=f"{APP_NAME}/0")
     zk_uris = zk_data.get("uris", "").split("/")[0]
 
     for acl in load_acls(model_full_name=ops_test.model_full_name, zk_uris=zk_uris):
@@ -109,13 +110,12 @@ async def test_deploy_multiple_charms_same_topic_relate_active(
 async def test_remove_application_removes_user_and_acls(ops_test: OpsTest, usernames: set[str]):
     """Test the correct removal of user and permission after relation removal."""
     await ops_test.model.remove_application(DUMMY_NAME_1, block_until_done=True)
-    logger.info("REMOVED APPLICATION")
 
     async with ops_test.fast_forward(fast_interval="60s"):
         await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK], idle_period=30, status="active")
 
     # checks that old users are removed from active cluster ACLs
-    zk_data = get_kafka_zk_relation_data(ops_test, APP_NAME, f"{APP_NAME}/0")
+    zk_data = get_kafka_zk_relation_data(ops_test=ops_test, owner=ZK, unit_name=f"{APP_NAME}/0")
     zk_uris = zk_data.get("uris", "").split("/")[0]
 
     acls = load_acls(model_full_name=ops_test.model_full_name, zk_uris=zk_uris)
@@ -128,7 +128,6 @@ async def test_remove_application_removes_user_and_acls(ops_test: OpsTest, usern
     # checks that past usernames no longer exist
     with pytest.raises(AssertionError):
         for username in usernames:
-            logger.info(f"CHECKING {username=}")
             check_user(
                 username=username,
                 model_full_name=ops_test.model_full_name,
@@ -150,7 +149,7 @@ async def test_deploy_producer_same_topic(ops_test: OpsTest, app_charm, username
             apps=[APP_NAME, DUMMY_NAME_1, ZK], idle_period=30, status="active"
         )
 
-    zk_data = get_kafka_zk_relation_data(ops_test, APP_NAME, f"{APP_NAME}/0")
+    zk_data = get_kafka_zk_relation_data(ops_test=ops_test, owner=ZK, unit_name=f"{APP_NAME}/0")
     zk_uris = zk_data.get("uris", "").split("/")[0]
 
     acls = load_acls(model_full_name=ops_test.model_full_name, zk_uris=zk_uris)
@@ -241,6 +240,10 @@ async def test_connection_updated_on_tls_enabled(ops_test: OpsTest, app_charm):
     await ops_test.model.wait_for_idle(
         apps=[APP_NAME, ZK, TLS_NAME, DUMMY_NAME_1], timeout=1800, idle_period=60, status="active"
     )
+
+    # ensure at least one update-status run
+    async with ops_test.fast_forward(fast_interval="30s"):
+        await asyncio.sleep(60)
 
     # Check that related application has updated information
     provider_data = get_provider_data(

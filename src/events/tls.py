@@ -253,10 +253,6 @@ class TLSHandler(Object):
             logger.error("Can't use certificate, found unknown CSR")
             return
 
-        # if certificate already exists, this event must be new, flag manual restart
-        if self.charm.state.unit_broker.certificate:
-            self.charm.on[f"{self.charm.restart.name}"].acquire_lock.emit()
-
         self.charm.state.unit_broker.update(
             {"certificate": event.certificate, "ca-cert": event.ca, "ca": ""}
         )
@@ -266,6 +262,9 @@ class TLSHandler(Object):
         self.charm.tls_manager.set_certificate()
         self.charm.tls_manager.set_truststore()
         self.charm.tls_manager.set_keystore()
+
+        # single-unit Kafka can lose restart events if it loses connection with TLS-enabled ZK
+        self.charm._on_config_changed(event)
 
     def _on_certificate_expiring(self, _) -> None:
         """Handler for `certificate_expiring` event."""
