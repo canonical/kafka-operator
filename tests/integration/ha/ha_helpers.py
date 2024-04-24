@@ -218,7 +218,9 @@ def network_restore(machine_name: str) -> None:
 
 def is_up(ops_test: OpsTest, broker_id: int) -> bool:
     """Return if node up."""
-    kafka_zk_relation_data = get_kafka_zk_relation_data(ops_test=ops_test, owner=ZK, unit_name=f"{APP_NAME}/0")
+    kafka_zk_relation_data = get_kafka_zk_relation_data(
+        ops_test=ops_test, owner=ZK, unit_name=f"{APP_NAME}/0"
+    )
     active_brokers = get_active_brokers(config=kafka_zk_relation_data)
     chroot = kafka_zk_relation_data.get("chroot", "")
     return f"{chroot}/brokers/ids/{broker_id}" in active_brokers

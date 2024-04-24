@@ -101,7 +101,7 @@ async def test_replicated_events(ops_test: OpsTest):
     )
     logger.info("Producing messages and checking on all units")
     produce_and_check_logs(
-        model_full_name=ops_test.model_full_name,
+        ops_test=ops_test,
         kafka_unit_name=f"{APP_NAME}/0",
         provider_unit_name=f"{DUMMY_NAME}/0",
         topic="replicated-topic",
@@ -145,7 +145,7 @@ async def test_multi_cluster_isolation(ops_test: OpsTest, kafka_charm):
     )
 
     produce_and_check_logs(
-        model_full_name=ops_test.model_full_name,
+        ops_test=ops_test,
         kafka_unit_name=f"{APP_NAME}/0",
         provider_unit_name=f"{DUMMY_NAME}/0",
         topic="hot-topic",
@@ -156,7 +156,7 @@ async def test_multi_cluster_isolation(ops_test: OpsTest, kafka_charm):
     # Check that logs are not found on the second cluster
     with pytest.raises(AssertionError):
         check_logs(
-            model_full_name=ops_test.model_full_name,
+            ops_test=ops_test,
             kafka_unit_name=f"{second_kafka_name}/0",
             topic="hot-topic",
         )
