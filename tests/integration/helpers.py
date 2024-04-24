@@ -102,22 +102,24 @@ async def set_tls_private_key(ops_test: OpsTest, key: Optional[str] = None, num_
     return (await action.wait()).results
 
 
-def extract_private_key(data: dict, unit: int = 0) -> Optional[str]:
-    list_keys = [
-        element["local-unit"]["data"]["private-key"]
-        for element in data[f"{APP_NAME}/{unit}"]["relation-info"]
-        if element["endpoint"] == "cluster"
-    ]
-    return list_keys[0] if len(list_keys) else None
+def extract_private_key(ops_test: OpsTest, unit_name: str) -> str | None:
+    user_secret = get_secret_by_label(
+        ops_test,
+        label=f"cluster.{unit_name.split('/')[0]}.unit",
+        owner=unit_name,
+    )
+
+    return user_secret.get("private-key")
 
 
-def extract_ca(data: dict, unit: int = 0) -> Optional[str]:
-    list_keys = [
-        element["local-unit"]["data"]["ca"]
-        for element in data[f"{APP_NAME}/{unit}"]["relation-info"]
-        if element["endpoint"] == "cluster"
-    ]
-    return list_keys[0] if len(list_keys) else None
+def extract_ca(ops_test: OpsTest, unit_name: str) -> str | None:
+    user_secret = get_secret_by_label(
+        ops_test,
+        label=f"cluster.{unit_name.split('/')[0]}.unit",
+        owner=unit_name,
+    )
+
+    return user_secret.get("ca-cert") or user_secret.get("ca")
 
 
 def check_socket(host: str, port: int) -> bool:
@@ -136,7 +138,7 @@ def check_tls(ip: str, port: int) -> bool:
         # FIXME: The server cannot be validated, we would need to try to connect using the CA
         # from self-signed certificates. This is indication enough that the server is sending a
         # self-signed key.
-        return "CN = kafka" in result
+        return "CN=kafka" in result
     except subprocess.CalledProcessError as e:
         logger.error(f"command '{e.cmd}' return with error (code {e.returncode}): {e.output}")
         return False

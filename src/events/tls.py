@@ -264,7 +264,7 @@ class TLSHandler(Object):
         self.charm.tls_manager.set_keystore()
 
         # single-unit Kafka can lose restart events if it loses connection with TLS-enabled ZK
-        self.charm._on_config_changed(event)
+        self.charm.on.config_changed.emit()
 
     def _on_certificate_expiring(self, _) -> None:
         """Handler for `certificate_expiring` event."""

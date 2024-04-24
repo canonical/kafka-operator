@@ -157,11 +157,8 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
     def _on_config_changed(self, event: EventBase) -> None:
         """Generic handler for most `config_changed` events across relations."""
-        if isinstance(event, StorageEvent):
-            logger.info("HANDLING STORAGE CONFIG-CHANGED")
         # only overwrite properties if service is already active
         if not self.healthy or not self.upgrade.idle:
-            logger.info(f"DEFERRING CONFIG CHANGED - {self.healthy=}, {self.upgrade.idle=}")
             event.defer()
             return
 
@@ -173,7 +170,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         zk_jaas_changed = set(zk_jaas) ^ set(self.config_manager.zk_jaas_config.splitlines())
 
         if not properties or not zk_jaas:
-            logger.info(f"DEFERRING CONFIG CHANGED - {properties=}, {zk_jaas=}")
             # Event fired before charm has properly started
             event.defer()
             return
@@ -224,7 +220,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         if self.model.relations.get(REL_NAME, None) and self.unit.is_leader():
             self.update_client_data()
 
-    def _on_update_status(self, event: EventBase) -> None:
+    def _on_update_status(self, _: EventBase) -> None:
         """Handler for `update-status` events."""
         if not self.healthy or not self.upgrade.idle:
             return
@@ -235,7 +231,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         # NOTE for situations like IP change and late integration with rack-awareness charm.
         # If properties have changed, the broker will restart.
-        self._on_config_changed(event)
+        self.on.config_changed.emit()
 
         try:
             if not self.health.machine_configured():
@@ -263,7 +259,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             "extra",  # pyright: ignore[reportArgumentType] -- Changes with the https://github.com/canonical/data-platform-libs/issues/124
         ):
             # TODO: figure out why creating internal credentials setting doesn't trigger changed event here
-            self._on_config_changed(event)
+            self.on.config_changed.emit()
 
     def _on_storage_attached(self, event: StorageAttachedEvent) -> None:
         """Handler for `storage_attached` events."""
@@ -339,12 +335,10 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             True if service is alive and active. Otherwise False
         """
         self._set_status(self.state.ready_to_start)
-        logger.info(f"{self.state.ready_to_start=}")
         if not isinstance(self.unit.status, ActiveStatus):
             return False
 
         if not self.workload.active():
-            logger.info(f"{self.workload.active()=}")
             self._set_status(Status.SNAP_NOT_RUNNING)
             return False
 

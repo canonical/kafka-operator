@@ -43,7 +43,6 @@ class ZooKeeperHandler(Object):
     def _on_zookeeper_changed(self, event: RelationChangedEvent) -> None:
         """Handler for `zookeeper_relation_created/joined/changed` events, ensuring internal users get created."""
         if not self.charm.state.zookeeper.zookeeper_connected:
-            logger.debug("No information found from ZooKeeper relation")
             self.charm._set_status(Status.ZK_NO_DATA)
             return
 
@@ -79,9 +78,9 @@ class ZooKeeperHandler(Object):
         # attempt re-start of Kafka for all units on zookeeper-changed
         # avoids relying on deferred events elsewhere that may not exist after cluster init
         if not self.charm.healthy and self.charm.state.cluster.internal_user_credentials:
-            self.charm._on_start(event)
+            self.charm.on.start.emit()
 
-        self.charm._on_config_changed(event)
+        self.charm.on.config_changed.emit()
 
     def _on_zookeeper_broken(self, _: RelationEvent) -> None:
         """Handler for `zookeeper_relation_broken` event, ensuring charm blocks."""
