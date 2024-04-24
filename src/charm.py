@@ -272,7 +272,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             self.workload.exec(f"chmod -R 770 {self.workload.paths.data_path}")
             self._on_config_changed(event)
 
-    def _on_storage_detaching(self, event: StorageDetachingEvent) -> None:
+    def _on_storage_detaching(self, _: StorageDetachingEvent) -> None:
         """Handler for `storage_detaching` events."""
         logger.info("HANDLING DETACHING STORAGE")
         # in the case where there may be replication recovery may be possible
