@@ -157,8 +157,11 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
     def _on_config_changed(self, event: EventBase) -> None:
         """Generic handler for most `config_changed` events across relations."""
+        if isinstance(event, StorageEvent):
+            logger.info("HANDLING STORAGE CONFIG-CHANGED")
         # only overwrite properties if service is already active
         if not self.healthy or not self.upgrade.idle:
+            logger.info(f"DEFERRING CONFIG CHANGED - {self.healthy=}, {self.upgrade.idle=}")
             event.defer()
             return
 
@@ -170,6 +173,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         zk_jaas_changed = set(zk_jaas) ^ set(self.config_manager.zk_jaas_config.splitlines())
 
         if not properties or not zk_jaas:
+            logger.info(f"DEFERRING CONFIG CHANGED - {properties=}, {zk_jaas=}")
             # Event fired before charm has properly started
             event.defer()
             return
@@ -204,13 +208,15 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         if zk_jaas_changed or properties_changed:
             if isinstance(event, StorageEvent):  # to get new storages
+                logger.info("STORAGE EVENT - DISABLE-ENABLING")
                 self.on[f"{self.restart.name}"].acquire_lock.emit(
                     callback_override="_disable_enable_restart"
                 )
             else:
-                logger.info("Acquiring lock from _on_config_changed...")
+                logger.info("NORMAL RESTARTING")
                 self.on[f"{self.restart.name}"].acquire_lock.emit()
 
+        logger.info("SETTING CLIENT PROPERTIES")
         # update client_properties whenever possible
         self.config_manager.set_client_properties()
 
@@ -272,13 +278,14 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
     def _on_storage_detaching(self, event: StorageDetachingEvent) -> None:
         """Handler for `storage_detaching` events."""
+        logger.info("HANDLING DETACHING STORAGE")
         # in the case where there may be replication recovery may be possible
         if self.state.brokers and len(self.state.brokers) > 1:
             self._set_status(Status.REMOVED_STORAGE)
         else:
             self._set_status(Status.REMOVED_STORAGE_NO_REPL)
 
-        self._on_config_changed(event)
+        self.on.config_changed.emit()
 
     def _restart(self, event: EventBase) -> None:
         """Handler for `rolling_ops` restart events."""
@@ -332,10 +339,12 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             True if service is alive and active. Otherwise False
         """
         self._set_status(self.state.ready_to_start)
+        logger.info(f"{self.state.ready_to_start=}")
         if not isinstance(self.unit.status, ActiveStatus):
             return False
 
         if not self.workload.active():
+            logger.info(f"{self.workload.active()=}")
             self._set_status(Status.SNAP_NOT_RUNNING)
             return False
 
