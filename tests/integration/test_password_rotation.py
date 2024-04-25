@@ -48,10 +48,11 @@ async def test_password_rotation(ops_test: OpsTest):
     result = await set_password(ops_test, username="sync", num_unit=0)
     assert "sync-password" in result.keys()
 
-    async with ops_test.fast_forward(fast_interval="60s"):
-        await ops_test.model.wait_for_idle(
-            apps=[APP_NAME, ZK_NAME], status="active", idle_period=30
-        )
+    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], status="active", idle_period=30)
+
+    # ensuring password event actually runs
+    async with ops_test.fast_forward(fast_interval="10s"):
+        await asyncio.sleep(60)
 
     new_sync_user = get_user(
         username="sync",

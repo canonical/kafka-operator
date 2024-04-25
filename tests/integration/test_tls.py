@@ -134,6 +134,10 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm):
 
     await set_tls_private_key(ops_test, key=new_private_key)
 
+    # ensuring key event actually runs
+    async with ops_test.fast_forward(fast_interval="10s"):
+        await asyncio.sleep(60)
+
     # Extract the key
     private_key_2 = extract_private_key(
         ops_test=ops_test,
