@@ -23,12 +23,14 @@ CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
 ACTIONS = str(yaml.safe_load(Path("./actions.yaml").read_text()))
 METADATA = str(yaml.safe_load(Path("./metadata.yaml").read_text()))
 
+
 @pytest.fixture()
 def upgrade_func() -> str:
     if SUBSTRATE == "k8s":
         return "_on_kafka_pebble_ready_upgrade"
 
     return "_on_upgrade_granted"
+
 
 @pytest.fixture
 def harness(zk_data):
@@ -65,6 +67,7 @@ def test_pre_upgrade_check_succeeds(harness: Harness):
         patch("events.upgrade.KafkaUpgrade._set_rolling_update_partition"),
     ):
         harness.charm.upgrade.pre_upgrade_check()
+
 
 @pytest.mark.skipif(SUBSTRATE == "k8s", reason="upgrade stack not used on K8s")
 def test_build_upgrade_stack(harness: Harness):
@@ -116,7 +119,10 @@ def test_kafka_dependency_model():
     for value in DEPENDENCIES.values():
         assert DependencyModel(**value)
 
-def test_upgrade_granted_sets_failed_if_zookeeper_dependency_check_fails(harness: Harness, upgrade_func: str):
+
+def test_upgrade_granted_sets_failed_if_zookeeper_dependency_check_fails(
+    harness: Harness, upgrade_func: str
+):
     with harness.hooks_disabled():
         harness.set_leader(True)
 
