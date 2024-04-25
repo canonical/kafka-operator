@@ -257,7 +257,7 @@ def test_start_sets_pebble_layer(harness: Harness, zk_data, passwords_data):
                     "group": "kafka",
                     "environment": {
                         "KAFKA_OPTS": " ".join(extra_opts),
-                        "JAVA_HOME": "/usr/lib/jvm/java-17-openjdk-amd64",
+                        "JAVA_HOME": "/usr/lib/jvm/java-18-openjdk-amd64",
                         "LOG_DIR": harness.charm.workload.paths.logs_path,
                     },
                 }
