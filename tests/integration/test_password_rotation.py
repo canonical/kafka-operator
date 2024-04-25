@@ -50,9 +50,10 @@ async def test_password_rotation(ops_test: OpsTest):
 
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], status="active", idle_period=30)
 
-    # ensuring password event actually runs
-    async with ops_test.fast_forward(fast_interval="10s"):
-        await asyncio.sleep(60)
+    # Kafka unit needs to restart to load new user credentials
+    # restart could be update-status triggered for single-unit
+    async with ops_test.fast_forward(fast_interval="20s"):
+        await asyncio.sleep(90)
 
     new_sync_user = get_user(
         username="sync",
