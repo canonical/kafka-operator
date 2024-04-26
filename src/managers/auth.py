@@ -165,7 +165,8 @@ class AuthManager:
             ]
             opts = []
 
-        self.workload.run_bin_command(bin_keyword="configs", bin_args=command, opts=opts)
+        result = self.workload.run_bin_command(bin_keyword="configs", bin_args=command, opts=opts)
+        logger.info(result)
 
     def delete_user(self, username: str) -> None:
         """Deletes user credentials from ZooKeeper.

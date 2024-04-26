@@ -41,7 +41,6 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm, app_charm):
 async def test_password_rotation(ops_test: OpsTest):
     """Check that password stored on ZK has changed after a password rotation."""
     initial_sync_user = get_user(
-        username="sync",
         model_full_name=ops_test.model_full_name,
     )
 
@@ -50,13 +49,7 @@ async def test_password_rotation(ops_test: OpsTest):
 
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], status="active", idle_period=30)
 
-    # Kafka unit needs to restart to load new user credentials
-    # restart could be update-status triggered for single-unit
-    async with ops_test.fast_forward(fast_interval="20s"):
-        await asyncio.sleep(90)
-
     new_sync_user = get_user(
-        username="sync",
         model_full_name=ops_test.model_full_name,
     )
 

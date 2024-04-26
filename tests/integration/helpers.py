@@ -68,15 +68,19 @@ def check_user(model_full_name: str | None, username: str) -> None:
     assert f"SCRAM credential configs for user-principal '{username}' are SCRAM-SHA-512" in result
 
 
-def get_user(model_full_name: str | None, username: str) -> str:
+def get_user(model_full_name: str | None, username: str = "sync") -> str:
     result = check_output(
-        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.configs --bootstrap-server localhost:9092 --describe --entity-type users --entity-name {username}' --command-config /var/snap/charmed-kafka/current/etc/kafka/client.properties",
+        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'cat /var/snap/charmed-kafka/current/etc/kafka/server.properties'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
-    )
+    ).splitlines()
 
-    return result
+    for line in result:
+        if username in line:
+            break
+
+    return line
 
 
 async def set_password(ops_test: OpsTest, username="sync", password=None, num_unit=0) -> Any:
