@@ -77,7 +77,7 @@ def get_user(model_full_name: str | None, username: str = "sync") -> str:
     ).splitlines()
 
     for line in result:
-        if username in line:
+        if f'required username="{username}"' in line:
             break
 
     return line
