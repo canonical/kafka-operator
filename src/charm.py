@@ -18,7 +18,7 @@ from ops.main import main
 from ops.model import ActiveStatus, StatusBase
 
 from core.cluster import ClusterState
-from core.models import SUBSTRATES
+from core.models import Substrates
 from core.structured_config import CharmConfig
 from events.password_actions import PasswordActionEvents
 from events.provider import KafkaProvider
@@ -36,6 +36,7 @@ from literals import (
     OS_REQUIREMENTS,
     PEER,
     REL_NAME,
+    SUBSTRATE,
     USER,
     DebugLevel,
     Status,
@@ -56,7 +57,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
     def __init__(self, *args):
         super().__init__(*args)
         self.name = CHARM_KEY
-        self.substrate: SUBSTRATES = "vm"
+        self.substrate: Substrates = SUBSTRATE
         self.workload = KafkaWorkload()
         self.state = ClusterState(self, substrate=self.substrate)
 

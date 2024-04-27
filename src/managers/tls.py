@@ -9,9 +9,9 @@ import subprocess
 
 from ops.pebble import ExecError
 
-from core.cluster import SUBSTRATES, ClusterState
+from core.cluster import ClusterState
 from core.workload import WorkloadBase
-from literals import GROUP, USER
+from literals import GROUP, USER, Substrates
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class TLSManager:
     """Manager for building necessary files for Java TLS auth."""
 
-    def __init__(self, state: ClusterState, workload: WorkloadBase, substrate: SUBSTRATES):
+    def __init__(self, state: ClusterState, workload: WorkloadBase, substrate: Substrates):
         self.state = state
         self.workload = workload
         self.substrate = substrate

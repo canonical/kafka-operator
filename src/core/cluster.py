@@ -17,7 +17,7 @@ from charms.data_platform_libs.v0.data_interfaces import (
 from ops import Framework, Object, Relation
 from ops.model import Unit
 
-from core.models import SUBSTRATES, KafkaBroker, KafkaClient, KafkaCluster, ZooKeeper
+from core.models import KafkaBroker, KafkaClient, KafkaCluster, ZooKeeper
 from literals import (
     INTERNAL_USERS,
     PEER,
@@ -26,15 +26,16 @@ from literals import (
     SECURITY_PROTOCOL_PORTS,
     ZK,
     Status,
+    Substrates,
 )
 
 
 class ClusterState(Object):
     """Collection of global cluster state for the Kafka services."""
 
-    def __init__(self, charm: Framework | Object, substrate: SUBSTRATES):
+    def __init__(self, charm: Framework | Object, substrate: Substrates):
         super().__init__(parent=charm, key="charm_state")
-        self.substrate: SUBSTRATES = substrate
+        self.substrate: Substrates = substrate
 
         self.peer_app_interface = DataPeerData(self.model, relation_name=PEER)
         self.peer_unit_interface = DataPeerUnitData(

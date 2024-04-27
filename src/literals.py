@@ -48,6 +48,7 @@ AuthMechanism = Literal["SASL_PLAINTEXT", "SASL_SSL", "SSL"]
 Scope = Literal["INTERNAL", "CLIENT"]
 DebugLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
 DatabagScope = Literal["unit", "app"]
+Substrates = Literal["vm", "k8s"]
 
 JVM_MEM_MIN_GB = 1
 JVM_MEM_MAX_GB = 6

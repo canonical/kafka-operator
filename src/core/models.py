@@ -17,11 +17,9 @@ from tenacity.stop import stop_after_attempt
 from tenacity.wait import wait_fixed
 from typing_extensions import override
 
-from literals import INTERNAL_USERS, SECRETS_APP
+from literals import INTERNAL_USERS, SECRETS_APP, Substrates
 
 logger = logging.getLogger(__name__)
-
-SUBSTRATES = Literal["vm", "k8s"]
 
 
 class RelationState:
@@ -32,7 +30,7 @@ class RelationState:
         relation: Relation | None,
         data_interface: Data,
         component: Unit | Application | None,
-        substrate: SUBSTRATES,
+        substrate: Substrates,
     ):
         self.relation = relation
         self.data_interface = data_interface
@@ -64,7 +62,7 @@ class KafkaCluster(RelationState):
         relation: Relation | None,
         data_interface: DataPeerData,
         component: Application,
-        substrate: SUBSTRATES,
+        substrate: Substrates,
     ):
         super().__init__(relation, data_interface, component, substrate)
         self.data_interface = data_interface
@@ -138,7 +136,7 @@ class KafkaBroker(RelationState):
         relation: Relation | None,
         data_interface: DataPeerUnitData,
         component: Unit,
-        substrate: SUBSTRATES,
+        substrate: Substrates,
     ):
         super().__init__(relation, data_interface, component, substrate)
         self.data_interface = data_interface
@@ -236,7 +234,7 @@ class ZooKeeper(RelationState):
         self,
         relation: Relation | None,
         data_interface: Data,
-        substrate: SUBSTRATES,
+        substrate: Substrates,
         local_app: Application | None = None,
     ):
         super().__init__(relation, data_interface, None, substrate)
@@ -373,7 +371,7 @@ class KafkaClient(RelationState):
         relation: Relation | None,
         data_interface: Data,
         component: Application,
-        substrate: SUBSTRATES,
+        substrate: Substrates,
         local_app: Application | None = None,
         bootstrap_server: str = "",
         password: str = "",
