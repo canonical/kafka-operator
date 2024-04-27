@@ -165,8 +165,7 @@ class AuthManager:
             ]
             opts = []
 
-        result = self.workload.run_bin_command(bin_keyword="configs", bin_args=command, opts=opts)
-        logger.info(result)
+        self.workload.run_bin_command(bin_keyword="configs", bin_args=command, opts=opts)
 
     def delete_user(self, username: str) -> None:
         """Deletes user credentials from ZooKeeper.
@@ -185,10 +184,8 @@ class AuthManager:
             f"--entity-name={username}",
             "--delete-config=SCRAM-SHA-512",
         ]
-        logger.info(f"DELETING USER - {command=}")
         try:
-            result = self.workload.run_bin_command(bin_keyword="configs", bin_args=command)
-            logger.info(f"{result=}")
+            self.workload.run_bin_command(bin_keyword="configs", bin_args=command)
         except (subprocess.CalledProcessError, ExecError) as e:
             if e.stderr and "delete a user credential that does not exist" in e.stderr:
                 logger.warning(f"User: {username} can't be deleted, it does not exist")
