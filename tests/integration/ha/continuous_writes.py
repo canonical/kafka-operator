@@ -26,7 +26,7 @@ from tenacity import (
 from integration.helpers import APP_NAME, DUMMY_NAME, get_provider_data
 
 logger = logging.getLogger(__name__)
-
+logging.getLogger("kafka.conn").disabled = True
 
 @dataclass
 class ContinuousWritesResult:

@@ -64,6 +64,7 @@ async def get_topic_description(
         shell=True,
         universal_newlines=True,
     )
+    logger.info(f"GET TOPIC DESCRIPTION - {output=}")
 
     leader = int(re.search(r"Leader: (\d+)", output)[1])
     in_sync_replicas = {int(i) for i in re.search(r"Isr: ([\d,]+)", output)[1].split(",")}
@@ -96,6 +97,7 @@ async def get_topic_offsets(
         shell=True,
         universal_newlines=True,
     )
+    logger.info(f"GET TOPIC OFFSETS - {result=}")
 
     return re.search(rf"{topic}:(\d+:\d+)", result)[1].split(":")
 
