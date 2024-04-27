@@ -5,7 +5,6 @@
 """Collection of state objects for the Kafka relations, apps and units."""
 
 import logging
-from typing import Literal, MutableMapping
 
 from charms.data_platform_libs.v0.data_interfaces import Data, DataPeerData, DataPeerUnitData
 from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManager
@@ -38,10 +37,12 @@ class RelationState:
         self.substrate = substrate
         self.relation_data = self.data_interface.as_dict(self.relation.id) if self.relation else {}
 
-    @property
-    def data(self) -> MutableMapping:
-        """Data representing the state."""
-        return self.relation_data
+    def __bool__(self) -> bool:
+        """Boolean evaluation based on the existence of self.relation."""
+        try:
+            return bool(self.relation)
+        except AttributeError:
+            return False
 
     def update(self, items: dict[str, str]) -> None:
         """Writes to relation_data."""

@@ -149,7 +149,7 @@ class TLSHandler(Object):
             return
 
         alias = self.charm.tls_manager.generate_alias(
-            app_name=event.app.name,  # pyright: ignore[reportOptionalMemberAccess]
+            app_name=event.app.name,
             relation_id=event.relation.id,
         )
         subject = (
@@ -158,9 +158,7 @@ class TLSHandler(Object):
         csr = (
             generate_csr(
                 add_unique_id_to_subject_name=bool(alias),
-                private_key=self.charm.state.unit_broker.private_key.encode(  # pyright: ignore[reportOptionalMemberAccess]
-                    "utf-8"
-                ),
+                private_key=self.charm.state.unit_broker.private_key.encode("utf-8"),
                 subject=subject,
                 sans_ip=self._sans["sans_ip"],
                 sans_dns=self._sans["sans_dns"],
@@ -174,13 +172,16 @@ class TLSHandler(Object):
 
     def _trusted_relation_changed(self, event: RelationChangedEvent) -> None:
         """Overrides the requirer logic of TLSInterface."""
+        if not event.relation or not event.relation.app:
+            return
+
         # Once the certificates have been added, TLS setup has finished
         if not self.charm.state.unit_broker.certificate:
             logger.debug("Missing TLS relation, deferring")
             event.defer()
             return
 
-        relation_data = _load_relation_data(dict(event.relation.data[event.relation.app]))  # type: ignore[reportOptionalMemberAccess]
+        relation_data = _load_relation_data(dict(event.relation.data[event.relation.app]))
         provider_certificates = relation_data.get("certificates", [])
 
         if not provider_certificates:
@@ -189,7 +190,7 @@ class TLSHandler(Object):
             return
 
         alias = self.charm.tls_manager.generate_alias(
-            event.relation.app.name,  # pyright: ignore[reportOptionalMemberAccess]
+            event.relation.app.name,
             event.relation.id,
         )
         # NOTE: Relation should only be used with one set of certificates,
@@ -210,6 +211,9 @@ class TLSHandler(Object):
 
     def _trusted_relation_broken(self, event: RelationBrokenEvent) -> None:
         """Handle relation broken for a trusted certificate/ca relation."""
+        if not event.relation or not event.relation.app:
+            return
+
         # Once the certificates have been added, TLS setup has finished
         if not self.charm.state.unit_broker.certificate:
             logger.debug("Missing TLS relation, deferring")
@@ -218,7 +222,7 @@ class TLSHandler(Object):
 
         # All units will need to remove the cert from their truststore
         alias = self.charm.tls_manager.generate_alias(
-            app_name=event.relation.app.name,  # pyright: ignore[reportOptionalMemberAccess]
+            app_name=event.relation.app.name,
             relation_id=event.relation.id,
         )
 

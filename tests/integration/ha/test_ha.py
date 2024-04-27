@@ -283,7 +283,6 @@ async def test_freeze_broker_with_topic_leader(
         ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
     )
     initial_offsets = await get_topic_offsets(ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME)
-    logger.info("SLEEPING AFTER GETTING INITIAL OFFSETS")
     await asyncio.sleep(CLIENT_TIMEOUT * 2)
     next_offsets = await get_topic_offsets(ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME)
 

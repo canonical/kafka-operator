@@ -103,28 +103,26 @@ class KafkaProvider(Object):
         Args:
             event: the event from a related client application needing a user
         """
-        logger.info("HANDLING RELATION BROKEN")
-        # don't remove anything if app is going down
-        if self.charm.app.planned_units == 0:
-            return
-
-        if not self.charm.unit.is_leader() or not self.charm.state.peer_relation:
-            logger.info("NOT LEADER OR NO PEER RELATION")
+        if (
+            # don't remove anything if app is going down
+            self.charm.app.planned_units == 0
+            or not self.charm.unit.is_leader
+            or not self.charm.state.cluster
+        ):
             return
 
         if not self.charm.healthy:
-            logger.info("NOT HEALTHY")
             event.defer()
             return
 
         if event.relation.app != self.charm.app or not self.charm.app.planned_units() == 0:
             username = f"relation-{event.relation.id}"
-            logger.info(f"REMOVING ACLS FOR {username}")
+
             self.charm.auth_manager.remove_all_user_acls(username=username)
             self.charm.auth_manager.delete_user(username=username)
+
             # non-leader units need cluster_config_changed event to update their super.users
             # update on the peer relation data will trigger an update of server properties on all units
             self.charm.state.cluster.update({username: ""})
 
-        logger.info("UPDATING CLIENT DATA AFTER RELATION-BROKEN")
         self.charm.update_client_data()

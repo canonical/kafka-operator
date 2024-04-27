@@ -60,7 +60,6 @@ class ZooKeeperHandler(Object):
             return
 
         if not self.charm.state.cluster.internal_user_credentials and self.model.unit.is_leader():
-            logger.info("CREATING INTERNAL USER CREDENTIALS")
             # loading the minimum config needed to authenticate to zookeeper
             self.charm.config_manager.set_zk_jaas_config()
             self.charm.config_manager.set_server_properties()
@@ -119,7 +118,6 @@ class ZooKeeperHandler(Object):
             (username, self.charm.workload.generate_password()) for username in INTERNAL_USERS
         ]
         for username, password in credentials:
-            logger.info(f"ADDING {username=} USER WITH {password=}...")
             self.charm.auth_manager.add_user(username=username, password=password, zk_auth=True)
 
         return credentials

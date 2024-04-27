@@ -277,10 +277,8 @@ class AuthManager:
         """
         # getting subset of all cluster ACLs for only the provided user
         current_user_acls = {acl for acl in self.current_acls if acl.username == username}
-        logger.info(f"REMOVING ALL USER ACLS - {current_user_acls=}")
 
         for acl in current_user_acls:
-            logger.info(f"REMOVING ACL - {acl=}")
             self.remove_acl(**asdict(acl))
 
     def update_user_acls(

@@ -205,15 +205,12 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         if zk_jaas_changed or properties_changed:
             if isinstance(event, StorageEvent):  # to get new storages
-                logger.info("STORAGE EVENT - DISABLE-ENABLING")
                 self.on[f"{self.restart.name}"].acquire_lock.emit(
                     callback_override="_disable_enable_restart"
                 )
             else:
-                logger.info("NORMAL RESTARTING")
                 self.on[f"{self.restart.name}"].acquire_lock.emit()
 
-        logger.info("SETTING CLIENT PROPERTIES")
         # update client_properties whenever possible
         self.config_manager.set_client_properties()
 
@@ -275,7 +272,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
     def _on_storage_detaching(self, _: StorageDetachingEvent) -> None:
         """Handler for `storage_detaching` events."""
-        logger.info("HANDLING DETACHING STORAGE")
         # in the case where there may be replication recovery may be possible
         if self.state.brokers and len(self.state.brokers) > 1:
             self._set_status(Status.REMOVED_STORAGE)

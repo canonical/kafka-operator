@@ -139,11 +139,11 @@ def check_tls(ip: str, port: int) -> bool:
             shell=True,
             universal_newlines=True,
         )
-        logger.info(f"{result=}")
+
         # FIXME: The server cannot be validated, we would need to try to connect using the CA
         # from self-signed certificates. This is indication enough that the server is sending a
         # self-signed key.
-        return "CN = kafka" in result
+        return "CN=kafka" in result.replace(" ", ", " "")
     except subprocess.CalledProcessError as e:
         logger.error(f"command '{e.cmd}' return with error (code {e.returncode}): {e.output}")
         return False
