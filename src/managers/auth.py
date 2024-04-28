@@ -6,7 +6,7 @@
 
 import logging
 import re
-import subprocess
+import subprocess  # nosec B404
 from dataclasses import asdict, dataclass
 
 from ops.pebble import ExecError

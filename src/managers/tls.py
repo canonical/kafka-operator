@@ -5,7 +5,7 @@
 """Manager for handling Kafka TLS configuration."""
 
 import logging
-import subprocess
+import subprocess  # nosec B404
 
 from ops.pebble import ExecError
 

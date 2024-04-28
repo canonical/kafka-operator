@@ -5,7 +5,7 @@
 """KafkaProvider class and methods."""
 
 import logging
-import subprocess
+import subprocess  # nosec B404
 from typing import TYPE_CHECKING
 
 from charms.data_platform_libs.v0.data_interfaces import (
