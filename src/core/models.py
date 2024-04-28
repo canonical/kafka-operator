@@ -375,7 +375,7 @@ class KafkaClient(RelationState):
         substrate: Substrates,
         local_app: Application | None = None,
         bootstrap_server: str = "",
-        password: str = "",
+        password: str = "",  # nosec: B107
         tls: str = "",
         zookeeper_uris: str = "",
     ):
