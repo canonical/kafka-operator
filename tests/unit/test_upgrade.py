@@ -14,7 +14,7 @@ from ops.testing import Harness
 
 from charm import KafkaCharm
 from events.upgrade import KafkaDependencyModel
-from literals import CHARM_KEY, DEPENDENCIES, PEER, SUBSTRATE, ZK
+from literals import CHARM_KEY, CONTAINER, DEPENDENCIES, PEER, SUBSTRATE, ZK
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +37,10 @@ def harness(zk_data):
     harness = Harness(KafkaCharm, meta=METADATA, config=CONFIG, actions=ACTIONS)
     harness.add_relation("restart", CHARM_KEY)
     harness.add_relation("upgrade", CHARM_KEY)
+
+    if SUBSTRATE == "k8s":
+        harness.set_can_connect(CONTAINER, True)
+
     peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
     zk_rel_id = harness.add_relation(ZK, ZK)
     harness._update_config(
