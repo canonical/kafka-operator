@@ -256,7 +256,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             self.state.cluster.relation.id,
             "extra",  # pyright: ignore[reportArgumentType] -- Changes with the https://github.com/canonical/data-platform-libs/issues/124
         ):
-            # TODO: figure out why creating internal credentials setting doesn't trigger changed event here
             self.on.config_changed.emit()
 
     def _on_storage_attached(self, event: StorageAttachedEvent) -> None:
