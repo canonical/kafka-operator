@@ -12,7 +12,7 @@ from charms.data_platform_libs.v0.data_interfaces import (
     DataPeerData,
     DataPeerOtherUnitData,
     DataPeerUnitData,
-    KafkaProvidesData,
+    KafkaProviderData,
 )
 from ops import Framework, Object, Relation
 from ops.model import Unit
@@ -44,7 +44,7 @@ class ClusterState(Object):
         self.zookeeper_requires_interface = DatabaseRequirerData(
             self.model, relation_name=ZK, database_name=f"/{self.model.app.name}"
         )
-        self.client_provider_interface = KafkaProvidesData(self.model, relation_name=REL_NAME)
+        self.client_provider_interface = KafkaProviderData(self.model, relation_name=REL_NAME)
 
     # --- RELATIONS ---
 
@@ -231,6 +231,9 @@ class ClusterState(Object):
         # TLS must be enabled for Kafka and ZK or disabled for both
         if self.cluster.tls_enabled ^ self.zookeeper.tls:
             return Status.ZK_TLS_MISMATCH
+
+        if self.cluster.tls_enabled and not self.unit_broker.certificate:
+            return Status.NO_CERT
 
         if not self.cluster.internal_user_credentials:
             return Status.NO_BROKER_CREDS

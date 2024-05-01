@@ -9,7 +9,7 @@ import subprocess  # nosec B404
 from typing import TYPE_CHECKING
 
 from charms.data_platform_libs.v0.data_interfaces import (
-    KafkaProvidesEventHandlers,
+    KafkaProviderEventHandlers,
     TopicRequestedEvent,
 )
 from ops.charm import RelationBrokenEvent, RelationCreatedEvent
@@ -30,7 +30,7 @@ class KafkaProvider(Object):
     def __init__(self, charm) -> None:
         super().__init__(charm, "kafka_client")
         self.charm: "KafkaCharm" = charm
-        self.kafka_provider = KafkaProvidesEventHandlers(
+        self.kafka_provider = KafkaProviderEventHandlers(
             self.charm, self.charm.state.client_provider_interface
         )
 
@@ -106,7 +106,7 @@ class KafkaProvider(Object):
         if (
             # don't remove anything if app is going down
             self.charm.app.planned_units == 0
-            or not self.charm.unit.is_leader
+            or not self.charm.unit.is_leader()
             or not self.charm.state.cluster
         ):
             return
