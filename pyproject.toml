@@ -57,7 +57,7 @@ optional = true
 
 [tool.poetry.group.lint.dependencies]
 black = "^22.3.0"
-ruff = ">=0.0.157"
+ruff = ">=0.1.0"
 codespell = ">=2.2.2"
 pyright = "^1.1.301"
 
