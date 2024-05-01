@@ -607,6 +607,3 @@ class ZooKeeperClient:
             acls: the acls to set to the given znode
         """
         self.client.set_acls(path, acls)
-
-zk = ZooKeeperManager(hosts=["10.1.138.126", "10.1.138.65", "10.1.138.66"], username="relation-7", password="A8RWyU7Kcs5Kd8pXZmae8FuWPEPxlyUf")
-print(zk.leader_znodes("/kafka/brokers/ids"))
