@@ -222,7 +222,7 @@ class ClusterState(Object):
         if not self.peer_relation:
             return Status.NO_PEER_RELATION
 
-        if not self.zookeeper or not self.zookeeper.relation:
+        if not self.zookeeper:
             return Status.ZK_NOT_RELATED
 
         if not self.zookeeper.zookeeper_connected:
