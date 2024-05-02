@@ -296,8 +296,8 @@ def test_bootstrap_server(harness: Harness):
     )
     harness.update_relation_data(peer_relation_id, f"{CHARM_KEY}/1", {"private-address": "shelob"})
 
-    assert len(harness.charm.state.bootstrap_server) == 2
-    for server in harness.charm.state.bootstrap_server:
+    assert len(harness.charm.state.bootstrap_server.split(",")) == 2
+    for server in harness.charm.state.bootstrap_server.split(","):
         assert "9092" in server
 
 

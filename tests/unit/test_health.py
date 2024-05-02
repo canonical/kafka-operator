@@ -11,13 +11,15 @@ import yaml
 from ops.testing import Harness
 
 from charm import KafkaCharm
-from literals import CHARM_KEY, JVM_MEM_MAX_GB, JVM_MEM_MIN_GB
+from literals import CHARM_KEY, JVM_MEM_MAX_GB, JVM_MEM_MIN_GB, SUBSTRATE
 
 logger = logging.getLogger(__name__)
 
 CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
 ACTIONS = str(yaml.safe_load(Path("./actions.yaml").read_text()))
 METADATA = str(yaml.safe_load(Path("./metadata.yaml").read_text()))
+
+pytestmark = pytest.mark.skipif(SUBSTRATE == "k8s", reason="health checks not used on K8s")
 
 
 @pytest.fixture

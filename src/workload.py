@@ -82,6 +82,7 @@ class KafkaWorkload(WorkloadBase):
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
                 shell=True,
+                env=env,
                 cwd=working_dir,
             )
             logger.debug(f"{output=}")

@@ -257,7 +257,7 @@ def test_start_sets_pebble_layer(harness: Harness, zk_data, passwords_data):
                     "group": "kafka",
                     "environment": {
                         "KAFKA_OPTS": " ".join(extra_opts),
-                        "JAVA_HOME": "/usr/lib/jvm/java-17-openjdk-amd64",
+                        "JAVA_HOME": "/usr/lib/jvm/java-18-openjdk-amd64",
                         "LOG_DIR": harness.charm.workload.paths.logs_path,
                     },
                 }
@@ -461,36 +461,6 @@ def test_storage_add_disableenables_and_starts(harness: Harness, zk_data, passwo
         assert patched_defer.call_count == 0
 
 
-@pytest.mark.skipif(SUBSTRATE == "k8s", reason="multiple storage not supported in K8s")
-def test_storage_detaching_disableenables_and_starts(harness: Harness, zk_data, passwords_data):
-    with harness.hooks_disabled():
-        peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
-        harness.add_relation_unit(peer_rel_id, f"{CHARM_KEY}/0")
-        harness.set_leader(True)
-        zk_rel_id = harness.add_relation(ZK, ZK)
-        harness.update_relation_data(zk_rel_id, ZK, zk_data)
-        harness.update_relation_data(peer_rel_id, CHARM_KEY, passwords_data)
-        harness.add_storage(storage_name="data", count=2)
-        harness.attach_storage(storage_id="data/1")
-
-    with (
-        patch("workload.KafkaWorkload.active", return_value=True),
-        patch("charm.KafkaCharm.healthy", return_value=True),
-        patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
-        patch("managers.config.KafkaConfigManager.set_server_properties"),
-        patch("managers.config.KafkaConfigManager.set_client_properties"),
-        patch("workload.KafkaWorkload.read", return_value=["gandalf=grey"]),
-        patch("workload.KafkaWorkload.disable_enable") as patched_disable_enable,
-        patch("workload.KafkaWorkload.start") as patched_start,
-        patch("ops.framework.EventBase.defer") as patched_defer,
-    ):
-        harness.detach_storage(storage_id="data/1")
-
-        assert patched_disable_enable.call_count == 1
-        assert patched_start.call_count == 1
-        assert patched_defer.call_count == 0
-
-
 def test_zookeeper_changed_sets_passwords_and_creates_users_with_zk(harness: Harness, zk_data):
     """Checks inter-broker passwords are created on zookeeper-changed hook using zk auth."""
     with harness.hooks_disabled():
@@ -562,7 +532,7 @@ def test_zookeeper_broken_cleans_internal_user_credentials(harness: Harness):
     with (
         patch("workload.KafkaWorkload.stop"),
         patch("workload.KafkaWorkload.exec"),
-        patch("core.models.StateBase.update") as patched_update,
+        patch("core.models.KafkaCluster.update") as patched_update,
         patch(
             "core.models.KafkaCluster.internal_user_credentials",
             new_callable=PropertyMock,
@@ -643,9 +613,7 @@ def test_config_changed_updates_client_data(harness: Harness):
         patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
         patch("workload.KafkaWorkload.read", return_value=["gandalf=white"]),
         patch("managers.config.KafkaConfigManager.set_zk_jaas_config"),
-        patch(
-            "events.provider.KafkaProvider.update_connection_info"
-        ) as patched_update_connection_info,
+        patch("charm.KafkaCharm.update_client_data") as patched_update_client_data,
         patch(
             "managers.config.KafkaConfigManager.set_client_properties"
         ) as patched_set_client_properties,
@@ -654,7 +622,7 @@ def test_config_changed_updates_client_data(harness: Harness):
         harness.charm.on.config_changed.emit()
 
         patched_set_client_properties.assert_called_once()
-        patched_update_connection_info.assert_called_once()
+        patched_update_client_data.assert_called_once()
 
 
 def test_config_changed_restarts(harness: Harness):

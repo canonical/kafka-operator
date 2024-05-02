@@ -212,7 +212,7 @@ class KafkaConfigManager:
             List of properties to be set
         """
         return [
-            f"broker.id={self.state.broker.unit_id}",
+            f"broker.id={self.state.unit_broker.unit_id}",
             f"zookeeper.connect={self.state.zookeeper.connect}",
         ]
 
@@ -226,7 +226,7 @@ class KafkaConfigManager:
         return [
             "zookeeper.ssl.client.enable=true",
             f"zookeeper.ssl.truststore.location={self.workload.paths.truststore}",
-            f"zookeeper.ssl.truststore.password={self.state.broker.truststore_password}",
+            f"zookeeper.ssl.truststore.password={self.state.unit_broker.truststore_password}",
             "zookeeper.clientCnxnSocket=org.apache.zookeeper.ClientCnxnSocketNetty",
         ]
 
@@ -240,9 +240,9 @@ class KafkaConfigManager:
         mtls = "required" if self.state.cluster.mtls_enabled else "none"
         return [
             f"ssl.truststore.location={self.workload.paths.truststore}",
-            f"ssl.truststore.password={self.state.broker.truststore_password}",
+            f"ssl.truststore.password={self.state.unit_broker.truststore_password}",
             f"ssl.keystore.location={self.workload.paths.keystore}",
-            f"ssl.keystore.password={self.state.broker.keystore_password}",
+            f"ssl.keystore.password={self.state.unit_broker.keystore_password}",
             f"ssl.client.auth={mtls}",
         ]
 
@@ -275,7 +275,7 @@ class KafkaConfigManager:
         # FIXME: When we have multiple auth_mechanims/listeners, remove this method
         return (
             "SASL_SSL"
-            if (self.state.cluster.tls_enabled and self.state.broker.certificate)
+            if (self.state.cluster.tls_enabled and self.state.unit_broker.certificate)
             else "SASL_PLAINTEXT"
         )
 
@@ -294,7 +294,7 @@ class KafkaConfigManager:
     def internal_listener(self) -> Listener:
         """Return the internal listener."""
         protocol = self.security_protocol
-        return Listener(host=self.state.broker.host, protocol=protocol, scope="INTERNAL")
+        return Listener(host=self.state.unit_broker.host, protocol=protocol, scope="INTERNAL")
 
     @property
     def client_listeners(self) -> list[Listener]:
@@ -304,7 +304,7 @@ class KafkaConfigManager:
             return []
 
         return [
-            Listener(host=self.state.broker.host, protocol=auth, scope="CLIENT")
+            Listener(host=self.state.unit_broker.host, protocol=auth, scope="CLIENT")
             for auth in self.auth_mechanisms
         ]
 
@@ -352,10 +352,10 @@ class KafkaConfigManager:
             "sasl.mechanism=SCRAM-SHA-512",
             f"security.protocol={self.security_protocol}",
             # FIXME: security.protocol will need changing once multiple listener auth schemes
-            f"bootstrap.servers={','.join(self.state.bootstrap_server)}",
+            f"bootstrap.servers={self.state.bootstrap_server}",
         ]
 
-        if self.state.cluster.tls_enabled and self.state.broker.certificate:
+        if self.state.cluster.tls_enabled and self.state.unit_broker.certificate:
             client_properties += self.tls_properties
 
         return client_properties
@@ -394,7 +394,7 @@ class KafkaConfigManager:
             + DEFAULT_CONFIG_OPTIONS.split("\n")
         )
 
-        if self.state.cluster.tls_enabled and self.state.broker.certificate:
+        if self.state.cluster.tls_enabled and self.state.unit_broker.certificate:
             properties += self.tls_properties + self.zookeeper_tls_properties
 
         return properties

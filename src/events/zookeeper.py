@@ -5,9 +5,10 @@
 """Supporting objects for Kafka-Zookeeper relation."""
 
 import logging
-import subprocess
+import subprocess  # nosec B404
 from typing import TYPE_CHECKING
 
+from charms.data_platform_libs.v0.data_interfaces import DatabaseRequirerEventHandlers
 from ops import Object, RelationChangedEvent, RelationEvent
 from ops.pebble import ExecError
 
@@ -25,6 +26,9 @@ class ZooKeeperHandler(Object):
     def __init__(self, charm) -> None:
         super().__init__(charm, "zookeeper_client")
         self.charm: "KafkaCharm" = charm
+        self.zookeeper_requires = DatabaseRequirerEventHandlers(
+            self.charm, self.charm.state.zookeeper_requires_interface
+        )
 
         self.framework.observe(self.charm.on[ZK].relation_created, self._on_zookeeper_created)
         self.framework.observe(self.charm.on[ZK].relation_joined, self._on_zookeeper_changed)
@@ -39,7 +43,6 @@ class ZooKeeperHandler(Object):
     def _on_zookeeper_changed(self, event: RelationChangedEvent) -> None:
         """Handler for `zookeeper_relation_created/joined/changed` events, ensuring internal users get created."""
         if not self.charm.state.zookeeper.zookeeper_connected:
-            logger.debug("No information found from ZooKeeper relation")
             self.charm._set_status(Status.ZK_NO_DATA)
             return
 
@@ -51,7 +54,7 @@ class ZooKeeperHandler(Object):
 
         # do not create users until certificate + keystores created
         # otherwise unable to authenticate to ZK
-        if self.charm.state.cluster.tls_enabled and not self.charm.state.broker.certificate:
+        if self.charm.state.cluster.tls_enabled and not self.charm.state.unit_broker.certificate:
             self.charm._set_status(Status.NO_CERT)
             event.defer()
             return
@@ -75,9 +78,9 @@ class ZooKeeperHandler(Object):
         # attempt re-start of Kafka for all units on zookeeper-changed
         # avoids relying on deferred events elsewhere that may not exist after cluster init
         if not self.charm.healthy and self.charm.state.cluster.internal_user_credentials:
-            self.charm._on_start(event)
+            self.charm.on.start.emit()
 
-        self.charm._on_config_changed(event)
+        self.charm.on.config_changed.emit()
 
     def _on_zookeeper_broken(self, _: RelationEvent) -> None:
         """Handler for `zookeeper_relation_broken` event, ensuring charm blocks."""

@@ -49,7 +49,7 @@ optional = true
 
 [tool.poetry.group.fmt.dependencies]
 black = "^22.3.0"
-ruff = ">=0.0.157"
+ruff = ">=0.1.0"
 pyright = "^1.1.300"
 
 [tool.poetry.group.lint]
@@ -57,7 +57,7 @@ optional = true
 
 [tool.poetry.group.lint.dependencies]
 black = "^22.3.0"
-ruff = ">=0.0.157"
+ruff = ">=0.1.0"
 codespell = ">=2.2.2"
 pyright = "^1.1.301"
 
@@ -93,8 +93,8 @@ pyright = "^1.1.301"
 
 [tool.ruff]
 line-length = 99
-select = ["E", "W", "F", "C", "N", "D", "I001"]
-extend-ignore = [
+lint.select = ["E", "W", "F", "C", "N", "D", "I001"]
+lint.extend-ignore = [
     "D203",
     "D204",
     "D213",
@@ -108,13 +108,13 @@ extend-ignore = [
     "D409",
     "D413",
 ]
-ignore = ["E501", "D107"]
+lint.ignore = ["E501", "D107"]
 extend-exclude = ["__pycache__", "*.egg_info", "tests/integration/app-charm/lib"]
-per-file-ignores = {"tests/*" = ["D100","D101","D102","D103","D104", "E999"], "src/literals.py" = ["D101"]}
+lint.per-file-ignores = {"tests/*" = ["D100","D101","D102","D103","D104", "E999"], "src/literals.py" = ["D101"]}
 target-version="py310"
 src = ["src", "tests"]
 
-[tool.ruff.mccabe]
+[tool.ruff.lint.mccabe]
 max-complexity = 10
 
 [tool.pyright]

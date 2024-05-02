@@ -5,27 +5,46 @@
 """Objects representing the state of KafkaCharm."""
 
 import os
+from functools import cached_property
 
+from charms.data_platform_libs.v0.data_interfaces import (
+    DatabaseRequirerData,
+    DataPeerData,
+    DataPeerOtherUnitData,
+    DataPeerUnitData,
+    KafkaProviderData,
+)
 from ops import Framework, Object, Relation
+from ops.model import Unit
 
-from core.models import KafkaBroker, KafkaCluster, ZooKeeper
+from core.models import KafkaBroker, KafkaClient, KafkaCluster, ZooKeeper
 from literals import (
     INTERNAL_USERS,
     PEER,
     REL_NAME,
+    SECRETS_UNIT,
     SECURITY_PROTOCOL_PORTS,
     ZK,
     Status,
-    Substrate,
+    Substrates,
 )
 
 
 class ClusterState(Object):
-    """Properties and relations of the charm."""
+    """Collection of global cluster state for the Kafka services."""
 
-    def __init__(self, charm: Framework | Object, substrate: Substrate):
+    def __init__(self, charm: Framework | Object, substrate: Substrates):
         super().__init__(parent=charm, key="charm_state")
-        self.substrate: Substrate = substrate
+        self.substrate: Substrates = substrate
+
+        self.peer_app_interface = DataPeerData(self.model, relation_name=PEER)
+        self.peer_unit_interface = DataPeerUnitData(
+            self.model, relation_name=PEER, additional_secret_fields=SECRETS_UNIT
+        )
+        self.zookeeper_requires_interface = DatabaseRequirerData(
+            self.model, relation_name=ZK, database_name=f"/{self.model.app.name}"
+        )
+        self.client_provider_interface = KafkaProviderData(self.model, relation_name=REL_NAME)
 
     # --- RELATIONS ---
 
@@ -47,17 +66,34 @@ class ClusterState(Object):
     # --- CORE COMPONENTS ---
 
     @property
-    def broker(self) -> KafkaBroker:
-        """The server state of the current running Unit."""
+    def unit_broker(self) -> KafkaBroker:
+        """The broker state of the current running Unit."""
         return KafkaBroker(
-            relation=self.peer_relation, component=self.model.unit, substrate=self.substrate
+            relation=self.peer_relation,
+            data_interface=self.peer_unit_interface,
+            component=self.model.unit,
+            substrate=self.substrate,
         )
+
+    @cached_property
+    def peer_units_data_interfaces(self) -> dict[Unit, DataPeerOtherUnitData]:
+        """The cluster peer relation."""
+        if not self.peer_relation or not self.peer_relation.units:
+            return {}
+
+        return {
+            unit: DataPeerOtherUnitData(model=self.model, unit=unit, relation_name=PEER)
+            for unit in self.peer_relation.units
+        }
 
     @property
     def cluster(self) -> KafkaCluster:
         """The cluster state of the current running App."""
         return KafkaCluster(
-            relation=self.peer_relation, component=self.model.app, substrate=self.substrate
+            relation=self.peer_relation,
+            data_interface=self.peer_app_interface,
+            component=self.model.app,
+            substrate=self.substrate,
         )
 
     @property
@@ -67,28 +103,53 @@ class ClusterState(Object):
         Returns:
             Set of KafkaBrokers in the current peer relation, including the running unit server.
         """
-        if not self.peer_relation:
-            return set()
-
-        servers = set()
-        for unit in self.peer_relation.units:
-            servers.add(
-                KafkaBroker(relation=self.peer_relation, component=unit, substrate=self.substrate)
+        brokers = set()
+        for unit, data_interface in self.peer_units_data_interfaces.items():
+            brokers.add(
+                KafkaBroker(
+                    relation=self.peer_relation,
+                    data_interface=data_interface,
+                    component=unit,
+                    substrate=self.substrate,
+                )
             )
-        servers.add(self.broker)
+        brokers.add(self.unit_broker)
 
-        return servers
+        return brokers
 
     @property
     def zookeeper(self) -> ZooKeeper:
         """The ZooKeeper relation state."""
         return ZooKeeper(
             relation=self.zookeeper_relation,
-            component=self.model.app,
+            data_interface=self.zookeeper_requires_interface,
             substrate=self.substrate,
-            local_app=self.model.app,
-            local_unit=self.model.unit,
+            local_app=self.cluster.app,
         )
+
+    @property
+    def clients(self) -> set[KafkaClient]:
+        """The state for all related client Applications."""
+        clients = set()
+        for relation in self.client_relations:
+            if not relation.app:
+                continue
+
+            clients.add(
+                KafkaClient(
+                    relation=relation,
+                    data_interface=self.client_provider_interface,
+                    component=relation.app,
+                    substrate=self.substrate,
+                    local_app=self.cluster.app,
+                    bootstrap_server=self.bootstrap_server,
+                    password=self.cluster.client_passwords.get(f"relation-{relation.id}", ""),
+                    tls="enabled" if self.cluster.tls_enabled else "disabled",
+                    zookeeper_uris=self.zookeeper.uris,
+                )
+            )
+
+        return clients
 
     # ---- GENERAL VALUES ----
 
@@ -121,21 +182,21 @@ class ClusterState(Object):
         """Return the port to be used internally."""
         return (
             SECURITY_PROTOCOL_PORTS["SASL_SSL"].client
-            if (self.cluster.tls_enabled and self.broker.certificate)
+            if (self.cluster.tls_enabled and self.unit_broker.certificate)
             else SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].client
         )
 
     @property
-    def bootstrap_server(self) -> list[str]:
+    def bootstrap_server(self) -> str:
         """The current Kafka uris formatted for the `bootstrap-server` command flag.
 
         Returns:
             List of `bootstrap-server` servers
         """
         if not self.peer_relation:
-            return []
+            return ""
 
-        return sorted([f"{host}:{self.port}" for host in self.unit_hosts])
+        return ",".join(sorted([f"{broker.host}:{self.port}" for broker in self.brokers]))
 
     @property
     def log_dirs(self) -> str:
@@ -145,12 +206,6 @@ class ClusterState(Object):
             String of log.dirs property value to be set
         """
         return ",".join([os.fspath(storage.location) for storage in self.model.storages["data"]])
-
-    @property
-    def unit_hosts(self) -> list[str]:
-        """Return list of application unit hosts."""
-        hosts = [broker.host for broker in self.brokers]
-        return hosts
 
     @property
     def planned_units(self) -> int:
@@ -167,7 +222,7 @@ class ClusterState(Object):
         if not self.peer_relation:
             return Status.NO_PEER_RELATION
 
-        if not self.zookeeper.zookeeper_related:
+        if not self.zookeeper:
             return Status.ZK_NOT_RELATED
 
         if not self.zookeeper.zookeeper_connected:
@@ -176,6 +231,9 @@ class ClusterState(Object):
         # TLS must be enabled for Kafka and ZK or disabled for both
         if self.cluster.tls_enabled ^ self.zookeeper.tls:
             return Status.ZK_TLS_MISMATCH
+
+        if self.cluster.tls_enabled and not self.unit_broker.certificate:
+            return Status.NO_CERT
 
         if not self.cluster.internal_user_credentials:
             return Status.NO_BROKER_CREDS
