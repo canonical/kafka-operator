@@ -102,11 +102,10 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
     assert ops_test.model.applications[ZK_NAME].status == "active"
 
     await ops_test.model.add_relation(APP_NAME, ZK_NAME)
-    async with ops_test.fast_forward():
-        await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME])
-
-    assert ops_test.model.applications[APP_NAME].status == "active"
-    assert ops_test.model.applications[ZK_NAME].status == "active"
+    async with ops_test.fast_forward(fast_interval="60s"):
+        await ops_test.model.wait_for_idle(
+            apps=[APP_NAME, ZK_NAME], idle_period=30, status="active"
+        )
 
 
 @pytest.mark.abort_on_fail
@@ -125,7 +124,7 @@ async def test_remove_zk_relation_relate(ops_test: OpsTest):
     assert ops_test.model.applications[ZK_NAME].status == "active"
 
     await ops_test.model.add_relation(APP_NAME, ZK_NAME)
-    async with ops_test.fast_forward():
+    async with ops_test.fast_forward(fast_interval="60s"):
         await ops_test.model.wait_for_idle(
             apps=[APP_NAME, ZK_NAME], status="active", idle_period=30, timeout=1000
         )
@@ -137,24 +136,31 @@ async def test_listeners(ops_test: OpsTest, app_charm):
     assert check_socket(
         address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].internal
     )  # Internal listener
+
     # Client listener should not be enabled if there is no relations
     assert not check_socket(address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].client)
+
     # Add relation with dummy app
     await asyncio.gather(
         ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series="jammy"),
     )
     await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME, ZK_NAME])
+
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
+
     assert ops_test.model.applications[APP_NAME].status == "active"
     assert ops_test.model.applications[DUMMY_NAME].status == "active"
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME, DUMMY_NAME])
+
     # check that client listener is active
     assert check_socket(address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].client)
+
     # remove relation and check that client listener is not active
     await ops_test.model.applications[APP_NAME].remove_relation(
         f"{APP_NAME}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_ADMIN}"
     )
     await ops_test.model.wait_for_idle(apps=[APP_NAME])
+
     assert not check_socket(address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].client)
 
 
@@ -186,9 +192,10 @@ async def test_logs_write_to_storage(ops_test: OpsTest):
     time.sleep(10)
     assert ops_test.model.applications[APP_NAME].status == "active"
     assert ops_test.model.applications[DUMMY_NAME].status == "active"
-    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME, DUMMY_NAME])
+    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME, DUMMY_NAME], idle_period=30)
+
     produce_and_check_logs(
-        model_full_name=ops_test.model_full_name,
+        ops_test=ops_test,
         kafka_unit_name=f"{APP_NAME}/0",
         provider_unit_name=f"{DUMMY_NAME}/0",
         topic="hot-topic",
@@ -266,7 +273,7 @@ async def test_logs_write_to_new_storage(ops_test: OpsTest):
     time.sleep(5)  # to give time for storage to complete
 
     produce_and_check_logs(
-        model_full_name=ops_test.model_full_name,
+        ops_test=ops_test,
         kafka_unit_name=f"{APP_NAME}/0",
         provider_unit_name=f"{DUMMY_NAME}/0",
         topic="cold-topic",

@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
-from unittest.mock import patch
+from unittest.mock import PropertyMock, patch
 
 import pytest
+from ops import JujuVersion
 from src.literals import INTERNAL_USERS, SUBSTRATE
 
 
@@ -65,3 +66,9 @@ def patched_health_machine_configured():
             yield machine_configured
     else:
         yield
+
+
+@pytest.fixture(autouse=True)
+def juju_has_secrets(mocker):
+    """Using Juju3 we should always have secrets available."""
+    mocker.patch.object(JujuVersion, "has_secrets", new_callable=PropertyMock).return_value = True

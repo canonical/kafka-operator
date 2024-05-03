@@ -14,16 +14,32 @@ CHARM_KEY = "kafka"
 SNAP_NAME = "charmed-kafka"
 CHARMED_KAFKA_SNAP_REVISION = 35
 CONTAINER = "kafka"
+SUBSTRATE = "vm"
 
+USER = "snap_daemon"
+GROUP = "root"
+
+# FIXME: these need better names
 PEER = "cluster"
 ZK = "zookeeper"
 REL_NAME = "kafka-client"
-INTER_BROKER_USER = "sync"
-ADMIN_USER = "admin"
 TLS_RELATION = "certificates"
 TRUSTED_CERTIFICATE_RELATION = "trusted-certificate"
 TRUSTED_CA_RELATION = "trusted-ca"
+
+INTER_BROKER_USER = "sync"
+ADMIN_USER = "admin"
 INTERNAL_USERS = [INTER_BROKER_USER, ADMIN_USER]
+SECRETS_APP = [f"{user}-password" for user in INTERNAL_USERS]
+SECRETS_UNIT = [
+    "ca-cert",
+    "csr",
+    "certificate",
+    "truststore-password",
+    "keystore-password",
+    "private-key",
+]
+
 JMX_EXPORTER_PORT = 9101
 METRICS_RULES_DIR = "./src/alert_rules/prometheus"
 LOGS_RULES_DIR = "./src/alert_rules/loki"
@@ -40,8 +56,8 @@ GROUP = "root"
 AuthMechanism = Literal["SASL_PLAINTEXT", "SASL_SSL", "SSL"]
 Scope = Literal["INTERNAL", "CLIENT"]
 DebugLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
-Substrate = Literal["vm", "k8s"]
 DatabagScope = Literal["unit", "app"]
+Substrates = Literal["vm", "k8s"]
 
 JVM_MEM_MIN_GB = 1
 JVM_MEM_MAX_GB = 6

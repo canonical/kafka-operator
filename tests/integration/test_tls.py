@@ -29,7 +29,6 @@ from .helpers import (
     get_kafka_zk_relation_data,
     set_mtls_client_acls,
     set_tls_private_key,
-    show_unit,
 )
 from .test_charm import DUMMY_NAME
 
@@ -66,13 +65,11 @@ async def test_deploy_tls(ops_test: OpsTest, kafka_charm):
     assert ops_test.model.applications[ZK].status == "active"
     assert ops_test.model.applications[TLS_NAME].status == "active"
 
-    # Relate Zookeeper to TLS
-    async with ops_test.fast_forward():
-        await ops_test.model.add_relation(TLS_NAME, ZK)
-        await ops_test.model.wait_for_idle(apps=[TLS_NAME, ZK], idle_period=15)
+    await ops_test.model.add_relation(TLS_NAME, ZK)
 
-        assert ops_test.model.applications[TLS_NAME].status == "active"
-        assert ops_test.model.applications[ZK].status == "active"
+    # Relate Zookeeper to TLS
+    async with ops_test.fast_forward(fast_interval="60s"):
+        await ops_test.model.wait_for_idle(apps=[TLS_NAME, ZK], idle_period=30, status="active")
 
 
 @pytest.mark.abort_on_fail
@@ -83,7 +80,7 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm):
     Afterwards, relate Kafka to TLS operator, which unblocks the application.
     """
     # Relate Zookeeper[TLS] to Kafka[Non-TLS]
-    async with ops_test.fast_forward():
+    async with ops_test.fast_forward(fast_interval="60s"):
         await ops_test.model.add_relation(ZK, CHARM_KEY)
         await ops_test.model.wait_for_idle(
             apps=[ZK], idle_period=15, timeout=1000, status="active"
@@ -99,39 +96,36 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm):
 
     # Extract the key
     private_key = extract_private_key(
-        show_unit(f"{CHARM_KEY}/{num_unit}", model_full_name=ops_test.model_full_name), unit=0
+        ops_test=ops_test,
+        unit_name=f"{CHARM_KEY}/{num_unit}",
     )
 
-    async with ops_test.fast_forward():
-        logger.info("Relate Kafka to TLS")
-        await ops_test.model.add_relation(f"{CHARM_KEY}:{TLS_RELATION}", TLS_NAME)
-        await ops_test.model.wait_for_idle(
-            apps=[CHARM_KEY, ZK, TLS_NAME], idle_period=30, timeout=1200, status="active"
-        )
+    # ensuring at least a few update-status
+    await ops_test.model.add_relation(f"{CHARM_KEY}:{TLS_RELATION}", TLS_NAME)
+    async with ops_test.fast_forward(fast_interval="20s"):
+        await asyncio.sleep(60)
 
-    assert ops_test.model.applications[CHARM_KEY].status == "active"
-    assert ops_test.model.applications[ZK].status == "active"
+    await ops_test.model.wait_for_idle(
+        apps=[CHARM_KEY, ZK, TLS_NAME], idle_period=30, timeout=1200, status="active"
+    )
 
     kafka_address = await get_address(ops_test=ops_test, app_name=CHARM_KEY)
-    logger.info("Check for Kafka TLS")
+
     assert not check_tls(ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL"].client)
 
-    async with ops_test.fast_forward():
-        await asyncio.gather(
-            ops_test.model.deploy(
-                app_charm, application_name=DUMMY_NAME, num_units=1, series="jammy"
-            ),
-        )
-        await ops_test.model.wait_for_idle(
-            apps=[CHARM_KEY, DUMMY_NAME], timeout=1000, idle_period=60
-        )
-        await ops_test.model.add_relation(CHARM_KEY, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
-        await ops_test.model.wait_for_idle(
-            apps=[CHARM_KEY, DUMMY_NAME], timeout=3600, idle_period=60, status="active"
-        )
+    await asyncio.gather(
+        ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series="jammy"),
+    )
+    await ops_test.model.wait_for_idle(apps=[CHARM_KEY, DUMMY_NAME], timeout=1000, idle_period=30)
 
-        assert ops_test.model.applications[CHARM_KEY].status == "active"
-        assert ops_test.model.applications[DUMMY_NAME].status == "active"
+    # ensuring at least a few update-status
+    await ops_test.model.add_relation(CHARM_KEY, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
+    async with ops_test.fast_forward(fast_interval="20s"):
+        await asyncio.sleep(60)
+
+    await ops_test.model.wait_for_idle(
+        apps=[CHARM_KEY, DUMMY_NAME], idle_period=30, status="active"
+    )
 
     assert check_tls(ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL"].client)
 
@@ -140,9 +134,14 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm):
 
     await set_tls_private_key(ops_test, key=new_private_key)
 
+    # ensuring key event actually runs
+    async with ops_test.fast_forward(fast_interval="10s"):
+        await asyncio.sleep(60)
+
     # Extract the key
     private_key_2 = extract_private_key(
-        show_unit(f"{CHARM_KEY}/{num_unit}", model_full_name=ops_test.model_full_name), unit=0
+        ops_test=ops_test,
+        unit_name=f"{CHARM_KEY}/{num_unit}",
     )
 
     assert private_key != private_key_2
@@ -172,16 +171,16 @@ async def test_mtls(ops_test: OpsTest):
         CERTS_NAME, channel="stable", config=tls_config, series="jammy", application_name=MTLS_NAME
     )
     await ops_test.model.wait_for_idle(apps=[MTLS_NAME], timeout=1000, idle_period=15)
-    async with ops_test.fast_forward():
-        await ops_test.model.add_relation(
-            f"{CHARM_KEY}:{TRUSTED_CERTIFICATE_RELATION}", f"{MTLS_NAME}:{TLS_RELATION}"
-        )
-        await ops_test.model.wait_for_idle(
-            apps=[CHARM_KEY, MTLS_NAME], idle_period=60, timeout=2000, status="active"
-        )
+    await ops_test.model.add_relation(
+        f"{CHARM_KEY}:{TRUSTED_CERTIFICATE_RELATION}", f"{MTLS_NAME}:{TLS_RELATION}"
+    )
+    await ops_test.model.wait_for_idle(
+        apps=[CHARM_KEY, MTLS_NAME], idle_period=60, timeout=2000, status="active"
+    )
 
     # getting kafka ca and address
-    broker_ca = extract_ca(show_unit(f"{CHARM_KEY}/0", model_full_name=ops_test.model_full_name))
+    broker_ca = extract_ca(ops_test=ops_test, unit_name=f"{CHARM_KEY}/0")
+
     address = await get_address(ops_test, app_name=CHARM_KEY)
     ssl_port = SECURITY_PROTOCOL_PORTS["SSL"].client
     sasl_port = SECURITY_PROTOCOL_PORTS["SASL_SSL"].client
@@ -250,7 +249,9 @@ async def test_kafka_tls_scaling(ops_test: OpsTest):
     )
 
     kafka_zk_relation_data = get_kafka_zk_relation_data(
-        unit_name=f"{CHARM_KEY}/2", model_full_name=ops_test.model_full_name
+        unit_name=f"{CHARM_KEY}/2",
+        ops_test=ops_test,
+        owner=ZK,
     )
     active_brokers = get_active_brokers(config=kafka_zk_relation_data)
     chroot = kafka_zk_relation_data.get("chroot", "")

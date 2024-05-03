@@ -20,6 +20,7 @@ from literals import PATHS, SECURITY_PROTOCOL_PORTS
 
 PROCESS = "kafka.Kafka"
 SERVICE_DEFAULT_PATH = "/etc/systemd/system/snap.charmed-kafka.daemon.service"
+ZK = "zookeeper"
 
 
 logger = logging.getLogger(__name__)
@@ -217,9 +218,8 @@ def network_restore(machine_name: str) -> None:
 
 def is_up(ops_test: OpsTest, broker_id: int) -> bool:
     """Return if node up."""
-    unit_name = ops_test.model.applications[APP_NAME].units[0].name
     kafka_zk_relation_data = get_kafka_zk_relation_data(
-        unit_name=unit_name, model_full_name=ops_test.model_full_name
+        ops_test=ops_test, owner=ZK, unit_name=f"{APP_NAME}/0"
     )
     active_brokers = get_active_brokers(config=kafka_zk_relation_data)
     chroot = kafka_zk_relation_data.get("chroot", "")
