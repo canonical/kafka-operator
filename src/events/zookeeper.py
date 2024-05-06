@@ -41,7 +41,7 @@ class ZooKeeperHandler(Object):
             self.charm.state.zookeeper.update(
                 {
                     "database": "/" + self.model.app.name,
-                    "requested-secrets":  """["username","password","tls","tls-ca","uris"]""",
+                    "requested-secrets": '["username","password","tls","tls-ca","uris"]',
                     "chroot": "/" + self.model.app.name,
                 }
             )
