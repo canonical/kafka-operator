@@ -41,6 +41,7 @@ def harness():
         zk_relation_id,
         harness.charm.app.name,
         {
+            "database": "/kafka",
             "chroot": "/kafka",
             "username": "moria",
             "password": "mellon",

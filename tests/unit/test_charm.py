@@ -501,9 +501,8 @@ def test_zookeeper_joined_sets_chroot(harness: Harness):
     zk_rel_id = harness.add_relation(ZK, ZK)
     harness.add_relation_unit(zk_rel_id, f"{ZK}/0")
 
-    assert CHARM_KEY in harness.charm.model.relations[ZK][0].data[harness.charm.app].get(
-        "chroot", ""
-    )
+    rel = harness.charm.model.relations[ZK][0].data[harness.charm.app]
+    assert CHARM_KEY in rel.get("database", rel.get("chroot", ""))
 
 
 def test_zookeeper_broken_stops_service_and_removes_meta_properties(harness: Harness):

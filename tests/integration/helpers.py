@@ -420,7 +420,7 @@ def get_active_brokers(config: Dict) -> Set[str]:
     Returns:
         Set of active broker ids
     """
-    chroot = config.get("chroot", "")
+    chroot = config.get("database", config.get("chroot", ""))
     hosts = config.get("endpoints", "").split(",")
     username = config.get("username", "")
     password = config.get("password", "")
