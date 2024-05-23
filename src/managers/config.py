@@ -329,11 +329,14 @@ class KafkaConfigManager:
                 "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \\\n"
                 '\toauth.client.id="kafka" \\\n'
                 f'\toauth.valid.issuer.uri="{self.oauth_config["issuer_url"]}" \\\n'
-                f'\toauth.jwks.endpoint.uri="{self.oauth_config["jwks_endpoint"]}" \\\n'
-                '\toauth.username.claim="email" \\\n'
+                f'\toauth.introspection.endpoint.uri="{self.oauth_config["introspection_endpoint"]}" \\\n'
+                '\toauth.username.claim="client_id" \\\n'
                 '\toauth.check.audience="true" \\\n'
                 '\toauth.check.access.token.type="false" \\\n'
                 f'\toauth.config.id="{listener.name}" \\\n'
+                f'\toauth.ssl.truststore.location="{self.workload.paths.truststore}" \\\n'
+                f'\toauth.ssl.truststore.password="{self.state.broker.truststore_password}" \\\n'
+                f'\toauth.ssl.truststore.type="JKS" \\\n'
                 '\tunsecuredLoginStringClaim_sub="unused";'
             )
             oauth_properties.append(
