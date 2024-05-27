@@ -2,6 +2,10 @@
 # See LICENSE file for licensing details.
 
 options:
+  role:
+    description: "Specify the charm operating mode. This configuration accepts the following roles: 'broker' (standard functionality), 'partitioner' (cruise control)."
+    type: string
+    default: broker
   compression_type:
     description: Specify the final compression type for a given topic. This configuration accepts the standard compression codecs ('gzip', 'snappy', 'lz4', 'zstd'). It additionally accepts 'uncompressed' which is equivalent to no compression; and 'producer' which means retain the original compression codec set by the producer.
     type: string

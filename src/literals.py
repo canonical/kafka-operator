@@ -148,3 +148,8 @@ DEPENDENCIES = {
         "version": "3.6.1",
     },
 }
+
+
+class Role(str, Enum):
+    BROKER = "broker"
+    PARTITIONER = "partitioner"

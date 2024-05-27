@@ -39,6 +39,7 @@ from literals import (
     SUBSTRATE,
     USER,
     DebugLevel,
+    Role,
     Status,
 )
 from managers.auth import AuthManager
@@ -58,9 +59,18 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         super().__init__(*args)
         self.name = CHARM_KEY
         self.substrate: Substrates = SUBSTRATE
-        self.workload = KafkaWorkload()
-        self.state = ClusterState(self, substrate=self.substrate)
+        self.role = self.config.role
 
+        # Common attrs init
+        self.workload = KafkaWorkload()
+        self.framework.observe(getattr(self.on, "install"), self._on_install)
+
+        if self.role is Role.PARTITIONER:
+            return
+
+        # Broker attrs init
+
+        self.state = ClusterState(self, substrate=self.substrate)
         self.health = KafkaHealth(self)
 
         # HANDLERS
@@ -107,7 +117,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             log_slots=[f"{self.workload.SNAP_NAME}:{self.workload.LOG_SLOT}"],
         )
 
-        self.framework.observe(getattr(self.on, "install"), self._on_install)
         self.framework.observe(getattr(self.on, "start"), self._on_start)
         self.framework.observe(getattr(self.on, "config_changed"), self._on_config_changed)
         self.framework.observe(getattr(self.on, "update_status"), self._on_update_status)
