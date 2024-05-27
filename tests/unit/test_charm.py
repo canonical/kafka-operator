@@ -55,10 +55,8 @@ def harness() -> Harness:
         }
     )
     harness.begin()
-    storage_metadata = getattr(harness.charm, "meta").storages["data"]
-    min_storages = storage_metadata.multiple_range[0] if storage_metadata.multiple_range else 1
     with harness.hooks_disabled():
-        harness.add_storage(storage_name="data", count=min_storages, attach=True)
+        harness.add_storage(storage_name="data", count=1, attach=True)
     return harness
 
 
@@ -135,6 +133,18 @@ def test_ready_to_start_blocks_mismatch_tls(harness: Harness, zk_data, passwords
 
     harness.charm.on.start.emit()
     assert harness.charm.unit.status == Status.ZK_TLS_MISMATCH.value.status
+
+
+def test_ready_to_start_no_storage(harness: Harness, zk_data, passwords_data):
+    with harness.hooks_disabled():
+        peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
+        zk_rel_id = harness.add_relation(ZK, ZK)
+        harness.update_relation_data(zk_rel_id, ZK, zk_data)
+        harness.update_relation_data(peer_rel_id, CHARM_KEY, passwords_data)
+        harness.remove_storage("data/0")
+
+    harness.charm.on.start.emit()
+    assert harness.charm.unit.status == Status.NO_STORAGE_ATTACHED.value.status
 
 
 def test_ready_to_start_succeeds(harness: Harness, zk_data, passwords_data):

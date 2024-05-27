@@ -63,6 +63,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         # Common attrs init
         self.workload = KafkaWorkload()
+        self.sysctl_config = sysctl.Config(name=CHARM_KEY)
         self.framework.observe(getattr(self.on, "install"), self._on_install)
 
         if self.role is Role.PARTITIONER:
@@ -103,7 +104,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         # LIB HANDLERS
 
-        self.sysctl_config = sysctl.Config(name=CHARM_KEY)
         self.restart = RollingOpsManager(self, relation="restart", callback=self._restart)
         self._grafana_agent = COSAgentProvider(
             self,
@@ -117,7 +117,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             log_slots=[f"{self.workload.SNAP_NAME}:{self.workload.LOG_SLOT}"],
         )
 
-        self.framework.observe(getattr(self.on, "start"), self._on_start)
+        self.framework.observe(getattr(self.on, "start"), self._on_broker_start)
         self.framework.observe(getattr(self.on, "config_changed"), self._on_config_changed)
         self.framework.observe(getattr(self.on, "update_status"), self._on_update_status)
         self.framework.observe(getattr(self.on, "remove"), self._on_remove)
@@ -134,15 +134,17 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
-        if self.workload.install():
-            self._set_os_config()
+        if not self.workload.install():
+            self._set_status(Status.SNAP_NOT_INSTALLED)
+            return
+
+        self._set_os_config()
+
+        if self.role is Role.BROKER:
             self.config_manager.set_environment()
             self.unit.set_workload_version(self.workload.get_version())
 
-        else:
-            self._set_status(Status.SNAP_NOT_INSTALLED)
-
-    def _on_start(self, event: EventBase) -> None:
+    def _on_broker_start(self, event: EventBase) -> None:
         """Handler for `start` event."""
         self._set_status(self.state.ready_to_start)
         if not isinstance(self.unit.status, ActiveStatus):

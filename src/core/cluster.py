@@ -238,4 +238,7 @@ class ClusterState(Object):
         if not self.cluster.internal_user_credentials:
             return Status.NO_BROKER_CREDS
 
+        if not self.log_dirs:
+            return Status.NO_STORAGE_ATTACHED
+
         return Status.ACTIVE

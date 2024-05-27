@@ -24,7 +24,11 @@ async def test_kafka_simple_scale_up(ops_test: OpsTest, kafka_charm):
             ZK, channel="edge", application_name=ZK, num_units=1, series="jammy"
         ),
         ops_test.model.deploy(
-            kafka_charm, application_name=CHARM_KEY, num_units=1, series="jammy"
+            kafka_charm,
+            application_name=CHARM_KEY,
+            num_units=1,
+            series="jammy",
+            storage={"data": ",,1"},
         ),
     )
     await ops_test.model.wait_for_idle(apps=[CHARM_KEY, ZK], idle_period=30, timeout=1800)
