@@ -30,7 +30,7 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm, app_charm):
             application_name=APP_NAME,
             num_units=1,
             series="jammy",
-            storage={"data": ",,1"},
+            storage={"data": {"count": 1}},
         ),
         ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series="jammy"),
     )
