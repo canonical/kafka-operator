@@ -19,6 +19,8 @@ from .helpers import (
 
 logger = logging.getLogger(__name__)
 
+pytestmark = pytest.mark.broker
+
 APP_NAME = "kafka"
 ZK = "zookeeper"
 DUMMY_NAME_1 = "app"

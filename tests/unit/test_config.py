@@ -26,6 +26,8 @@ from literals import (
 )
 from managers.config import KafkaConfigManager
 
+pytestmark = pytest.mark.broker
+
 CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
 ACTIONS = str(yaml.safe_load(Path("./actions.yaml").read_text()))
 METADATA = str(yaml.safe_load(Path("./metadata.yaml").read_text()))

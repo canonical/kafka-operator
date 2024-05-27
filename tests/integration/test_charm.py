@@ -28,6 +28,8 @@ from .helpers import (
 
 logger = logging.getLogger(__name__)
 
+pytestmark = pytest.mark.broker
+
 SAME_ZK = f"{ZK_NAME}-same"
 SAME_KAFKA = f"{APP_NAME}-same"
 

@@ -14,6 +14,8 @@ from ops.testing import Harness
 from charm import KafkaCharm
 from literals import CHARM_KEY, CONTAINER, PEER, SUBSTRATE, ZK
 
+pytestmark = pytest.mark.broker
+
 CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
 ACTIONS = str(yaml.safe_load(Path("./actions.yaml").read_text()))
 METADATA = str(yaml.safe_load(Path("./metadata.yaml").read_text()))
