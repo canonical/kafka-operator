@@ -88,7 +88,10 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             state=self.state, workload=self.workload, substrate=self.substrate
         )
         self.auth_manager = AuthManager(
-            state=self.state, workload=self.workload, kafka_opts=self.config_manager.kafka_opts
+            state=self.state,
+            workload=self.workload,
+            kafka_opts=self.config_manager.kafka_opts,
+            log4j_opts=self.config_manager.tools_log4j_opts,
         )
 
         # LIB HANDLERS

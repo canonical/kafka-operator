@@ -61,7 +61,9 @@ class KafkaHealth(Object):
         ]
         try:
             log_dirs = self.charm.workload.run_bin_command(
-                bin_keyword="log-dirs", bin_args=log_dirs_command
+                bin_keyword="log-dirs",
+                bin_args=log_dirs_command,
+                opts=[self.charm.config_manager.tools_log4j_opts],
             )
         except subprocess.CalledProcessError:
             return (0, 0)

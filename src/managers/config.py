@@ -138,6 +138,17 @@ class ConfigManager:
         return f"KAFKA_JMX_OPTS='{' '.join(opts)}'"
 
     @property
+    def tools_log4j_opts(self) -> str:
+        """The Log4j options for configuring the tooling logging.
+
+        Returns:
+            String of Log4j options
+        """
+        opts = ['Dlog4j.configuration=file:{self.workload.paths.tools_log4j_properties}"']
+
+        return f"KAFKA_LOG4J_OPTS='{' '.join(opts)}'"
+
+    @property
     def jvm_performance_opts(self) -> str:
         """The JVM config options for tuning performance settings.
 

@@ -24,11 +24,20 @@ from literals import (
     SUBSTRATE,
     ZK,
 )
-from managers.config import KafkaConfigManager
+from managers.config import ConfigManager
 
 CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
 ACTIONS = str(yaml.safe_load(Path("./actions.yaml").read_text()))
 METADATA = str(yaml.safe_load(Path("./metadata.yaml").read_text()))
+
+# override conftest fixtures
+@pytest.fixture(autouse=False)
+def patched_workload_write():
+    yield
+
+@pytest.fixture(autouse=False)
+def patched_etc_environment():
+    yield
 
 
 @pytest.fixture
