@@ -6,6 +6,7 @@
 
 import logging
 from typing import cast
+import inspect
 
 from core.cluster import ClusterState
 from core.structured_config import CharmConfig, LogLevel
@@ -426,14 +427,13 @@ class ConfigManager:
         Returns:
             String of Jaas config for ZooKeeper auth
         """
-        return f"""
-Client {{
-    org.apache.zookeeper.server.auth.DigestLoginModule required
-    username="{self.state.zookeeper.username}"
-    password="{self.state.zookeeper.password}";
-}};
-
-        """
+        return inspect.cleandoc(f"""
+            Client {{
+                org.apache.zookeeper.server.auth.DigestLoginModule required
+                username="{self.state.zookeeper.username}"
+                password="{self.state.zookeeper.password}";
+            }};
+        """)
 
     def set_zk_jaas_config(self) -> None:
         """Writes the ZooKeeper JAAS config using ZooKeeper relation data."""
