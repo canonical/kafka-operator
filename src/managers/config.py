@@ -145,7 +145,7 @@ class ConfigManager:
         Returns:
             String of Log4j options
         """
-        opts = ['Dlog4j.configuration=file:{self.workload.paths.tools_log4j_properties}"']
+        opts = ['-Dlog4j.configuration=file:{self.workload.paths.tools_log4j_properties}"']
 
         return f"KAFKA_LOG4J_OPTS='{' '.join(opts)}'"
 
