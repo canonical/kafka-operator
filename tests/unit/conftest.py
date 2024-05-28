@@ -14,6 +14,7 @@ def zk_data() -> dict[str, str]:
         "username": "glorfindel",
         "password": "mellon",
         "endpoints": "10.10.10.10",
+        "database": "/kafka",
         "chroot": "/kafka",
         "uris": "10.10.10.10:2181",
         "tls": "disabled",

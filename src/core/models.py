@@ -285,6 +285,19 @@ class ZooKeeper(RelationState):
         )
 
     @property
+    def database(self) -> str:
+        """Path allocated for Kafka on ZooKeeper."""
+        if not self.relation:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="database"
+            )
+            or self.chroot
+        )
+
+    @property
     def chroot(self) -> str:
         """Path allocated for Kafka on ZooKeeper."""
         if not self.relation:
@@ -320,8 +333,8 @@ class ZooKeeper(RelationState):
     @property
     def connect(self) -> str:
         """Full connection string of sorted uris."""
-        sorted_uris = sorted(self.uris.replace(self.chroot, "").split(","))
-        sorted_uris[-1] = sorted_uris[-1] + self.chroot
+        sorted_uris = sorted(self.uris.replace(self.database, "").split(","))
+        sorted_uris[-1] = sorted_uris[-1] + self.database
         return ",".join(sorted_uris)
 
     @property
@@ -332,7 +345,7 @@ class ZooKeeper(RelationState):
             True if ZooKeeper is currently related with sufficient relation data
                 for a broker to connect with. Otherwise False
         """
-        if not all([self.username, self.password, self.endpoints, self.chroot, self.uris]):
+        if not all([self.username, self.password, self.endpoints, self.database, self.uris]):
             return False
 
         return True
@@ -356,7 +369,7 @@ class ZooKeeper(RelationState):
         """Checks if broker id is recognised as active by ZooKeeper."""
         broker_id = self.data_interface.local_unit.name.split("/")[1]
         hosts = self.endpoints.split(",")
-        path = f"{self.chroot}/brokers/ids/"
+        path = f"{self.database}/brokers/ids/"
 
         zk = ZooKeeperManager(hosts=hosts, username=self.username, password=self.password)
         try:

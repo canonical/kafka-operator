@@ -222,7 +222,7 @@ def is_up(ops_test: OpsTest, broker_id: int) -> bool:
         ops_test=ops_test, owner=ZK, unit_name=f"{APP_NAME}/0"
     )
     active_brokers = get_active_brokers(config=kafka_zk_relation_data)
-    chroot = kafka_zk_relation_data.get("chroot", "")
+    chroot = kafka_zk_relation_data.get("database", kafka_zk_relation_data.get("chroot", ""))
     return f"{chroot}/brokers/ids/{broker_id}" in active_brokers
 
 

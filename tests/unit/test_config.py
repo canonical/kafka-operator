@@ -87,6 +87,7 @@ def test_log_dirs_in_server_properties(harness: Harness):
         zk_relation_id,
         harness.charm.app.name,
         {
+            "database": "/kafka",
             "chroot": "/kafka",
             "username": "moria",
             "password": "mellon",
@@ -123,6 +124,7 @@ def test_listeners_in_server_properties(harness: Harness):
         zk_relation_id,
         harness.charm.app.name,
         {
+            "database": "/kafka",
             "chroot": "/kafka",
             "username": "moria",
             "password": "mellon",
@@ -166,6 +168,7 @@ def test_ssl_listeners_in_server_properties(harness: Harness):
         zk_relation_id,
         harness.charm.app.name,
         {
+            "database": "/kafka",
             "chroot": "/kafka",
             "username": "moria",
             "password": "mellon",
@@ -210,6 +213,7 @@ def test_zookeeper_config_succeeds_fails_config(harness: Harness):
         zk_relation_id,
         harness.charm.app.name,
         {
+            "database": "/kafka",
             "chroot": "/kafka",
             "username": "moria",
             "endpoints": "1.1.1.1,2.2.2.2",
@@ -227,6 +231,7 @@ def test_zookeeper_config_succeeds_valid_config(harness: Harness):
         zk_relation_id,
         harness.charm.app.name,
         {
+            "database": "/kafka",
             "chroot": "/kafka",
             "username": "moria",
             "password": "mellon",
@@ -340,6 +345,7 @@ def test_ssl_principal_mapping_rules(harness: Harness):
         zk_relation_id,
         harness.charm.app.name,
         {
+            "database": "/kafka",
             "chroot": "/kafka",
             "username": "moria",
             "password": "mellon",
@@ -380,6 +386,7 @@ def test_auth_properties(harness: Harness):
         zk_relation_id,
         harness.charm.app.name,
         {
+            "database": "/kafka",
             "chroot": "/kafka",
             "username": "moria",
             "password": "mellon",
@@ -404,6 +411,7 @@ def test_rack_properties(harness: Harness):
         zk_relation_id,
         harness.charm.app.name,
         {
+            "database": "/kafka",
             "chroot": "/kafka",
             "username": "moria",
             "password": "mellon",
@@ -431,6 +439,7 @@ def test_inter_broker_protocol_version(harness: Harness):
         zk_relation_id,
         harness.charm.app.name,
         {
+            "database": "/kafka",
             "chroot": "/kafka",
             "username": "moria",
             "password": "mellon",
