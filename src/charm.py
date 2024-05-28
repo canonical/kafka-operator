@@ -62,7 +62,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.role = self.config.role
 
         # Common attrs init
-        self.workload = KafkaWorkload()
+        self.workload = KafkaWorkload(self.role)
         self.sysctl_config = sysctl.Config(name=CHARM_KEY)
         self.framework.observe(getattr(self.on, "install"), self._on_install)
 

@@ -154,3 +154,9 @@ DEPENDENCIES = {
 class Role(str, Enum):
     BROKER = "broker"
     PARTITIONER = "partitioner"
+
+
+SERVICES = {
+    Role.BROKER: "daemon",
+    Role.PARTITIONER: "cruise-control",
+}

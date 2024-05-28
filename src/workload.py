@@ -17,7 +17,7 @@ from tenacity.wait import wait_fixed
 from typing_extensions import override
 
 from core.workload import WorkloadBase
-from literals import CHARMED_KAFKA_SNAP_REVISION, GROUP, SNAP_NAME, USER
+from literals import CHARMED_KAFKA_SNAP_REVISION, GROUP, SERVICES, SNAP_NAME, USER, Role
 
 logger = logging.getLogger(__name__)
 
@@ -27,30 +27,30 @@ class KafkaWorkload(WorkloadBase):
 
     # FIXME: Paths and constants integrated into WorkloadBase?
     SNAP_NAME = "charmed-kafka"
-    SNAP_SERVICE = "daemon"
     LOG_SLOT = "logs"
 
-    def __init__(self) -> None:
+    def __init__(self, role: Role) -> None:
         self.kafka = snap.SnapCache()[SNAP_NAME]
+        self.service = SERVICES[role]
 
     @override
     def start(self) -> None:
         try:
-            self.kafka.start(services=[self.SNAP_SERVICE])
+            self.kafka.start(services=[self.service])
         except snap.SnapError as e:
             logger.exception(str(e))
 
     @override
     def stop(self) -> None:
         try:
-            self.kafka.stop(services=[self.SNAP_SERVICE])
+            self.kafka.stop(services=[self.service])
         except snap.SnapError as e:
             logger.exception(str(e))
 
     @override
     def restart(self) -> None:
         try:
-            self.kafka.restart(services=[self.SNAP_SERVICE])
+            self.kafka.restart(services=[self.service])
         except snap.SnapError as e:
             logger.exception(str(e))
 
@@ -100,7 +100,7 @@ class KafkaWorkload(WorkloadBase):
     @override
     def active(self) -> bool:
         try:
-            return bool(self.kafka.services[self.SNAP_SERVICE]["active"])
+            return bool(self.kafka.services[self.service]["active"])
         except KeyError:
             return False
 
@@ -156,9 +156,9 @@ class KafkaWorkload(WorkloadBase):
             with open(f"/proc/{pid}/cgroup", "r") as fid:
                 content = "".join(fid.readlines())
 
-                if f"{self.SNAP_NAME}.{self.SNAP_SERVICE}" in content:
+                if f"{self.SNAP_NAME}.{self.service}" in content:
                     logger.debug(
-                        f"Found Snap service {self.SNAP_SERVICE} for {self.SNAP_NAME} with PID {pid}"
+                        f"Found Snap service {self.service} for {self.SNAP_NAME} with PID {pid}"
                     )
                     return int(pid)
 
