@@ -38,7 +38,13 @@ class ZooKeeperHandler(Object):
     def _on_zookeeper_created(self, _) -> None:
         """Handler for `zookeeper_relation_created` events."""
         if self.model.unit.is_leader():
-            self.charm.state.zookeeper.update({"chroot": "/" + self.model.app.name})
+            self.charm.state.zookeeper.update(
+                {
+                    "database": "/" + self.model.app.name,
+                    "requested-secrets": '["username","password","tls","tls-ca","uris"]',
+                    "chroot": "/" + self.model.app.name,
+                }
+            )
 
     def _on_zookeeper_changed(self, event: RelationChangedEvent) -> None:
         """Handler for `zookeeper_relation_created/joined/changed` events, ensuring internal users get created."""
