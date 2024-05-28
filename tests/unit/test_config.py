@@ -35,6 +35,7 @@ METADATA = str(yaml.safe_load(Path("./metadata.yaml").read_text()))
 def patched_workload_write():
     yield
 
+
 @pytest.fixture(autouse=False)
 def patched_etc_environment():
     yield
@@ -295,6 +296,7 @@ def test_set_environment(harness: Harness, patched_workload_write, patched_etc_e
             assert "/etc/environment" == call.kwargs.get("path", "")
 
             assert "KAFKA_LOG4J_OPTS" not in call.kwargs.get("content", "")
+
 
 def test_bootstrap_server(harness: Harness):
     """Checks the bootstrap-server property setting."""

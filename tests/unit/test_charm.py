@@ -204,12 +204,8 @@ def test_start_sets_necessary_config(harness: Harness, zk_data, passwords_data):
     with (
         patch("managers.auth.AuthManager.add_user"),
         patch("managers.config.ConfigManager.set_zk_jaas_config") as patched_jaas,
-        patch(
-            "managers.config.ConfigManager.set_server_properties"
-        ) as patched_server_properties,
-        patch(
-            "managers.config.ConfigManager.set_client_properties"
-        ) as patched_client_properties,
+        patch("managers.config.ConfigManager.set_server_properties") as patched_server_properties,
+        patch("managers.config.ConfigManager.set_client_properties") as patched_client_properties,
         patch("workload.KafkaWorkload.start"),
         # NOTE: Patching `active` cuts the hook short, as we are only testing properties being set.
         patch("workload.KafkaWorkload.active", return_value=False),
