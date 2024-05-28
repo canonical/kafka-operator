@@ -278,7 +278,7 @@ def test_jmx_opts(harness: Harness):
     assert "KAFKA_JMX_OPTS" in args
 
 
-def test_set_environment(harness: Harness):
+def test_set_environment(harness: Harness, patched_workload_write, patched_etc_environment):
     """Checks all necessary env-vars are written to /etc/environment."""
     with (
         patch("workload.KafkaWorkload.write") as patched_write,
@@ -289,12 +289,12 @@ def test_set_environment(harness: Harness):
 
         for call in patched_write.call_args_list:
             assert "KAFKA_OPTS" in call.kwargs.get("content", "")
-            assert "KAFKA_LOG4J_OPTS" in call.kwargs.get("content", "")
             assert "KAFKA_JMX_OPTS" in call.kwargs.get("content", "")
             assert "KAFKA_HEAP_OPTS" in call.kwargs.get("content", "")
             assert "KAFKA_JVM_PERFORMANCE_OPTS" in call.kwargs.get("content", "")
             assert "/etc/environment" == call.kwargs.get("path", "")
 
+            assert "KAFKA_LOG4J_OPTS" not in call.kwargs.get("content", "")
 
 def test_bootstrap_server(harness: Harness):
     """Checks the bootstrap-server property setting."""
