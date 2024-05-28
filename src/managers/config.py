@@ -96,7 +96,7 @@ class Listener:
         return f"{self.name}://{self.host}:{self.port}"
 
 
-class KafkaConfigManager:
+class ConfigManager:
     """Manager for handling Kafka configuration."""
 
     def __init__(

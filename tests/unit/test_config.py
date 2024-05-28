@@ -249,9 +249,9 @@ def test_kafka_opts(harness: Harness):
 def test_heap_opts(harness: Harness, profile, expected):
     """Checks necessary args for KAFKA_HEAP_OPTS."""
     # Harness doesn't reinitialize KafkaCharm when calling update_config, which means that
-    # self.config is not passed again to KafkaConfigManager
+    # self.config is not passed again to ConfigManager
     harness.update_config({"profile": profile})
-    conf_manager = KafkaConfigManager(
+    conf_manager = ConfigManager(
         harness.charm.state, harness.charm.workload, harness.charm.config, "1"
     )
     args = conf_manager.heap_opts
@@ -353,9 +353,9 @@ def test_ssl_principal_mapping_rules(harness: Harness):
         )
     ):
         # Harness doesn't reinitialize KafkaCharm when calling update_config, which means that
-        # self.config is not passed again to KafkaConfigManager
+        # self.config is not passed again to ConfigManager
         harness._update_config({"ssl_principal_mapping_rules": "RULE:^(erebor)$/$1,DEFAULT"})
-        conf_manager = KafkaConfigManager(
+        conf_manager = ConfigManager(
             harness.charm.state, harness.charm.workload, harness.charm.config, "1"
         )
 
@@ -411,7 +411,7 @@ def test_rack_properties(harness: Harness):
 
     with (
         patch(
-            "managers.config.KafkaConfigManager.rack_properties",
+            "managers.config.ConfigManager.rack_properties",
             new_callable=PropertyMock,
             return_value=["broker.rack=gondor-west"],
         )
