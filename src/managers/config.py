@@ -121,8 +121,9 @@ class ConfigManager:
         """
         # Remapping to WARN that is generally used in Java applications based on log4j and logback.
         if self.config.log_level == LogLevel.WARNING.value:
-            return "WARN"
-        return self.config.log_level
+            return "KAFKA_CFG_LOGLEVEL=WARN"
+
+        return f"KAFKA_CFG_LOGLEVEL={self.config.log_level}"
 
     @property
     def jmx_opts(self) -> str:
@@ -145,7 +146,9 @@ class ConfigManager:
         Returns:
             String of Log4j options
         """
-        opts = ['-Dlog4j.configuration=file:{self.workload.paths.tools_log4j_properties}"']
+        opts = [
+            '-Dlog4j.configuration=file:{self.workload.paths.tools_log4j_properties} -Dcharmed.kafka.log.level={self.log_level.split("=")[1]}'
+        ]
 
         return f"KAFKA_LOG4J_OPTS='{' '.join(opts)}'"
 
@@ -192,7 +195,6 @@ class ConfigManager:
         """
         opts = [
             f"-Djava.security.auth.login.config={self.workload.paths.zk_jaas}",
-            f"-Dcharmed.kafka.log.level={self.log_level}",
         ]
 
         return f"KAFKA_OPTS='{' '.join(opts)}'"
@@ -460,6 +462,7 @@ class ConfigManager:
             self.jmx_opts,
             self.jvm_performance_opts,
             self.heap_opts,
+            self.log_level,
         ]
 
         def map_env(env: list[str]) -> dict[str, str]:

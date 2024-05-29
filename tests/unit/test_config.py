@@ -293,6 +293,7 @@ def test_set_environment(harness: Harness, patched_workload_write, patched_etc_e
             assert "KAFKA_JMX_OPTS" in call.kwargs.get("content", "")
             assert "KAFKA_HEAP_OPTS" in call.kwargs.get("content", "")
             assert "KAFKA_JVM_PERFORMANCE_OPTS" in call.kwargs.get("content", "")
+            assert "KAFKA_CFG_LOGLEVEL" in call.kwargs.get("content", "")
             assert "/etc/environment" == call.kwargs.get("path", "")
 
             assert "KAFKA_LOG4J_OPTS" not in call.kwargs.get("content", "")
