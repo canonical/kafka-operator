@@ -66,7 +66,8 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.sysctl_config = sysctl.Config(name=CHARM_KEY)
         self.framework.observe(getattr(self.on, "install"), self._on_install)
 
-        if self.role is Role.PARTITIONER:
+        if self.role == Role.PARTITIONER:
+            self.framework.observe(getattr(self.on, "start"), self._on_partitioner_start)
             return
 
         # Broker attrs init
@@ -166,6 +167,11 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         # only log once on successful 'on-start' run
         if isinstance(self.unit.status, ActiveStatus):
             logger.info(f'Broker {self.unit.name.split("/")[1]} connected')
+
+    def _on_partitioner_start(self, event: EventBase) -> None:
+        """Handler for `start` event."""
+        self.workload.start()
+        logger.info("Cruise control started")
 
     def _on_config_changed(self, event: EventBase) -> None:
         """Generic handler for most `config_changed` events across relations."""
