@@ -4,6 +4,7 @@
 
 """Manager for handling Kafka configuration."""
 
+import inspect
 import logging
 from typing import cast
 
@@ -96,7 +97,7 @@ class Listener:
         return f"{self.name}://{self.host}:{self.port}"
 
 
-class KafkaConfigManager:
+class ConfigManager:
     """Manager for handling Kafka configuration."""
 
     def __init__(
@@ -120,8 +121,9 @@ class KafkaConfigManager:
         """
         # Remapping to WARN that is generally used in Java applications based on log4j and logback.
         if self.config.log_level == LogLevel.WARNING.value:
-            return "WARN"
-        return self.config.log_level
+            return "KAFKA_CFG_LOGLEVEL=WARN"
+
+        return f"KAFKA_CFG_LOGLEVEL={self.config.log_level}"
 
     @property
     def jmx_opts(self) -> str:
@@ -136,6 +138,19 @@ class KafkaConfigManager:
         ]
 
         return f"KAFKA_JMX_OPTS='{' '.join(opts)}'"
+
+    @property
+    def tools_log4j_opts(self) -> str:
+        """The Log4j options for configuring the tooling logging.
+
+        Returns:
+            String of Log4j options
+        """
+        opts = [
+            '-Dlog4j.configuration=file:{self.workload.paths.tools_log4j_properties} -Dcharmed.kafka.log.level={self.log_level.split("=")[1]}'
+        ]
+
+        return f"KAFKA_LOG4J_OPTS='{' '.join(opts)}'"
 
     @property
     def jvm_performance_opts(self) -> str:
@@ -180,7 +195,6 @@ class KafkaConfigManager:
         """
         opts = [
             f"-Djava.security.auth.login.config={self.workload.paths.zk_jaas}",
-            f"-Dcharmed.kafka.log.level={self.log_level}",
         ]
 
         return f"KAFKA_OPTS='{' '.join(opts)}'"
@@ -415,14 +429,15 @@ class KafkaConfigManager:
         Returns:
             String of Jaas config for ZooKeeper auth
         """
-        return f"""
-Client {{
-    org.apache.zookeeper.server.auth.DigestLoginModule required
-    username="{self.state.zookeeper.username}"
-    password="{self.state.zookeeper.password}";
-}};
-
+        return inspect.cleandoc(
+            f"""
+            Client {{
+                org.apache.zookeeper.server.auth.DigestLoginModule required
+                username="{self.state.zookeeper.username}"
+                password="{self.state.zookeeper.password}";
+            }};
         """
+        )
 
     def set_zk_jaas_config(self) -> None:
         """Writes the ZooKeeper JAAS config using ZooKeeper relation data."""
@@ -447,6 +462,7 @@ Client {{
             self.jmx_opts,
             self.jvm_performance_opts,
             self.heap_opts,
+            self.log_level,
         ]
 
         def map_env(env: list[str]) -> dict[str, str]:
