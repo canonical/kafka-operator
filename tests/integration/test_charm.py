@@ -134,11 +134,13 @@ async def test_remove_zk_relation_relate(ops_test: OpsTest):
 async def test_listeners(ops_test: OpsTest, app_charm):
     address = await get_address(ops_test=ops_test)
     assert check_socket(
-        address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].internal
+        address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].internal
     )  # Internal listener
 
     # Client listener should not be enabled if there is no relations
-    assert not check_socket(address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].client)
+    assert not check_socket(
+        address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
+    )
 
     # Add relation with dummy app
     await asyncio.gather(
@@ -153,7 +155,7 @@ async def test_listeners(ops_test: OpsTest, app_charm):
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME, DUMMY_NAME])
 
     # check that client listener is active
-    assert check_socket(address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].client)
+    assert check_socket(address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client)
 
     # remove relation and check that client listener is not active
     await ops_test.model.applications[APP_NAME].remove_relation(
@@ -161,7 +163,9 @@ async def test_listeners(ops_test: OpsTest, app_charm):
     )
     await ops_test.model.wait_for_idle(apps=[APP_NAME])
 
-    assert not check_socket(address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].client)
+    assert not check_socket(
+        address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
+    )
 
 
 @pytest.mark.abort_on_fail

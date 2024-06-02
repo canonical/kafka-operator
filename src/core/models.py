@@ -5,7 +5,9 @@
 """Collection of state objects for the Kafka relations, apps and units."""
 
 import logging
+from typing import MutableMapping
 
+import requests
 from charms.data_platform_libs.v0.data_interfaces import Data, DataPeerData, DataPeerUnitData
 from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManager
 from kazoo.client import AuthFailedError, NoNodeError
@@ -451,3 +453,49 @@ class KafkaClient(RelationState):
         When `admin` is set, the Kafka charm interprets this as a new super.user.
         """
         return self.relation_data.get("extra-user-roles", "")
+
+
+class OAuth:
+    """State collection metadata for the oauth relation."""
+
+    def __init__(self, relation: Relation | None):
+        self.relation = relation
+
+    @property
+    def relation_data(self) -> MutableMapping[str, str]:
+        """Oauth relation data object."""
+        if not self.relation or not self.relation.app:
+            return {}
+
+        return self.relation.data[self.relation.app]
+
+    @property
+    def issuer_url(self) -> str:
+        """The issuer URL to identify the IDP."""
+        return self.relation_data.get("issuer_url", "")
+
+    @property
+    def jwks_endpoint(self) -> str:
+        """The JWKS endpoint needed to validate JWT tokens."""
+        return self.relation_data.get("jwks_endpoint", "")
+
+    @property
+    def introspection_endpoint(self) -> str:
+        """The introspection endpoint needed to validate non-JWT tokens."""
+        return self.relation_data.get("introspection_endpoint", "")
+
+    @property
+    def jwt_access_token(self) -> bool:
+        """A flag indicating if the access token is JWT or not."""
+        return self.relation_data.get("jwt_access_token", "false").lower() == "true"
+
+    @property
+    def uses_trusted_ca(self) -> bool:
+        """A flag indicating if the IDP uses certificates signed by a trusted CA."""
+        try:
+            requests.get(self.issuer_url, timeout=10)
+            return True
+        except requests.exceptions.SSLError:
+            return False
+        except requests.exceptions.RequestException:
+            return True
