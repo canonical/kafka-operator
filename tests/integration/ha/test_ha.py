@@ -72,13 +72,7 @@ async def restart_delay(ops_test: OpsTest):
 @pytest.mark.abort_on_fail
 async def test_build_and_deploy(ops_test: OpsTest, kafka_charm, app_charm):
     await asyncio.gather(
-        ops_test.model.deploy(
-            kafka_charm,
-            application_name=APP_NAME,
-            num_units=1,
-            series="jammy",
-            storage={"data": {"count": 1}},
-        ),
+        ops_test.model.deploy(kafka_charm, application_name=APP_NAME, num_units=1, series="jammy"),
         ops_test.model.deploy(ZK_NAME, channel="edge", num_units=1, series="jammy"),
         ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series="jammy"),
     )
@@ -132,11 +126,7 @@ async def test_multi_cluster_isolation(ops_test: OpsTest, kafka_charm):
 
     await asyncio.gather(
         ops_test.model.deploy(
-            kafka_charm,
-            application_name=second_kafka_name,
-            num_units=1,
-            series="jammy",
-            storage={"data": {"count": 1}},
+            kafka_charm, application_name=second_kafka_name, num_units=1, series="jammy"
         ),
         ops_test.model.deploy(
             ZK_NAME, channel="edge", application_name=second_zk_name, num_units=1, series="jammy"

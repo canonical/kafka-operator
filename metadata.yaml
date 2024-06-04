@@ -56,4 +56,4 @@ storage:
     minimum-size: 10G
     location: /var/snap/charmed-kafka/common/var/lib/kafka
     multiple:
-      range: 0-
+      range: 1-

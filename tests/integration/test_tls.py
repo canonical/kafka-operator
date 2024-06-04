@@ -56,7 +56,6 @@ async def test_deploy_tls(ops_test: OpsTest, kafka_charm):
             config={
                 "ssl_principal_mapping_rules": "RULE:^.*[Cc][Nn]=([a-zA-Z0-9.]*).*$/$1/L,DEFAULT"
             },
-            storage={"data": {"count": 1}},
         ),
     )
     await ops_test.model.block_until(lambda: len(ops_test.model.applications[ZK].units) == 1)

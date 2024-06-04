@@ -127,7 +127,6 @@ class Status(Enum):
         ActiveStatus("potential data loss due to storage removal without replication"),
         "ERROR",
     )
-    NO_STORAGE_ATTACHED = StatusLevel(BlockedStatus("no storage mounted"), "ERROR")
     NO_BROKER_CREDS = StatusLevel(
         WaitingStatus("internal broker credentials not yet added"), "DEBUG"
     )

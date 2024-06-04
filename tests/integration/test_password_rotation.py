@@ -25,13 +25,7 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm, app_charm):
         ops_test.model.deploy(
             ZK_NAME, channel="edge", application_name=ZK_NAME, num_units=3, series="jammy"
         ),
-        ops_test.model.deploy(
-            kafka_charm,
-            application_name=APP_NAME,
-            num_units=1,
-            series="jammy",
-            storage={"data": {"count": 1}},
-        ),
+        ops_test.model.deploy(kafka_charm, application_name=APP_NAME, num_units=1, series="jammy"),
         ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series="jammy"),
     )
     await ops_test.model.block_until(lambda: len(ops_test.model.applications[ZK_NAME].units) == 3)

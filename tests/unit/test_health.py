@@ -36,8 +36,10 @@ def harness():
         }
     )
     harness.begin()
+    storage_metadata = getattr(harness.charm, "meta").storages["data"]
+    min_storages = storage_metadata.multiple_range[0] if storage_metadata.multiple_range else 0
     with harness.hooks_disabled():
-        harness.add_storage(storage_name="data", count=1, attach=True)
+        harness.add_storage(storage_name="data", count=min_storages, attach=True)
 
     return harness
 

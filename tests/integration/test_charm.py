@@ -58,7 +58,6 @@ async def test_build_and_deploy_same_machine(ops_test: OpsTest, kafka_charm):
             num_units=1,
             series="jammy",
             to=machine_ids[0],
-            storage={"data": {"count": 1}},
         ),
     )
     await ops_test.model.wait_for_idle(apps=[SAME_ZK, SAME_KAFKA], idle_period=30, timeout=1800)
@@ -94,7 +93,7 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
             num_units=1,
             series="jammy",
             to=machine_ids[0],
-            storage={"data": {"pool": "test_pool", "size": 10240, "count": 1}},
+            storage={"data": {"pool": "test_pool", "size": 10240}},
         ),
         ops_test.model.deploy(
             ZK_NAME, channel="edge", application_name=ZK_NAME, num_units=1, series="jammy"

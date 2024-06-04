@@ -64,9 +64,7 @@ def harness():
 def test_all_storages_in_log_dirs(harness: Harness):
     """Checks that the log.dirs property updates with all available storages."""
     storage_metadata = harness.charm.meta.storages["data"]
-    min_storages = (
-        max(storage_metadata.multiple_range[0], 1) if storage_metadata.multiple_range else 1
-    )
+    min_storages = storage_metadata.multiple_range[0] if storage_metadata.multiple_range else 1
     with harness.hooks_disabled():
         harness.add_storage(storage_name="data", count=min_storages, attach=True)
 
