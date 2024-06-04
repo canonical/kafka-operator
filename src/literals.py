@@ -140,6 +140,10 @@ class Status(Enum):
         BlockedStatus("sysctl params cannot be set. Is the machine running on a container?"),
         "WARNING",
     )
+    NOT_IMPLEMENTED = StatusLevel(
+        BlockedStatus("feature not yet implemented"),
+        "WARNING",
+    )
 
 
 DEPENDENCIES = {

@@ -66,3 +66,8 @@ def test_install_sets_status_if_os_config_fails(harness: Harness, patched_sysctl
         harness.charm.on.install.emit()
 
         assert harness.charm.unit.status == Status.SYSCONF_NOT_POSSIBLE.value.status
+
+
+def test_ready_to_start_not_implemented(harness: Harness):
+    harness.charm.on.start.emit()
+    assert harness.charm.unit.status == Status.NOT_IMPLEMENTED.value.status

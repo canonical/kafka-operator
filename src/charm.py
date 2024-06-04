@@ -191,6 +191,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         """Handler for `start` event."""
         self.config_manager = cast(PartitionerConfigManager, self.config_manager)
 
+        self._set_status(Status.NOT_IMPLEMENTED)
         self.config_manager.set_cruise_control_properties()
 
         self.workload.start()
