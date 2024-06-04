@@ -6,6 +6,7 @@
 
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 from typing import Literal
 
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, StatusBase, WaitingStatus
@@ -69,10 +70,10 @@ OS_REQUIREMENTS = {
 }
 
 PATHS = {
-    "CONF": f"/var/snap/{SNAP_NAME}/current/etc/kafka",
-    "LOGS": f"/var/snap/{SNAP_NAME}/common/var/log/kafka",
-    "DATA": f"/var/snap/{SNAP_NAME}/common/var/lib/kafka",
-    "BIN": f"/snap/{SNAP_NAME}/current/opt/kafka",
+    "CONF": Path(f"/var/snap/{SNAP_NAME}/current/etc"),
+    "LOGS": Path(f"/var/snap/{SNAP_NAME}/common/var/log"),
+    "DATA": Path(f"/var/snap/{SNAP_NAME}/common/var/lib"),
+    "BIN": Path(f"/snap/{SNAP_NAME}/current/opt"),
 }
 
 
@@ -156,7 +157,6 @@ class Role(str, Enum):
     PARTITIONER = "partitioner"
 
 
-SERVICES = {
-    Role.BROKER: "daemon",
-    Role.PARTITIONER: "cruise-control",
-}
+class Service(str, Enum):
+    BROKER = "daemon"
+    PARTIONER = "cruise-control"

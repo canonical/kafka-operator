@@ -126,4 +126,5 @@ typeCheckingMode = "basic"
 reportIncompatibleMethodOverride = false
 reportImportCycles = false
 reportMissingModuleSource = true
+reportMatchNotExhaustive = "error"
 stubPath = ""

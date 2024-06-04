@@ -5,7 +5,7 @@
 
 import logging
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from charms.data_platform_libs.v0.upgrade import (
     ClusterNotReadyError,
@@ -16,6 +16,8 @@ from charms.data_platform_libs.v0.upgrade import (
 )
 from pydantic import BaseModel
 from typing_extensions import override
+
+from managers.config import ConfigManager
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -86,6 +88,8 @@ class KafkaUpgrade(DataUpgrade):
 
     @override
     def _on_upgrade_granted(self, event: UpgradeGrantedEvent) -> None:
+        self.charm.config_manager = cast(ConfigManager, self.charm.config_manager)
+
         dependency_model: DependencyModel = getattr(self.dependency_model, "kafka_service")
         if not verify_requirements(
             version=self.zookeeper_current_version,

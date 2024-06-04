@@ -6,6 +6,7 @@
 
 import logging
 import time
+from typing import cast
 
 from charms.data_platform_libs.v0.data_models import TypedCharmBase
 from charms.grafana_agent.v0.cos_agent import COSAgentProvider
@@ -43,7 +44,7 @@ from literals import (
     Status,
 )
 from managers.auth import AuthManager
-from managers.config import ConfigManager
+from managers.config import ConfigManager, ConfigManagerProtocol, PartitionerConfigManager
 from managers.tls import TLSManager
 from workload import KafkaWorkload
 
@@ -66,12 +67,23 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.sysctl_config = sysctl.Config(name=CHARM_KEY)
         self.framework.observe(getattr(self.on, "install"), self._on_install)
 
-        if self.role == Role.PARTITIONER:
-            self.framework.observe(getattr(self.on, "start"), self._on_partitioner_start)
-            return
+        self.config_manager: ConfigManagerProtocol
 
-        # Broker attrs init
+        match self.role:
+            case Role.PARTITIONER:
+                self.framework.observe(getattr(self.on, "start"), self._on_partitioner_start)
+                self.config_manager = PartitionerConfigManager(
+                    workload=self.workload,
+                    config=self.config,
+                )
 
+                return
+
+            case Role.BROKER:
+                self._init_broker()
+
+    def _init_broker(self) -> None:
+        """Init broker specific attributes."""
         self.state = ClusterState(self, substrate=self.substrate)
         self.health = KafkaHealth(self)
 
@@ -145,11 +157,15 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self._set_os_config()
 
         if self.role is Role.BROKER:
+            self.config_manager = cast(ConfigManager, self.config_manager)
+
             self.config_manager.set_environment()
             self.unit.set_workload_version(self.workload.get_version())
 
     def _on_broker_start(self, event: EventBase) -> None:
         """Handler for `start` event."""
+        self.config_manager = cast(ConfigManager, self.config_manager)
+
         self._set_status(self.state.ready_to_start)
         if not isinstance(self.unit.status, ActiveStatus):
             event.defer()
@@ -173,11 +189,17 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
     def _on_partitioner_start(self, event: EventBase) -> None:
         """Handler for `start` event."""
+        self.config_manager = cast(PartitionerConfigManager, self.config_manager)
+
+        self.config_manager.set_cruise_control_properties()
+
         self.workload.start()
         logger.info("Cruise control started")
 
     def _on_config_changed(self, event: EventBase) -> None:
         """Generic handler for most `config_changed` events across relations."""
+        self.config_manager = cast(ConfigManager, self.config_manager)
+
         # only overwrite properties if service is already active
         if not self.healthy or not self.upgrade.idle:
             event.defer()
