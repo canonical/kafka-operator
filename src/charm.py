@@ -43,7 +43,7 @@ from literals import (
     Status,
 )
 from managers.auth import AuthManager
-from managers.config import KafkaConfigManager
+from managers.config import ConfigManager
 from managers.tls import TLSManager
 from workload import KafkaWorkload
 
@@ -90,7 +90,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         # MANAGERS
 
-        self.config_manager = KafkaConfigManager(
+        self.config_manager = ConfigManager(
             state=self.state,
             workload=self.workload,
             config=self.config,
@@ -100,7 +100,10 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             state=self.state, workload=self.workload, substrate=self.substrate
         )
         self.auth_manager = AuthManager(
-            state=self.state, workload=self.workload, kafka_opts=self.config_manager.kafka_opts
+            state=self.state,
+            workload=self.workload,
+            kafka_opts=self.config_manager.kafka_opts,
+            log4j_opts=self.config_manager.tools_log4j_opts,
         )
 
         # LIB HANDLERS

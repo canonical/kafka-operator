@@ -24,13 +24,23 @@ from literals import (
     SUBSTRATE,
     ZK,
 )
-from managers.config import KafkaConfigManager
+from managers.config import ConfigManager
 
 pytestmark = pytest.mark.broker
 
 CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
 ACTIONS = str(yaml.safe_load(Path("./actions.yaml").read_text()))
 METADATA = str(yaml.safe_load(Path("./metadata.yaml").read_text()))
+
+# override conftest fixtures
+@pytest.fixture(autouse=False)
+def patched_workload_write():
+    yield
+
+
+@pytest.fixture(autouse=False)
+def patched_etc_environment():
+    yield
 
 
 @pytest.fixture
@@ -258,9 +268,9 @@ def test_kafka_opts(harness: Harness):
 def test_heap_opts(harness: Harness, profile, expected):
     """Checks necessary args for KAFKA_HEAP_OPTS."""
     # Harness doesn't reinitialize KafkaCharm when calling update_config, which means that
-    # self.config is not passed again to KafkaConfigManager
+    # self.config is not passed again to ConfigManager
     harness.update_config({"profile": profile})
-    conf_manager = KafkaConfigManager(
+    conf_manager = ConfigManager(
         harness.charm.state, harness.charm.workload, harness.charm.config, "1"
     )
     args = conf_manager.heap_opts
@@ -278,7 +288,7 @@ def test_jmx_opts(harness: Harness):
     assert "KAFKA_JMX_OPTS" in args
 
 
-def test_set_environment(harness: Harness):
+def test_set_environment(harness: Harness, patched_workload_write, patched_etc_environment):
     """Checks all necessary env-vars are written to /etc/environment."""
     with (
         patch("workload.KafkaWorkload.write") as patched_write,
@@ -289,11 +299,13 @@ def test_set_environment(harness: Harness):
 
         for call in patched_write.call_args_list:
             assert "KAFKA_OPTS" in call.kwargs.get("content", "")
-            assert "KAFKA_LOG4J_OPTS" in call.kwargs.get("content", "")
             assert "KAFKA_JMX_OPTS" in call.kwargs.get("content", "")
             assert "KAFKA_HEAP_OPTS" in call.kwargs.get("content", "")
             assert "KAFKA_JVM_PERFORMANCE_OPTS" in call.kwargs.get("content", "")
+            assert "KAFKA_CFG_LOGLEVEL" in call.kwargs.get("content", "")
             assert "/etc/environment" == call.kwargs.get("path", "")
+
+            assert "KAFKA_LOG4J_OPTS" not in call.kwargs.get("content", "")
 
 
 def test_bootstrap_server(harness: Harness):
@@ -363,9 +375,9 @@ def test_ssl_principal_mapping_rules(harness: Harness):
         )
     ):
         # Harness doesn't reinitialize KafkaCharm when calling update_config, which means that
-        # self.config is not passed again to KafkaConfigManager
+        # self.config is not passed again to ConfigManager
         harness._update_config({"ssl_principal_mapping_rules": "RULE:^(erebor)$/$1,DEFAULT"})
-        conf_manager = KafkaConfigManager(
+        conf_manager = ConfigManager(
             harness.charm.state, harness.charm.workload, harness.charm.config, "1"
         )
 
@@ -423,7 +435,7 @@ def test_rack_properties(harness: Harness):
 
     with (
         patch(
-            "managers.config.KafkaConfigManager.rack_properties",
+            "managers.config.ConfigManager.rack_properties",
             new_callable=PropertyMock,
             return_value=["broker.rack=gondor-west"],
         )

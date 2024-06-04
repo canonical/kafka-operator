@@ -33,7 +33,7 @@ def patched_pebble_restart(mocker):
 
 @pytest.fixture(autouse=True)
 def patched_etc_environment():
-    with patch("managers.config.KafkaConfigManager.set_environment") as etc_env:
+    with patch("managers.config.ConfigManager.set_environment") as etc_env:
         yield etc_env
 
 
