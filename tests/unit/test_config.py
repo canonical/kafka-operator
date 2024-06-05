@@ -23,6 +23,7 @@ from literals import (
     PEER,
     SUBSTRATE,
     ZK,
+    Role,
 )
 from managers.config import ConfigManager
 
@@ -31,6 +32,7 @@ pytestmark = pytest.mark.broker
 CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
 ACTIONS = str(yaml.safe_load(Path("./actions.yaml").read_text()))
 METADATA = str(yaml.safe_load(Path("./metadata.yaml").read_text()))
+
 
 # override conftest fixtures
 @pytest.fixture(autouse=False)
@@ -111,12 +113,10 @@ def test_log_dirs_in_server_properties(harness: Harness):
     )
 
     found_log_dirs = False
-    with (
-        patch(
-            "core.models.KafkaCluster.internal_user_credentials",
-            new_callable=PropertyMock,
-            return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
-        )
+    with patch(
+        "core.models.KafkaCluster.internal_user_credentials",
+        new_callable=PropertyMock,
+        return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
     ):
         for prop in harness.charm.config_manager.server_properties:
             if "log.dirs" in prop:
@@ -150,12 +150,10 @@ def test_listeners_in_server_properties(harness: Harness):
     expected_listeners = "listeners=INTERNAL_SASL_PLAINTEXT://:19092"
     expected_advertised_listeners = f"advertised.listeners=INTERNAL_SASL_PLAINTEXT://{'treebeard' if SUBSTRATE == 'vm' else 'kafka-k8s-0.kafka-k8s-endpoints'}:19092"
 
-    with (
-        patch(
-            "core.models.KafkaCluster.internal_user_credentials",
-            new_callable=PropertyMock,
-            return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
-        )
+    with patch(
+        "core.models.KafkaCluster.internal_user_credentials",
+        new_callable=PropertyMock,
+        return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
     ):
         assert expected_listeners in harness.charm.config_manager.server_properties
         assert expected_advertised_listeners in harness.charm.config_manager.server_properties
@@ -203,12 +201,10 @@ def test_ssl_listeners_in_server_properties(harness: Harness):
     )
     expected_advertised_listeners = f"advertised.listeners=INTERNAL_SASL_SSL://{host}:19093,CLIENT_SASL_SSL://{host}:9093,CLIENT_SSL://{host}:9094"
 
-    with (
-        patch(
-            "core.models.KafkaCluster.internal_user_credentials",
-            new_callable=PropertyMock,
-            return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
-        )
+    with patch(
+        "core.models.KafkaCluster.internal_user_credentials",
+        new_callable=PropertyMock,
+        return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
     ):
         assert expected_listeners in harness.charm.config_manager.server_properties
         assert expected_advertised_listeners in harness.charm.config_manager.server_properties
@@ -269,7 +265,7 @@ def test_heap_opts(harness: Harness, profile, expected):
     # self.config is not passed again to ConfigManager
     harness.update_config({"profile": profile})
     conf_manager = ConfigManager(
-        harness.charm.state, harness.charm.workload, harness.charm.config, "1"
+        Role.BROKER, harness.charm.state, harness.charm.workload, harness.charm.config, "1"
     )
     args = conf_manager.heap_opts
 
@@ -365,18 +361,16 @@ def test_ssl_principal_mapping_rules(harness: Harness):
         },
     )
 
-    with (
-        patch(
-            "core.models.KafkaCluster.internal_user_credentials",
-            new_callable=PropertyMock,
-            return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
-        )
+    with patch(
+        "core.models.KafkaCluster.internal_user_credentials",
+        new_callable=PropertyMock,
+        return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
     ):
         # Harness doesn't reinitialize KafkaCharm when calling update_config, which means that
         # self.config is not passed again to ConfigManager
         harness._update_config({"ssl_principal_mapping_rules": "RULE:^(erebor)$/$1,DEFAULT"})
         conf_manager = ConfigManager(
-            harness.charm.state, harness.charm.workload, harness.charm.config, "1"
+            Role.BROKER, harness.charm.state, harness.charm.workload, harness.charm.config, "1"
         )
 
         assert (
@@ -431,12 +425,10 @@ def test_rack_properties(harness: Harness):
         },
     )
 
-    with (
-        patch(
-            "managers.config.ConfigManager.rack_properties",
-            new_callable=PropertyMock,
-            return_value=["broker.rack=gondor-west"],
-        )
+    with patch(
+        "managers.config.ConfigManager.rack_properties",
+        new_callable=PropertyMock,
+        return_value=["broker.rack=gondor-west"],
     ):
         assert "broker.rack=gondor-west" in harness.charm.config_manager.server_properties
 

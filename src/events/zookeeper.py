@@ -6,14 +6,13 @@
 
 import logging
 import subprocess  # nosec B404
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from charms.data_platform_libs.v0.data_interfaces import DatabaseRequirerEventHandlers
 from ops import Object, RelationChangedEvent, RelationEvent
 from ops.pebble import ExecError
 
 from literals import INTERNAL_USERS, ZK, Status
-from managers.config import ConfigManager
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -49,8 +48,6 @@ class ZooKeeperHandler(Object):
 
     def _on_zookeeper_changed(self, event: RelationChangedEvent) -> None:
         """Handler for `zookeeper_relation_created/joined/changed` events, ensuring internal users get created."""
-        self.charm.config_manager = cast(ConfigManager, self.charm.config_manager)
-
         if not self.charm.state.zookeeper.zookeeper_connected:
             self.charm._set_status(Status.ZK_NO_DATA)
             return

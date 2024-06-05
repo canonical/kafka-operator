@@ -6,7 +6,7 @@
 
 import inspect
 import logging
-from typing import Protocol, cast
+from typing import cast
 
 from core.cluster import ClusterState
 from core.structured_config import CharmConfig, LogLevel
@@ -19,6 +19,7 @@ from literals import (
     JVM_MEM_MIN_GB,
     SECURITY_PROTOCOL_PORTS,
     AuthMechanism,
+    Role,
     Scope,
 )
 
@@ -98,98 +99,18 @@ class Listener:
         return f"{self.name}://{self.host}:{self.port}"
 
 
-class ConfigManagerProtocol(Protocol):
-    """Define common attribute for config managers."""
-
-    @property
-    def log_level(self) -> str:
-        """Return the Java-compliant logging level set by the user.
-
-        Returns:
-            String with these possible values: DEBUG, INFO, WARN, ERROR
-        """
-        ...
-
-    @property
-    def tools_log4j_opts(self) -> str:
-        """The Log4j options for configuring the tooling logging.
-
-        Returns:
-            String of Log4j options
-        """
-        ...
-
-
-class PartitionerConfigManager:
-    """Manager for handling Cruise Control configuration."""
-
-    def __init__(self, workload: WorkloadBase, config: CharmConfig):
-        self.workload = workload
-        self.config = config
-
-    @property
-    def log_level(self) -> str:
-        """Return the Java-compliant logging level set by the user.
-
-        Returns:
-            String with these possible values: DEBUG, INFO, WARN, ERROR
-        """
-        # Remapping to WARN that is generally used in Java applications based on log4j and logback.
-        if self.config.log_level == LogLevel.WARNING.value:
-            return "KAFKA_CFG_LOGLEVEL=WARN"
-
-        return f"KAFKA_CFG_LOGLEVEL={self.config.log_level}"
-
-    @property
-    def tools_log4j_opts(self) -> str:
-        """The Log4j options for configuring the tooling logging.
-
-        Returns:
-            String of Log4j options
-        """
-        opts = [
-            '-Dlog4j.configuration=file:{self.workload.paths.tools_log4j_properties} -Dcharmed.kafka.log.level={self.log_level.split("=")[1]}'
-        ]
-
-        return f"KAFKA_LOG4J_OPTS='{' '.join(opts)}'"
-
-    @property
-    def cruise_control_properties(self) -> list[str]:
-        """Builds all properties necessary for starting Cruise Control service.
-
-        Returns:
-            List of properties to be set
-        """
-        properties = (
-            [
-                # f"bootstrap.servers={','.join(self.state.bootstrap_server)}",
-                # f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
-                # f"zookeeper.connect={self.state.zookeeper.connect}",
-            ]
-            # + self.cruise_control_goals
-            + CRUISE_CONTROL_CONFIG_OPTIONS.split("\n")
-        )
-
-        return properties
-
-    def set_cruise_control_properties(self) -> None:
-        """Writes all Cruise Control properties to the `cruisecontrol.properties` path."""
-        self.workload.write(
-            content="\n".join(self.cruise_control_properties),
-            path=self.workload.paths.cruise_control_properties,
-        )
-
-
 class ConfigManager:
     """Manager for handling Kafka configuration."""
 
     def __init__(
         self,
+        role: Role,
         state: ClusterState,
         workload: WorkloadBase,
         config: CharmConfig,
         current_version: str,
     ):
+        self.role = role
         self.state = state
         self.workload = workload
         self.config = config
@@ -520,6 +441,32 @@ class ConfigManager:
                 password="{self.state.zookeeper.password}";
             }};
         """
+        )
+
+    @property
+    def cruise_control_properties(self) -> list[str]:
+        """Builds all properties necessary for starting Cruise Control service.
+
+        Returns:
+            List of properties to be set
+        """
+        properties = (
+            [
+                # f"bootstrap.servers={','.join(self.state.bootstrap_server)}",
+                # f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
+                # f"zookeeper.connect={self.state.zookeeper.connect}",
+            ]
+            # + self.cruise_control_goals
+            + CRUISE_CONTROL_CONFIG_OPTIONS.split("\n")
+        )
+
+        return properties
+
+    def set_cruise_control_properties(self) -> None:
+        """Writes all Cruise Control properties to the `cruisecontrol.properties` path."""
+        self.workload.write(
+            content="\n".join(self.cruise_control_properties),
+            path=self.workload.paths.cruise_control_properties,
         )
 
     def set_zk_jaas_config(self) -> None:

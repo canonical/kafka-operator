@@ -8,12 +8,11 @@ import json
 import logging
 import subprocess
 from statistics import mean
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from ops.framework import Object
 
 from literals import JVM_MEM_MAX_GB, JVM_MEM_MIN_GB
-from managers.config import ConfigManager
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -113,8 +112,6 @@ class KafkaHealth(Object):
 
     def _check_file_descriptors(self) -> bool:
         """Checks that the number of used file descriptors is not approaching threshold."""
-        self.charm.config_manager = cast(ConfigManager, self.charm.config_manager)
-
         if not self.charm.config_manager.client_listeners:
             return True
 

@@ -4,13 +4,12 @@
 
 """Event handlers for password-related Juju Actions."""
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from ops.charm import ActionEvent
 from ops.framework import Object
 
 from literals import ADMIN_USER, INTERNAL_USERS
-from managers.config import ConfigManager
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -85,8 +84,6 @@ class PasswordActionEvents(Object):
         event.set_results({f"{username}-password": new_password})
 
     def _get_admin_credentials_action(self, event: ActionEvent) -> None:
-        self.charm.config_manager = cast(ConfigManager, self.charm.config_manager)
-
         client_properties = self.charm.workload.read(self.charm.workload.paths.client_properties)
 
         if not client_properties:
