@@ -56,6 +56,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
     config_type = CharmConfig
 
+    # Attrs that may drastically changed based on the charm role
+    config_manager: ConfigManagerProtocol
+
     def __init__(self, *args):
         super().__init__(*args)
         self.name = CHARM_KEY
@@ -64,10 +67,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         # Common attrs init
         self.workload = KafkaWorkload(self.role)
-        self.sysctl_config = sysctl.Config(name=CHARM_KEY)
         self.framework.observe(getattr(self.on, "install"), self._on_install)
-
-        self.config_manager: ConfigManagerProtocol
 
         match self.role:
             case Role.PARTITIONER:
@@ -76,8 +76,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
                     workload=self.workload,
                     config=self.config,
                 )
-
-                return
 
             case Role.BROKER:
                 self._init_broker()
@@ -120,6 +118,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         # LIB HANDLERS
 
+        self.sysctl_config = sysctl.Config(name=CHARM_KEY)
         self.restart = RollingOpsManager(self, relation="restart", callback=self._restart)
         self._grafana_agent = COSAgentProvider(
             self,
@@ -154,13 +153,16 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             self._set_status(Status.SNAP_NOT_INSTALLED)
             return
 
-        self._set_os_config()
+        match self.role:
+            case Role.BROKER:
+                self.config_manager = cast(ConfigManager, self.config_manager)
 
-        if self.role is Role.BROKER:
-            self.config_manager = cast(ConfigManager, self.config_manager)
+                self._set_os_config()
+                self.config_manager.set_environment()
+                self.unit.set_workload_version(self.workload.get_version())
 
-            self.config_manager.set_environment()
-            self.unit.set_workload_version(self.workload.get_version())
+            case Role.PARTITIONER:
+                pass
 
     def _on_broker_start(self, event: EventBase) -> None:
         """Handler for `start` event."""
