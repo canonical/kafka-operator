@@ -160,6 +160,4 @@ class Role(str, Enum):
     PARTITIONER = "partitioner"
 
 
-class Service(str, Enum):
-    BROKER = "daemon"
-    PARTIONER = "cruise-control"
+SERVICES = {Role.BROKER: "daemon", Role.PARTITIONER: "cruise-control"}

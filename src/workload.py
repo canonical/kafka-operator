@@ -17,7 +17,7 @@ from tenacity.wait import wait_fixed
 from typing_extensions import override
 
 from core.workload import CharmedKafkaPaths, WorkloadBase
-from literals import CHARMED_KAFKA_SNAP_REVISION, GROUP, SNAP_NAME, USER, Role, Service
+from literals import CHARMED_KAFKA_SNAP_REVISION, GROUP, SERVICES, SNAP_NAME, USER, Role
 
 logger = logging.getLogger(__name__)
 
@@ -32,12 +32,7 @@ class KafkaWorkload(WorkloadBase):
     def __init__(self, role: Role) -> None:
         self.kafka = snap.SnapCache()[SNAP_NAME]
         self.paths = CharmedKafkaPaths(role)
-
-        match role:
-            case Role.BROKER:
-                self.service = Service.BROKER
-            case Role.PARTITIONER:
-                self.service = Service.PARTIONER
+        self.service = SERVICES[role]
 
     @override
     def start(self) -> None:
@@ -129,7 +124,7 @@ class KafkaWorkload(WorkloadBase):
             self.kafka.hold()
 
             return True
-        except (snap.SnapError) as e:
+        except snap.SnapError as e:
             logger.error(str(e))
             return False
 
@@ -161,6 +156,8 @@ class KafkaWorkload(WorkloadBase):
         for pid in java_processes.split():
             with open(f"/proc/{pid}/cgroup", "r") as fid:
                 content = "".join(fid.readlines())
+                logger.error(content)
+                logger.error(f"{self.SNAP_NAME}.{self.service}")
 
                 if f"{self.SNAP_NAME}.{self.service}" in content:
                     logger.debug(
