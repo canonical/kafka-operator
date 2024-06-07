@@ -8,7 +8,7 @@ import secrets
 import string
 from abc import ABC, abstractmethod
 
-from literals import PATHS, Role
+from literals import Role
 
 
 class CharmedKafkaPaths:
@@ -16,16 +16,10 @@ class CharmedKafkaPaths:
 
     def __init__(self, role: Role):
 
-        match role:
-            case Role.BROKER:
-                sub_path = "kafka"
-            case Role.PARTITIONER:
-                sub_path = "cruise-control"
-
-        self.conf_path = str(PATHS["CONF"] / sub_path)
-        self.data_path = str(PATHS["DATA"] / sub_path)
-        self.binaries_path = str(PATHS["BIN"] / sub_path)
-        self.logs_path = str(PATHS["LOGS"] / sub_path)
+        self.conf_path = role.paths["CONF"]
+        self.data_path = role.paths["DATA"]
+        self.binaries_path = role.paths["BIN"]
+        self.logs_path = role.paths["LOGS"]
 
     @property
     def server_properties(self):

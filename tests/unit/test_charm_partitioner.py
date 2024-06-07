@@ -9,11 +9,12 @@ from unittest.mock import patch
 import pytest
 import yaml
 from ops.testing import Harness
-from src.literals import Role, Status
+from src.literals import Status
 
 from charm import KafkaCharm
 from literals import (
     CONTAINER,
+    PARTITIONER,
     SUBSTRATE,
 )
 
@@ -40,7 +41,7 @@ def harness() -> Harness:
 
 
 def test_start_with_correct_role(harness: Harness):
-    assert harness.charm.config["role"] == Role.PARTITIONER
+    assert harness.charm.config["role"] == PARTITIONER
 
 
 def test_install_blocks_snap_install_failure(harness: Harness):

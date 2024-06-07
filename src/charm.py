@@ -27,6 +27,7 @@ from events.upgrade import KafkaDependencyModel, KafkaUpgrade
 from events.zookeeper import ZooKeeperHandler
 from health import KafkaHealth
 from literals import (
+    BROKER,
     CHARM_KEY,
     DEPENDENCIES,
     GROUP,
@@ -34,12 +35,12 @@ from literals import (
     LOGS_RULES_DIR,
     METRICS_RULES_DIR,
     OS_REQUIREMENTS,
+    PARTITIONER,
     PEER,
     REL_NAME,
     SUBSTRATE,
     USER,
     DebugLevel,
-    Role,
     Status,
 )
 from managers.auth import AuthManager
@@ -59,7 +60,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         super().__init__(*args)
         self.name = CHARM_KEY
         self.substrate: Substrates = SUBSTRATE
-        self.role = self.config.role
+        self.role = BROKER if self.config.role == "broker" else PARTITIONER
 
         # Common attrs init
         self.workload = KafkaWorkload(self.role)
@@ -68,19 +69,17 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         self.framework.observe(getattr(self.on, "install"), self._on_install)
 
-        match self.role:
-            case Role.PARTITIONER:
-                self.framework.observe(getattr(self.on, "start"), self._on_partitioner_start)
-                self.config_manager = ConfigManager(
-                    self.role,
-                    state=self.state,
-                    workload=self.workload,
-                    config=self.config,
-                    current_version="__unused__",
-                )
+        if self.role == PARTITIONER:
+            self.framework.observe(getattr(self.on, "start"), self._on_partitioner_start)
+            self.config_manager = ConfigManager(
+                self.role,
+                state=self.state,
+                workload=self.workload,
+                config=self.config,
+            )
+            return
 
-            case Role.BROKER:
-                self._init_broker()
+        self._init_broker()
 
     def _init_broker(self) -> None:
         """Init broker specific attributes."""
@@ -153,14 +152,10 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             self._set_status(Status.SNAP_NOT_INSTALLED)
             return
 
-        match self.role:
-            case Role.BROKER:
-                self._set_os_config()
-                self.config_manager.set_environment()
-                self.unit.set_workload_version(self.workload.get_version())
-
-            case Role.PARTITIONER:
-                pass
+        if self.role == BROKER:
+            self._set_os_config()
+            self.config_manager.set_environment()
+            self.unit.set_workload_version(self.workload.get_version())
 
     def _on_broker_start(self, event: EventBase) -> None:
         """Handler for `start` event."""

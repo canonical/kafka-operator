@@ -6,7 +6,6 @@
 
 from dataclasses import dataclass
 from enum import Enum
-from pathlib import Path
 from typing import Literal
 
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, StatusBase, WaitingStatus
@@ -16,9 +15,6 @@ SNAP_NAME = "charmed-kafka"
 CHARMED_KAFKA_SNAP_REVISION = 37
 CONTAINER = "kafka"
 SUBSTRATE = "vm"
-
-USER = "snap_daemon"
-GROUP = "root"
 
 # FIXME: these need better names
 PEER = "cluster"
@@ -69,11 +65,20 @@ OS_REQUIREMENTS = {
     "vm.dirty_background_ratio": "5",
 }
 
+
 PATHS = {
-    "CONF": Path(f"/var/snap/{SNAP_NAME}/current/etc"),
-    "LOGS": Path(f"/var/snap/{SNAP_NAME}/common/var/log"),
-    "DATA": Path(f"/var/snap/{SNAP_NAME}/common/var/lib"),
-    "BIN": Path(f"/snap/{SNAP_NAME}/current/opt"),
+    "kafka": {
+        "CONF": f"/var/snap/{SNAP_NAME}/current/etc/kafka",
+        "LOGS": f"/var/snap/{SNAP_NAME}/common/var/log/kafka",
+        "DATA": f"/var/snap/{SNAP_NAME}/common/var/lib/kafka",
+        "BIN": f"/snap/{SNAP_NAME}/current/opt/kafka",
+    },
+    "cruise-control": {
+        "CONF": f"/var/snap/{SNAP_NAME}/current/etc/cruise-control",
+        "LOGS": f"/var/snap/{SNAP_NAME}/common/var/log/cruise-control",
+        "DATA": f"/var/snap/{SNAP_NAME}/common/var/lib/cruise-control",
+        "BIN": f"/snap/{SNAP_NAME}/current/opt/cruise-control",
+    },
 }
 
 
@@ -155,9 +160,16 @@ DEPENDENCIES = {
 }
 
 
-class Role(str, Enum):
-    BROKER = "broker"
-    PARTITIONER = "partitioner"
+@dataclass
+class Role:
+    value: str
+    service: str
+    paths: dict[str, str]
+
+    def __eq__(self, value: object, /) -> bool:
+        """Provide an easy comparison to the configuration key."""
+        return self.value == value
 
 
-SERVICES = {Role.BROKER: "daemon", Role.PARTITIONER: "cruise-control"}
+BROKER = Role(value="broker", service="daemon", paths=PATHS["kafka"])
+PARTITIONER = Role(value="partitioner", service="cruise-control", paths=PATHS["cruise-control"])
