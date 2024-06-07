@@ -23,7 +23,7 @@ from literals import (
     PEER,
     SUBSTRATE,
     ZK,
-    Role,
+    BROKER,
 )
 from managers.config import ConfigManager
 
@@ -265,7 +265,7 @@ def test_heap_opts(harness: Harness, profile, expected):
     # self.config is not passed again to ConfigManager
     harness.update_config({"profile": profile})
     conf_manager = ConfigManager(
-        Role.BROKER, harness.charm.state, harness.charm.workload, harness.charm.config, "1"
+        BROKER, harness.charm.state, harness.charm.workload, harness.charm.config, "1"
     )
     args = conf_manager.heap_opts
 
@@ -370,7 +370,7 @@ def test_ssl_principal_mapping_rules(harness: Harness):
         # self.config is not passed again to ConfigManager
         harness._update_config({"ssl_principal_mapping_rules": "RULE:^(erebor)$/$1,DEFAULT"})
         conf_manager = ConfigManager(
-            Role.BROKER, harness.charm.state, harness.charm.workload, harness.charm.config, "1"
+            BROKER, harness.charm.state, harness.charm.workload, harness.charm.config, "1"
         )
 
         assert (
