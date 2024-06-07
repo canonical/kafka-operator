@@ -12,6 +12,7 @@ from ops.testing import Harness
 from charm import KafkaCharm
 from literals import (
     ADMIN_USER,
+    BROKER,
     CHARM_KEY,
     CONTAINER,
     DEPENDENCIES,
@@ -23,7 +24,6 @@ from literals import (
     PEER,
     SUBSTRATE,
     ZK,
-    BROKER,
 )
 from managers.config import ConfigManager
 

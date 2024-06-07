@@ -6,7 +6,7 @@ from unittest.mock import mock_open, patch
 
 import pytest
 
-from literals import SUBSTRATE, BROKER
+from literals import BROKER, SUBSTRATE
 from workload import KafkaWorkload
 
 if SUBSTRATE == "vm":
