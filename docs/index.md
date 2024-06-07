@@ -20,7 +20,7 @@ refer to [charmhub.io](https://charmhub.io/), for more charmed operators integra
 
 | | |
 |--|--|
-|  [Tutorials](/t/charmed-kafka-tutorial-overview/10571)</br>  Get started - a hands-on introduction to using Charmed MySQL operator for new users </br> |  [How-to guides](/t/charmed-kafka-how-to-manage-units/10287) </br> Step-by-step guides covering key operations and common tasks |
+|  [Tutorials](/t/charmed-kafka-tutorial-overview/10571)</br>  Get started - a hands-on introduction to using Charmed Kafka operator for new users </br> |  [How-to guides](/t/charmed-kafka-how-to-manage-units/10287) </br> Step-by-step guides covering key operations and common tasks |
 | [Reference](https://charmhub.io/kafka/actions?channel=3/stable) </br> Technical information - specifications, APIs, architecture | [Explanation]() </br> Concepts - discussion and clarification of key topics  |
 
 ## Project and community
