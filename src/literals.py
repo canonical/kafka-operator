@@ -27,6 +27,8 @@ REL_NAME = "kafka-client"
 TLS_RELATION = "certificates"
 TRUSTED_CERTIFICATE_RELATION = "trusted-certificate"
 TRUSTED_CA_RELATION = "trusted-ca"
+PARTITIONER = "partitioner"
+PARTITIONER_SERVICE = "partitioner-service"
 
 INTER_BROKER_USER = "sync"
 ADMIN_USER = "admin"

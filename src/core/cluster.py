@@ -6,6 +6,7 @@
 
 import os
 from functools import cached_property
+from typing import TYPE_CHECKING
 
 from charms.data_platform_libs.v0.data_interfaces import (
     DatabaseRequirerData,
@@ -13,29 +14,38 @@ from charms.data_platform_libs.v0.data_interfaces import (
     DataPeerOtherUnitData,
     DataPeerUnitData,
     KafkaProviderData,
+    ProviderData,
+    RequirerData,
 )
-from ops import Framework, Object, Relation
+from ops import Object, Relation
 from ops.model import Unit
 
-from core.models import KafkaBroker, KafkaClient, KafkaCluster, ZooKeeper
+from core.models import KafkaBroker, KafkaClient, KafkaCluster, Partitioner, ZooKeeper
 from literals import (
     INTERNAL_USERS,
+    PARTITIONER,
+    PARTITIONER_SERVICE,
     PEER,
     REL_NAME,
     SECRETS_UNIT,
     SECURITY_PROTOCOL_PORTS,
     ZK,
+    Role,
     Status,
     Substrates,
 )
+
+if TYPE_CHECKING:
+    from charm import KafkaCharm
 
 
 class ClusterState(Object):
     """Collection of global cluster state for the Kafka services."""
 
-    def __init__(self, charm: Framework | Object, substrate: Substrates):
+    def __init__(self, charm: "KafkaCharm", substrate: Substrates):
         super().__init__(parent=charm, key="charm_state")
         self.substrate: Substrates = substrate
+        self.role = charm.role
 
         self.peer_app_interface = DataPeerData(self.model, relation_name=PEER)
         self.peer_unit_interface = DataPeerUnitData(
@@ -45,6 +55,9 @@ class ClusterState(Object):
             self.model, relation_name=ZK, database_name=f"/{self.model.app.name}"
         )
         self.client_provider_interface = KafkaProviderData(self.model, relation_name=REL_NAME)
+
+        self.partitioner_provider_interface = ProviderData(self.model, PARTITIONER)
+        self.partitioner_requirer_interface = RequirerData(self.model, PARTITIONER_SERVICE)
 
     # --- RELATIONS ---
 
@@ -62,6 +75,16 @@ class ClusterState(Object):
     def client_relations(self) -> set[Relation]:
         """The relations of all client applications."""
         return set(self.model.relations[REL_NAME])
+
+    @property
+    def partitioner_relation(self) -> Relation | None:
+        """The partitioner relation."""
+        return self.model.get_relation(PARTITIONER)
+
+    @property
+    def partitioner_service_relation(self) -> Relation | None:
+        """The partitioner-service relation."""
+        return self.model.get_relation(PARTITIONER_SERVICE)
 
     # --- CORE COMPONENTS ---
 
@@ -150,6 +173,23 @@ class ClusterState(Object):
             )
 
         return clients
+
+    @property
+    def partitioner(self) -> Partitioner:
+        """The partitioner relation state."""
+        match self.role:
+            case Role.BROKER:
+                data_interface = self.partitioner_requirer_interface
+                relation = self.partitioner_relation
+            case Role.PARTITIONER:
+                data_interface = self.partitioner_provider_interface
+                relation = self.partitioner_service_relation
+
+        return Partitioner(
+            relation=relation,
+            data_interface=data_interface,
+            substrate=self.substrate,
+        )
 
     # ---- GENERAL VALUES ----
 

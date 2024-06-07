@@ -454,3 +454,15 @@ class KafkaClient(RelationState):
         When `admin` is set, the Kafka charm interprets this as a new super.user.
         """
         return self.relation_data.get("extra-user-roles", "")
+
+
+class Partitioner(RelationState):
+    """State collection metadata for a single related client application."""
+
+    def __init__(
+        self,
+        relation: Relation | None,
+        data_interface: Data,
+        substrate: Substrates,
+    ):
+        super().__init__(relation, data_interface, None, substrate)

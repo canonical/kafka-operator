@@ -42,12 +42,20 @@ requires:
   trusted-certificate:
     interface: tls-certificates
     optional: true
+  # Only valid for role=broker
+  partitioner:
+    interface: partitioner
+    optional: true
 
 provides:
   kafka-client:
     interface: kafka_client
   cos-agent:
     interface: cos_agent
+  # Only valid for role=partitioner
+  partitioner-service:
+    interface: partitioner
+    optional: true
 
 storage:
   data:

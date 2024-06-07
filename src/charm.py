@@ -20,6 +20,7 @@ from ops.model import ActiveStatus, StatusBase
 from core.cluster import ClusterState
 from core.models import Substrates
 from core.structured_config import CharmConfig
+from events.partitioner import PartitionerProvider, PartitionerRequirer
 from events.password_actions import PasswordActionEvents
 from events.provider import KafkaProvider
 from events.tls import TLSHandler
@@ -70,7 +71,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         match self.role:
             case Role.PARTITIONER:
-                self.framework.observe(getattr(self.on, "start"), self._on_partitioner_start)
                 self.config_manager = ConfigManager(
                     self.role,
                     state=self.state,
@@ -78,6 +78,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
                     config=self.config,
                     current_version="__unused__",
                 )
+                self.partitioner_provider = PartitionerProvider(self)
+
+                self.framework.observe(getattr(self.on, "start"), self._on_partitioner_start)
 
             case Role.BROKER:
                 self._init_broker()
@@ -96,6 +99,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
                 **DEPENDENCIES  # pyright: ignore[reportGeneralTypeIssues, reportArgumentType]
             ),
         )
+        self.partitioner_requirer = PartitionerRequirer(self)
 
         # MANAGERS
 

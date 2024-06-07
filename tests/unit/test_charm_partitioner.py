@@ -51,5 +51,6 @@ def test_install_blocks_snap_install_failure(harness: Harness):
 
 
 def test_ready_to_start_not_implemented(harness: Harness):
-    harness.charm.on.start.emit()
+    with patch("workload.KafkaWorkload.install", return_value=True):
+        harness.charm.on.start.emit()
     assert harness.charm.unit.status == Status.NOT_IMPLEMENTED.value.status
