@@ -244,7 +244,7 @@ def check_logs(ops_test: OpsTest, kafka_unit_name: str, topic: str) -> None:
         topic: the desired topic to check
     """
     logs = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {kafka_unit_name} sudo -i 'find {PATHS['DATA']}/kafka/data'",
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {kafka_unit_name} sudo -i 'find {PATHS['kafka']['DATA']}/data'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -266,7 +266,7 @@ async def run_client_properties(ops_test: OpsTest) -> str:
         + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT'].client}"
     )
     result = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.configs --bootstrap-server {bootstrap_server} --describe --all --command-config {PATHS['CONF']}/kafka/client.properties --entity-type users'",
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.configs --bootstrap-server {bootstrap_server} --describe --all --command-config {PATHS['kafka']['CONF']}/client.properties --entity-type users'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -278,7 +278,7 @@ async def run_client_properties(ops_test: OpsTest) -> str:
 async def set_mtls_client_acls(ops_test: OpsTest, bootstrap_server: str) -> str:
     """Adds ACLs for principal `User:client` and `TEST-TOPIC`."""
     result = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'sudo charmed-kafka.acls --bootstrap-server {bootstrap_server} --add --allow-principal=User:client --operation READ --operation WRITE --operation CREATE --topic TEST-TOPIC --command-config {PATHS['CONF']}/kafka/client.properties'",
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'sudo charmed-kafka.acls --bootstrap-server {bootstrap_server} --add --allow-principal=User:client --operation READ --operation WRITE --operation CREATE --topic TEST-TOPIC --command-config {PATHS['kafka']['CONF']}/client.properties'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,

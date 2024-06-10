@@ -28,15 +28,15 @@ from core.models import (
     ZooKeeper,
 )
 from literals import (
+    BROKER,
     INTERNAL_USERS,
-    PARTITIONER,
+    PARTITIONER_RELATION,
     PARTITIONER_SERVICE,
     PEER,
     REL_NAME,
     SECRETS_UNIT,
     SECURITY_PROTOCOL_PORTS,
     ZK,
-    Role,
     Status,
     Substrates,
 )
@@ -62,7 +62,9 @@ class ClusterState(Object):
         )
         self.client_provider_interface = KafkaProviderData(self.model, relation_name=REL_NAME)
 
-        self.partitioner_provider_interface = PartitionerProviderData(self.model, PARTITIONER)
+        self.partitioner_provider_interface = PartitionerProviderData(
+            self.model, PARTITIONER_RELATION
+        )
         self.partitioner_requirer_interface = PartitionerRequirerData(
             self.model, PARTITIONER_SERVICE
         )
@@ -87,7 +89,7 @@ class ClusterState(Object):
     @property
     def partitioner_relation(self) -> Relation | None:
         """The partitioner relation."""
-        return self.model.get_relation(PARTITIONER)
+        return self.model.get_relation(PARTITIONER_RELATION)
 
     @property
     def partitioner_service_relation(self) -> Relation | None:
@@ -185,13 +187,13 @@ class ClusterState(Object):
     @property
     def partitioner(self) -> Partitioner:
         """The partitioner relation state."""
-        match self.role:
-            case Role.BROKER:
-                data_interface = self.partitioner_provider_interface
-                relation = self.partitioner_relation
-            case Role.PARTITIONER:
-                data_interface = self.partitioner_requirer_interface
-                relation = self.partitioner_service_relation
+        if self.role == BROKER:
+            data_interface = self.partitioner_provider_interface
+            relation = self.partitioner_relation
+        else:
+            # PARTITIONER
+            data_interface = self.partitioner_requirer_interface
+            relation = self.partitioner_service_relation
 
         return Partitioner(
             relation=relation,

@@ -108,7 +108,7 @@ class ConfigManager:
         state: ClusterState,
         workload: WorkloadBase,
         config: CharmConfig,
-        current_version: str,
+        current_version: str = "",
     ):
         self.role = role
         self.state = state

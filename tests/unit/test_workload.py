@@ -5,9 +5,8 @@
 from unittest.mock import mock_open, patch
 
 import pytest
-from src.literals import Role
 
-from literals import SUBSTRATE
+from literals import BROKER, SUBSTRATE
 from workload import KafkaWorkload
 
 if SUBSTRATE == "vm":
@@ -21,7 +20,7 @@ pytestmark = [
 
 def test_run_bin_command_args(patched_exec):
     """Checks KAFKA_OPTS env-var and zk-tls flag present in all snap commands."""
-    KafkaWorkload(Role.BROKER).run_bin_command(
+    KafkaWorkload(BROKER).run_bin_command(
         bin_keyword="configs", bin_args=["--list"], opts=["-Djava"]
     )
 
@@ -41,7 +40,7 @@ def test_get_service_pid_raises():
         patch("subprocess.check_output", return_value="123"),
         pytest.raises(SnapError),
     ):
-        KafkaWorkload(Role.BROKER).get_service_pid()
+        KafkaWorkload(BROKER).get_service_pid()
 
 
 def test_get_service_pid_raises_no_pid():
@@ -50,4 +49,4 @@ def test_get_service_pid_raises_no_pid():
         patch("subprocess.check_output", return_value=""),
         pytest.raises(SnapError),
     ):
-        KafkaWorkload(Role.BROKER).get_service_pid()
+        KafkaWorkload(BROKER).get_service_pid()

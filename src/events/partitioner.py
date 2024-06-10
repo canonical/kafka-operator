@@ -6,34 +6,64 @@ from typing import TYPE_CHECKING
 from charms.data_platform_libs.v0.data_interfaces import (
     RequirerEventHandlers,
 )
-from ops import Object, RelationChangedEvent
+from ops import EventBase, Object, RelationChangedEvent
 
-from literals import PARTITIONER, PARTITIONER_SERVICE
+from literals import PARTITIONER, PARTITIONER_RELATION, PARTITIONER_SERVICE, Status
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
 
 logger = logging.getLogger(__name__)
 
+PARTITIONER_EVENTS = "partitioner-events"
+
+
+class PartitionerEvents(Object):
+    """Implements the provider-side logic for the partitioner."""
+
+    def __init__(self, charm) -> None:
+        super().__init__(charm, PARTITIONER_EVENTS)
+        self.charm: "KafkaCharm" = charm
+
+        if self.charm.role != PARTITIONER:
+            return
+
+        self.partitioner_requirer = PartitionerRequirer(self.charm)
+        self.framework.observe(self.charm.on.install, self._on_install)
+        self.framework.observe(self.charm.on.start, self._on_start)
+
+    def _on_install(self, _) -> None:
+        """Handler for `install` event."""
+        if not self.charm.workload.install():
+            self.charm._set_status(Status.SNAP_NOT_INSTALLED)
+
+    def _on_start(self, _: EventBase) -> None:
+        """Handler for `start` event."""
+        self.charm._set_status(Status.NOT_IMPLEMENTED)
+        self.charm.config_manager.set_cruise_control_properties()
+
+        self.charm.workload.start()
+        logger.info("Cruise control started")
+
 
 class PartitionerProvider(Object):
     """Implement the provider-side logic for the partitioner."""
 
     def __init__(self, charm) -> None:
-        super().__init__(charm, PARTITIONER)
+        super().__init__(charm, PARTITIONER_RELATION)
         self.charm: "KafkaCharm" = charm
 
         self.framework.observe(
-            self.charm.on[PARTITIONER].relation_created, self._on_relation_created
+            self.charm.on[PARTITIONER_RELATION].relation_created, self._on_relation_created
         )
         self.framework.observe(
-            self.charm.on[PARTITIONER].relation_joined, self._on_relation_changed
+            self.charm.on[PARTITIONER_RELATION].relation_joined, self._on_relation_changed
         )
         self.framework.observe(
-            self.charm.on[PARTITIONER].relation_changed, self._on_relation_changed
+            self.charm.on[PARTITIONER_RELATION].relation_changed, self._on_relation_changed
         )
         self.framework.observe(
-            self.charm.on[PARTITIONER].relation_broken, self._on_relation_broken
+            self.charm.on[PARTITIONER_RELATION].relation_broken, self._on_relation_broken
         )
 
     def _on_relation_created(self, _) -> None:

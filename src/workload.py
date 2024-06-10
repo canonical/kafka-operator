@@ -17,7 +17,7 @@ from tenacity.wait import wait_fixed
 from typing_extensions import override
 
 from core.workload import CharmedKafkaPaths, WorkloadBase
-from literals import CHARMED_KAFKA_SNAP_REVISION, GROUP, SERVICES, SNAP_NAME, USER, Role
+from literals import CHARMED_KAFKA_SNAP_REVISION, GROUP, SNAP_NAME, USER, Role
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ class KafkaWorkload(WorkloadBase):
     def __init__(self, role: Role) -> None:
         self.kafka = snap.SnapCache()[SNAP_NAME]
         self.paths = CharmedKafkaPaths(role)
-        self.service = SERVICES[role]
+        self.service = role.service
 
     @override
     def start(self) -> None:
