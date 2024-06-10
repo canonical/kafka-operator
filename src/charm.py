@@ -68,16 +68,15 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.state = ClusterState(self, substrate=self.substrate)
         self.health = KafkaHealth(self)
 
-        self.config_manager = ConfigManager(
-            self.role,
-            state=self.state,
-            workload=self.workload,
-            config=self.config,
-        )
-
         self.optimizer_events = OptimizerEvents(self)
 
         if self.role == OPTIMIZER:
+            self.config_manager = ConfigManager(
+                self.role,
+                state=self.state,
+                workload=self.workload,
+                config=self.config,
+            )
             return
 
         self._init_broker()
