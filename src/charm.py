@@ -47,7 +47,7 @@ from literals import (
 from managers.auth import AuthManager
 from managers.config import ConfigManager
 from managers.tls import TLSManager
-from workload import KafkaWorkload
+from workload import KafkaWorkload, OptimizerWorkload
 
 logger = logging.getLogger(__name__)
 
@@ -64,13 +64,13 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.role = BROKER if self.config.role == "broker" else OPTIMIZER
 
         # Common attrs init
-        self.workload = KafkaWorkload(self.role)
         self.state = ClusterState(self, substrate=self.substrate)
         self.health = KafkaHealth(self)
 
         self.optimizer_events = OptimizerEvents(self)
 
         if self.role == OPTIMIZER:
+            self.workload = OptimizerWorkload()
             self.config_manager = ConfigManager(
                 self.role,
                 state=self.state,
@@ -85,6 +85,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         """Init broker specific attributes."""
         # HANDLERS
 
+        self.workload = KafkaWorkload()
         self.password_action_events = PasswordActionEvents(self)
         self.zookeeper = ZooKeeperHandler(self)
         self.tls = TLSHandler(self)
