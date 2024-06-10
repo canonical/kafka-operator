@@ -20,6 +20,7 @@ from ops.model import ActiveStatus, StatusBase
 from core.cluster import ClusterState
 from core.models import Substrates
 from core.structured_config import CharmConfig
+from events.partitioner import PartitionerEvents
 from events.password_actions import PasswordActionEvents
 from events.provider import KafkaProvider
 from events.tls import TLSHandler
@@ -67,16 +68,16 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.state = ClusterState(self, substrate=self.substrate)
         self.health = KafkaHealth(self)
 
-        self.framework.observe(getattr(self.on, "install"), self._on_install)
+        self.config_manager = ConfigManager(
+            self.role,
+            state=self.state,
+            workload=self.workload,
+            config=self.config,
+        )
+
+        self.partitioner_events = PartitionerEvents(self)
 
         if self.role == PARTITIONER:
-            self.framework.observe(getattr(self.on, "start"), self._on_partitioner_start)
-            self.config_manager = ConfigManager(
-                self.role,
-                state=self.state,
-                workload=self.workload,
-                config=self.config,
-            )
             return
 
         self._init_broker()
@@ -131,7 +132,8 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             log_slots=[f"{self.workload.SNAP_NAME}:{self.workload.LOG_SLOT}"],
         )
 
-        self.framework.observe(getattr(self.on, "start"), self._on_broker_start)
+        self.framework.observe(getattr(self.on, "install"), self._on_install)
+        self.framework.observe(getattr(self.on, "start"), self._on_start)
         self.framework.observe(getattr(self.on, "config_changed"), self._on_config_changed)
         self.framework.observe(getattr(self.on, "update_status"), self._on_update_status)
         self.framework.observe(getattr(self.on, "remove"), self._on_remove)
@@ -152,12 +154,11 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             self._set_status(Status.SNAP_NOT_INSTALLED)
             return
 
-        if self.role == BROKER:
-            self._set_os_config()
-            self.config_manager.set_environment()
-            self.unit.set_workload_version(self.workload.get_version())
+        self._set_os_config()
+        self.config_manager.set_environment()
+        self.unit.set_workload_version(self.workload.get_version())
 
-    def _on_broker_start(self, event: EventBase) -> None:
+    def _on_start(self, event: EventBase) -> None:
         """Handler for `start` event."""
         self._set_status(self.state.ready_to_start)
         if not isinstance(self.unit.status, ActiveStatus):
@@ -179,14 +180,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         # only log once on successful 'on-start' run
         if isinstance(self.unit.status, ActiveStatus):
             logger.info(f'Broker {self.unit.name.split("/")[1]} connected')
-
-    def _on_partitioner_start(self, event: EventBase) -> None:
-        """Handler for `start` event."""
-        self._set_status(Status.NOT_IMPLEMENTED)
-        self.config_manager.set_cruise_control_properties()
-
-        self.workload.start()
-        logger.info("Cruise control started")
 
     def _on_config_changed(self, event: EventBase) -> None:
         """Generic handler for most `config_changed` events across relations."""
