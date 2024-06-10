@@ -68,7 +68,7 @@ class KafkaUpgrade(DataUpgrade):
     @override
     def pre_upgrade_check(self) -> None:
         default_message = "Pre-upgrade check failed and cannot safely upgrade"
-        if not self.charm.healthy:
+        if not self.charm.broker_events.healthy:
             raise ClusterNotReadyError(message=default_message, cause="Cluster is not healthy")
 
     @override

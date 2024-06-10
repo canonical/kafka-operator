@@ -43,12 +43,12 @@ class KafkaProvider(Object):
 
     def on_topic_requested(self, event: TopicRequestedEvent):
         """Handle the on topic requested event."""
-        if not self.charm.healthy:
+        if not self.charm.broker_events.healthy:
             event.defer()
             return
 
         # on all unit update the server properties to enable client listener if needed
-        self.charm._on_config_changed(event)
+        self.charm.broker_events._on_config_changed(event)
 
         if not self.charm.unit.is_leader() or not self.charm.state.peer_relation:
             return
@@ -89,11 +89,11 @@ class KafkaProvider(Object):
         # non-leader units need cluster_config_changed event to update their super.users
         self.charm.state.cluster.update({"super-users": self.charm.state.super_users})
 
-        self.charm.update_client_data()
+        self.charm.broker_events.update_client_data()
 
     def _on_relation_created(self, event: RelationCreatedEvent) -> None:
         """Handler for `kafka-client-relation-created` event."""
-        self.charm._on_config_changed(event)
+        self.charm.broker_events._on_config_changed(event)
 
     def _on_relation_broken(self, event: RelationBrokenEvent) -> None:
         """Handler for `kafka-client-relation-broken` event.
@@ -111,7 +111,7 @@ class KafkaProvider(Object):
         ):
             return
 
-        if not self.charm.healthy:
+        if not self.charm.broker_events.healthy:
             event.defer()
             return
 
@@ -125,4 +125,4 @@ class KafkaProvider(Object):
             # update on the peer relation data will trigger an update of server properties on all units
             self.charm.state.cluster.update({username: ""})
 
-        self.charm.update_client_data()
+        self.charm.broker_events.update_client_data()

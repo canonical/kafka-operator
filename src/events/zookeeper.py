@@ -83,7 +83,10 @@ class ZooKeeperHandler(Object):
 
         # attempt re-start of Kafka for all units on zookeeper-changed
         # avoids relying on deferred events elsewhere that may not exist after cluster init
-        if not self.charm.healthy and self.charm.state.cluster.internal_user_credentials:
+        if (
+            not self.charm.broker_events.healthy
+            and self.charm.state.cluster.internal_user_credentials
+        ):
             self.charm.on.start.emit()
 
         self.charm.on.config_changed.emit()

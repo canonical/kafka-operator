@@ -49,7 +49,7 @@ class PasswordActionEvents(Object):
             event.fail(msg)
             return
 
-        if not self.charm.healthy:
+        if not self.charm.broker_events.healthy:
             msg = "Unit is not healthy"
             logger.error(msg)
             event.fail(msg)
