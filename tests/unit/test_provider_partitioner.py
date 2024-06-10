@@ -9,10 +9,9 @@ from typing import Iterator
 import pytest
 import yaml
 from ops.testing import Harness
-from src.literals import PARTITIONER
 
 from charm import KafkaCharm
-from literals import CHARM_KEY, CONTAINER, PEER, SUBSTRATE
+from literals import CHARM_KEY, CONTAINER, PARTITIONER_SERVICE, PEER, SUBSTRATE
 
 pytestmark = pytest.mark.partitioner
 
@@ -50,10 +49,10 @@ def harness_broker() -> Iterator[Harness[KafkaCharm]]:
     harness.cleanup()
 
 
-def test_partitioner_created_information(harness_broker):
-    with harness_broker.hooks_disabled():
-        harness_broker.add_relation(PEER, CHARM_KEY)
-        harness_broker.set_leader(True)
+def test_partitioner_created_information(harness_partitioner):
+    with harness_partitioner.hooks_disabled():
+        harness_partitioner.add_relation(PEER, CHARM_KEY)
+        harness_partitioner.set_leader(True)
 
-    _ = harness_broker.add_relation(PARTITIONER, "partitioner")
-    assert harness_broker.charm.state.partitioner.relation_data == {"foo": "bar"}
+    _ = harness_partitioner.add_relation(PARTITIONER_SERVICE, "broker")
+    assert harness_partitioner.charm.state.partitioner.relation_data == {"foo": "bar"}

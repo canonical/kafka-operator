@@ -14,13 +14,19 @@ from charms.data_platform_libs.v0.data_interfaces import (
     DataPeerOtherUnitData,
     DataPeerUnitData,
     KafkaProviderData,
-    ProviderData,
-    RequirerData,
 )
 from ops import Object, Relation
 from ops.model import Unit
 
-from core.models import KafkaBroker, KafkaClient, KafkaCluster, Partitioner, ZooKeeper
+from core.models import (
+    KafkaBroker,
+    KafkaClient,
+    KafkaCluster,
+    Partitioner,
+    PartitionerProviderData,
+    PartitionerRequirerData,
+    ZooKeeper,
+)
 from literals import (
     INTERNAL_USERS,
     PARTITIONER,
@@ -56,8 +62,10 @@ class ClusterState(Object):
         )
         self.client_provider_interface = KafkaProviderData(self.model, relation_name=REL_NAME)
 
-        self.partitioner_provider_interface = ProviderData(self.model, PARTITIONER)
-        self.partitioner_requirer_interface = RequirerData(self.model, PARTITIONER_SERVICE)
+        self.partitioner_provider_interface = PartitionerProviderData(self.model, PARTITIONER)
+        self.partitioner_requirer_interface = PartitionerRequirerData(
+            self.model, PARTITIONER_SERVICE
+        )
 
     # --- RELATIONS ---
 
@@ -179,10 +187,10 @@ class ClusterState(Object):
         """The partitioner relation state."""
         match self.role:
             case Role.BROKER:
-                data_interface = self.partitioner_requirer_interface
+                data_interface = self.partitioner_provider_interface
                 relation = self.partitioner_relation
             case Role.PARTITIONER:
-                data_interface = self.partitioner_provider_interface
+                data_interface = self.partitioner_requirer_interface
                 relation = self.partitioner_service_relation
 
         return Partitioner(

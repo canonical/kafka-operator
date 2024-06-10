@@ -6,7 +6,14 @@
 
 import logging
 
-from charms.data_platform_libs.v0.data_interfaces import Data, DataPeerData, DataPeerUnitData
+from charms.data_platform_libs.v0.data_interfaces import (
+    SECRET_GROUPS,
+    Data,
+    DataPeerData,
+    DataPeerUnitData,
+    ProviderData,
+    RequirerData,
+)
 from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManager
 from kazoo.client import AuthFailedError, NoNodeError
 from ops.model import Application, Relation, Unit
@@ -19,6 +26,10 @@ from typing_extensions import override
 from literals import INTERNAL_USERS, SECRETS_APP, Substrates
 
 logger = logging.getLogger(__name__)
+
+
+setattr(SECRET_GROUPS, "KAFKA", "kafka")
+setattr(SECRET_GROUPS, "ZOOKEEPER", "zookeeper")
 
 
 class RelationState:
@@ -454,6 +465,21 @@ class KafkaClient(RelationState):
         When `admin` is set, the Kafka charm interprets this as a new super.user.
         """
         return self.relation_data.get("extra-user-roles", "")
+
+
+class PartitionerProviderData(ProviderData):
+    """Partitioner provider data model."""
+
+    SECRET_LABEL_MAP = {
+        "kafka-password": getattr(SECRET_GROUPS, "KAFKA"),
+        "zookeeper-password": getattr(SECRET_GROUPS, "ZOOKEEPER"),
+    }
+
+
+class PartitionerRequirerData(RequirerData):
+    """Partitioner requirer data model."""
+
+    SECRET_FIELDS = ["kafka-password", "zookeeper-password"]
 
 
 class Partitioner(RelationState):

@@ -78,7 +78,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
                     config=self.config,
                     current_version="__unused__",
                 )
-                self.partitioner_provider = PartitionerProvider(self)
+                self.partitioner_requirer = PartitionerRequirer(self)
 
                 self.framework.observe(getattr(self.on, "start"), self._on_partitioner_start)
 
@@ -99,7 +99,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
                 **DEPENDENCIES  # pyright: ignore[reportGeneralTypeIssues, reportArgumentType]
             ),
         )
-        self.partitioner_requirer = PartitionerRequirer(self)
+        self.partitioner_provider = PartitionerProvider(self)
 
         # MANAGERS
 
