@@ -11,9 +11,9 @@ import yaml
 from ops.testing import Harness
 
 from charm import KafkaCharm
-from literals import CHARM_KEY, CONTAINER, PARTITIONER_SERVICE, PEER, SUBSTRATE
+from literals import BALANCER_SERVICE, CHARM_KEY, CONTAINER, PEER, SUBSTRATE
 
-pytestmark = pytest.mark.partitioner
+pytestmark = pytest.mark.balancer
 
 logger = logging.getLogger(__name__)
 
@@ -24,13 +24,13 @@ METADATA = str(yaml.safe_load(Path("./metadata.yaml").read_text()))
 
 
 @pytest.fixture
-def harness_partitioner() -> Iterator[Harness[KafkaCharm]]:
+def harness_balancer() -> Iterator[Harness[KafkaCharm]]:
     harness = Harness(KafkaCharm, meta=METADATA, actions=ACTIONS, config=CONFIG)
 
     if SUBSTRATE == "k8s":
         harness.set_can_connect(CONTAINER, True)
 
-    harness._update_config({"role": "partitioner"})
+    harness._update_config({"role": "balancer"})
     harness.begin()
     yield harness
     harness.cleanup()
@@ -49,10 +49,10 @@ def harness_broker() -> Iterator[Harness[KafkaCharm]]:
     harness.cleanup()
 
 
-def test_partitioner_created_information(harness_partitioner):
-    with harness_partitioner.hooks_disabled():
-        harness_partitioner.add_relation(PEER, CHARM_KEY)
-        harness_partitioner.set_leader(True)
+def test_balancer_created_information(harness_balancer):
+    with harness_balancer.hooks_disabled():
+        harness_balancer.add_relation(PEER, CHARM_KEY)
+        harness_balancer.set_leader(True)
 
-    _ = harness_partitioner.add_relation(PARTITIONER_SERVICE, "broker")
-    assert harness_partitioner.charm.state.partitioner.relation_data == {"foo": "bar"}
+    _ = harness_balancer.add_relation(BALANCER_SERVICE, "broker")
+    assert harness_balancer.charm.state.balancer.relation_data == {"foo": "bar"}

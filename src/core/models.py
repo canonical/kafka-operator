@@ -467,8 +467,8 @@ class KafkaClient(RelationState):
         return self.relation_data.get("extra-user-roles", "")
 
 
-class PartitionerProviderData(ProviderData):
-    """Partitioner provider data model."""
+class BalancerProviderData(ProviderData):
+    """Balancer provider data model."""
 
     SECRET_LABEL_MAP = {
         "kafka-password": getattr(SECRET_GROUPS, "KAFKA"),
@@ -476,13 +476,13 @@ class PartitionerProviderData(ProviderData):
     }
 
 
-class PartitionerRequirerData(RequirerData):
-    """Partitioner requirer data model."""
+class BalancerRequirerData(RequirerData):
+    """Balancer requirer data model."""
 
     SECRET_FIELDS = ["kafka-password", "zookeeper-password"]
 
 
-class Partitioner(RelationState):
+class Balancer(RelationState):
     """State collection metadata for a single related client application."""
 
     def __init__(

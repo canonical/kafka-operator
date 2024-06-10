@@ -19,19 +19,19 @@ from ops import Object, Relation
 from ops.model import Unit
 
 from core.models import (
+    Balancer,
+    BalancerProviderData,
+    BalancerRequirerData,
     KafkaBroker,
     KafkaClient,
     KafkaCluster,
-    Partitioner,
-    PartitionerProviderData,
-    PartitionerRequirerData,
     ZooKeeper,
 )
 from literals import (
+    BALANCER_RELATION,
+    BALANCER_SERVICE,
     BROKER,
     INTERNAL_USERS,
-    PARTITIONER_RELATION,
-    PARTITIONER_SERVICE,
     PEER,
     REL_NAME,
     SECRETS_UNIT,
@@ -62,12 +62,8 @@ class ClusterState(Object):
         )
         self.client_provider_interface = KafkaProviderData(self.model, relation_name=REL_NAME)
 
-        self.partitioner_provider_interface = PartitionerProviderData(
-            self.model, PARTITIONER_RELATION
-        )
-        self.partitioner_requirer_interface = PartitionerRequirerData(
-            self.model, PARTITIONER_SERVICE
-        )
+        self.balancer_provider_interface = BalancerProviderData(self.model, BALANCER_RELATION)
+        self.balancer_requirer_interface = BalancerRequirerData(self.model, BALANCER_SERVICE)
 
     # --- RELATIONS ---
 
@@ -87,14 +83,14 @@ class ClusterState(Object):
         return set(self.model.relations[REL_NAME])
 
     @property
-    def partitioner_relation(self) -> Relation | None:
-        """The partitioner relation."""
-        return self.model.get_relation(PARTITIONER_RELATION)
+    def balancer_relation(self) -> Relation | None:
+        """The balancer relation."""
+        return self.model.get_relation(BALANCER_RELATION)
 
     @property
-    def partitioner_service_relation(self) -> Relation | None:
-        """The partitioner-service relation."""
-        return self.model.get_relation(PARTITIONER_SERVICE)
+    def balancer_service_relation(self) -> Relation | None:
+        """The balancer-service relation."""
+        return self.model.get_relation(BALANCER_SERVICE)
 
     # --- CORE COMPONENTS ---
 
@@ -185,17 +181,17 @@ class ClusterState(Object):
         return clients
 
     @property
-    def partitioner(self) -> Partitioner:
-        """The partitioner relation state."""
+    def balancer(self) -> Balancer:
+        """The balancer relation state."""
         if self.role == BROKER:
-            data_interface = self.partitioner_provider_interface
-            relation = self.partitioner_relation
+            data_interface = self.balancer_provider_interface
+            relation = self.balancer_relation
         else:
-            # PARTITIONER
-            data_interface = self.partitioner_requirer_interface
-            relation = self.partitioner_service_relation
+            # BALANCER
+            data_interface = self.balancer_requirer_interface
+            relation = self.balancer_service_relation
 
-        return Partitioner(
+        return Balancer(
             relation=relation,
             data_interface=data_interface,
             substrate=self.substrate,

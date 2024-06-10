@@ -23,8 +23,8 @@ REL_NAME = "kafka-client"
 TLS_RELATION = "certificates"
 TRUSTED_CERTIFICATE_RELATION = "trusted-certificate"
 TRUSTED_CA_RELATION = "trusted-ca"
-PARTITIONER_RELATION = "partitioner"
-PARTITIONER_SERVICE = "partitioner-service"
+BALANCER_RELATION = "balancer"
+BALANCER_SERVICE = "balancer-service"
 
 INTER_BROKER_USER = "sync"
 ADMIN_USER = "admin"
@@ -174,4 +174,4 @@ class Role:
 
 
 BROKER = Role(value="broker", service="daemon", paths=PATHS["kafka"])
-PARTITIONER = Role(value="partitioner", service="cruise-control", paths=PATHS["cruise-control"])
+BALANCER = Role(value="balancer", service="cruise-control", paths=PATHS["cruise-control"])

@@ -17,22 +17,23 @@ from tenacity.wait import wait_fixed
 from typing_extensions import override
 
 from core.workload import CharmedKafkaPaths, WorkloadBase
-from literals import CHARMED_KAFKA_SNAP_REVISION, GROUP, SNAP_NAME, USER, Role
+from literals import BALANCER, BROKER, CHARMED_KAFKA_SNAP_REVISION, GROUP, SNAP_NAME, USER
 
 logger = logging.getLogger(__name__)
 
 
-class KafkaWorkload(WorkloadBase):
+class Workload(WorkloadBase):
     """Wrapper for performing common operations specific to the Kafka Snap."""
 
     # FIXME: Paths and constants integrated into WorkloadBase?
     SNAP_NAME = "charmed-kafka"
     LOG_SLOT = "logs"
 
-    def __init__(self, role: Role) -> None:
+    paths: CharmedKafkaPaths
+    service: str
+
+    def __init__(self) -> None:
         self.kafka = snap.SnapCache()[SNAP_NAME]
-        self.paths = CharmedKafkaPaths(role)
-        self.service = role.service
 
     @override
     def start(self) -> None:
@@ -105,13 +106,6 @@ class KafkaWorkload(WorkloadBase):
         except KeyError:
             return False
 
-    @override
-    def run_bin_command(self, bin_keyword: str, bin_args: list[str], opts: list[str] = []) -> str:
-        opts_str = " ".join(opts)
-        bin_str = " ".join(bin_args)
-        command = f"{opts_str} {SNAP_NAME}.{bin_keyword} {bin_str}"
-        return self.exec(command)
-
     def install(self) -> bool:
         """Loads the Kafka snap from LP.
 
@@ -167,6 +161,26 @@ class KafkaWorkload(WorkloadBase):
 
         raise snap.SnapError(f"Snap {self.SNAP_NAME} pid not found")
 
+
+class KafkaWorkload(Workload):
+    """Broker specific wrapper."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.paths = CharmedKafkaPaths(BROKER)
+        self.service = BROKER.service
+
+    @override
+    def run_bin_command(
+        self, bin_keyword: str, bin_args: list[str], opts: list[str] | None = None
+    ) -> str:
+        if opts is None:
+            opts = []
+        opts_str = " ".join(opts)
+        bin_str = " ".join(bin_args)
+        command = f"{opts_str} {SNAP_NAME}.{bin_keyword} {bin_str}"
+        return self.exec(command)
+
     @override
     def get_version(self) -> str:
         if not self.active:
@@ -176,3 +190,22 @@ class KafkaWorkload(WorkloadBase):
         except:  # noqa: E722
             version = ""
         return version
+
+
+class BalancerWorkload(Workload):
+    """Broker specific wrapper."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.paths = CharmedKafkaPaths(BALANCER)
+        self.service = BALANCER.service
+
+    @override
+    def run_bin_command(
+        self, bin_keyword: str, bin_args: list[str], opts: list[str] | None = None
+    ) -> str:
+        raise NotImplementedError
+
+    @override
+    def get_version(self) -> str:
+        raise NotImplementedError

@@ -20,7 +20,7 @@ from ops.model import ActiveStatus, StatusBase
 from core.cluster import ClusterState
 from core.models import Substrates
 from core.structured_config import CharmConfig
-from events.partitioner import PartitionerEvents, PartitionerProvider
+from events.balancer import BalancerEvents, BalancerProvider
 from events.password_actions import PasswordActionEvents
 from events.provider import KafkaProvider
 from events.tls import TLSHandler
@@ -28,6 +28,7 @@ from events.upgrade import KafkaDependencyModel, KafkaUpgrade
 from events.zookeeper import ZooKeeperHandler
 from health import KafkaHealth
 from literals import (
+    BALANCER,
     BROKER,
     CHARM_KEY,
     DEPENDENCIES,
@@ -36,7 +37,6 @@ from literals import (
     LOGS_RULES_DIR,
     METRICS_RULES_DIR,
     OS_REQUIREMENTS,
-    PARTITIONER,
     PEER,
     REL_NAME,
     SUBSTRATE,
@@ -47,7 +47,7 @@ from literals import (
 from managers.auth import AuthManager
 from managers.config import ConfigManager
 from managers.tls import TLSManager
-from workload import KafkaWorkload
+from workload import BalancerWorkload, KafkaWorkload
 
 logger = logging.getLogger(__name__)
 
@@ -61,23 +61,22 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         super().__init__(*args)
         self.name = CHARM_KEY
         self.substrate: Substrates = SUBSTRATE
-        self.role = BROKER if self.config.role == "broker" else PARTITIONER
+        self.role = BROKER if self.config.role == "broker" else BALANCER
 
         # Common attrs init
-        self.workload = KafkaWorkload(self.role)
         self.state = ClusterState(self, substrate=self.substrate)
         self.health = KafkaHealth(self)
 
-        self.config_manager = ConfigManager(
-            self.role,
-            state=self.state,
-            workload=self.workload,
-            config=self.config,
-        )
+        self.balancer_events = BalancerEvents(self)
 
-        self.partitioner_events = PartitionerEvents(self)
-
-        if self.role == PARTITIONER:
+        if self.role == BALANCER:
+            self.workload = BalancerWorkload()
+            self.config_manager = ConfigManager(
+                self.role,
+                state=self.state,
+                workload=self.workload,
+                config=self.config,
+            )
             return
 
         self._init_broker()
@@ -86,6 +85,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         """Init broker specific attributes."""
         # HANDLERS
 
+        self.workload = KafkaWorkload()
         self.password_action_events = PasswordActionEvents(self)
         self.zookeeper = ZooKeeperHandler(self)
         self.tls = TLSHandler(self)
@@ -96,7 +96,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
                 **DEPENDENCIES  # pyright: ignore[reportGeneralTypeIssues, reportArgumentType]
             ),
         )
-        self.partitioner_provider = PartitionerProvider(self)
+        self.balancer_provider = BalancerProvider(self)
 
         # MANAGERS
 

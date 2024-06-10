@@ -51,7 +51,7 @@ class LogLevel(str, Enum):
 class CharmConfig(BaseConfigModel):
     """Manager for the structured configuration."""
 
-    role: Literal["broker", "partitioner"]
+    role: Literal["broker", "balancer"]
     compression_type: str
     log_flush_interval_messages: int  # int  # long
     log_flush_interval_ms: int | None  # long
