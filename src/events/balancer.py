@@ -1,28 +1,28 @@
-"""Supporting objects for Broker-Optimizer relation."""
+"""Supporting objects for Broker-Balancer relation."""
 
 import logging
 from typing import TYPE_CHECKING
 
 from ops import EventBase, Object
 
-from literals import OPTIMIZER, Status
+from literals import BALANCER, Status
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
 
 logger = logging.getLogger(__name__)
 
-OPTIMIZER_EVENTS = "optimizer-events"
+BALANCER_EVENTS = "balancer-events"
 
 
-class OptimizerEvents(Object):
-    """Implements the provider-side logic for the optimizer."""
+class BalancerEvents(Object):
+    """Implements the provider-side logic for the balancer."""
 
     def __init__(self, charm) -> None:
-        super().__init__(charm, OPTIMIZER_EVENTS)
+        super().__init__(charm, BALANCER_EVENTS)
         self.charm: "KafkaCharm" = charm
 
-        if self.charm.role != OPTIMIZER:
+        if self.charm.role != BALANCER:
             return
 
         self.framework.observe(self.charm.on.install, self._on_install)

@@ -20,7 +20,7 @@ from ops.model import ActiveStatus, StatusBase
 from core.cluster import ClusterState
 from core.models import Substrates
 from core.structured_config import CharmConfig
-from events.optimizer import OptimizerEvents
+from events.balancer import BalancerEvents
 from events.password_actions import PasswordActionEvents
 from events.provider import KafkaProvider
 from events.tls import TLSHandler
@@ -28,6 +28,7 @@ from events.upgrade import KafkaDependencyModel, KafkaUpgrade
 from events.zookeeper import ZooKeeperHandler
 from health import KafkaHealth
 from literals import (
+    BALANCER,
     BROKER,
     CHARM_KEY,
     DEPENDENCIES,
@@ -35,7 +36,6 @@ from literals import (
     JMX_EXPORTER_PORT,
     LOGS_RULES_DIR,
     METRICS_RULES_DIR,
-    OPTIMIZER,
     OS_REQUIREMENTS,
     PEER,
     REL_NAME,
@@ -47,7 +47,7 @@ from literals import (
 from managers.auth import AuthManager
 from managers.config import ConfigManager
 from managers.tls import TLSManager
-from workload import KafkaWorkload, OptimizerWorkload
+from workload import BalancerWorkload, KafkaWorkload
 
 logger = logging.getLogger(__name__)
 
@@ -61,16 +61,16 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         super().__init__(*args)
         self.name = CHARM_KEY
         self.substrate: Substrates = SUBSTRATE
-        self.role = BROKER if self.config.role == "broker" else OPTIMIZER
+        self.role = BROKER if self.config.role == "broker" else BALANCER
 
         # Common attrs init
         self.state = ClusterState(self, substrate=self.substrate)
         self.health = KafkaHealth(self)
 
-        self.optimizer_events = OptimizerEvents(self)
+        self.balancer_events = BalancerEvents(self)
 
-        if self.role == OPTIMIZER:
-            self.workload = OptimizerWorkload()
+        if self.role == BALANCER:
+            self.workload = BalancerWorkload()
             self.config_manager = ConfigManager(
                 self.role,
                 state=self.state,

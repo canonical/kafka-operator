@@ -17,7 +17,7 @@ from tenacity.wait import wait_fixed
 from typing_extensions import override
 
 from core.workload import CharmedKafkaPaths, WorkloadBase
-from literals import BROKER, CHARMED_KAFKA_SNAP_REVISION, GROUP, OPTIMIZER, SNAP_NAME, USER
+from literals import BALANCER, BROKER, CHARMED_KAFKA_SNAP_REVISION, GROUP, SNAP_NAME, USER
 
 logger = logging.getLogger(__name__)
 
@@ -192,13 +192,13 @@ class KafkaWorkload(Workload):
         return version
 
 
-class OptimizerWorkload(Workload):
+class BalancerWorkload(Workload):
     """Broker specific wrapper."""
 
     def __init__(self) -> None:
         super().__init__()
-        self.paths = CharmedKafkaPaths(OPTIMIZER)
-        self.service = OPTIMIZER.service
+        self.paths = CharmedKafkaPaths(BALANCER)
+        self.service = BALANCER.service
 
     @override
     def run_bin_command(
