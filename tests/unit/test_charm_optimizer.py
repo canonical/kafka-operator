@@ -14,11 +14,11 @@ from src.literals import Status
 from charm import KafkaCharm
 from literals import (
     CONTAINER,
-    PARTITIONER,
+    OPTIMIZER,
     SUBSTRATE,
 )
 
-pytestmark = pytest.mark.partitioner
+pytestmark = pytest.mark.optimizer
 
 logger = logging.getLogger(__name__)
 
@@ -35,13 +35,13 @@ def harness() -> Harness:
     if SUBSTRATE == "k8s":
         harness.set_can_connect(CONTAINER, True)
 
-    harness._update_config({"role": "partitioner"})
+    harness._update_config({"role": "optimizer"})
     harness.begin()
     return harness
 
 
 def test_start_with_correct_role(harness: Harness):
-    assert harness.charm.config["role"] == PARTITIONER
+    assert harness.charm.config["role"] == OPTIMIZER
 
 
 def test_install_blocks_snap_install_failure(harness: Harness):

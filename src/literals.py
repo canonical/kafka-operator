@@ -172,4 +172,4 @@ class Role:
 
 
 BROKER = Role(value="broker", service="daemon", paths=PATHS["kafka"])
-PARTITIONER = Role(value="partitioner", service="cruise-control", paths=PATHS["cruise-control"])
+OPTIMIZER = Role(value="optimizer", service="cruise-control", paths=PATHS["cruise-control"])

@@ -1,28 +1,28 @@
-"""Supporting objects for Broker-Partitioner relation."""
+"""Supporting objects for Broker-Optimizer relation."""
 
 import logging
 from typing import TYPE_CHECKING
 
 from ops import EventBase, Object
 
-from literals import PARTITIONER, Status
+from literals import OPTIMIZER, Status
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
 
 logger = logging.getLogger(__name__)
 
-PARTITIONER_EVENTS = "partitioner-events"
+OPTIMIZER_EVENTS = "optimizer-events"
 
 
-class PartitionerEvents(Object):
-    """Implements the provider-side logic for the partitioner."""
+class OptimizerEvents(Object):
+    """Implements the provider-side logic for the optimizer."""
 
     def __init__(self, charm) -> None:
-        super().__init__(charm, PARTITIONER_EVENTS)
+        super().__init__(charm, OPTIMIZER_EVENTS)
         self.charm: "KafkaCharm" = charm
 
-        if self.charm.role != PARTITIONER:
+        if self.charm.role != OPTIMIZER:
             return
 
         self.framework.observe(self.charm.on.install, self._on_install)

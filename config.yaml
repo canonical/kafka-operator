@@ -3,7 +3,7 @@
 
 options:
   role:
-    description: "Specify the charm operating mode. This configuration accepts the following roles: 'broker' (standard functionality), 'partitioner' (cruise control)."
+    description: "Specify the charm operating mode. This configuration accepts the following roles: 'broker' (standard functionality), 'optimizer' (cruise control)."
     type: string
     default: broker
   compression_type:

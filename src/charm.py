@@ -20,7 +20,7 @@ from ops.model import ActiveStatus, StatusBase
 from core.cluster import ClusterState
 from core.models import Substrates
 from core.structured_config import CharmConfig
-from events.partitioner import PartitionerEvents
+from events.optimizer import OptimizerEvents
 from events.password_actions import PasswordActionEvents
 from events.provider import KafkaProvider
 from events.tls import TLSHandler
@@ -35,8 +35,8 @@ from literals import (
     JMX_EXPORTER_PORT,
     LOGS_RULES_DIR,
     METRICS_RULES_DIR,
+    OPTIMIZER,
     OS_REQUIREMENTS,
-    PARTITIONER,
     PEER,
     REL_NAME,
     SUBSTRATE,
@@ -61,7 +61,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         super().__init__(*args)
         self.name = CHARM_KEY
         self.substrate: Substrates = SUBSTRATE
-        self.role = BROKER if self.config.role == "broker" else PARTITIONER
+        self.role = BROKER if self.config.role == "broker" else OPTIMIZER
 
         # Common attrs init
         self.workload = KafkaWorkload(self.role)
@@ -75,9 +75,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             config=self.config,
         )
 
-        self.partitioner_events = PartitionerEvents(self)
+        self.optimizer_events = OptimizerEvents(self)
 
-        if self.role == PARTITIONER:
+        if self.role == OPTIMIZER:
             return
 
         self._init_broker()
