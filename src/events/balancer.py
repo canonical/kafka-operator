@@ -6,9 +6,16 @@ from typing import TYPE_CHECKING
 from charms.data_platform_libs.v0.data_interfaces import (
     RequirerEventHandlers,
 )
-from ops import EventBase, Object, RelationChangedEvent
+from ops import EventBase, Object, RelationChangedEvent, RelationCreatedEvent
 
-from literals import BALANCER, BALANCER_RELATION, BALANCER_SERVICE, Status
+from literals import (
+    ADMIN_USER,
+    BALANCER,
+    BALANCER_RELATION,
+    BALANCER_SERVICE,
+    BALANCER_TOPIC,
+    Status,
+)
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -81,6 +88,12 @@ class BalancerProvider(Object):
 
 class BalancerRequirerEventHandlers(RequirerEventHandlers):
     """Override abstract event handlers."""
+
+    def _on_relation_created_event(self, event: RelationCreatedEvent) -> None:
+        """Event emitted when the database relation is created."""
+        super()._on_relation_created_event(event)
+        event_data = {"extra-user-roles": ADMIN_USER, "topic": BALANCER_TOPIC}
+        self.relation_data.update_relation_data(event.relation.id, event_data)
 
     def _on_relation_changed_event(self, _: RelationChangedEvent) -> None:
         pass

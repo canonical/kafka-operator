@@ -23,8 +23,9 @@ REL_NAME = "kafka-client"
 TLS_RELATION = "certificates"
 TRUSTED_CERTIFICATE_RELATION = "trusted-certificate"
 TRUSTED_CA_RELATION = "trusted-ca"
-BALANCER_RELATION = "balancer"
+BALANCER_RELATION = "balancer-target"
 BALANCER_SERVICE = "balancer-service"
+BALANCER_TOPIC = "__KafkaCruiseControlPartitionMetricSamples"
 
 INTER_BROKER_USER = "sync"
 ADMIN_USER = "admin"
@@ -167,6 +168,7 @@ class Role:
     value: str
     service: str
     paths: dict[str, str]
+    requested_secrets: list[str] | None = None
 
     def __eq__(self, value: object, /) -> bool:
         """Provide an easy comparison to the configuration key."""
@@ -174,4 +176,16 @@ class Role:
 
 
 BROKER = Role(value="broker", service="daemon", paths=PATHS["kafka"])
-BALANCER = Role(value="balancer", service="cruise-control", paths=PATHS["cruise-control"])
+BALANCER = Role(
+    value="balancer",
+    service="cruise-control",
+    paths=PATHS["cruise-control"],
+    requested_secrets=[
+        "username",
+        "password",
+        "uris",
+        "zk-username",
+        "zk-password",
+        "zk-uris",
+    ],
+)

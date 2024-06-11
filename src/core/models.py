@@ -23,7 +23,7 @@ from tenacity.stop import stop_after_attempt
 from tenacity.wait import wait_fixed
 from typing_extensions import override
 
-from literals import INTERNAL_USERS, SECRETS_APP, Substrates
+from literals import BALANCER, INTERNAL_USERS, SECRETS_APP, Substrates
 
 logger = logging.getLogger(__name__)
 
@@ -471,15 +471,21 @@ class BalancerProviderData(ProviderData):
     """Balancer provider data model."""
 
     SECRET_LABEL_MAP = {
-        "kafka-password": getattr(SECRET_GROUPS, "KAFKA"),
-        "zookeeper-password": getattr(SECRET_GROUPS, "ZOOKEEPER"),
+        "username": getattr(SECRET_GROUPS, "KAFKA"),
+        "password": getattr(SECRET_GROUPS, "KAFKA"),
+        "uris": getattr(SECRET_GROUPS, "KAFKA"),
+        "zk-username": getattr(SECRET_GROUPS, "ZOOKEEPER"),
+        "zk-password": getattr(SECRET_GROUPS, "ZOOKEEPER"),
+        "zk-uris": getattr(SECRET_GROUPS, "ZOOKEEPER"),
     }
 
 
 class BalancerRequirerData(RequirerData):
     """Balancer requirer data model."""
 
-    SECRET_FIELDS = ["kafka-password", "zookeeper-password"]
+    SECRET_FIELDS = BALANCER.requested_secrets
+
+    extra_user_role = "admin"
 
 
 class Balancer(RelationState):

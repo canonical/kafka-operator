@@ -42,7 +42,7 @@ requires:
   trusted-certificate:
     interface: tls-certificates
     optional: true
-  balancer:
+  balancer-service:
     interface: balancer
     optional: true
 
@@ -51,7 +51,7 @@ provides:
     interface: kafka_client
   cos-agent:
     interface: cos_agent
-  balancer-service:
+  balancer-target:
     interface: balancer
     optional: true
 
