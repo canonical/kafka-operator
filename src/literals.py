@@ -15,6 +15,7 @@ SNAP_NAME = "charmed-kafka"
 CHARMED_KAFKA_SNAP_REVISION = 37
 CONTAINER = "kafka"
 SUBSTRATE = "vm"
+STORAGE = "data"
 
 # FIXME: these need better names
 PEER = "cluster"

@@ -9,7 +9,7 @@ from enum import Enum
 from typing import Literal
 
 from charms.data_platform_libs.v0.data_models import BaseConfigModel
-from pydantic import validator
+from pydantic import Field, validator
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +74,7 @@ class CharmConfig(BaseConfigModel):
     profile: str
     certificate_extra_sans: str | None
     log_level: str
+    network_bandwidth: int = Field(..., gt=0)
 
     @validator("*", pre=True)
     @classmethod

@@ -12,7 +12,7 @@ from charms.data_platform_libs.v0.data_interfaces import DatabaseRequirerEventHa
 from ops import Object, RelationChangedEvent, RelationEvent
 from ops.pebble import ExecError
 
-from literals import INTERNAL_USERS, ZK, Status
+from literals import INTERNAL_USERS, STORAGE, ZK, Status
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -98,7 +98,7 @@ class ZooKeeperHandler(Object):
         # Kafka keeps a meta.properties in every log.dir with a unique ClusterID
         # this ID is provided by ZK, and removing it on relation-broken allows
         # re-joining to another ZK cluster.
-        for storage in self.charm.model.storages["data"]:
+        for storage in self.charm.model.storages[STORAGE]:
             self.charm.workload.exec(f"rm {storage.location}/meta.properties")
 
         if not self.charm.unit.is_leader():

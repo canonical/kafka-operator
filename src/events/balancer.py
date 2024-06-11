@@ -26,7 +26,7 @@ BALANCER_EVENTS = "balancer-events"
 
 
 class BalancerEvents(Object):
-    """Implements the provider-side logic for the balancer."""
+    """Implements the logic for the balancer."""
 
     def __init__(self, charm) -> None:
         super().__init__(charm, BALANCER_EVENTS)
@@ -36,6 +36,7 @@ class BalancerEvents(Object):
             return
 
         self.balancer_requirer = BalancerRequirer(self.charm)
+
         self.framework.observe(self.charm.on.install, self._on_install)
         self.framework.observe(self.charm.on.start, self._on_start)
 
@@ -79,7 +80,7 @@ class BalancerProvider(Object):
 
     def _on_relation_changed(self, _) -> None:
         """Handler for `balancer-relation-created` event."""
-        self.charm.state.balancer.update({"zookeeper-password": "foo", "kafka-password": "bar"})
+        self.charm.update_client_data()
 
     def _on_relation_broken(self, _) -> None:
         """Handler for `balancer-relation-created` event."""

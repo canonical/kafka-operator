@@ -4,7 +4,9 @@
 
 """Collection of state objects for the Kafka relations, apps and units."""
 
+import json
 import logging
+from typing import TypeAlias
 
 from charms.data_platform_libs.v0.data_interfaces import (
     SECRET_GROUPS,
@@ -27,6 +29,7 @@ from literals import BALANCER, INTERNAL_USERS, SECRETS_APP, Substrates
 
 logger = logging.getLogger(__name__)
 
+JSON: TypeAlias = dict[str, "JSON"] | list["JSON"] | str | int | float | bool | None
 
 setattr(SECRET_GROUPS, "KAFKA", "kafka")
 setattr(SECRET_GROUPS, "ZOOKEEPER", "zookeeper")
@@ -241,6 +244,16 @@ class KafkaBroker(RelationState):
             None if password not yet generated
         """
         return self.relation_data.get("truststore-password", "")
+
+    @property
+    def storages(self) -> JSON:
+        """The current Juju storages for the unit."""
+        return json.loads(self.relation_data.get("storages", ""))
+
+    @property
+    def cores(self) -> int:
+        """The number of CPU cores for the unit machine."""
+        return int(self.relation_data.get("cores", ""))
 
 
 class ZooKeeper(RelationState):

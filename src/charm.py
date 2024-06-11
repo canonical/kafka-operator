@@ -12,6 +12,7 @@ from charms.grafana_agent.v0.cos_agent import COSAgentProvider
 from charms.operator_libs_linux.v0 import sysctl
 from charms.operator_libs_linux.v1.snap import SnapError
 from charms.rolling_ops.v0.rollingops import RollingOpsManager, RunWithLock
+from ops import InstallEvent
 from ops.charm import SecretChangedEvent, StorageAttachedEvent, StorageDetachingEvent, StorageEvent
 from ops.framework import EventBase
 from ops.main import main
@@ -45,6 +46,7 @@ from literals import (
     Status,
 )
 from managers.auth import AuthManager
+from managers.balancer import BalancerManager
 from managers.config import ConfigManager
 from managers.tls import TLSManager
 from workload import BalancerWorkload, KafkaWorkload
@@ -117,6 +119,8 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             log4j_opts=self.config_manager.tools_log4j_opts,
         )
 
+        self.balancer_manager = BalancerManager(self)
+
         # LIB HANDLERS
 
         self.sysctl_config = sysctl.Config(name=CHARM_KEY)
@@ -149,7 +153,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             getattr(self.on, "data_storage_detaching"), self._on_storage_detaching
         )
 
-    def _on_install(self, _) -> None:
+    def _on_install(self, event: InstallEvent) -> None:
         """Handler for `install` event."""
         if not self.workload.install():
             self._set_status(Status.SNAP_NOT_INSTALLED)
@@ -158,6 +162,12 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self._set_os_config()
         self.config_manager.set_environment()
         self.unit.set_workload_version(self.workload.get_version())
+
+        if not self.state.peer_relation:
+            event.defer()
+            return
+
+        self.state.unit_broker.update({"cores": str(self.balancer_manager.cores)})
 
     def _on_start(self, event: EventBase) -> None:
         """Handler for `start` event."""
@@ -286,6 +296,13 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
     def _on_storage_attached(self, event: StorageAttachedEvent) -> None:
         """Handler for `storage_attached` events."""
+        # storage-attached usually fires before relation-created/joined
+        if not self.state.peer_relation:
+            event.defer()
+            return
+
+        self.state.unit_broker.update({"storages": str(self.balancer_manager.storages)})
+
         # new dirs won't be used until topic partitions are assigned to it
         # either automatically for new topics, or manually for existing
         # set status only for running services, not on startup
@@ -374,6 +391,15 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         if not self.unit.is_leader() or not self.healthy:
             return
 
+        if self.state.balancer:
+            self.state.balancer.update(
+                {
+                    "zk-username": self.state.zookeeper.username,
+                    "zk-password": self.state.zookeeper.password,
+                    "zk-uris": self.state.zookeeper.endpoints,
+                    "broker-capacities": self.config_manager.broker_capacities,
+                }
+            )
         for client in self.state.clients:
             if not client.password:
                 logger.debug(

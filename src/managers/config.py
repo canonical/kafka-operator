@@ -5,6 +5,7 @@
 """Manager for handling Kafka configuration."""
 
 import inspect
+import json
 import logging
 from typing import cast
 
@@ -442,6 +443,30 @@ class ConfigManager:
             }};
         """
         )
+
+    @property
+    def broker_capacities(self) -> str:
+        """Builds the capacityJBOD JSON configuration for broker storages.
+
+        Returns:
+            String of JSON to be set
+        """
+        broker_capacities = []
+        for broker in self.state.brokers:
+            broker_capacities.append(
+                {
+                    "brokerId": str(broker.unit_id),
+                    "capacity": {
+                        "DISK": broker.storages,
+                        "CPU": {"num.cores": broker.cores},
+                        "NW_IN": self.config.network_bandwidth,
+                        "NW_OUT": self.config.network_bandwidth,
+                    },
+                    "doc": str(broker.host),
+                }
+            )
+
+        return json.dumps({"brokerCapacities": broker_capacities})
 
     @property
     def cruise_control_properties(self) -> list[str]:
