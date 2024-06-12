@@ -148,6 +148,37 @@ def test_secrets_requested_by_balancer_on_relation_creation(charm_configuration)
     )
 
 
+def test_broker_relation_broken_stops_service(charm_configuration):
+    # Given
+    charm_configuration["options"]["role"]["default"] = "balancer"
+    ctx = Context(
+        KafkaCharm,
+        meta=METADATA,
+        config=charm_configuration,
+        actions=ACTIONS,
+    )
+    peer = PeerRelation(PEER, PEER)
+    relation = Relation(
+        interface=BALANCER.value,
+        endpoint=BALANCER_SERVICE,
+        remote_app_name=BROKER.value,
+        local_app_data={
+            "requested-secrets": json.dumps(BALANCER.requested_secrets),
+            "topic": BALANCER_TOPIC,
+            "extra-user-roles": ADMIN_USER,
+        },
+        remote_app_data={},
+    )
+    state_in = State(leader=True, relations=[peer, relation])
+
+    # When
+    with patch("workload.BalancerWorkload.stop") as patched_stop_snap_service:
+        state_out = ctx.run(relation.broken_event, state_in)
+
+    patched_stop_snap_service.assert_called_once()
+    assert state_out.unit_status == Status.BROKER_NOT_RELATED.value.status
+
+
 def test_balancer_relation_created_defers_if_not_ready(charm_configuration):
     """Checks event is deferred if not ready on balancer relation created hook."""
     ctx = Context(

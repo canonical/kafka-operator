@@ -12,6 +12,7 @@ from charms.data_platform_libs.v0.data_interfaces import (
 from ops import (
     ActiveStatus,
     Object,
+    RelationBrokenEvent,
     RelationChangedEvent,
     RelationCreatedEvent,
     StartEvent,
@@ -146,9 +147,37 @@ class BalancerProvider(Object):
 
         self.charm.update_client_data()
 
-    def _on_relation_broken(self, _) -> None:
-        """Handler for `balancer-relation-created` event."""
-        pass
+    def _on_relation_broken(self, event: RelationBrokenEvent) -> None:
+        """Handler for `balancer-relation-broken` event.
+
+        Removes balancer user from ZooKeeper.
+
+        Args:
+            event: the event from a related balancer application
+        """
+        if (
+            # don't remove anything if app is going down
+            self.charm.app.planned_units == 0
+            or not self.charm.unit.is_leader()
+            or not self.charm.state.cluster
+        ):
+            return
+
+        if not self.charm.healthy:
+            event.defer()
+            return
+
+        if event.relation.app != self.charm.app or not self.charm.app.planned_units() == 0:
+            username = f"relation-{event.relation.id}"
+
+            self.charm.auth_manager.remove_all_user_acls(username=username)
+            self.charm.auth_manager.delete_user(username=username)
+
+            # non-leader units need cluster_config_changed event to update their super.users
+            # update on the peer relation data will trigger an update of server properties on all units
+            self.charm.state.cluster.update({username: ""})
+
+        self.charm.update_client_data()
 
 
 class BalancerRequirerEventHandlers(RequirerEventHandlers):
@@ -197,4 +226,7 @@ class BalancerRequirer(Object):
 
     def _on_relation_broken(self, _) -> None:
         """Handler for `balancer-relation-created` event."""
-        pass
+        self.charm.workload.stop()
+
+        logger.info(f'Balancer {self.model.unit.name.split("/")[1]} stopped')
+        self.charm._set_status(Status.BROKER_NOT_RELATED)
