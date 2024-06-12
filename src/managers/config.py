@@ -152,7 +152,7 @@ class ConfigManager:
             String of Log4j options
         """
         opts = [
-            '-Dlog4j.configuration=file:{self.workload.paths.tools_log4j_properties} -Dcharmed.kafka.log.level={self.log_level.split("=")[1]}'
+            f'-Dlog4j.configuration=file:{self.workload.paths.tools_log4j_properties} -Dcharmed.kafka.log.level={self.log_level.split("=")[1]}'
         ]
 
         return f"KAFKA_LOG4J_OPTS='{' '.join(opts)}'"
@@ -319,7 +319,7 @@ class ConfigManager:
     def client_listeners(self) -> list[Listener]:
         """Return a list of extra listeners."""
         # if there is a relation with kafka then add extra listener
-        if not self.state.client_relations:
+        if not self.state.client_relations and not self.state.balancer_relation:
             return []
 
         return [

@@ -384,9 +384,12 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         if not self.unit.is_leader() or not self.healthy:
             return
 
-        if self.state.balancer:
+        if self.state.balancer and self.state.balancer.password:
             self.state.balancer.update(
                 {
+                    "username": self.state.balancer.username,
+                    "password": self.state.balancer.password,
+                    "uris": self.state.balancer.bootstrap_server,
                     "zk-username": self.state.zookeeper.username,
                     "zk-password": self.state.zookeeper.password,
                     "zk-uris": self.state.zookeeper.endpoints,

@@ -509,5 +509,24 @@ class Balancer(RelationState):
         relation: Relation | None,
         data_interface: Data,
         substrate: Substrates,
+        password: str = "",
+        bootstrap_server: str = "",
     ):
         super().__init__(relation, data_interface, None, substrate)
+        self._password = password
+        self._bootstrap_server = bootstrap_server
+
+    @property
+    def username(self) -> str:
+        """The generated username for the balancer application."""
+        return f"relation-{getattr(self.relation, 'id', '')}"
+
+    @property
+    def password(self) -> str:
+        """The generated password for the balancer application."""
+        return self._password
+
+    @property
+    def bootstrap_server(self) -> str:
+        """The Kafka server endpoints for the balancer application to connect with."""
+        return self._bootstrap_server

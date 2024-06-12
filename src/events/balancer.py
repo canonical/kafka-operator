@@ -1,9 +1,12 @@
 """Supporting objects for Broker-Balancer relation."""
 
 import logging
+import subprocess
+from shutil import ExecError
 from typing import TYPE_CHECKING
 
 from charms.data_platform_libs.v0.data_interfaces import (
+    KafkaProviderEventHandlers,
     RequirerEventHandlers,
 )
 from ops import EventBase, Object, RelationChangedEvent, RelationCreatedEvent
@@ -65,25 +68,78 @@ class BalancerProvider(Object):
         super().__init__(charm, BALANCER_RELATION)
         self.charm: "KafkaCharm" = charm
 
+        self.relation_data = self.charm.state.balancer
+
+        self.provider_handler = KafkaProviderEventHandlers(
+            self.charm,
+            self.relation_data.data_interface,  # pyright: ignore[reportGeneralTypeIssues, reportArgumentType]
+        )
+
         self.framework.observe(
             self.charm.on[BALANCER_RELATION].relation_created, self._on_relation_created
         )
-        self.framework.observe(
-            self.charm.on[BALANCER_RELATION].relation_joined, self._on_relation_changed
-        )
-        self.framework.observe(
-            self.charm.on[BALANCER_RELATION].relation_changed, self._on_relation_changed
-        )
+        # self.framework.observe(
+        #     self.charm.on[BALANCER_RELATION].relation_joined, self._on_relation_changed
+        # )
+        # self.framework.observe(
+        #     self.charm.on[BALANCER_RELATION].relation_changed, self._on_relation_changed
+        # )
         self.framework.observe(
             self.charm.on[BALANCER_RELATION].relation_broken, self._on_relation_broken
+        )
+
+        self.framework.observe(
+            getattr(self.provider_handler.on, "topic_requested"), self._on_topic_requested
         )
 
     def _on_relation_created(self, _) -> None:
         """Handler for `balancer-relation-created` event."""
         pass
 
-    def _on_relation_changed(self, _) -> None:
-        """Handler for `balancer-relation-created` event."""
+    def _on_topic_requested(self, event) -> None:
+        """Handler for `topic_requested` event."""
+        if not self.charm.healthy:
+            event.defer()
+            return
+
+        # on all unit update the server properties to enable balancer listener if needed
+        self.charm._on_config_changed(event)
+
+        if not self.charm.unit.is_leader() or not self.charm.state.peer_relation:
+            return
+
+        balancer = self.charm.state.balancer
+        if not balancer:
+            event.defer()
+            return
+
+        password = balancer.password or self.charm.workload.generate_password()
+
+        # catching error here in case listeners not established for bootstrap-server auth
+        try:
+            self.charm.auth_manager.add_user(
+                username=balancer.username,
+                password=password,
+            )
+        except (subprocess.CalledProcessError, ExecError):
+            logging.exception("")
+            logger.warning(f"unable to create user {balancer.username} just yet")
+            event.defer()
+            return
+
+        # non-leader units need cluster_config_changed event to update their super.users
+        self.charm.state.cluster.update({balancer.username: password})
+
+        self.charm.auth_manager.update_user_acls(
+            username=balancer.username,
+            topic=BALANCER_TOPIC,
+            extra_user_roles=ADMIN_USER,
+            group=None,
+        )
+
+        # non-leader units need cluster_config_changed event to update their super.users
+        self.charm.state.cluster.update({"super-users": self.charm.state.super_users})
+
         self.charm.update_client_data()
 
     def _on_relation_broken(self, _) -> None:

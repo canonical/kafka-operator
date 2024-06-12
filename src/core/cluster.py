@@ -195,6 +195,12 @@ class ClusterState(Object):
             relation=relation,
             data_interface=data_interface,
             substrate=self.substrate,
+            password=(
+                self.cluster.client_passwords.get(f"relation-{relation.id}", "")
+                if relation is not None
+                else ""
+            ),
+            bootstrap_server=self.bootstrap_server,
         )
 
     # ---- GENERAL VALUES ----
