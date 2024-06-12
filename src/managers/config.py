@@ -443,32 +443,6 @@ class ConfigManager:
         """
         )
 
-    @property
-    def cruise_control_properties(self) -> list[str]:
-        """Builds all properties necessary for starting Cruise Control service.
-
-        Returns:
-            List of properties to be set
-        """
-        properties = (
-            [
-                # f"bootstrap.servers={','.join(self.state.bootstrap_server)}",
-                # f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
-                # f"zookeeper.connect={self.state.zookeeper.connect}",
-            ]
-            # + self.cruise_control_goals
-            + CRUISE_CONTROL_CONFIG_OPTIONS.split("\n")
-        )
-
-        return properties
-
-    def set_cruise_control_properties(self) -> None:
-        """Writes all Cruise Control properties to the `cruisecontrol.properties` path."""
-        self.workload.write(
-            content="\n".join(self.cruise_control_properties),
-            path=self.workload.paths.cruise_control_properties,
-        )
-
     def set_zk_jaas_config(self) -> None:
         """Writes the ZooKeeper JAAS config using ZooKeeper relation data."""
         self.workload.write(content=self.zk_jaas_config, path=self.workload.paths.zk_jaas)
@@ -520,3 +494,43 @@ class ConfigManager:
             String with Kafka configuration name to be placed in the server.properties file
         """
         return key.replace("_", ".") if key not in SERVER_PROPERTIES_BLACKLIST else f"# {key}"
+
+
+class BalancerConfigManager:
+    """Manager for handling Balancer configuration."""
+
+    def __init__(
+        self,
+        state: ClusterState,
+        workload: WorkloadBase,
+        config: CharmConfig,
+    ):
+        self.state = state
+        self.workload = workload
+        self.config = config
+
+    @property
+    def cruise_control_properties(self) -> list[str]:
+        """Builds all properties necessary for starting Cruise Control service.
+
+        Returns:
+            List of properties to be set
+        """
+        properties = (
+            [
+                # f"bootstrap.servers={','.join(self.state.bootstrap_server)}",
+                # f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
+                # f"zookeeper.connect={self.state.zookeeper.connect}",
+            ]
+            # + self.cruise_control_goals
+            + CRUISE_CONTROL_CONFIG_OPTIONS.split("\n")
+        )
+
+        return properties
+
+    def set_cruise_control_properties(self) -> None:
+        """Writes all Cruise Control properties to the `cruisecontrol.properties` path."""
+        self.workload.write(
+            content="\n".join(self.cruise_control_properties),
+            path=self.workload.paths.cruise_control_properties,
+        )
