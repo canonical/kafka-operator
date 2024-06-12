@@ -73,7 +73,7 @@ class Listener:
         Returns:
             Integer of port number
         """
-        port = SECURITY_PROTOCOL_PORTS[self.protocol][self.mechanism]
+        port = SECURITY_PROTOCOL_PORTS[self.protocol, self.mechanism]
         if self.scope == "CLIENT":
             return port.client
         return port.internal
@@ -299,43 +299,45 @@ class KafkaConfigManager:
         Returns:
             list of oauth properties to be set.
         """
-        oauth_properties: list[str] = []
-        oauth_listener = None
-        for listener in self.client_listeners:
-            if listener.mechanism.startswith("OAUTH"):
-                oauth_listener = listener
-                break
+        if not self.state.oauth_relation:
+            return []
 
-        if oauth_listener:
-            # use jwks validation if jwt token, otherwise use introspection validation
-            validation_cfg = (
-                f'oauth.jwks.endpoint.uri="{self.state.oauth.jwks_endpoint}"'
-                if self.state.oauth.jwt_access_token
-                else f'oauth.introspection.endpoint.uri="{self.state.oauth.introspection_endpoint}"'
-            )
+        listener = [
+            listener
+            for listener in self.client_listeners
+            if listener.mechanism.startswith("OAUTH")
+        ][0]
 
-            # TODO: add a truststore with public cacerts for oauth listener
-            oauth_cfg = textwrap.dedent(
-                f"""\
-                listener.name.{oauth_listener.name.lower()}.{oauth_listener.mechanism.lower()}.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \\
-                    oauth.client.id="kafka" \\
-                    oauth.valid.issuer.uri="{self.state.oauth.issuer_url}" \\
-                    {validation_cfg} \\
-                    oauth.username.claim="email" \\
-                    oauth.fallback.username.claim="client_id" \\
-                    oauth.check.audience="true" \\
-                    oauth.check.access.token.type="false" \\
-                    oauth.config.id="{oauth_listener.name}" \\
-                    oauth.ssl.endpoint.identification.algorithm="" \\
-                    unsecuredLoginStringClaim_sub="unused";
-                listener.name.{oauth_listener.name.lower()}.{oauth_listener.mechanism.lower()}.sasl.server.callback.handler.class=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
-                listener.name.{oauth_listener.name.lower()}.sasl.enabled.mechanisms={oauth_listener.mechanism}
-                principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
-                """
-            )
-            oauth_properties = [oauth_cfg]
+        username_claim = "email"
+        username_fallback_claim = "client_id"
 
-        return oauth_properties
+        # use jwks validation if jwt token, otherwise use introspection validation
+        validation_cfg = (
+            f'oauth.jwks.endpoint.uri="{self.state.oauth.jwks_endpoint}"'
+            if self.state.oauth.jwt_access_token
+            else f'oauth.introspection.endpoint.uri="{self.state.oauth.introspection_endpoint}"'
+        )
+
+        # TODO: add a truststore with public cacerts for oauth listener
+        oauth_cfg = textwrap.dedent(
+            f"""\
+            listener.name.{listener.name.lower()}.{listener.mechanism.lower()}.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \\
+                oauth.client.id="kafka" \\
+                oauth.valid.issuer.uri="{self.state.oauth.issuer_url}" \\
+                {validation_cfg} \\
+                oauth.username.claim="{username_claim}" \\
+                oauth.fallback.username.claim="{username_fallback_claim}" \\
+                oauth.check.audience="true" \\
+                oauth.check.access.token.type="false" \\
+                oauth.config.id="{listener.name}" \\
+                oauth.ssl.endpoint.identification.algorithm="" \\
+                unsecuredLoginStringClaim_sub="unused";
+            listener.name.{listener.name.lower()}.{listener.mechanism.lower()}.sasl.server.callback.handler.class=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler
+            listener.name.{listener.name.lower()}.sasl.enabled.mechanisms={listener.mechanism}
+            principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder
+            """
+        )
+        return [oauth_cfg]
 
     @property
     def security_protocol(self) -> AuthProtocol:

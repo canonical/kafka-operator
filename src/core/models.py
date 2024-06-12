@@ -113,15 +113,6 @@ class KafkaCluster(RelationState):
         """Usernames and passwords of related client applications."""
         return {key: value for key, value in self.relation_data.items() if "relation-" in key}
 
-    @property
-    def oauth_enabled(self) -> bool:
-        """Flag to check if oauth is enabled.
-
-        Returns:
-            True if the oauthbearer listener is active. Otherwise False
-        """
-        return self.relation_data.get("oauth", "disabled") == "enabled"
-
     # --- TLS ---
 
     @property

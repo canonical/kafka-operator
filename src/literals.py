@@ -86,10 +86,12 @@ class Ports:
     internal: int
 
 
-SECURITY_PROTOCOL_PORTS: dict[AuthProtocol, dict[AuthMechanism, Ports]] = {
-    "SASL_PLAINTEXT": {"SCRAM-SHA-512": Ports(9092, 19092), "OAUTHBEARER": Ports(9095, 19095)},
-    "SASL_SSL": {"SCRAM-SHA-512": Ports(9093, 19093), "OAUTHBEARER": Ports(9096, 19096)},
-    "SSL": {"SSL": Ports(9094, 19094)},
+SECURITY_PROTOCOL_PORTS: dict[tuple[AuthProtocol, AuthMechanism], Ports] = {
+    ("SASL_PLAINTEXT", "SCRAM-SHA-512"): Ports(9092, 19092),
+    ("SASL_PLAINTEXT", "OAUTHBEARER"): Ports(9095, 19095),
+    ("SASL_SSL", "SCRAM-SHA-512"): Ports(9093, 19093),
+    ("SASL_SSL", "OAUTHBEARER"): Ports(9096, 19096),
+    ("SSL", "SSL"): Ports(9094, 19094),
 }
 
 

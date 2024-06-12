@@ -196,9 +196,9 @@ class ClusterState(Object):
         """Return the port to be used internally."""
         mechanism: AuthMechanism = "SCRAM-SHA-512"
         return (
-            SECURITY_PROTOCOL_PORTS["SASL_SSL"][mechanism].client
+            SECURITY_PROTOCOL_PORTS["SASL_SSL", mechanism].client
             if (self.cluster.tls_enabled and self.unit_broker.certificate)
-            else SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"][mechanism].client
+            else SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", mechanism].client
         )
 
     @property
