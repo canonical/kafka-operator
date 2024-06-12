@@ -291,3 +291,14 @@ class ClusterState(Object):
             return Status.NO_BROKER_CREDS
 
         return Status.ACTIVE
+
+    @property
+    def ready_to_balance(self) -> Status:
+        """Check for active broker relation."""
+        if not self.peer_relation:
+            return Status.NO_PEER_RELATION
+
+        if not self.balancer:
+            return Status.BROKER_NOT_RELATED
+
+        return Status.ACTIVE

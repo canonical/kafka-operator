@@ -152,6 +152,7 @@ class Status(Enum):
         BlockedStatus("feature not yet implemented"),
         "WARNING",
     )
+    BROKER_NOT_RELATED = StatusLevel(BlockedStatus("missing required broker relation"), "DEBUG")
 
 
 DEPENDENCIES = {

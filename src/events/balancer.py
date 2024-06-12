@@ -9,7 +9,13 @@ from charms.data_platform_libs.v0.data_interfaces import (
     KafkaProviderEventHandlers,
     RequirerEventHandlers,
 )
-from ops import EventBase, Object, RelationChangedEvent, RelationCreatedEvent
+from ops import (
+    ActiveStatus,
+    Object,
+    RelationChangedEvent,
+    RelationCreatedEvent,
+    StartEvent,
+)
 
 from literals import (
     ADMIN_USER,
@@ -52,9 +58,13 @@ class BalancerEvents(Object):
         if not self.charm.workload.install():
             self.charm._set_status(Status.SNAP_NOT_INSTALLED)
 
-    def _on_start(self, _: EventBase) -> None:
+    def _on_start(self, event: StartEvent) -> None:
         """Handler for `start` event."""
-        self.charm._set_status(Status.NOT_IMPLEMENTED)
+        self.charm._set_status(self.charm.state.ready_to_balance)
+        if not isinstance(self.charm.unit.status, ActiveStatus):
+            event.defer()
+            return
+
         self.config_manager.set_cruise_control_properties()
 
         self.charm.workload.start()
@@ -78,12 +88,6 @@ class BalancerProvider(Object):
         self.framework.observe(
             self.charm.on[BALANCER_RELATION].relation_created, self._on_relation_created
         )
-        # self.framework.observe(
-        #     self.charm.on[BALANCER_RELATION].relation_joined, self._on_relation_changed
-        # )
-        # self.framework.observe(
-        #     self.charm.on[BALANCER_RELATION].relation_changed, self._on_relation_changed
-        # )
         self.framework.observe(
             self.charm.on[BALANCER_RELATION].relation_broken, self._on_relation_broken
         )
