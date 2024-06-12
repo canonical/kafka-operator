@@ -67,18 +67,10 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         # Common attrs init
         self.state = ClusterState(self, substrate=self.substrate)
-        self.health = KafkaHealth(self)
-
-        self.balancer_events = BalancerEvents(self)
 
         if self.role == BALANCER:
             self.workload = BalancerWorkload()
-            self.config_manager = ConfigManager(
-                self.role,
-                state=self.state,
-                workload=self.workload,
-                config=self.config,
-            )
+            self.balancer_events = BalancerEvents(self)
             return
 
         self._init_broker()
@@ -88,6 +80,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         # HANDLERS
 
         self.workload = KafkaWorkload()
+        self.health = KafkaHealth(self)
         self.password_action_events = PasswordActionEvents(self)
         self.zookeeper = ZooKeeperHandler(self)
         self.tls = TLSHandler(self)

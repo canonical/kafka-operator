@@ -16,6 +16,7 @@ from literals import (
     BALANCER_TOPIC,
     Status,
 )
+from managers.config import BalancerConfigManager
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -37,6 +38,9 @@ class BalancerEvents(Object):
 
         self.balancer_requirer = BalancerRequirer(self.charm)
 
+        self.config_manager = BalancerConfigManager(
+            self.charm.state, self.charm.workload, self.charm.config
+        )
         self.framework.observe(self.charm.on.install, self._on_install)
         self.framework.observe(self.charm.on.start, self._on_start)
 
@@ -48,7 +52,7 @@ class BalancerEvents(Object):
     def _on_start(self, _: EventBase) -> None:
         """Handler for `start` event."""
         self.charm._set_status(Status.NOT_IMPLEMENTED)
-        self.charm.config_manager.set_cruise_control_properties()
+        self.config_manager.set_cruise_control_properties()
 
         self.charm.workload.start()
         logger.info("Cruise control started")
