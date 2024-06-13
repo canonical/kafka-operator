@@ -59,7 +59,7 @@ async def get_topic_description(
     unit_name = unit_name or ops_test.model.applications[APP_NAME].units[0].name
 
     output = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.topics --bootstrap-server {','.join(bootstrap_servers)} --command-config {PATHS['CONF']}/kafka/client.properties --describe --topic {topic}'",
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.topics --bootstrap-server {','.join(bootstrap_servers)} --command-config {PATHS['kafka']['CONF']}/client.properties --describe --topic {topic}'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -91,7 +91,7 @@ async def get_topic_offsets(
 
     # example of topic offset output: 'test-topic:0:10'
     result = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.get-offsets --bootstrap-server {','.join(bootstrap_servers)} --command-config {PATHS['CONF']}/kafka/client.properties --topic {topic}'",
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.get-offsets --bootstrap-server {','.join(bootstrap_servers)} --command-config {PATHS['kafka']['CONF']}/client.properties --topic {topic}'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
