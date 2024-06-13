@@ -4,6 +4,7 @@
 
 """Charmed Machine Operator for Apache Kafka."""
 
+import json
 import logging
 import time
 
@@ -294,7 +295,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             event.defer()
             return
 
-        self.state.unit_broker.update({"storages": str(self.balancer_manager.storages)})
+        self.state.unit_broker.update({"storages": self.balancer_manager.storages})
 
         # new dirs won't be used until topic partitions are assigned to it
         # either automatically for new topics, or manually for existing
@@ -394,6 +395,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
                     "zk-password": self.state.zookeeper.password,
                     "zk-uris": self.state.zookeeper.endpoints,
                     "broker-capacities": self.config_manager.broker_capacities,
+                    "rack_aware": json.dumps(bool(self.config_manager.rack_properties)),
                 }
             )
         for client in self.state.clients:

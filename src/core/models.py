@@ -511,10 +511,12 @@ class Balancer(RelationState):
         substrate: Substrates,
         password: str = "",
         bootstrap_server: str = "",
+        is_rack_aware: bool = False,
     ):
         super().__init__(relation, data_interface, None, substrate)
         self._password = password
         self._bootstrap_server = bootstrap_server
+        self._is_rack_aware = is_rack_aware
 
     @property
     def username(self) -> str:
@@ -530,3 +532,8 @@ class Balancer(RelationState):
     def bootstrap_server(self) -> str:
         """The Kafka server endpoints for the balancer application to connect with."""
         return self._bootstrap_server
+
+    @property
+    def is_rack_aware(self) -> bool:
+        """Is the Kafka deployment rack aware?"""
+        return self._is_rack_aware

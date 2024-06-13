@@ -21,6 +21,7 @@ from literals import (
     BALANCER_TOPIC,
     BROKER,
     PEER,
+    STORAGE,
     Status,
 )
 
@@ -38,6 +39,9 @@ METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 def charm_configuration():
     """Enable direct mutation on configuration dict."""
     return json.loads(json.dumps(CONFIG))
+
+
+## BALANCER SIDE
 
 
 def test_install_blocks_snap_install_failure(charm_configuration):
@@ -179,6 +183,9 @@ def test_broker_relation_broken_stops_service(charm_configuration):
     assert state_out.unit_status == Status.BROKER_NOT_RELATED.value.status
 
 
+## BROKER SIDE
+
+
 def test_balancer_relation_created_defers_if_not_ready(charm_configuration):
     """Checks event is deferred if not ready on balancer relation created hook."""
     ctx = Context(
@@ -211,3 +218,94 @@ def test_balancer_relation_created_defers_if_not_ready(charm_configuration):
     # Then
     patched_add_user.assert_not_called()
     patched_defer.assert_called()
+
+
+def test_capabilities_passed_to_balancer(charm_configuration):
+    cores = 8
+    disk = 10240
+    ctx = Context(
+        KafkaCharm,
+        meta=METADATA,
+        config=charm_configuration,
+        actions=ACTIONS,
+    )
+    peer = PeerRelation(
+        PEER,
+        PEER,
+        local_unit_data={
+            "cores": str(cores),
+            "storages": json.dumps({f'{BROKER.paths["DATA"]}/{STORAGE}/1': disk}),
+        },
+    )
+    relation = Relation(
+        interface=BROKER.value,
+        endpoint=BALANCER_RELATION,
+        remote_app_name=BALANCER.value,
+        remote_app_data={
+            "requested-secrets": json.dumps(BALANCER.requested_secrets),
+            "topic": BALANCER_TOPIC,
+            "extra-user-roles": ADMIN_USER,
+        },
+    )
+
+    state_in = State(leader=True, relations=[peer, relation])
+    # When
+    with patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True):
+        state_out = ctx.run(relation.changed_event, state_in)
+
+    # Then
+    assert state_out.relations[1].local_app_data["broker-capacities"]
+    broker_capacities = json.loads(state_out.relations[1].local_app_data["broker-capacities"])
+    assert broker_capacities["brokerCapacities"][0]["capacity"]["CPU"]["num.cores"] == cores
+    assert (
+        broker_capacities["brokerCapacities"][0]["capacity"]["DISK"][
+            f'{BROKER.paths["DATA"]}/{STORAGE}/1'
+        ]
+        == disk
+    )
+
+
+def test_rack_awareness_passed_to_balancer(charm_configuration):
+    cores = 8
+    disk = 10240
+    ctx = Context(
+        KafkaCharm,
+        meta=METADATA,
+        config=charm_configuration,
+        actions=ACTIONS,
+    )
+    peer = PeerRelation(
+        PEER,
+        PEER,
+        local_unit_data={
+            "cores": str(cores),
+            "storages": json.dumps({f'{BROKER.paths["DATA"]}/{STORAGE}/1': disk}),
+        },
+    )
+    relation = Relation(
+        interface=BROKER.value,
+        endpoint=BALANCER_RELATION,
+        remote_app_name=BALANCER.value,
+        remote_app_data={
+            "requested-secrets": json.dumps(BALANCER.requested_secrets),
+            "topic": BALANCER_TOPIC,
+            "extra-user-roles": ADMIN_USER,
+        },
+    )
+
+    state_in = State(leader=True, relations=[peer, relation])
+    # When
+
+    # scenario.Storage cannot be used to define the rack.properties file due to permissions error
+    with (
+        patch(
+            "managers.config.ConfigManager.rack_properties",
+            new_callable=PropertyMock,
+            return_value=["broker.rack=gondor-west"],
+        ),
+        patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
+    ):
+        state_out = ctx.run(relation.changed_event, state_in)
+
+    # Then
+    assert state_out.relations[1].local_app_data["rack_aware"] == "true"
