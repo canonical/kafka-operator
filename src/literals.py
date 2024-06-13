@@ -16,9 +16,6 @@ CHARMED_KAFKA_SNAP_REVISION = 37
 CONTAINER = "kafka"
 SUBSTRATE = "vm"
 
-USER = "snap_daemon"
-GROUP = "root"
-
 # FIXME: these need better names
 PEER = "cluster"
 ZK = "zookeeper"
@@ -68,11 +65,20 @@ OS_REQUIREMENTS = {
     "vm.dirty_background_ratio": "5",
 }
 
+
 PATHS = {
-    "CONF": f"/var/snap/{SNAP_NAME}/current/etc/kafka",
-    "LOGS": f"/var/snap/{SNAP_NAME}/common/var/log/kafka",
-    "DATA": f"/var/snap/{SNAP_NAME}/common/var/lib/kafka",
-    "BIN": f"/snap/{SNAP_NAME}/current/opt/kafka",
+    "kafka": {
+        "CONF": f"/var/snap/{SNAP_NAME}/current/etc/kafka",
+        "LOGS": f"/var/snap/{SNAP_NAME}/common/var/log/kafka",
+        "DATA": f"/var/snap/{SNAP_NAME}/common/var/lib/kafka",
+        "BIN": f"/snap/{SNAP_NAME}/current/opt/kafka",
+    },
+    "cruise-control": {
+        "CONF": f"/var/snap/{SNAP_NAME}/current/etc/cruise-control",
+        "LOGS": f"/var/snap/{SNAP_NAME}/common/var/log/cruise-control",
+        "DATA": f"/var/snap/{SNAP_NAME}/common/var/lib/cruise-control",
+        "BIN": f"/snap/{SNAP_NAME}/current/opt/cruise-control",
+    },
 }
 
 
@@ -138,6 +144,10 @@ class Status(Enum):
         BlockedStatus("sysctl params cannot be set. Is the machine running on a container?"),
         "WARNING",
     )
+    NOT_IMPLEMENTED = StatusLevel(
+        BlockedStatus("feature not yet implemented"),
+        "WARNING",
+    )
 
 
 DEPENDENCIES = {
@@ -148,3 +158,18 @@ DEPENDENCIES = {
         "version": "3.6.1",
     },
 }
+
+
+@dataclass
+class Role:
+    value: str
+    service: str
+    paths: dict[str, str]
+
+    def __eq__(self, value: object, /) -> bool:
+        """Provide an easy comparison to the configuration key."""
+        return self.value == value
+
+
+BROKER = Role(value="broker", service="daemon", paths=PATHS["kafka"])
+BALANCER = Role(value="balancer", service="cruise-control", paths=PATHS["cruise-control"])

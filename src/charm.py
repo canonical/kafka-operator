@@ -12,14 +12,23 @@ from charms.grafana_agent.v0.cos_agent import COSAgentProvider
 from charms.operator_libs_linux.v0 import sysctl
 from charms.operator_libs_linux.v1.snap import SnapError
 from charms.rolling_ops.v0.rollingops import RollingOpsManager, RunWithLock
-from ops.charm import SecretChangedEvent, StorageAttachedEvent, StorageDetachingEvent, StorageEvent
-from ops.framework import EventBase
+from ops import (
+    ActiveStatus,
+    EventBase,
+    SecretChangedEvent,
+    StartEvent,
+    StatusBase,
+    StorageAttachedEvent,
+    StorageDetachingEvent,
+    StorageEvent,
+    UpdateStatusEvent,
+)
 from ops.main import main
-from ops.model import ActiveStatus, StatusBase
 
 from core.cluster import ClusterState
 from core.models import Substrates
 from core.structured_config import CharmConfig
+from events.balancer import BalancerEvents
 from events.password_actions import PasswordActionEvents
 from events.provider import KafkaProvider
 from events.tls import TLSHandler
@@ -27,6 +36,8 @@ from events.upgrade import KafkaDependencyModel, KafkaUpgrade
 from events.zookeeper import ZooKeeperHandler
 from health import KafkaHealth
 from literals import (
+    BALANCER,
+    BROKER,
     CHARM_KEY,
     DEPENDENCIES,
     GROUP,
@@ -44,7 +55,7 @@ from literals import (
 from managers.auth import AuthManager
 from managers.config import ConfigManager
 from managers.tls import TLSManager
-from workload import KafkaWorkload
+from workload import BalancerWorkload, KafkaWorkload
 
 logger = logging.getLogger(__name__)
 
@@ -58,13 +69,24 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         super().__init__(*args)
         self.name = CHARM_KEY
         self.substrate: Substrates = SUBSTRATE
-        self.workload = KafkaWorkload()
+        self.role = BROKER if self.config.role == "broker" else BALANCER
+
+        # Common attrs init
         self.state = ClusterState(self, substrate=self.substrate)
 
-        self.health = KafkaHealth(self)
+        if self.role == BALANCER:
+            self.workload = BalancerWorkload()
+            self.balancer_events = BalancerEvents(self)
+            return
 
+        self._init_broker()
+
+    def _init_broker(self) -> None:
+        """Init broker specific attributes."""
         # HANDLERS
 
+        self.workload = KafkaWorkload()
+        self.health = KafkaHealth(self)
         self.password_action_events = PasswordActionEvents(self)
         self.zookeeper = ZooKeeperHandler(self)
         self.tls = TLSHandler(self)
@@ -79,6 +101,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         # MANAGERS
 
         self.config_manager = ConfigManager(
+            self.role,
             state=self.state,
             workload=self.workload,
             config=self.config,
@@ -128,15 +151,15 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
-        if self.workload.install():
-            self._set_os_config()
-            self.config_manager.set_environment()
-            self.unit.set_workload_version(self.workload.get_version())
-
-        else:
+        if not self.workload.install():
             self._set_status(Status.SNAP_NOT_INSTALLED)
+            return
 
-    def _on_start(self, event: EventBase) -> None:
+        self._set_os_config()
+        self.config_manager.set_environment()
+        self.unit.set_workload_version(self.workload.get_version())
+
+    def _on_start(self, event: StartEvent) -> None:
         """Handler for `start` event."""
         self._set_status(self.state.ready_to_start)
         if not isinstance(self.unit.status, ActiveStatus):
@@ -153,7 +176,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         logger.info("Kafka snap started")
 
         # check for connection
-        self._on_update_status(event)
+        self.on.update_status.emit()
 
         # only log once on successful 'on-start' run
         if isinstance(self.unit.status, ActiveStatus):
@@ -221,7 +244,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         if self.model.relations.get(REL_NAME, None) and self.unit.is_leader():
             self.update_client_data()
 
-    def _on_update_status(self, _: EventBase) -> None:
+    def _on_update_status(self, _: UpdateStatusEvent) -> None:
         """Handler for `update-status` events."""
         if not self.healthy or not self.upgrade.idle:
             return

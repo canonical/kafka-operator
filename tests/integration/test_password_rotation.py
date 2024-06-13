@@ -12,6 +12,8 @@ from .helpers import APP_NAME, ZK_NAME, get_user, set_password
 
 logger = logging.getLogger(__name__)
 
+pytestmark = pytest.mark.broker
+
 DUMMY_NAME = "app"
 REL_NAME_ADMIN = "kafka-client-admin"
 

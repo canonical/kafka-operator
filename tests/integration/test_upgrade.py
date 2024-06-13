@@ -20,6 +20,8 @@ from .helpers import (
 
 logger = logging.getLogger(__name__)
 
+pytestmark = pytest.mark.broker
+
 CHANNEL = "3/stable"
 
 

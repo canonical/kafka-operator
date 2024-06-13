@@ -18,6 +18,7 @@ from literals import CHARM_KEY, CONTAINER, DEPENDENCIES, PEER, SUBSTRATE, ZK
 
 logger = logging.getLogger(__name__)
 
+pytestmark = pytest.mark.broker
 
 CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
 ACTIONS = str(yaml.safe_load(Path("./actions.yaml").read_text()))

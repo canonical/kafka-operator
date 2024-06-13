@@ -8,17 +8,18 @@ import secrets
 import string
 from abc import ABC, abstractmethod
 
-from literals import PATHS
+from literals import Role
 
 
-class KafkaPaths:
+class CharmedKafkaPaths:
     """Object to store common paths for Kafka."""
 
-    def __init__(self):
-        self.conf_path = PATHS["CONF"]
-        self.data_path = PATHS["DATA"]
-        self.binaries_path = PATHS["BIN"]
-        self.logs_path = PATHS["LOGS"]
+    def __init__(self, role: Role):
+
+        self.conf_path = role.paths["CONF"]
+        self.data_path = role.paths["DATA"]
+        self.binaries_path = role.paths["BIN"]
+        self.logs_path = role.paths["LOGS"]
 
     @property
     def server_properties(self):
@@ -83,11 +84,16 @@ class KafkaPaths:
         """The configuration for the JMX exporter."""
         return f"{self.conf_path}/jmx_prometheus.yaml"
 
+    @property
+    def cruise_control_properties(self):
+        """The cruisecontrol.properties filepath."""
+        return f"{self.conf_path}/cruisecontrol.properties"
+
 
 class WorkloadBase(ABC):
     """Base interface for common workload operations."""
 
-    paths = KafkaPaths()
+    paths: CharmedKafkaPaths
 
     @abstractmethod
     def start(self) -> None:

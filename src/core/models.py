@@ -10,10 +10,7 @@ from charms.data_platform_libs.v0.data_interfaces import Data, DataPeerData, Dat
 from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManager
 from kazoo.client import AuthFailedError, NoNodeError
 from ops.model import Application, Relation, Unit
-from tenacity import retry
-from tenacity.retry import retry_if_not_result
-from tenacity.stop import stop_after_attempt
-from tenacity.wait import wait_fixed
+from tenacity import retry, retry_if_result, stop_after_attempt, wait_fixed
 from typing_extensions import override
 
 from literals import INTERNAL_USERS, SECRETS_APP, Substrates
@@ -358,12 +355,12 @@ class ZooKeeper(RelationState):
 
         return zk.get_version()
 
+    # retry to give ZK time to update its broker zNodes before failing
     @retry(
-        # retry to give ZK time to update its broker zNodes before failing
-        wait=wait_fixed(6),
+        wait=wait_fixed(5),
         stop=stop_after_attempt(10),
-        retry_error_callback=(lambda state: state.outcome.result()),  # type: ignore
-        retry=retry_if_not_result(lambda result: True if result else False),
+        retry=retry_if_result(lambda result: result is False),
+        retry_error_callback=lambda _: False,
     )
     def broker_active(self) -> bool:
         """Checks if broker id is recognised as active by ZooKeeper."""

@@ -19,6 +19,7 @@ from literals import (
     JVM_MEM_MIN_GB,
     SECURITY_PROTOCOL_PORTS,
     AuthMechanism,
+    Role,
     Scope,
 )
 
@@ -31,7 +32,8 @@ authorizer.class.name=kafka.security.authorizer.AclAuthorizer
 allow.everyone.if.no.acl.found=false
 auto.create.topics.enable=false
 """
-
+CRUISE_CONTROL_CONFIG_OPTIONS = """
+"""
 SERVER_PROPERTIES_BLACKLIST = ["profile", "log_level", "certificate_extra_sans"]
 
 
@@ -102,11 +104,13 @@ class ConfigManager:
 
     def __init__(
         self,
+        role: Role,
         state: ClusterState,
         workload: WorkloadBase,
         config: CharmConfig,
-        current_version: str,
+        current_version: str = "",
     ):
+        self.role = role
         self.state = state
         self.workload = workload
         self.config = config
@@ -490,3 +494,43 @@ class ConfigManager:
             String with Kafka configuration name to be placed in the server.properties file
         """
         return key.replace("_", ".") if key not in SERVER_PROPERTIES_BLACKLIST else f"# {key}"
+
+
+class BalancerConfigManager:
+    """Manager for handling Balancer configuration."""
+
+    def __init__(
+        self,
+        state: ClusterState,
+        workload: WorkloadBase,
+        config: CharmConfig,
+    ):
+        self.state = state
+        self.workload = workload
+        self.config = config
+
+    @property
+    def cruise_control_properties(self) -> list[str]:
+        """Builds all properties necessary for starting Cruise Control service.
+
+        Returns:
+            List of properties to be set
+        """
+        properties = (
+            [
+                # f"bootstrap.servers={','.join(self.state.bootstrap_server)}",
+                # f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
+                # f"zookeeper.connect={self.state.zookeeper.connect}",
+            ]
+            # + self.cruise_control_goals
+            + CRUISE_CONTROL_CONFIG_OPTIONS.split("\n")
+        )
+
+        return properties
+
+    def set_cruise_control_properties(self) -> None:
+        """Writes all Cruise Control properties to the `cruisecontrol.properties` path."""
+        self.workload.write(
+            content="\n".join(self.cruise_control_properties),
+            path=self.workload.paths.cruise_control_properties,
+        )
