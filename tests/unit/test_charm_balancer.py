@@ -10,7 +10,7 @@ from unittest.mock import PropertyMock, patch
 import pytest
 import yaml
 from ops import ActiveStatus
-from scenario import Context, PeerRelation, Relation, State
+from scenario import Context, PeerRelation, Relation, Secret, State
 
 from charm import KafkaCharm
 from literals import (
@@ -183,6 +183,45 @@ def test_broker_relation_broken_stops_service(charm_configuration):
     assert state_out.unit_status == Status.BROKER_NOT_RELATED.value.status
 
 
+def test_extract_fields_from_secrets(charm_configuration):
+
+    # Given
+    charm_configuration["options"]["role"]["default"] = "balancer"
+    ctx = Context(
+        KafkaCharm,
+        meta=METADATA,
+        config=charm_configuration,
+        actions=ACTIONS,
+    )
+    peer = PeerRelation(PEER, PEER)
+    secret_kafka = Secret(
+        "secret-kafka",
+        contents={0: {"username": "foo", "password": "bar"}},
+        label="balancer-service.9.kafka.secret",  # we should predict this field
+    )
+    relation = Relation(
+        interface=BALANCER.value,
+        endpoint=BALANCER_SERVICE,
+        remote_app_name=BROKER.value,
+        local_app_data={
+            "requested-secrets": json.dumps(BALANCER.requested_secrets),
+            "topic": BALANCER_TOPIC,
+            "extra-user-roles": ADMIN_USER,
+        },
+        remote_app_data={"secret-kafka": secret_kafka.id},
+    )
+    state_in = State(leader=True, relations=[peer, relation], secrets=[secret_kafka])
+
+    # When
+
+    with (
+        patch("workload.BalancerWorkload.write"),
+        ctx.manager(relation.changed_event, state_in) as manager,
+    ):
+        charm: KafkaCharm = manager.charm
+        assert charm.state.balancer.password == "bar"
+
+
 ## BROKER SIDE
 
 
@@ -296,7 +335,6 @@ def test_rack_awareness_passed_to_balancer(charm_configuration):
     state_in = State(leader=True, relations=[peer, relation])
     # When
 
-    # scenario.Storage cannot be used to define the rack.properties file due to permissions error
     with (
         patch(
             "managers.config.ConfigManager.rack_properties",
