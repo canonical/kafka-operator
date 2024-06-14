@@ -11,6 +11,7 @@ from charms.data_platform_libs.v0.data_interfaces import (
 )
 from ops import (
     ActiveStatus,
+    ConfigChangedEvent,
     Object,
     RelationBrokenEvent,
     RelationChangedEvent,
@@ -18,6 +19,7 @@ from ops import (
     StartEvent,
 )
 
+from core.models import BalancerRequirerData
 from literals import (
     ADMIN_USER,
     BALANCER,
@@ -53,6 +55,7 @@ class BalancerEvents(Object):
         )
         self.framework.observe(self.charm.on.install, self._on_install)
         self.framework.observe(self.charm.on.start, self._on_start)
+        self.framework.observe(self.charm.on.config_changed, self._on_config_changed)
 
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
@@ -67,9 +70,20 @@ class BalancerEvents(Object):
             return
 
         self.config_manager.set_cruise_control_properties()
+        self.config_manager.set_broker_capacities()
 
         self.charm.workload.start()
         logger.info("Cruise control started")
+
+    def _on_config_changed(self, event: ConfigChangedEvent) -> None:
+
+        self.charm._set_status(self.charm.state.ready_to_balance)
+        if not isinstance(self.charm.unit.status, ActiveStatus):
+            event.defer()
+            return
+
+        self.config_manager.set_cruise_control_properties()
+        self.config_manager.set_broker_capacities()
 
 
 class BalancerProvider(Object):
@@ -183,14 +197,21 @@ class BalancerProvider(Object):
 class BalancerRequirerEventHandlers(RequirerEventHandlers):
     """Override abstract event handlers."""
 
+    relation_data: BalancerRequirerData
+
     def _on_relation_created_event(self, event: RelationCreatedEvent) -> None:
         """Event emitted when the database relation is created."""
         super()._on_relation_created_event(event)
         event_data = {"extra-user-roles": ADMIN_USER, "topic": BALANCER_TOPIC}
         self.relation_data.update_relation_data(event.relation.id, event_data)
 
-    def _on_relation_changed_event(self, _: RelationChangedEvent) -> None:
-        pass
+    def _on_relation_changed_event(self, event: RelationChangedEvent) -> None:
+        # Check which data has changed to emit customs events.
+        diff = self._diff(event)
+
+        # Register all new secrets with their labels
+        if any(newval for newval in diff.added if self.relation_data._is_secret_field(newval)):
+            self.relation_data._register_secrets_to_relation(event.relation, diff.added)
 
     def _on_secret_changed_event(self, _: RelationChangedEvent) -> None:
         pass
@@ -220,9 +241,9 @@ class BalancerRequirer(Object):
             self.charm.on[BALANCER_SERVICE].relation_broken, self._on_relation_broken
         )
 
-    def _on_relation_changed(self, _) -> None:
+    def _on_relation_changed(self, event) -> None:
         """Handler for `balancer-relation-created` event."""
-        pass
+        self.charm.on.config_changed.emit()
 
     def _on_relation_broken(self, _) -> None:
         """Handler for `balancer-relation-created` event."""

@@ -480,25 +480,27 @@ class KafkaClient(RelationState):
         return self.relation_data.get("extra-user-roles", "")
 
 
+SECRET_LABEL_MAP = {
+    "username": getattr(SECRET_GROUPS, "KAFKA"),
+    "password": getattr(SECRET_GROUPS, "KAFKA"),
+    "uris": getattr(SECRET_GROUPS, "KAFKA"),
+    "zk-username": getattr(SECRET_GROUPS, "ZOOKEEPER"),
+    "zk-password": getattr(SECRET_GROUPS, "ZOOKEEPER"),
+    "zk-uris": getattr(SECRET_GROUPS, "ZOOKEEPER"),
+}
+
+
 class BalancerProviderData(ProviderData):
     """Balancer provider data model."""
 
-    SECRET_LABEL_MAP = {
-        "username": getattr(SECRET_GROUPS, "KAFKA"),
-        "password": getattr(SECRET_GROUPS, "KAFKA"),
-        "uris": getattr(SECRET_GROUPS, "KAFKA"),
-        "zk-username": getattr(SECRET_GROUPS, "ZOOKEEPER"),
-        "zk-password": getattr(SECRET_GROUPS, "ZOOKEEPER"),
-        "zk-uris": getattr(SECRET_GROUPS, "ZOOKEEPER"),
-    }
+    SECRET_LABEL_MAP = SECRET_LABEL_MAP
 
 
 class BalancerRequirerData(RequirerData):
     """Balancer requirer data model."""
 
+    SECRET_LABEL_MAP = SECRET_LABEL_MAP
     SECRET_FIELDS = BALANCER.requested_secrets
-
-    extra_user_role = "admin"
 
 
 class Balancer(RelationState):
@@ -509,14 +511,12 @@ class Balancer(RelationState):
         relation: Relation | None,
         data_interface: Data,
         substrate: Substrates,
-        password: str = "",
-        bootstrap_server: str = "",
-        is_rack_aware: bool = False,
+        password: str | None = None,
+        uris: str | None = None,
     ):
         super().__init__(relation, data_interface, None, substrate)
         self._password = password
-        self._bootstrap_server = bootstrap_server
-        self._is_rack_aware = is_rack_aware
+        self._uris = uris
 
     @property
     def username(self) -> str:
@@ -526,14 +526,93 @@ class Balancer(RelationState):
     @property
     def password(self) -> str:
         """The generated password for the balancer application."""
-        return self._password
+        if self._password is not None:
+            return self._password
+
+        if not self.relation:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="password"
+            )
+            or ""
+        )
 
     @property
-    def bootstrap_server(self) -> str:
+    def uris(self) -> str:
         """The Kafka server endpoints for the balancer application to connect with."""
-        return self._bootstrap_server
+        if self._uris is not None:
+            return self._uris
+
+        if not self.relation:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(relation_id=self.relation.id, field="uris")
+            or ""
+        )
 
     @property
-    def is_rack_aware(self) -> bool:
+    def zk_username(self) -> str:
+        """The generated username for the balancer application."""
+        if not self.relation:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="zk-username"
+            )
+            or ""
+        )
+
+    @property
+    def zk_password(self) -> str:
+        """The generated password for the balancer application."""
+        if not self.relation:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="zk-password"
+            )
+            or ""
+        )
+
+    @property
+    def zk_uris(self) -> str:
+        """The Kafka server endpoints for the balancer application to connect with."""
+        if not self.relation:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(relation_id=self.relation.id, field="zk-uris")
+            or ""
+        )
+
+    @property
+    def rack_aware(self) -> bool:
         """Is the Kafka deployment rack aware?"""
-        return self._is_rack_aware
+        if not self.relation:
+            return False
+
+        return (
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="rack-aware"
+            )
+            == "true"
+            or False
+        )
+
+    @property
+    def broker_capacities(self) -> str:
+        """The capacities for all Kafka broker."""
+        if not self.relation:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="broker-capacities"
+            )
+            or ""
+        )

@@ -186,22 +186,26 @@ class ClusterState(Object):
         if self.role == BROKER:
             data_interface = self.balancer_provider_interface
             relation = self.balancer_relation
+
+            return Balancer(
+                relation=relation,
+                data_interface=data_interface,
+                substrate=self.substrate,
+                password=(
+                    self.cluster.client_passwords.get(f"relation-{relation.id}", "")
+                    if relation is not None
+                    else ""
+                ),
+                uris=self.bootstrap_server,
+            )
+
         else:
             # BALANCER
             data_interface = self.balancer_requirer_interface
             relation = self.balancer_service_relation
-
-        return Balancer(
-            relation=relation,
-            data_interface=data_interface,
-            substrate=self.substrate,
-            password=(
-                self.cluster.client_passwords.get(f"relation-{relation.id}", "")
-                if relation is not None
-                else ""
-            ),
-            bootstrap_server=self.bootstrap_server,
-        )
+            return Balancer(
+                relation=relation, data_interface=data_interface, substrate=self.substrate
+            )
 
     # ---- GENERAL VALUES ----
 

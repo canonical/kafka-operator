@@ -390,7 +390,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
                 {
                     "username": self.state.balancer.username,
                     "password": self.state.balancer.password,
-                    "uris": self.state.balancer.bootstrap_server,
+                    "uris": self.state.balancer.uris,
                     "zk-username": self.state.zookeeper.username,
                     "zk-password": self.state.zookeeper.password,
                     "zk-uris": self.state.zookeeper.endpoints,

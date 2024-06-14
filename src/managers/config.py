@@ -7,6 +7,7 @@
 import inspect
 import json
 import logging
+from pathlib import Path
 from typing import cast
 
 from core.cluster import ClusterState
@@ -544,7 +545,7 @@ class BalancerConfigManager:
         properties = (
             [
                 # f"bootstrap.servers={','.join(self.state.bootstrap_server)}",
-                # f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
+                f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
                 # f"zookeeper.connect={self.state.zookeeper.connect}",
             ]
             # + self.cruise_control_goals
@@ -558,4 +559,11 @@ class BalancerConfigManager:
         self.workload.write(
             content="\n".join(self.cruise_control_properties),
             path=self.workload.paths.cruise_control_properties,
+        )
+
+    def set_broker_capacities(self) -> None:
+        """Writes all broker storage capacities to `capacityJBOD.json`."""
+        self.workload.write(
+            content=self.state.balancer.broker_capacities,
+            path=self.workload.paths.capacity_jbod_json,
         )
