@@ -394,6 +394,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
                     "zk-username": self.state.zookeeper.username,
                     "zk-password": self.state.zookeeper.password,
                     "zk-uris": self.state.zookeeper.endpoints,
+                    "zk-database": self.state.zookeeper.database,
                     "broker-capacities": self.config_manager.broker_capacities,
                     "rack_aware": json.dumps(bool(self.config_manager.rack_properties)),
                 }

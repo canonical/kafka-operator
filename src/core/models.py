@@ -487,6 +487,7 @@ SECRET_LABEL_MAP = {
     "zk-username": getattr(SECRET_GROUPS, "ZOOKEEPER"),
     "zk-password": getattr(SECRET_GROUPS, "ZOOKEEPER"),
     "zk-uris": getattr(SECRET_GROUPS, "ZOOKEEPER"),
+    "zk-database": getattr(SECRET_GROUPS, "ZOOKEEPER"),
 }
 
 
@@ -555,7 +556,7 @@ class Balancer(RelationState):
 
     @property
     def zk_username(self) -> str:
-        """The generated username for the balancer application."""
+        """Username to connect to ZooKeeper."""
         if not self.relation:
             return ""
 
@@ -568,7 +569,7 @@ class Balancer(RelationState):
 
     @property
     def zk_password(self) -> str:
-        """The generated password for the balancer application."""
+        """Password to connect to ZooKeeper."""
         if not self.relation:
             return ""
 
@@ -581,12 +582,25 @@ class Balancer(RelationState):
 
     @property
     def zk_uris(self) -> str:
-        """The Kafka server endpoints for the balancer application to connect with."""
+        """The ZooKeeper server endpoints for the balancer application to connect with."""
         if not self.relation:
             return ""
 
         return (
             self.data_interface.fetch_relation_field(relation_id=self.relation.id, field="zk-uris")
+            or ""
+        )
+
+    @property
+    def zk_database(self) -> str:
+        """Path allocated for Kafka on ZooKeeper."""
+        if not self.relation:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="zk-database"
+            )
             or ""
         )
 
@@ -616,3 +630,27 @@ class Balancer(RelationState):
             )
             or ""
         )
+
+    @property
+    def broker_connected(self) -> bool:
+        """Checks if there is an active Kafka relation with all necessary data.
+
+        Returns:
+            True if broker is currently related with sufficient relation data
+                for a broker to connect with. Otherwise False
+        """
+        if not all(
+            [
+                self.username,
+                self.password,
+                self.uris,
+                self.zk_username,
+                self.zk_password,
+                self.zk_uris,
+                self.zk_database,
+                self.broker_capacities,
+            ]
+        ):
+            return False
+
+        return True

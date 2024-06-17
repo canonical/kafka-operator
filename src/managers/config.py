@@ -543,9 +543,9 @@ class BalancerConfigManager:
         """
         properties = (
             [
-                # f"bootstrap.servers={','.join(self.state.bootstrap_server)}",
+                f"bootstrap.servers={self.state.balancer.uris}",
                 f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
-                # f"zookeeper.connect={self.state.zookeeper.connect}",
+                f"zookeeper.connect={self.state.balancer.zk_uris}/{self.state.balancer.zk_database}",
             ]
             # + self.cruise_control_goals
             + CRUISE_CONTROL_CONFIG_OPTIONS.split("\n")

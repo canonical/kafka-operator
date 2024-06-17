@@ -153,6 +153,7 @@ class Status(Enum):
         "WARNING",
     )
     BROKER_NOT_RELATED = StatusLevel(BlockedStatus("missing required broker relation"), "DEBUG")
+    BROKER_NO_DATA = StatusLevel(WaitingStatus("balancer credentials not created yet"), "DEBUG")
 
 
 DEPENDENCIES = {
@@ -189,5 +190,6 @@ BALANCER = Role(
         "zk-username",
         "zk-password",
         "zk-uris",
+        "zk-database",
     ],
 )
