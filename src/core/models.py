@@ -9,6 +9,7 @@ import logging
 from typing import TypeAlias
 
 from charms.data_platform_libs.v0.data_interfaces import (
+    SECRET_GROUPS,
     Data,
     DataPeerData,
     DataPeerUnitData,
@@ -24,11 +25,14 @@ from tenacity.stop import stop_after_attempt
 from tenacity.wait import wait_fixed
 from typing_extensions import override
 
-from literals import BALANCER, INTERNAL_USERS, SECRET_LABEL_MAP, SECRETS_APP, Substrates
+from literals import BALANCER, INTERNAL_USERS, SECRETS_APP, Substrates
 
 logger = logging.getLogger(__name__)
 
 JSON: TypeAlias = dict[str, "JSON"] | list["JSON"] | str | int | float | bool | None
+
+setattr(SECRET_GROUPS, "KAFKA", "kafka")
+setattr(SECRET_GROUPS, "ZOOKEEPER", "zookeeper")
 
 
 class RelationState:
@@ -474,6 +478,17 @@ class KafkaClient(RelationState):
         When `admin` is set, the Kafka charm interprets this as a new super.user.
         """
         return self.relation_data.get("extra-user-roles", "")
+
+
+SECRET_LABEL_MAP = {
+    "username": getattr(SECRET_GROUPS, "KAFKA"),
+    "password": getattr(SECRET_GROUPS, "KAFKA"),
+    "uris": getattr(SECRET_GROUPS, "KAFKA"),
+    "zk-username": getattr(SECRET_GROUPS, "ZOOKEEPER"),
+    "zk-password": getattr(SECRET_GROUPS, "ZOOKEEPER"),
+    "zk-uris": getattr(SECRET_GROUPS, "ZOOKEEPER"),
+    "zk-database": getattr(SECRET_GROUPS, "ZOOKEEPER"),
+}
 
 
 class BalancerProviderData(ProviderData):
