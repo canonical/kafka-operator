@@ -16,6 +16,7 @@ from charms.rolling_ops.v0.rollingops import RollingOpsManager, RunWithLock
 from ops import (
     ActiveStatus,
     EventBase,
+    InstallEvent,
     SecretChangedEvent,
     StartEvent,
     StatusBase,
