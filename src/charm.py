@@ -13,11 +13,18 @@ from charms.grafana_agent.v0.cos_agent import COSAgentProvider
 from charms.operator_libs_linux.v0 import sysctl
 from charms.operator_libs_linux.v1.snap import SnapError
 from charms.rolling_ops.v0.rollingops import RollingOpsManager, RunWithLock
-from ops import InstallEvent
-from ops.charm import SecretChangedEvent, StorageAttachedEvent, StorageDetachingEvent, StorageEvent
-from ops.framework import EventBase
+from ops import (
+    ActiveStatus,
+    EventBase,
+    SecretChangedEvent,
+    StartEvent,
+    StatusBase,
+    StorageAttachedEvent,
+    StorageDetachingEvent,
+    StorageEvent,
+    UpdateStatusEvent,
+)
 from ops.main import main
-from ops.model import ActiveStatus, StatusBase
 
 from core.cluster import ClusterState
 from core.models import Substrates
@@ -163,7 +170,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         self.state.unit_broker.update({"cores": str(self.balancer_manager.cores)})
 
-    def _on_start(self, event: EventBase) -> None:
+    def _on_start(self, event: StartEvent) -> None:
         """Handler for `start` event."""
         self._set_status(self.state.ready_to_start)
         if not isinstance(self.unit.status, ActiveStatus):
@@ -180,7 +187,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         logger.info("Kafka snap started")
 
         # check for connection
-        self._on_update_status(event)
+        self.on.update_status.emit()
 
         # only log once on successful 'on-start' run
         if isinstance(self.unit.status, ActiveStatus):
@@ -248,7 +255,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         if self.model.relations.get(REL_NAME, None) and self.unit.is_leader():
             self.update_client_data()
 
-    def _on_update_status(self, _: EventBase) -> None:
+    def _on_update_status(self, _: UpdateStatusEvent) -> None:
         """Handler for `update-status` events."""
         if not self.healthy or not self.upgrade.idle:
             return
