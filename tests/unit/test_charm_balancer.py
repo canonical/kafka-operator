@@ -9,7 +9,6 @@ from unittest.mock import PropertyMock, patch
 
 import pytest
 import yaml
-from ops import ActiveStatus
 from scenario import Context, PeerRelation, Relation, Secret, State
 
 from charm import KafkaCharm
