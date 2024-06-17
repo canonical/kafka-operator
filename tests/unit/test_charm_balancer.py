@@ -100,7 +100,7 @@ def test_ready_to_start_maintenance_no_broker_relation(charm_configuration):
     assert state_out.unit_status == Status.BROKER_NOT_RELATED.value.status
 
 
-def test_ready_to_start_ok(charm_configuration):
+def test_ready_to_start_no_broker_data(charm_configuration):
     # Given
     charm_configuration["options"]["role"]["default"] = "balancer"
     ctx = Context(
@@ -118,11 +118,10 @@ def test_ready_to_start_ok(charm_configuration):
     state_in = State(leader=True, relations=[peer, relation])
 
     # When
-    with patch("workload.Workload.write"), patch("workload.BalancerWorkload.start"):
-        state_out = ctx.run("start", state_in)
+    state_out = ctx.run("start", state_in)
 
     # Then
-    assert state_out.unit_status == ActiveStatus()
+    assert state_out.unit_status == Status.BROKER_NO_DATA.value.status
 
 
 def test_secrets_requested_by_balancer_on_relation_creation(charm_configuration):
