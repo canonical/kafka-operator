@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Literal
 
+from charms.data_platform_libs.v0.data_interfaces import SECRET_GROUPS
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, StatusBase, WaitingStatus
 
 CHARM_KEY = "kafka"
@@ -193,3 +194,16 @@ BALANCER = Role(
         "zk-database",
     ],
 )
+
+setattr(SECRET_GROUPS, "KAFKA", "kafka")
+setattr(SECRET_GROUPS, "ZOOKEEPER", "zookeeper")
+
+SECRET_LABEL_MAP = {
+    "username": getattr(SECRET_GROUPS, "KAFKA"),
+    "password": getattr(SECRET_GROUPS, "KAFKA"),
+    "uris": getattr(SECRET_GROUPS, "KAFKA"),
+    "zk-username": getattr(SECRET_GROUPS, "ZOOKEEPER"),
+    "zk-password": getattr(SECRET_GROUPS, "ZOOKEEPER"),
+    "zk-uris": getattr(SECRET_GROUPS, "ZOOKEEPER"),
+    "zk-database": getattr(SECRET_GROUPS, "ZOOKEEPER"),
+}
