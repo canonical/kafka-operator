@@ -459,8 +459,8 @@ class ConfigManager:
                     "capacity": {
                         "DISK": broker.storages,
                         "CPU": {"num.cores": broker.cores},
-                        "NW_IN": self.config.network_bandwidth,
-                        "NW_OUT": self.config.network_bandwidth,
+                        "NW_IN": str(self.config.network_bandwidth),
+                        "NW_OUT": str(self.config.network_bandwidth),
                     },
                     "doc": str(broker.host),
                 }

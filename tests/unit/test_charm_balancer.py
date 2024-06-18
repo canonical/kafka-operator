@@ -258,8 +258,8 @@ def test_balancer_relation_created_defers_if_not_ready(charm_configuration):
 
 
 def test_capabilities_passed_to_balancer(charm_configuration):
-    cores = 8
-    disk = 10240
+    cores = "8"
+    disk = "10240"
     ctx = Context(
         KafkaCharm,
         meta=METADATA,
@@ -270,8 +270,14 @@ def test_capabilities_passed_to_balancer(charm_configuration):
         PEER,
         PEER,
         local_unit_data={
-            "cores": str(cores),
+            "cores": (cores),
             "storages": json.dumps({f'{BROKER.paths["DATA"]}/{STORAGE}/1': disk}),
+        },
+        peers_data={
+            2: {
+                "cores": (cores),
+                "storages": json.dumps({f'{BROKER.paths["DATA"]}/{STORAGE}/2': disk}),
+            }
         },
     )
     relation = Relation(
@@ -293,6 +299,7 @@ def test_capabilities_passed_to_balancer(charm_configuration):
     # Then
     assert state_out.relations[1].local_app_data["broker-capacities"]
     broker_capacities = json.loads(state_out.relations[1].local_app_data["broker-capacities"])
+    assert len(broker_capacities["brokerCapacities"]) == 2
     assert broker_capacities["brokerCapacities"][0]["capacity"]["CPU"]["num.cores"] == cores
     assert (
         broker_capacities["brokerCapacities"][0]["capacity"]["DISK"][

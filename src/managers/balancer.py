@@ -36,8 +36,8 @@ class BalancerManager:
         """A string of JSON containing key storage-path, value storage size for all unit storages."""
         return json.dumps(
             {
-                str(storage.location): self._get_storage_size(
-                    path=storage.location.absolute().as_posix()
+                str(storage.location): str(
+                    self._get_storage_size(path=storage.location.absolute().as_posix())
                 )
                 for storage in self.charm.model.storages[STORAGE]
             }

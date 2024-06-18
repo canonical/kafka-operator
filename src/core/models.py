@@ -248,9 +248,9 @@ class KafkaBroker(RelationState):
         return json.loads(self.relation_data.get("storages", ""))
 
     @property
-    def cores(self) -> int:
+    def cores(self) -> str:
         """The number of CPU cores for the unit machine."""
-        return int(self.relation_data.get("cores", ""))
+        return self.relation_data.get("cores", "")
 
 
 class ZooKeeper(RelationState):
