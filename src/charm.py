@@ -39,6 +39,7 @@ from events.zookeeper import ZooKeeperHandler
 from health import KafkaHealth
 from literals import (
     BALANCER,
+    BALANCER_RELATION,
     BROKER,
     CHARM_KEY,
     DEPENDENCIES,
@@ -253,7 +254,11 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.config_manager.set_client_properties()
 
         # If Kafka is related to client charms, update their information.
-        if self.model.relations.get(REL_NAME, None) and self.unit.is_leader():
+        if (
+            self.model.relations.get(REL_NAME, None)
+            or self.model.relations.get(BALANCER_RELATION, None)
+            and self.unit.is_leader()
+        ):
             self.update_client_data()
 
     def _on_update_status(self, _: UpdateStatusEvent) -> None:

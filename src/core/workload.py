@@ -46,6 +46,11 @@ class CharmedKafkaPaths:
         return f"{self.conf_path}/zookeeper-jaas.cfg"
 
     @property
+    def balancer_jaas(self):
+        """The cruise_control_jaas.conf filepath."""
+        return f"{self.conf_path}/cruise_control_jaas.conf"
+
+    @property
     def keystore(self):
         """The Java Keystore containing service private-key and signed certificates."""
         return f"{self.conf_path}/keystore.p12"

@@ -27,6 +27,11 @@ TRUSTED_CA_RELATION = "trusted-ca"
 BALANCER_RELATION = "balancer-target"
 BALANCER_SERVICE = "balancer-service"
 BALANCER_TOPIC = "__KafkaCruiseControlPartitionMetricSamples"
+BALANCER_TOPICS = [
+    "__CruiseControlMetrics",
+    "__KafkaCruiseControlPartitionMetricSamples",
+    "__KafkaCruiseControlBrokerMetricSamples",
+]
 
 INTER_BROKER_USER = "sync"
 ADMIN_USER = "admin"
@@ -193,3 +198,24 @@ BALANCER = Role(
         "zk-database",
     ],
 )
+
+DEFAULT_BALANCER_GOALS = [
+    "MinTopicLeadersPerBroker",
+    "ReplicaCapacity",
+    "DiskCapacity",
+    "NetworkInboundCapacity",
+    "NetworkOutboundCapacity",
+    "CpuCapacity",
+    "ReplicaDistribution",
+    "PotentialNwOut",
+    "DiskUsageDistribution",
+    "NetworkInboundUsageDistribution",
+    "NetworkOutboundUsageDistribution",
+    "CpuUsageDistribution",
+    "LeaderReplicaDistribution",
+    "LeaderBytesInDistribution",
+    "TopicReplicaDistribution",
+    "PreferredLeaderElection",
+    "IntraBrokerDiskCapacity",
+    "IntraBrokerDiskUsageDistribution",
+]

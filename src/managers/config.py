@@ -14,6 +14,7 @@ from core.structured_config import CharmConfig, LogLevel
 from core.workload import WorkloadBase
 from literals import (
     ADMIN_USER,
+    DEFAULT_BALANCER_GOALS,
     INTER_BROKER_USER,
     JMX_EXPORTER_PORT,
     JVM_MEM_MAX_GB,
@@ -34,6 +35,10 @@ allow.everyone.if.no.acl.found=false
 auto.create.topics.enable=false
 """
 CRUISE_CONTROL_CONFIG_OPTIONS = """
+metric.reporter.topic=__CruiseControlMetrics
+sample.store.class=com.linkedin.kafka.cruisecontrol.monitor.sampling.KafkaSampleStore
+partition.metric.sample.store.topic=__KafkaCruiseControlPartitionMetricSamples
+broker.metric.sample.store.topic=__KafkaCruiseControlModelTrainingSamples
 """
 SERVER_PROPERTIES_BLACKLIST = ["profile", "log_level", "certificate_extra_sans"]
 
@@ -546,12 +551,37 @@ class BalancerConfigManager:
                 f"bootstrap.servers={self.state.balancer.uris}",
                 f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
                 f"zookeeper.connect={self.state.balancer.zk_uris}{self.state.balancer.zk_database}",
+                "security.protocol=SASL_PLAINTEXT",
+                "sasl.mechanism=SCRAM-SHA-512",
             ]
-            # + self.cruise_control_goals
+            + self.cruise_control_goals
             + CRUISE_CONTROL_CONFIG_OPTIONS.split("\n")
         )
 
         return properties
+
+    @property
+    def cruise_control_jaas_config(self) -> str:
+        """Builds the JAAS config for Cruise Control authentication with ZooKeeper.
+
+        Returns:
+            String of Jaas config
+        """
+        return inspect.cleandoc(
+            f"""
+            Client {{
+                org.apache.zookeeper.server.auth.DigestLoginModule required
+                username="{self.state.balancer.zk_username}"
+                password="{self.state.balancer.zk_password}";
+            }};
+
+            KafkaClient {{
+                org.apache.kafka.common.security.scram.ScramLoginModule required
+                username="{self.state.balancer.username}"
+                password="{self.state.balancer.password}";
+            }};
+        """
+        )
 
     def set_cruise_control_properties(self) -> None:
         """Writes all Cruise Control properties to the `cruisecontrol.properties` path."""
@@ -566,3 +596,149 @@ class BalancerConfigManager:
             content=self.state.balancer.broker_capacities,
             path=self.workload.paths.capacity_jbod_json,
         )
+
+    def set_cruise_control_jaas_config(self) -> None:
+        """Writes the CruiseControl JAAS config."""
+        # normally we would need to also write a JAAS specifically for CC to authenticate to ZooKeeper + Kafka
+        # however the path is fixed to be inferred from where the snap squashfs is
+        # however, it KAFKA_OPTS for -Djava.security.auth.login.config, so we can add both there
+        self.workload.write(
+            content=self.cruise_control_jaas_config,
+            path=self.workload.paths.balancer_jaas,
+        )
+
+    @property
+    def cruise_control_goals(self) -> list[str]:
+        """Builds all pluggable Goals properties for CruiseControl.
+
+        Returns:
+            List of properties to be set
+        """
+        simple_goals = DEFAULT_BALANCER_GOALS
+
+        # TODO: Pass rack properties and adapt prior work
+        supported_goals = [
+            f"com.linkedin.kafka.cruisecontrol.analyzer.goals.{goal}Goal" for goal in simple_goals
+        ]
+
+        # goals_prop = (
+        #     f"goals={','.join([goal for goal in supported_goals if 'IntraBroker' not in goal])}"
+        # )
+        intra_broker_goals_prop = f"intra.broker.goals={','.join([goal for goal in supported_goals if 'IntraBroker' in goal])}"
+
+        # return [goals_prop, intra_broker_goals_prop]
+        return [intra_broker_goals_prop]
+
+    @property
+    def log_level(self) -> str:
+        """Return the Java-compliant logging level set by the user.
+
+        Returns:
+            String with these possible values: DEBUG, INFO, WARN, ERROR
+        """
+        # Remapping to WARN that is generally used in Java applications based on log4j and logback.
+        if self.config.log_level == LogLevel.WARNING.value:
+            return "KAFKA_CFG_LOGLEVEL=WARN"
+
+        return f"KAFKA_CFG_LOGLEVEL={self.config.log_level}"
+
+    @property
+    def jmx_opts(self) -> str:
+        """The JMX options for configuring the prometheus exporter.
+
+        Returns:
+            String of JMX options
+        """
+        opts = [
+            "-Dcom.sun.management.jmxremote",
+            f"-javaagent:{self.workload.paths.jmx_prometheus_javaagent}={JMX_EXPORTER_PORT}:{self.workload.paths.jmx_prometheus_config}",
+        ]
+
+        return f"KAFKA_JMX_OPTS='{' '.join(opts)}'"
+
+    @property
+    def tools_log4j_opts(self) -> str:
+        """The Log4j options for configuring the tooling logging.
+
+        Returns:
+            String of Log4j options
+        """
+        opts = [
+            f'-Dlog4j.configuration=file:{self.workload.paths.tools_log4j_properties} -Dcharmed.kafka.log.level={self.log_level.split("=")[1]}'
+        ]
+
+        return f"KAFKA_LOG4J_OPTS='{' '.join(opts)}'"
+
+    @property
+    def jvm_performance_opts(self) -> str:
+        """The JVM config options for tuning performance settings.
+
+        Returns:
+            String of JVM performance options
+        """
+        opts = [
+            "-XX:MetaspaceSize=96m",
+            "-XX:+UseG1GC",
+            "-XX:MaxGCPauseMillis=20",
+            "-XX:InitiatingHeapOccupancyPercent=35",
+            "-XX:G1HeapRegionSize=16M",
+            "-XX:MinMetaspaceFreeRatio=50",
+            "-XX:MaxMetaspaceFreeRatio=80",
+        ]
+
+        return f"KAFKA_JVM_PERFORMANCE_OPTS='{' '.join(opts)}'"
+
+    @property
+    def heap_opts(self) -> str:
+        """The JVM config options for setting heap limits.
+
+        Returns:
+            String of JVM heap memory options
+        """
+        target_memory = JVM_MEM_MIN_GB if self.config.profile == "testing" else JVM_MEM_MAX_GB
+        opts = [
+            f"-Xms{target_memory}G",
+            f"-Xmx{target_memory}G",
+        ]
+
+        return f"KAFKA_HEAP_OPTS='{' '.join(opts)}'"
+
+    @property
+    def kafka_opts(self) -> str:
+        """Extra Java config options.
+
+        Returns:
+            String of Java config options
+        """
+        opts = [
+            f"-Djava.security.auth.login.config={self.workload.paths.balancer_jaas}",
+        ]
+
+        return f"KAFKA_OPTS='{' '.join(opts)}'"
+
+    def set_environment(self) -> None:
+        """Writes the env-vars needed for passing to charmed-kafka service."""
+        updated_env_list = [
+            self.kafka_opts,
+            self.jmx_opts,
+            self.jvm_performance_opts,
+            self.heap_opts,
+            self.log_level,
+        ]
+
+        def map_env(env: list[str]) -> dict[str, str]:
+            map_env = {}
+            for var in env:
+                key = "".join(var.split("=", maxsplit=1)[0])
+                value = "".join(var.split("=", maxsplit=1)[1:])
+                if key:
+                    # only check for keys, as we can have an empty value for a variable
+                    map_env[key] = value
+            return map_env
+
+        raw_current_env = self.workload.read("/etc/environment")
+        current_env = map_env(raw_current_env)
+
+        updated_env = current_env | map_env(updated_env_list)
+        content = "\n".join([f"{key}={value}" for key, value in updated_env.items()])
+        self.workload.write(content=content, path="/etc/environment")

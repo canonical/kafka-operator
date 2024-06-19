@@ -61,6 +61,8 @@ class BalancerEvents(Object):
         """Handler for `install` event."""
         if not self.charm.workload.install():
             self.charm._set_status(Status.SNAP_NOT_INSTALLED)
+            return
+        self.config_manager.set_environment()
 
     def _on_start(self, event: StartEvent) -> None:
         """Handler for `start` event."""
@@ -71,6 +73,7 @@ class BalancerEvents(Object):
 
         self.config_manager.set_cruise_control_properties()
         self.config_manager.set_broker_capacities()
+        self.config_manager.set_cruise_control_jaas_config()
 
         self.charm.workload.start()
         logger.info("Cruise control started")
@@ -84,6 +87,9 @@ class BalancerEvents(Object):
 
         self.config_manager.set_cruise_control_properties()
         self.config_manager.set_broker_capacities()
+        self.config_manager.set_cruise_control_jaas_config()
+
+        self.config_manager.set_environment()
 
 
 class BalancerProvider(Object):
