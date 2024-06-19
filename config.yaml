@@ -2,8 +2,10 @@
 # See LICENSE file for licensing details.
 
 options:
-  role:
-    description: "Specify the charm operating mode. This configuration accepts the following roles: 'broker' (standard functionality), 'balancer' (cruise control)."
+  roles:
+    description: |
+      Comma separated list of the roles assigned to the nodes of this cluster.
+      This configuration accepts the following roles: 'broker' (standard functionality), 'balancer' (cruise control).
     type: string
     default: broker
   compression_type:
