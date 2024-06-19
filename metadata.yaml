@@ -42,6 +42,10 @@ requires:
   trusted-certificate:
     interface: tls-certificates
     optional: true
+  oauth:
+    interface: oauth
+    limit: 1
+    optional: true
 
 provides:
   kafka-client:

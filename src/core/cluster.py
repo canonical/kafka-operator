@@ -17,14 +17,16 @@ from charms.data_platform_libs.v0.data_interfaces import (
 from ops import Framework, Object, Relation
 from ops.model import Unit
 
-from core.models import KafkaBroker, KafkaClient, KafkaCluster, ZooKeeper
+from core.models import KafkaBroker, KafkaClient, KafkaCluster, OAuth, ZooKeeper
 from literals import (
     INTERNAL_USERS,
+    OAUTH_REL_NAME,
     PEER,
     REL_NAME,
     SECRETS_UNIT,
     SECURITY_PROTOCOL_PORTS,
     ZK,
+    AuthMechanism,
     Status,
     Substrates,
 )
@@ -62,6 +64,11 @@ class ClusterState(Object):
     def client_relations(self) -> set[Relation]:
         """The relations of all client applications."""
         return set(self.model.relations[REL_NAME])
+
+    @property
+    def oauth_relation(self) -> Relation | None:
+        """The OAuth relation."""
+        return self.model.get_relation(OAUTH_REL_NAME)
 
     # --- CORE COMPONENTS ---
 
@@ -128,6 +135,13 @@ class ClusterState(Object):
         )
 
     @property
+    def oauth(self) -> OAuth:
+        """The oauth relation state."""
+        return OAuth(
+            relation=self.oauth_relation,
+        )
+
+    @property
     def clients(self) -> set[KafkaClient]:
         """The state for all related client Applications."""
         clients = set()
@@ -180,10 +194,11 @@ class ClusterState(Object):
     @property
     def port(self) -> int:
         """Return the port to be used internally."""
+        mechanism: AuthMechanism = "SCRAM-SHA-512"
         return (
-            SECURITY_PROTOCOL_PORTS["SASL_SSL"].client
+            SECURITY_PROTOCOL_PORTS["SASL_SSL", mechanism].client
             if (self.cluster.tls_enabled and self.unit_broker.certificate)
-            else SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].client
+            else SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", mechanism].client
         )
 
     @property
