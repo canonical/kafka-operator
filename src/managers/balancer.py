@@ -11,25 +11,24 @@ from literals import STORAGE
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
+    from events.broker import BrokerOperator
 
 
 class BalancerManager:
     """Manager for handling Balancer."""
 
-    def __init__(
-        self,
-        charm: "KafkaCharm",
-    ):
-        self.charm = charm
+    def __init__(self, dependent: "BrokerOperator") -> None:
+        self.dependent = dependent
+        self.charm: "KafkaCharm" = dependent.charm
 
     def _get_storage_size(self, path: str) -> int:
         """Gets the total storage volume of a mounted filepath, in KB."""
-        return int(self.charm.workload.exec(f"df --output=size {path} | sed 1d"))
+        return int(self.dependent.workload.exec(f"df --output=size {path} | sed 1d"))
 
     @property
     def cores(self) -> int:
         """Gets the total number of CPU cores for the machine."""
-        return int(self.charm.workload.exec("nproc --all"))
+        return int(self.dependent.workload.exec("nproc --all"))
 
     @property
     def storages(self) -> str:

@@ -14,6 +14,8 @@ from core.structured_config import CharmConfig, LogLevel
 from core.workload import WorkloadBase
 from literals import (
     ADMIN_USER,
+    BALANCER,
+    BROKER,
     DEFAULT_BALANCER_GOALS,
     INTER_BROKER_USER,
     JMX_EXPORTER_PORT,
@@ -21,7 +23,6 @@ from literals import (
     JVM_MEM_MIN_GB,
     SECURITY_PROTOCOL_PORTS,
     AuthMechanism,
-    Role,
     Scope,
 )
 
@@ -105,22 +106,11 @@ class Listener:
         return f"{self.name}://{self.host}:{self.port}"
 
 
-class ConfigManager:
-    """Manager for handling Kafka configuration."""
+class _ConfigManager:
+    """Common env config."""
 
-    def __init__(
-        self,
-        role: Role,
-        state: ClusterState,
-        workload: WorkloadBase,
-        config: CharmConfig,
-        current_version: str = "",
-    ):
-        self.role = role
-        self.state = state
-        self.workload = workload
-        self.config = config
-        self.current_version = current_version
+    config: CharmConfig
+    workload: WorkloadBase
 
     @property
     def log_level(self) -> str:
@@ -195,6 +185,22 @@ class ConfigManager:
         ]
 
         return f"KAFKA_HEAP_OPTS='{' '.join(opts)}'"
+
+
+class ConfigManager(_ConfigManager):
+    """Manager for handling Kafka configuration."""
+
+    def __init__(
+        self,
+        state: ClusterState,
+        workload: WorkloadBase,
+        config: CharmConfig,
+        current_version: str = "",
+    ):
+        self.state = state
+        self.workload = workload
+        self.config = config
+        self.current_version = current_version
 
     @property
     def kafka_opts(self) -> str:
@@ -324,7 +330,7 @@ class ConfigManager:
     def client_listeners(self) -> list[Listener]:
         """Return a list of extra listeners."""
         # if there is a relation with kafka then add extra listener
-        if not self.state.client_relations and not self.state.balancer_relation:
+        if not self.state.client_relations:
             return []
 
         return [
@@ -516,6 +522,23 @@ class ConfigManager:
         content = "\n".join([f"{key}={value}" for key, value in updated_env.items()])
         self.workload.write(content=content, path="/etc/environment")
 
+        updated_env_list = [
+            self.kafka_opts,
+            self.jmx_opts,
+            self.jvm_performance_opts,
+            self.heap_opts,
+            self.log_level,
+        ]
+
+        raw_current_env = self.workload.read("/etc/environment")
+        current_env = map_env(raw_current_env)
+
+        updated_env = current_env | map_env(updated_env_list)
+        self.env = updated_env
+        content = "\n".join([f"{key}={value}" for key, value in updated_env.items()])
+        self.workload.write(content=content, path="/etc/environment")
+        self.workload.write(content=content, path=f'{BROKER.paths["CONF"]}/.env')
+
     @staticmethod
     def _translate_config_key(key: str):
         """Format config names into server properties, blacklisted property are commented out.
@@ -526,7 +549,7 @@ class ConfigManager:
         return key.replace("_", ".") if key not in SERVER_PROPERTIES_BLACKLIST else f"# {key}"
 
 
-class BalancerConfigManager:
+class BalancerConfigManager(_ConfigManager):
     """Manager for handling Balancer configuration."""
 
     def __init__(
@@ -630,80 +653,6 @@ class BalancerConfigManager:
         return [intra_broker_goals_prop]
 
     @property
-    def log_level(self) -> str:
-        """Return the Java-compliant logging level set by the user.
-
-        Returns:
-            String with these possible values: DEBUG, INFO, WARN, ERROR
-        """
-        # Remapping to WARN that is generally used in Java applications based on log4j and logback.
-        if self.config.log_level == LogLevel.WARNING.value:
-            return "KAFKA_CFG_LOGLEVEL=WARN"
-
-        return f"KAFKA_CFG_LOGLEVEL={self.config.log_level}"
-
-    @property
-    def jmx_opts(self) -> str:
-        """The JMX options for configuring the prometheus exporter.
-
-        Returns:
-            String of JMX options
-        """
-        opts = [
-            "-Dcom.sun.management.jmxremote",
-            f"-javaagent:{self.workload.paths.jmx_prometheus_javaagent}={JMX_EXPORTER_PORT}:{self.workload.paths.jmx_prometheus_config}",
-        ]
-
-        return f"KAFKA_JMX_OPTS='{' '.join(opts)}'"
-
-    @property
-    def tools_log4j_opts(self) -> str:
-        """The Log4j options for configuring the tooling logging.
-
-        Returns:
-            String of Log4j options
-        """
-        opts = [
-            f'-Dlog4j.configuration=file:{self.workload.paths.tools_log4j_properties} -Dcharmed.kafka.log.level={self.log_level.split("=")[1]}'
-        ]
-
-        return f"KAFKA_LOG4J_OPTS='{' '.join(opts)}'"
-
-    @property
-    def jvm_performance_opts(self) -> str:
-        """The JVM config options for tuning performance settings.
-
-        Returns:
-            String of JVM performance options
-        """
-        opts = [
-            "-XX:MetaspaceSize=96m",
-            "-XX:+UseG1GC",
-            "-XX:MaxGCPauseMillis=20",
-            "-XX:InitiatingHeapOccupancyPercent=35",
-            "-XX:G1HeapRegionSize=16M",
-            "-XX:MinMetaspaceFreeRatio=50",
-            "-XX:MaxMetaspaceFreeRatio=80",
-        ]
-
-        return f"KAFKA_JVM_PERFORMANCE_OPTS='{' '.join(opts)}'"
-
-    @property
-    def heap_opts(self) -> str:
-        """The JVM config options for setting heap limits.
-
-        Returns:
-            String of JVM heap memory options
-        """
-        target_memory = JVM_MEM_MIN_GB if self.config.profile == "testing" else JVM_MEM_MAX_GB
-        opts = [
-            f"-Xms{target_memory}G",
-            f"-Xmx{target_memory}G",
-        ]
-
-        return f"KAFKA_HEAP_OPTS='{' '.join(opts)}'"
-
-    @property
     def kafka_opts(self) -> str:
         """Extra Java config options.
 
@@ -726,19 +675,22 @@ class BalancerConfigManager:
             self.log_level,
         ]
 
-        def map_env(env: list[str]) -> dict[str, str]:
-            map_env = {}
-            for var in env:
-                key = "".join(var.split("=", maxsplit=1)[0])
-                value = "".join(var.split("=", maxsplit=1)[1:])
-                if key:
-                    # only check for keys, as we can have an empty value for a variable
-                    map_env[key] = value
-            return map_env
-
         raw_current_env = self.workload.read("/etc/environment")
         current_env = map_env(raw_current_env)
 
         updated_env = current_env | map_env(updated_env_list)
+        self.env = updated_env
         content = "\n".join([f"{key}={value}" for key, value in updated_env.items()])
-        self.workload.write(content=content, path="/etc/environment")
+        self.workload.write(content=content, path=f'{BALANCER.paths["CONF"]}/.env')
+
+
+def map_env(env: list[str]) -> dict[str, str]:
+    """Parse env var into a dict."""
+    map_env = {}
+    for var in env:
+        key = "".join(var.split("=", maxsplit=1)[0])
+        value = "".join(var.split("=", maxsplit=1)[1:])
+        if key:
+            # only check for keys, as we can have an empty value for a variable
+            map_env[key] = value
+    return map_env

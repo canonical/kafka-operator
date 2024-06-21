@@ -4,6 +4,7 @@
 
 """KafkaSnap class and methods."""
 
+import contextlib
 import logging
 import os
 import re
@@ -17,6 +18,29 @@ from core.workload import CharmedKafkaPaths, WorkloadBase
 from literals import BALANCER, BROKER, CHARMED_KAFKA_SNAP_REVISION, GROUP, SNAP_NAME, USER
 
 logger = logging.getLogger(__name__)
+
+
+@contextlib.contextmanager
+def set_env(**environ):
+    """Temporarily set the process environment variables.
+
+    >>> with set_env(PLUGINS_DIR='test/plugins'):
+    ...   "PLUGINS_DIR" in os.environ
+    True
+
+    >>> "PLUGINS_DIR" in os.environ
+    False
+
+    :type environ: dict[str, unicode]
+    :param environ: Environment variables to set
+    """
+    old_environ = dict(os.environ)
+    os.environ.update(environ)
+    try:
+        yield
+    finally:
+        os.environ.clear()
+        os.environ.update(old_environ)
 
 
 class Workload(WorkloadBase):
@@ -190,7 +214,7 @@ class KafkaWorkload(Workload):
 
 
 class BalancerWorkload(Workload):
-    """Broker specific wrapper."""
+    """Balancer specific wrapper."""
 
     def __init__(self) -> None:
         super().__init__()

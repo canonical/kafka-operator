@@ -477,6 +477,19 @@ class KafkaClient(RelationState):
         return self.relation_data.get("extra-user-roles", "")
 
 
+class Balancer(RelationState):
+    """State collection for balancer."""
+
+    def __init__(
+        self,
+        relation: Relation | None,
+        data_interface: DataPeerData,
+        substrate: Substrates,
+    ):
+        super().__init__(relation, data_interface, None, substrate)
+        self.data_interface = data_interface
+
+
 SECRET_LABEL_MAP = {
     "username": getattr(SECRET_GROUPS, "KAFKA"),
     "password": getattr(SECRET_GROUPS, "KAFKA"),
@@ -501,7 +514,7 @@ class BalancerRequirerData(RequirerData):
     SECRET_FIELDS = BALANCER.requested_secrets
 
 
-class Balancer(RelationState):
+class BalancerOld(RelationState):
     """State collection metadata for a single related client application."""
 
     def __init__(

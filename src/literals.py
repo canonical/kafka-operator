@@ -157,8 +157,7 @@ class Status(Enum):
         BlockedStatus("feature not yet implemented"),
         "WARNING",
     )
-    BROKER_NOT_RELATED = StatusLevel(BlockedStatus("missing required broker relation"), "DEBUG")
-    BROKER_NO_DATA = StatusLevel(WaitingStatus("balancer credentials not created yet"), "DEBUG")
+    NO_BALANCER_RELATION = StatusLevel(MaintenanceStatus("no balancer relation yet"), "DEBUG")
 
 
 DEPENDENCIES = {

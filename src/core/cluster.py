@@ -21,17 +21,13 @@ from ops.model import Unit
 
 from core.models import (
     Balancer,
-    BalancerProviderData,
-    BalancerRequirerData,
     KafkaBroker,
     KafkaClient,
     KafkaCluster,
     ZooKeeper,
 )
 from literals import (
-    BALANCER_RELATION,
-    BALANCER_SERVICE,
-    BROKER,
+    BALANCER,
     INTERNAL_USERS,
     PEER,
     REL_NAME,
@@ -52,7 +48,6 @@ class ClusterState(Object):
     def __init__(self, charm: "KafkaCharm", substrate: Substrates):
         super().__init__(parent=charm, key="charm_state")
         self.substrate: Substrates = substrate
-        self.role = charm.role
 
         self.peer_app_interface = DataPeerData(self.model, relation_name=PEER)
         self.peer_unit_interface = DataPeerUnitData(
@@ -63,8 +58,7 @@ class ClusterState(Object):
         )
         self.client_provider_interface = KafkaProviderData(self.model, relation_name=REL_NAME)
 
-        self.balancer_provider_interface = BalancerProviderData(self.model, BALANCER_RELATION)
-        self.balancer_requirer_interface = BalancerRequirerData(self.model, BALANCER_SERVICE)
+        self.balancer_interface = DataPeerData(self.model, relation_name=BALANCER.value)
 
     # --- RELATIONS ---
 
@@ -86,12 +80,7 @@ class ClusterState(Object):
     @property
     def balancer_relation(self) -> Relation | None:
         """The balancer relation."""
-        return self.model.get_relation(BALANCER_RELATION)
-
-    @property
-    def balancer_service_relation(self) -> Relation | None:
-        """The balancer-service relation."""
-        return self.model.get_relation(BALANCER_SERVICE)
+        return self.model.get_relation(BALANCER.value)
 
     # --- CORE COMPONENTS ---
 
@@ -182,31 +171,40 @@ class ClusterState(Object):
         return clients
 
     @property
-    def balancer(self) -> Balancer:
+    def balancer(self):
         """The balancer relation state."""
-        if self.role == BROKER:
-            data_interface = self.balancer_provider_interface
-            relation = self.balancer_relation
+        return Balancer(
+            relation=self.balancer_relation,
+            data_interface=self.balancer_interface,
+            substrate=self.substrate,
+        )
 
-            return Balancer(
-                relation=relation,
-                data_interface=data_interface,
-                substrate=self.substrate,
-                password=(
-                    self.cluster.client_passwords.get(f"relation-{relation.id}", "")
-                    if relation is not None
-                    else ""
-                ),
-                uris=self.bootstrap_server,
-            )
+    # @property
+    # def balancer(self) -> Balancer:
+    #     """The balancer relation state."""
+    #     if self.role == BROKER:
+    #         data_interface = self.balancer_provider_interface
+    #         relation = self.balancer_relation
 
-        else:
-            # BALANCER
-            data_interface = self.balancer_requirer_interface
-            relation = self.balancer_service_relation
-            return Balancer(
-                relation=relation, data_interface=data_interface, substrate=self.substrate
-            )
+    #         return Balancer(
+    #             relation=relation,
+    #             data_interface=data_interface,
+    #             substrate=self.substrate,
+    #             password=(
+    #                 self.cluster.client_passwords.get(f"relation-{relation.id}", "")
+    #                 if relation is not None
+    #                 else ""
+    #             ),
+    #             uris=self.bootstrap_server,
+    #         )
+
+    #     else:
+    #         # BALANCER
+    #         data_interface = self.balancer_requirer_interface
+    #         relation = self.balancer_service_relation
+    #         return Balancer(
+    #             relation=relation, data_interface=data_interface, substrate=self.substrate
+    #         )
 
     # ---- GENERAL VALUES ----
 
@@ -304,9 +302,9 @@ class ClusterState(Object):
             return Status.NO_PEER_RELATION
 
         if not self.balancer:
-            return Status.BROKER_NOT_RELATED
+            return Status.NO_BALANCER_RELATION
 
-        if not self.balancer.broker_connected:
-            return Status.BROKER_NO_DATA
+        # if not self.balancer.broker_connected:
+        #     return Status.BROKER_NO_DATA
 
         return Status.ACTIVE

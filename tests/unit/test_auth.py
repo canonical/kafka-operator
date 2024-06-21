@@ -101,10 +101,10 @@ def test_generate_consumer_acls():
     assert sorted(resource_types) == sorted({"TOPIC", "GROUP"})
 
 
-def test_add_user_adds_zk_tls_flag(harness):
+def test_add_user_adds_zk_tls_flag(harness: Harness[KafkaCharm]):
     """Checks zk-tls-config-file flag is called for configs bin command."""
     with patch("workload.KafkaWorkload.run_bin_command") as patched_exec:
-        harness.charm.auth_manager.add_user("samwise", "gamgee", zk_auth=True)
+        harness.charm.broker.auth_manager.add_user("samwise", "gamgee", zk_auth=True)
         args = patched_exec.call_args_list[0][1]
 
         assert (

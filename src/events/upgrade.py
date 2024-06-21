@@ -19,6 +19,7 @@ from typing_extensions import override
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
+    from events.broker import BrokerOperator
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +38,10 @@ class KafkaDependencyModel(BaseModel):
 class KafkaUpgrade(DataUpgrade):
     """Implementation of :class:`DataUpgrade` overrides for in-place upgrades."""
 
-    def __init__(self, charm: "KafkaCharm", **kwargs):
-        super().__init__(charm, **kwargs)
-        self.charm = charm
+    def __init__(self, dependent: "BrokerOperator", **kwargs) -> None:
+        super().__init__(dependent.charm, **kwargs)
+        self.dependent = dependent
+        self.charm: "KafkaCharm" = dependent.charm
 
     @property
     def idle(self) -> bool:
@@ -68,7 +70,7 @@ class KafkaUpgrade(DataUpgrade):
     @override
     def pre_upgrade_check(self) -> None:
         default_message = "Pre-upgrade check failed and cannot safely upgrade"
-        if not self.charm.healthy:
+        if not self.dependent.healthy:
             raise ClusterNotReadyError(message=default_message, cause="Cluster is not healthy")
 
     @override
@@ -99,17 +101,17 @@ class KafkaUpgrade(DataUpgrade):
             self.set_unit_failed()
             return
 
-        self.charm.workload.stop()
+        self.dependent.workload.stop()
 
-        if not self.charm.workload.install():
+        if not self.dependent.workload.install():
             logger.error("Unable to install Snap")
             self.set_unit_failed()
             return
 
-        self.charm.config_manager.set_environment()
+        self.dependent.config_manager.set_environment()
 
         logger.info(f"{self.charm.unit.name} upgrading service...")
-        self.charm.workload.restart()
+        self.dependent.workload.restart()
 
         # Allow for some time to settle down
         # FIXME: This logic should be improved as part of ticket DPE-3155
