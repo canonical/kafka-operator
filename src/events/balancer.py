@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from ops import (
     ActiveStatus,
+    ConfigChangedEvent,
     Object,
     StartEvent,
 )
@@ -42,6 +43,9 @@ class BalancerOperator(Object):
 
         self.framework.observe(self.charm.on.install, self._on_install)
         self.framework.observe(self.charm.on.start, self._on_start)
+        self.framework.observe(
+            self.charm.on[BALANCER.value].relation_changed, self._on_config_changed
+        )
         # self.framework.observe(self.charm.on.config_changed, self._on_config_changed)
 
     def _on_install(self, _) -> None:
@@ -55,6 +59,7 @@ class BalancerOperator(Object):
             event.defer()
             return
 
+        self.config_manager.set_environment()
         self.config_manager.set_cruise_control_properties()
         self.config_manager.set_broker_capacities()
         self.config_manager.set_cruise_control_jaas_config()
@@ -63,18 +68,18 @@ class BalancerOperator(Object):
             self.charm.workload.start()
         logger.info("Cruise control started")
 
-    # def _on_config_changed(self, event: ConfigChangedEvent) -> None:
+    def _on_config_changed(self, event: ConfigChangedEvent) -> None:
 
-    #     self.charm._set_status(self.charm.state.ready_to_balance)
-    #     if not isinstance(self.charm.unit.status, ActiveStatus):
-    #         event.defer()
-    #         return
+        self.charm._set_status(self.charm.state.ready_to_balance)
+        if not isinstance(self.charm.unit.status, ActiveStatus):
+            event.defer()
+            return
 
-    #     self.config_manager.set_cruise_control_properties()
-    #     self.config_manager.set_broker_capacities()
-    #     self.config_manager.set_cruise_control_jaas_config()
+        self.config_manager.set_cruise_control_properties()
+        self.config_manager.set_broker_capacities()
+        self.config_manager.set_cruise_control_jaas_config()
 
-    #     self.config_manager.set_environment()
+        self.config_manager.set_environment()
 
 
 # class BalancerProvider(Object):

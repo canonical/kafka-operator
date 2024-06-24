@@ -489,6 +489,33 @@ class Balancer(RelationState):
         super().__init__(relation, data_interface, None, substrate)
         self.data_interface = data_interface
 
+    @property
+    def rack_aware(self) -> bool:
+        """Is the Kafka deployment rack aware?"""
+        if not self.relation:
+            return False
+
+        return (
+            self.data_interface.fetch_my_relation_field(
+                relation_id=self.relation.id, field="rack-aware"
+            )
+            == "true"
+            or False
+        )
+
+    @property
+    def broker_capacities(self) -> str:
+        """The capacities for all Kafka broker."""
+        if not self.relation:
+            return ""
+
+        return (
+            self.data_interface.fetch_my_relation_field(
+                relation_id=self.relation.id, field="broker-capacities"
+            )
+            or ""
+        )
+
 
 SECRET_LABEL_MAP = {
     "username": getattr(SECRET_GROUPS, "KAFKA"),

@@ -1,5 +1,6 @@
 """Balancer role core charm logic."""
 
+import json
 import logging
 from time import time
 from typing import TYPE_CHECKING
@@ -222,6 +223,14 @@ class BrokerOperator(Object):
         # If Kafka is related to client charms, update their information.
         if self.model.relations.get(REL_NAME, None) and self.charm.unit.is_leader():
             self.update_client_data()
+
+        if self.charm.state.balancer:
+            self.charm.state.balancer.update(
+                {
+                    "broker-capacities": self.config_manager.broker_capacities,
+                    "rack_aware": json.dumps(bool(self.config_manager.rack_properties)),
+                }
+            )
 
     def _on_update_status(self, _: UpdateStatusEvent) -> None:
         """Handler for `update-status` events."""

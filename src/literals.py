@@ -24,8 +24,6 @@ REL_NAME = "kafka-client"
 TLS_RELATION = "certificates"
 TRUSTED_CERTIFICATE_RELATION = "trusted-certificate"
 TRUSTED_CA_RELATION = "trusted-ca"
-BALANCER_RELATION = "balancer-target"
-BALANCER_SERVICE = "balancer-service"
 BALANCER_TOPIC = "__KafkaCruiseControlPartitionMetricSamples"
 BALANCER_TOPICS = [
     "__CruiseControlMetrics",
@@ -35,7 +33,8 @@ BALANCER_TOPICS = [
 
 INTER_BROKER_USER = "sync"
 ADMIN_USER = "admin"
-INTERNAL_USERS = [INTER_BROKER_USER, ADMIN_USER]
+BALANCER_USER = "balancer"
+INTERNAL_USERS = [INTER_BROKER_USER, ADMIN_USER, BALANCER_USER]
 SECRETS_APP = [f"{user}-password" for user in INTERNAL_USERS]
 SECRETS_UNIT = [
     "ca-cert",
@@ -158,6 +157,7 @@ class Status(Enum):
         "WARNING",
     )
     NO_BALANCER_RELATION = StatusLevel(MaintenanceStatus("no balancer relation yet"), "DEBUG")
+    NO_BALANCER_DATA = StatusLevel(MaintenanceStatus("no balancer data yet"), "DEBUG")
 
 
 DEPENDENCIES = {

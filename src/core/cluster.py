@@ -6,7 +6,6 @@
 
 import os
 from functools import cached_property
-from itertools import chain
 from typing import TYPE_CHECKING
 
 from charms.data_platform_libs.v0.data_interfaces import (
@@ -218,7 +217,7 @@ class ClusterState(Object):
             Semicolon delimited string of current super users
         """
         super_users = set(INTERNAL_USERS)
-        for relation in chain(self.client_relations, [self.balancer_relation]):
+        for relation in self.client_relations:
             if not relation or not relation.app:
                 continue
 
@@ -301,10 +300,19 @@ class ClusterState(Object):
         if not self.peer_relation:
             return Status.NO_PEER_RELATION
 
+        if not self.zookeeper:
+            return Status.ZK_NOT_RELATED
+
+        if not self.zookeeper.zookeeper_connected:
+            return Status.ZK_NO_DATA
+
         if not self.balancer:
             return Status.NO_BALANCER_RELATION
 
-        # if not self.balancer.broker_connected:
-        #     return Status.BROKER_NO_DATA
+        if not self.balancer.broker_capacities:
+            return Status.NO_BALANCER_DATA
+
+        if not self.cluster.internal_user_credentials:
+            return Status.NO_BROKER_CREDS
 
         return Status.ACTIVE

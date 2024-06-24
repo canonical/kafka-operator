@@ -15,6 +15,7 @@ from core.workload import WorkloadBase
 from literals import (
     ADMIN_USER,
     BALANCER,
+    BALANCER_USER,
     BROKER,
     DEFAULT_BALANCER_GOALS,
     INTER_BROKER_USER,
@@ -330,7 +331,7 @@ class ConfigManager(_ConfigManager):
     def client_listeners(self) -> list[Listener]:
         """Return a list of extra listeners."""
         # if there is a relation with kafka then add extra listener
-        if not self.state.client_relations:
+        if not self.state.client_relations and not self.state.balancer_relation:
             return []
 
         return [
@@ -561,6 +562,7 @@ class BalancerConfigManager(_ConfigManager):
         self.state = state
         self.workload = workload
         self.config = config
+        self.env = None
 
     @property
     def cruise_control_properties(self) -> list[str]:
@@ -571,17 +573,36 @@ class BalancerConfigManager(_ConfigManager):
         """
         properties = (
             [
-                f"bootstrap.servers={self.state.balancer.uris}",
+                f"bootstrap.servers={self.state.bootstrap_server}",
                 f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
-                f"zookeeper.connect={self.state.balancer.zk_uris}{self.state.balancer.zk_database}",
-                "security.protocol=SASL_PLAINTEXT",
-                "sasl.mechanism=SCRAM-SHA-512",
+                f"zookeeper.connect={self.state.zookeeper.endpoints}{self.state.zookeeper.database}",
+                # "security.protocol=SASL_PLAINTEXT",
+                # "sasl.mechanism=SCRAM-SHA-512",
             ]
             + self.cruise_control_goals
             + CRUISE_CONTROL_CONFIG_OPTIONS.split("\n")
         )
 
         return properties
+        # def cruise_control_properties(self) -> list[str]:
+        # """Builds all properties necessary for starting Cruise Control service.
+
+        # Returns:
+        #     List of properties to be set
+        # """
+        # properties = (
+        #     [
+        #         f"bootstrap.servers={self.state.balancer.uris}",
+        #         f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
+        #         f"zookeeper.connect={self.state.balancer.zk_uris}{self.state.balancer.zk_database}",
+        #         "security.protocol=SASL_PLAINTEXT",
+        #         "sasl.mechanism=SCRAM-SHA-512",
+        #     ]
+        #     + self.cruise_control_goals
+        #     + CRUISE_CONTROL_CONFIG_OPTIONS.split("\n")
+        # )
+
+        # return properties
 
     @property
     def cruise_control_jaas_config(self) -> str:
@@ -594,14 +615,14 @@ class BalancerConfigManager(_ConfigManager):
             f"""
             Client {{
                 org.apache.zookeeper.server.auth.DigestLoginModule required
-                username="{self.state.balancer.zk_username}"
-                password="{self.state.balancer.zk_password}";
+                username="{self.state.zookeeper.username}"
+                password="{self.state.zookeeper.password}";
             }};
 
             KafkaClient {{
                 org.apache.kafka.common.security.scram.ScramLoginModule required
-                username="{self.state.balancer.username}"
-                password="{self.state.balancer.password}";
+                username="{BALANCER_USER}"
+                password="{self.state.cluster.internal_user_credentials.get(BALANCER_USER,'')}";
             }};
         """
         )
@@ -682,6 +703,30 @@ class BalancerConfigManager(_ConfigManager):
         self.env = updated_env
         content = "\n".join([f"{key}={value}" for key, value in updated_env.items()])
         self.workload.write(content=content, path=f'{BALANCER.paths["CONF"]}/.env')
+
+    @property
+    def broker_capacities(self) -> str:
+        """Builds the capacityJBOD JSON configuration for broker storages.
+
+        Returns:
+            String of JSON to be set
+        """
+        broker_capacities = []
+        for broker in self.state.brokers:
+            broker_capacities.append(
+                {
+                    "brokerId": str(broker.unit_id),
+                    "capacity": {
+                        "DISK": broker.storages,
+                        "CPU": {"num.cores": broker.cores},
+                        "NW_IN": str(self.config.network_bandwidth),
+                        "NW_OUT": str(self.config.network_bandwidth),
+                    },
+                    "doc": str(broker.host),
+                }
+            )
+
+        return json.dumps({"brokerCapacities": broker_capacities})
 
 
 def map_env(env: list[str]) -> dict[str, str]:
