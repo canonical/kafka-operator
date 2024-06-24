@@ -146,6 +146,7 @@ class BrokerOperator(Object):
             event.defer()
             return
 
+        self.config_manager.set_environment()
         # required settings given zookeeper connection config has been created
         self.config_manager.set_zk_jaas_config()
         self.config_manager.set_server_properties()
@@ -303,6 +304,7 @@ class BrokerOperator(Object):
             event.defer()
             return
 
+        self.config_manager.set_environment()
         self.workload.restart()
 
         # FIXME: This logic should be improved as part of ticket DPE-3155
@@ -321,6 +323,7 @@ class BrokerOperator(Object):
             event.defer()
             return
 
+        self.config_manager.set_environment()
         self.workload.disable_enable()
         self.workload.start()
 
@@ -354,20 +357,6 @@ class BrokerOperator(Object):
         if not self.charm.unit.is_leader() or not self.healthy:
             return
 
-        # if self.charm.state.balancer and self.charm.state.balancer.password:
-        #     self.charm.state.balancer.update(
-        #         {
-        #             "username": self.charm.state.balancer.username,
-        #             "password": self.charm.state.balancer.password,
-        #             "uris": self.charm.state.balancer.uris,
-        #             "zk-username": self.charm.state.zookeeper.username,
-        #             "zk-password": self.charm.state.zookeeper.password,
-        #             "zk-uris": self.charm.state.zookeeper.endpoints,
-        #             "zk-database": self.charm.state.zookeeper.database,
-        #             "broker-capacities": self.config_manager.broker_capacities,
-        #             "rack_aware": json.dumps(bool(self.config_manager.rack_properties)),
-        #         }
-        #     )
         for client in self.charm.state.clients:
             if not client.password:
                 logger.debug(

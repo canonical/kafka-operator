@@ -178,33 +178,6 @@ class ClusterState(Object):
             substrate=self.substrate,
         )
 
-    # @property
-    # def balancer(self) -> Balancer:
-    #     """The balancer relation state."""
-    #     if self.role == BROKER:
-    #         data_interface = self.balancer_provider_interface
-    #         relation = self.balancer_relation
-
-    #         return Balancer(
-    #             relation=relation,
-    #             data_interface=data_interface,
-    #             substrate=self.substrate,
-    #             password=(
-    #                 self.cluster.client_passwords.get(f"relation-{relation.id}", "")
-    #                 if relation is not None
-    #                 else ""
-    #             ),
-    #             uris=self.bootstrap_server,
-    #         )
-
-    #     else:
-    #         # BALANCER
-    #         data_interface = self.balancer_requirer_interface
-    #         relation = self.balancer_service_relation
-    #         return Balancer(
-    #             relation=relation, data_interface=data_interface, substrate=self.substrate
-    #         )
-
     # ---- GENERAL VALUES ----
 
     @property
@@ -241,6 +214,15 @@ class ClusterState(Object):
         )
 
     @property
+    def internal_port(self) -> int:
+        """Return the port to be used for an internal client."""
+        return (
+            SECURITY_PROTOCOL_PORTS["SASL_SSL"].internal
+            if (self.cluster.tls_enabled and self.unit_broker.certificate)
+            else SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].internal
+        )
+
+    @property
     def bootstrap_server(self) -> str:
         """The current Kafka uris formatted for the `bootstrap-server` command flag.
 
@@ -251,6 +233,18 @@ class ClusterState(Object):
             return ""
 
         return ",".join(sorted([f"{broker.host}:{self.port}" for broker in self.brokers]))
+
+    @property
+    def internal_bootstrap_server(self) -> str:
+        """The current Kafka uris formatted for the `bootstrap-server` command flag.
+
+        Returns:
+            List of `bootstrap-server` servers
+        """
+        if not self.peer_relation:
+            return ""
+
+        return ",".join(sorted([f"{broker.host}:{self.internal_port}" for broker in self.brokers]))
 
     @property
     def log_dirs(self) -> str:

@@ -72,6 +72,25 @@ def test_ready_to_start_maintenance_no_peer_relation(charm_configuration):
     assert state_out.unit_status == Status.NO_PEER_RELATION.value.status
 
 
+@patch("workload.Workload.stop")
+def test_stop_workload_if_not_leader(patched_stopped, charm_configuration):
+    # Given
+    charm_configuration["options"]["roles"]["default"] = "balancer"
+    ctx = Context(
+        KafkaCharm,
+        meta=METADATA,
+        config=charm_configuration,
+        actions=ACTIONS,
+    )
+    state_in = State(leader=False, relations=[])
+
+    # When
+    ctx.run("start", state_in)
+
+    # Then
+    assert patched_stopped.called_once
+
+
 # def test_ready_to_start_no_broker_data(charm_configuration):
 #     # Given
 #     charm_configuration["options"]["role"]["default"] = "balancer"

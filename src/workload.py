@@ -4,11 +4,11 @@
 
 """KafkaSnap class and methods."""
 
-import contextlib
 import logging
 import os
 import re
 import subprocess
+from typing import Mapping
 
 from charms.operator_libs_linux.v1 import snap
 from tenacity import retry, retry_if_result, stop_after_attempt, wait_fixed
@@ -18,29 +18,6 @@ from core.workload import CharmedKafkaPaths, WorkloadBase
 from literals import BALANCER, BROKER, CHARMED_KAFKA_SNAP_REVISION, GROUP, SNAP_NAME, USER
 
 logger = logging.getLogger(__name__)
-
-
-@contextlib.contextmanager
-def set_env(**environ):
-    """Temporarily set the process environment variables.
-
-    >>> with set_env(PLUGINS_DIR='test/plugins'):
-    ...   "PLUGINS_DIR" in os.environ
-    True
-
-    >>> "PLUGINS_DIR" in os.environ
-    False
-
-    :type environ: dict[str, unicode]
-    :param environ: Environment variables to set
-    """
-    old_environ = dict(os.environ)
-    os.environ.update(environ)
-    try:
-        yield
-    finally:
-        os.environ.clear()
-        os.environ.update(old_environ)
 
 
 class Workload(WorkloadBase):
@@ -97,7 +74,7 @@ class Workload(WorkloadBase):
 
     @override
     def exec(
-        self, command: str, env: dict[str, str] | None = None, working_dir: str | None = None
+        self, command: str, env: Mapping[str, str] | None = None, working_dir: str | None = None
     ) -> str:
         try:
             output = subprocess.check_output(
@@ -111,7 +88,7 @@ class Workload(WorkloadBase):
             logger.debug(f"{output=}")
             return output
         except subprocess.CalledProcessError as e:
-            logger.debug(f"cmd failed - cmd={e.cmd}, stdout={e.stdout}, stderr={e.stderr}")
+            logger.error(f"cmd failed - cmd={e.cmd}, stdout={e.stdout}, stderr={e.stderr}")
             raise e
 
     @override
@@ -223,9 +200,18 @@ class BalancerWorkload(Workload):
 
     @override
     def run_bin_command(
-        self, bin_keyword: str, bin_args: list[str], opts: list[str] | None = None
+        self,
+        bin_keyword: str,
+        bin_args: list[str],
+        opts: list[str] | None = None,
+        env: Mapping[str, str] | None = None,
     ) -> str:
-        raise NotImplementedError
+        if opts is None:
+            opts = []
+        opts_str = " ".join(opts)
+        bin_str = " ".join(bin_args)
+        command = f"{opts_str} {SNAP_NAME}.{bin_keyword} {bin_str}"
+        return self.exec(command)
 
     @override
     def get_version(self) -> str:

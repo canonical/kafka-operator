@@ -506,36 +506,10 @@ class ConfigManager(_ConfigManager):
             self.log_level,
         ]
 
-        def map_env(env: list[str]) -> dict[str, str]:
-            map_env = {}
-            for var in env:
-                key = "".join(var.split("=", maxsplit=1)[0])
-                value = "".join(var.split("=", maxsplit=1)[1:])
-                if key:
-                    # only check for keys, as we can have an empty value for a variable
-                    map_env[key] = value
-            return map_env
-
         raw_current_env = self.workload.read("/etc/environment")
         current_env = map_env(raw_current_env)
 
         updated_env = current_env | map_env(updated_env_list)
-        content = "\n".join([f"{key}={value}" for key, value in updated_env.items()])
-        self.workload.write(content=content, path="/etc/environment")
-
-        updated_env_list = [
-            self.kafka_opts,
-            self.jmx_opts,
-            self.jvm_performance_opts,
-            self.heap_opts,
-            self.log_level,
-        ]
-
-        raw_current_env = self.workload.read("/etc/environment")
-        current_env = map_env(raw_current_env)
-
-        updated_env = current_env | map_env(updated_env_list)
-        self.env = updated_env
         content = "\n".join([f"{key}={value}" for key, value in updated_env.items()])
         self.workload.write(content=content, path="/etc/environment")
         self.workload.write(content=content, path=f'{BROKER.paths["CONF"]}/.env')
@@ -562,7 +536,6 @@ class BalancerConfigManager(_ConfigManager):
         self.state = state
         self.workload = workload
         self.config = config
-        self.env = None
 
     @property
     def cruise_control_properties(self) -> list[str]:
@@ -573,36 +546,17 @@ class BalancerConfigManager(_ConfigManager):
         """
         properties = (
             [
-                f"bootstrap.servers={self.state.bootstrap_server}",
+                f"bootstrap.servers={self.state.internal_bootstrap_server}",
                 f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
                 f"zookeeper.connect={self.state.zookeeper.endpoints}{self.state.zookeeper.database}",
-                # "security.protocol=SASL_PLAINTEXT",
-                # "sasl.mechanism=SCRAM-SHA-512",
+                "security.protocol=SASL_PLAINTEXT",
+                "sasl.mechanism=SCRAM-SHA-512",
             ]
             + self.cruise_control_goals
             + CRUISE_CONTROL_CONFIG_OPTIONS.split("\n")
         )
 
         return properties
-        # def cruise_control_properties(self) -> list[str]:
-        # """Builds all properties necessary for starting Cruise Control service.
-
-        # Returns:
-        #     List of properties to be set
-        # """
-        # properties = (
-        #     [
-        #         f"bootstrap.servers={self.state.balancer.uris}",
-        #         f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
-        #         f"zookeeper.connect={self.state.balancer.zk_uris}{self.state.balancer.zk_database}",
-        #         "security.protocol=SASL_PLAINTEXT",
-        #         "sasl.mechanism=SCRAM-SHA-512",
-        #     ]
-        #     + self.cruise_control_goals
-        #     + CRUISE_CONTROL_CONFIG_OPTIONS.split("\n")
-        # )
-
-        # return properties
 
     @property
     def cruise_control_jaas_config(self) -> str:
@@ -700,8 +654,9 @@ class BalancerConfigManager(_ConfigManager):
         current_env = map_env(raw_current_env)
 
         updated_env = current_env | map_env(updated_env_list)
-        self.env = updated_env
         content = "\n".join([f"{key}={value}" for key, value in updated_env.items()])
+
+        self.workload.write(content=content, path="/etc/environment")
         self.workload.write(content=content, path=f'{BALANCER.paths["CONF"]}/.env')
 
     @property
