@@ -1,4 +1,7 @@
-"""Registry of custom events."""
+"""Registry of custom events.
+
+The following custom events are meant to control the execution flow for multiple, simultaneous roles.
+"""
 
 from ops import EventBase, EventSource, ObjectEvents
 

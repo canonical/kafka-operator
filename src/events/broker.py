@@ -1,4 +1,4 @@
-"""Balancer role core charm logic."""
+"""Broker role core charm logic."""
 
 import json
 import logging

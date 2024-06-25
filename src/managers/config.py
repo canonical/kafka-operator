@@ -7,7 +7,7 @@
 import inspect
 import json
 import logging
-from typing import cast
+from typing import Iterable, cast
 
 from core.cluster import ClusterState
 from core.structured_config import CharmConfig, LogLevel
@@ -108,7 +108,7 @@ class Listener:
 
 
 class _ConfigManager:
-    """Common env config."""
+    """Common options for managing Kafka configuration."""
 
     config: CharmConfig
     workload: WorkloadBase
@@ -660,7 +660,7 @@ class BalancerConfigManager(_ConfigManager):
         self.workload.write(content=content, path=f'{BALANCER.paths["CONF"]}/.env')
 
 
-def map_env(env: list[str]) -> dict[str, str]:
+def map_env(env: Iterable[str]) -> dict[str, str]:
     """Parse env var into a dict."""
     map_env = {}
     for var in env:

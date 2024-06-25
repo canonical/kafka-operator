@@ -290,7 +290,12 @@ class ClusterState(Object):
 
     @property
     def ready_to_balance(self) -> Status:
-        """Check for active broker relation."""
+        """Check for active Zookeeper relation and adding of balancer auth username, as well as cluster topography.
+
+        Returns:
+            True if ZK is related, `balancer` user added and broker capabilities communicated.
+            False otherwise.
+        """
         if not self.peer_relation:
             return Status.NO_PEER_RELATION
 
