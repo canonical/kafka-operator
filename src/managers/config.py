@@ -619,13 +619,13 @@ class BalancerConfigManager(_ConfigManager):
             f"com.linkedin.kafka.cruisecontrol.analyzer.goals.{goal}Goal" for goal in simple_goals
         ]
 
-        # goals_prop = (
-        #     f"goals={','.join([goal for goal in supported_goals if 'IntraBroker' not in goal])}"
-        # )
+        goals_prop = (
+            f"goals={','.join([goal for goal in supported_goals if 'IntraBroker' not in goal])}"
+        )
         intra_broker_goals_prop = f"intra.broker.goals={','.join([goal for goal in supported_goals if 'IntraBroker' in goal])}"
 
-        # return [goals_prop, intra_broker_goals_prop]
-        return [intra_broker_goals_prop]
+        return [goals_prop, intra_broker_goals_prop]
+        # return [intra_broker_goals_prop]
 
     @property
     def kafka_opts(self) -> str:
