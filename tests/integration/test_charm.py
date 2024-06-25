@@ -179,7 +179,7 @@ async def test_client_properties_makes_admin_connection(ops_test: OpsTest):
     for line in result.strip().split("\n"):
         if "SCRAM credential configs for user-principal" in line:
             acls += 1
-    assert acls == 3
+    assert acls == 4
 
     await ops_test.model.applications[APP_NAME].remove_relation(
         f"{APP_NAME}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_ADMIN}"
