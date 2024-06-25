@@ -8,10 +8,6 @@ import logging
 import pytest
 from pytest_operator.plugin import OpsTest
 
-from literals import (
-    BALANCER,
-)
-
 from .helpers import (
     APP_NAME,
     ZK_NAME,
