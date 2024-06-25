@@ -294,14 +294,14 @@ class ClusterState(Object):
         if not self.peer_relation:
             return Status.NO_PEER_RELATION
 
+        if not self.balancer:
+            return Status.NO_BALANCER_RELATION
+
         if not self.zookeeper:
             return Status.ZK_NOT_RELATED
 
         if not self.zookeeper.zookeeper_connected:
             return Status.ZK_NO_DATA
-
-        if not self.balancer:
-            return Status.NO_BALANCER_RELATION
 
         if not self.balancer.broker_capacities:
             return Status.NO_BALANCER_DATA

@@ -659,30 +659,6 @@ class BalancerConfigManager(_ConfigManager):
         self.workload.write(content=content, path="/etc/environment")
         self.workload.write(content=content, path=f'{BALANCER.paths["CONF"]}/.env')
 
-    @property
-    def broker_capacities(self) -> str:
-        """Builds the capacityJBOD JSON configuration for broker storages.
-
-        Returns:
-            String of JSON to be set
-        """
-        broker_capacities = []
-        for broker in self.state.brokers:
-            broker_capacities.append(
-                {
-                    "brokerId": str(broker.unit_id),
-                    "capacity": {
-                        "DISK": broker.storages,
-                        "CPU": {"num.cores": broker.cores},
-                        "NW_IN": str(self.config.network_bandwidth),
-                        "NW_OUT": str(self.config.network_bandwidth),
-                    },
-                    "doc": str(broker.host),
-                }
-            )
-
-        return json.dumps({"brokerCapacities": broker_capacities})
-
 
 def map_env(env: list[str]) -> dict[str, str]:
     """Parse env var into a dict."""

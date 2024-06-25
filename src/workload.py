@@ -159,15 +159,6 @@ class Workload(WorkloadBase):
 
         raise snap.SnapError(f"Snap {self.SNAP_NAME} pid not found")
 
-
-class KafkaWorkload(Workload):
-    """Broker specific wrapper."""
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.paths = CharmedKafkaPaths(BROKER)
-        self.service = BROKER.service
-
     @override
     def run_bin_command(
         self, bin_keyword: str, bin_args: list[str], opts: list[str] | None = None
@@ -178,6 +169,15 @@ class KafkaWorkload(Workload):
         bin_str = " ".join(bin_args)
         command = f"{opts_str} {SNAP_NAME}.{bin_keyword} {bin_str}"
         return self.exec(command)
+
+
+class KafkaWorkload(Workload):
+    """Broker specific wrapper."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.paths = CharmedKafkaPaths(BROKER)
+        self.service = BROKER.service
 
     @override
     def get_version(self) -> str:
@@ -197,21 +197,6 @@ class BalancerWorkload(Workload):
         super().__init__()
         self.paths = CharmedKafkaPaths(BALANCER)
         self.service = BALANCER.service
-
-    @override
-    def run_bin_command(
-        self,
-        bin_keyword: str,
-        bin_args: list[str],
-        opts: list[str] | None = None,
-        env: Mapping[str, str] | None = None,
-    ) -> str:
-        if opts is None:
-            opts = []
-        opts_str = " ".join(opts)
-        bin_str = " ".join(bin_args)
-        command = f"{opts_str} {SNAP_NAME}.{bin_keyword} {bin_str}"
-        return self.exec(command)
 
     @override
     def get_version(self) -> str:

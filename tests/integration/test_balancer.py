@@ -10,8 +10,6 @@ from pytest_operator.plugin import OpsTest
 
 from literals import (
     BALANCER,
-    BALANCER_RELATION,
-    BALANCER_SERVICE,
 )
 
 from .helpers import (
@@ -33,16 +31,14 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
         ops_test.model.deploy(
             kafka_charm,
             application_name=APP_NAME,
-            num_units=1,
+            num_units=3,
             series="jammy",
             to=machine_ids[0],
             storage={"data": {"pool": "test_pool", "size": 1024}},
+            config={"roles": "broker,balancer"},
         ),
         ops_test.model.deploy(
             ZK_NAME, channel="edge", application_name=ZK_NAME, num_units=1, series="jammy"
-        ),
-        ops_test.model.deploy(
-            kafka_charm, application_name=BALANCER.value, num_units=1, config={"role": "balancer"}
         ),
     )
     await ops_test.model.wait_for_idle(
@@ -50,21 +46,9 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
     )
     assert ops_test.model.applications[APP_NAME].status == "blocked"
     assert ops_test.model.applications[ZK_NAME].status == "active"
-    assert ops_test.model.applications[BALANCER.value].status == "blocked"
 
     await ops_test.model.add_relation(APP_NAME, ZK_NAME)
     async with ops_test.fast_forward(fast_interval="60s"):
         await ops_test.model.wait_for_idle(
             apps=[APP_NAME, ZK_NAME], idle_period=30, status="active"
         )
-
-
-@pytest.mark.abort_on_fail
-async def test_can_relate_with_broker(ops_test: OpsTest):
-
-    await ops_test.model.add_relation(
-        f"{APP_NAME}:{BALANCER_RELATION}", f"{BALANCER.value}:{BALANCER_SERVICE}"
-    )
-    await ops_test.model.wait_for_idle(
-        apps=[APP_NAME, BALANCER.value], idle_period=30, timeout=3600, status="active"
-    )
