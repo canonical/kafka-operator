@@ -8,6 +8,7 @@ import logging
 import time
 
 from charms.data_platform_libs.v0.data_models import TypedCharmBase
+from charms.grafana_agent.v0.cos_agent import COSAgentProvider
 from charms.operator_libs_linux.v0 import sysctl
 from charms.rolling_ops.v0.rollingops import RollingOpsManager, RunWithLock
 from ops import (
@@ -23,6 +24,9 @@ from events.balancer import BalancerOperator
 from events.broker import BrokerOperator
 from literals import (
     CHARM_KEY,
+    JMX_EXPORTER_PORT,
+    LOGS_RULES_DIR,
+    METRICS_RULES_DIR,
     OS_REQUIREMENTS,
     SUBSTRATE,
     DebugLevel,
@@ -47,13 +51,25 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.state = ClusterState(self, substrate=self.substrate)
         self.sysctl_config = sysctl.Config(name=CHARM_KEY)
 
-        self.workload = KafkaWorkload()  # to be changed?
+        self.workload = KafkaWorkload()  # Will be re-instantiated for each role.
         self.restart = RollingOpsManager(self, relation="restart", callback=self._restart_broker)
+
+        self._grafana_agent = COSAgentProvider(
+            self,
+            metrics_endpoints=[
+                # Endpoint for the kafka and jmx exporters
+                # See https://github.com/canonical/charmed-kafka-snap for details
+                {"path": "/metrics", "port": JMX_EXPORTER_PORT},
+            ],
+            metrics_rules_dir=METRICS_RULES_DIR,
+            logs_rules_dir=LOGS_RULES_DIR,
+            log_slots=[f"{self.workload.SNAP_NAME}:{self.workload.LOG_SLOT}"],
+        )
 
         self.framework.observe(getattr(self.on, "install"), self._on_install)
         self.framework.observe(getattr(self.on, "remove"), self._on_remove)
 
-        # Register roles event handlers after charm ones
+        # Register roles event handlers after global ones, so that they get the priority.
         self.broker = BrokerOperator(self)
         self.balancer = BalancerOperator(self)
 
@@ -86,7 +102,10 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.unit.status = status
 
     def _restart_broker(self, event: EventBase) -> None:
-        """Handler for `rolling_ops` restart events."""
+        """Handler for `rolling_ops` restart events.
+
+        The RollingOpsManager expecting a charm instance, we cannot move this method to the broker logic.
+        """
         # only attempt restart if service is already active
         if not self.broker.healthy:
             event.defer()
@@ -99,7 +118,10 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         time.sleep(10.0)
 
     def _disable_enable_restart_broker(self, event: RunWithLock) -> None:
-        """Handler for `rolling_ops` disable_enable restart events."""
+        """Handler for `rolling_ops` disable_enable restart events.
+
+        The RollingOpsManager expecting a charm instance, we cannot move this method to the broker logic.
+        """
         if not self.broker.healthy:
             logger.warning(f"Broker {self.unit.name.split('/')[1]} is not ready restart")
             event.defer()

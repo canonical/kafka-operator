@@ -5,7 +5,6 @@ import logging
 from time import time
 from typing import TYPE_CHECKING
 
-from charms.grafana_agent.v0.cos_agent import COSAgentProvider
 from charms.operator_libs_linux.v1.snap import SnapError
 from charms.rolling_ops.v0.rollingops import RunWithLock
 from ops import (
@@ -31,9 +30,6 @@ from literals import (
     BROKER,
     DEPENDENCIES,
     GROUP,
-    JMX_EXPORTER_PORT,
-    LOGS_RULES_DIR,
-    METRICS_RULES_DIR,
     PEER,
     REL_NAME,
     USER,
@@ -98,18 +94,6 @@ class BrokerOperator(Object):
         self.balancer_manager = BalancerManager(self)
 
         # LIB HANDLERS
-
-        self._grafana_agent = COSAgentProvider(
-            self.charm,
-            metrics_endpoints=[
-                # Endpoint for the kafka and jmx exporters
-                # See https://github.com/canonical/charmed-kafka-snap for details
-                {"path": "/metrics", "port": JMX_EXPORTER_PORT},
-            ],
-            metrics_rules_dir=METRICS_RULES_DIR,
-            logs_rules_dir=LOGS_RULES_DIR,
-            log_slots=[f"{self.workload.SNAP_NAME}:{self.workload.LOG_SLOT}"],
-        )
 
         self.framework.observe(getattr(self.charm.on, "install"), self._on_install)
         self.framework.observe(getattr(self.charm.on, "start"), self._on_start)
