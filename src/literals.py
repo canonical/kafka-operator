@@ -24,7 +24,6 @@ REL_NAME = "kafka-client"
 TLS_RELATION = "certificates"
 TRUSTED_CERTIFICATE_RELATION = "trusted-certificate"
 TRUSTED_CA_RELATION = "trusted-ca"
-BALANCER_TOPIC = "__KafkaCruiseControlPartitionMetricSamples"
 BALANCER_TOPICS = [
     "__CruiseControlMetrics",
     "__KafkaCruiseControlPartitionMetricSamples",
