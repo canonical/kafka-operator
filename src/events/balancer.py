@@ -1,6 +1,7 @@
 """Balancer role core charm logic."""
 
 import logging
+from subprocess import CalledProcessError
 from typing import TYPE_CHECKING
 
 from ops import (
@@ -93,21 +94,25 @@ class BalancerOperator(Object):
                     self.config_manager.kafka_opts,
                 ],
             ):
-                self.workload.run_bin_command(
-                    "topics",
-                    [
-                        "--create",
-                        "--topic",
-                        topic,
-                        "--bootstrap-server",
-                        f"{self.charm.state.internal_bootstrap_server}",
-                        "--command-config",
-                        f'{BALANCER.paths["CONF"]}/cruisecontrol.properties',
-                    ],
-                    opts=[
-                        self.config_manager.kafka_opts,
-                    ],
-                )
+                try:
+                    self.workload.run_bin_command(
+                        "topics",
+                        [
+                            "--create",
+                            "--topic",
+                            topic,
+                            "--bootstrap-server",
+                            f"{self.charm.state.internal_bootstrap_server}",
+                            "--command-config",
+                            f'{BALANCER.paths["CONF"]}/cruisecontrol.properties',
+                        ],
+                        opts=[
+                            self.config_manager.kafka_opts,
+                        ],
+                    )
+                except CalledProcessError:
+                    BalancerStartEvent(self.on.handle).defer()
+                    return
 
         self.workload.start()
 
