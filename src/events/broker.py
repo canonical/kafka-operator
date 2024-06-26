@@ -268,7 +268,7 @@ class BrokerOperator(Object):
     def _on_storage_detaching(self, _: StorageDetachingEvent) -> None:
         """Handler for `storage_detaching` events."""
         # in the case where there may be replication recovery may be possible
-        if self.charm.state.brokers and len(self.state.brokers) > 1:
+        if self.charm.state.brokers and len(self.charm.state.brokers) > 1:
             self.charm._set_status(Status.REMOVED_STORAGE)
         else:
             self.charm._set_status(Status.REMOVED_STORAGE_NO_REPL)
