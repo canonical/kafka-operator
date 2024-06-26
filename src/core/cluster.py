@@ -47,6 +47,7 @@ class ClusterState(Object):
     def __init__(self, charm: "KafkaCharm", substrate: Substrates):
         super().__init__(parent=charm, key="charm_state")
         self.substrate: Substrates = substrate
+        self.roles = charm.config.roles
 
         self.peer_app_interface = DataPeerData(self.model, relation_name=PEER)
         self.peer_unit_interface = DataPeerUnitData(
@@ -261,7 +262,7 @@ class ClusterState(Object):
         return self.model.app.planned_units()
 
     @property
-    def ready_to_start(self) -> Status:
+    def ready_to_start(self) -> Status:  # noqa: C901
         """Check for active ZooKeeper relation and adding of inter-broker auth username.
 
         Returns:
@@ -286,35 +287,15 @@ class ClusterState(Object):
         if not self.cluster.internal_user_credentials:
             return Status.NO_BROKER_CREDS
 
-        return Status.ACTIVE
+        # Additional checks specific to balancer role
+        if BALANCER.value in self.roles:
+            if not self.balancer:
+                return Status.NO_BALANCER_RELATION
 
-    @property
-    def ready_to_balance(self) -> Status:
-        """Check for active Zookeeper relation and adding of balancer auth username, as well as cluster topography.
+            if not self.balancer.broker_capacities:
+                return Status.NO_BALANCER_DATA
 
-        Returns:
-            True if ZK is related, `balancer` user added and broker capabilities communicated.
-            False otherwise.
-        """
-        if not self.peer_relation:
-            return Status.NO_PEER_RELATION
-
-        if not self.balancer:
-            return Status.NO_BALANCER_RELATION
-
-        if not self.zookeeper:
-            return Status.ZK_NOT_RELATED
-
-        if not self.zookeeper.zookeeper_connected:
-            return Status.ZK_NO_DATA
-
-        if not self.balancer.broker_capacities:
-            return Status.NO_BALANCER_DATA
-
-        if not self.cluster.internal_user_credentials:
-            return Status.NO_BROKER_CREDS
-
-        if len(self.brokers) < 3:
-            return Status.NOT_ENOUGH_BROKERS
+            if len(self.brokers) < 3:
+                return Status.NOT_ENOUGH_BROKERS
 
         return Status.ACTIVE

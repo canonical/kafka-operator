@@ -52,7 +52,7 @@ class LogLevel(str, Enum):
 class CharmConfig(BaseConfigModel):
     """Manager for the structured configuration."""
 
-    roles: set[str]
+    roles: list[str]
     compression_type: str
     log_flush_interval_messages: int  # int  # long
     log_flush_interval_ms: int | None  # long
@@ -249,4 +249,4 @@ class CharmConfig(BaseConfigModel):
         if unknown_roles := roles - {BROKER.value, BALANCER.value}:
             raise ValueError("Unknown role(s):", unknown_roles)
 
-        return roles
+        return list(roles)

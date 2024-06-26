@@ -7,12 +7,11 @@ from typing import TYPE_CHECKING
 from ops import (
     ActiveStatus,
     ConfigChangedEvent,
+    EventBase,
     LeaderElectedEvent,
     Object,
-    StartEvent,
 )
 
-from events.registry import BalancerEvents, BalancerStartEvent
 from literals import (
     BALANCER,
     BALANCER_TOPICS,
@@ -31,7 +30,7 @@ BALANCER_EVENTS = "balancer-events"
 class BalancerOperator(Object):
     """Implements the logic for the balancer."""
 
-    on = BalancerEvents()  # type: ignore
+    # on: BalancerEvents = BalancerEvents()  # type: ignore
 
     def __init__(self, charm) -> None:
         super().__init__(charm, BALANCER_EVENTS)
@@ -55,22 +54,22 @@ class BalancerOperator(Object):
 
         ## Role-level events
 
-        self.framework.observe(self.on.start, self._on_start)
+        # self.framework.observe(self.on.start, self._on_start)
 
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
         self.config_manager.set_environment()
 
-    def _on_start(self, event: StartEvent | BalancerStartEvent) -> None:
+    def _on_start(self, event: EventBase) -> None:
         """Handler for `start` event."""
         if not self.charm.unit.is_leader():
             self.workload.stop()
             logger.info("Cruise control stopped")
             return
 
-        # self.charm._set_status(self.charm.state.ready_to_balance)
+        self.charm._set_status(self.charm.state.ready_to_start)
 
-        if not isinstance(self.charm.state.ready_to_balance, ActiveStatus):
+        if not isinstance(self.charm.unit.status, ActiveStatus):
             event.defer()
             return
 
@@ -124,8 +123,8 @@ class BalancerOperator(Object):
             event.defer()
             return
 
-        self.on.start.emit()
+        self._on_start(event)
 
-    def _on_config_changed(self, _: ConfigChangedEvent) -> None:
+    def _on_config_changed(self, event: ConfigChangedEvent) -> None:
         """Handler for `config-changed` event."""
-        self.on.start.emit()
+        self._on_start(event)

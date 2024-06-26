@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 pytestmark = pytest.mark.balancer
 
 
-def is_balancer_running(model_full_name: str | None) -> bool:
+def balancer_is_running(model_full_name: str | None) -> bool:
     try:
         check_output(
             f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'curl http://localhost:9090/kafkacruisecontrol/state'",
@@ -58,8 +58,9 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
 
 async def test_relate_not_enough_brokers(ops_test: OpsTest):
     await ops_test.model.add_relation(APP_NAME, ZK_NAME)
-    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], idle_period=30, status="active")
-    assert not is_balancer_running(model_full_name=ops_test.model_full_name)
+    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], idle_period=30)
+    assert ops_test.model.applications[APP_NAME].status == "blocked"
+    assert not balancer_is_running(model_full_name=ops_test.model_full_name)
 
 
 async def test_minimum_brokers_balancer_starts(ops_test: OpsTest):
@@ -69,4 +70,4 @@ async def test_minimum_brokers_balancer_starts(ops_test: OpsTest):
     await ops_test.model.wait_for_idle(
         apps=[APP_NAME], status="active", timeout=1000, idle_period=30
     )
-    assert is_balancer_running(model_full_name=ops_test.model_full_name)
+    assert balancer_is_running(model_full_name=ops_test.model_full_name)

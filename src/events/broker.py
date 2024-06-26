@@ -22,9 +22,6 @@ from ops import (
 
 from events.password_actions import PasswordActionEvents
 from events.provider import KafkaProvider
-from events.registry import (
-    BrokerEvents,
-)
 from events.tls import TLSHandler
 from events.upgrade import KafkaDependencyModel, KafkaUpgrade
 from events.zookeeper import ZooKeeperHandler
@@ -53,7 +50,7 @@ logger = logging.getLogger(__name__)
 class BrokerOperator(Object):
     """Charmed Operator for Kafka."""
 
-    on: BrokerEvents = BrokerEvents()  # type: ignore
+    # on: BrokerEvents = BrokerEvents()  # type: ignore
 
     def __init__(self, charm) -> None:
         super().__init__(charm, BROKER.value)
@@ -117,9 +114,6 @@ class BrokerOperator(Object):
 
         ## Role-level events
 
-        self.framework.observe(self.on.update_status, self._on_update_status)
-        self.framework.observe(self.on.config_changed, self._on_config_changed)
-
     def _on_install(self, _: InstallEvent) -> None:
         """Handler for `install` event."""
         self.config_manager.set_environment()
@@ -145,7 +139,7 @@ class BrokerOperator(Object):
         logger.info("Kafka snap started")
 
         # check for connection
-        self.on.update_status.emit()
+        self.charm.on.update_status.emit()
 
         # only log once on successful 'on-start' run
         if isinstance(self.charm.unit.status, ActiveStatus):
@@ -209,17 +203,17 @@ class BrokerOperator(Object):
         # update client_properties whenever possible
         self.config_manager.set_client_properties()
 
-        # If Kafka is related to client charms, update their information.
-        if self.model.relations.get(REL_NAME, None) and self.charm.unit.is_leader():
-            self.update_client_data()
-
-        if self.charm.state.balancer:
+        if self.charm.state.balancer and self.charm.unit.is_leader():
             self.charm.state.balancer.update(
                 {
                     "broker-capacities": self.config_manager.broker_capacities,
                     "rack_aware": json.dumps(bool(self.config_manager.rack_properties)),
                 }
             )
+
+        # If Kafka is related to client charms, update their information.
+        if self.model.relations.get(REL_NAME, None) and self.charm.unit.is_leader():
+            self.update_client_data()
 
     def _on_update_status(self, _: UpdateStatusEvent) -> None:
         """Handler for `update-status` events."""
@@ -232,7 +226,7 @@ class BrokerOperator(Object):
 
         # NOTE for situations like IP change and late integration with rack-awareness charm.
         # If properties have changed, the broker will restart.
-        self.on.config_changed.emit()
+        self.charm.on.config_changed.emit()
 
         try:
             if not self.health.machine_configured():
@@ -255,7 +249,7 @@ class BrokerOperator(Object):
             self.charm.state.cluster.relation.id,
             "extra",  # pyright: ignore[reportArgumentType] -- Changes with the https://github.com/canonical/data-platform-libs/issues/124
         ):
-            self.on.config_changed.emit()
+            self.charm.on.config_changed.emit()
 
     def _on_storage_attached(self, event: StorageAttachedEvent) -> None:
         """Handler for `storage_attached` events."""
@@ -302,6 +296,7 @@ class BrokerOperator(Object):
 
         if self.workload.active():
             logger.info(f'Broker {self.charm.unit.name.split("/")[1]} restarted')
+            self.charm.state.unit_broker.update({"storages": self.balancer_manager.storages})
         else:
             logger.error(f"Broker {self.charm.unit.name.split('/')[1]} failed to restart")
 
