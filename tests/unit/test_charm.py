@@ -408,7 +408,7 @@ def test_storage_add_does_nothing_if_snap_not_active(
 
     with (
         patch("workload.KafkaWorkload.active", return_value=False),
-        patch("events.broker.BrokerOperator._disable_enable_restart") as patched_restart,
+        patch("charm.KafkaCharm._disable_enable_restart_broker") as patched_restart,
     ):
         harness.add_storage(storage_name="data", count=2)
         harness.attach_storage(storage_id="data/1")
@@ -431,7 +431,7 @@ def test_storage_add_defers_if_service_not_healthy(
     with (
         patch("workload.KafkaWorkload.active", return_value=True),
         patch("events.broker.BrokerOperator.healthy", return_value=False),
-        patch("events.broker.BrokerOperator._disable_enable_restart") as patched_restart,
+        patch("charm.KafkaCharm._disable_enable_restart_broker") as patched_restart,
         patch("ops.framework.EventBase.defer") as patched_defer,
     ):
         harness.add_storage(storage_name="data", count=2)

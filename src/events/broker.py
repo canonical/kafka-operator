@@ -2,11 +2,9 @@
 
 import json
 import logging
-from time import time
 from typing import TYPE_CHECKING
 
 from charms.operator_libs_linux.v1.snap import SnapError
-from charms.rolling_ops.v0.rollingops import RunWithLock
 from ops import (
     ActiveStatus,
     EventBase,
@@ -267,47 +265,15 @@ class BrokerOperator(Object):
             # We need the event handler to know about the original event
             self._on_config_changed(event)
 
-    def _on_storage_detaching(self, event: StorageDetachingEvent) -> None:
+    def _on_storage_detaching(self, _: StorageDetachingEvent) -> None:
         """Handler for `storage_detaching` events."""
         # in the case where there may be replication recovery may be possible
-        if self.charm.state.brokers and len(self.charm.state.brokers) > 1:
+        if self.charm.state.brokers and len(self.state.brokers) > 1:
             self.charm._set_status(Status.REMOVED_STORAGE)
         else:
             self.charm._set_status(Status.REMOVED_STORAGE_NO_REPL)
 
-        """Handler for `rolling_ops` restart events."""
-        # only attempt restart if service is already active
-        if not self.healthy:
-            event.defer()
-            return
-
-        self.workload.restart()
-
-        # FIXME: This logic should be improved as part of ticket DPE-3155
-        # For more information, please refer to https://warthogs.atlassian.net/browse/DPE-3155
-        time.sleep(10.0)
-
-        if self.workload.active():
-            logger.info(f'Broker {self.charm.unit.name.split("/")[1]} restarted')
-            self.charm.state.unit_broker.update({"storages": self.balancer_manager.storages})
-        else:
-            logger.error(f"Broker {self.charm.unit.name.split('/')[1]} failed to restart")
-
-    def _disable_enable_restart(self, event: RunWithLock) -> None:
-        """Handler for `rolling_ops` disable_enable restart events."""
-        if not self.healthy:
-            logger.warning(f"Broker {self.charm.unit.name.split('/')[1]} is not ready restart")
-            event.defer()
-            return
-
-        self.workload.disable_enable()
-        self.workload.start()
-
-        if self.workload.active():
-            logger.info(f'Broker {self.charm.unit.name.split("/")[1]} restarted')
-        else:
-            logger.error(f"Broker {self.charm.unit.name.split('/')[1]} failed to restart")
-            return
+        self.charm.on.config_changed.emit()
 
     @property
     def healthy(self) -> bool:
