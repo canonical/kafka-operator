@@ -59,7 +59,7 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
 async def test_relate_not_enough_brokers(ops_test: OpsTest):
     await ops_test.model.add_relation(APP_NAME, ZK_NAME)
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], idle_period=30)
-    assert ops_test.model.applications[APP_NAME].status == "blocked"
+    assert ops_test.model.applications[APP_NAME].status == "waiting"
     assert not balancer_is_running(model_full_name=ops_test.model_full_name)
 
 

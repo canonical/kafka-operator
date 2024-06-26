@@ -112,6 +112,7 @@ class _ConfigManager:
 
     config: CharmConfig
     workload: WorkloadBase
+    state: ClusterState
 
     @property
     def log_level(self) -> str:
@@ -186,6 +187,16 @@ class _ConfigManager:
         ]
 
         return f"KAFKA_HEAP_OPTS='{' '.join(opts)}'"
+
+    @property
+    def security_protocol(self) -> AuthMechanism:
+        """Infers current charm security.protocol based on current relations."""
+        # FIXME: When we have multiple auth_mechanims/listeners, remove this method
+        return (
+            "SASL_SSL"
+            if (self.state.cluster.tls_enabled and self.state.unit_broker.certificate)
+            else "SASL_PLAINTEXT"
+        )
 
 
 class ConfigManager(_ConfigManager):
@@ -299,16 +310,6 @@ class ConfigManager(_ConfigManager):
             )
 
         return scram_properties
-
-    @property
-    def security_protocol(self) -> AuthMechanism:
-        """Infers current charm security.protocol based on current relations."""
-        # FIXME: When we have multiple auth_mechanims/listeners, remove this method
-        return (
-            "SASL_SSL"
-            if (self.state.cluster.tls_enabled and self.state.unit_broker.certificate)
-            else "SASL_PLAINTEXT"
-        )
 
     @property
     def auth_mechanisms(self) -> list[AuthMechanism]:
@@ -544,13 +545,18 @@ class BalancerConfigManager(_ConfigManager):
         Returns:
             List of properties to be set
         """
+        username = BALANCER_USER
+        password = self.state.cluster.internal_user_credentials.get(BALANCER_USER, "")
+
         properties = (
             [
                 f"bootstrap.servers={self.state.internal_bootstrap_server}",
                 f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
                 f"zookeeper.connect={self.state.zookeeper.endpoints}{self.state.zookeeper.database}",
                 "security.protocol=SASL_PLAINTEXT",
+                f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";',
                 "sasl.mechanism=SCRAM-SHA-512",
+                f"security.protocol={self.security_protocol}",
             ]
             + self.cruise_control_goals
             + CRUISE_CONTROL_CONFIG_OPTIONS.split("\n")
@@ -558,28 +564,28 @@ class BalancerConfigManager(_ConfigManager):
 
         return properties
 
-    @property
-    def cruise_control_jaas_config(self) -> str:
-        """Builds the JAAS config for Cruise Control authentication with ZooKeeper.
+    # @property
+    # def cruise_control_jaas_config(self) -> str:
+    #     """Builds the JAAS config for Cruise Control authentication with ZooKeeper.
 
-        Returns:
-            String of Jaas config
-        """
-        return inspect.cleandoc(
-            f"""
-            Client {{
-                org.apache.zookeeper.server.auth.DigestLoginModule required
-                username="{self.state.zookeeper.username}"
-                password="{self.state.zookeeper.password}";
-            }};
+    #     Returns:
+    #         String of Jaas config
+    #     """
+    #     return inspect.cleandoc(
+    #         f"""
+    #         Client {{
+    #             org.apache.zookeeper.server.auth.DigestLoginModule required
+    #             username="{self.state.zookeeper.username}"
+    #             password="{self.state.zookeeper.password}";
+    #         }};
 
-            KafkaClient {{
-                org.apache.kafka.common.security.scram.ScramLoginModule required
-                username="{BALANCER_USER}"
-                password="{self.state.cluster.internal_user_credentials.get(BALANCER_USER,'')}";
-            }};
-        """
-        )
+    #         KafkaClient {{
+    #             org.apache.kafka.common.security.scram.ScramLoginModule required
+    #             username="{BALANCER_USER}"
+    #             password="{self.state.cluster.internal_user_credentials.get(BALANCER_USER,'')}";
+    #         }};
+    #     """
+    #     )
 
     def set_cruise_control_properties(self) -> None:
         """Writes all Cruise Control properties to the `cruisecontrol.properties` path."""
@@ -595,15 +601,15 @@ class BalancerConfigManager(_ConfigManager):
             path=self.workload.paths.capacity_jbod_json,
         )
 
-    def set_cruise_control_jaas_config(self) -> None:
-        """Writes the CruiseControl JAAS config."""
-        # normally we would need to also write a JAAS specifically for CC to authenticate to ZooKeeper + Kafka
-        # however the path is fixed to be inferred from where the snap squashfs is
-        # however, it KAFKA_OPTS for -Djava.security.auth.login.config, so we can add both there
-        self.workload.write(
-            content=self.cruise_control_jaas_config,
-            path=self.workload.paths.balancer_jaas,
-        )
+    # def set_cruise_control_jaas_config(self) -> None:
+    #     """Writes the CruiseControl JAAS config."""
+    #     # normally we would need to also write a JAAS specifically for CC to authenticate to ZooKeeper + Kafka
+    #     # however the path is fixed to be inferred from where the snap squashfs is
+    #     # however, it KAFKA_OPTS for -Djava.security.auth.login.config, so we can add both there
+    #     self.workload.write(
+    #         content=self.cruise_control_jaas_config,
+    #         path=self.workload.paths.balancer_jaas,
+    #     )
 
     @property
     def cruise_control_goals(self) -> list[str]:
@@ -643,7 +649,6 @@ class BalancerConfigManager(_ConfigManager):
     def set_environment(self) -> None:
         """Writes the env-vars needed for passing to charmed-kafka service."""
         updated_env_list = [
-            self.kafka_opts,
             self.jmx_opts,
             self.jvm_performance_opts,
             self.heap_opts,
@@ -656,7 +661,7 @@ class BalancerConfigManager(_ConfigManager):
         updated_env = current_env | map_env(updated_env_list)
         content = "\n".join([f"{key}={value}" for key, value in updated_env.items()])
 
-        self.workload.write(content=content, path="/etc/environment")
+        # self.workload.write(content=content, path="/etc/environment")
         self.workload.write(content=content, path=f'{BALANCER.paths["CONF"]}/.env')
 
 

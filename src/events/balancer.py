@@ -30,8 +30,6 @@ BALANCER_EVENTS = "balancer-events"
 class BalancerOperator(Object):
     """Implements the logic for the balancer."""
 
-    # on: BalancerEvents = BalancerEvents()  # type: ignore
-
     def __init__(self, charm) -> None:
         super().__init__(charm, BALANCER_EVENTS)
         self.charm: "KafkaCharm" = charm
@@ -44,17 +42,11 @@ class BalancerOperator(Object):
             self.charm.state, self.workload, self.charm.config
         )
 
-        ## Charm-level events
-
         self.framework.observe(self.charm.on.install, self._on_install)
         self.framework.observe(self.charm.on.start, self._on_start)
         self.framework.observe(
             self.charm.on[BALANCER.value].relation_changed, self._on_config_changed
         )
-
-        ## Role-level events
-
-        # self.framework.observe(self.on.start, self._on_start)
 
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
@@ -64,7 +56,6 @@ class BalancerOperator(Object):
         """Handler for `start` event."""
         if not self.charm.unit.is_leader():
             self.workload.stop()
-            logger.info("Cruise control stopped")
             return
 
         self.charm._set_status(self.charm.state.ready_to_start)
@@ -75,9 +66,7 @@ class BalancerOperator(Object):
 
         self.config_manager.set_cruise_control_properties()
         self.config_manager.set_broker_capacities()
-        self.config_manager.set_cruise_control_jaas_config()
 
-        self.config_manager.set_environment()
         for topic in BALANCER_TOPICS:
             if topic not in self.workload.run_bin_command(
                 "topics",
@@ -87,9 +76,6 @@ class BalancerOperator(Object):
                     f"{self.charm.state.internal_bootstrap_server}",
                     "--command-config",
                     f'{BALANCER.paths["CONF"]}/cruisecontrol.properties',
-                ],
-                opts=[
-                    self.config_manager.kafka_opts,
                 ],
             ):
                 try:
@@ -103,9 +89,6 @@ class BalancerOperator(Object):
                             f"{self.charm.state.internal_bootstrap_server}",
                             "--command-config",
                             f'{BALANCER.paths["CONF"]}/cruisecontrol.properties',
-                        ],
-                        opts=[
-                            self.config_manager.kafka_opts,
                         ],
                     )
                     logger.info(f"Created topic {topic}")

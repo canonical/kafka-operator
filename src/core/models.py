@@ -9,7 +9,6 @@ import logging
 from typing import TypeAlias
 
 from charms.data_platform_libs.v0.data_interfaces import (
-    SECRET_GROUPS,
     Data,
     DataPeerData,
     DataPeerUnitData,
@@ -25,9 +24,6 @@ from literals import INTERNAL_USERS, SECRETS_APP, Substrates
 logger = logging.getLogger(__name__)
 
 JSON: TypeAlias = dict[str, "JSON"] | list["JSON"] | str | int | float | bool | None
-
-setattr(SECRET_GROUPS, "KAFKA", "kafka")
-setattr(SECRET_GROUPS, "ZOOKEEPER", "zookeeper")
 
 
 class RelationState:

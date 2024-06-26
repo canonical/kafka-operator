@@ -50,8 +50,6 @@ logger = logging.getLogger(__name__)
 class BrokerOperator(Object):
     """Charmed Operator for Kafka."""
 
-    # on: BrokerEvents = BrokerEvents()  # type: ignore
-
     def __init__(self, charm) -> None:
         super().__init__(charm, BROKER.value)
         self.charm: "KafkaCharm" = charm
@@ -95,8 +93,6 @@ class BrokerOperator(Object):
 
         self.balancer_manager = BalancerManager(self)
 
-        ## Charm-level events
-
         self.framework.observe(getattr(self.charm.on, "install"), self._on_install)
         self.framework.observe(getattr(self.charm.on, "start"), self._on_start)
         self.framework.observe(getattr(self.charm.on, "config_changed"), self._on_config_changed)
@@ -112,8 +108,6 @@ class BrokerOperator(Object):
             getattr(self.charm.on, "data_storage_detaching"), self._on_storage_detaching
         )
 
-        ## Role-level events
-
     def _on_install(self, _: InstallEvent) -> None:
         """Handler for `install` event."""
         self.config_manager.set_environment()
@@ -121,14 +115,14 @@ class BrokerOperator(Object):
 
     def _on_start(self, event: StartEvent) -> None:
         """Handler for `start` event."""
+        if self.charm.state.peer_relation:
+            self.charm.state.unit_broker.update({"cores": str(self.balancer_manager.cores)})
+
         self.charm._set_status(self.charm.state.ready_to_start)
         if not isinstance(self.charm.unit.status, ActiveStatus):
             event.defer()
             return
 
-        self.charm.state.unit_broker.update({"cores": str(self.balancer_manager.cores)})
-
-        self.config_manager.set_environment()
         # required settings given zookeeper connection config has been created
         self.config_manager.set_zk_jaas_config()
         self.config_manager.set_server_properties()
@@ -147,6 +141,14 @@ class BrokerOperator(Object):
 
     def _on_config_changed(self, event: EventBase) -> None:
         """Generic handler for most `config_changed` events across relations."""
+        if self.charm.state.balancer and self.charm.unit.is_leader():
+            self.charm.state.balancer.update(
+                {
+                    "broker-capacities": self.config_manager.broker_capacities,
+                    "rack_aware": json.dumps(bool(self.config_manager.rack_properties)),
+                }
+            )
+
         # only overwrite properties if service is already active
         if not self.healthy or not self.upgrade.idle:
             event.defer()
@@ -202,14 +204,6 @@ class BrokerOperator(Object):
 
         # update client_properties whenever possible
         self.config_manager.set_client_properties()
-
-        if self.charm.state.balancer and self.charm.unit.is_leader():
-            self.charm.state.balancer.update(
-                {
-                    "broker-capacities": self.config_manager.broker_capacities,
-                    "rack_aware": json.dumps(bool(self.config_manager.rack_properties)),
-                }
-            )
 
         # If Kafka is related to client charms, update their information.
         if self.model.relations.get(REL_NAME, None) and self.charm.unit.is_leader():
@@ -287,7 +281,6 @@ class BrokerOperator(Object):
             event.defer()
             return
 
-        self.config_manager.set_environment()
         self.workload.restart()
 
         # FIXME: This logic should be improved as part of ticket DPE-3155
@@ -307,7 +300,6 @@ class BrokerOperator(Object):
             event.defer()
             return
 
-        self.config_manager.set_environment()
         self.workload.disable_enable()
         self.workload.start()
 

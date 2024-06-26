@@ -295,7 +295,7 @@ class ClusterState(Object):
             if not self.balancer.broker_capacities:
                 return Status.NO_BALANCER_DATA
 
-            if len(self.brokers) < 3:
+            if self.planned_units < 3:
                 return Status.NOT_ENOUGH_BROKERS
 
         return Status.ACTIVE
