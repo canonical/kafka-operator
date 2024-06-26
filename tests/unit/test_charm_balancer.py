@@ -261,7 +261,9 @@ def test_ready_to_start_not_enough_brokers(charm_configuration, zk_data):
         },
     )
     relation = Relation(interface=ZK, endpoint=ZK, remote_app_name=ZK, remote_app_data=zk_data)
-    state_in = State(leader=True, relations=[cluster_peer, balancer_peer, relation])
+    state_in = State(
+        leader=True, relations=[cluster_peer, balancer_peer, relation], planned_units=1
+    )
 
     # When
     state_out = ctx.run("start", state_in)
@@ -306,7 +308,9 @@ def test_ready_to_start_ok(charm_configuration, zk_data):
         },
     )
     relation = Relation(interface=ZK, endpoint=ZK, remote_app_name=ZK, remote_app_data=zk_data)
-    state_in = State(leader=True, relations=[cluster_peer, balancer_peer, relation])
+    state_in = State(
+        leader=True, relations=[cluster_peer, balancer_peer, relation], planned_units=3
+    )
 
     # When
     with (
