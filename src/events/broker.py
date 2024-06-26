@@ -22,6 +22,9 @@ from ops import (
 
 from events.password_actions import PasswordActionEvents
 from events.provider import KafkaProvider
+from events.registry import (
+    BrokerEvents,
+)
 from events.tls import TLSHandler
 from events.upgrade import KafkaDependencyModel, KafkaUpgrade
 from events.zookeeper import ZooKeeperHandler
@@ -49,6 +52,8 @@ logger = logging.getLogger(__name__)
 
 class BrokerOperator(Object):
     """Charmed Operator for Kafka."""
+
+    on: BrokerEvents = BrokerEvents()  # type: ignore
 
     def __init__(self, charm) -> None:
         super().__init__(charm, BROKER.value)
@@ -93,7 +98,7 @@ class BrokerOperator(Object):
 
         self.balancer_manager = BalancerManager(self)
 
-        # LIB HANDLERS
+        ## Charm-level events
 
         self.framework.observe(getattr(self.charm.on, "install"), self._on_install)
         self.framework.observe(getattr(self.charm.on, "start"), self._on_start)
@@ -110,18 +115,15 @@ class BrokerOperator(Object):
             getattr(self.charm.on, "data_storage_detaching"), self._on_storage_detaching
         )
 
-    def _on_install(self, event: InstallEvent) -> None:
+        ## Role-level events
+
+        self.framework.observe(self.on.update_status, self._on_update_status)
+        self.framework.observe(self.on.config_changed, self._on_config_changed)
+
+    def _on_install(self, _: InstallEvent) -> None:
         """Handler for `install` event."""
-        # logging.error("???c?")
-        # raise RuntimeError
         self.config_manager.set_environment()
         self.charm.unit.set_workload_version(self.workload.get_version())
-
-        if not self.charm.state.peer_relation:
-            event.defer()
-            return
-
-        self.charm.state.unit_broker.update({"cores": str(self.balancer_manager.cores)})
 
     def _on_start(self, event: StartEvent) -> None:
         """Handler for `start` event."""
@@ -129,6 +131,8 @@ class BrokerOperator(Object):
         if not isinstance(self.charm.unit.status, ActiveStatus):
             event.defer()
             return
+
+        self.charm.state.unit_broker.update({"cores": str(self.balancer_manager.cores)})
 
         self.config_manager.set_environment()
         # required settings given zookeeper connection config has been created
@@ -141,7 +145,7 @@ class BrokerOperator(Object):
         logger.info("Kafka snap started")
 
         # check for connection
-        self.charm.on.update_status.emit()
+        self.on.update_status.emit()
 
         # only log once on successful 'on-start' run
         if isinstance(self.charm.unit.status, ActiveStatus):
@@ -228,7 +232,7 @@ class BrokerOperator(Object):
 
         # NOTE for situations like IP change and late integration with rack-awareness charm.
         # If properties have changed, the broker will restart.
-        self.charm.on.config_changed.emit()
+        self.on.config_changed.emit()
 
         try:
             if not self.health.machine_configured():
@@ -251,7 +255,7 @@ class BrokerOperator(Object):
             self.charm.state.cluster.relation.id,
             "extra",  # pyright: ignore[reportArgumentType] -- Changes with the https://github.com/canonical/data-platform-libs/issues/124
         ):
-            self.charm.on.config_changed.emit()
+            self.on.config_changed.emit()
 
     def _on_storage_attached(self, event: StorageAttachedEvent) -> None:
         """Handler for `storage_attached` events."""
@@ -272,6 +276,7 @@ class BrokerOperator(Object):
         )
         if self.workload.active():
             self.charm._set_status(Status.ADDED_STORAGE)
+            # We need the event handler to know about the original event
             self._on_config_changed(event)
 
     def _on_storage_detaching(self, event: StorageDetachingEvent) -> None:

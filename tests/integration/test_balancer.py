@@ -4,6 +4,7 @@
 
 import asyncio
 import logging
+from subprocess import PIPE, CalledProcessError, check_output
 
 import pytest
 from pytest_operator.plugin import OpsTest
@@ -18,6 +19,19 @@ logger = logging.getLogger(__name__)
 pytestmark = pytest.mark.balancer
 
 
+def is_balancer_running(model_full_name: str | None) -> bool:
+    try:
+        check_output(
+            f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'curl http://localhost:9090/kafkacruisecontrol/state'",
+            stderr=PIPE,
+            shell=True,
+            universal_newlines=True,
+        )
+    except CalledProcessError:
+        return False
+    return True
+
+
 async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
     await ops_test.model.add_machine(series="jammy")
     machine_ids = await ops_test.model.get_machines()
@@ -27,7 +41,7 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
         ops_test.model.deploy(
             kafka_charm,
             application_name=APP_NAME,
-            num_units=3,
+            num_units=2,
             series="jammy",
             to=machine_ids[0],
             storage={"data": {"pool": "test_pool", "size": 1024}},
@@ -41,8 +55,18 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
     assert ops_test.model.applications[APP_NAME].status == "blocked"
     assert ops_test.model.applications[ZK_NAME].status == "active"
 
+
+async def test_relate_not_enough_brokers(ops_test: OpsTest):
     await ops_test.model.add_relation(APP_NAME, ZK_NAME)
-    async with ops_test.fast_forward(fast_interval="60s"):
-        await ops_test.model.wait_for_idle(
-            apps=[APP_NAME, ZK_NAME], idle_period=30, status="active"
-        )
+    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], idle_period=30, status="active")
+    assert not is_balancer_running(model_full_name=ops_test.model_full_name)
+
+
+async def test_minimum_brokers_balancer_starts(ops_test: OpsTest):
+    await ops_test.model.applications[APP_NAME].add_units(count=1)
+    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], idle_period=30, status="active")
+    await ops_test.model.block_until(lambda: len(ops_test.model.applications[APP_NAME].units) == 3)
+    await ops_test.model.wait_for_idle(
+        apps=[APP_NAME], status="active", timeout=1000, idle_period=30
+    )
+    assert is_balancer_running(model_full_name=ops_test.model_full_name)

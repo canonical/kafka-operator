@@ -157,6 +157,7 @@ class Status(Enum):
     )
     NO_BALANCER_RELATION = StatusLevel(MaintenanceStatus("no balancer relation yet"), "DEBUG")
     NO_BALANCER_DATA = StatusLevel(MaintenanceStatus("no balancer data yet"), "DEBUG")
+    NOT_ENOUGH_BROKERS = StatusLevel(WaitingStatus("waiting for 3 online brokers"), "DEBUG")
 
 
 DEPENDENCIES = {

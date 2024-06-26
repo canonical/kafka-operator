@@ -55,24 +55,23 @@ class BalancerOperator(Object):
 
         ## Role-level events
 
-        self.framework.observe(self.on.install, self._on_install)
         self.framework.observe(self.on.start, self._on_start)
 
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
         self.config_manager.set_environment()
 
-    def _on_start(self, _: StartEvent) -> None:
+    def _on_start(self, event: StartEvent | BalancerStartEvent) -> None:
         """Handler for `start` event."""
         if not self.charm.unit.is_leader():
             self.workload.stop()
             logger.info("Cruise control stopped")
             return
 
-        self.charm._set_status(self.charm.state.ready_to_balance)
+        # self.charm._set_status(self.charm.state.ready_to_balance)
 
-        if not isinstance(self.charm.unit.status, ActiveStatus):
-            BalancerStartEvent(self.on.handle).defer()
+        if not isinstance(self.charm.state.ready_to_balance, ActiveStatus):
+            event.defer()
             return
 
         self.config_manager.set_cruise_control_properties()
@@ -110,8 +109,9 @@ class BalancerOperator(Object):
                             self.config_manager.kafka_opts,
                         ],
                     )
+                    logger.info(f"Created topic {topic}")
                 except CalledProcessError:
-                    BalancerStartEvent(self.on.handle).defer()
+                    event.defer()
                     return
 
         self.workload.start()

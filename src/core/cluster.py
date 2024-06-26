@@ -314,4 +314,7 @@ class ClusterState(Object):
         if not self.cluster.internal_user_credentials:
             return Status.NO_BROKER_CREDS
 
+        if len(self.brokers) < 3:
+            return Status.NOT_ENOUGH_BROKERS
+
         return Status.ACTIVE

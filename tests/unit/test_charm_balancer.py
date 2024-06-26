@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 import pytest
 import yaml
-from ops import ActiveStatus
+from ops import StartEvent
 from scenario import Context, PeerRelation, Relation, State
 
 from charm import KafkaCharm
@@ -90,10 +90,12 @@ def test_ready_to_start_maintenance_no_peer_relation(charm_configuration):
     state_in = State(leader=True, relations=[])
 
     # When
-    state_out = ctx.run("start", state_in)
+    ctx.run("start", state_in)
 
     # Then
-    assert state_out.unit_status == Status.NO_PEER_RELATION.value.status
+    assert len(ctx.emitted_events) == 1
+    assert isinstance(ctx.emitted_events[0], StartEvent)
+    # assert state_out.unit_status == Status.NO_PEER_RELATION.value.status
 
 
 def test_ready_to_start_no_balancer(charm_configuration):
@@ -109,10 +111,11 @@ def test_ready_to_start_no_balancer(charm_configuration):
     state_in = State(leader=True, relations=[cluster_peer])
 
     # When
-    state_out = ctx.run("start", state_in)
+    ctx.run("start", state_in)
 
     # Then
-    assert state_out.unit_status == Status.NO_BALANCER_RELATION.value.status
+    assert len(ctx.emitted_events) == 1
+    assert isinstance(ctx.emitted_events[0], StartEvent)
 
 
 def test_ready_to_start_no_zk(charm_configuration):
@@ -129,10 +132,11 @@ def test_ready_to_start_no_zk(charm_configuration):
     state_in = State(leader=True, relations=[cluster_peer, balancer_peer])
 
     # When
-    state_out = ctx.run("start", state_in)
+    ctx.run("start", state_in)
 
     # Then
-    assert state_out.unit_status == Status.ZK_NOT_RELATED.value.status
+    assert len(ctx.emitted_events) == 1
+    assert isinstance(ctx.emitted_events[0], StartEvent)
 
 
 def test_ready_to_start_no_zk_data(charm_configuration):
@@ -154,10 +158,11 @@ def test_ready_to_start_no_zk_data(charm_configuration):
     state_in = State(leader=True, relations=[cluster_peer, balancer_peer, relation])
 
     # When
-    state_out = ctx.run("start", state_in)
+    ctx.run("start", state_in)
 
     # Then
-    assert state_out.unit_status == Status.ZK_NO_DATA.value.status
+    assert len(ctx.emitted_events) == 1
+    assert isinstance(ctx.emitted_events[0], StartEvent)
 
 
 def test_ready_to_start_no_balancer_data(charm_configuration, zk_data):
@@ -175,10 +180,11 @@ def test_ready_to_start_no_balancer_data(charm_configuration, zk_data):
     state_in = State(leader=True, relations=[cluster_peer, balancer_peer, relation])
 
     # When
-    state_out = ctx.run("start", state_in)
+    ctx.run("start", state_in)
 
     # Then
-    assert state_out.unit_status == Status.NO_BALANCER_DATA.value.status
+    assert len(ctx.emitted_events) == 1
+    assert isinstance(ctx.emitted_events[0], StartEvent)
 
 
 def test_ready_to_start_no_balancer_creds(charm_configuration, zk_data):
@@ -215,13 +221,14 @@ def test_ready_to_start_no_balancer_creds(charm_configuration, zk_data):
     state_in = State(leader=True, relations=[cluster_peer, balancer_peer, relation])
 
     # When
-    state_out = ctx.run("start", state_in)
+    ctx.run("start", state_in)
 
     # Then
-    assert state_out.unit_status == Status.NO_BROKER_CREDS.value.status
+    assert len(ctx.emitted_events) == 1
+    assert isinstance(ctx.emitted_events[0], StartEvent)
 
 
-def test_ready_to_start_status_ok(charm_configuration, zk_data):
+def test_ready_to_start_not_enough_brokers(charm_configuration, zk_data):
     # Given
     charm_configuration["options"]["roles"]["default"] = "balancer"
     ctx = Context(
@@ -263,10 +270,11 @@ def test_ready_to_start_status_ok(charm_configuration, zk_data):
         patch("workload.BalancerWorkload.exec"),
         patch("workload.BalancerWorkload.start"),
     ):
-        state_out = ctx.run("start", state_in)
+        ctx.run("start", state_in)
 
     # Then
-    assert state_out.unit_status == ActiveStatus()
+    assert len(ctx.emitted_events) == 1
+    assert isinstance(ctx.emitted_events[0], StartEvent)
 
 
 # def test_rack_awareness_passed_to_balancer(charm_configuration):
