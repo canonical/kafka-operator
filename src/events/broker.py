@@ -52,12 +52,11 @@ class BrokerOperator(Object):
         super().__init__(charm, BROKER.value)
         self.charm: "KafkaCharm" = charm
 
+        self.workload = KafkaWorkload()
+        # Fast exit after workload instantiation, but before any event observer
         if BROKER.value not in self.charm.config.roles:
             return
 
-        # HANDLERS
-
-        self.workload = KafkaWorkload()
         self.health = KafkaHealth(self)
 
         self.upgrade = KafkaUpgrade(

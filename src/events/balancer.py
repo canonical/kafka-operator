@@ -34,10 +34,12 @@ class BalancerOperator(Object):
         super().__init__(charm, BALANCER_EVENTS)
         self.charm: "KafkaCharm" = charm
 
+        self.workload = BalancerWorkload()
+
+        # Fast exit after workload instantiation, but before any event observer
         if BALANCER.value not in self.charm.config.roles:
             return
 
-        self.workload = BalancerWorkload()
         self.config_manager = BalancerConfigManager(
             self.charm.state, self.workload, self.charm.config
         )
