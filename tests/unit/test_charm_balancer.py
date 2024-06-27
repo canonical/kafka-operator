@@ -37,9 +37,6 @@ def charm_configuration():
     return json.loads(json.dumps(CONFIG))
 
 
-## BALANCER SIDE
-
-
 def test_install_blocks_snap_install_failure(charm_configuration):
     # Given
     charm_configuration["options"]["roles"]["default"] = "balancer"

@@ -564,29 +564,6 @@ class BalancerConfigManager(_ConfigManager):
 
         return properties
 
-    # @property
-    # def cruise_control_jaas_config(self) -> str:
-    #     """Builds the JAAS config for Cruise Control authentication with ZooKeeper.
-
-    #     Returns:
-    #         String of Jaas config
-    #     """
-    #     return inspect.cleandoc(
-    #         f"""
-    #         Client {{
-    #             org.apache.zookeeper.server.auth.DigestLoginModule required
-    #             username="{self.state.zookeeper.username}"
-    #             password="{self.state.zookeeper.password}";
-    #         }};
-
-    #         KafkaClient {{
-    #             org.apache.kafka.common.security.scram.ScramLoginModule required
-    #             username="{BALANCER_USER}"
-    #             password="{self.state.cluster.internal_user_credentials.get(BALANCER_USER,'')}";
-    #         }};
-    #     """
-    #     )
-
     def set_cruise_control_properties(self) -> None:
         """Writes all Cruise Control properties to the `cruisecontrol.properties` path."""
         self.workload.write(
@@ -600,16 +577,6 @@ class BalancerConfigManager(_ConfigManager):
             content=self.state.balancer.broker_capacities,
             path=self.workload.paths.capacity_jbod_json,
         )
-
-    # def set_cruise_control_jaas_config(self) -> None:
-    #     """Writes the CruiseControl JAAS config."""
-    #     # normally we would need to also write a JAAS specifically for CC to authenticate to ZooKeeper + Kafka
-    #     # however the path is fixed to be inferred from where the snap squashfs is
-    #     # however, it KAFKA_OPTS for -Djava.security.auth.login.config, so we can add both there
-    #     self.workload.write(
-    #         content=self.cruise_control_jaas_config,
-    #         path=self.workload.paths.balancer_jaas,
-    #     )
 
     @property
     def cruise_control_goals(self) -> list[str]:
@@ -631,20 +598,6 @@ class BalancerConfigManager(_ConfigManager):
         intra_broker_goals_prop = f"intra.broker.goals={','.join([goal for goal in supported_goals if 'IntraBroker' in goal])}"
 
         return [goals_prop, intra_broker_goals_prop]
-        # return [intra_broker_goals_prop]
-
-    @property
-    def kafka_opts(self) -> str:
-        """Extra Java config options.
-
-        Returns:
-            String of Java config options
-        """
-        opts = [
-            f"-Djava.security.auth.login.config={self.workload.paths.balancer_jaas}",
-        ]
-
-        return f"KAFKA_OPTS='{' '.join(opts)}'"
 
     def set_environment(self) -> None:
         """Writes the env-vars needed for passing to charmed-kafka service."""
@@ -661,7 +614,6 @@ class BalancerConfigManager(_ConfigManager):
         updated_env = current_env | map_env(updated_env_list)
         content = "\n".join([f"{key}={value}" for key, value in updated_env.items()])
 
-        # self.workload.write(content=content, path="/etc/environment")
         self.workload.write(content=content, path=f'{BALANCER.paths["CONF"]}/.env')
 
 
