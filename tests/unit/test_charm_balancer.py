@@ -75,6 +75,28 @@ def test_stop_workload_if_not_leader(patched_stopped, charm_configuration):
     assert patched_stopped.called_once
 
 
+def test_stop_workload_if_role_not_present(charm_configuration):
+    # Given
+    charm_configuration["options"]["roles"]["default"] = "balancer"
+    ctx = Context(
+        KafkaCharm,
+        meta=METADATA,
+        config=charm_configuration,
+        actions=ACTIONS,
+    )
+    state_in = State(leader=True, relations=[], config={"roles": "balancer"})
+
+    # When
+    with (
+        patch("workload.BalancerWorkload.active", return_value=True),
+        patch("workload.BalancerWorkload.stop") as patched_stopped,
+    ):
+        ctx.run("config_changed", state_in)
+
+    # Then
+    assert patched_stopped.called_once
+
+
 def test_ready_to_start_maintenance_no_peer_relation(charm_configuration):
     # Given
     charm_configuration["options"]["roles"]["default"] = "balancer"
