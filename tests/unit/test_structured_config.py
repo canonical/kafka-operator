@@ -62,10 +62,11 @@ def check_valid_values(
 
 def check_invalid_values(_harness, field: str, erroneus_values: Iterable) -> None:
     """Check the incorrectness of the passed values for a field."""
-    for value in erroneus_values:
-        _harness.update_config({field: value})
-        with pytest.raises(ValueError):
-            _ = _harness.charm.config[field]
+    with _harness.hooks_disabled():
+        for value in erroneus_values:
+            _harness.update_config({field: value})
+            with pytest.raises(ValueError):
+                _ = _harness.charm.config[field]
 
 
 def test_product_related_values(harness) -> None:
