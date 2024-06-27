@@ -28,6 +28,7 @@ from core.models import (
 from literals import (
     BALANCER,
     INTERNAL_USERS,
+    MIN_REPLICAS,
     PEER,
     REL_NAME,
     SECRETS_UNIT,
@@ -295,7 +296,7 @@ class ClusterState(Object):
             if not self.balancer.broker_capacities:
                 return Status.NO_BALANCER_DATA
 
-            if self.planned_units < 3:
+            if self.planned_units < MIN_REPLICAS:
                 return Status.NOT_ENOUGH_BROKERS
 
         return Status.ACTIVE

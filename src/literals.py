@@ -29,6 +29,7 @@ BALANCER_TOPICS = [
     "__KafkaCruiseControlPartitionMetricSamples",
     "__KafkaCruiseControlBrokerMetricSamples",
 ]
+MIN_REPLICAS = 3
 
 INTER_BROKER_USER = "sync"
 ADMIN_USER = "admin"
@@ -157,7 +158,9 @@ class Status(Enum):
     )
     NO_BALANCER_RELATION = StatusLevel(MaintenanceStatus("no balancer relation yet"), "DEBUG")
     NO_BALANCER_DATA = StatusLevel(MaintenanceStatus("no balancer data yet"), "DEBUG")
-    NOT_ENOUGH_BROKERS = StatusLevel(WaitingStatus("waiting for 3 online brokers"), "DEBUG")
+    NOT_ENOUGH_BROKERS = StatusLevel(
+        WaitingStatus(f"waiting for {MIN_REPLICAS} online brokers"), "DEBUG"
+    )
 
 
 DEPENDENCIES = {
