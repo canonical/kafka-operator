@@ -24,14 +24,12 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-BALANCER_EVENTS = "balancer-events"
-
 
 class BalancerOperator(Object):
     """Implements the logic for the balancer."""
 
     def __init__(self, charm) -> None:
-        super().__init__(charm, BALANCER_EVENTS)
+        super().__init__(charm, BALANCER.value)
         self.charm: "KafkaCharm" = charm
 
         self.workload = BalancerWorkload()

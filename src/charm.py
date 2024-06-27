@@ -105,7 +105,11 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.unit.status = status
 
     def _on_config_changed(self, _):
-        """Handler for `config_changed` events."""
+        """Handler for `config_changed` events.
+
+        This handler is in charge of stopping the workloads, since the sub-operators would not
+        be instantiated if roles are changed.
+        """
         if BROKER.value not in self.config.roles and self.broker.workload.active():
             self.broker.workload.stop()
 

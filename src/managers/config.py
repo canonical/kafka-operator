@@ -600,7 +600,10 @@ class BalancerConfigManager(_ConfigManager):
         return [goals_prop, intra_broker_goals_prop]
 
     def set_environment(self) -> None:
-        """Writes the env-vars needed for passing to charmed-kafka service."""
+        """Writes the env-vars needed for passing to charmed-kafka service.
+
+        We avoid overwriting KAFKA_OPTS in /etc/environment because it is only used by the broker.
+        """
         updated_env_list = [
             self.jmx_opts,
             self.jvm_performance_opts,

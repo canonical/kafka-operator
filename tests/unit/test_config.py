@@ -289,7 +289,6 @@ def test_set_environment(
     harness: Harness[KafkaCharm], patched_workload_write, patched_etc_environment
 ):
     """Checks all necessary env-vars are written to /etc/environment."""
-    # TODO: revisit with new .env
     with (
         patch("workload.KafkaWorkload.write") as patched_write,
         patch("builtins.open", mock_open()),

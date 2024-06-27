@@ -152,7 +152,7 @@ class BrokerOperator(Object):
             and not self.charm.state.cluster.internal_user_credentials
             and self.charm.state.zookeeper.zookeeper_connected
         ):
-            # Create credentials for missing internal user
+            # Create credentials for missing internal user, to reconcile state during upgrades
             self.zookeeper._on_zookeeper_changed(event)  # type: ignore
 
         # only overwrite properties if service is already active
