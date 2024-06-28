@@ -23,8 +23,6 @@ from core.structured_config import CharmConfig
 from events.balancer import BalancerOperator
 from events.broker import BrokerOperator
 from literals import (
-    BALANCER,
-    BROKER,
     CHARM_KEY,
     JMX_EXPORTER_PORT,
     LOGS_RULES_DIR,
@@ -110,14 +108,10 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         This handler is in charge of stopping the workloads, since the sub-operators would not
         be instantiated if roles are changed.
         """
-        if BROKER.value not in self.config.roles and self.broker.workload.active():
+        if not self.state.is_broker and self.broker.workload.active():
             self.broker.workload.stop()
 
-        if (
-            BALANCER.value not in self.config.roles
-            and self.unit.is_leader()
-            and self.broker.workload.active()
-        ):
+        if not self.state.is_balancer and self.unit.is_leader() and self.broker.workload.active():
             self.balancer.workload.stop()
 
     def _restart_broker(self, event: EventBase) -> None:

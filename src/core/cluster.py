@@ -27,6 +27,7 @@ from core.models import (
 )
 from literals import (
     BALANCER,
+    BROKER,
     INTERNAL_USERS,
     MIN_REPLICAS,
     PEER,
@@ -289,7 +290,7 @@ class ClusterState(Object):
             return Status.NO_BROKER_CREDS
 
         # Additional checks specific to balancer role
-        if BALANCER.value in self.roles:
+        if self.is_balancer:
             if not self.balancer:
                 return Status.NO_BALANCER_RELATION
 
@@ -300,3 +301,13 @@ class ClusterState(Object):
                 return Status.NOT_ENOUGH_BROKERS
 
         return Status.ACTIVE
+
+    @property
+    def is_balancer(self) -> bool:
+        """Is the charm enabling the balancer?"""
+        return BALANCER.value in self.roles
+
+    @property
+    def is_broker(self) -> bool:
+        """Is the charm enabling the broker(s)?"""
+        return BROKER.value in self.roles
