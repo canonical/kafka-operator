@@ -107,7 +107,7 @@ class Listener:
         return f"{self.name}://{self.host}:{self.port}"
 
 
-class _ConfigManager:
+class CommonConfigManager:
     """Common options for managing Kafka configuration."""
 
     config: CharmConfig
@@ -199,7 +199,7 @@ class _ConfigManager:
         )
 
 
-class ConfigManager(_ConfigManager):
+class ConfigManager(CommonConfigManager):
     """Manager for handling Kafka configuration."""
 
     def __init__(
@@ -525,7 +525,7 @@ class ConfigManager(_ConfigManager):
         return key.replace("_", ".") if key not in SERVER_PROPERTIES_BLACKLIST else f"# {key}"
 
 
-class BalancerConfigManager(_ConfigManager):
+class BalancerConfigManager(CommonConfigManager):
     """Manager for handling Balancer configuration."""
 
     def __init__(
