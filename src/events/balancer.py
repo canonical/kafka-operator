@@ -14,8 +14,8 @@ from ops import (
 
 from literals import (
     BALANCER,
-    BALANCER_TOPICS,
 )
+from managers.balancer import BalancerManager
 from managers.config import BalancerConfigManager
 from workload import BalancerWorkload
 
@@ -41,6 +41,7 @@ class BalancerOperator(Object):
         self.config_manager = BalancerConfigManager(
             self.charm.state, self.workload, self.charm.config
         )
+        self.balancer_manager = BalancerManager(self)
 
         self.framework.observe(self.charm.on.install, self._on_install)
         self.framework.observe(self.charm.on.start, self._on_start)
@@ -67,34 +68,11 @@ class BalancerOperator(Object):
         self.config_manager.set_cruise_control_properties()
         self.config_manager.set_broker_capacities()
 
-        for topic in BALANCER_TOPICS:
-            if topic not in self.workload.run_bin_command(
-                "topics",
-                [
-                    "--list",
-                    "--bootstrap-server",
-                    f"{self.charm.state.internal_bootstrap_server}",
-                    "--command-config",
-                    f'{BALANCER.paths["CONF"]}/cruisecontrol.properties',
-                ],
-            ):
-                try:
-                    self.workload.run_bin_command(
-                        "topics",
-                        [
-                            "--create",
-                            "--topic",
-                            topic,
-                            "--bootstrap-server",
-                            f"{self.charm.state.internal_bootstrap_server}",
-                            "--command-config",
-                            f'{BALANCER.paths["CONF"]}/cruisecontrol.properties',
-                        ],
-                    )
-                    logger.info(f"Created topic {topic}")
-                except CalledProcessError:
-                    event.defer()
-                    return
+        try:
+            self.balancer_manager.create_internal_topics()
+        except CalledProcessError:
+            event.defer()
+            return
 
         self.workload.start()
 

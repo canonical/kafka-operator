@@ -59,7 +59,6 @@ class BrokerOperator(Object):
             return
 
         self.health = KafkaHealth(self)
-
         self.upgrade = KafkaUpgrade(
             self,
             dependency_model=KafkaDependencyModel(

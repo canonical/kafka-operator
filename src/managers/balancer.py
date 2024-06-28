@@ -5,19 +5,24 @@
 """Manager for handling Balancer."""
 
 import json
+import logging
 from typing import TYPE_CHECKING
 
-from literals import STORAGE
+from literals import BALANCER, BALANCER_TOPICS, STORAGE
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
+    from events.balancer import BalancerOperator
     from events.broker import BrokerOperator
+
+
+logger = logging.getLogger(__name__)
 
 
 class BalancerManager:
     """Manager for handling Balancer."""
 
-    def __init__(self, dependent: "BrokerOperator") -> None:
+    def __init__(self, dependent: "BrokerOperator | BalancerOperator") -> None:
         self.dependent = dependent
         self.charm: "KafkaCharm" = dependent.charm
 
@@ -41,3 +46,30 @@ class BalancerManager:
                 for storage in self.charm.model.storages[STORAGE]
             }
         )
+
+    def create_internal_topics(self) -> None:
+        """Create Cruise Control topics."""
+        for topic in BALANCER_TOPICS:
+            if topic not in self.dependent.workload.run_bin_command(
+                "topics",
+                [
+                    "--list",
+                    "--bootstrap-server",
+                    f"{self.charm.state.internal_bootstrap_server}",
+                    "--command-config",
+                    f'{BALANCER.paths["CONF"]}/cruisecontrol.properties',
+                ],
+            ):
+                self.dependent.workload.run_bin_command(
+                    "topics",
+                    [
+                        "--create",
+                        "--topic",
+                        topic,
+                        "--bootstrap-server",
+                        f"{self.charm.state.internal_bootstrap_server}",
+                        "--command-config",
+                        f'{BALANCER.paths["CONF"]}/cruisecontrol.properties',
+                    ],
+                )
+                logger.info(f"Created topic {topic}")
