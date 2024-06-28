@@ -63,8 +63,25 @@ async def test_relate_not_enough_brokers(ops_test: OpsTest):
 
 
 async def test_minimum_brokers_balancer_starts(ops_test: OpsTest):
-    await ops_test.model.applications[APP_NAME].add_units(count=1)
+    await ops_test.model.applications[APP_NAME].add_units(count=2)
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], idle_period=30, status="active")
+    await ops_test.model.block_until(lambda: len(ops_test.model.applications[APP_NAME].units) == 4)
+    await ops_test.model.wait_for_idle(
+        apps=[APP_NAME], status="active", timeout=1000, idle_period=30
+    )
+    assert balancer_is_running(model_full_name=ops_test.model_full_name)
+
+
+async def test_change_leader(ops_test: OpsTest):
+
+    if ops_test.model is None:
+        assert False
+
+    for unit in ops_test.model.applications[APP_NAME].units:
+        if await unit.is_leader_from_status():
+            leader_unit = unit
+
+    await leader_unit.destroy()
     await ops_test.model.block_until(lambda: len(ops_test.model.applications[APP_NAME].units) == 3)
     await ops_test.model.wait_for_idle(
         apps=[APP_NAME], status="active", timeout=1000, idle_period=30
