@@ -337,6 +337,8 @@ def test_ready_to_start_ok(charm_configuration, zk_data):
         patch("workload.BalancerWorkload.read"),
         patch("workload.BalancerWorkload.exec"),
         patch("workload.BalancerWorkload.start"),
+        patch("workload.BalancerWorkload.active", return_value=True),
+        patch("core.models.ZooKeeper.broker_active", return_value=True),
     ):
         state_out = ctx.run("start", state_in)
 

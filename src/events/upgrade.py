@@ -101,7 +101,8 @@ class KafkaUpgrade(DataUpgrade):
             self.set_unit_failed()
             return
 
-        self.dependent.workload.stop()
+        self.charm.broker.workload.stop()
+        self.charm.balancer.workload.stop()
 
         if not self.dependent.workload.install():
             logger.error("Unable to install Snap")
@@ -109,6 +110,7 @@ class KafkaUpgrade(DataUpgrade):
             return
 
         self.dependent.config_manager.set_environment()
+        self.apply_backwards_compatibility_fixes(event)
 
         logger.info(f"{self.charm.unit.name} upgrading service...")
         self.dependent.workload.restart()
@@ -134,3 +136,12 @@ class KafkaUpgrade(DataUpgrade):
         except ClusterNotReadyError as e:
             logger.error(e.cause)
             self.set_unit_failed()
+
+    def apply_backwards_compatibility_fixes(self, event) -> None:
+        """A range of functions needed for backwards compatibility."""
+        # Rev.38 - Create credentials for missing internal user, to reconcile state during upgrades
+        if (
+            not self.charm.state.cluster.internal_user_credentials
+            and self.charm.state.zookeeper.zookeeper_connected
+        ):
+            self.dependent.zookeeper._on_zookeeper_changed(event)  # type: ignore

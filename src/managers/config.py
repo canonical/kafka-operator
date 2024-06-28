@@ -14,9 +14,7 @@ from core.structured_config import CharmConfig, LogLevel
 from core.workload import WorkloadBase
 from literals import (
     ADMIN_USER,
-    BALANCER,
     BALANCER_USER,
-    BROKER,
     DEFAULT_BALANCER_GOALS,
     INTER_BROKER_USER,
     JMX_EXPORTER_PORT,
