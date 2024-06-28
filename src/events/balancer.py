@@ -78,13 +78,6 @@ class BalancerOperator(Object):
 
         logger.info("Cruise control started")
 
-    def _on_leader_elected(self, event: LeaderElectedEvent) -> None:
-        """Handler for `leader-elected` event."""
-        if not self.workload.active():
-            event.defer()
-            return
-
-        self._on_start(event)
 
     def _on_config_changed(self, event: ConfigChangedEvent) -> None:
         """Handler for `config-changed` event."""
