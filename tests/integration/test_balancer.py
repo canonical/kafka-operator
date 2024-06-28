@@ -73,10 +73,6 @@ async def test_minimum_brokers_balancer_starts(ops_test: OpsTest):
 
 
 async def test_change_leader(ops_test: OpsTest):
-
-    if ops_test.model is None:
-        assert False
-
     for unit in ops_test.model.applications[APP_NAME].units:
         if await unit.is_leader_from_status():
             leader_unit = unit
