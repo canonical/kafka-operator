@@ -70,7 +70,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         self.framework.observe(getattr(self.on, "install"), self._on_install)
         self.framework.observe(getattr(self.on, "remove"), self._on_remove)
-        self.framework.observe(getattr(self.on, "config_changed"), self._on_config_changed)
+        self.framework.observe(getattr(self.on, "config_changed"), self._on_roles_changed)
 
         # Register roles event handlers after global ones, so that they get the priority.
         self.broker = BrokerOperator(self)
@@ -104,7 +104,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         getattr(logger, log_level.lower())(status.message)
         self.unit.status = status
 
-    def _on_config_changed(self, _):
+    def _on_roles_changed(self, _):
         """Handler for `config_changed` events.
 
         This handler is in charge of stopping the workloads, since the sub-operators would not
