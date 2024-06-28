@@ -20,15 +20,12 @@ pytestmark = pytest.mark.balancer
 
 
 def balancer_is_running(model_full_name: str | None) -> bool:
-    try:
-        check_output(
-            f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'curl http://localhost:9090/kafkacruisecontrol/state'",
-            stderr=PIPE,
-            shell=True,
-            universal_newlines=True,
-        )
-    except CalledProcessError:
-        return False
+    check_output(
+        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'curl http://localhost:9090/kafkacruisecontrol/state'",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
     return True
 
 
@@ -60,7 +57,9 @@ async def test_relate_not_enough_brokers(ops_test: OpsTest):
     await ops_test.model.add_relation(APP_NAME, ZK_NAME)
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], idle_period=30)
     assert ops_test.model.applications[APP_NAME].status == "waiting"
-    assert not balancer_is_running(model_full_name=ops_test.model_full_name)
+
+    with pytest.raises(CalledProcessError):
+        assert balancer_is_running(model_full_name=ops_test.model_full_name)
 
 
 async def test_minimum_brokers_balancer_starts(ops_test: OpsTest):
