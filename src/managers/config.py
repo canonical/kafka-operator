@@ -513,7 +513,6 @@ class ConfigManager(CommonConfigManager):
         updated_env = current_env | map_env(updated_env_list)
         content = "\n".join([f"{key}={value}" for key, value in updated_env.items()])
         self.workload.write(content=content, path="/etc/environment")
-        self.workload.write(content=content, path=f'{BROKER.paths["CONF"]}/.env')
 
     @staticmethod
     def _translate_config_key(key: str):
@@ -617,7 +616,7 @@ class BalancerConfigManager(CommonConfigManager):
         updated_env = current_env | map_env(updated_env_list)
         content = "\n".join([f"{key}={value}" for key, value in updated_env.items()])
 
-        self.workload.write(content=content, path=f'{BALANCER.paths["CONF"]}/.env')
+        self.workload.write(content=content, path="/etc/environment")
 
 
 def map_env(env: Iterable[str]) -> dict[str, str]:
