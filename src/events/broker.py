@@ -142,7 +142,7 @@ class BrokerOperator(Object):
             self.charm.state.balancer.update(
                 {
                     "broker-capacities": self.config_manager.broker_capacities,
-                    "rack_aware": json.dumps(bool(self.config_manager.rack_properties)),
+                    "rack-aware": json.dumps(bool(self.config_manager.rack_properties)),
                 }
             )
 
