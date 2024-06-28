@@ -280,6 +280,7 @@ class BrokerOperator(Object):
         else:
             self.charm._set_status(Status.REMOVED_STORAGE_NO_REPL)
 
+        self.charm.state.unit_broker.update({"storages": self.balancer_manager.storages})
         self.charm.on.config_changed.emit()
 
     @property
