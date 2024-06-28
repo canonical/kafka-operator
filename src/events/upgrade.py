@@ -14,6 +14,7 @@ from charms.data_platform_libs.v0.upgrade import (
     UpgradeGrantedEvent,
     verify_requirements,
 )
+from charms.operator_libs_linux.v0.sysctl import CalledProcessError
 from pydantic import BaseModel
 from typing_extensions import override
 
@@ -102,7 +103,11 @@ class KafkaUpgrade(DataUpgrade):
             return
 
         self.charm.broker.workload.stop()
-        self.charm.balancer.workload.stop()
+        try:
+            self.charm.balancer.workload.stop()
+        except CalledProcessError:
+            # cruise control added in charmed-kafka Rev.37
+            pass
 
         if not self.dependent.workload.install():
             logger.error("Unable to install Snap")
