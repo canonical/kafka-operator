@@ -494,7 +494,6 @@ class Balancer(RelationState):
                 relation_id=self.relation.id, field="rack-aware"
             )
             == "true"
-            or False
         )
 
     @property
