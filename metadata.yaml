@@ -27,6 +27,8 @@ peers:
     interface: rolling_op
   upgrade:
     interface: upgrade
+  balancer:
+    interface: balancer
 
 requires:
   zookeeper:
@@ -53,7 +55,7 @@ storage:
   data:
     type: filesystem
     description: Directories where the log data is stored
-    minimum-size: 10G
+    minimum-size: 1G
     location: /var/snap/charmed-kafka/common/var/lib/kafka
     multiple:
       range: 1-

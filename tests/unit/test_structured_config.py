@@ -4,6 +4,7 @@
 
 import logging
 from pathlib import Path
+from typing import Iterable
 
 import pytest
 import yaml
@@ -11,6 +12,8 @@ from ops.testing import Harness
 
 from charm import KafkaCharm
 from literals import CHARM_KEY, CONTAINER, SUBSTRATE
+
+pytestmark = [pytest.mark.broker, pytest.mark.balancer]
 
 CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
 ACTIONS = str(yaml.safe_load(Path("./actions.yaml").read_text()))
@@ -48,19 +51,22 @@ def test_config_parsing_parameters_integer_values(harness) -> None:
         check_valid_values(harness, field, valid_values)
 
 
-def check_valid_values(_harness, field: str, accepted_values: list, is_long_field=False) -> None:
+def check_valid_values(
+    _harness, field: str, accepted_values: Iterable, is_long_field=False
+) -> None:
     """Check the correctness of the passed values for a field."""
     for value in accepted_values:
         _harness.update_config({field: value})
         assert _harness.charm.config[field] == value if not is_long_field else int(value)
 
 
-def check_invalid_values(_harness, field: str, erroneus_values: list) -> None:
+def check_invalid_values(_harness, field: str, erroneus_values: Iterable) -> None:
     """Check the incorrectness of the passed values for a field."""
-    for value in erroneus_values:
-        _harness.update_config({field: value})
-        with pytest.raises(ValueError):
-            _ = _harness.charm.config[field]
+    with _harness.hooks_disabled():
+        for value in erroneus_values:
+            _harness.update_config({field: value})
+            with pytest.raises(ValueError):
+                _ = _harness.charm.config[field]
 
 
 def test_product_related_values(harness) -> None:
@@ -151,3 +157,12 @@ def test_config_parsing_parameters_long_values(harness) -> None:
     for field in long_fields:
         check_invalid_values(harness, field, erroneus_values)
         check_valid_values(harness, field, valid_values, is_long_field=True)
+
+
+def test_incorrect_roles(harness):
+    erroneus_values = ["", "something_else" "broker, something_else" "broker,balancer,"]
+    valid_values = ["broker", "balancer", "balancer,broker", "broker, balancer "]
+    check_invalid_values(harness, "roles", erroneus_values)
+    for value in valid_values:
+        harness.update_config({"roles": value})
+        assert harness.charm.config.roles

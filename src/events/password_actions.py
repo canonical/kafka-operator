@@ -13,6 +13,7 @@ from literals import ADMIN_USER, INTERNAL_USERS
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
+    from events.broker import BrokerOperator
 
 logger = logging.getLogger(__name__)
 
@@ -20,9 +21,10 @@ logger = logging.getLogger(__name__)
 class PasswordActionEvents(Object):
     """Event handlers for password-related Juju Actions."""
 
-    def __init__(self, charm):
-        super().__init__(charm, "password_events")
-        self.charm: "KafkaCharm" = charm
+    def __init__(self, dependent: "BrokerOperator") -> None:
+        super().__init__(dependent, "password_events")
+        self.dependent = dependent
+        self.charm: "KafkaCharm" = dependent.charm
 
         self.framework.observe(
             getattr(self.charm.on, "set_password_action"), self._set_password_action
@@ -43,13 +45,13 @@ class PasswordActionEvents(Object):
             event.fail(msg)
             return
 
-        if not self.charm.upgrade.idle:
-            msg = f"Cannot set password while upgrading (upgrade_stack: {self.charm.upgrade.upgrade_stack})"
+        if not self.dependent.upgrade.idle:
+            msg = f"Cannot set password while upgrading (upgrade_stack: {self.dependent.upgrade.upgrade_stack})"
             logger.error(msg)
             event.fail(msg)
             return
 
-        if not self.charm.healthy:
+        if not self.dependent.healthy:
             msg = "Unit is not healthy"
             logger.error(msg)
             event.fail(msg)
@@ -71,7 +73,7 @@ class PasswordActionEvents(Object):
             return
 
         try:
-            self.charm.auth_manager.add_user(
+            self.dependent.auth_manager.add_user(
                 username=username, password=new_password, zk_auth=True
             )
         except Exception as e:
@@ -92,7 +94,9 @@ class PasswordActionEvents(Object):
             event.fail(msg)
             return
 
-        admin_properties = set(client_properties) - set(self.charm.config_manager.tls_properties)
+        admin_properties = set(client_properties) - set(
+            self.dependent.config_manager.tls_properties
+        )
 
         event.set_results(
             {

@@ -14,6 +14,8 @@ from ops.testing import Harness
 from charm import KafkaCharm
 from literals import CHARM_KEY, CONTAINER, PEER, SUBSTRATE, ZK
 
+pytestmark = pytest.mark.broker
+
 CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
 ACTIONS = str(yaml.safe_load(Path("./actions.yaml").read_text()))
 METADATA = str(yaml.safe_load(Path("./metadata.yaml").read_text()))
@@ -62,7 +64,7 @@ def harness():
     return harness
 
 
-def test_blocked_if_trusted_certificate_added_before_tls_relation(harness: Harness):
+def test_blocked_if_trusted_certificate_added_before_tls_relation(harness: Harness[KafkaCharm]):
     # Create peer relation
     peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
     harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/1")
@@ -76,7 +78,7 @@ def test_blocked_if_trusted_certificate_added_before_tls_relation(harness: Harne
     assert isinstance(harness.charm.app.status, BlockedStatus)
 
 
-def test_mtls_flag_added(harness: Harness):
+def test_mtls_flag_added(harness: Harness[KafkaCharm]):
     # Create peer relation
     peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
     harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/1")
@@ -93,7 +95,7 @@ def test_mtls_flag_added(harness: Harness):
     assert isinstance(harness.charm.app.status, ActiveStatus)
 
 
-def test_extra_sans_config(harness: Harness):
+def test_extra_sans_config(harness: Harness[KafkaCharm]):
     # Create peer relation
     peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
     harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/0")
@@ -102,16 +104,16 @@ def test_extra_sans_config(harness: Harness):
     )
 
     harness.update_config({"certificate_extra_sans": ""})
-    assert harness.charm.tls._extra_sans == []
+    assert harness.charm.broker.tls._extra_sans == []
 
     harness.update_config({"certificate_extra_sans": "worker{unit}.com"})
-    assert harness.charm.tls._extra_sans == ["worker0.com"]
+    assert harness.charm.broker.tls._extra_sans == ["worker0.com"]
 
     harness.update_config({"certificate_extra_sans": "worker{unit}.com,{unit}.example"})
-    assert harness.charm.tls._extra_sans == ["worker0.com", "0.example"]
+    assert harness.charm.broker.tls._extra_sans == ["worker0.com", "0.example"]
 
 
-def test_sans(harness: Harness):
+def test_sans(harness: Harness[KafkaCharm]):
     # Create peer relation
     peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
     harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/0")
@@ -122,14 +124,14 @@ def test_sans(harness: Harness):
 
     sock_dns = socket.getfqdn()
     if SUBSTRATE == "vm":
-        assert harness.charm.tls._sans == {
+        assert harness.charm.broker.tls._sans == {
             "sans_ip": ["treebeard"],
             "sans_dns": [f"{CHARM_KEY}/0", sock_dns, "worker0.com"],
         }
     elif SUBSTRATE == "k8s":
         # NOTE previous k8s sans_ip like kafka-k8s-0.kafka-k8s-endpoints or binding pod address
         with patch("ops.model.Model.get_binding"):
-            assert harness.charm.tls._sans["sans_dns"] == [
+            assert harness.charm.broker.tls._sans["sans_dns"] == [
                 "kafka-k8s-0",
                 "kafka-k8s-0.kafka-k8s-endpoints",
                 sock_dns,

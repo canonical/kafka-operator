@@ -15,9 +15,7 @@ SNAP_NAME = "charmed-kafka"
 CHARMED_KAFKA_SNAP_REVISION = 37
 CONTAINER = "kafka"
 SUBSTRATE = "vm"
-
-USER = "snap_daemon"
-GROUP = "root"
+STORAGE = "data"
 
 # FIXME: these need better names
 PEER = "cluster"
@@ -26,10 +24,17 @@ REL_NAME = "kafka-client"
 TLS_RELATION = "certificates"
 TRUSTED_CERTIFICATE_RELATION = "trusted-certificate"
 TRUSTED_CA_RELATION = "trusted-ca"
+BALANCER_TOPICS = [
+    "__CruiseControlMetrics",
+    "__KafkaCruiseControlPartitionMetricSamples",
+    "__KafkaCruiseControlBrokerMetricSamples",
+]
+MIN_REPLICAS = 3
 
 INTER_BROKER_USER = "sync"
 ADMIN_USER = "admin"
-INTERNAL_USERS = [INTER_BROKER_USER, ADMIN_USER]
+BALANCER_USER = "balancer"
+INTERNAL_USERS = [INTER_BROKER_USER, ADMIN_USER, BALANCER_USER]
 SECRETS_APP = [f"{user}-password" for user in INTERNAL_USERS]
 SECRETS_UNIT = [
     "ca-cert",
@@ -68,11 +73,20 @@ OS_REQUIREMENTS = {
     "vm.dirty_background_ratio": "5",
 }
 
+
 PATHS = {
-    "CONF": f"/var/snap/{SNAP_NAME}/current/etc/kafka",
-    "LOGS": f"/var/snap/{SNAP_NAME}/common/var/log/kafka",
-    "DATA": f"/var/snap/{SNAP_NAME}/common/var/lib/kafka",
-    "BIN": f"/snap/{SNAP_NAME}/current/opt/kafka",
+    "kafka": {
+        "CONF": f"/var/snap/{SNAP_NAME}/current/etc/kafka",
+        "LOGS": f"/var/snap/{SNAP_NAME}/common/var/log/kafka",
+        "DATA": f"/var/snap/{SNAP_NAME}/common/var/lib/kafka",
+        "BIN": f"/snap/{SNAP_NAME}/current/opt/kafka",
+    },
+    "cruise-control": {
+        "CONF": f"/var/snap/{SNAP_NAME}/current/etc/cruise-control",
+        "LOGS": f"/var/snap/{SNAP_NAME}/common/var/log/cruise-control",
+        "DATA": f"/var/snap/{SNAP_NAME}/common/var/lib/cruise-control",
+        "BIN": f"/snap/{SNAP_NAME}/current/opt/cruise-control",
+    },
 }
 
 
@@ -138,6 +152,15 @@ class Status(Enum):
         BlockedStatus("sysctl params cannot be set. Is the machine running on a container?"),
         "WARNING",
     )
+    NOT_IMPLEMENTED = StatusLevel(
+        BlockedStatus("feature not yet implemented"),
+        "WARNING",
+    )
+    NO_BALANCER_RELATION = StatusLevel(MaintenanceStatus("no balancer relation yet"), "DEBUG")
+    NO_BALANCER_DATA = StatusLevel(MaintenanceStatus("no balancer data yet"), "DEBUG")
+    NOT_ENOUGH_BROKERS = StatusLevel(
+        WaitingStatus(f"waiting for {MIN_REPLICAS} online brokers"), "DEBUG"
+    )
 
 
 DEPENDENCIES = {
@@ -148,3 +171,53 @@ DEPENDENCIES = {
         "version": "3.6.1",
     },
 }
+
+
+@dataclass
+class Role:
+    value: str
+    service: str
+    paths: dict[str, str]
+    requested_secrets: list[str] | None = None
+
+    def __eq__(self, value: object, /) -> bool:
+        """Provide an easy comparison to the configuration key."""
+        return self.value == value
+
+
+BROKER = Role(value="broker", service="daemon", paths=PATHS["kafka"])
+BALANCER = Role(
+    value="balancer",
+    service="cruise-control",
+    paths=PATHS["cruise-control"],
+    requested_secrets=[
+        "username",
+        "password",
+        "uris",
+        "zk-username",
+        "zk-password",
+        "zk-uris",
+        "zk-database",
+    ],
+)
+
+DEFAULT_BALANCER_GOALS = [
+    "CpuCapacity",
+    "CpuUsageDistribution",
+    "DiskCapacity",
+    "DiskUsageDistribution",
+    "IntraBrokerDiskCapacity",
+    "IntraBrokerDiskUsageDistribution",
+    "LeaderBytesInDistribution",
+    "LeaderReplicaDistribution",
+    "MinTopicLeadersPerBroker",
+    "NetworkInboundCapacity",
+    "NetworkInboundUsageDistribution",
+    "NetworkOutboundCapacity",
+    "NetworkOutboundUsageDistribution",
+    "PotentialNwOut",
+    "RackAware",
+    "ReplicaCapacity",
+    "ReplicaDistribution",
+    "TopicReplicaDistribution",
+]

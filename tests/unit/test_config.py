@@ -26,9 +26,12 @@ from literals import (
 )
 from managers.config import ConfigManager
 
+pytestmark = pytest.mark.broker
+
 CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
 ACTIONS = str(yaml.safe_load(Path("./actions.yaml").read_text()))
 METADATA = str(yaml.safe_load(Path("./metadata.yaml").read_text()))
+
 
 # override conftest fixtures
 @pytest.fixture(autouse=False)
@@ -59,7 +62,7 @@ def harness():
     return harness
 
 
-def test_all_storages_in_log_dirs(harness: Harness):
+def test_all_storages_in_log_dirs(harness: Harness[KafkaCharm]):
     """Checks that the log.dirs property updates with all available storages."""
     storage_metadata = harness.charm.meta.storages["data"]
     min_storages = storage_metadata.multiple_range[0] if storage_metadata.multiple_range else 1
@@ -71,7 +74,7 @@ def test_all_storages_in_log_dirs(harness: Harness):
     )
 
 
-def test_internal_credentials_only_return_when_all_present(harness: Harness):
+def test_internal_credentials_only_return_when_all_present(harness: Harness[KafkaCharm]):
     peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
     harness.update_relation_data(
         peer_rel_id, CHARM_KEY, {f"{INTERNAL_USERS[0]}-password": "mellon"}
@@ -86,7 +89,7 @@ def test_internal_credentials_only_return_when_all_present(harness: Harness):
     assert len(harness.charm.state.cluster.internal_user_credentials) == len(INTERNAL_USERS)
 
 
-def test_log_dirs_in_server_properties(harness: Harness):
+def test_log_dirs_in_server_properties(harness: Harness[KafkaCharm]):
     """Checks that log.dirs are added to server_properties."""
     zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
     harness.update_relation_data(
@@ -109,21 +112,19 @@ def test_log_dirs_in_server_properties(harness: Harness):
     )
 
     found_log_dirs = False
-    with (
-        patch(
-            "core.models.KafkaCluster.internal_user_credentials",
-            new_callable=PropertyMock,
-            return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
-        )
+    with patch(
+        "core.models.KafkaCluster.internal_user_credentials",
+        new_callable=PropertyMock,
+        return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
     ):
-        for prop in harness.charm.config_manager.server_properties:
+        for prop in harness.charm.broker.config_manager.server_properties:
             if "log.dirs" in prop:
                 found_log_dirs = True
 
         assert found_log_dirs
 
 
-def test_listeners_in_server_properties(harness: Harness):
+def test_listeners_in_server_properties(harness: Harness[KafkaCharm]):
     """Checks that listeners are split into INTERNAL and EXTERNAL."""
     zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
     harness.update_relation_data(
@@ -148,18 +149,18 @@ def test_listeners_in_server_properties(harness: Harness):
     expected_listeners = "listeners=INTERNAL_SASL_PLAINTEXT://:19092"
     expected_advertised_listeners = f"advertised.listeners=INTERNAL_SASL_PLAINTEXT://{'treebeard' if SUBSTRATE == 'vm' else 'kafka-k8s-0.kafka-k8s-endpoints'}:19092"
 
-    with (
-        patch(
-            "core.models.KafkaCluster.internal_user_credentials",
-            new_callable=PropertyMock,
-            return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
-        )
+    with patch(
+        "core.models.KafkaCluster.internal_user_credentials",
+        new_callable=PropertyMock,
+        return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
     ):
-        assert expected_listeners in harness.charm.config_manager.server_properties
-        assert expected_advertised_listeners in harness.charm.config_manager.server_properties
+        assert expected_listeners in harness.charm.broker.config_manager.server_properties
+        assert (
+            expected_advertised_listeners in harness.charm.broker.config_manager.server_properties
+        )
 
 
-def test_ssl_listeners_in_server_properties(harness: Harness):
+def test_ssl_listeners_in_server_properties(harness: Harness[KafkaCharm]):
     """Checks that listeners are added after TLS relation are created."""
     zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
     # Simulate data-integrator relation
@@ -201,18 +202,18 @@ def test_ssl_listeners_in_server_properties(harness: Harness):
     )
     expected_advertised_listeners = f"advertised.listeners=INTERNAL_SASL_SSL://{host}:19093,CLIENT_SASL_SSL://{host}:9093,CLIENT_SSL://{host}:9094"
 
-    with (
-        patch(
-            "core.models.KafkaCluster.internal_user_credentials",
-            new_callable=PropertyMock,
-            return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
-        )
+    with patch(
+        "core.models.KafkaCluster.internal_user_credentials",
+        new_callable=PropertyMock,
+        return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
     ):
-        assert expected_listeners in harness.charm.config_manager.server_properties
-        assert expected_advertised_listeners in harness.charm.config_manager.server_properties
+        assert expected_listeners in harness.charm.broker.config_manager.server_properties
+        assert (
+            expected_advertised_listeners in harness.charm.broker.config_manager.server_properties
+        )
 
 
-def test_zookeeper_config_succeeds_fails_config(harness: Harness):
+def test_zookeeper_config_succeeds_fails_config(harness: Harness[KafkaCharm]):
     """Checks that no ZK config is returned if missing field."""
     zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
     harness.update_relation_data(
@@ -230,7 +231,7 @@ def test_zookeeper_config_succeeds_fails_config(harness: Harness):
     assert not harness.charm.state.zookeeper.zookeeper_connected
 
 
-def test_zookeeper_config_succeeds_valid_config(harness: Harness):
+def test_zookeeper_config_succeeds_valid_config(harness: Harness[KafkaCharm]):
     """Checks that ZK config is returned if all fields."""
     zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
     harness.update_relation_data(
@@ -250,9 +251,9 @@ def test_zookeeper_config_succeeds_valid_config(harness: Harness):
     assert harness.charm.state.zookeeper.zookeeper_connected
 
 
-def test_kafka_opts(harness: Harness):
+def test_kafka_opts(harness: Harness[KafkaCharm]):
     """Checks necessary args for KAFKA_OPTS."""
-    args = harness.charm.config_manager.kafka_opts
+    args = harness.charm.broker.config_manager.kafka_opts
     assert "-Djava.security.auth.login.config" in args
     assert "KAFKA_OPTS" in args
 
@@ -261,7 +262,7 @@ def test_kafka_opts(harness: Harness):
     "profile,expected",
     [("production", JVM_MEM_MAX_GB), ("testing", JVM_MEM_MIN_GB)],
 )
-def test_heap_opts(harness: Harness, profile, expected):
+def test_heap_opts(harness: Harness[KafkaCharm], profile, expected):
     """Checks necessary args for KAFKA_HEAP_OPTS."""
     # Harness doesn't reinitialize KafkaCharm when calling update_config, which means that
     # self.config is not passed again to ConfigManager
@@ -276,35 +277,37 @@ def test_heap_opts(harness: Harness, profile, expected):
     assert "KAFKA_HEAP_OPTS" in args
 
 
-def test_jmx_opts(harness: Harness):
+def test_jmx_opts(harness: Harness[KafkaCharm]):
     """Checks necessary args for KAFKA_JMX_OPTS."""
-    args = harness.charm.config_manager.jmx_opts
+    args = harness.charm.broker.config_manager.jmx_opts
     assert "-javaagent:" in args
     assert args.split(":")[1].split("=")[-1] == str(JMX_EXPORTER_PORT)
     assert "KAFKA_JMX_OPTS" in args
 
 
-def test_set_environment(harness: Harness, patched_workload_write, patched_etc_environment):
+def test_set_environment(
+    harness: Harness[KafkaCharm], patched_workload_write, patched_etc_environment
+):
     """Checks all necessary env-vars are written to /etc/environment."""
     with (
         patch("workload.KafkaWorkload.write") as patched_write,
         patch("builtins.open", mock_open()),
         patch("shutil.chown"),
     ):
-        harness.charm.config_manager.set_environment()
+        harness.charm.broker.config_manager.set_environment()
 
-        for call in patched_write.call_args_list:
-            assert "KAFKA_OPTS" in call.kwargs.get("content", "")
-            assert "KAFKA_JMX_OPTS" in call.kwargs.get("content", "")
-            assert "KAFKA_HEAP_OPTS" in call.kwargs.get("content", "")
-            assert "KAFKA_JVM_PERFORMANCE_OPTS" in call.kwargs.get("content", "")
-            assert "KAFKA_CFG_LOGLEVEL" in call.kwargs.get("content", "")
-            assert "/etc/environment" == call.kwargs.get("path", "")
+        call = patched_write.call_args_list[0]
+        assert "KAFKA_OPTS" in call.kwargs.get("content", "")
+        assert "KAFKA_JMX_OPTS" in call.kwargs.get("content", "")
+        assert "KAFKA_HEAP_OPTS" in call.kwargs.get("content", "")
+        assert "KAFKA_JVM_PERFORMANCE_OPTS" in call.kwargs.get("content", "")
+        assert "KAFKA_CFG_LOGLEVEL" in call.kwargs.get("content", "")
+        assert "/etc/environment" == call.kwargs.get("path", "")
 
-            assert "KAFKA_LOG4J_OPTS" not in call.kwargs.get("content", "")
+        assert "KAFKA_LOG4J_OPTS" not in call.kwargs.get("content", "")
 
 
-def test_bootstrap_server(harness: Harness):
+def test_bootstrap_server(harness: Harness[KafkaCharm]):
     """Checks the bootstrap-server property setting."""
     peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
     harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/1")
@@ -318,17 +321,20 @@ def test_bootstrap_server(harness: Harness):
         assert "9092" in server
 
 
-def test_default_replication_properties_less_than_three(harness: Harness):
+def test_default_replication_properties_less_than_three(harness: Harness[KafkaCharm]):
     """Checks replication property defaults updates with units < 3."""
-    assert "num.partitions=1" in harness.charm.config_manager.default_replication_properties
+    assert "num.partitions=1" in harness.charm.broker.config_manager.default_replication_properties
     assert (
         "default.replication.factor=1"
-        in harness.charm.config_manager.default_replication_properties
+        in harness.charm.broker.config_manager.default_replication_properties
     )
-    assert "min.insync.replicas=1" in harness.charm.config_manager.default_replication_properties
+    assert (
+        "min.insync.replicas=1"
+        in harness.charm.broker.config_manager.default_replication_properties
+    )
 
 
-def test_default_replication_properties_more_than_three(harness: Harness):
+def test_default_replication_properties_more_than_three(harness: Harness[KafkaCharm]):
     """Checks replication property defaults updates with units > 3."""
     peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
     harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/1")
@@ -337,15 +343,18 @@ def test_default_replication_properties_more_than_three(harness: Harness):
     harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/4")
     harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/5")
 
-    assert "num.partitions=3" in harness.charm.config_manager.default_replication_properties
+    assert "num.partitions=3" in harness.charm.broker.config_manager.default_replication_properties
     assert (
         "default.replication.factor=3"
-        in harness.charm.config_manager.default_replication_properties
+        in harness.charm.broker.config_manager.default_replication_properties
     )
-    assert "min.insync.replicas=2" in harness.charm.config_manager.default_replication_properties
+    assert (
+        "min.insync.replicas=2"
+        in harness.charm.broker.config_manager.default_replication_properties
+    )
 
 
-def test_ssl_principal_mapping_rules(harness: Harness):
+def test_ssl_principal_mapping_rules(harness: Harness[KafkaCharm]):
     """Check that a change in ssl_principal_mapping_rules is reflected in server_properties."""
     harness.add_relation(PEER, CHARM_KEY)
     zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
@@ -363,12 +372,10 @@ def test_ssl_principal_mapping_rules(harness: Harness):
         },
     )
 
-    with (
-        patch(
-            "core.models.KafkaCluster.internal_user_credentials",
-            new_callable=PropertyMock,
-            return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
-        )
+    with patch(
+        "core.models.KafkaCluster.internal_user_credentials",
+        new_callable=PropertyMock,
+        return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
     ):
         # Harness doesn't reinitialize KafkaCharm when calling update_config, which means that
         # self.config is not passed again to ConfigManager
@@ -383,7 +390,7 @@ def test_ssl_principal_mapping_rules(harness: Harness):
         )
 
 
-def test_auth_properties(harness: Harness):
+def test_auth_properties(harness: Harness[KafkaCharm]):
     """Checks necessary auth properties are present."""
     zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
     peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
@@ -404,14 +411,14 @@ def test_auth_properties(harness: Harness):
         },
     )
 
-    assert "broker.id=0" in harness.charm.config_manager.auth_properties
+    assert "broker.id=0" in harness.charm.broker.config_manager.auth_properties
     assert (
         f"zookeeper.connect={harness.charm.state.zookeeper.connect}"
-        in harness.charm.config_manager.auth_properties
+        in harness.charm.broker.config_manager.auth_properties
     )
 
 
-def test_rack_properties(harness: Harness):
+def test_rack_properties(harness: Harness[KafkaCharm]):
     """Checks that rack properties are added to server properties."""
     harness.add_relation(PEER, CHARM_KEY)
     zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
@@ -429,17 +436,15 @@ def test_rack_properties(harness: Harness):
         },
     )
 
-    with (
-        patch(
-            "managers.config.ConfigManager.rack_properties",
-            new_callable=PropertyMock,
-            return_value=["broker.rack=gondor-west"],
-        )
+    with patch(
+        "managers.config.ConfigManager.rack_properties",
+        new_callable=PropertyMock,
+        return_value=["broker.rack=gondor-west"],
     ):
-        assert "broker.rack=gondor-west" in harness.charm.config_manager.server_properties
+        assert "broker.rack=gondor-west" in harness.charm.broker.config_manager.server_properties
 
 
-def test_inter_broker_protocol_version(harness: Harness):
+def test_inter_broker_protocol_version(harness: Harness[KafkaCharm]):
     """Checks that rack properties are added to server properties."""
     harness.add_relation(PEER, CHARM_KEY)
     zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
@@ -458,10 +463,13 @@ def test_inter_broker_protocol_version(harness: Harness):
     )
     assert len(DEPENDENCIES["kafka_service"]["version"].split(".")) == 3
 
-    assert "inter.broker.protocol.version=3.6" in harness.charm.config_manager.server_properties
+    assert (
+        "inter.broker.protocol.version=3.6"
+        in harness.charm.broker.config_manager.server_properties
+    )
 
 
-def test_super_users(harness: Harness):
+def test_super_users(harness: Harness[KafkaCharm]):
     """Checks super-users property is updated for new admin clients."""
     peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
     app_relation_id = harness.add_relation("kafka-client", "app")
