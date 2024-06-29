@@ -614,7 +614,8 @@ class BalancerConfigManager(CommonConfigManager):
         updated_env = current_env | map_env(updated_env_list)
         content = "\n".join([f"{key}={value}" for key, value in updated_env.items()])
 
-        self.workload.write(content=content, path="/etc/environment")
+        if not self.state.runs_broker:
+            self.workload.write(content=content, path="/etc/environment")
 
 
 def map_env(env: Iterable[str]) -> dict[str, str]:

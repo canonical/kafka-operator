@@ -290,7 +290,7 @@ class ClusterState(Object):
             return Status.NO_BROKER_CREDS
 
         # Additional checks specific to balancer role
-        if self.is_balancer:
+        if self.runs_balancer:
             if not self.balancer:
                 return Status.NO_BALANCER_RELATION
 
@@ -303,11 +303,11 @@ class ClusterState(Object):
         return Status.ACTIVE
 
     @property
-    def is_balancer(self) -> bool:
+    def runs_balancer(self) -> bool:
         """Is the charm enabling the balancer?"""
         return BALANCER.value in self.roles
 
     @property
-    def is_broker(self) -> bool:
+    def runs_broker(self) -> bool:
         """Is the charm enabling the broker(s)?"""
         return BROKER.value in self.roles

@@ -77,7 +77,7 @@ async def test_change_leader(ops_test: OpsTest):
         if await unit.is_leader_from_status():
             leader_unit = unit
 
-    await leader_unit.destroy()
+    await leader_unit.destroy(force=True, destroy_storage=True, max_wait=0)
     await ops_test.model.block_until(lambda: len(ops_test.model.applications[APP_NAME].units) == 3)
     await ops_test.model.wait_for_idle(
         apps=[APP_NAME], status="active", timeout=1000, idle_period=30
