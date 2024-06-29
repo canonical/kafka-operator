@@ -443,3 +443,13 @@ async def get_address(ops_test: OpsTest, app_name=APP_NAME, unit_num=0) -> str:
     status = await ops_test.model.get_status()  # noqa: F821
     address = status["applications"][app_name]["units"][f"{app_name}/{unit_num}"]["public-address"]
     return address
+
+
+def balancer_is_running(model_full_name: str | None) -> bool:
+    check_output(
+        f"JUJU_MODEL={model_full_name} juju ssh kafka/leader sudo -i 'curl http://localhost:9090/kafkacruisecontrol/state'",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+    return True

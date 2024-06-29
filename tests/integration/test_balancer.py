@@ -4,29 +4,16 @@
 
 import asyncio
 import logging
-from subprocess import PIPE, CalledProcessError, check_output
+from subprocess import CalledProcessError
 
 import pytest
 from pytest_operator.plugin import OpsTest
 
-from .helpers import (
-    APP_NAME,
-    ZK_NAME,
-)
+from .helpers import APP_NAME, ZK_NAME, balancer_is_running
 
 logger = logging.getLogger(__name__)
 
 pytestmark = pytest.mark.balancer
-
-
-def balancer_is_running(model_full_name: str | None) -> bool:
-    check_output(
-        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'curl http://localhost:9090/kafkacruisecontrol/state'",
-        stderr=PIPE,
-        shell=True,
-        universal_newlines=True,
-    )
-    return True
 
 
 async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
