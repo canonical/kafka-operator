@@ -4,6 +4,7 @@
 """Manager for handling Kafka in-place upgrades."""
 
 import logging
+import subprocess
 import time
 from typing import TYPE_CHECKING
 
@@ -15,6 +16,7 @@ from charms.data_platform_libs.v0.upgrade import (
     verify_requirements,
 )
 from charms.operator_libs_linux.v0.sysctl import CalledProcessError
+from ops.pebble import ExecError
 from pydantic import BaseModel
 from typing_extensions import override
 
@@ -144,9 +146,19 @@ class KafkaUpgrade(DataUpgrade):
 
     def apply_backwards_compatibility_fixes(self, event) -> None:
         """A range of functions needed for backwards compatibility."""
+        logger.info("Applying upgrade fixes")
         # Rev.38 - Create credentials for missing internal user, to reconcile state during upgrades
         if (
             not self.charm.state.cluster.internal_user_credentials
             and self.charm.state.zookeeper.zookeeper_connected
         ):
-            self.dependent.zookeeper._on_zookeeper_changed(event)  # type: ignore
+            try:
+                internal_user_credentials = self.dependent.zookeeper._create_internal_credentials()
+            except (KeyError, RuntimeError, subprocess.CalledProcessError, ExecError) as e:
+                logger.warning(str(e))
+                event.defer()
+                return
+
+            # only set to relation data when all set
+            for username, password in internal_user_credentials:
+                self.charm.state.cluster.update({f"{username}-password": password})
