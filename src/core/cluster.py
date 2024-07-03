@@ -6,6 +6,7 @@
 
 import os
 from functools import cached_property
+from typing import TYPE_CHECKING
 
 from charms.data_platform_libs.v0.data_interfaces import (
     DatabaseRequirerData,
@@ -14,12 +15,21 @@ from charms.data_platform_libs.v0.data_interfaces import (
     DataPeerUnitData,
     KafkaProviderData,
 )
-from ops import Framework, Object, Relation
+from ops import Object, Relation
 from ops.model import Unit
 
-from core.models import KafkaBroker, KafkaClient, KafkaCluster, ZooKeeper
+from core.models import (
+    Balancer,
+    KafkaBroker,
+    KafkaClient,
+    KafkaCluster,
+    ZooKeeper,
+)
 from literals import (
+    BALANCER,
+    BROKER,
     INTERNAL_USERS,
+    MIN_REPLICAS,
     PEER,
     REL_NAME,
     SECRETS_UNIT,
@@ -29,13 +39,17 @@ from literals import (
     Substrates,
 )
 
+if TYPE_CHECKING:
+    from charm import KafkaCharm
+
 
 class ClusterState(Object):
     """Collection of global cluster state for the Kafka services."""
 
-    def __init__(self, charm: Framework | Object, substrate: Substrates):
+    def __init__(self, charm: "KafkaCharm", substrate: Substrates):
         super().__init__(parent=charm, key="charm_state")
         self.substrate: Substrates = substrate
+        self.roles = charm.config.roles
 
         self.peer_app_interface = DataPeerData(self.model, relation_name=PEER)
         self.peer_unit_interface = DataPeerUnitData(
@@ -45,6 +59,8 @@ class ClusterState(Object):
             self.model, relation_name=ZK, database_name=f"/{self.model.app.name}"
         )
         self.client_provider_interface = KafkaProviderData(self.model, relation_name=REL_NAME)
+
+        self.balancer_interface = DataPeerData(self.model, relation_name=BALANCER.value)
 
     # --- RELATIONS ---
 
@@ -62,6 +78,11 @@ class ClusterState(Object):
     def client_relations(self) -> set[Relation]:
         """The relations of all client applications."""
         return set(self.model.relations[REL_NAME])
+
+    @property
+    def balancer_relation(self) -> Relation | None:
+        """The balancer relation."""
+        return self.model.get_relation(BALANCER.value)
 
     # --- CORE COMPONENTS ---
 
@@ -151,6 +172,15 @@ class ClusterState(Object):
 
         return clients
 
+    @property
+    def balancer(self):
+        """The balancer relation state."""
+        return Balancer(
+            relation=self.balancer_relation,
+            data_interface=self.balancer_interface,
+            substrate=self.substrate,
+        )
+
     # ---- GENERAL VALUES ----
 
     @property
@@ -187,6 +217,15 @@ class ClusterState(Object):
         )
 
     @property
+    def internal_port(self) -> int:
+        """Return the port to be used for an internal client."""
+        return (
+            SECURITY_PROTOCOL_PORTS["SASL_SSL"].internal
+            if (self.cluster.tls_enabled and self.unit_broker.certificate)
+            else SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].internal
+        )
+
+    @property
     def bootstrap_server(self) -> str:
         """The current Kafka uris formatted for the `bootstrap-server` command flag.
 
@@ -197,6 +236,18 @@ class ClusterState(Object):
             return ""
 
         return ",".join(sorted([f"{broker.host}:{self.port}" for broker in self.brokers]))
+
+    @property
+    def internal_bootstrap_server(self) -> str:
+        """The current Kafka uris formatted for the `bootstrap-server` command flag.
+
+        Returns:
+            List of `bootstrap-server` servers
+        """
+        if not self.peer_relation:
+            return ""
+
+        return ",".join(sorted([f"{broker.host}:{self.internal_port}" for broker in self.brokers]))
 
     @property
     def log_dirs(self) -> str:
@@ -213,7 +264,7 @@ class ClusterState(Object):
         return self.model.app.planned_units()
 
     @property
-    def ready_to_start(self) -> Status:
+    def ready_to_start(self) -> Status:  # noqa: C901
         """Check for active ZooKeeper relation and adding of inter-broker auth username.
 
         Returns:
@@ -238,4 +289,25 @@ class ClusterState(Object):
         if not self.cluster.internal_user_credentials:
             return Status.NO_BROKER_CREDS
 
+        # Additional checks specific to balancer role
+        if self.runs_balancer:
+            if not self.balancer:
+                return Status.NO_BALANCER_RELATION
+
+            if not self.balancer.broker_capacities:
+                return Status.NO_BALANCER_DATA
+
+            if self.planned_units < MIN_REPLICAS:
+                return Status.NOT_ENOUGH_BROKERS
+
         return Status.ACTIVE
+
+    @property
+    def runs_balancer(self) -> bool:
+        """Is the charm enabling the balancer?"""
+        return BALANCER.value in self.roles
+
+    @property
+    def runs_broker(self) -> bool:
+        """Is the charm enabling the broker(s)?"""
+        return BROKER.value in self.roles

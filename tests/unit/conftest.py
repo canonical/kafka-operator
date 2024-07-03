@@ -73,3 +73,9 @@ def patched_health_machine_configured():
 def juju_has_secrets(mocker):
     """Using Juju3 we should always have secrets available."""
     mocker.patch.object(JujuVersion, "has_secrets", new_callable=PropertyMock).return_value = True
+
+
+@pytest.fixture(autouse=True)
+def patched_sleep():
+    with patch("time.sleep") as patched:
+        yield patched

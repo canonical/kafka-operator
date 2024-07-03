@@ -15,6 +15,8 @@ from literals import CHARM_KEY, CONTAINER, PEER, REL_NAME, SUBSTRATE
 
 logger = logging.getLogger(__name__)
 
+pytestmark = pytest.mark.broker
+
 CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
 ACTIONS = str(yaml.safe_load(Path("./actions.yaml").read_text()))
 METADATA = str(yaml.safe_load(Path("./metadata.yaml").read_text()))
@@ -39,13 +41,15 @@ def harness():
     return harness
 
 
-def test_client_relation_created_defers_if_not_ready(harness: Harness):
+def test_client_relation_created_defers_if_not_ready(harness: Harness[KafkaCharm]):
     """Checks event is deferred if not ready on clientrelationcreated hook."""
     with harness.hooks_disabled():
         harness.add_relation(PEER, CHARM_KEY)
 
     with (
-        patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=False),
+        patch(
+            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=False
+        ),
         patch("managers.auth.AuthManager.add_user") as patched_add_user,
         patch("ops.framework.EventBase.defer") as patched_defer,
     ):
@@ -62,7 +66,7 @@ def test_client_relation_created_defers_if_not_ready(harness: Harness):
         patched_defer.assert_called()
 
 
-def test_client_relation_created_adds_user(harness: Harness):
+def test_client_relation_created_adds_user(harness: Harness[KafkaCharm]):
     """Checks if new users are added on clientrelationcreated hook."""
     with harness.hooks_disabled():
         harness.add_relation(PEER, CHARM_KEY)
@@ -70,7 +74,9 @@ def test_client_relation_created_adds_user(harness: Harness):
         client_rel_id = harness.add_relation(REL_NAME, "app")
 
     with (
-        patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
+        patch(
+            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=True
+        ),
         patch("managers.auth.AuthManager.add_user") as patched_add_user,
         patch("workload.KafkaWorkload.run_bin_command"),
         patch("core.cluster.ZooKeeper.connect", new_callable=PropertyMock, return_value="yes"),
@@ -85,13 +91,15 @@ def test_client_relation_created_adds_user(harness: Harness):
         assert harness.charm.state.cluster.relation_data.get(f"relation-{client_rel_id}")
 
 
-def test_client_relation_broken_removes_user(harness: Harness):
+def test_client_relation_broken_removes_user(harness: Harness[KafkaCharm]):
     """Checks if users are removed on clientrelationbroken hook."""
     with harness.hooks_disabled():
         harness.add_relation(PEER, CHARM_KEY)
 
     with (
-        patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
+        patch(
+            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=True
+        ),
         patch("managers.auth.AuthManager.add_user"),
         patch("managers.auth.AuthManager.delete_user") as patched_delete_user,
         patch("managers.auth.AuthManager.remove_all_user_acls") as patched_remove_acls,
@@ -117,13 +125,15 @@ def test_client_relation_broken_removes_user(harness: Harness):
         patched_delete_user.assert_called_once()
 
 
-def test_client_relation_joined_sets_necessary_relation_data(harness: Harness):
+def test_client_relation_joined_sets_necessary_relation_data(harness: Harness[KafkaCharm]):
     """Checks if all needed provider relation data is set on clientrelationjoined hook."""
     with harness.hooks_disabled():
         harness.add_relation(PEER, CHARM_KEY)
 
     with (
-        patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
+        patch(
+            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=True
+        ),
         patch("managers.auth.AuthManager.add_user"),
         patch("workload.KafkaWorkload.run_bin_command"),
         patch("core.models.ZooKeeper.uris", new_callable=PropertyMock, return_value="yes"),

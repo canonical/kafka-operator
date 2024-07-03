@@ -4,21 +4,26 @@
 
 """Collection of state objects for the Kafka relations, apps and units."""
 
+import json
 import logging
+from typing import TypeAlias
 
-from charms.data_platform_libs.v0.data_interfaces import Data, DataPeerData, DataPeerUnitData
+from charms.data_platform_libs.v0.data_interfaces import (
+    Data,
+    DataPeerData,
+    DataPeerUnitData,
+)
 from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManager
 from kazoo.client import AuthFailedError, NoNodeError
 from ops.model import Application, Relation, Unit
-from tenacity import retry
-from tenacity.retry import retry_if_not_result
-from tenacity.stop import stop_after_attempt
-from tenacity.wait import wait_fixed
+from tenacity import retry, retry_if_result, stop_after_attempt, wait_fixed
 from typing_extensions import override
 
 from literals import INTERNAL_USERS, SECRETS_APP, Substrates
 
 logger = logging.getLogger(__name__)
+
+JSON: TypeAlias = dict[str, "JSON"] | list["JSON"] | str | int | float | bool | None
 
 
 class RelationState:
@@ -231,6 +236,16 @@ class KafkaBroker(RelationState):
         """
         return self.relation_data.get("truststore-password", "")
 
+    @property
+    def storages(self) -> JSON:
+        """The current Juju storages for the unit."""
+        return json.loads(self.relation_data.get("storages", "{}"))
+
+    @property
+    def cores(self) -> str:
+        """The number of CPU cores for the unit machine."""
+        return self.relation_data.get("cores", "")
+
 
 class ZooKeeper(RelationState):
     """State collection metadata for a the Zookeeper relation."""
@@ -358,12 +373,12 @@ class ZooKeeper(RelationState):
 
         return zk.get_version()
 
+    # retry to give ZK time to update its broker zNodes before failing
     @retry(
-        # retry to give ZK time to update its broker zNodes before failing
-        wait=wait_fixed(6),
+        wait=wait_fixed(5),
         stop=stop_after_attempt(10),
-        retry_error_callback=(lambda state: state.outcome.result()),  # type: ignore
-        retry=retry_if_not_result(lambda result: True if result else False),
+        retry=retry_if_result(lambda result: result is False),
+        retry_error_callback=lambda _: False,
     )
     def broker_active(self) -> bool:
         """Checks if broker id is recognised as active by ZooKeeper."""
@@ -454,3 +469,42 @@ class KafkaClient(RelationState):
         When `admin` is set, the Kafka charm interprets this as a new super.user.
         """
         return self.relation_data.get("extra-user-roles", "")
+
+
+class Balancer(RelationState):
+    """State collection for balancer."""
+
+    def __init__(
+        self,
+        relation: Relation | None,
+        data_interface: DataPeerData,
+        substrate: Substrates,
+    ):
+        super().__init__(relation, data_interface, None, substrate)
+        self.data_interface = data_interface
+
+    @property
+    def rack_aware(self) -> bool:
+        """Is the Kafka deployment rack aware?"""
+        if not self.relation:
+            return False
+
+        return (
+            self.data_interface.fetch_my_relation_field(
+                relation_id=self.relation.id, field="rack-aware"
+            )
+            == "true"
+        )
+
+    @property
+    def broker_capacities(self) -> str:
+        """The capacities for all Kafka broker."""
+        if not self.relation:
+            return ""
+
+        return (
+            self.data_interface.fetch_my_relation_field(
+                relation_id=self.relation.id, field="broker-capacities"
+            )
+            or ""
+        )

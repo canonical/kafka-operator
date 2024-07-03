@@ -12,7 +12,10 @@ from workload import KafkaWorkload
 if SUBSTRATE == "vm":
     from charms.operator_libs_linux.v1.snap import SnapError
 
-pytestmark = pytest.mark.skipif(SUBSTRATE == "k8s", reason="workload tests not needed for K8s")
+pytestmark = [
+    pytest.mark.broker,
+    pytest.mark.skipif(SUBSTRATE == "k8s", reason="workload tests not needed for K8s"),
+]
 
 
 def test_run_bin_command_args(patched_exec):

@@ -20,6 +20,7 @@ from literals import REL_NAME
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
+    from events.broker import BrokerOperator
 
 logger = logging.getLogger(__name__)
 
@@ -27,9 +28,11 @@ logger = logging.getLogger(__name__)
 class KafkaProvider(Object):
     """Implements the provider-side logic for client applications relating to Kafka."""
 
-    def __init__(self, charm) -> None:
-        super().__init__(charm, "kafka_client")
-        self.charm: "KafkaCharm" = charm
+    def __init__(self, dependent: "BrokerOperator") -> None:
+        super().__init__(dependent, "kafka_client")
+        self.dependent = dependent
+        self.charm: "KafkaCharm" = dependent.charm
+
         self.kafka_provider = KafkaProviderEventHandlers(
             self.charm, self.charm.state.client_provider_interface
         )
@@ -43,12 +46,12 @@ class KafkaProvider(Object):
 
     def on_topic_requested(self, event: TopicRequestedEvent):
         """Handle the on topic requested event."""
-        if not self.charm.healthy:
+        if not self.dependent.healthy:
             event.defer()
             return
 
         # on all unit update the server properties to enable client listener if needed
-        self.charm._on_config_changed(event)
+        self.dependent._on_config_changed(event)
 
         if not self.charm.unit.is_leader() or not self.charm.state.peer_relation:
             return
@@ -67,7 +70,7 @@ class KafkaProvider(Object):
 
         # catching error here in case listeners not established for bootstrap-server auth
         try:
-            self.charm.auth_manager.add_user(
+            self.dependent.auth_manager.add_user(
                 username=client.username,
                 password=password,
             )
@@ -79,7 +82,7 @@ class KafkaProvider(Object):
         # non-leader units need cluster_config_changed event to update their super.users
         self.charm.state.cluster.update({client.username: password})
 
-        self.charm.auth_manager.update_user_acls(
+        self.dependent.auth_manager.update_user_acls(
             username=client.username,
             topic=client.topic,
             extra_user_roles=client.extra_user_roles,
@@ -89,11 +92,11 @@ class KafkaProvider(Object):
         # non-leader units need cluster_config_changed event to update their super.users
         self.charm.state.cluster.update({"super-users": self.charm.state.super_users})
 
-        self.charm.update_client_data()
+        self.dependent.update_client_data()
 
     def _on_relation_created(self, event: RelationCreatedEvent) -> None:
         """Handler for `kafka-client-relation-created` event."""
-        self.charm._on_config_changed(event)
+        self.dependent._on_config_changed(event)
 
     def _on_relation_broken(self, event: RelationBrokenEvent) -> None:
         """Handler for `kafka-client-relation-broken` event.
@@ -111,18 +114,18 @@ class KafkaProvider(Object):
         ):
             return
 
-        if not self.charm.healthy:
+        if not self.dependent.healthy:
             event.defer()
             return
 
         if event.relation.app != self.charm.app or not self.charm.app.planned_units() == 0:
             username = f"relation-{event.relation.id}"
 
-            self.charm.auth_manager.remove_all_user_acls(username=username)
-            self.charm.auth_manager.delete_user(username=username)
+            self.dependent.auth_manager.remove_all_user_acls(username=username)
+            self.dependent.auth_manager.delete_user(username=username)
 
             # non-leader units need cluster_config_changed event to update their super.users
             # update on the peer relation data will trigger an update of server properties on all units
             self.charm.state.cluster.update({username: ""})
 
-        self.charm.update_client_data()
+        self.dependent.update_client_data()
