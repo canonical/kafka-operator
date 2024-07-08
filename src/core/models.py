@@ -34,7 +34,7 @@ class RelationState:
         relation: Relation | None,
         data_interface: Data,
         component: Unit | Application | None,
-        substrate: Substrates,
+        substrate: Substrates | None = None,
     ):
         self.relation = relation
         self.data_interface = data_interface
@@ -64,6 +64,174 @@ class RelationState:
             del self.relation_data[field]
 
 
+class Balancer(RelationState):
+    """State collection metadata for the balancer."""
+
+    def __init__(
+        self,
+        relation: Relation | None,
+        data_interface: Data,
+        username: str = "",
+        password: str = "",
+        bootstrap_server: str = "",
+        zk_username: str = "",
+        zk_password: str = "",
+        zk_uris: str = "",
+        broker_capacities: dict[str, list[JSON]] = {},
+        racks: int = 0,
+    ):
+        super().__init__(relation, data_interface, None, None)
+        self._username = username
+        self._password = password  # nosec: B107
+        self._bootstrap_server = bootstrap_server
+        self._zk_username = zk_username
+        self._zk_password = zk_password
+        self._zk_uris = zk_uris
+        self._broker_capacities = broker_capacities
+        self._racks = racks
+
+    @property
+    def username(self) -> str:
+        """The generated username for the balancer application."""
+        if self._username:
+            return self._username
+
+        if not self.relation:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="username"
+            )
+            or ""
+        )
+
+    @property
+    def password(self) -> str:
+        """The generated password for the balancer application."""
+        if self._password:
+            return self._password
+
+        if not self.relation:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="password"
+            )
+            or ""
+        )
+
+    @property
+    def bootstrap_server(self) -> str:
+        """The Kafka server endpoints for the balancer application to connect with."""
+        if self._bootstrap_server:
+            return self._bootstrap_server
+
+        if not self.relation:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(relation_id=self.relation.id, field="uris")
+            or ""
+        )
+
+    @property
+    def zk_username(self) -> str:
+        """Username to connect to ZooKeeper."""
+        if self._zk_username:
+            return self._zk_username
+
+        if not self.relation:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="zk-username"
+            )
+            or ""
+        )
+
+    @property
+    def zk_password(self) -> str:
+        """Password to connect to ZooKeeper."""
+        if self._zk_password:
+            return self._zk_password
+
+        if not self.relation:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="zk-password"
+            )
+            or ""
+        )
+
+    @property
+    def zk_uris(self) -> str:
+        """The ZooKeeper server endpoints for the balancer application to connect with."""
+        if self._zk_uris:
+            return self._zk_uris
+
+        if not self.relation:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(relation_id=self.relation.id, field="zk-uris")
+            or ""
+        )
+
+    @property
+    def racks(self) -> int:
+        """The number of racks for the brokers."""
+        if self._racks:
+            return self._racks
+
+        if not self.relation:
+            return 0
+
+        return int(
+            self.data_interface.fetch_relation_field(relation_id=self.relation.id, field="racks")
+            or 0
+        )
+
+    @property
+    def broker_capacities(self) -> dict[str, list[JSON]]:
+        """The capacities for all Kafka brokers."""
+        if self._broker_capacities:
+            return self._broker_capacities
+
+        if not self.relation:
+            return {}
+
+        return json.loads(
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="broker-capacities"
+            )
+            or "{}"
+        )
+
+    @property
+    def broker_connected(self) -> bool:
+        """Checks if there is an active broker relation with all necessary data."""
+        if not all(
+            [
+                self.username,
+                self.password,
+                self.bootstrap_server,
+                self.zk_username,
+                self.zk_password,
+                self.zk_uris,
+                self.broker_capacities,
+                # rack is optional, empty if not rack-aware
+            ]
+        ):
+            return False
+
+        return True
+
+
 class KafkaCluster(RelationState):
     """State collection metadata for the peer relation."""
 
@@ -72,9 +240,8 @@ class KafkaCluster(RelationState):
         relation: Relation | None,
         data_interface: DataPeerData,
         component: Application,
-        substrate: Substrates,
     ):
-        super().__init__(relation, data_interface, component, substrate)
+        super().__init__(relation, data_interface, component, None)
         self.data_interface = data_interface
         self.app = component
 
@@ -246,6 +413,11 @@ class KafkaBroker(RelationState):
         """The number of CPU cores for the unit machine."""
         return self.relation_data.get("cores", "")
 
+    @property
+    def rack(self) -> str:
+        """The rack for the broker on broker.rack from rack.properties."""
+        return self.relation_data.get("rack", "")
+
 
 class ZooKeeper(RelationState):
     """State collection metadata for a the Zookeeper relation."""
@@ -254,10 +426,9 @@ class ZooKeeper(RelationState):
         self,
         relation: Relation | None,
         data_interface: Data,
-        substrate: Substrates,
         local_app: Application | None = None,
     ):
-        super().__init__(relation, data_interface, None, substrate)
+        super().__init__(relation, data_interface, None, None)
         self._local_app = local_app
 
     @property
@@ -329,9 +500,15 @@ class ZooKeeper(RelationState):
         if not self.relation:
             return ""
 
-        return (
-            self.data_interface.fetch_relation_field(relation_id=self.relation.id, field="uris")
-            or ""
+        return ",".join(
+            sorted(  # sorting as they may be disordered
+                (
+                    self.data_interface.fetch_relation_field(
+                        relation_id=self.relation.id, field="uris"
+                    )
+                    or ""
+                ).split(",")
+            )
         )
 
     @property
@@ -404,14 +581,13 @@ class KafkaClient(RelationState):
         relation: Relation | None,
         data_interface: Data,
         component: Application,
-        substrate: Substrates,
         local_app: Application | None = None,
         bootstrap_server: str = "",
         password: str = "",  # nosec: B107
         tls: str = "",
         zookeeper_uris: str = "",
     ):
-        super().__init__(relation, data_interface, component, substrate)
+        super().__init__(relation, data_interface, component, None)
         self.app = component
         self._local_app = local_app
         self._bootstrap_server = bootstrap_server
@@ -469,42 +645,3 @@ class KafkaClient(RelationState):
         When `admin` is set, the Kafka charm interprets this as a new super.user.
         """
         return self.relation_data.get("extra-user-roles", "")
-
-
-class Balancer(RelationState):
-    """State collection for balancer."""
-
-    def __init__(
-        self,
-        relation: Relation | None,
-        data_interface: DataPeerData,
-        substrate: Substrates,
-    ):
-        super().__init__(relation, data_interface, None, substrate)
-        self.data_interface = data_interface
-
-    @property
-    def rack_aware(self) -> bool:
-        """Is the Kafka deployment rack aware?"""
-        if not self.relation:
-            return False
-
-        return (
-            self.data_interface.fetch_my_relation_field(
-                relation_id=self.relation.id, field="rack-aware"
-            )
-            == "true"
-        )
-
-    @property
-    def broker_capacities(self) -> str:
-        """The capacities for all Kafka broker."""
-        if not self.relation:
-            return ""
-
-        return (
-            self.data_interface.fetch_my_relation_field(
-                relation_id=self.relation.id, field="broker-capacities"
-            )
-            or ""
-        )

@@ -16,6 +16,7 @@ from literals import (
     ADMIN_USER,
     BALANCER_USER,
     DEFAULT_BALANCER_GOALS,
+    HARD_BALANCER_GOALS,
     INTER_BROKER_USER,
     JMX_EXPORTER_PORT,
     JVM_MEM_MAX_GB,
@@ -361,9 +362,21 @@ class ConfigManager(CommonConfigManager):
         Returns:
             List of properties to be set
         """
-        # TODO: not sure if we should make this an instance attribute like the other paths
         rack_path = f"{self.workload.paths.conf_path}/rack.properties"
         return self.workload.read(rack_path) or []
+
+    @property
+    def rack(self) -> str:
+        """The rack for the current running unit, determined from a manually added `rack.properties`.
+
+        Returns:
+            String of broker.rack value.
+        """
+        for item in self.rack_properties:
+            if "broker.rack" in item:
+                return item.split("=")[1]
+
+        return ""
 
     @property
     def client_properties(self) -> list[str]:
@@ -455,30 +468,6 @@ class ConfigManager(CommonConfigManager):
         """
         )
 
-    @property
-    def broker_capacities(self) -> str:
-        """Builds the capacityJBOD JSON configuration for broker storages.
-
-        Returns:
-            String of JSON to be set
-        """
-        broker_capacities = []
-        for broker in self.state.brokers:
-            broker_capacities.append(
-                {
-                    "brokerId": str(broker.unit_id),
-                    "capacity": {
-                        "DISK": broker.storages,
-                        "CPU": {"num.cores": broker.cores},
-                        "NW_IN": str(self.config.network_bandwidth),
-                        "NW_OUT": str(self.config.network_bandwidth),
-                    },
-                    "doc": str(broker.host),
-                }
-            )
-
-        return json.dumps({"brokerCapacities": broker_capacities})
-
     def set_zk_jaas_config(self) -> None:
         """Writes the ZooKeeper JAAS config using ZooKeeper relation data."""
         self.workload.write(content=self.zk_jaas_config, path=self.workload.paths.zk_jaas)
@@ -536,6 +525,58 @@ class BalancerConfigManager(CommonConfigManager):
         self.config = config
 
     @property
+    def balance_thresholds(self) -> list[str]:
+        """Properties for managing variance in inter-broker resource usage."""
+        balance_threshold = self.config.cruisecontrol_balance_threshold
+        return [
+            f"cpu.balance.threshold={balance_threshold}",
+            f"disk.balance.threshold={balance_threshold}",
+            f"network.inbound.balance.threshold={balance_threshold}",
+            f"network.outbound.balance.threshold={balance_threshold}",
+            f"replica.count.balance.threshold={balance_threshold}",
+            f"leader.replica.count.balance.threshold={balance_threshold}",
+        ]
+
+    @property
+    def capacity_thresholds(self) -> list[str]:
+        """Properties for managing broker resource usage total capacity."""
+        capacity_threshold = self.config.cruisecontrol_capacity_threshold
+        return [
+            f"disk.capacity.threshold={capacity_threshold}",
+            f"cpu.capacity.threshold={capacity_threshold}",
+            f"network.inbound.capacity.threshold={capacity_threshold}",
+            f"network.outbound.capacity.threshold={capacity_threshold}",
+        ]
+
+    @property
+    def goals(self) -> list[str]:
+        """Builds all pluggable Goals properties for CruiseControl.
+
+        Returns:
+            List of properties to be set
+        """
+        goals = DEFAULT_BALANCER_GOALS
+
+        if self.state.balancer.racks and (
+            min([3, len(self.state.balancer.broker_capacities["brokerCapacities"])])
+            > self.state.balancer.racks
+        ):  # replication-factor > racks is not ideal
+            goals = goals + ["RackAwareDistribution"]
+        else:
+            goals = goals + ["RackAware"]
+
+        default_goals = [
+            f"com.linkedin.kafka.cruisecontrol.analyser.goals.{goal}Goal" for goal in goals
+        ]
+
+        return [
+            f"default.goals={','.join(default_goals)}",
+            f"goals={','.join(default_goals)}",
+            f"intra.broker.goals={','.join([goal for goal in default_goals if 'IntraBroker' in goal])}",
+            f"hard.goals={','.join([goal for goal in default_goals if any(hard_goal in goal for hard_goal in HARD_BALANCER_GOALS)])}",
+        ]
+
+    @property
     def cruise_control_properties(self) -> list[str]:
         """Builds all properties necessary for starting Cruise Control service.
 
@@ -543,20 +584,19 @@ class BalancerConfigManager(CommonConfigManager):
             List of properties to be set
         """
         username = BALANCER_USER
-        password = self.state.cluster.internal_user_credentials.get(BALANCER_USER, "")
+        password = self.state.balancer.password
 
         properties = (
             [
-                f"bootstrap.servers={self.state.internal_bootstrap_server}",
-                f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
-                f"zookeeper.connect={self.state.zookeeper.endpoints}{self.state.zookeeper.database}",
-                "security.protocol=SASL_PLAINTEXT",
+                f"bootstrap.servers={self.state.balancer.bootstrap_server}",
+                f"zookeeper.connect={self.state.balancer.zk_uris}",
                 f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";',
                 "sasl.mechanism=SCRAM-SHA-512",
                 f"security.protocol={self.security_protocol}",
+                f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
             ]
-            + self.cruise_control_goals
             + CRUISE_CONTROL_CONFIG_OPTIONS.split("\n")
+            + self.goals
         )
 
         return properties
@@ -571,30 +611,9 @@ class BalancerConfigManager(CommonConfigManager):
     def set_broker_capacities(self) -> None:
         """Writes all broker storage capacities to `capacityJBOD.json`."""
         self.workload.write(
-            content=self.state.balancer.broker_capacities,
+            content=json.dumps(self.state.balancer.broker_capacities),
             path=self.workload.paths.capacity_jbod_json,
         )
-
-    @property
-    def cruise_control_goals(self) -> list[str]:
-        """Builds all pluggable Goals properties for CruiseControl.
-
-        Returns:
-            List of properties to be set
-        """
-        simple_goals = DEFAULT_BALANCER_GOALS
-
-        # TODO: Pass rack properties and adapt prior work
-        supported_goals = [
-            f"com.linkedin.kafka.cruisecontrol.analyzer.goals.{goal}Goal" for goal in simple_goals
-        ]
-
-        goals_prop = (
-            f"goals={','.join([goal for goal in supported_goals if 'IntraBroker' not in goal])}"
-        )
-        intra_broker_goals_prop = f"intra.broker.goals={','.join([goal for goal in supported_goals if 'IntraBroker' in goal])}"
-
-        return [goals_prop, intra_broker_goals_prop]
 
     def set_environment(self) -> None:
         """Writes the env-vars needed for passing to charmed-kafka service.

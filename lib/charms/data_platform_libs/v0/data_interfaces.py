@@ -1052,14 +1052,17 @@ class Data(ABC):
         )
 
         normal_fields = set(impacted_rel_fields)
+        logger.info(f"Inside process_secret_fields... - {req_secret_fields=}, {self.secrets_enabled=}, {fallback_to_databag=}")
         if req_secret_fields and self.secrets_enabled and not fallback_to_databag:
             normal_fields = normal_fields - set(req_secret_fields)
             secret_fields = set(impacted_rel_fields) - set(normal_fields)
 
             secret_fieldnames_grouped = self._group_secret_fields(list(secret_fields))
+            logger.info(f"{secret_fieldnames_grouped=}")
 
             for group in secret_fieldnames_grouped:
                 # operation() should return nothing when all goes well
+                logger.info(f"Calling {operation=} on {group=}, {secret_fields=}")
                 if group_result := operation(relation, group, secret_fields, *args, **kwargs):
                     # If "meaningful" data was returned, we take it. (Some 'operation'-s only return success/failure.)
                     if isinstance(group_result, dict):
@@ -1478,9 +1481,11 @@ class ProviderData(Data):
 
     def _update_relation_data(self, relation: Relation, data: Dict[str, str]) -> None:
         """Set values for fields not caring whether it's a secret or not."""
+        logger.info(f"Updating relation-data - {relation=}, {data=}")
         req_secret_fields = []
         if relation.app:
             req_secret_fields = get_encoded_list(relation, relation.app, REQ_SECRET_FIELDS)
+            logger.info(f"{req_secret_fields=}")
 
         _, normal_fields = self._process_secret_fields(
             relation,
@@ -1728,7 +1733,10 @@ class RequirerEventHandlers(EventHandlers):
         if not self.relation_data.local_unit.is_leader():
             return
 
+        logger.info("INSIDE RELATION CREATED EVENT")
+
         if self.relation_data.secret_fields:  # pyright: ignore [reportAttributeAccessIssue]
+            logger.info(f"SETTING ENCODED FIELDS - {REQ_SECRET_FIELDS=}, {self.relation_data.secret_fields=}")
             set_encoded_field(
                 event.relation,
                 self.relation_data.component,

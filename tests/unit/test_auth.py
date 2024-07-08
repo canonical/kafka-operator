@@ -65,7 +65,7 @@ def test_parse_acls():
     parsed_acls = AuthManager._parse_acls(acls=acls)
 
     assert len(parsed_acls) == 5
-    assert type(list(parsed_acls)[0]) == Acl
+    assert type(list(parsed_acls)[0]) is Acl
 
 
 def test_generate_producer_acls():

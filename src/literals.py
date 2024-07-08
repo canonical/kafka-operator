@@ -106,6 +106,63 @@ SECURITY_PROTOCOL_PORTS: dict[AuthMechanism, Ports] = {
 
 
 @dataclass
+class Role:
+    value: str
+    service: str
+    paths: dict[str, str]
+    requested_secrets: list[str] | None = None
+
+    def __eq__(self, value: object, /) -> bool:
+        """Provide an easy comparison to the configuration key."""
+        return self.value == value
+
+
+BROKER = Role(value="broker", service="daemon", paths=PATHS["kafka"])
+BALANCER = Role(
+    value="balancer",
+    service="cruise-control",
+    paths=PATHS["cruise-control"],
+    requested_secrets=[
+        "username",
+        "password",
+        "bootstrap-server",
+        "zk-username",
+        "zk-password",
+        "zk-uris",
+    ],
+)
+
+DEFAULT_BALANCER_GOALS = [
+    "ReplicaCapacity",
+    "DiskCapacity",
+    "NetworkInboundCapacity",
+    "NetworkOutboundCapacity",
+    "CpuCapacity",
+    "ReplicaDistribution",
+    "PotentialNwOut",
+    "DiskUsageDistribution",
+    "NetworkInboundUsageDistribution",
+    "NetworkOutboundUsageDistribution",
+    "CpuUsageDistribution",
+    "LeaderReplicaDistribution",
+    "LeaderBytesInDistribution",
+    "TopicReplicaDistribution",
+    "PreferredLeaderElection",
+    "IntraBrokerDiskCapacity",
+    "IntraBrokerDiskUsageDistribution",
+]
+HARD_BALANCER_GOALS = [
+    "ReplicaCapacity",
+    "DiskCapacity",
+    "NetworkInboundCapacity",
+    "NetworkOutboundCapacity",
+    "CpuCapacity",
+    "ReplicaDistribution",
+    "IntraBrokerDiskCapacity",
+]
+
+
+@dataclass
 class StatusLevel:
     """Status object helper."""
 
@@ -119,7 +176,12 @@ class Status(Enum):
     ACTIVE = StatusLevel(ActiveStatus(), "DEBUG")
     NO_PEER_RELATION = StatusLevel(MaintenanceStatus("no peer relation yet"), "DEBUG")
     SNAP_NOT_INSTALLED = StatusLevel(BlockedStatus(f"unable to install {SNAP_NAME} snap"), "ERROR")
-    SNAP_NOT_RUNNING = StatusLevel(BlockedStatus("snap service not running"), "WARNING")
+    BROKER_NOT_RUNNING = StatusLevel(
+        BlockedStatus(f"{SNAP_NAME}.{BROKER.service} snap service not running"), "WARNING"
+    )
+    CC_NOT_RUNNING = StatusLevel(
+        BlockedStatus(f"{SNAP_NAME}.{BALANCER.service} snap service not running"), "WARNING"
+    )
     ZK_NOT_RELATED = StatusLevel(BlockedStatus("missing required zookeeper relation"), "DEBUG")
     ZK_NOT_CONNECTED = StatusLevel(BlockedStatus("unit not connected to zookeeper"), "ERROR")
     ZK_TLS_MISMATCH = StatusLevel(
@@ -157,7 +219,7 @@ class Status(Enum):
         "WARNING",
     )
     NO_BALANCER_RELATION = StatusLevel(MaintenanceStatus("no balancer relation yet"), "DEBUG")
-    NO_BALANCER_DATA = StatusLevel(MaintenanceStatus("no balancer data yet"), "DEBUG")
+    NO_BROKER_DATA = StatusLevel(MaintenanceStatus("missing broker data"), "DEBUG")
     NOT_ENOUGH_BROKERS = StatusLevel(
         WaitingStatus(f"waiting for {MIN_REPLICAS} online brokers"), "DEBUG"
     )
@@ -171,53 +233,3 @@ DEPENDENCIES = {
         "version": "3.6.1",
     },
 }
-
-
-@dataclass
-class Role:
-    value: str
-    service: str
-    paths: dict[str, str]
-    requested_secrets: list[str] | None = None
-
-    def __eq__(self, value: object, /) -> bool:
-        """Provide an easy comparison to the configuration key."""
-        return self.value == value
-
-
-BROKER = Role(value="broker", service="daemon", paths=PATHS["kafka"])
-BALANCER = Role(
-    value="balancer",
-    service="cruise-control",
-    paths=PATHS["cruise-control"],
-    requested_secrets=[
-        "username",
-        "password",
-        "uris",
-        "zk-username",
-        "zk-password",
-        "zk-uris",
-        "zk-database",
-    ],
-)
-
-DEFAULT_BALANCER_GOALS = [
-    "CpuCapacity",
-    "CpuUsageDistribution",
-    "DiskCapacity",
-    "DiskUsageDistribution",
-    "IntraBrokerDiskCapacity",
-    "IntraBrokerDiskUsageDistribution",
-    "LeaderBytesInDistribution",
-    "LeaderReplicaDistribution",
-    "MinTopicLeadersPerBroker",
-    "NetworkInboundCapacity",
-    "NetworkInboundUsageDistribution",
-    "NetworkOutboundCapacity",
-    "NetworkOutboundUsageDistribution",
-    "PotentialNwOut",
-    "RackAware",
-    "ReplicaCapacity",
-    "ReplicaDistribution",
-    "TopicReplicaDistribution",
-]

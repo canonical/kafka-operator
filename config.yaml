@@ -100,3 +100,11 @@ options:
     description: The network bandwidth available for the cloud that the charm is deployed to, in KB.
     type: int
     default: 50000
+  cruisecontrol_balance_threshold:
+    description: The maximum allowed extent of unbalance between brokers for cpu, disk and network utilization, and replica counts. For example, a value of `1.1` ensures that no broker should have >1.1x average utilization of all the brokers
+    type: float
+    default: 1.1
+  cruisecontrol_capacity_threshold:
+    description: The maximum percentage of the total cpu, disk and network capacity that is allowed to be used on a broker. For example, a value of `0.8` ensures that no broker should have >80% utilization
+    type: float
+    default: 0.8
