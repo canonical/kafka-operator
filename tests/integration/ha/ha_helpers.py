@@ -54,7 +54,7 @@ async def get_topic_description(
     for unit in ops_test.model.applications[APP_NAME].units:
         bootstrap_servers.append(
             await get_address(ops_test=ops_test, unit_num=unit.name.split("/")[-1])
-            + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT'].client}"
+            + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT', 'SCRAM-SHA-512'].client}"
         )
     unit_name = unit_name or ops_test.model.applications[APP_NAME].units[0].name
 
@@ -85,7 +85,7 @@ async def get_topic_offsets(
     for unit in ops_test.model.applications[APP_NAME].units:
         bootstrap_servers.append(
             await get_address(ops_test=ops_test, unit_num=unit.name.split("/")[-1])
-            + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT'].client}"
+            + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT', 'SCRAM-SHA-512'].client}"
         )
     unit_name = unit_name or ops_test.model.applications[APP_NAME].units[0].name
 
