@@ -51,9 +51,6 @@ class BrokerEventsHandler(Object):
         self.charm: "KafkaCharm" = dependent.charm
 
         self.framework.observe(
-            self.charm.on[BROKER.value].relation_created, self._on_broker_changed
-        )
-        self.framework.observe(
             self.charm.on[BROKER.value].relation_changed, self._on_broker_changed
         )
         # ensures data updates, eventually
