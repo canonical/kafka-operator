@@ -132,7 +132,7 @@ class Balancer(RelationState):
             return ""
 
         return (
-            self.data_interface.fetch_relation_field(relation_id=self.relation.id, field="uris")
+            self.data_interface.fetch_relation_field(relation_id=self.relation.id, field="bootstrap-server")
             or ""
         )
 
