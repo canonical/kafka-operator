@@ -134,22 +134,6 @@ class BrokerOperator(Object):
         if isinstance(self.charm.unit.status, ActiveStatus):
             logger.info(f'Broker {self.charm.unit.name.split("/")[1]} connected')
 
-
-        config = ConfigManager()
-        health = HealthManager()
-
-        url = config.get_url()
-
-        health.get_health(url=url)
-
-
-
-
-
-
-        
-
-
     def _on_config_changed(self, event: EventBase) -> None:
         """Generic handler for most `config_changed` events across relations."""
         # only overwrite properties if service is already active
