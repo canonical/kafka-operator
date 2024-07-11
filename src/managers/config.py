@@ -37,6 +37,7 @@ sasl.mechanism.inter.broker.protocol=SCRAM-SHA-512
 authorizer.class.name=kafka.security.authorizer.AclAuthorizer
 allow.everyone.if.no.acl.found=false
 auto.create.topics.enable=false
+metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
 """
 CRUISE_CONTROL_CONFIG_OPTIONS = """
 metric.reporter.topic=__CruiseControlMetrics
@@ -397,30 +398,46 @@ class ConfigManager(CommonConfigManager):
 
         return ""
 
-    @property
-    def client_properties(self) -> list[str]:
-        """Builds all properties necessary for running an admin Kafka client.
+    def _build_internal_client_properties(
+        self, username: str, prefix: str | None = None
+    ) -> list[str]:
+        """Builds all properties necessary for running an internal Kafka client.
 
         This includes SASL/SCRAM auth and security mechanisms.
 
-        Returns:
-            List of properties to be set
-        """
-        username = ADMIN_USER
-        password = self.state.cluster.internal_user_credentials.get(ADMIN_USER, "")
+        Args:
+            username: the username to set. Must be from `INTERNAL_USERS`
+            prefix: any prefix to assign to the properties to indicate a specific client
+                e.g `cruise.control.metrics.reporter` -> `cruise.control.metrics.reporter.bootstrap.servers`
 
-        client_properties = [
+        Returns:
+            List of properties to be set on the Kafka broker
+        """
+        password = self.state.cluster.internal_user_credentials.get(username, "")
+
+        properties = [
             f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";',
             "sasl.mechanism=SCRAM-SHA-512",
             f"security.protocol={self.security_protocol}",
-            # FIXME: security.protocol will need changing once multiple listener auth schemes
             f"bootstrap.servers={self.state.bootstrap_server}",
         ]
 
         if self.state.cluster.tls_enabled and self.state.unit_broker.certificate:
-            client_properties += self.tls_properties
+            properties += self.tls_properties
 
-        return client_properties
+        return [f"{prefix}.{prop}" if prefix else prop for prop in properties]
+
+    @property
+    def client_properties(self) -> list[str]:
+        """Builds all properties necessary for running an admin Kafka client."""
+        return self._build_internal_client_properties(username=ADMIN_USER)
+
+    @property
+    def metrics_reporter_properties(self) -> list[str]:
+        """Builds all the properties necessary for running the CruiseControlMetricsReporter client."""
+        return self._build_internal_client_properties(
+            username=BALANCER_USER, prefix="cruise.control.metrics.reporter"
+        )
 
     @property
     def server_properties(self) -> list[str]:
@@ -453,6 +470,7 @@ class ConfigManager(CommonConfigManager):
             + self.default_replication_properties
             + self.auth_properties
             + self.rack_properties
+            + self.metrics_reporter_properties
             + DEFAULT_CONFIG_OPTIONS.split("\n")
         )
 

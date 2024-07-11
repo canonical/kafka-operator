@@ -372,7 +372,7 @@ class ClusterState(Object):
         if not self.runs_balancer:
             return Status.ACTIVE
 
-        if not self.balancer:
+        if not self.balancer and not self.runs_broker:
             return Status.NO_BALANCER_RELATION
 
         if not self.balancer.broker_connected:

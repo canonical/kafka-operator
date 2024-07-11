@@ -113,6 +113,11 @@ class BrokerOperator(Object):
 
     def _on_start(self, event: StartEvent) -> None:
         """Handler for `start` event."""
+        if self.charm.state.peer_relation:
+            self.charm.state.unit_broker.update(
+                {"cores": str(self.balancer_manager.cores), "rack": self.config_manager.rack}
+            )
+
         self.charm._set_status(self.charm.state.ready_to_start)
         if not isinstance(self.charm.unit.status, ActiveStatus):
             event.defer()
@@ -140,11 +145,6 @@ class BrokerOperator(Object):
         if not self.healthy or not self.upgrade.idle:
             event.defer()
             return
-
-        if self.charm.state.peer_relation:
-            self.charm.state.unit_broker.update(
-                {"cores": str(self.balancer_manager.cores), "rack": self.config_manager.rack}
-            )
 
         # Load current properties set in the charm workload
         properties = self.workload.read(self.workload.paths.server_properties)

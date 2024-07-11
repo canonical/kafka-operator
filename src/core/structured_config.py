@@ -52,7 +52,7 @@ class LogLevel(str, Enum):
 class CharmConfig(BaseConfigModel):
     """Manager for the structured configuration."""
 
-    roles: set[str]
+    roles: str
     compression_type: str
     log_flush_interval_messages: int  # int  # long
     log_flush_interval_ms: int | None  # long
@@ -244,11 +244,11 @@ class CharmConfig(BaseConfigModel):
 
     @validator("roles", pre=True)
     @classmethod
-    def roles_values(cls, value: str):
+    def roles_values(cls, value: str) -> str:
         """Check roles values."""
         roles = set(map(str.strip, value.split(",")))
 
         if unknown_roles := roles - {BROKER.value, BALANCER.value}:
             raise ValueError("Unknown role(s):", unknown_roles)
 
-        return roles
+        return ",".join(sorted(roles))  # this has to be a string as it goes in to properties

@@ -55,6 +55,9 @@ class BalancerOperator(Object):
             self.charm.on[BALANCER.value].relation_changed, self._on_config_changed
         )
         self.framework.observe(getattr(self.charm.on, "update_status"), self._on_config_changed)
+        self.framework.observe(
+            self.charm.on[BALANCER.value].relation_changed, self._on_config_changed
+        )
 
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
@@ -119,7 +122,7 @@ class BalancerOperator(Object):
         if not isinstance(self.charm.unit.status, ActiveStatus):
             return False
 
-        if not self.workload.active():
+        if not self.workload.active() and self.charm.unit.is_leader():
             self.charm._set_status(Status.CC_NOT_RUNNING)
             return False
 
