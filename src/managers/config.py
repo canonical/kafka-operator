@@ -7,7 +7,10 @@
 import inspect
 import json
 import logging
+from abc import abstractmethod
 from typing import Iterable, cast
+
+from typing_extensions import override
 
 from core.cluster import ClusterState
 from core.structured_config import CharmConfig, LogLevel
@@ -154,6 +157,26 @@ class CommonConfigManager:
         return f"KAFKA_LOG4J_OPTS='{' '.join(opts)}'"
 
     @property
+    @abstractmethod
+    def kafka_opts(self) -> str:
+        """Extra Java config options.
+
+        Returns:
+            String of Java config options
+        """
+        ...
+
+    @property
+    @abstractmethod
+    def jaas_config(self) -> str:
+        """Builds the JAAS config for Client/KafkaClient authentication.
+
+        Returns:
+            String of JAAS config for ZooKeeper or Kafka authentication.
+        """
+        ...
+
+    @property
     def jvm_performance_opts(self) -> str:
         """The JVM config options for tuning performance settings.
 
@@ -214,12 +237,8 @@ class ConfigManager(CommonConfigManager):
         self.current_version = current_version
 
     @property
+    @override
     def kafka_opts(self) -> str:
-        """Extra Java config options.
-
-        Returns:
-            String of Java config options
-        """
         opts = [
             f"-Djava.security.auth.login.config={self.workload.paths.zk_jaas}",
         ]
@@ -452,12 +471,8 @@ class ConfigManager(CommonConfigManager):
         ]
 
     @property
-    def zk_jaas_config(self) -> str:
-        """Builds the JAAS config for Client authentication with ZooKeeper.
-
-        Returns:
-            String of Jaas config for ZooKeeper auth
-        """
+    @override
+    def jaas_config(self) -> str:
         return inspect.cleandoc(
             f"""
             Client {{
@@ -465,12 +480,12 @@ class ConfigManager(CommonConfigManager):
                 username="{self.state.zookeeper.username}"
                 password="{self.state.zookeeper.password}";
             }};
-        """
+            """
         )
 
     def set_zk_jaas_config(self) -> None:
         """Writes the ZooKeeper JAAS config using ZooKeeper relation data."""
-        self.workload.write(content=self.zk_jaas_config, path=self.workload.paths.zk_jaas)
+        self.workload.write(content=self.jaas_config, path=self.workload.paths.zk_jaas)
 
     def set_server_properties(self) -> None:
         """Writes all Kafka config properties to the `server.properties` path."""
@@ -525,6 +540,15 @@ class BalancerConfigManager(CommonConfigManager):
         self.config = config
 
     @property
+    @override
+    def kafka_opts(self) -> str:
+        opts = [
+            f"-Djava.security.auth.login.config={self.workload.paths.balancer_jaas}",
+        ]
+
+        return f"KAFKA_OPTS='{' '.join(opts)}'"
+
+    @property
     def balance_thresholds(self) -> list[str]:
         """Properties for managing variance in inter-broker resource usage."""
         balance_threshold = self.config.cruisecontrol_balance_threshold
@@ -566,13 +590,12 @@ class BalancerConfigManager(CommonConfigManager):
             goals = goals + ["RackAware"]
 
         default_goals = [
-            f"com.linkedin.kafka.cruisecontrol.analyser.goals.{goal}Goal" for goal in goals
+            f"com.linkedin.kafka.cruisecontrol.analyzer.goals.{goal}Goal" for goal in goals
         ]
 
         return [
             f"default.goals={','.join(default_goals)}",
             f"goals={','.join(default_goals)}",
-            f"intra.broker.goals={','.join([goal for goal in default_goals if 'IntraBroker' in goal])}",
             f"hard.goals={','.join([goal for goal in default_goals if any(hard_goal in goal for hard_goal in HARD_BALANCER_GOALS)])}",
         ]
 
@@ -590,6 +613,7 @@ class BalancerConfigManager(CommonConfigManager):
             [
                 f"bootstrap.servers={self.state.balancer.bootstrap_server}",
                 f"zookeeper.connect={self.state.balancer.zk_uris}",
+                "zookeeper.security.enabled=true",
                 f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";',
                 "sasl.mechanism=SCRAM-SHA-512",
                 f"security.protocol={self.security_protocol}",
@@ -600,6 +624,23 @@ class BalancerConfigManager(CommonConfigManager):
         )
 
         return properties
+
+    @property
+    @override
+    def jaas_config(self) -> str:
+        return inspect.cleandoc(
+            f"""
+            Client {{
+                org.apache.zookeeper.server.auth.DigestLoginModule required
+                username="{self.state.balancer.zk_username}"
+                password="{self.state.balancer.zk_password}";
+            }};
+        """
+        )
+
+    def set_zk_jaas_config(self) -> None:
+        """Writes the ZooKeeper JAAS config using Balancer relation data."""
+        self.workload.write(content=self.jaas_config, path=self.workload.paths.balancer_jaas)
 
     def set_cruise_control_properties(self) -> None:
         """Writes all Cruise Control properties to the `cruisecontrol.properties` path."""
@@ -625,6 +666,7 @@ class BalancerConfigManager(CommonConfigManager):
             self.jvm_performance_opts,
             self.heap_opts,
             self.log_level,
+            self.kafka_opts,
         ]
 
         raw_current_env = self.workload.read("/etc/environment")

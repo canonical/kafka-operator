@@ -11,8 +11,8 @@ from typing import TYPE_CHECKING
 from charms.data_platform_libs.v0.data_interfaces import RequirerEventHandlers
 from ops.charm import RelationChangedEvent, RelationCreatedEvent, RelationEvent, SecretChangedEvent
 from ops.framework import Object
-from core.cluster import PeerClusterRequirerData
 
+from core.cluster import PeerClusterRequirerData
 from literals import BROKER
 
 if TYPE_CHECKING:

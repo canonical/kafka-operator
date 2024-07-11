@@ -151,7 +151,7 @@ class BrokerOperator(Object):
         properties_changed = set(properties) ^ set(self.config_manager.server_properties)
 
         zk_jaas = self.workload.read(self.workload.paths.zk_jaas)
-        zk_jaas_changed = set(zk_jaas) ^ set(self.config_manager.zk_jaas_config.splitlines())
+        zk_jaas_changed = set(zk_jaas) ^ set(self.config_manager.jaas_config.splitlines())
 
         if not properties or not zk_jaas:
             # Event fired before charm has properly started
@@ -165,7 +165,7 @@ class BrokerOperator(Object):
         if zk_jaas_changed:
             clean_broker_jaas = [conf.strip() for conf in zk_jaas]
             clean_config_jaas = [
-                conf.strip() for conf in self.config_manager.zk_jaas_config.splitlines()
+                conf.strip() for conf in self.config_manager.jaas_config.splitlines()
             ]
             logger.info(
                 (

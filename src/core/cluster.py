@@ -332,6 +332,9 @@ class ClusterState(Object):
         """The capacities for all Kafka broker."""
         broker_capacities = []
         for broker in self.brokers:
+            if not all([broker.cores, broker.storages]):
+                return {}
+
             broker_capacities.append(
                 {
                     "brokerId": str(broker.unit_id),

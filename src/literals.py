@@ -148,8 +148,6 @@ DEFAULT_BALANCER_GOALS = [
     "LeaderBytesInDistribution",
     "TopicReplicaDistribution",
     "PreferredLeaderElection",
-    "IntraBrokerDiskCapacity",
-    "IntraBrokerDiskUsageDistribution",
 ]
 HARD_BALANCER_GOALS = [
     "ReplicaCapacity",
@@ -158,7 +156,6 @@ HARD_BALANCER_GOALS = [
     "NetworkOutboundCapacity",
     "CpuCapacity",
     "ReplicaDistribution",
-    "IntraBrokerDiskCapacity",
 ]
 
 
