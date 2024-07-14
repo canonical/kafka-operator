@@ -10,7 +10,6 @@ from ops import (
     Object,
 )
 
-from events.peer_cluster import BalancerEventsHandler
 from literals import (
     BALANCER,
     Status,
@@ -38,10 +37,6 @@ class BalancerOperator(Object):
         if BALANCER.value not in self.charm.config.roles:
             return
 
-        self.balancer_events = BalancerEventsHandler(
-            self.charm, self.charm.state.peer_cluster_interfaces[BALANCER.value]
-        )
-
         self.config_manager = BalancerConfigManager(
             self.charm.state, self.workload, self.charm.config
         )
@@ -51,13 +46,8 @@ class BalancerOperator(Object):
         self.framework.observe(self.charm.on.start, self._on_start)
         self.framework.observe(self.charm.on.leader_elected, self._on_start)
 
-        self.framework.observe(
-            self.charm.on[BALANCER.value].relation_changed, self._on_config_changed
-        )
+        # ensures data updates, eventually
         self.framework.observe(getattr(self.charm.on, "update_status"), self._on_config_changed)
-        self.framework.observe(
-            self.charm.on[BALANCER.value].relation_changed, self._on_config_changed
-        )
 
     def _on_install(self, _) -> None:
         """Handler for `install` event."""

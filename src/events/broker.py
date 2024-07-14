@@ -18,7 +18,6 @@ from ops import (
 )
 
 from events.password_actions import PasswordActionEvents
-from events.peer_cluster import BrokerEventsHandler
 from events.provider import KafkaProvider
 from events.tls import TLSHandler
 from events.upgrade import KafkaDependencyModel, KafkaUpgrade
@@ -69,7 +68,6 @@ class BrokerOperator(Object):
         self.zookeeper = ZooKeeperHandler(self)
         self.tls = TLSHandler(self)
         self.provider = KafkaProvider(self)
-        self.broker = BrokerEventsHandler(self)
 
         # MANAGERS
 

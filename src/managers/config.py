@@ -624,15 +624,12 @@ class BalancerConfigManager(CommonConfigManager):
         Returns:
             List of properties to be set
         """
-        username = BALANCER_USER
-        password = self.state.balancer.password
-
         properties = (
             [
-                f"bootstrap.servers={self.state.balancer.bootstrap_server}",
+                f"bootstrap.servers={self.state.balancer.broker_uris}",
                 f"zookeeper.connect={self.state.balancer.zk_uris}",
                 "zookeeper.security.enabled=true",
-                f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";',
+                f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{self.state.balancer.broker_username}" password="{self.state.balancer.broker_password}";',
                 "sasl.mechanism=SCRAM-SHA-512",
                 f"security.protocol={self.security_protocol}",
                 f"capacity.config.file={self.workload.paths.capacity_jbod_json}",

@@ -33,8 +33,9 @@ provides:
     interface: kafka_client
   cos-agent:
     interface: cos_agent
-  broker:
+  peer-cluster-orchestrator:
     interface: peer_cluster
+    limit: 1
 
 requires:
   zookeeper:
@@ -50,7 +51,7 @@ requires:
   trusted-certificate:
     interface: tls-certificates
     optional: true
-  balancer:
+  peer-cluster:
     interface: peer_cluster
     optional: true
 

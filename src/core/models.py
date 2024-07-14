@@ -64,78 +64,114 @@ class RelationState:
             del self.relation_data[field]
 
 
-class Balancer(RelationState):
-    """State collection metadata for the balancer."""
+class PeerCluster(RelationState):
+    """State collection metadata for a peer-cluster application."""
 
     def __init__(
         self,
         relation: Relation | None,
         data_interface: Data,
-        username: str = "",
-        password: str = "",
-        bootstrap_server: str = "",
+        broker_username: str = "",
+        broker_password: str = "",
+        broker_uris: str = "",
+        racks: int = 0,
+        broker_capacities: dict[str, list[JSON]] = {},
         zk_username: str = "",
         zk_password: str = "",
         zk_uris: str = "",
-        broker_capacities: dict[str, list[JSON]] = {},
-        racks: int = 0,
+        balancer_username: str = "",
+        balancer_password: str = "",
+        balancer_uris: str = "",
     ):
         super().__init__(relation, data_interface, None, None)
-        self._username = username
-        self._password = password  # nosec: B107
-        self._bootstrap_server = bootstrap_server
+        self._broker_username = broker_username
+        self._broker_password = broker_password
+        self._broker_uris = broker_uris
+        self._racks = racks
+        self._broker_capacities = broker_capacities
         self._zk_username = zk_username
         self._zk_password = zk_password
         self._zk_uris = zk_uris
-        self._broker_capacities = broker_capacities
-        self._racks = racks
+        self._balancer_username = balancer_username
+        self._balancer_password = balancer_password
+        self._balancer_uris = balancer_uris
 
     @property
-    def username(self) -> str:
-        """The generated username for the balancer application."""
-        if self._username:
-            return self._username
+    def broker_username(self) -> str:
+        """The provided username for the broker application."""
+        if self._broker_username:
+            return self._broker_username
 
         if not self.relation:
             return ""
 
         return (
             self.data_interface.fetch_relation_field(
-                relation_id=self.relation.id, field="username"
+                relation_id=self.relation.id, field="broker-username"
             )
             or ""
         )
 
     @property
-    def password(self) -> str:
-        """The generated password for the balancer application."""
-        if self._password:
-            return self._password
+    def broker_password(self) -> str:
+        """The provided password for the broker application."""
+        if self._broker_password:
+            return self._broker_password
 
         if not self.relation:
             return ""
 
         return (
             self.data_interface.fetch_relation_field(
-                relation_id=self.relation.id, field="password"
+                relation_id=self.relation.id, field="broker-password"
             )
             or ""
         )
 
     @property
-    def bootstrap_server(self) -> str:
-        """The Kafka server endpoints for the balancer application to connect with."""
-        if self._bootstrap_server:
-            return self._bootstrap_server
+    def broker_uris(self) -> str:
+        """The provided uris for the balancer application to connect to the broker application."""
+        if self._broker_uris:
+            return self._broker_uris
 
         if not self.relation:
             return ""
 
         return (
             self.data_interface.fetch_relation_field(
-                relation_id=self.relation.id, field="bootstrap-server"
+                relation_id=self.relation.id, field="broker-uris"
             )
             or ""
+        )
+
+    @property
+    def racks(self) -> int:
+        """The number of racks for the brokers."""
+        if self._racks:
+            return self._racks
+
+        if not self.relation:
+            return 0
+
+        return int(
+            self.data_interface.fetch_relation_field(relation_id=self.relation.id, field="racks")
+            or 0
+        )
+
+    @property
+    def broker_capacities(self) -> dict[str, list[JSON]]:
+        """The capacities for all Kafka brokers."""
+        if self._broker_capacities:
+            return self._broker_capacities
+
+        if not self.relation:
+            return {}
+
+        return json.loads(
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="broker-capacities"
+            )
+            or "{}"
         )
 
     @property
@@ -185,33 +221,51 @@ class Balancer(RelationState):
         )
 
     @property
-    def racks(self) -> int:
-        """The number of racks for the brokers."""
-        if self._racks:
-            return self._racks
+    def balancer_username(self) -> str:
+        """The provided username for the balancer application."""
+        if self._balancer_username:
+            return self._balancer_username
 
         if not self.relation:
-            return 0
+            return ""
 
-        return int(
-            self.data_interface.fetch_relation_field(relation_id=self.relation.id, field="racks")
-            or 0
+        return (
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="balancer-username"
+            )
+            or ""
         )
 
     @property
-    def broker_capacities(self) -> dict[str, list[JSON]]:
-        """The capacities for all Kafka brokers."""
-        if self._broker_capacities:
-            return self._broker_capacities
+    def balancer_password(self) -> str:
+        """The provided password for the balancer application."""
+        if self._balancer_password:
+            return self._balancer_password
 
         if not self.relation:
-            return {}
+            return ""
 
-        return json.loads(
+        return (
             self.data_interface.fetch_relation_field(
-                relation_id=self.relation.id, field="broker-capacities"
+                relation_id=self.relation.id, field="balancer-password"
             )
-            or "{}"
+            or ""
+        )
+
+    @property
+    def balancer_uris(self) -> str:
+        """The provided uris for the broker application to connect to the balancer application."""
+        if self._balancer_uris:
+            return self._balancer_uris
+
+        if not self.relation:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="balancer-uris"
+            )
+            or ""
         )
 
     @property
@@ -219,9 +273,9 @@ class Balancer(RelationState):
         """Checks if there is an active broker relation with all necessary data."""
         if not all(
             [
-                self.username,
-                self.password,
-                self.bootstrap_server,
+                self.broker_username,
+                self.broker_password,
+                self.broker_uris,
                 self.zk_username,
                 self.zk_password,
                 self.zk_uris,

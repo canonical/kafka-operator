@@ -22,6 +22,7 @@ from core.models import Substrates
 from core.structured_config import CharmConfig
 from events.balancer import BalancerOperator
 from events.broker import BrokerOperator
+from events.peer_cluster import PeerClusterEventsHandler
 from literals import (
     CHARM_KEY,
     JMX_EXPORTER_PORT,
@@ -69,6 +70,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.framework.observe(getattr(self.on, "install"), self._on_install)
         self.framework.observe(getattr(self.on, "remove"), self._on_remove)
         self.framework.observe(getattr(self.on, "config_changed"), self._on_roles_changed)
+
+        # peer-cluster events are shared between all roles, so necessary to init here to avoid instantiating multiple times
+        self.peer_cluster = PeerClusterEventsHandler(self)
 
         # Register roles event handlers after global ones, so that they get the priority.
         self.broker = BrokerOperator(self)
