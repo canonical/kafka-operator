@@ -97,6 +97,20 @@ class PeerCluster(RelationState):
         self._balancer_uris = balancer_uris
 
     @property
+    def roles(self) -> str:
+        """All the roles pass from the related application."""
+        if not self.relation:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="roles"
+            )
+            or ""
+        )
+
+
+    @property
     def broker_username(self) -> str:
         """The provided username for the broker application."""
         if self._broker_username:

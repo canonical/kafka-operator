@@ -17,7 +17,7 @@ from charms.data_platform_libs.v0.data_interfaces import (
     diff,
     set_encoded_field,
 )
-from ops.charm import RelationChangedEvent, RelationCreatedEvent, SecretChangedEvent
+from ops.charm import RelationChangedEvent, RelationCreatedEvent, RelationEvent, SecretChangedEvent
 from ops.framework import Object
 
 from literals import (
@@ -137,7 +137,7 @@ class PeerClusterEventsHandler(Object):
 
     def _default_relation_changed(self, event: RelationChangedEvent):
         """Implements required logic from multiple 'handled' events from the `data-interfaces` library."""
-        if not event.relation or not event.relation.app:
+        if not isinstance(event, RelationEvent) or not event.relation or not event.relation.app:
             return
 
         diff_data = diff(event, self.charm.state.cluster.app)
