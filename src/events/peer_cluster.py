@@ -147,7 +147,6 @@ class PeerClusterEventsHandler(Object):
             return
 
         diff_data = diff(event, self.charm.state.cluster.app)
-        logger.info(f"{diff_data=}")
 
         if any(newval for newval in diff_data.added if newval.startswith(PROV_SECRET_PREFIX)):
             for group in custom_secret_groups.groups():
@@ -155,11 +154,9 @@ class PeerClusterEventsHandler(Object):
                 if secret_field in diff_data.added and (
                     secret_uri := event.relation.data[event.relation.app].get(secret_field)
                 ):
-                    logger.info(f"{secret_uri=}")
                     label = Data._generate_secret_label(
                         event.relation.name, event.relation.id, group
                     )
-                    logger.info(f"{label=}")
                     CachedSecret(
                         self.charm.model, self.charm.state.cluster.app, label, secret_uri
                     ).meta
