@@ -148,7 +148,6 @@ class Workload(WorkloadBase):
         for pid in java_processes.split():
             with open(f"/proc/{pid}/cgroup", "r") as fid:
                 content = "".join(fid.readlines())
-                logger.error(f"{content}\n{self.SNAP_NAME}.{self.service}")
 
                 if f"{self.SNAP_NAME}.{self.service}" in content:
                     logger.debug(

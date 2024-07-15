@@ -6,13 +6,13 @@ from typing import TYPE_CHECKING
 
 from ops import (
     ActiveStatus,
-    ConfigChangedEvent,
     EventBase,
     Object,
 )
 
 from literals import (
     BALANCER,
+    Status,
 )
 from managers.balancer import BalancerManager
 from managers.config import BalancerConfigManager
@@ -44,11 +44,10 @@ class BalancerOperator(Object):
 
         self.framework.observe(self.charm.on.install, self._on_install)
         self.framework.observe(self.charm.on.start, self._on_start)
-        # self.framework.observe(self.charm.on.update_status, self._on_update_status)
-        self.framework.observe(
-            self.charm.on[BALANCER.value].relation_changed, self._on_config_changed
-        )
         self.framework.observe(self.charm.on.leader_elected, self._on_start)
+
+        # ensures data updates, eventually
+        self.framework.observe(getattr(self.charm.on, "update_status"), self._on_config_changed)
 
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
@@ -61,56 +60,60 @@ class BalancerOperator(Object):
             return
 
         self.charm._set_status(self.charm.state.ready_to_start)
-
         if not isinstance(self.charm.unit.status, ActiveStatus):
             event.defer()
             return
 
         self.config_manager.set_cruise_control_properties()
         self.config_manager.set_broker_capacities()
+        self.config_manager.set_zk_jaas_config()
 
         try:
             self.balancer_manager.create_internal_topics()
-        except CalledProcessError:
+        except CalledProcessError as e:
+            logger.warning(e.stdout)
             event.defer()
             return
 
-        self.workload.start()
+        self.workload.restart()
 
-        logger.info("Cruise control started")
+        logger.info("Cruise-control started")
 
-        # self.charm.on.update_status.emit()
+    def _on_config_changed(self, event: EventBase) -> None:
+        """Generic handler for 'something changed' events."""
+        if not self.healthy:
+            event.defer()
+            return
 
-    def _on_config_changed(self, event: ConfigChangedEvent) -> None:
-        """Handler for `config-changed` event."""
-        self._on_start(event)
+        properties = self.workload.read(self.workload.paths.cruise_control_properties)
+        properties_changed = set(properties) ^ set(self.config_manager.cruise_control_properties)
 
-    # @property
-    # def healthy(self) -> bool:
-    #     """Checks and updates various charm lifecycle states.
+        if properties_changed:
+            logger.info(
+                (
+                    f'Balancer {self.charm.unit.name.split("/")[1]} updating config - '
+                    f"OLD PROPERTIES = {set(properties) - set(self.config_manager.cruise_control_properties)}, "
+                    f"NEW PROPERTIES = {set(self.config_manager.cruise_control_properties) - set(properties)}"
+                )
+            )
+            self.config_manager.set_cruise_control_properties()
 
-    #     Is slow to fail due to retries, to be used sparingly.
+        if properties_changed:
+            self._on_start(event)
 
-    #     Returns:
-    #         True if service is alive and active. Otherwise False
-    #     """
-    #     self.charm._set_status(self.charm.state.ready_to_start)
-    #     if not isinstance(self.charm.unit.status, ActiveStatus):
-    #         return False
+    @property
+    def healthy(self) -> bool:
+        """Checks and updates various charm lifecycle states.
 
-    #     if not self.workload.active():
-    #         self.charm._set_status(Status.SNAP_NOT_RUNNING)
-    #         return False
+        Returns:
+            True if service is alive and active. Otherwise False
+        """
+        self.charm._set_status(self.charm.state.ready_to_start)
+        if not isinstance(self.charm.unit.status, ActiveStatus):
+            return False
 
-    #     return True
+        if not self.workload.active() and self.charm.unit.is_leader():
+            self.charm._set_status(Status.CC_NOT_RUNNING)
+            return False
 
-    # def _on_update_status(self, _: UpdateStatusEvent) -> None:
-    #     """Handler for `update-status` events."""
-    #     if not self.healthy:
-    #         return
-
-    #     if not self.charm.state.zookeeper.broker_active():
-    #         self.charm._set_status(Status.ZK_NOT_CONNECTED)
-    #         return
-
-    #     self.charm._set_status(Status.ACTIVE)
+        return True

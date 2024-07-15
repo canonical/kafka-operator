@@ -55,7 +55,7 @@ class BalancerManager:
                 [
                     "--list",
                     "--bootstrap-server",
-                    f"{self.charm.state.internal_bootstrap_server}",
+                    f"{self.charm.state.balancer.broker_uris}",
                     "--command-config",
                     f'{BALANCER.paths["CONF"]}/cruisecontrol.properties',
                 ],
@@ -67,7 +67,7 @@ class BalancerManager:
                         "--topic",
                         topic,
                         "--bootstrap-server",
-                        f"{self.charm.state.internal_bootstrap_server}",
+                        f"{self.charm.state.balancer.broker_uris}",
                         "--command-config",
                         f'{BALANCER.paths["CONF"]}/cruisecontrol.properties',
                     ],

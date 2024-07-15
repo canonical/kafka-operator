@@ -1,6 +1,5 @@
 """Broker role core charm logic."""
 
-import json
 import logging
 from typing import TYPE_CHECKING
 
@@ -113,7 +112,9 @@ class BrokerOperator(Object):
     def _on_start(self, event: StartEvent) -> None:
         """Handler for `start` event."""
         if self.charm.state.peer_relation:
-            self.charm.state.unit_broker.update({"cores": str(self.balancer_manager.cores)})
+            self.charm.state.unit_broker.update(
+                {"cores": str(self.balancer_manager.cores), "rack": self.config_manager.rack}
+            )
 
         self.charm._set_status(self.charm.state.ready_to_start)
         if not isinstance(self.charm.unit.status, ActiveStatus):
@@ -138,14 +139,6 @@ class BrokerOperator(Object):
 
     def _on_config_changed(self, event: EventBase) -> None:
         """Generic handler for most `config_changed` events across relations."""
-        if self.charm.state.balancer and self.charm.unit.is_leader():
-            self.charm.state.balancer.update(
-                {
-                    "broker-capacities": self.config_manager.broker_capacities,
-                    "rack-aware": json.dumps(bool(self.config_manager.rack_properties)),
-                }
-            )
-
         # only overwrite properties if service is already active
         if not self.healthy or not self.upgrade.idle:
             event.defer()
@@ -156,7 +149,7 @@ class BrokerOperator(Object):
         properties_changed = set(properties) ^ set(self.config_manager.server_properties)
 
         zk_jaas = self.workload.read(self.workload.paths.zk_jaas)
-        zk_jaas_changed = set(zk_jaas) ^ set(self.config_manager.zk_jaas_config.splitlines())
+        zk_jaas_changed = set(zk_jaas) ^ set(self.config_manager.jaas_config.splitlines())
 
         if not properties or not zk_jaas:
             # Event fired before charm has properly started
@@ -170,7 +163,7 @@ class BrokerOperator(Object):
         if zk_jaas_changed:
             clean_broker_jaas = [conf.strip() for conf in zk_jaas]
             clean_config_jaas = [
-                conf.strip() for conf in self.config_manager.zk_jaas_config.splitlines()
+                conf.strip() for conf in self.config_manager.jaas_config.splitlines()
             ]
             logger.info(
                 (
@@ -225,7 +218,7 @@ class BrokerOperator(Object):
                 return
         except SnapError as e:
             logger.debug(f"Error: {e}")
-            self.charm._set_status(Status.SNAP_NOT_RUNNING)
+            self.charm._set_status(Status.BROKER_NOT_RUNNING)
             return
 
         self.charm._set_status(Status.ACTIVE)
@@ -289,7 +282,7 @@ class BrokerOperator(Object):
             return False
 
         if not self.workload.active():
-            self.charm._set_status(Status.SNAP_NOT_RUNNING)
+            self.charm._set_status(Status.BROKER_NOT_RUNNING)
             return False
 
         return True

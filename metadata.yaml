@@ -27,8 +27,15 @@ peers:
     interface: rolling_op
   upgrade:
     interface: upgrade
-  balancer:
-    interface: balancer
+
+provides:
+  kafka-client:
+    interface: kafka_client
+  cos-agent:
+    interface: cos_agent
+  peer-cluster-orchestrator:
+    interface: peer_cluster
+    limit: 1
 
 requires:
   zookeeper:
@@ -44,12 +51,9 @@ requires:
   trusted-certificate:
     interface: tls-certificates
     optional: true
-
-provides:
-  kafka-client:
-    interface: kafka_client
-  cos-agent:
-    interface: cos_agent
+  peer-cluster:
+    interface: peer_cluster
+    optional: true
 
 storage:
   data:
