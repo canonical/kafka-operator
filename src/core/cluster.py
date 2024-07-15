@@ -6,14 +6,17 @@
 
 import os
 from functools import cached_property
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from charms.data_platform_libs.v0.data_interfaces import (
+    SECRET_GROUPS,
     DatabaseRequirerData,
     DataPeerData,
     DataPeerOtherUnitData,
     DataPeerUnitData,
     KafkaProviderData,
+    ProviderData,
+    RequirerData,
 )
 from ops import Object, Relation
 from ops.model import Unit
@@ -39,14 +42,43 @@ from literals import (
     SECRETS_UNIT,
     SECURITY_PROTOCOL_PORTS,
     ZK,
-    BalancerData,
-    PeerClusterData,
     Status,
     Substrates,
 )
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
+
+custom_secret_groups = SECRET_GROUPS
+setattr(custom_secret_groups, "BROKER", "broker")
+setattr(custom_secret_groups, "BALANCER", "balancer")
+setattr(custom_secret_groups, "ZOOKEEPER", "zookeeper")
+
+SECRET_LABEL_MAP = {
+    "broker-username": getattr(custom_secret_groups, "BROKER"),
+    "broker-password": getattr(custom_secret_groups, "BROKER"),
+    "broker-uris": getattr(custom_secret_groups, "BROKER"),
+    "zk-username": getattr(custom_secret_groups, "ZOOKEEPER"),
+    "zk-password": getattr(custom_secret_groups, "ZOOKEEPER"),
+    "zk-uris": getattr(custom_secret_groups, "ZOOKEEPER"),
+    "balancer-username": getattr(custom_secret_groups, "BALANCER"),
+    "balancer-password": getattr(custom_secret_groups, "BALANCER"),
+    "balancer-uris": getattr(custom_secret_groups, "BALANCER"),
+}
+
+
+class PeerClusterOrchestratorData(ProviderData, RequirerData):
+    """Broker provider data model."""
+
+    SECRET_LABEL_MAP = SECRET_LABEL_MAP
+    SECRET_FIELDS = BALANCER.requested_secrets
+
+
+class PeerClusterData(ProviderData, RequirerData):
+    """Broker provider data model."""
+
+    SECRET_LABEL_MAP = SECRET_LABEL_MAP
+    SECRET_FIELDS = BROKER.requested_secrets
 
 
 class ClusterState(Object):
@@ -99,20 +131,19 @@ class ClusterState(Object):
         """The state for all related `peer-cluster` applications that this charm is providing for."""
         peer_clusters = set()
         for relation in self.peer_cluster_orchestrator_relations:
-            if not relation.app:
+            if not relation.app or not self.runs_balancer:
                 continue
 
-            if self.runs_balancer:
-                peer_clusters.add(
-                    PeerCluster(
-                        relation=relation,
-                        data_interface=PeerClusterData(self.model, relation.name),
-                        balancer_username="foo",
-                        balancer_password="bar",
-                        balancer_uris="baz"
-                        # FIXME: need to pass HTTP Basic username/password + balancer_uris here
-                    )
+            peer_clusters.add(
+                PeerCluster(
+                    relation=relation,
+                    data_interface=PeerClusterOrchestratorData(self.model, relation.name),
+                    balancer_username="foo",
+                    balancer_password="bar",
+                    balancer_uris="baz",
+                    # FIXME: need to pass HTTP Basic username/password + balancer_uris here
                 )
+            )
 
         return peer_clusters
 
@@ -123,24 +154,31 @@ class ClusterState(Object):
     @property
     def balancer(self) -> PeerCluster:
         """The state for the `peer-cluster-orchestrator` related balancer application."""
-        # default to empty relation in case of `roles=broker,balancer`
-        relation = None
-        relation_name = ""
-        if self.peer_cluster_relation and self.peer_cluster_relation.name:
-            relation, relation_name = (self.peer_cluster_relation, self.peer_cluster_relation.name)
-
-        return PeerCluster(
-            relation=relation,
-            data_interface=BalancerData(self.model, relation_name),
-            broker_username=BALANCER_USER,
-            broker_password=self.cluster.internal_user_credentials.get(BALANCER_USER, ""),
-            broker_uris=self.bootstrap_server,
-            racks=self.racks,
-            broker_capacities=self.broker_capacities,
-            zk_username=self.zookeeper.username,
-            zk_password=self.zookeeper.password,
-            zk_uris=self.zookeeper.uris,
+        balancer_kwargs: dict[str, Any] = (
+            {"balancer_username": "foo", "balancer_password": "bar", "balancer_uris": "baz"}
+            if self.runs_balancer
+            else {}
         )
+
+        if self.runs_broker:  # must be requiring, initialise with necessary broker data
+            return PeerCluster(
+                relation=self.peer_cluster_relation,  # if same app, this will be None and OK
+                data_interface=PeerClusterData(self.model, PEER_CLUSTER_RELATION),
+                broker_username=BALANCER_USER,
+                broker_password=self.cluster.internal_user_credentials.get(BALANCER_USER, ""),
+                broker_uris=self.bootstrap_server,
+                racks=self.racks,
+                broker_capacities=self.broker_capacities,
+                zk_username=self.zookeeper.username,
+                zk_password=self.zookeeper.password,
+                zk_uris=self.zookeeper.uris,
+                **balancer_kwargs,  # in case of roles=broker,balancer on this app
+            )
+
+        else:  # must be roles=balancer only then, only load with necessary balancer data
+            return list(self.peer_clusters)[
+                0
+            ]  # for broker - balancer relation, currently limited to 1
 
     # --- CORE COMPONENTS ---
 
@@ -358,9 +396,6 @@ class ClusterState(Object):
         """Checks for role=balancer specific readiness."""
         if not self.runs_balancer:
             return Status.ACTIVE
-
-        if not self.balancer and not self.runs_broker:
-            return Status.NO_BALANCER_RELATION
 
         if not self.balancer.broker_connected:
             return Status.NO_BROKER_DATA

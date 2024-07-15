@@ -8,11 +8,6 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Literal
 
-from charms.data_platform_libs.v0.data_interfaces import (
-    SECRET_GROUPS,
-    ProviderData,
-    RequirerData,
-)
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, StatusBase, WaitingStatus
 
 CHARM_KEY = "kafka"
@@ -126,40 +121,6 @@ class Role:
         return self.value == value
 
 
-setattr(SECRET_GROUPS, "BROKER", "broker")
-setattr(SECRET_GROUPS, "BALANCER", "balancer")
-setattr(SECRET_GROUPS, "ZOOKEEPER", "zookeeper")
-
-BALANCER_SECRET_LABEL_MAP = {
-    "broker-username": getattr(SECRET_GROUPS, "BROKER"),
-    "broker-password": getattr(SECRET_GROUPS, "BROKER"),
-    "broker-uris": getattr(SECRET_GROUPS, "BROKER"),
-    "zk-username": getattr(SECRET_GROUPS, "ZOOKEEPER"),
-    "zk-password": getattr(SECRET_GROUPS, "ZOOKEEPER"),
-    "zk-uris": getattr(SECRET_GROUPS, "ZOOKEEPER"),
-}
-
-BROKER_SECRET_LABEL_MAP = {
-    "balancer-username": getattr(SECRET_GROUPS, "BALANCER"),
-    "balancer-password": getattr(SECRET_GROUPS, "BALANCER"),
-    "balancer-uris": getattr(SECRET_GROUPS, "BALANCER"),
-}
-
-
-class PeerClusterData(ProviderData, RequirerData):
-    """Broker provider data model."""
-
-    SECRET_LABEL_MAP = BALANCER_SECRET_LABEL_MAP | BROKER_SECRET_LABEL_MAP
-    SECRET_FIELDS = list(BROKER_SECRET_LABEL_MAP.keys())
-
-
-class BalancerData(ProviderData, RequirerData):
-    """Balancer requirer data model."""
-
-    SECRET_LABEL_MAP = BALANCER_SECRET_LABEL_MAP | BROKER_SECRET_LABEL_MAP
-    SECRET_FIELDS = list(BALANCER_SECRET_LABEL_MAP.keys())
-
-
 BROKER = Role(
     value="broker",
     service="daemon",
@@ -177,7 +138,8 @@ BALANCER = Role(
     paths=PATHS["cruise-control"],
     relation=PEER_CLUSTER_ORCHESTRATOR_RELATION,
     requested_secrets=[
-        "broker-username" "broker-password",
+        "broker-username",
+        "broker-password",
         "broker-uris",
         "zk-username",
         "zk-password",

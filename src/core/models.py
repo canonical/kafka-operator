@@ -19,7 +19,7 @@ from ops.model import Application, Relation, Unit
 from tenacity import retry, retry_if_result, stop_after_attempt, wait_fixed
 from typing_extensions import override
 
-from literals import INTERNAL_USERS, SECRETS_APP, Substrates
+from literals import BALANCER, BROKER, INTERNAL_USERS, SECRETS_APP, Substrates
 
 logger = logging.getLogger(__name__)
 
@@ -103,12 +103,9 @@ class PeerCluster(RelationState):
             return ""
 
         return (
-            self.data_interface.fetch_relation_field(
-                relation_id=self.relation.id, field="roles"
-            )
+            self.data_interface.fetch_relation_field(relation_id=self.relation.id, field="roles")
             or ""
         )
-
 
     @property
     def broker_username(self) -> str:
@@ -116,15 +113,15 @@ class PeerCluster(RelationState):
         if self._broker_username:
             return self._broker_username
 
-        if not self.relation:
+        if not self.relation or not self.relation.app:
             return ""
 
-        return (
-            self.data_interface.fetch_relation_field(
-                relation_id=self.relation.id, field="broker-username"
-            )
-            or ""
-        )
+        return self.data_interface._fetch_relation_data_with_secrets(
+            component=self.relation.app,
+            req_secret_fields=BALANCER.requested_secrets,
+            relation=self.relation,
+            fields=BALANCER.requested_secrets,
+        ).get("broker-username", "")
 
     @property
     def broker_password(self) -> str:
@@ -132,15 +129,15 @@ class PeerCluster(RelationState):
         if self._broker_password:
             return self._broker_password
 
-        if not self.relation:
+        if not self.relation or not self.relation.app:
             return ""
 
-        return (
-            self.data_interface.fetch_relation_field(
-                relation_id=self.relation.id, field="broker-password"
-            )
-            or ""
-        )
+        return self.data_interface._fetch_relation_data_with_secrets(
+            component=self.relation.app,
+            req_secret_fields=BALANCER.requested_secrets,
+            relation=self.relation,
+            fields=BALANCER.requested_secrets,
+        ).get("broker-password", "")
 
     @property
     def broker_uris(self) -> str:
@@ -148,15 +145,15 @@ class PeerCluster(RelationState):
         if self._broker_uris:
             return self._broker_uris
 
-        if not self.relation:
+        if not self.relation or not self.relation.app:
             return ""
 
-        return (
-            self.data_interface.fetch_relation_field(
-                relation_id=self.relation.id, field="broker-uris"
-            )
-            or ""
-        )
+        return self.data_interface._fetch_relation_data_with_secrets(
+            component=self.relation.app,
+            req_secret_fields=BALANCER.requested_secrets,
+            relation=self.relation,
+            fields=BALANCER.requested_secrets,
+        ).get("broker-uris", "")
 
     @property
     def racks(self) -> int:
@@ -194,15 +191,15 @@ class PeerCluster(RelationState):
         if self._zk_username:
             return self._zk_username
 
-        if not self.relation:
+        if not self.relation or not self.relation.app:
             return ""
 
-        return (
-            self.data_interface.fetch_relation_field(
-                relation_id=self.relation.id, field="zk-username"
-            )
-            or ""
-        )
+        return self.data_interface._fetch_relation_data_with_secrets(
+            component=self.relation.app,
+            req_secret_fields=BALANCER.requested_secrets,
+            relation=self.relation,
+            fields=BALANCER.requested_secrets,
+        ).get("zk-username", "")
 
     @property
     def zk_password(self) -> str:
@@ -210,15 +207,15 @@ class PeerCluster(RelationState):
         if self._zk_password:
             return self._zk_password
 
-        if not self.relation:
+        if not self.relation or not self.relation.app:
             return ""
 
-        return (
-            self.data_interface.fetch_relation_field(
-                relation_id=self.relation.id, field="zk-password"
-            )
-            or ""
-        )
+        return self.data_interface._fetch_relation_data_with_secrets(
+            component=self.relation.app,
+            req_secret_fields=BALANCER.requested_secrets,
+            relation=self.relation,
+            fields=BALANCER.requested_secrets,
+        ).get("zk-password", "")
 
     @property
     def zk_uris(self) -> str:
@@ -226,13 +223,15 @@ class PeerCluster(RelationState):
         if self._zk_uris:
             return self._zk_uris
 
-        if not self.relation:
+        if not self.relation or not self.relation.app:
             return ""
 
-        return (
-            self.data_interface.fetch_relation_field(relation_id=self.relation.id, field="zk-uris")
-            or ""
-        )
+        return self.data_interface._fetch_relation_data_with_secrets(
+            component=self.relation.app,
+            req_secret_fields=BALANCER.requested_secrets,
+            relation=self.relation,
+            fields=BALANCER.requested_secrets,
+        ).get("zk-uris", "")
 
     @property
     def balancer_username(self) -> str:
@@ -240,15 +239,15 @@ class PeerCluster(RelationState):
         if self._balancer_username:
             return self._balancer_username
 
-        if not self.relation:
+        if not self.relation or not self.relation.app:
             return ""
 
-        return (
-            self.data_interface.fetch_relation_field(
-                relation_id=self.relation.id, field="balancer-username"
-            )
-            or ""
-        )
+        return self.data_interface._fetch_relation_data_with_secrets(
+            component=self.relation.app,
+            req_secret_fields=BROKER.requested_secrets,
+            relation=self.relation,
+            fields=BALANCER.requested_secrets,
+        ).get("balancer-username", "")
 
     @property
     def balancer_password(self) -> str:
@@ -256,15 +255,15 @@ class PeerCluster(RelationState):
         if self._balancer_password:
             return self._balancer_password
 
-        if not self.relation:
+        if not self.relation or not self.relation.app:
             return ""
 
-        return (
-            self.data_interface.fetch_relation_field(
-                relation_id=self.relation.id, field="balancer-password"
-            )
-            or ""
-        )
+        return self.data_interface._fetch_relation_data_with_secrets(
+            component=self.relation.app,
+            req_secret_fields=BROKER.requested_secrets,
+            relation=self.relation,
+            fields=BALANCER.requested_secrets,
+        ).get("balancer-password", "")
 
     @property
     def balancer_uris(self) -> str:
@@ -272,15 +271,15 @@ class PeerCluster(RelationState):
         if self._balancer_uris:
             return self._balancer_uris
 
-        if not self.relation:
+        if not self.relation or not self.relation.app:
             return ""
 
-        return (
-            self.data_interface.fetch_relation_field(
-                relation_id=self.relation.id, field="balancer-uris"
-            )
-            or ""
-        )
+        return self.data_interface._fetch_relation_data_with_secrets(
+            component=self.relation.app,
+            req_secret_fields=BROKER.requested_secrets,
+            relation=self.relation,
+            fields=BALANCER.requested_secrets,
+        ).get("balancer-uris", "")
 
     @property
     def broker_connected(self) -> bool:
@@ -297,6 +296,9 @@ class PeerCluster(RelationState):
                 # rack is optional, empty if not rack-aware
             ]
         ):
+            logger.info(
+                f"{self.broker_username=}, {self.broker_password=}, {self.broker_uris=}, {self.zk_username=}, {self.zk_password=}, {self.zk_uris=}, {self.broker_capacities=}"
+            )
             return False
 
         return True
