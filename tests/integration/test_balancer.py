@@ -9,7 +9,7 @@ from subprocess import CalledProcessError
 import pytest
 from pytest_operator.plugin import OpsTest
 
-from .helpers import APP_NAME, ZK_NAME, balancer_is_running
+from .helpers import APP_NAME, ZK_NAME, balancer_is_running, balancer_is_secure
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ async def test_relate_not_enough_brokers(ops_test: OpsTest):
     assert ops_test.model.applications[APP_NAME].status == "waiting"
 
     with pytest.raises(CalledProcessError):
-        assert balancer_is_running(model_full_name=ops_test.model_full_name)
+        assert balancer_is_running(model_full_name=ops_test.model_full_name, app_name=APP_NAME)
 
 
 async def test_minimum_brokers_balancer_starts(ops_test: OpsTest):
@@ -56,7 +56,8 @@ async def test_minimum_brokers_balancer_starts(ops_test: OpsTest):
     await ops_test.model.wait_for_idle(
         apps=[APP_NAME], status="active", timeout=1000, idle_period=30
     )
-    assert balancer_is_running(model_full_name=ops_test.model_full_name)
+    assert balancer_is_running(model_full_name=ops_test.model_full_name, app_name=APP_NAME)
+    assert balancer_is_secure(ops_test, app_name=APP_NAME)
 
 
 async def test_change_leader(ops_test: OpsTest):
@@ -69,4 +70,5 @@ async def test_change_leader(ops_test: OpsTest):
     await ops_test.model.wait_for_idle(
         apps=[APP_NAME], status="active", timeout=1000, idle_period=30
     )
-    assert balancer_is_running(model_full_name=ops_test.model_full_name)
+    assert balancer_is_running(model_full_name=ops_test.model_full_name, app_name=APP_NAME)
+    assert balancer_is_secure(ops_test, app_name=APP_NAME)
