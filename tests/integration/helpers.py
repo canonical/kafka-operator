@@ -455,35 +455,6 @@ def balancer_is_running(model_full_name: str | None, app_name: str) -> bool:
     return True
 
 
-def get_peer_cluster_relation_data(
-    ops_test: OpsTest, owner: str, unit_name: str, relation_name: str = ZK_NAME
-) -> dict[str, str]:
-    unit_data = show_unit(ops_test, unit_name)
-
-    kafka_zk_relation_data = {}
-    for info in unit_data[unit_name]["relation-info"]:
-        if info["endpoint"] == relation_name:
-            kafka_zk_relation_data["relation-id"] = info["relation-id"]
-
-            # initially collects all non-secret keys
-            kafka_zk_relation_data.update(dict(info["application-data"]))
-
-    user_secret = get_secret_by_label(
-        ops_test,
-        label=f"{relation_name}.{kafka_zk_relation_data['relation-id']}.user.secret",
-        owner=owner,
-    )
-
-    tls_secret = get_secret_by_label(
-        ops_test,
-        label=f"{relation_name}.{kafka_zk_relation_data['relation-id']}.tls.secret",
-        owner=owner,
-    )
-
-    # overrides to secret keys if found
-    return kafka_zk_relation_data | user_secret | tls_secret
-
-
 def balancer_is_secure(ops_test: OpsTest, app_name: str) -> bool:
     model_full_name = ops_test.model_full_name
     err_401 = "Error 401 Unauthorized"
