@@ -389,7 +389,7 @@ class KafkaCluster(RelationState):
     @property
     def balancer_uris(self) -> bool:
         """Persisted balancer uris."""
-        return self.relation_data.get("balancer-uries", "")
+        return self.relation_data.get("balancer-uris", "")
 
 
 class KafkaBroker(RelationState):

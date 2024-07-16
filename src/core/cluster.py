@@ -130,6 +130,11 @@ class ClusterState(Object):
     def peer_clusters(self) -> set[PeerCluster]:
         """The state for all related `peer-cluster` applications that this charm is providing for."""
         peer_clusters = set()
+        balancer_kwargs: dict[str, Any] = {
+            "balancer_username": self.cluster.balancer_username,
+            "balancer_password": self.cluster.balancer_password,
+            "balancer_uris": self.cluster.balancer_uris,
+        }
         for relation in self.peer_cluster_orchestrator_relations:
             if not relation.app or not self.runs_balancer:
                 continue
@@ -138,6 +143,7 @@ class ClusterState(Object):
                 PeerCluster(
                     relation=relation,
                     data_interface=PeerClusterOrchestratorData(self.model, relation.name),
+                    **balancer_kwargs,
                 )
             )
 

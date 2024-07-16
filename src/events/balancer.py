@@ -67,14 +67,16 @@ class BalancerOperator(Object):
             return
 
         if not self.charm.state.cluster.balancer_username:
+            external_cluster = next(iter(self.charm.state.peer_clusters), None)
             payload = {
                 "balancer-username": BALANCER_WEBSERVER_USER,
                 "balancer-password": self.charm.workload.generate_password(),
                 "balancer-uris": f"{self.charm.state.unit_broker.host}:{BALANCER_WEBSERVER_PORT}",
             }
-            # Update relation data intra & extra cluster
+            # Update relation data intra & extra cluster (if it exists)
             self.charm.state.cluster.update(payload)
-            self.charm.state.balancer.update(payload)
+            if external_cluster is not None:
+                external_cluster.update(payload)
 
         self.config_manager.set_cruise_control_properties()
         self.config_manager.set_broker_capacities()
