@@ -184,37 +184,28 @@ def test_ready_to_start_ok(charm_configuration, zk_data):
     # Given
     charm_configuration["options"]["roles"]["default"] = "balancer,broker"
     ctx = Context(
-        KafkaCharm,
-        meta=METADATA,
-        config=charm_configuration,
-        actions=ACTIONS,
+        KafkaCharm, meta=METADATA, config=charm_configuration, actions=ACTIONS, unit_id=0
     )
     cluster_peer = PeerRelation(
         PEER,
-        PEER,
         local_app_data={f"{user}-password": "pwd" for user in INTERNAL_USERS},
-        peers_data={i: {} for i in range(3)},
+        peers_data={
+            i: {
+                "cores": "8",
+                "storages": json.dumps(
+                    {f"/var/snap/charmed-kafka/common/var/lib/kafka/data/{i}": "10240"}
+                ),
+            }
+            for i in range(1, 3)
+        },
+        local_unit_data={
+            "cores": "8",
+            "storages": json.dumps(
+                {f"/var/snap/charmed-kafka/common/var/lib/kafka/data/{0}": "10240"}
+            ),
+        },
     )
-    # balancer_peer = PeerRelation(
-    #     BALANCER.value,
-    #     BALANCER.value,
-    #     local_app_data={
-    #         "broker-capacities": json.dumps(
-    #             [
-    #                 {
-    #                     "brokerId": "1",
-    #                     "capacity": {
-    #                         "DISK": [{"/path/dat": "50000"}],
-    #                         "CPU": {"num.cores": "8"},
-    #                         "NW_IN": "100000",
-    #                         "NW_OUT": "100000",
-    #                     },
-    #                     "doc": "",
-    #                 }
-    #             ]
-    #         )
-    #     },
-    # )
+
     relation = Relation(interface=ZK, endpoint=ZK, remote_app_name=ZK, remote_app_data=zk_data)
     state_in = State(leader=True, relations=[cluster_peer, relation], planned_units=3)
 
@@ -224,6 +215,7 @@ def test_ready_to_start_ok(charm_configuration, zk_data):
         patch("workload.BalancerWorkload.read"),
         patch("workload.BalancerWorkload.exec"),
         patch("workload.BalancerWorkload.start"),
+        patch("workload.KafkaWorkload"),
         patch("workload.BalancerWorkload.active", return_value=True),
         patch("core.models.ZooKeeper.broker_active", return_value=True),
     ):
