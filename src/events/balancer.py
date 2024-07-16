@@ -12,7 +12,8 @@ from ops import (
 
 from literals import (
     BALANCER,
-    BALANCER_AUTH_USER,
+    BALANCER_WEBSERVER_PORT,
+    BALANCER_WEBSERVER_USER,
     Status,
 )
 from managers.balancer import BalancerManager
@@ -67,9 +68,9 @@ class BalancerOperator(Object):
 
         if not self.charm.state.cluster.balancer_username:
             payload = {
-                "balancer-username": BALANCER_AUTH_USER,
+                "balancer-username": BALANCER_WEBSERVER_USER,
                 "balancer-password": self.charm.workload.generate_password(),
-                "balancer-uris": "baz",
+                "balancer-uris": f"{self.charm.state.unit_broker.host}:{BALANCER_WEBSERVER_PORT}",
             }
             # Update relation data intra & extra cluster
             self.charm.state.cluster.update(payload)
