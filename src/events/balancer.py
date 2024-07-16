@@ -75,7 +75,7 @@ class BalancerOperator(Object):
             }
             # Update relation data intra & extra cluster (if it exists)
             self.charm.state.cluster.update(payload)
-            if external_cluster is not None:
+            if external_cluster:
                 external_cluster.update(payload)
 
         self.config_manager.set_cruise_control_properties()
