@@ -633,6 +633,8 @@ class BalancerConfigManager(CommonConfigManager):
                 "sasl.mechanism=SCRAM-SHA-512",
                 f"security.protocol={self.security_protocol}",
                 f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
+                "webserver.security.enable=true",
+                f"webserver.auth.credentials.file={self.workload.paths.cruise_control_auth}",
             ]
             + CRUISE_CONTROL_CONFIG_OPTIONS.split("\n")
             + self.goals
@@ -692,6 +694,13 @@ class BalancerConfigManager(CommonConfigManager):
 
         if not self.state.runs_broker:
             self.workload.write(content=content, path="/etc/environment")
+
+    def set_cruise_control_auth(self) -> None:
+        """Write the credentials file for Cruise Control authentication."""
+        self.workload.write(
+            content=f"{self.state.cluster.balancer_username}: {self.state.cluster.balancer_password},ADMIN\n",
+            path=self.workload.paths.cruise_control_auth,
+        )
 
 
 def map_env(env: Iterable[str]) -> dict[str, str]:

@@ -12,6 +12,7 @@ from ops import (
 
 from literals import (
     BALANCER,
+    BALANCER_AUTH_USER,
     Status,
 )
 from managers.balancer import BalancerManager
@@ -64,9 +65,20 @@ class BalancerOperator(Object):
             event.defer()
             return
 
+        if not self.charm.state.cluster.balancer_username:
+            payload = {
+                "balancer-username": BALANCER_AUTH_USER,
+                "balancer-password": self.charm.workload.generate_password(),
+                "balancer-uris": "baz",
+            }
+            # Update relation data intra & extra cluster
+            self.charm.state.cluster.update(payload)
+            self.charm.state.balancer.update(payload)
+
         self.config_manager.set_cruise_control_properties()
         self.config_manager.set_broker_capacities()
         self.config_manager.set_zk_jaas_config()
+        self.config_manager.set_cruise_control_auth()
 
         try:
             self.balancer_manager.create_internal_topics()

@@ -38,6 +38,7 @@ INTER_BROKER_USER = "sync"
 ADMIN_USER = "admin"
 BALANCER_USER = "balancer"
 INTERNAL_USERS = [INTER_BROKER_USER, ADMIN_USER, BALANCER_USER]
+BALANCER_AUTH_USER = "admin"
 SECRETS_APP = [f"{user}-password" for user in INTERNAL_USERS]
 SECRETS_UNIT = [
     "ca-cert",
@@ -187,6 +188,9 @@ class Status(Enum):
 
     ACTIVE = StatusLevel(ActiveStatus(), "DEBUG")
     NO_PEER_RELATION = StatusLevel(MaintenanceStatus("no peer relation yet"), "DEBUG")
+    NO_PEER_CLUSTER_RELATION = StatusLevel(
+        MaintenanceStatus("no peer cluster relation yet"), "DEBUG"
+    )
     SNAP_NOT_INSTALLED = StatusLevel(BlockedStatus(f"unable to install {SNAP_NAME} snap"), "ERROR")
     BROKER_NOT_RUNNING = StatusLevel(
         BlockedStatus(f"{SNAP_NAME}.{BROKER.service} snap service not running"), "WARNING"

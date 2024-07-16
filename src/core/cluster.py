@@ -138,10 +138,6 @@ class ClusterState(Object):
                 PeerCluster(
                     relation=relation,
                     data_interface=PeerClusterOrchestratorData(self.model, relation.name),
-                    balancer_username="foo",
-                    balancer_password="bar",
-                    balancer_uris="baz",
-                    # FIXME: need to pass HTTP Basic username/password + balancer_uris here
                 )
             )
 
@@ -155,7 +151,11 @@ class ClusterState(Object):
     def balancer(self) -> PeerCluster:
         """The state for the `peer-cluster-orchestrator` related balancer application."""
         balancer_kwargs: dict[str, Any] = (
-            {"balancer_username": "foo", "balancer_password": "bar", "balancer_uris": "baz"}
+            {
+                "balancer_username": self.cluster.balancer_username,
+                "balancer_password": self.cluster.balancer_password,
+                "balancer_uris": self.cluster.balancer_uris,
+            }
             if self.runs_balancer
             else {}
         )
@@ -396,6 +396,9 @@ class ClusterState(Object):
         """Checks for role=balancer specific readiness."""
         if not self.runs_balancer:
             return Status.ACTIVE
+
+        if not self.peer_cluster_orchestrator_relations and not self.runs_broker:
+            return Status.NO_PEER_CLUSTER_RELATION
 
         if not self.balancer.broker_connected:
             return Status.NO_BROKER_DATA

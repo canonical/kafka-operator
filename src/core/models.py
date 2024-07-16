@@ -376,6 +376,21 @@ class KafkaCluster(RelationState):
         """
         return self.relation_data.get("mtls", "disabled") == "enabled"
 
+    @property
+    def balancer_username(self) -> bool:
+        """Persisted balancer username."""
+        return self.relation_data.get("balancer-username", "")
+
+    @property
+    def balancer_password(self) -> bool:
+        """Persisted balancer password."""
+        return self.relation_data.get("balancer-password", "")
+
+    @property
+    def balancer_uris(self) -> bool:
+        """Persisted balancer uris."""
+        return self.relation_data.get("balancer-uries", "")
+
 
 class KafkaBroker(RelationState):
     """State collection metadata for a unit."""

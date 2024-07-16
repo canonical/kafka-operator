@@ -99,6 +99,11 @@ class CharmedKafkaPaths:
         """The JBOD capacity JSON."""
         return f"{self.conf_path}/capacityJBOD.json"
 
+    @property
+    def cruise_control_auth(self):
+        """The credentials file."""
+        return f"{self.conf_path}/cruisecontrol.credentials"
+
 
 class WorkloadBase(ABC):
     """Base interface for common workload operations."""
