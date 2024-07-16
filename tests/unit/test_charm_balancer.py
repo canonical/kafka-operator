@@ -72,7 +72,7 @@ def test_stop_workload_if_not_leader(patched_stopped, charm_configuration):
     ctx.run("start", state_in)
 
     # Then
-    assert patched_stopped.called_once
+    patched_stopped.assert_called_once()
 
 
 def test_stop_workload_if_role_not_present(charm_configuration):
@@ -84,7 +84,7 @@ def test_stop_workload_if_role_not_present(charm_configuration):
         config=charm_configuration,
         actions=ACTIONS,
     )
-    state_in = State(leader=True, relations=[], config={"roles": "balancer"})
+    state_in = State(leader=True, relations=[], config={"roles": "broker"})
 
     # When
     with (
@@ -94,7 +94,7 @@ def test_stop_workload_if_role_not_present(charm_configuration):
         ctx.run("config_changed", state_in)
 
     # Then
-    assert patched_stopped.called_once
+    patched_stopped.assert_called_once()
 
 
 def test_ready_to_start_maintenance_no_peer_relation(charm_configuration):

@@ -118,7 +118,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         if (
             not self.state.runs_balancer
             and self.unit.is_leader()
-            and self.broker.workload.active()
+            and self.balancer.workload.active()
         ):
             self.balancer.workload.stop()
 
