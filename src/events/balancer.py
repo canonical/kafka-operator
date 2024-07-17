@@ -93,7 +93,6 @@ class BalancerOperator(Object):
     def _on_config_changed(self, event: EventBase) -> None:
         """Generic handler for 'something changed' events."""
         if not self.healthy:
-            event.defer()
             return
 
         properties = self.workload.read(self.workload.paths.cruise_control_properties)
@@ -107,9 +106,9 @@ class BalancerOperator(Object):
                     f"NEW PROPERTIES = {set(self.config_manager.cruise_control_properties) - set(properties)}"
                 )
             )
-            self.config_manager.set_cruise_control_properties()
+            #     self.config_manager.set_cruise_control_properties()
 
-        if properties_changed:
+            # if properties_changed:
             self._on_start(event)
 
     @property

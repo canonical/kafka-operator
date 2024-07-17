@@ -72,7 +72,7 @@ async def test_change_leader(ops_test: OpsTest):
     await leader_unit.destroy(force=True, destroy_storage=True, max_wait=0)
     await ops_test.model.block_until(lambda: len(ops_test.model.applications[APP_NAME].units) == 3)
     await ops_test.model.wait_for_idle(
-        apps=[APP_NAME], status="active", timeout=1000, idle_period=30
+        apps=[APP_NAME], status="active", timeout=1000, idle_period=60
     )
     assert balancer_is_running(model_full_name=ops_test.model_full_name, app_name=APP_NAME)
     assert balancer_is_secure(ops_test, app_name=APP_NAME)

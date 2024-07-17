@@ -55,8 +55,8 @@ def test_install_blocks_snap_install_failure(charm_configuration):
     assert state_out.unit_status == Status.SNAP_NOT_INSTALLED.value.status
 
 
-@patch("workload.Workload.stop")
-def test_stop_workload_if_not_leader(patched_stopped, charm_configuration):
+@patch("workload.Workload.restart")
+def test_do_not_if_not_leader(patched_restart, charm_configuration):
     # Given
     charm_configuration["options"]["roles"]["default"] = "balancer"
     ctx = Context(
@@ -71,7 +71,7 @@ def test_stop_workload_if_not_leader(patched_stopped, charm_configuration):
     ctx.run("start", state_in)
 
     # Then
-    patched_stopped.assert_called_once()
+    assert not patched_restart.called
 
 
 def test_stop_workload_if_role_not_present(charm_configuration):

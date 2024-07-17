@@ -141,7 +141,6 @@ class BrokerOperator(Object):
         """Generic handler for most `config_changed` events across relations."""
         # only overwrite properties if service is already active
         if not self.healthy or not self.upgrade.idle:
-            event.defer()
             return
 
         # Load current properties set in the charm workload
