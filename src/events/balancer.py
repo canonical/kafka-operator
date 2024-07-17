@@ -36,7 +36,7 @@ class BalancerOperator(Object):
         self.workload = BalancerWorkload()
 
         # Fast exit after workload instantiation, but before any event observer
-        if BALANCER.value not in self.charm.config.roles:
+        if BALANCER.value not in self.charm.config.roles or not self.charm.unit.is_leader():
             return
 
         self.config_manager = BalancerConfigManager(
@@ -57,10 +57,6 @@ class BalancerOperator(Object):
 
     def _on_start(self, event: EventBase) -> None:
         """Handler for `start` event."""
-        if not self.charm.unit.is_leader():
-            self.workload.stop()
-            return
-
         self.charm._set_status(self.charm.state.ready_to_start)
         if not isinstance(self.charm.unit.status, ActiveStatus):
             event.defer()
