@@ -351,7 +351,11 @@ class ConfigManager(CommonConfigManager):
     def client_listeners(self) -> list[Listener]:
         """Return a list of extra listeners."""
         # if there is a relation with kafka then add extra listener
-        if not self.state.client_relations:
+        if (
+            not self.state.client_relations
+            or not self.state.peer_clusters
+            or not self.state.runs_balancer
+        ):
             return []
 
         return [
