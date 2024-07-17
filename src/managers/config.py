@@ -353,7 +353,7 @@ class ConfigManager(CommonConfigManager):
         # if there is a relation with kafka then add extra listener
 
         no_related_clients = not self.state.client_relations
-        no_balancer_involved = (not self.state.runs_balancer) or (
+        no_balancer_involved = (not self.state.runs_balancer) and (
             not self.state.peer_cluster_relation
         )
 
