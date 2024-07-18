@@ -32,7 +32,6 @@ from core.models import (
 from literals import (
     ADMIN_USER,
     BALANCER,
-    BALANCER_USER,
     BROKER,
     INTERNAL_USERS,
     MIN_REPLICAS,
