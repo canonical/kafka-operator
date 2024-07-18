@@ -30,8 +30,8 @@ from core.models import (
     ZooKeeper,
 )
 from literals import (
-    ADMIN_USER,
     BALANCER,
+    BALANCER_USER,
     BROKER,
     INTERNAL_USERS,
     MIN_REPLICAS,
@@ -171,8 +171,8 @@ class ClusterState(Object):
                 relation=self.peer_cluster_relation,  # if same app, this will be None and OK
                 data_interface=PeerClusterData(self.model, PEER_CLUSTER_RELATION),
                 # FIXME: Use balancer user again
-                broker_username=ADMIN_USER,
-                broker_password=self.cluster.internal_user_credentials.get(ADMIN_USER, ""),
+                broker_username=BALANCER_USER,
+                broker_password=self.cluster.internal_user_credentials.get(BALANCER_USER, ""),
                 broker_uris=self.bootstrap_server,
                 racks=self.racks,
                 broker_capacities=self.broker_capacities,
