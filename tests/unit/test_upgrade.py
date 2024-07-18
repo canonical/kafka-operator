@@ -172,6 +172,7 @@ def test_upgrade_granted_sets_failed_if_failed_snap(harness: Harness[KafkaCharm]
             return_value="3.6",
         ),
         patch("workload.KafkaWorkload.stop") as patched_stop,
+        patch("workload.BalancerWorkload.stop"),
         patch("workload.KafkaWorkload.install", return_value=False),
     ):
         mock_event = MagicMock()

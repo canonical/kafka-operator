@@ -4,6 +4,7 @@
 
 import json
 import logging
+import re
 from pathlib import Path
 from unittest.mock import patch
 
@@ -211,11 +212,11 @@ def test_ready_to_start_ok(charm_configuration, zk_data):
 
     # When
     with (
-        patch("workload.BalancerWorkload.write"),
+        patch("workload.BalancerWorkload.write") as patched_writer,
         patch("workload.BalancerWorkload.read"),
         patch("workload.BalancerWorkload.exec"),
-        patch("workload.BalancerWorkload.start"),
-        patch("workload.KafkaWorkload"),
+        patch("workload.BalancerWorkload.restart"),
+        patch("workload.KafkaWorkload.start"),
         patch("workload.BalancerWorkload.active", return_value=True),
         patch("core.models.ZooKeeper.broker_active", return_value=True),
     ):
@@ -223,3 +224,5 @@ def test_ready_to_start_ok(charm_configuration, zk_data):
 
     # Then
     assert state_out.unit_status == ActiveStatus()
+    # Credentials written to file
+    assert re.match(r"admin: \w+,ADMIN", patched_writer.call_args_list[-1].kwargs["content"])
