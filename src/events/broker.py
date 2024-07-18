@@ -131,7 +131,7 @@ class BrokerOperator(Object):
         logger.info("Kafka snap started")
 
         # check for connection
-        self.healthy
+        self.charm.on.update_status.emit()
 
         # only log once on successful 'on-start' run
         if isinstance(self.charm.unit.status, ActiveStatus):
