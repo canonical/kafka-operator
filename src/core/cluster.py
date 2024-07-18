@@ -170,7 +170,6 @@ class ClusterState(Object):
             return PeerCluster(
                 relation=self.peer_cluster_relation,  # if same app, this will be None and OK
                 data_interface=PeerClusterData(self.model, PEER_CLUSTER_RELATION),
-                # FIXME: Use balancer user again
                 broker_username=BALANCER_USER,
                 broker_password=self.cluster.internal_user_credentials.get(BALANCER_USER, ""),
                 broker_uris=self.bootstrap_server,

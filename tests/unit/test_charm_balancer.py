@@ -57,7 +57,7 @@ def test_install_blocks_snap_install_failure(charm_configuration):
 
 
 @patch("workload.Workload.restart")
-def test_do_not_if_not_leader(patched_restart, charm_configuration):
+def test_stop_workload_if_not_leader(patched_restart, charm_configuration):
     # Given
     charm_configuration["options"]["roles"]["default"] = "balancer"
     ctx = Context(
