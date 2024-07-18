@@ -8,7 +8,7 @@ import json
 import logging
 from typing import TYPE_CHECKING
 
-from literals import BALANCER, BALANCER_TOPICS, BROKER, STORAGE
+from literals import BALANCER, BALANCER_TOPICS, STORAGE
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -49,12 +49,12 @@ class BalancerManager:
 
     def create_internal_topics(self) -> None:
         """Create Cruise Control topics."""
-        if self.charm.state.runs_broker:
-            property_file = f'{BROKER.paths["CONF"]}/client.properties'
-            bootstrap_servers = self.charm.state.internal_bootstrap_server
-        else:
-            property_file = f'{BALANCER.paths["CONF"]}/cruisecontrol.properties'
-            bootstrap_servers = self.charm.state.balancer.broker_uris
+        # if self.charm.state.runs_broker:
+        #     property_file = f'{BROKER.paths["CONF"]}/client.properties'
+        #     bootstrap_servers = self.charm.state.internal_bootstrap_server
+        # else:
+        bootstrap_servers = self.charm.state.balancer.broker_uris
+        property_file = f'{BALANCER.paths["CONF"]}/cruisecontrol.properties'
 
         for topic in BALANCER_TOPICS:
             if topic not in self.dependent.workload.run_bin_command(
