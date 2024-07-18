@@ -86,8 +86,13 @@ class CharmedKafkaPaths:
 
     @property
     def jmx_prometheus_config(self):
-        """The configuration for the JMX exporter."""
+        """The configuration for the Kafka JMX exporter."""
         return f"{self.conf_path}/jmx_prometheus.yaml"
+
+    @property
+    def jmx_cc_config(self):
+        """The configuration for the CruiseControl JMX exporter."""
+        return f"{self.conf_path}/jmx_cruise_control.yaml"
 
     @property
     def cruise_control_properties(self):

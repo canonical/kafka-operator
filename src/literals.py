@@ -51,6 +51,7 @@ SECRETS_UNIT = [
 ]
 
 JMX_EXPORTER_PORT = 9101
+JMX_CC_PORT = 9102
 METRICS_RULES_DIR = "./src/alert_rules/prometheus"
 LOGS_RULES_DIR = "./src/alert_rules/loki"
 

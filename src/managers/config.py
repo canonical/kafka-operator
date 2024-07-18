@@ -23,6 +23,7 @@ from literals import (
     DEFAULT_BALANCER_GOALS,
     HARD_BALANCER_GOALS,
     INTER_BROKER_USER,
+    JMX_CC_PORT,
     JMX_EXPORTER_PORT,
     JVM_MEM_MAX_GB,
     JVM_MEM_MIN_GB,
@@ -135,7 +136,7 @@ class CommonConfigManager:
         return f"KAFKA_CFG_LOGLEVEL={self.config.log_level}"
 
     @property
-    def jmx_opts(self) -> str:
+    def kafka_jmx_opts(self) -> str:
         """The JMX options for configuring the prometheus exporter.
 
         Returns:
@@ -147,6 +148,20 @@ class CommonConfigManager:
         ]
 
         return f"KAFKA_JMX_OPTS='{' '.join(opts)}'"
+
+    @property
+    def cc_jmx_opts(self) -> str:
+        """The JMX options for configuring the prometheus exporter on cruise control.
+
+        Returns:
+            String of JMX options
+        """
+        opts = [
+            "-Dcom.sun.management.jmxremote",
+            f"-javaagent:{self.workload.paths.jmx_prometheus_javaagent}={JMX_CC_PORT}:{self.workload.paths.jmx_cc_config}",
+        ]
+
+        return f"CC_JMX_OPTS='{' '.join(opts)}'"
 
     @property
     def tools_log4j_opts(self) -> str:
@@ -615,7 +630,8 @@ class ConfigManager(CommonConfigManager):
         """Writes the env-vars needed for passing to charmed-kafka service."""
         updated_env_list = [
             self.kafka_opts,
-            self.jmx_opts,
+            self.kafka_jmx_opts,
+            self.cc_jmx_opts,
             self.jvm_performance_opts,
             self.heap_opts,
             self.log_level,
@@ -774,7 +790,8 @@ class BalancerConfigManager(CommonConfigManager):
         We avoid overwriting KAFKA_OPTS in /etc/environment because it is only used by the broker.
         """
         updated_env_list = [
-            self.jmx_opts,
+            self.kafka_jmx_opts,
+            self.cc_jmx_opts,
             self.jvm_performance_opts,
             self.heap_opts,
             self.log_level,

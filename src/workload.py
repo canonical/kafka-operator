@@ -25,7 +25,7 @@ class Workload(WorkloadBase):
 
     # FIXME: Paths and constants integrated into WorkloadBase?
     SNAP_NAME = "charmed-kafka"
-    LOG_SLOT = "logs"
+    LOG_SLOTS = ["kafka-logs", "cc-logs"]
 
     paths: CharmedKafkaPaths
     service: str
