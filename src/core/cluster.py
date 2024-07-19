@@ -400,7 +400,7 @@ class ClusterState(Object):
     @property
     def _balancer_status(self) -> Status:
         """Checks for role=balancer specific readiness."""
-        if not self.runs_balancer:
+        if not self.runs_balancer or not self.unit_broker.unit.is_leader():
             return Status.ACTIVE
 
         if not self.peer_cluster_orchestrator_relations and not self.runs_broker:
