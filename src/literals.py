@@ -36,11 +36,10 @@ MIN_REPLICAS = 3
 
 INTER_BROKER_USER = "sync"
 ADMIN_USER = "admin"
-BALANCER_USER = "balancer"
-INTERNAL_USERS = [INTER_BROKER_USER, ADMIN_USER, BALANCER_USER]
-BALANCER_WEBSERVER_USER = "admin"
+INTERNAL_USERS = [INTER_BROKER_USER, ADMIN_USER]
+BALANCER_WEBSERVER_USER = "balancer"
 BALANCER_WEBSERVER_PORT = 9090
-SECRETS_APP = [f"{user}-password" for user in INTERNAL_USERS]
+SECRETS_APP = [f"{user}-password" for user in INTERNAL_USERS + [BALANCER_WEBSERVER_USER]] 
 SECRETS_UNIT = [
     "ca-cert",
     "csr",
@@ -196,6 +195,7 @@ class Status(Enum):
     BROKER_NOT_RUNNING = StatusLevel(
         BlockedStatus(f"{SNAP_NAME}.{BROKER.service} snap service not running"), "WARNING"
     )
+    NOT_ALL_RELATED = StatusLevel(MaintenanceStatus("not all units related"), "DEBUG")
     CC_NOT_RUNNING = StatusLevel(
         BlockedStatus(f"{SNAP_NAME}.{BALANCER.service} snap service not running"), "WARNING"
     )

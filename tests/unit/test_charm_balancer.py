@@ -184,9 +184,7 @@ def test_ready_to_start_no_broker_data(charm_configuration, zk_data):
 def test_ready_to_start_ok(charm_configuration, zk_data):
     # Given
     charm_configuration["options"]["roles"]["default"] = "balancer,broker"
-    ctx = Context(
-        KafkaCharm, meta=METADATA, config=charm_configuration, actions=ACTIONS, unit_id=0
-    )
+    ctx = Context(KafkaCharm, meta=METADATA, config=charm_configuration, actions=ACTIONS)
     cluster_peer = PeerRelation(
         PEER,
         local_app_data={f"{user}-password": "pwd" for user in INTERNAL_USERS},

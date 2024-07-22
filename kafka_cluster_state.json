@@ -1,0 +1,1459 @@
+{
+  "KafkaPartitionState": {
+    "offline": [],
+    "urp": [],
+    "with-offline-replicas": [],
+    "under-min-isr": [
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 0,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 1,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 2,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 3,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 4,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 5,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 6,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 7,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 8,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 9,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 10,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 11,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 12,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 13,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 14,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 15,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 16,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 17,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 18,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 19,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 20,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 21,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 22,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 23,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 24,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 25,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 26,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 27,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 28,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 29,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 30,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 31,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 32,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 33,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 34,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 35,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 36,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 37,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 38,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 39,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 40,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 41,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 42,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 43,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 44,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 45,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 46,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 47,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 48,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 49,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 50,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 51,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 52,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 53,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 54,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 55,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 56,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 57,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 58,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 59,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 60,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 61,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 62,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 63,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 64,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 65,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 66,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 67,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 68,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 69,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 70,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 71,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 72,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 73,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 74,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 75,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 76,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 77,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 78,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 79,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 80,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 81,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 82,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 83,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 84,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 85,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 86,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 87,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 88,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 89,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 90,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 91,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 92,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 93,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 94,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 95,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 96,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          0
+        ],
+        "leader": 0,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 97,
+        "min-isr": 2,
+        "replicas": [
+          0
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          2
+        ],
+        "leader": 2,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 98,
+        "min-isr": 2,
+        "replicas": [
+          2
+        ],
+        "topic": "HOT-TOPIC"
+      },
+      {
+        "in-sync": [
+          1
+        ],
+        "leader": 1,
+        "out-of-sync": [],
+        "offline": [],
+        "partition": 99,
+        "min-isr": 2,
+        "replicas": [
+          1
+        ],
+        "topic": "HOT-TOPIC"
+      }
+    ]
+  },
+  "KafkaBrokerState": {
+    "IsController": {
+      "0": false,
+      "1": false,
+      "2": true
+    },
+    "OfflineReplicaCountByBrokerId": {},
+    "ReplicaCountByBrokerId": {
+      "0": 93,
+      "1": 93,
+      "2": 92
+    },
+    "OfflineLogDirsByBrokerId": {
+      "0": [],
+      "1": [],
+      "2": []
+    },
+    "BrokerSetByBrokerId": {},
+    "OnlineLogDirsByBrokerId": {
+      "0": [
+        "/var/snap/charmed-kafka/common/var/lib/kafka/data/0"
+      ],
+      "1": [
+        "/var/snap/charmed-kafka/common/var/lib/kafka/data/4"
+      ],
+      "2": [
+        "/var/snap/charmed-kafka/common/var/lib/kafka/data/5"
+      ]
+    },
+    "LeaderCountByBrokerId": {
+      "0": 56,
+      "1": 58,
+      "2": 56
+    },
+    "OutOfSyncCountByBrokerId": {},
+    "Summary": {
+      "StdLeadersPerBroker": 0.9428090415820634,
+      "Leaders": 170,
+      "MaxLeadersPerBroker": 58,
+      "Topics": 5,
+      "MaxReplicasPerBroker": 93,
+      "StdReplicasPerBroker": 0.4714045207910317,
+      "Brokers": 3,
+      "AvgReplicationFactor": 1.6352941176470588,
+      "AvgLeadersPerBroker": 56.666666666666664,
+      "Replicas": 278,
+      "AvgReplicasPerBroker": 92.66666666666667
+    }
+  },
+  "version": 1
+}

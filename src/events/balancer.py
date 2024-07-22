@@ -9,6 +9,7 @@ from ops import (
     EventBase,
     Object,
 )
+from ops.charm import ActionEvent
 
 from literals import (
     BALANCER,
@@ -51,6 +52,8 @@ class BalancerOperator(Object):
         # ensures data updates, eventually
         self.framework.observe(getattr(self.charm.on, "update_status"), self._on_config_changed)
 
+        self.framework.observe(getattr(self.charm.on, "rebalance_action"), self.rebalance)
+
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
         self.config_manager.set_environment()
@@ -62,7 +65,7 @@ class BalancerOperator(Object):
             event.defer()
             return
 
-        if not self.charm.state.cluster.balancer_username:
+        if not self.charm.state.cluster.balancer_password:
             external_cluster = next(iter(self.charm.state.peer_clusters), None)
             payload = {
                 "balancer-username": BALANCER_WEBSERVER_USER,
@@ -92,25 +95,83 @@ class BalancerOperator(Object):
 
     def _on_config_changed(self, event: EventBase) -> None:
         """Generic handler for 'something changed' events."""
-        if not self.healthy:
-            event.defer()
+        if not self.charm.unit.is_leader():
             return
 
-        properties = self.workload.read(self.workload.paths.cruise_control_properties)
-        properties_changed = set(properties) ^ set(self.config_manager.cruise_control_properties)
+        if not self.healthy:
+            return
 
-        if properties_changed:
-            logger.info(
-                (
-                    f'Balancer {self.charm.unit.name.split("/")[1]} updating config - '
-                    f"OLD PROPERTIES = {set(properties) - set(self.config_manager.cruise_control_properties)}, "
-                    f"NEW PROPERTIES = {set(self.config_manager.cruise_control_properties) - set(properties)}"
+        # NOTE: smells like a good abstraction somewhere
+        changed_map = [
+            (
+                "properties",
+                self.workload.paths.cruise_control_properties,
+                self.config_manager.cruise_control_properties,
+            ),
+            (
+                "jaas",
+                self.workload.paths.balancer_jaas,
+                self.config_manager.jaas_config.splitlines(),
+            ),
+        ]
+
+        content_changed = False
+        for kind, path, state_content in changed_map:
+            file_content = self.workload.read(path)
+            if set(file_content) ^ set(state_content):
+                logger.info(
+                    (
+                        f'Balancer {self.charm.unit.name.split("/")[1]} updating config - '
+                        f"OLD {kind.upper()} = {set(map(str.strip, file_content)) - set(map(str.strip, state_content))}, "
+                        f"NEW {kind.upper()} = {set(map(str.strip, state_content)) - set(map(str.strip, file_content))}"
+                    )
                 )
-            )
-            self.config_manager.set_cruise_control_properties()
+                content_changed = True
 
-        if properties_changed:
+        if content_changed:
+            # safe to update everything even if it hasn't changed, service will restart anyway
+            self.config_manager.set_cruise_control_properties()
+            self.config_manager.set_broker_capacities()
+            self.config_manager.set_zk_jaas_config()
+
             self._on_start(event)
+
+    def rebalance(self, event: ActionEvent) -> None:
+        """Handles the `rebalance` Juju Action."""
+        failure_conditions = [
+            (not self.charm.unit.is_leader(), "Action must be ran on the application leader"),
+            (
+                not self.balancer_manager.cruise_control.monitoring,
+                "CruiseControl balancer service is not yet ready",
+            ),
+            (
+                self.balancer_manager.cruise_control.executing,
+                "CruiseControl balancer service is currently executing a task, please try again later",
+            ),
+            (
+                not self.balancer_manager.cruise_control.ready,
+                "CruiseControl balancer service has not yet collected enough data to provide a partition reallocation proposal",
+            ),
+        ]
+
+        for check, msg in failure_conditions:
+            if check:
+                event.fail(msg)
+                return
+
+        response = self.balancer_manager.rebalance(
+            mode=event.params["mode"], dryrun=event.params["dry-run"]
+        )
+
+        if response.status_code != 200:
+            event.fail("Action failed")
+
+        sanitised_response = self.balancer_manager.clean_results(response.json())
+        if not isinstance(sanitised_response, dict):
+            event.fail("Unknown error")
+            return
+
+        event.set_results(sanitised_response)
 
     @property
     def healthy(self) -> bool:

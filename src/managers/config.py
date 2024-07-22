@@ -17,7 +17,6 @@ from core.structured_config import CharmConfig, LogLevel
 from core.workload import WorkloadBase
 from literals import (
     ADMIN_USER,
-    BALANCER_USER,
     DEFAULT_BALANCER_GOALS,
     HARD_BALANCER_GOALS,
     INTER_BROKER_USER,
@@ -442,7 +441,7 @@ class ConfigManager(CommonConfigManager):
     def metrics_reporter_properties(self) -> list[str]:
         """Builds all the properties necessary for running the CruiseControlMetricsReporter client."""
         return self._build_internal_client_properties(
-            username=BALANCER_USER, prefix="cruise.control.metrics.reporter"
+            username=ADMIN_USER, prefix="cruise.control.metrics.reporter"
         )
 
     @property
@@ -605,13 +604,14 @@ class BalancerConfigManager(CommonConfigManager):
         """
         goals = DEFAULT_BALANCER_GOALS
 
-        if self.state.balancer.racks and (
-            min([3, len(self.state.balancer.broker_capacities["brokerCapacities"])])
-            > self.state.balancer.racks
-        ):  # replication-factor > racks is not ideal
-            goals = goals + ["RackAwareDistribution"]
-        else:
-            goals = goals + ["RackAware"]
+        if self.state.balancer.racks:
+            if (
+                min([3, len(self.state.balancer.broker_capacities["brokerCapacities"])])
+                > self.state.balancer.racks
+            ):  # replication-factor > racks is not ideal
+                goals = goals + ["RackAwareDistribution"]
+            else:
+                goals = goals + ["RackAware"]
 
         default_goals = [
             f"com.linkedin.kafka.cruisecontrol.analyzer.goals.{goal}Goal" for goal in goals

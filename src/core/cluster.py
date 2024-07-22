@@ -409,7 +409,7 @@ class ClusterState(Object):
         if not self.balancer.broker_connected:
             return Status.NO_BROKER_DATA
 
-        if len(self.balancer.broker_capacities["brokerCapacities"]) < MIN_REPLICAS:
+        if len(self.balancer.broker_capacities.get("brokerCapacities", [])) < MIN_REPLICAS:
             return Status.NOT_ENOUGH_BROKERS
 
         return Status.ACTIVE

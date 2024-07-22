@@ -296,9 +296,6 @@ class PeerCluster(RelationState):
                 # rack is optional, empty if not rack-aware
             ]
         ):
-            logger.info(
-                f"{self.broker_username=}, {self.broker_password=}, {self.broker_uris=}, {self.zk_username=}, {self.zk_password=}, {self.zk_uris=}, {self.broker_capacities=}"
-            )
             return False
 
         return True
