@@ -12,6 +12,8 @@ from ops import (
 
 from literals import (
     BALANCER,
+    BALANCER_WEBSERVER_PORT,
+    BALANCER_WEBSERVER_USER,
     Status,
 )
 from managers.balancer import BalancerManager
@@ -34,7 +36,7 @@ class BalancerOperator(Object):
         self.workload = BalancerWorkload()
 
         # Fast exit after workload instantiation, but before any event observer
-        if BALANCER.value not in self.charm.config.roles:
+        if BALANCER.value not in self.charm.config.roles or not self.charm.unit.is_leader():
             return
 
         self.config_manager = BalancerConfigManager(
@@ -55,18 +57,27 @@ class BalancerOperator(Object):
 
     def _on_start(self, event: EventBase) -> None:
         """Handler for `start` event."""
-        if not self.charm.unit.is_leader():
-            self.workload.stop()
-            return
-
         self.charm._set_status(self.charm.state.ready_to_start)
         if not isinstance(self.charm.unit.status, ActiveStatus):
             event.defer()
             return
 
+        if not self.charm.state.cluster.balancer_username:
+            external_cluster = next(iter(self.charm.state.peer_clusters), None)
+            payload = {
+                "balancer-username": BALANCER_WEBSERVER_USER,
+                "balancer-password": self.charm.workload.generate_password(),
+                "balancer-uris": f"{self.charm.state.unit_broker.host}:{BALANCER_WEBSERVER_PORT}",
+            }
+            # Update relation data intra & extra cluster (if it exists)
+            self.charm.state.cluster.update(payload)
+            if external_cluster:
+                external_cluster.update(payload)
+
         self.config_manager.set_cruise_control_properties()
         self.config_manager.set_broker_capacities()
         self.config_manager.set_zk_jaas_config()
+        self.config_manager.set_cruise_control_auth()
 
         try:
             self.balancer_manager.create_internal_topics()

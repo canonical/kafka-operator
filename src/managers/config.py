@@ -351,7 +351,13 @@ class ConfigManager(CommonConfigManager):
     def client_listeners(self) -> list[Listener]:
         """Return a list of extra listeners."""
         # if there is a relation with kafka then add extra listener
-        if not self.state.client_relations:
+
+        no_related_clients = not self.state.client_relations
+        no_balancer_involved = (not self.state.runs_balancer) and (
+            not self.state.peer_cluster_relation
+        )
+
+        if no_related_clients and no_balancer_involved:
             return []
 
         return [
@@ -633,6 +639,8 @@ class BalancerConfigManager(CommonConfigManager):
                 "sasl.mechanism=SCRAM-SHA-512",
                 f"security.protocol={self.security_protocol}",
                 f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
+                "webserver.security.enable=true",
+                f"webserver.auth.credentials.file={self.workload.paths.cruise_control_auth}",
             ]
             + CRUISE_CONTROL_CONFIG_OPTIONS.split("\n")
             + self.goals
@@ -692,6 +700,13 @@ class BalancerConfigManager(CommonConfigManager):
 
         if not self.state.runs_broker:
             self.workload.write(content=content, path="/etc/environment")
+
+    def set_cruise_control_auth(self) -> None:
+        """Write the credentials file for Cruise Control authentication."""
+        self.workload.write(
+            content=f"{self.state.cluster.balancer_username}: {self.state.cluster.balancer_password},ADMIN\n",
+            path=self.workload.paths.cruise_control_auth,
+        )
 
 
 def map_env(env: Iterable[str]) -> dict[str, str]:

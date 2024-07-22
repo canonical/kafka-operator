@@ -133,9 +133,9 @@ class PeerClusterEventsHandler(Object):
             # will no-op if relation does not exist
             peer_cluster.update(
                 {
-                    "balancer-username": peer_cluster.balancer_username,
-                    "balancer-password": peer_cluster.balancer_password,
-                    "balancer-uris": peer_cluster.balancer_uris,
+                    "balancer-username": self.charm.state.balancer.balancer_username,
+                    "balancer-password": self.charm.state.balancer.balancer_password,
+                    "balancer-uris": self.charm.state.balancer.balancer_uris,
                 }
             )
 

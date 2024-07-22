@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Library to provide simple API for promoting typed, validated and structured dataclass in charms.
+r"""Library to provide simple API for promoting typed, validated and structured dataclass in charms.
 
 Dict-like data structure are often used in charms. They are used for config, action parameters
 and databag. This library aims at providing simple API for using pydantic BaseModel-derived class
@@ -168,14 +168,16 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 1
+LIBPATCH = 4
 
-PYDEPS = ["ops>=2.0.0", "pydantic>=1.10"]
+PYDEPS = ["ops>=2.0.0", "pydantic>=1.10,<2"]
 
 G = TypeVar("G")
 T = TypeVar("T", bound=BaseModel)
 AppModel = TypeVar("AppModel", bound=BaseModel)
 UnitModel = TypeVar("UnitModel", bound=BaseModel)
+
+DataBagNativeTypes = (int, str, float)
 
 
 class BaseConfigModel(BaseModel):
@@ -231,10 +233,15 @@ def write(relation_data: RelationDataContent, model: BaseModel):
         relation_data: pointer to the relation databag
         model: instance of pydantic model to be written
     """
-    for key, value in model.dict(exclude_none=True).items():
-        relation_data[key.replace("_", "-")] = (
-            str(value) if isinstance(value, str) or isinstance(value, int) else json.dumps(value)
-        )
+    for key, value in model.dict(exclude_none=False).items():
+        if value:
+            relation_data[key.replace("_", "-")] = (
+                str(value)
+                if any(isinstance(value, _type) for _type in DataBagNativeTypes)
+                else json.dumps(value)
+            )
+        else:
+            relation_data[key.replace("_", "-")] = ""
 
 
 def read(relation_data: MutableMapping[str, str], obj: Type[T]) -> T:
@@ -248,10 +255,11 @@ def read(relation_data: MutableMapping[str, str], obj: Type[T]) -> T:
         **{
             field_name: (
                 relation_data[parsed_key]
-                if field.type_ in [int, str, float]
+                if field.outer_type_ in DataBagNativeTypes
                 else json.loads(relation_data[parsed_key])
             )
             for field_name, field in obj.__fields__.items()
+            # pyright: ignore[reportGeneralTypeIssues]
             if (parsed_key := field_name.replace("_", "-")) in relation_data
             if relation_data[parsed_key]
         }
@@ -275,8 +283,8 @@ def parse_relation_data(
             [
                 CharmBase,
                 RelationEvent,
-                Union[AppModel, ValidationError],
-                Union[UnitModel, ValidationError],
+                Optional[Union[AppModel, ValidationError]],
+                Optional[Union[UnitModel, ValidationError]],
             ],
             G,
         ]
@@ -286,7 +294,7 @@ def parse_relation_data(
             try:
                 app_data = (
                     read(event.relation.data[event.app], app_model)
-                    if app_model is not None
+                    if app_model is not None and event.app
                     else None
                 )
             except pydantic.ValidationError as e:
@@ -295,7 +303,7 @@ def parse_relation_data(
             try:
                 unit_data = (
                     read(event.relation.data[event.unit], unit_model)
-                    if unit_model is not None
+                    if unit_model is not None and event.unit
                     else None
                 )
             except pydantic.ValidationError as e:

@@ -49,15 +49,22 @@ class BalancerManager:
 
     def create_internal_topics(self) -> None:
         """Create Cruise Control topics."""
+        # if self.charm.state.runs_broker:
+        #     property_file = f'{BROKER.paths["CONF"]}/client.properties'
+        #     bootstrap_servers = self.charm.state.internal_bootstrap_server
+        # else:
+        bootstrap_servers = self.charm.state.balancer.broker_uris
+        property_file = f'{BALANCER.paths["CONF"]}/cruisecontrol.properties'
+
         for topic in BALANCER_TOPICS:
             if topic not in self.dependent.workload.run_bin_command(
                 "topics",
                 [
                     "--list",
                     "--bootstrap-server",
-                    f"{self.charm.state.balancer.broker_uris}",
+                    bootstrap_servers,
                     "--command-config",
-                    f'{BALANCER.paths["CONF"]}/cruisecontrol.properties',
+                    property_file,
                 ],
             ):
                 self.dependent.workload.run_bin_command(
@@ -67,9 +74,9 @@ class BalancerManager:
                         "--topic",
                         topic,
                         "--bootstrap-server",
-                        f"{self.charm.state.balancer.broker_uris}",
+                        bootstrap_servers,
                         "--command-config",
-                        f'{BALANCER.paths["CONF"]}/cruisecontrol.properties',
+                        property_file,
                     ],
                 )
                 logger.info(f"Created topic {topic}")
