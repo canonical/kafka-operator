@@ -18,7 +18,7 @@ set-password:
 set-tls-private-key:
   description: Sets the private key identifying the target unit, which will be used for certificate signing requests (CSR).
     When updated, certificates will be reissued to the unit.
-    Run for each unit separately. Requires a valid relation to an application providing the `certificates` relation interface. 
+    Run for each unit separately. Requires a valid relation to an application providing the `certificates` relation interface.
   params:
     internal-key:
       type: string
