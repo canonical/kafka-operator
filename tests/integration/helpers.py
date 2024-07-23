@@ -485,7 +485,7 @@ def balancer_is_secure(ops_test: OpsTest, app_name: str) -> bool:
 
 @retry(
     wait=wait_fixed(20),  # long enough to not overwhelm the API
-    stop=stop_after_attempt(30),  # give it 10 minutes to load
+    stop=stop_after_attempt(90),  # give it 30 minutes to load
     retry=retry_if_result(lambda result: result is False),
     retry_error_callback=lambda _: False,
 )
@@ -501,7 +501,7 @@ def balancer_is_ready(ops_test: OpsTest, app_name: str) -> bool:
             shell=True,
             universal_newlines=True,
         )
-    ).get("MonitorState", "")
+    ).get("MonitorState", {})
 
     print(f"{monitor_state_json=}")
 
@@ -525,13 +525,13 @@ def get_kafka_broker_state(ops_test: OpsTest, app_name: str) -> JSON:
             shell=True,
             universal_newlines=True,
         )
-    ).get("KafkaBrokerState", "")
+    ).get("KafkaBrokerState", {})
 
     print(f"{broker_state_json=}")
 
     return broker_state_json
 
 
-def get_replica_count_by_broker_id(ops_test: OpsTest, app_name: str) -> int:
+def get_replica_count_by_broker_id(ops_test: OpsTest, app_name: str) -> dict[str, Any]:
     broker_state_json = get_kafka_broker_state(ops_test, app_name)
     return broker_state_json.get("ReplicaCountByBrokerId", {})

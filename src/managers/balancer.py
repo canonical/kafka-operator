@@ -191,7 +191,7 @@ class BalancerManager:
             logger.info(
                 f"Waiting for '{mode}' rebalance {'dryrun' if dryrun else ''} task to complete..."
             )
-            time.sleep(5)  # sleep needed as CC API rejects too many requests within a short time
+            time.sleep(10)  # sleep needed as CC API rejects too many requests within a short time
 
         logger.info(
             f"'{mode}' rebalance task finished - {self.cruise_control.get_task_status(user_task_id=user_task_id)}"
