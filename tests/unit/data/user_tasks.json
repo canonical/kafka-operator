@@ -1,0 +1,145 @@
+{
+   "userTasks":[
+      {
+         "Status":"Completed",
+         "ClientIdentity":"127.0.0.1",
+         "RequestURL":"GET /kafkacruisecontrol/state",
+         "UserTaskId":"023bee96-df11-4c44-b423-bc73989a55e8",
+         "StartMs":"1721742522494"
+      },
+      {
+         "Status":"Completed",
+         "ClientIdentity":"127.0.0.1",
+         "RequestURL":"GET /kafkacruisecontrol/state?json\u003dTrue",
+         "UserTaskId":"ecb629ba-83a6-4ba7-bfc9-787e1a4264ff",
+         "StartMs":"1721742523196"
+      },
+      {
+         "Status":"Completed",
+         "ClientIdentity":"127.0.0.1",
+         "RequestURL":"GET /kafkacruisecontrol/state?json\u003dTrue",
+         "UserTaskId":"f41a05b7-ccd1-4bf0-8576-761373a964c6",
+         "StartMs":"1721742544060"
+      },
+      {
+         "Status":"Completed",
+         "ClientIdentity":"127.0.0.1",
+         "RequestURL":"GET /kafkacruisecontrol/state?json\u003dTrue",
+         "UserTaskId":"49f3e90d-3535-4bef-8e69-4b2799fe532b",
+         "StartMs":"1721742564865"
+      },
+      {
+         "Status":"Completed",
+         "ClientIdentity":"127.0.0.1",
+         "RequestURL":"GET /kafkacruisecontrol/state?json\u003dTrue",
+         "UserTaskId":"5c4824a3-ca5e-49ac-8660-930a5f250f38",
+         "StartMs":"1721742585799"
+      },
+      {
+         "Status":"Completed",
+         "ClientIdentity":"127.0.0.1",
+         "RequestURL":"GET /kafkacruisecontrol/state?json\u003dTrue",
+         "UserTaskId":"c2ddae1c-4cf6-4490-b3fb-f8ae514d61c2",
+         "StartMs":"1721742606494"
+      },
+      {
+         "Status":"Completed",
+         "ClientIdentity":"127.0.0.1",
+         "RequestURL":"GET /kafkacruisecontrol/state?json\u003dTrue",
+         "UserTaskId":"fb004625-dfae-484e-849a-203c70f28b34",
+         "StartMs":"1721742627259"
+      },
+      {
+         "Status":"Completed",
+         "ClientIdentity":"127.0.0.1",
+         "RequestURL":"GET /kafkacruisecontrol/state?json\u003dTrue",
+         "UserTaskId":"895b0e29-6c09-4224-8e9a-b10d6fd18035",
+         "StartMs":"1721742648320"
+      },
+      {
+         "Status":"Completed",
+         "ClientIdentity":"127.0.0.1",
+         "RequestURL":"GET /kafkacruisecontrol/state?json\u003dTrue",
+         "UserTaskId":"fb066a1d-8eed-4690-8f01-e88ff8d9f006",
+         "StartMs":"1721742669185"
+      },
+      {
+         "Status":"Completed",
+         "ClientIdentity":"127.0.0.1",
+         "RequestURL":"GET /kafkacruisecontrol/state?json\u003dTrue",
+         "UserTaskId":"c28640f5-e083-4eb7-9a64-e63c7f83fd3f",
+         "StartMs":"1721742689975"
+      },
+      {
+         "Status":"Completed",
+         "ClientIdentity":"127.0.0.1",
+         "RequestURL":"GET /kafkacruisecontrol/state?json\u003dTrue",
+         "UserTaskId":"bc6317f0-9f1f-44cd-ad0b-fed85a232b8c",
+         "StartMs":"1721742710925"
+      },
+      {
+         "Status":"Completed",
+         "ClientIdentity":"127.0.0.1",
+         "RequestURL":"GET /kafkacruisecontrol/state?json\u003dTrue",
+         "UserTaskId":"a39bb820-af6f-4498-9b7a-f76554c6a1e5",
+         "StartMs":"1721742731742"
+      },
+      {
+         "Status":"Completed",
+         "ClientIdentity":"127.0.0.1",
+         "RequestURL":"GET /kafkacruisecontrol/state?json\u003dTrue",
+         "UserTaskId":"e344f8da-0f85-4141-8266-e07334458e77",
+         "StartMs":"1721742752592"
+      },
+      {
+         "Status":"Completed",
+         "ClientIdentity":"127.0.0.1",
+         "RequestURL":"GET /kafkacruisecontrol/state?json\u003dTrue",
+         "UserTaskId":"ec60c117-cbc5-4140-81c4-ffa6cac145f5",
+         "StartMs":"1721742773622"
+      },
+      {
+         "Status":"Completed",
+         "ClientIdentity":"127.0.0.1",
+         "RequestURL":"GET /kafkacruisecontrol/state?json\u003dTrue",
+         "UserTaskId":"a0c78b9e-8f35-4cd6-aee1-7f441e83aff9",
+         "StartMs":"1721742794617"
+      },
+      {
+         "Status":"Completed",
+         "ClientIdentity":"127.0.0.1",
+         "RequestURL":"GET /kafkacruisecontrol/state?json\u003dTrue",
+         "UserTaskId":"3e48c262-ea56-4a62-8bc7-4f2ba3bbe0aa",
+         "StartMs":"1721742815461"
+      },
+      {
+         "Status":"Completed",
+         "ClientIdentity":"127.0.0.1",
+         "RequestURL":"GET /kafkacruisecontrol/state?json\u003dTrue",
+         "UserTaskId":"46b475ce-ea82-4547-9f96-2c7b9d9a5797",
+         "StartMs":"1721742836466"
+      },
+      {
+         "Status":"Completed",
+         "ClientIdentity":"127.0.0.1",
+         "RequestURL":"GET /kafkacruisecontrol/state?json\u003dTrue",
+         "UserTaskId":"e4256bcb-93f7-4290-ab11-804a665bf011",
+         "StartMs":"1721742857054"
+      },
+      {
+         "Status":"Completed",
+         "ClientIdentity":"127.0.0.1",
+         "RequestURL":"GET /kafkacruisecontrol/user_tasks",
+         "UserTaskId":"5023b239-7128-4456-a5e0-af609ea161d5",
+         "StartMs":"1721742872009"
+      },
+      {
+         "Status":"Completed",
+         "ClientIdentity":"127.0.0.1",
+         "RequestURL":"GET /kafkacruisecontrol/state?json\u003dTrue",
+         "UserTaskId":"4b7d463a-2362-4c98-a760-6572ae893b91",
+         "StartMs":"1721742877874"
+      }
+   ],
+   "version":1
+}
