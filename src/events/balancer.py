@@ -160,7 +160,7 @@ class BalancerOperator(Object):
                 return
 
         response = self.balancer_manager.rebalance(
-            mode=event.params["mode"], dryrun=event.params["dry-run"]
+            mode=event.params["mode"], dryrun=event.params["dryrun"]
         )
 
         if response.status_code != 200:

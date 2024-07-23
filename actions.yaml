@@ -44,7 +44,7 @@ rebalance:
         'add' - evenly distributes replicas to new and available brokers
         'remove' - moves under-replicated partition replicas assigned to decommissioned brokers, to available ones
       enum: [full, add, remove]
-    dry-run:
+    dryrun:
       description: Only generate the partition rebalance proposals and estimated result, without executing
       type: boolean
       default: true
