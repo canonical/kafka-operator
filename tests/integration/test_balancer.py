@@ -173,14 +173,12 @@ class TestBalancer:
             "rebalance", mode="full", dryrun=True, timeout=600, block=True
         )
         response = await rebalance_action_dry_run.wait()
-        print(f"{response.results=}")
         assert response.results
 
         rebalance_action = await leader_unit.run_action(
             "rebalance", mode="full", dryrun=False, timeout=600, block=True
         )
         response = await rebalance_action.wait()
-        print(f"{response.results=}")
         assert response.results
 
         assert int(
@@ -224,14 +222,12 @@ class TestBalancer:
             "rebalance", mode="full", dryrun=True, timeout=600, block=True
         )
         response = await rebalance_action_dry_run.wait()
-        print(f"{response.results=}")
         assert response.results
 
         rebalance_action = await leader_unit.run_action(
             "rebalance", mode="full", dryrun=False, timeout=600, block=True
         )
         response = await rebalance_action.wait()
-        print(f"{response.results=}")
         assert response.results
 
         post_rebalance_replica_counts = get_replica_count_by_broker_id(ops_test, balancer_app)

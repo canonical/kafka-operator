@@ -503,8 +503,6 @@ def balancer_is_ready(ops_test: OpsTest, app_name: str) -> bool:
         )
     ).get("MonitorState", {})
 
-    print(f"{monitor_state_json=}")
-
     return all(
         [
             monitor_state_json.get("numMonitoredWindows", 0),
@@ -526,8 +524,6 @@ def get_kafka_broker_state(ops_test: OpsTest, app_name: str) -> JSON:
             universal_newlines=True,
         )
     ).get("KafkaBrokerState", {})
-
-    print(f"{broker_state_json=}")
 
     return broker_state_json
 
