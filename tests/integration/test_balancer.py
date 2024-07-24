@@ -96,6 +96,10 @@ class TestBalancer:
         await ops_test.model.wait_for_idle(
             apps=list({APP_NAME, ZK_NAME, balancer_app}), idle_period=30
         )
+
+        async with ops_test.fast_forward(fast_interval="20s"):
+            await asyncio.sleep(60)  # ensure update-status adds broker-capacities if missed
+
         assert ops_test.model.applications[balancer_app].status == "waiting"
 
         with pytest.raises(CalledProcessError):
@@ -151,7 +155,7 @@ class TestBalancer:
 
         assert not new_broker_replica_count
 
-        for unit in ops_test.model.applications[APP_NAME].units:
+        for unit in ops_test.model.applications[balancer_app].units:
             if await unit.is_leader_from_status():
                 leader_unit = unit
 
@@ -202,7 +206,7 @@ class TestBalancer:
 
         await asyncio.sleep(10)  # let the API breathe after so many requests
 
-        for unit in ops_test.model.applications[APP_NAME].units:
+        for unit in ops_test.model.applications[balancer_app].units:
             if await unit.is_leader_from_status():
                 leader_unit = unit
 
