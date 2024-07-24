@@ -289,7 +289,7 @@ class BrokerOperator(Object):
 
     def update_client_data(self) -> None:
         """Writes necessary relation data to all related client applications."""
-        if not self.charm.unit.is_leader() or not self.healthy:
+        if not self.charm.unit.is_leader() or not self.healthy or not self.charm.balancer.healthy:
             return
 
         for client in self.charm.state.clients:

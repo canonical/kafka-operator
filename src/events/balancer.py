@@ -180,6 +180,10 @@ class BalancerOperator(Object):
         Returns:
             True if service is alive and active. Otherwise False
         """
+        # needed in case it's called by BrokerOperator in set_client_data
+        if not self.charm.state.runs_balancer:
+            return True
+
         self.charm._set_status(self.charm.state.ready_to_start)
         if not isinstance(self.charm.unit.status, ActiveStatus):
             return False
