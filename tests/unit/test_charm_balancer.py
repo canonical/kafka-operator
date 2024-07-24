@@ -224,4 +224,7 @@ def test_ready_to_start_ok(charm_configuration, zk_data):
     # Then
     assert state_out.unit_status == ActiveStatus()
     # Credentials written to file
-    assert re.match(rf"{BALANCER_WEBSERVER_USER}: \w+,ADMIN", patched_writer.call_args_list[-1].kwargs["content"])
+    assert re.match(
+        rf"{BALANCER_WEBSERVER_USER}: \w+,ADMIN",
+        patched_writer.call_args_list[-1].kwargs["content"],
+    )

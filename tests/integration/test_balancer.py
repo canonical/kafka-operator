@@ -184,7 +184,7 @@ class TestBalancer:
             if key != str(new_broker_id)
         }
 
-        # removing brokerid 3 ungracefully
+        # removing broker ungracefully
         await ops_test.model.applications[APP_NAME].destroy_units(f"{APP_NAME}/{new_broker_id}")
         await ops_test.model.block_until(
             lambda: len(ops_test.model.applications[APP_NAME].units) == 3
@@ -229,6 +229,21 @@ class TestBalancer:
 
     @pytest.mark.abort_on_fail
     async def test_change_leader(self, ops_test: OpsTest, balancer_app):
+        await ops_test.model.applications[APP_NAME].add_units(
+            count=1  # up to 4, so we can safely remove the leader and still get a running CC
+        )
+        await ops_test.model.block_until(
+            lambda: len(ops_test.model.applications[APP_NAME].units) == 4
+        )
+        await ops_test.model.wait_for_idle(
+            apps=list({APP_NAME, ZK_NAME, PRODUCER_APP, balancer_app}),
+            status="active",
+            timeout=1800,
+            idle_period=30,
+        )
+        async with ops_test.fast_forward(fast_interval="20s"):
+            await asyncio.sleep(60)  # ensure update-status adds broker-capacities if missed
+
         # Should be ran last, as otherwise we get unstable in-sync-replicas by removing a unit without a rebalance
         for unit in ops_test.model.applications[APP_NAME].units:
             if await unit.is_leader_from_status():
@@ -246,5 +261,7 @@ class TestBalancer:
 
     @pytest.mark.abort_on_fail
     async def test_cleanup(self, ops_test: OpsTest, balancer_app):
-        for app in list({APP_NAME, ZK_NAME, balancer_app}):
-            await ops_test.model.remove_application(app)
+        for app in list({APP_NAME, ZK_NAME, balancer_app, PRODUCER_APP}):
+            await ops_test.model.remove_application(
+                app, block_until_done=True, force=True, no_wait=True, destroy_storage=True
+            )
