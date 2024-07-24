@@ -158,6 +158,8 @@ class TestBalancer:
 
         assert balancer_is_ready(ops_test=ops_test, app_name=balancer_app)
 
+        await asyncio.sleep(30)  # let the API breathe after so many requests
+
         # verify CC can find the new broker_id 3, with no replica partitions allocated
         broker_replica_count = get_replica_count_by_broker_id(ops_test, balancer_app)
         new_broker_id = max(map(int, broker_replica_count.keys()))
@@ -213,6 +215,8 @@ class TestBalancer:
             await asyncio.sleep(60)  # ensure update-status adds broker-capacities if missed
 
         assert balancer_is_ready(ops_test=ops_test, app_name=balancer_app)
+
+        await asyncio.sleep(10)  # let the API breathe after so many requests
 
         for unit in ops_test.model.applications[APP_NAME].units:
             if await unit.is_leader_from_status():

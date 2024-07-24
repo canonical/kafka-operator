@@ -511,6 +511,11 @@ def balancer_is_ready(ops_test: OpsTest, app_name: str) -> bool:
     )
 
 
+@retry(
+    wait=wait_fixed(5),  # long enough to not overwhelm the API
+    stop=stop_after_attempt(6),
+    reraise=True,
+)
 def get_kafka_broker_state(ops_test: OpsTest, app_name: str) -> JSON:
     pwd = get_secret_by_label(ops_test=ops_test, label=f"{PEER}.{app_name}.app", owner=app_name)[
         "balancer-password"
