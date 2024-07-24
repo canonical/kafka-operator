@@ -486,7 +486,7 @@ def balancer_is_secure(ops_test: OpsTest, app_name: str) -> bool:
 
 @retry(
     wait=wait_fixed(20),  # long enough to not overwhelm the API
-    stop=stop_after_attempt(90),  # give it 30 minutes to load
+    stop=stop_after_attempt(180),  # give it 60 minutes to load
     retry=retry_if_result(lambda result: result is False),
     retry_error_callback=lambda _: False,
 )

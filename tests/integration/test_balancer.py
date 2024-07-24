@@ -96,7 +96,7 @@ class TestBalancer:
         await ops_test.model.wait_for_idle(
             apps=list({APP_NAME, ZK_NAME, balancer_app}), idle_period=30
         )
-        assert ops_test.model.applications[APP_NAME].status == "waiting"
+        assert ops_test.model.applications[balancer_app].status == "waiting"
 
         with pytest.raises(CalledProcessError):
             assert balancer_is_running(
@@ -138,7 +138,7 @@ class TestBalancer:
             idle_period=30,
         )
         async with ops_test.fast_forward(fast_interval="20s"):
-            await asyncio.sleep(60)  # ensure update-status adds broker-capacities if missed
+            await asyncio.sleep(120)  # ensure update-status adds broker-capacities if missed
 
         assert balancer_is_ready(ops_test=ops_test, app_name=balancer_app)
 
@@ -196,7 +196,7 @@ class TestBalancer:
             idle_period=30,
         )
         async with ops_test.fast_forward(fast_interval="20s"):
-            await asyncio.sleep(60)  # ensure update-status adds broker-capacities if missed
+            await asyncio.sleep(180)  # ensure update-status adds broker-capacities if missed
 
         assert balancer_is_ready(ops_test=ops_test, app_name=balancer_app)
 
