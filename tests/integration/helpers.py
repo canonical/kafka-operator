@@ -6,6 +6,7 @@ import logging
 import socket
 import subprocess
 from contextlib import closing
+from json.decoder import JSONDecodeError
 from pathlib import Path
 from subprocess import PIPE, check_output
 from typing import Any, Dict, List, Optional, Set
@@ -493,15 +494,21 @@ def balancer_is_ready(ops_test: OpsTest, app_name: str) -> bool:
     pwd = get_secret_by_label(ops_test=ops_test, label=f"{PEER}.{app_name}.app", owner=app_name)[
         "balancer-password"
     ]
-    monitor_state_json = json.loads(
-        check_output(
-            f"JUJU_MODEL={ops_test.model_full_name} juju ssh {app_name}/leader sudo -i 'curl http://localhost:9090/kafkacruisecontrol/state?json=True'"
-            f" -u {BALANCER_WEBSERVER_USER}:{pwd}",
-            stderr=PIPE,
-            shell=True,
-            universal_newlines=True,
-        )
-    ).get("MonitorState", {})
+    monitor_state = check_output(
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {app_name}/leader sudo -i 'curl http://localhost:9090/kafkacruisecontrol/state?json=True'"
+        f" -u {BALANCER_WEBSERVER_USER}:{pwd}",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+
+    try:
+        monitor_state_json = json.loads(monitor_state).get("MonitorState", {})
+    except JSONDecodeError as e:
+        logger.error(e)
+        return False
+
+    print(f"{monitor_state_json=}")
 
     return all(
         [
@@ -512,7 +519,7 @@ def balancer_is_ready(ops_test: OpsTest, app_name: str) -> bool:
 
 
 @retry(
-    wait=wait_fixed(5),  # long enough to not overwhelm the API
+    wait=wait_fixed(20),  # long enough to not overwhelm the API
     stop=stop_after_attempt(6),
     reraise=True,
 )
@@ -520,15 +527,21 @@ def get_kafka_broker_state(ops_test: OpsTest, app_name: str) -> JSON:
     pwd = get_secret_by_label(ops_test=ops_test, label=f"{PEER}.{app_name}.app", owner=app_name)[
         "balancer-password"
     ]
-    broker_state_json = json.loads(
-        check_output(
-            f"JUJU_MODEL={ops_test.model_full_name} juju ssh {app_name}/leader sudo -i 'curl http://localhost:9090/kafkacruisecontrol/kafka_cluster_state?json=True'"
-            f" -u {BALANCER_WEBSERVER_USER}:{pwd}",
-            stderr=PIPE,
-            shell=True,
-            universal_newlines=True,
-        )
-    ).get("KafkaBrokerState", {})
+    broker_state = check_output(
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {app_name}/leader sudo -i 'curl http://localhost:9090/kafkacruisecontrol/kafka_cluster_state?json=True'"
+        f" -u {BALANCER_WEBSERVER_USER}:{pwd}",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+
+    try:
+        broker_state_json = json.loads(broker_state).get("KafkaBrokerState", {})
+    except JSONDecodeError as e:
+        logger.error(e)
+        return False
+
+    print(f"{broker_state_json=}")
 
     return broker_state_json
 
