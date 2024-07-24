@@ -162,6 +162,7 @@ class BalancerOperator(Object):
         response = self.balancer_manager.rebalance(
             mode=event.params["mode"], dryrun=event.params["dryrun"]
         )
+        logger.debug(f"rebalance - {vars(response)=}")
 
         if response.status_code != 200:
             event.fail("Action failed")

@@ -43,6 +43,7 @@ metric.reporter.topic=__CruiseControlMetrics
 sample.store.class=com.linkedin.kafka.cruisecontrol.monitor.sampling.KafkaSampleStore
 partition.metric.sample.store.topic=__KafkaCruiseControlPartitionMetricSamples
 broker.metric.sample.store.topic=__KafkaCruiseControlModelTrainingSamples
+max.active.user.tasks=10
 """
 SERVER_PROPERTIES_BLACKLIST = ["profile", "log_level", "certificate_extra_sans"]
 

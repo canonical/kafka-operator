@@ -42,11 +42,14 @@ class CruiseControlClient:
                 e.g `state`, `load`, `user_tasks`
             **kwargs: any REST API query parameters provided by that endpoint
         """
-        return requests.get(
+        r = requests.get(
             url=f"{self.address}/{endpoint}",
             auth=(self.username, self.password),
             params=kwargs | self.default_params,
         )
+        logger.debug(f"GET {endpoint} - {vars(r)}")
+
+        return r
 
     def post(self, endpoint: str, dryrun: bool = False, **kwargs) -> requests.Response:
         """CruiseControl POST request.
@@ -57,11 +60,14 @@ class CruiseControlClient:
             dryrun: flag to decide whether to return only proposals (True), or execute (False)
             **kwargs: any REST API query parameters provided by that endpoint
         """
-        return requests.post(
+        r = requests.post(
             url=f"{self.address}/{endpoint}",
             auth=(self.username, self.password),
             params=kwargs | {"dryrun": str(dryrun)} | self.default_params,
         )
+        logger.debug(f"POST {endpoint} - {vars(r)}")
+
+        return r
 
     def get_task_status(self, user_task_id: str) -> str:
         """Gets the task status from the `user_tasks` API endpoint for the provided `user_task_id`.
