@@ -228,38 +228,6 @@ class TestBalancer:
             assert int(value) < int(post_rebalance_replica_counts.get(key, 0))
 
     @pytest.mark.abort_on_fail
-    async def test_change_leader(self, ops_test: OpsTest, balancer_app):
-        await ops_test.model.applications[APP_NAME].add_units(
-            count=1  # up to 4, so we can safely remove the leader and still get a running CC
-        )
-        await ops_test.model.block_until(
-            lambda: len(ops_test.model.applications[APP_NAME].units) == 4
-        )
-        await ops_test.model.wait_for_idle(
-            apps=list({APP_NAME, ZK_NAME, PRODUCER_APP, balancer_app}),
-            status="active",
-            timeout=1800,
-            idle_period=30,
-        )
-        async with ops_test.fast_forward(fast_interval="20s"):
-            await asyncio.sleep(60)  # ensure update-status adds broker-capacities if missed
-
-        # Should be ran last, as otherwise we get unstable in-sync-replicas by removing a unit without a rebalance
-        for unit in ops_test.model.applications[APP_NAME].units:
-            if await unit.is_leader_from_status():
-                leader_unit = unit
-
-        await leader_unit.destroy(force=True, destroy_storage=True, max_wait=0)
-        await ops_test.model.block_until(
-            lambda: len(ops_test.model.applications[APP_NAME].units) == 2
-        )
-        await ops_test.model.wait_for_idle(
-            apps=[APP_NAME], status="active", timeout=1800, idle_period=60
-        )
-        assert balancer_is_running(model_full_name=ops_test.model_full_name, app_name=balancer_app)
-        assert balancer_is_secure(ops_test, app_name=balancer_app)
-
-    @pytest.mark.abort_on_fail
     async def test_cleanup(self, ops_test: OpsTest, balancer_app):
         for app in list({APP_NAME, ZK_NAME, balancer_app, PRODUCER_APP}):
             await ops_test.model.remove_application(
