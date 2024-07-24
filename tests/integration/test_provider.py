@@ -209,7 +209,7 @@ async def test_admin_removed_from_super_users(ops_test: OpsTest):
     assert ops_test.model.applications[APP_NAME].status == "active"
 
     super_users = load_super_users(model_full_name=ops_test.model_full_name)
-    assert len(super_users) == 3
+    assert len(super_users) == 2
 
     # adding cleanup to save memory
     await ops_test.model.remove_application(DUMMY_NAME_2, block_until_done=True)
