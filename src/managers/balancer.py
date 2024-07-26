@@ -182,27 +182,27 @@ class BalancerManager:
                 )
                 logger.info(f"Created topic {topic}")
 
-    def rebalance(self, mode: str, dryrun: bool = True) -> requests.Response:
-        """Triggers a full Kafka cluster partition rebalance."""
-        rebalance_request = self.cruise_control.post(
-            "rebalance", dryrun=dryrun
-        )  # FIXME: will need updating to include add/remove_broker when it works
-        user_task_id = rebalance_request.headers.get("User-Task-ID", "")
+    def rebalance(self, mode: str, dryrun: bool = True) -> tuple[requests.Response, str]:
+        """Triggers a full Kafka cluster partition rebalance.
 
+        Returns:
+            Tuple of requests.Response and string of the CruiseControl User-Task-ID for the rebalance
+        """
+        rebalance_request = self.cruise_control.post(
+            endpoint=mode, dryrun=dryrun
+        )  # FIXME: will need updating to include add/remove_broker when it works
+
+        return (rebalance_request, rebalance_request.headers.get("User-Task-ID", ""))
+
+    def wait_for_task(self, user_task_id: str) -> None:
+        """Waits for the provided User-Task-ID to complete execution."""
         # block entire charm event handling while rebalance in progress
         while (
             "Completed" not in self.cruise_control.get_task_status(user_task_id=user_task_id)
             or self.cruise_control.executing
         ):
-            logger.info(
-                f"Waiting for '{mode}' rebalance {'dryrun' if dryrun else ''} task to complete..."
-            )
+            logger.info(f"Waiting for task execution to finish for {user_task_id=}...")
             time.sleep(10)  # sleep needed as CC API rejects too many requests within a short time
-
-        logger.info(
-            f"'{mode}' rebalance task finished - {self.cruise_control.get_task_status(user_task_id=user_task_id)}"
-        )
-        return rebalance_request
 
     def _get_storage_size(self, path: str) -> int:
         """Gets the total storage volume of a mounted filepath, in KB."""

@@ -240,6 +240,9 @@ class Status(Enum):
     NOT_ENOUGH_BROKERS = StatusLevel(
         WaitingStatus(f"waiting for {MIN_REPLICAS} online brokers"), "DEBUG"
     )
+    WAITING_FOR_REBALANCE = StatusLevel(
+        WaitingStatus("awaiting completion of rebalance task"), "DEBUG"
+    )
 
 
 DEPENDENCIES = {

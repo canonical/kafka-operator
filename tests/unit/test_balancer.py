@@ -28,6 +28,10 @@ class MockResponse:
     def json(self):
         return self.content
 
+    def __dict__(self):
+        """Dict representation of content."""
+        return self.content
+
 
 @pytest.fixture
 def harness():
@@ -168,14 +172,20 @@ def test_balancer_manager_rebalance(
         patch(
             "managers.balancer.BalancerManager.rebalance",
             new_callable=None,
-            return_value=MockResponse(content=proposal, status_code=status),
+            return_value=(MockResponse(content=proposal, status_code=status), "foo"),
         ),
+        patch(
+            "managers.balancer.BalancerManager.wait_for_task",
+            new_callable=None,
+        ) as patched_wait_for_task,
     ):
         harness.set_leader(leader)
         harness.charm.balancer.rebalance(mock_event)
+
         if not all([leader, monitoring, executing, ready, status == 200]):
             assert mock_event._mock_children.get("fail")  # event.fail was called
         else:
+            assert patched_wait_for_task.call_count
             assert mock_event._mock_children.get("set_results")  # event.set_results was called
 
 

@@ -159,13 +159,20 @@ class BalancerOperator(Object):
                 event.fail(msg)
                 return
 
-        response = self.balancer_manager.rebalance(
+        response, user_task_id = self.balancer_manager.rebalance(
             mode=event.params["mode"], dryrun=event.params["dryrun"]
         )
         logger.debug(f"rebalance - {vars(response)=}")
 
         if response.status_code != 200:
-            event.fail("Action failed")
+            event.fail(
+                f"'{event.params['mode']}' rebalance failed with status code {response.status_code}"
+            )
+            return
+
+        self.charm._set_status(Status.WAITING_FOR_REBALANCE)
+
+        self.balancer_manager.wait_for_task(user_task_id)
 
         sanitised_response = self.balancer_manager.clean_results(response.json())
         if not isinstance(sanitised_response, dict):
@@ -173,6 +180,8 @@ class BalancerOperator(Object):
             return
 
         event.set_results(sanitised_response)
+
+        self.charm._set_status(Status.ACTIVE)
 
     @property
     def healthy(self) -> bool:
