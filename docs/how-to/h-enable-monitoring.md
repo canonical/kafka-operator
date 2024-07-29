@@ -23,7 +23,7 @@ juju offer prometheus:receive-remote-write prometheus-receive-remote-write
 
 Switch to Charmed Kafka VM model, find offers and relate with them:
 ```shell
-# We are on the Kubernetes controller, for the cos model. Switch to mysql model
+# We are on the Kubernetes controller, for the cos model. Switch to kafka model
 juju switch <machine_controller_name>:<kafka_model_name>
 
 juju find-offers <k8s_controller>:

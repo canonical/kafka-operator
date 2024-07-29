@@ -17,6 +17,7 @@ from ops import (
     UpdateStatusEvent,
 )
 
+from events.oauth import OAuthHandler
 from events.password_actions import PasswordActionEvents
 from events.provider import KafkaProvider
 from events.tls import TLSHandler
@@ -66,6 +67,7 @@ class BrokerOperator(Object):
         )
         self.password_action_events = PasswordActionEvents(self)
         self.zookeeper = ZooKeeperHandler(self)
+        self.oauth = OAuthHandler(self)
         self.tls = TLSHandler(self)
         self.provider = KafkaProvider(self)
 
