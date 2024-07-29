@@ -17,6 +17,7 @@ from ops import (
     UpdateStatusEvent,
 )
 
+from events.oauth import OAuthHandler
 from events.password_actions import PasswordActionEvents
 from events.provider import KafkaProvider
 from events.tls import TLSHandler
@@ -66,6 +67,7 @@ class BrokerOperator(Object):
         )
         self.password_action_events = PasswordActionEvents(self)
         self.zookeeper = ZooKeeperHandler(self)
+        self.oauth = OAuthHandler(self)
         self.tls = TLSHandler(self)
         self.provider = KafkaProvider(self)
 
@@ -289,7 +291,7 @@ class BrokerOperator(Object):
 
     def update_client_data(self) -> None:
         """Writes necessary relation data to all related client applications."""
-        if not self.charm.unit.is_leader() or not self.healthy:
+        if not self.charm.unit.is_leader() or not self.healthy or not self.charm.balancer.healthy:
             return
 
         for client in self.charm.state.clients:

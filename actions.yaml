@@ -18,7 +18,7 @@ set-password:
 set-tls-private-key:
   description: Sets the private key identifying the target unit, which will be used for certificate signing requests (CSR).
     When updated, certificates will be reissued to the unit.
-    Run for each unit separately. Requires a valid relation to an application providing the `certificates` relation interface. 
+    Run for each unit separately. Requires a valid relation to an application providing the `certificates` relation interface.
   params:
     internal-key:
       type: string
@@ -33,3 +33,18 @@ get-admin-credentials:
 
 pre-upgrade-check:
   description: Run necessary pre-upgrade checks before executing a charm upgrade.
+
+rebalance:
+  description: Trigger a rebalance of cluster partitions based on configured goals
+  params:
+    mode:
+      type: string
+      description: The operation to issue to the balancer. This action must be called on the leader unit.
+        'full' - runs a full rebalance of all partitions across the whole cluster
+        'add' - evenly distributes replicas to new and available brokers
+        'remove' - moves under-replicated partition replicas assigned to decommissioned brokers, to available ones
+      enum: [full, add, remove]
+    dryrun:
+      description: Only generate the partition rebalance proposals and estimated result, without executing
+      type: boolean
+      default: true

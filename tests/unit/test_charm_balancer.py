@@ -15,6 +15,7 @@ from scenario import Context, PeerRelation, Relation, State
 
 from charm import KafkaCharm
 from literals import (
+    BALANCER_WEBSERVER_USER,
     INTERNAL_USERS,
     PEER,
     ZK,
@@ -184,9 +185,7 @@ def test_ready_to_start_no_broker_data(charm_configuration, zk_data):
 def test_ready_to_start_ok(charm_configuration, zk_data):
     # Given
     charm_configuration["options"]["roles"]["default"] = "balancer,broker"
-    ctx = Context(
-        KafkaCharm, meta=METADATA, config=charm_configuration, actions=ACTIONS, unit_id=0
-    )
+    ctx = Context(KafkaCharm, meta=METADATA, config=charm_configuration, actions=ACTIONS)
     cluster_peer = PeerRelation(
         PEER,
         local_app_data={f"{user}-password": "pwd" for user in INTERNAL_USERS},
@@ -225,4 +224,7 @@ def test_ready_to_start_ok(charm_configuration, zk_data):
     # Then
     assert state_out.unit_status == ActiveStatus()
     # Credentials written to file
-    assert re.match(r"admin: \w+,ADMIN", patched_writer.call_args_list[-1].kwargs["content"])
+    assert re.match(
+        rf"{BALANCER_WEBSERVER_USER}: \w+,ADMIN",
+        patched_writer.call_args_list[-1].kwargs["content"],
+    )

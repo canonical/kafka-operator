@@ -113,7 +113,9 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm):
 
     kafka_address = await get_address(ops_test=ops_test, app_name=CHARM_KEY)
 
-    assert not check_tls(ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL"].client)
+    assert not check_tls(
+        ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client
+    )
 
     await asyncio.gather(
         ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series="jammy"),
@@ -129,7 +131,9 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm):
         apps=[CHARM_KEY, DUMMY_NAME], idle_period=30, status="active"
     )
 
-    assert check_tls(ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL"].client)
+    assert check_tls(
+        ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client
+    )
 
     # Rotate credentials
     new_private_key = generate_private_key().decode("utf-8")
@@ -184,8 +188,8 @@ async def test_mtls(ops_test: OpsTest):
     broker_ca = extract_ca(ops_test=ops_test, unit_name=f"{CHARM_KEY}/0")
 
     address = await get_address(ops_test, app_name=CHARM_KEY)
-    ssl_port = SECURITY_PROTOCOL_PORTS["SSL"].client
-    sasl_port = SECURITY_PROTOCOL_PORTS["SASL_SSL"].client
+    ssl_port = SECURITY_PROTOCOL_PORTS["SSL", "SSL"].client
+    sasl_port = SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client
     ssl_bootstrap_server = f"{address}:{ssl_port}"
     sasl_bootstrap_server = f"{address}:{sasl_port}"
 
@@ -262,14 +266,18 @@ async def test_kafka_tls_scaling(ops_test: OpsTest):
     assert f"{chroot}/brokers/ids/2" in active_brokers
 
     kafka_address = await get_address(ops_test=ops_test, app_name=CHARM_KEY, unit_num=2)
-    assert check_tls(ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL"].client)
+    assert check_tls(
+        ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client
+    )
 
     # remove relation and check connection again
     await ops_test.model.applications[CHARM_KEY].remove_relation(
         f"{CHARM_KEY}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_ADMIN}"
     )
     await ops_test.model.wait_for_idle(apps=[CHARM_KEY])
-    assert not check_tls(ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL"].client)
+    assert not check_tls(
+        ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client
+    )
 
 
 async def test_tls_removed(ops_test: OpsTest):
@@ -279,4 +287,6 @@ async def test_tls_removed(ops_test: OpsTest):
     )
 
     kafka_address = await get_address(ops_test=ops_test, app_name=CHARM_KEY)
-    assert not check_tls(ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL"].client)
+    assert not check_tls(
+        ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client
+    )

@@ -26,6 +26,7 @@ from core.models import (
     KafkaBroker,
     KafkaClient,
     KafkaCluster,
+    OAuth,
     PeerCluster,
     ZooKeeper,
 )
@@ -35,6 +36,7 @@ from literals import (
     BROKER,
     INTERNAL_USERS,
     MIN_REPLICAS,
+    OAUTH_REL_NAME,
     PEER,
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
     PEER_CLUSTER_RELATION,
@@ -42,6 +44,7 @@ from literals import (
     SECRETS_UNIT,
     SECURITY_PROTOCOL_PORTS,
     ZK,
+    AuthMechanism,
     Status,
     Substrates,
 )
@@ -186,6 +189,11 @@ class ClusterState(Object):
                 0
             ]  # for broker - balancer relation, currently limited to 1
 
+    @property
+    def oauth_relation(self) -> Relation | None:
+        """The OAuth relation."""
+        return self.model.get_relation(OAUTH_REL_NAME)
+
     # --- CORE COMPONENTS ---
 
     @property
@@ -249,6 +257,13 @@ class ClusterState(Object):
         )
 
     @property
+    def oauth(self) -> OAuth:
+        """The oauth relation state."""
+        return OAuth(
+            relation=self.oauth_relation,
+        )
+
+    @property
     def clients(self) -> set[KafkaClient]:
         """The state for all related client Applications."""
         clients = set()
@@ -300,19 +315,11 @@ class ClusterState(Object):
     @property
     def port(self) -> int:
         """Return the port to be used internally."""
+        mechanism: AuthMechanism = "SCRAM-SHA-512"
         return (
-            SECURITY_PROTOCOL_PORTS["SASL_SSL"].client
+            SECURITY_PROTOCOL_PORTS["SASL_SSL", mechanism].client
             if (self.cluster.tls_enabled and self.unit_broker.certificate)
-            else SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].client
-        )
-
-    @property
-    def internal_port(self) -> int:
-        """Return the port to be used for an internal client."""
-        return (
-            SECURITY_PROTOCOL_PORTS["SASL_SSL"].internal
-            if (self.cluster.tls_enabled and self.unit_broker.certificate)
-            else SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].internal
+            else SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", mechanism].client
         )
 
     @property
@@ -326,18 +333,6 @@ class ClusterState(Object):
             return ""
 
         return ",".join(sorted([f"{broker.host}:{self.port}" for broker in self.brokers]))
-
-    @property
-    def internal_bootstrap_server(self) -> str:
-        """The current Kafka uris formatted for the `bootstrap-server` command flag.
-
-        Returns:
-            List of `bootstrap-server` servers
-        """
-        if not self.peer_relation:
-            return ""
-
-        return ",".join(sorted([f"{broker.host}:{self.internal_port}" for broker in self.brokers]))
 
     @property
     def log_dirs(self) -> str:
@@ -409,7 +404,7 @@ class ClusterState(Object):
         if not self.balancer.broker_connected:
             return Status.NO_BROKER_DATA
 
-        if len(self.balancer.broker_capacities["brokerCapacities"]) < MIN_REPLICAS:
+        if len(self.balancer.broker_capacities.get("brokerCapacities", [])) < MIN_REPLICAS:
             return Status.NOT_ENOUGH_BROKERS
 
         return Status.ACTIVE

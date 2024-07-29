@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
+import json
 from unittest.mock import PropertyMock, patch
 
 import pytest
 from ops import JujuVersion
-from src.literals import INTERNAL_USERS, SUBSTRATE
+
+from literals import INTERNAL_USERS, SUBSTRATE
+from managers.balancer import CruiseControlClient
 
 
 @pytest.fixture(scope="module")
@@ -79,3 +82,40 @@ def juju_has_secrets(mocker):
 def patched_sleep():
     with patch("time.sleep") as patched:
         yield patched
+
+
+@pytest.fixture
+def client() -> CruiseControlClient:
+    return CruiseControlClient("Beren", "Luthien")
+
+
+@pytest.fixture(scope="function")
+def state() -> dict:
+    with open("tests/unit/data/state.json") as f:
+        content = f.read()
+
+    return json.loads(content)
+
+
+@pytest.fixture(scope="function")
+def kafka_cluster_state() -> dict:
+    with open("tests/unit/data/kafka_cluster_state.json") as f:
+        content = f.read()
+
+    return json.loads(content)
+
+
+@pytest.fixture(scope="function")
+def proposal() -> dict:
+    with open("tests/unit/data/proposal.json") as f:
+        content = f.read()
+
+    return json.loads(content)
+
+
+@pytest.fixture(scope="function")
+def user_tasks() -> dict:
+    with open("tests/unit/data/user_tasks.json") as f:
+        content = f.read()
+
+    return json.loads(content)
