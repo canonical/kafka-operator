@@ -14,6 +14,7 @@ from literals import PEER_CLUSTER_ORCHESTRATOR_RELATION, PEER_CLUSTER_RELATION
 from .helpers import (
     APP_NAME,
     ZK_NAME,
+    balancer_exporter_is_up,
     balancer_is_ready,
     balancer_is_running,
     balancer_is_secure,
@@ -122,6 +123,9 @@ class TestBalancer:
 
         assert balancer_is_running(model_full_name=ops_test.model_full_name, app_name=balancer_app)
         assert balancer_is_secure(ops_test, app_name=balancer_app)
+
+    async def test_balancer_exporter_endpoints(self, ops_test: OpsTest, balancer_app):
+        assert balancer_exporter_is_up(ops_test.model_full_name, balancer_app)
 
     @pytest.mark.abort_on_fail
     async def test_balancer_monitor_state(self, ops_test: OpsTest, balancer_app):
