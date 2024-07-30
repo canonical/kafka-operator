@@ -12,7 +12,7 @@ from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, StatusBase
 
 CHARM_KEY = "kafka"
 SNAP_NAME = "charmed-kafka"
-CHARMED_KAFKA_SNAP_REVISION = 37
+CHARMED_KAFKA_SNAP_REVISION = 39
 CONTAINER = "kafka"
 SUBSTRATE = "vm"
 STORAGE = "data"
@@ -51,6 +51,7 @@ SECRETS_UNIT = [
 ]
 
 JMX_EXPORTER_PORT = 9101
+JMX_CC_PORT = 9102
 METRICS_RULES_DIR = "./src/alert_rules/prometheus"
 LOGS_RULES_DIR = "./src/alert_rules/loki"
 

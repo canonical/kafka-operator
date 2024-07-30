@@ -25,6 +25,7 @@ from events.broker import BrokerOperator
 from events.peer_cluster import PeerClusterEventsHandler
 from literals import (
     CHARM_KEY,
+    JMX_CC_PORT,
     JMX_EXPORTER_PORT,
     LOGS_RULES_DIR,
     METRICS_RULES_DIR,
@@ -61,10 +62,11 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
                 # Endpoint for the kafka and jmx exporters
                 # See https://github.com/canonical/charmed-kafka-snap for details
                 {"path": "/metrics", "port": JMX_EXPORTER_PORT},
+                {"path": "/metrics", "port": JMX_CC_PORT},
             ],
             metrics_rules_dir=METRICS_RULES_DIR,
             logs_rules_dir=LOGS_RULES_DIR,
-            log_slots=[f"{self.workload.SNAP_NAME}:{self.workload.LOG_SLOT}"],
+            log_slots=[f"{self.workload.SNAP_NAME}:{slot}" for slot in self.workload.LOG_SLOTS],
         )
 
         self.framework.observe(getattr(self.on, "install"), self._on_install)

@@ -18,6 +18,7 @@ from literals import (
     DEPENDENCIES,
     INTER_BROKER_USER,
     INTERNAL_USERS,
+    JMX_CC_PORT,
     JMX_EXPORTER_PORT,
     JVM_MEM_MAX_GB,
     JVM_MEM_MIN_GB,
@@ -331,12 +332,20 @@ def test_heap_opts(harness: Harness[KafkaCharm], profile, expected):
     assert "KAFKA_HEAP_OPTS" in args
 
 
-def test_jmx_opts(harness: Harness[KafkaCharm]):
+def test_kafka_jmx_opts(harness: Harness[KafkaCharm]):
     """Checks necessary args for KAFKA_JMX_OPTS."""
-    args = harness.charm.broker.config_manager.jmx_opts
+    args = harness.charm.broker.config_manager.kafka_jmx_opts
     assert "-javaagent:" in args
     assert args.split(":")[1].split("=")[-1] == str(JMX_EXPORTER_PORT)
     assert "KAFKA_JMX_OPTS" in args
+
+
+def test_cc_jmx_opts(harness: Harness[KafkaCharm]):
+    """Checks necessary args for CC_JMX_OPTS."""
+    args = harness.charm.broker.config_manager.cc_jmx_opts
+    assert "-javaagent:" in args
+    assert args.split(":")[1].split("=")[-1] == str(JMX_CC_PORT)
+    assert "CC_JMX_OPTS" in args
 
 
 def test_set_environment(

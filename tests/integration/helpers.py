@@ -23,7 +23,7 @@ from tenacity.stop import stop_after_attempt
 from tenacity.wait import wait_fixed
 
 from core.models import JSON
-from literals import BALANCER_WEBSERVER_USER, PATHS, PEER, SECURITY_PROTOCOL_PORTS
+from literals import BALANCER_WEBSERVER_USER, JMX_CC_PORT, PATHS, PEER, SECURITY_PROTOCOL_PORTS
 from managers.auth import Acl, AuthManager
 
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
@@ -449,6 +449,16 @@ async def get_address(ops_test: OpsTest, app_name=APP_NAME, unit_num=0) -> str:
     status = await ops_test.model.get_status()  # noqa: F821
     address = status["applications"][app_name]["units"][f"{app_name}/{unit_num}"]["public-address"]
     return address
+
+
+def balancer_exporter_is_up(model_full_name: str | None, app_name: str) -> bool:
+    check_output(
+        f"JUJU_MODEL={model_full_name} juju ssh {app_name}/leader sudo -i 'curl http://localhost:{JMX_CC_PORT}/metrics'",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+    return True
 
 
 def balancer_is_running(model_full_name: str | None, app_name: str) -> bool:
