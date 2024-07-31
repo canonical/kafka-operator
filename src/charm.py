@@ -34,6 +34,7 @@ from literals import (
     DebugLevel,
     Status,
 )
+from events.tls import TLSHandler
 from workload import KafkaWorkload
 
 logger = logging.getLogger(__name__)
@@ -79,6 +80,8 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         # Register roles event handlers after global ones, so that they get the priority.
         self.broker = BrokerOperator(self)
         self.balancer = BalancerOperator(self)
+
+        self.tls = TLSHandler(self)
 
     def _on_install(self, _) -> None:
         """Handler for `install` event."""

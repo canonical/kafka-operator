@@ -19,6 +19,7 @@ from literals import (
 )
 from managers.balancer import BalancerManager
 from managers.config import BalancerConfigManager
+from managers.tls import TLSManager
 from workload import BalancerWorkload
 
 if TYPE_CHECKING:
@@ -36,6 +37,9 @@ class BalancerOperator(Object):
 
         self.workload = BalancerWorkload()
 
+        self.tls_manager = TLSManager(
+            state=self.charm.state, workload=self.workload, substrate=self.charm.substrate
+        )
         # Fast exit after workload instantiation, but before any event observer
         if BALANCER.value not in self.charm.config.roles or not self.charm.unit.is_leader():
             return
@@ -134,7 +138,8 @@ class BalancerOperator(Object):
             self.config_manager.set_broker_capacities()
             self.config_manager.set_zk_jaas_config()
 
-            self._on_start(event)
+            self.workload.restart()
+            # self._on_start(event)
 
     def rebalance(self, event: ActionEvent) -> None:
         """Handles the `rebalance` Juju Action."""

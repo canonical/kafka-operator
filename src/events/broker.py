@@ -1,5 +1,6 @@
 """Broker role core charm logic."""
 
+import json
 import logging
 from typing import TYPE_CHECKING
 
@@ -54,6 +55,9 @@ class BrokerOperator(Object):
 
         self.workload = KafkaWorkload()
 
+        self.tls_manager = TLSManager(
+            state=self.charm.state, workload=self.workload, substrate=self.charm.substrate
+        )
         # Fast exit after workload instantiation, but before any event observer
         if BROKER.value not in self.charm.config.roles:
             return
@@ -68,7 +72,6 @@ class BrokerOperator(Object):
         self.password_action_events = PasswordActionEvents(self)
         self.zookeeper = ZooKeeperHandler(self)
         self.oauth = OAuthHandler(self)
-        self.tls = TLSHandler(self)
         self.provider = KafkaProvider(self)
 
         # MANAGERS
@@ -78,9 +81,6 @@ class BrokerOperator(Object):
             workload=self.workload,
             config=self.charm.config,
             current_version=self.upgrade.current_version,
-        )
-        self.tls_manager = TLSManager(
-            state=self.charm.state, workload=self.workload, substrate=self.charm.substrate
         )
         self.auth_manager = AuthManager(
             state=self.charm.state,
@@ -201,6 +201,9 @@ class BrokerOperator(Object):
         if self.model.relations.get(REL_NAME, None) and self.charm.unit.is_leader():
             self.update_client_data()
 
+        if self.charm.state.peer_cluster_relation and self.charm.unit.is_leader():
+            self.update_peer_cluster_data()
+
     def _on_update_status(self, _: UpdateStatusEvent) -> None:
         """Handler for `update-status` events."""
         if not self.healthy or not self.upgrade.idle:
@@ -318,3 +321,24 @@ class BrokerOperator(Object):
                     "tls-ca": client.tls,  # TODO: fix tls-ca
                 }
             )
+
+    def update_peer_cluster_data(self) -> None:
+        """Writes updated relation data to other peer_cluster apps."""
+        if not self.charm.unit.is_leader() or not self.healthy:
+            return
+
+        self.charm.state.balancer.update(
+            {
+                "roles": self.charm.state.roles,
+                "broker-username": self.charm.state.balancer.broker_username,
+                "broker-password": self.charm.state.balancer.broker_password,
+                "broker-uris": self.charm.state.balancer.broker_uris,
+                "racks": str(self.charm.state.balancer.racks),
+                "broker-capacities": json.dumps(self.charm.state.balancer.broker_capacities),
+                "zk-uris": self.charm.state.balancer.zk_uris,
+                "zk-username": self.charm.state.balancer.zk_username,
+                "zk-password": self.charm.state.balancer.zk_password,
+            }
+        )
+
+        # self.charm.on.config_changed.emit()  # ensure both broker+balancer get a changed event

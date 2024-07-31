@@ -729,6 +729,35 @@ class BalancerConfigManager(CommonConfigManager):
         ]
 
     @property
+    def cc_zookeeper_tls_properties(self) -> list[str]:
+        """Builds the properties necessary for SSL connections to ZooKeeper.
+
+        Returns:
+            List of properties to be set
+        """
+        return [
+            "zookeeper.ssl.client.enable=true",
+            f"zookeeper.ssl.truststore.location={self.workload.paths.truststore}",
+            f"zookeeper.ssl.truststore.password={self.state.unit_broker.truststore_password}",
+            "zookeeper.clientCnxnSocket=org.apache.zookeeper.ClientCnxnSocketNetty",
+        ]
+
+    @property
+    def cc_tls_properties(self) -> list[str]:
+        """Builds the properties necessary for TLS authentication.
+
+        Returns:
+            List of properties to be set
+        """
+        return [
+            f"ssl.truststore.location={self.workload.paths.truststore}",
+            f"ssl.truststore.password={self.state.unit_broker.truststore_password}",
+            f"ssl.keystore.location={self.workload.paths.keystore}",
+            f"ssl.keystore.password={self.state.unit_broker.keystore_password}",
+            "ssl.client.auth=none",  # TODO mTLS related. Will need changing if mTLS is introduced
+        ]
+
+    @property
     def cruise_control_properties(self) -> list[str]:
         """Builds all properties necessary for starting Cruise Control service.
 
@@ -750,6 +779,9 @@ class BalancerConfigManager(CommonConfigManager):
             + CRUISE_CONTROL_CONFIG_OPTIONS.split("\n")
             + self.goals
         )
+
+        if self.state.cluster.tls_enabled and self.state.unit_broker.certificate:
+            properties += self.cc_tls_properties + self.cc_zookeeper_tls_properties
 
         return properties
 
