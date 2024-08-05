@@ -21,7 +21,6 @@ from ops import (
 from events.oauth import OAuthHandler
 from events.password_actions import PasswordActionEvents
 from events.provider import KafkaProvider
-from events.tls import TLSHandler
 from events.upgrade import KafkaDependencyModel, KafkaUpgrade
 from events.zookeeper import ZooKeeperHandler
 from health import KafkaHealth

@@ -23,6 +23,7 @@ from core.structured_config import CharmConfig
 from events.balancer import BalancerOperator
 from events.broker import BrokerOperator
 from events.peer_cluster import PeerClusterEventsHandler
+from events.tls import TLSHandler
 from literals import (
     CHARM_KEY,
     JMX_CC_PORT,
@@ -34,7 +35,6 @@ from literals import (
     DebugLevel,
     Status,
 )
-from events.tls import TLSHandler
 from workload import KafkaWorkload
 
 logger = logging.getLogger(__name__)

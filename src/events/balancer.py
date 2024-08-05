@@ -54,7 +54,8 @@ class BalancerOperator(Object):
         self.framework.observe(self.charm.on.leader_elected, self._on_start)
 
         # ensures data updates, eventually
-        self.framework.observe(getattr(self.charm.on, "update_status"), self._on_config_changed)
+        self.framework.observe(self.charm.on.update_status, self._on_config_changed)
+        self.framework.observe(self.charm.on.config_changed, self._on_config_changed)
 
         self.framework.observe(getattr(self.charm.on, "rebalance_action"), self.rebalance)
 

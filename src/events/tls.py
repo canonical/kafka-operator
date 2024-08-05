@@ -32,8 +32,6 @@ from literals import TLS_RELATION, TRUSTED_CA_RELATION, TRUSTED_CERTIFICATE_RELA
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
-    # from events.broker import BrokerOperator
-    # from events.balancer import BalancerOperator
 
 logger = logging.getLogger(__name__)
 
@@ -264,17 +262,12 @@ class TLSHandler(Object):
             {"certificate": event.certificate, "ca-cert": event.ca, "ca": ""}
         )
 
-        self.charm.broker.tls_manager.set_server_key()
-        self.charm.broker.tls_manager.set_ca()
-        self.charm.broker.tls_manager.set_certificate()
-        self.charm.broker.tls_manager.set_truststore()
-        self.charm.broker.tls_manager.set_keystore()
-
-        self.charm.balancer.tls_manager.set_server_key()
-        self.charm.balancer.tls_manager.set_ca()
-        self.charm.balancer.tls_manager.set_certificate()
-        self.charm.balancer.tls_manager.set_truststore()
-        self.charm.balancer.tls_manager.set_keystore()
+        for dependent in ["broker", "balancer"]:
+            getattr(self.charm, dependent).tls_manager.set_server_key()
+            getattr(self.charm, dependent).tls_manager.set_ca()
+            getattr(self.charm, dependent).tls_manager.set_certificate()
+            getattr(self.charm, dependent).tls_manager.set_truststore()
+            getattr(self.charm, dependent).tls_manager.set_keystore()
 
         # single-unit Kafka can lose restart events if it loses connection with TLS-enabled ZK
         self.charm.on.config_changed.emit()
