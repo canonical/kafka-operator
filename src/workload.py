@@ -70,11 +70,14 @@ class Workload(WorkloadBase):
         with open(path, mode) as f:
             f.write(content)
 
-        self.exec(f"chown -R {USER}:{GROUP} {path}")
+        self.exec(["chown", "-R", f"{USER}:{GROUP}", f"{path}"])
 
     @override
     def exec(
-        self, command: str, env: Mapping[str, str] | None = None, working_dir: str | None = None
+        self,
+        command: list[str],
+        env: Mapping[str, str] | None = None,
+        working_dir: str | None = None,
     ) -> str:
         try:
             output = subprocess.check_output(
@@ -166,7 +169,7 @@ class Workload(WorkloadBase):
         opts_str = " ".join(opts)
         bin_str = " ".join(bin_args)
         command = f"{opts_str} {SNAP_NAME}.{bin_keyword} {bin_str}"
-        return self.exec(command)
+        return self.exec(command.split())
 
 
 class KafkaWorkload(Workload):

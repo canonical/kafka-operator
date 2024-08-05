@@ -102,7 +102,7 @@ class ZooKeeperHandler(Object):
         # this ID is provided by ZK, and removing it on relation-broken allows
         # re-joining to another ZK cluster.
         for storage in self.charm.model.storages[STORAGE]:
-            self.dependent.workload.exec(f"rm {storage.location}/meta.properties")
+            self.dependent.workload.exec(["bash", "-c", f"rm {storage.location}/meta.properties"])
 
         if not self.charm.unit.is_leader():
             return
