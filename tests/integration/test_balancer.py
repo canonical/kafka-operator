@@ -9,7 +9,7 @@ from subprocess import CalledProcessError
 import pytest
 from pytest_operator.plugin import OpsTest
 
-from literals import PEER_CLUSTER_ORCHESTRATOR_RELATION, PEER_CLUSTER_RELATION
+from literals import PEER_CLUSTER_ORCHESTRATOR_RELATION, PEER_CLUSTER_RELATION, TLS_RELATION
 
 from .helpers import (
     APP_NAME,
@@ -27,6 +27,7 @@ pytestmark = pytest.mark.balancer
 
 BALANCER_APP = "balancer"
 PRODUCER_APP = "producer"
+TLS_NAME = "self-signed-certificates"
 
 
 @pytest.fixture(params=[APP_NAME, BALANCER_APP], scope="module")
@@ -234,6 +235,29 @@ class TestBalancer:
         for key, value in pre_rebalance_replica_counts.items():
             # verify that post-rebalance, surviving units increased replica counts
             assert int(value) < int(post_rebalance_replica_counts.get(key, 0))
+
+    async def test_tls(self, ops_test: OpsTest, balancer_app):
+        # deploy and integrate tls
+        tls_config = {"ca-common-name": "kafka"}
+
+        await ops_test.model.deploy(TLS_NAME, channel="edge", config=tls_config, series="jammy")
+        await ops_test.model.wait_for_idle(apps=[TLS_NAME], idle_period=15, timeout=1800)
+        assert ops_test.model.applications[TLS_NAME].status == "active"
+
+        await ops_test.model.add_relation(TLS_NAME, ZK_NAME)
+        await ops_test.model.add_relation(TLS_NAME, f"{APP_NAME}:{TLS_RELATION}")
+
+        if balancer_app != APP_NAME:
+            await ops_test.model.add_relation(TLS_NAME, f"{BALANCER_APP}:{TLS_RELATION}")
+
+        await ops_test.model.wait_for_idle(
+            apps=list({APP_NAME, ZK_NAME, balancer_app}), idle_period=30
+        )
+        async with ops_test.fast_forward(fast_interval="20s"):
+            await asyncio.sleep(60)  # ensure update-status adds broker-capacities if missed
+
+        # Assert that balancer is running and using certificates
+        assert balancer_is_running(model_full_name=ops_test.model_full_name, app_name=balancer_app)
 
     @pytest.mark.abort_on_fail
     async def test_cleanup(self, ops_test: OpsTest, balancer_app):
