@@ -531,7 +531,7 @@ def test_zookeeper_broken_stops_service_and_removes_meta_properties(harness: Har
         harness.remove_relation(zk_rel_id)
 
         patched_stop_snap_service.assert_called_once()
-        assert re.match(r"rm .*/meta.properties", patched_exec.call_args_list[0].args[0][-1])
+        assert re.match(r"rm .*/meta.properties", " ".join(patched_exec.call_args_list[0].args[0]))
         assert isinstance(harness.charm.unit.status, BlockedStatus)
 
 
