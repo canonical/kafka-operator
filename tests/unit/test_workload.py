@@ -22,9 +22,9 @@ def test_run_bin_command_args(patched_exec):
     """Checks KAFKA_OPTS env-var and zk-tls flag present in all snap commands."""
     KafkaWorkload().run_bin_command(bin_keyword="configs", bin_args=["--list"], opts=["-Djava"])
 
-    assert "charmed-kafka.configs" in patched_exec.call_args.args[0]
-    assert "-Djava" == patched_exec.call_args.args[0][0]
-    assert "--list" == patched_exec.call_args.args[0][-1]
+    assert "charmed-kafka.configs" in patched_exec.call_args.args[0].split()
+    assert "-Djava" == patched_exec.call_args.args[0].split()[0]
+    assert "--list" == patched_exec.call_args.args[0].split()[-1]
 
 
 def test_get_service_pid_raises():
