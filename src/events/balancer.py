@@ -139,8 +139,7 @@ class BalancerOperator(Object):
             self.config_manager.set_broker_capacities()
             self.config_manager.set_zk_jaas_config()
 
-            self.workload.restart()
-            # self._on_start(event)
+            self._on_start(event)
 
     def rebalance(self, event: ActionEvent) -> None:
         """Handles the `rebalance` Juju Action."""

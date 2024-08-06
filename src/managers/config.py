@@ -631,7 +631,6 @@ class ConfigManager(CommonConfigManager):
         updated_env_list = [
             self.kafka_opts,
             self.kafka_jmx_opts,
-            self.cc_jmx_opts,
             self.jvm_performance_opts,
             self.heap_opts,
             self.log_level,
