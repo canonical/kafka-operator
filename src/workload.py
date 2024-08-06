@@ -75,7 +75,7 @@ class Workload(WorkloadBase):
     @override
     def exec(
         self,
-        command: list[str],
+        command: list[str] | str,
         env: Mapping[str, str] | None = None,
         working_dir: str | None = None,
     ) -> str:
@@ -84,7 +84,7 @@ class Workload(WorkloadBase):
                 command,
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
-                shell=True,
+                shell=isinstance(command, str),
                 env=env,
                 cwd=working_dir,
             )
@@ -169,7 +169,7 @@ class Workload(WorkloadBase):
         opts_str = " ".join(opts)
         bin_str = " ".join(bin_args)
         command = f"{opts_str} {SNAP_NAME}.{bin_keyword} {bin_str}"
-        return self.exec(command.split())
+        return self.exec(command)
 
 
 class KafkaWorkload(Workload):
