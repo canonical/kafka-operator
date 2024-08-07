@@ -8,7 +8,7 @@ import secrets
 import string
 from abc import ABC, abstractmethod
 
-from literals import Role
+from literals import BALANCER, BROKER, Role
 
 
 class CharmedKafkaPaths:
@@ -87,12 +87,12 @@ class CharmedKafkaPaths:
     @property
     def jmx_prometheus_config(self):
         """The configuration for the Kafka JMX exporter."""
-        return f"{self.conf_path}/jmx_prometheus.yaml"
+        return f"{BROKER.paths['CONF']}/jmx_prometheus.yaml"
 
     @property
     def jmx_cc_config(self):
         """The configuration for the CruiseControl JMX exporter."""
-        return f"{self.conf_path}/jmx_cruise_control.yaml"
+        return f"{BALANCER.paths['CONF']}/jmx_cruise_control.yaml"
 
     @property
     def cruise_control_properties(self):
@@ -155,7 +155,10 @@ class WorkloadBase(ABC):
 
     @abstractmethod
     def exec(
-        self, command: str, env: dict[str, str] | None = None, working_dir: str | None = None
+        self,
+        command: list[str] | str,
+        env: dict[str, str] | None = None,
+        working_dir: str | None = None,
     ) -> str:
         """Runs a command on the workload substrate."""
         ...

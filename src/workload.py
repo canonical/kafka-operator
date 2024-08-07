@@ -70,18 +70,21 @@ class Workload(WorkloadBase):
         with open(path, mode) as f:
             f.write(content)
 
-        self.exec(f"chown -R {USER}:{GROUP} {path}")
+        self.exec(["chown", "-R", f"{USER}:{GROUP}", f"{path}"])
 
     @override
     def exec(
-        self, command: str, env: Mapping[str, str] | None = None, working_dir: str | None = None
+        self,
+        command: list[str] | str,
+        env: Mapping[str, str] | None = None,
+        working_dir: str | None = None,
     ) -> str:
         try:
             output = subprocess.check_output(
                 command,
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
-                shell=True,
+                shell=isinstance(command, str),
                 env=env,
                 cwd=working_dir,
             )

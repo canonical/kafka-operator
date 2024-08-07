@@ -134,7 +134,7 @@ class BalancerManager:
     @property
     def cores(self) -> int:
         """Gets the total number of CPU cores for the machine."""
-        return int(self.dependent.workload.exec("nproc --all"))
+        return int(self.dependent.workload.exec(["nproc", "--all"]))
 
     @property
     def storages(self) -> str:
@@ -206,7 +206,9 @@ class BalancerManager:
 
     def _get_storage_size(self, path: str) -> int:
         """Gets the total storage volume of a mounted filepath, in KB."""
-        return int(self.dependent.workload.exec(f"df --output=size {path} | sed 1d"))
+        return int(
+            self.dependent.workload.exec(["bash", "-c", f"df --output=size {path} | sed 1d"])
+        )
 
     def _build_new_key(self, nested_key: str, nested_value: JSON) -> dict[str, JSON]:
         """Builds a nested key:value pair for JSON lists from the output of a rebalance proposal.

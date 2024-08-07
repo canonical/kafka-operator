@@ -249,11 +249,16 @@ class BrokerOperator(Object):
         # new dirs won't be used until topic partitions are assigned to it
         # either automatically for new topics, or manually for existing
         # set status only for running services, not on startup
-        self.workload.exec(f"chmod -R 750 {self.workload.paths.data_path}")
-        self.workload.exec(f"chown -R {USER}:{GROUP} {self.workload.paths.data_path}")
+        self.workload.exec(["chmod", "-R", "750", f"{self.workload.paths.data_path}"])
+        self.workload.exec(["chown", "-R", f"{USER}:{GROUP}", f"{self.workload.paths.data_path}"])
         self.workload.exec(
-            f"""find {self.workload.paths.data_path} -type f -name "meta.properties" -delete || true"""
+            [
+                "bash",
+                "-c",
+                f"""find {self.workload.paths.data_path} -type f -name meta.properties -delete || true""",
+            ]
         )
+
         if self.workload.active():
             self.charm._set_status(Status.ADDED_STORAGE)
             # We need the event handler to know about the original event
