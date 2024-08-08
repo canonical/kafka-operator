@@ -28,6 +28,8 @@ from .helpers import (
 
 logger = logging.getLogger(__name__)
 
+pytestmark = pytest.mark.broker
+
 SAME_ZK = f"{ZK_NAME}-same"
 SAME_KAFKA = f"{APP_NAME}-same"
 
@@ -91,7 +93,7 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
             num_units=1,
             series="jammy",
             to=machine_ids[0],
-            storage={"data": {"pool": "test_pool", "size": 10240}},
+            storage={"data": {"pool": "test_pool", "size": 1024}},
         ),
         ops_test.model.deploy(
             ZK_NAME, channel="edge", application_name=ZK_NAME, num_units=1, series="jammy"

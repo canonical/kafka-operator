@@ -16,6 +16,8 @@ from managers.auth import Acl, AuthManager
 
 logger = logging.getLogger(__name__)
 
+pytestmark = pytest.mark.broker
+
 CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
 ACTIONS = str(yaml.safe_load(Path("./actions.yaml").read_text()))
 METADATA = str(yaml.safe_load(Path("./metadata.yaml").read_text()))
@@ -63,7 +65,7 @@ def test_parse_acls():
     parsed_acls = AuthManager._parse_acls(acls=acls)
 
     assert len(parsed_acls) == 5
-    assert type(list(parsed_acls)[0]) == Acl
+    assert type(list(parsed_acls)[0]) is Acl
 
 
 def test_generate_producer_acls():
@@ -99,10 +101,10 @@ def test_generate_consumer_acls():
     assert sorted(resource_types) == sorted({"TOPIC", "GROUP"})
 
 
-def test_add_user_adds_zk_tls_flag(harness):
+def test_add_user_adds_zk_tls_flag(harness: Harness[KafkaCharm]):
     """Checks zk-tls-config-file flag is called for configs bin command."""
     with patch("workload.KafkaWorkload.run_bin_command") as patched_exec:
-        harness.charm.auth_manager.add_user("samwise", "gamgee", zk_auth=True)
+        harness.charm.broker.auth_manager.add_user("samwise", "gamgee", zk_auth=True)
         args = patched_exec.call_args_list[0][1]
 
         assert (

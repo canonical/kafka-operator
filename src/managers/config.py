@@ -5,17 +5,25 @@
 """Manager for handling Kafka configuration."""
 
 import inspect
+import json
 import logging
 import os
 import re
 import textwrap
+from abc import abstractmethod
+from typing import Iterable
+
+from typing_extensions import override
 
 from core.cluster import ClusterState
 from core.structured_config import CharmConfig, LogLevel
 from core.workload import WorkloadBase
 from literals import (
     ADMIN_USER,
+    DEFAULT_BALANCER_GOALS,
+    HARD_BALANCER_GOALS,
     INTER_BROKER_USER,
+    JMX_CC_PORT,
     JMX_EXPORTER_PORT,
     JVM_MEM_MAX_GB,
     JVM_MEM_MIN_GB,
@@ -32,8 +40,15 @@ sasl.mechanism.inter.broker.protocol=SCRAM-SHA-512
 authorizer.class.name=kafka.security.authorizer.AclAuthorizer
 allow.everyone.if.no.acl.found=false
 auto.create.topics.enable=false
+metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
 """
-
+CRUISE_CONTROL_CONFIG_OPTIONS = """
+metric.reporter.topic=__CruiseControlMetrics
+sample.store.class=com.linkedin.kafka.cruisecontrol.monitor.sampling.KafkaSampleStore
+partition.metric.sample.store.topic=__KafkaCruiseControlPartitionMetricSamples
+broker.metric.sample.store.topic=__KafkaCruiseControlModelTrainingSamples
+max.active.user.tasks=10
+"""
 SERVER_PROPERTIES_BLACKLIST = ["profile", "log_level", "certificate_extra_sans"]
 
 
@@ -100,20 +115,12 @@ class Listener:
         return f"{self.name}://{self.host}:{self.port}"
 
 
-class ConfigManager:
-    """Manager for handling Kafka configuration."""
+class CommonConfigManager:
+    """Common options for managing Kafka configuration."""
 
-    def __init__(
-        self,
-        state: ClusterState,
-        workload: WorkloadBase,
-        config: CharmConfig,
-        current_version: str,
-    ):
-        self.state = state
-        self.workload = workload
-        self.config = config
-        self.current_version = current_version
+    config: CharmConfig
+    workload: WorkloadBase
+    state: ClusterState
 
     @property
     def log_level(self) -> str:
@@ -129,7 +136,7 @@ class ConfigManager:
         return f"KAFKA_CFG_LOGLEVEL={self.config.log_level}"
 
     @property
-    def jmx_opts(self) -> str:
+    def kafka_jmx_opts(self) -> str:
         """The JMX options for configuring the prometheus exporter.
 
         Returns:
@@ -143,6 +150,20 @@ class ConfigManager:
         return f"KAFKA_JMX_OPTS='{' '.join(opts)}'"
 
     @property
+    def cc_jmx_opts(self) -> str:
+        """The JMX options for configuring the prometheus exporter on cruise control.
+
+        Returns:
+            String of JMX options
+        """
+        opts = [
+            "-Dcom.sun.management.jmxremote",
+            f"-javaagent:{self.workload.paths.jmx_prometheus_javaagent}={JMX_CC_PORT}:{self.workload.paths.jmx_cc_config}",
+        ]
+
+        return f"CC_JMX_OPTS='{' '.join(opts)}'"
+
+    @property
     def tools_log4j_opts(self) -> str:
         """The Log4j options for configuring the tooling logging.
 
@@ -150,10 +171,30 @@ class ConfigManager:
             String of Log4j options
         """
         opts = [
-            '-Dlog4j.configuration=file:{self.workload.paths.tools_log4j_properties} -Dcharmed.kafka.log.level={self.log_level.split("=")[1]}'
+            f'-Dlog4j.configuration=file:{self.workload.paths.tools_log4j_properties} -Dcharmed.kafka.log.level={self.log_level.split("=")[1]}'
         ]
 
         return f"KAFKA_LOG4J_OPTS='{' '.join(opts)}'"
+
+    @property
+    @abstractmethod
+    def kafka_opts(self) -> str:
+        """Extra Java config options.
+
+        Returns:
+            String of Java config options
+        """
+        ...
+
+    @property
+    @abstractmethod
+    def jaas_config(self) -> str:
+        """Builds the JAAS config for Client/KafkaClient authentication.
+
+        Returns:
+            String of JAAS config for ZooKeeper or Kafka authentication.
+        """
+        ...
 
     @property
     def jvm_performance_opts(self) -> str:
@@ -190,12 +231,34 @@ class ConfigManager:
         return f"KAFKA_HEAP_OPTS='{' '.join(opts)}'"
 
     @property
-    def kafka_opts(self) -> str:
-        """Extra Java config options.
+    def security_protocol(self) -> AuthProtocol:
+        """Infers current charm security.protocol based on current relations."""
+        # FIXME: When we have multiple auth_mechanims/listeners, remove this method
+        return (
+            "SASL_SSL"
+            if (self.state.cluster.tls_enabled and self.state.unit_broker.certificate)
+            else "SASL_PLAINTEXT"
+        )
 
-        Returns:
-            String of Java config options
-        """
+
+class ConfigManager(CommonConfigManager):
+    """Manager for handling Kafka configuration."""
+
+    def __init__(
+        self,
+        state: ClusterState,
+        workload: WorkloadBase,
+        config: CharmConfig,
+        current_version: str = "",
+    ):
+        self.state = state
+        self.workload = workload
+        self.config = config
+        self.current_version = current_version
+
+    @property
+    @override
+    def kafka_opts(self) -> str:
         opts = [
             f"-Djava.security.auth.login.config={self.workload.paths.zk_jaas}",
         ]
@@ -383,7 +446,11 @@ class ConfigManager:
     def client_listeners(self) -> list[Listener]:
         """Return a list of extra listeners."""
         protocol_mechanism_dict: list[tuple[AuthProtocol, AuthMechanism]] = []
-        if self.state.client_relations:
+
+        related_clients = bool(self.state.client_relations)
+        balancer_involved = self.state.runs_balancer or self.state.peer_cluster_relation
+
+        if related_clients or balancer_involved:
             protocol_mechanism_dict.append((self.security_protocol, "SCRAM-SHA-512"))
         if self.state.oauth_relation:
             protocol_mechanism_dict.append((self.security_protocol, "OAUTHBEARER"))
@@ -423,34 +490,62 @@ class ConfigManager:
         Returns:
             List of properties to be set
         """
-        # TODO: not sure if we should make this an instance attribute like the other paths
         rack_path = f"{self.workload.paths.conf_path}/rack.properties"
         return self.workload.read(rack_path) or []
 
     @property
-    def client_properties(self) -> list[str]:
-        """Builds all properties necessary for running an admin Kafka client.
+    def rack(self) -> str:
+        """The rack for the current running unit, determined from a manually added `rack.properties`.
+
+        Returns:
+            String of broker.rack value.
+        """
+        for item in self.rack_properties:
+            if "broker.rack" in item:
+                return item.split("=")[1]
+
+        return ""
+
+    def _build_internal_client_properties(
+        self, username: str, prefix: str | None = None
+    ) -> list[str]:
+        """Builds all properties necessary for running an internal Kafka client.
 
         This includes SASL/SCRAM auth and security mechanisms.
 
-        Returns:
-            List of properties to be set
-        """
-        username = ADMIN_USER
-        password = self.state.cluster.internal_user_credentials.get(ADMIN_USER, "")
+        Args:
+            username: the username to set. Must be from `INTERNAL_USERS`
+            prefix: any prefix to assign to the properties to indicate a specific client
+                e.g `cruise.control.metrics.reporter` -> `cruise.control.metrics.reporter.bootstrap.servers`
 
-        client_properties = [
+        Returns:
+            List of properties to be set on the Kafka broker
+        """
+        password = self.state.cluster.internal_user_credentials.get(username, "")
+
+        properties = [
             f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";',
             "sasl.mechanism=SCRAM-SHA-512",
             f"security.protocol={self.security_protocol}",
-            # FIXME: security.protocol will need changing once multiple listener auth schemes
             f"bootstrap.servers={self.state.bootstrap_server}",
         ]
 
         if self.state.cluster.tls_enabled and self.state.unit_broker.certificate:
-            client_properties += self.tls_properties
+            properties += self.tls_properties
 
-        return client_properties
+        return [f"{prefix}.{prop}" if prefix else prop for prop in properties]
+
+    @property
+    def client_properties(self) -> list[str]:
+        """Builds all properties necessary for running an admin Kafka client."""
+        return self._build_internal_client_properties(username=ADMIN_USER)
+
+    @property
+    def metrics_reporter_properties(self) -> list[str]:
+        """Builds all the properties necessary for running the CruiseControlMetricsReporter client."""
+        return self._build_internal_client_properties(
+            username=ADMIN_USER, prefix="cruise.control.metrics.reporter"
+        )
 
     @property
     def server_properties(self) -> list[str]:
@@ -484,6 +579,7 @@ class ConfigManager:
             + self.default_replication_properties
             + self.auth_properties
             + self.rack_properties
+            + self.metrics_reporter_properties
             + DEFAULT_CONFIG_OPTIONS.split("\n")
         )
 
@@ -502,12 +598,8 @@ class ConfigManager:
         ]
 
     @property
-    def zk_jaas_config(self) -> str:
-        """Builds the JAAS config for Client authentication with ZooKeeper.
-
-        Returns:
-            String of Jaas config for ZooKeeper auth
-        """
+    @override
+    def jaas_config(self) -> str:
         return inspect.cleandoc(
             f"""
             Client {{
@@ -515,12 +607,12 @@ class ConfigManager:
                 username="{self.state.zookeeper.username}"
                 password="{self.state.zookeeper.password}";
             }};
-        """
+            """
         )
 
     def set_zk_jaas_config(self) -> None:
         """Writes the ZooKeeper JAAS config using ZooKeeper relation data."""
-        self.workload.write(content=self.zk_jaas_config, path=self.workload.paths.zk_jaas)
+        self.workload.write(content=self.jaas_config, path=self.workload.paths.zk_jaas)
 
     def set_server_properties(self) -> None:
         """Writes all Kafka config properties to the `server.properties` path."""
@@ -538,21 +630,11 @@ class ConfigManager:
         """Writes the env-vars needed for passing to charmed-kafka service."""
         updated_env_list = [
             self.kafka_opts,
-            self.jmx_opts,
+            self.kafka_jmx_opts,
             self.jvm_performance_opts,
             self.heap_opts,
             self.log_level,
         ]
-
-        def map_env(env: list[str]) -> dict[str, str]:
-            map_env = {}
-            for var in env:
-                key = "".join(var.split("=", maxsplit=1)[0])
-                value = "".join(var.split("=", maxsplit=1)[1:])
-                if key:
-                    # only check for keys, as we can have an empty value for a variable
-                    map_env[key] = value
-            return map_env
 
         raw_current_env = self.workload.read("/etc/environment")
         current_env = map_env(raw_current_env)
@@ -569,3 +651,208 @@ class ConfigManager:
             String with Kafka configuration name to be placed in the server.properties file
         """
         return key.replace("_", ".") if key not in SERVER_PROPERTIES_BLACKLIST else f"# {key}"
+
+
+class BalancerConfigManager(CommonConfigManager):
+    """Manager for handling Balancer configuration."""
+
+    def __init__(
+        self,
+        state: ClusterState,
+        workload: WorkloadBase,
+        config: CharmConfig,
+    ):
+        self.state = state
+        self.workload = workload
+        self.config = config
+
+    @property
+    @override
+    def kafka_opts(self) -> str:
+        opts = [
+            f"-Djava.security.auth.login.config={self.workload.paths.balancer_jaas}",
+        ]
+
+        return f"KAFKA_OPTS='{' '.join(opts)}'"
+
+    @property
+    def balance_thresholds(self) -> list[str]:
+        """Properties for managing variance in inter-broker resource usage."""
+        balance_threshold = self.config.cruisecontrol_balance_threshold
+        return [
+            f"cpu.balance.threshold={balance_threshold}",
+            f"disk.balance.threshold={balance_threshold}",
+            f"network.inbound.balance.threshold={balance_threshold}",
+            f"network.outbound.balance.threshold={balance_threshold}",
+            f"replica.count.balance.threshold={balance_threshold}",
+            f"leader.replica.count.balance.threshold={balance_threshold}",
+        ]
+
+    @property
+    def capacity_thresholds(self) -> list[str]:
+        """Properties for managing broker resource usage total capacity."""
+        capacity_threshold = self.config.cruisecontrol_capacity_threshold
+        return [
+            f"disk.capacity.threshold={capacity_threshold}",
+            f"cpu.capacity.threshold={capacity_threshold}",
+            f"network.inbound.capacity.threshold={capacity_threshold}",
+            f"network.outbound.capacity.threshold={capacity_threshold}",
+        ]
+
+    @property
+    def goals(self) -> list[str]:
+        """Builds all pluggable Goals properties for CruiseControl.
+
+        Returns:
+            List of properties to be set
+        """
+        goals = DEFAULT_BALANCER_GOALS
+
+        if self.state.balancer.racks:
+            if (
+                min([3, len(self.state.balancer.broker_capacities["brokerCapacities"])])
+                > self.state.balancer.racks
+            ):  # replication-factor > racks is not ideal
+                goals = goals + ["RackAwareDistribution"]
+            else:
+                goals = goals + ["RackAware"]
+
+        default_goals = [
+            f"com.linkedin.kafka.cruisecontrol.analyzer.goals.{goal}Goal" for goal in goals
+        ]
+
+        return [
+            f"default.goals={','.join(default_goals)}",
+            f"goals={','.join(default_goals)}",
+            f"hard.goals={','.join([goal for goal in default_goals if any(hard_goal in goal for hard_goal in HARD_BALANCER_GOALS)])}",
+        ]
+
+    @property
+    def cc_zookeeper_tls_properties(self) -> list[str]:
+        """Builds the properties necessary for SSL connections to ZooKeeper.
+
+        Returns:
+            List of properties to be set
+        """
+        return [
+            "zookeeper.ssl.client.enable=true",
+            f"zookeeper.ssl.truststore.location={self.workload.paths.truststore}",
+            f"zookeeper.ssl.truststore.password={self.state.unit_broker.truststore_password}",
+            "zookeeper.clientCnxnSocket=org.apache.zookeeper.ClientCnxnSocketNetty",
+        ]
+
+    @property
+    def cc_tls_properties(self) -> list[str]:
+        """Builds the properties necessary for TLS authentication.
+
+        Returns:
+            List of properties to be set
+        """
+        return [
+            f"ssl.truststore.location={self.workload.paths.truststore}",
+            f"ssl.truststore.password={self.state.unit_broker.truststore_password}",
+            f"ssl.keystore.location={self.workload.paths.keystore}",
+            f"ssl.keystore.password={self.state.unit_broker.keystore_password}",
+            "ssl.client.auth=none",  # TODO mTLS related. Will need changing if mTLS is introduced
+        ]
+
+    @property
+    def cruise_control_properties(self) -> list[str]:
+        """Builds all properties necessary for starting Cruise Control service.
+
+        Returns:
+            List of properties to be set
+        """
+        properties = (
+            [
+                f"bootstrap.servers={self.state.balancer.broker_uris}",
+                f"zookeeper.connect={self.state.balancer.zk_uris}",
+                "zookeeper.security.enabled=true",
+                f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{self.state.balancer.broker_username}" password="{self.state.balancer.broker_password}";',
+                "sasl.mechanism=SCRAM-SHA-512",
+                f"security.protocol={self.security_protocol}",
+                f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
+                "webserver.security.enable=true",
+                f"webserver.auth.credentials.file={self.workload.paths.cruise_control_auth}",
+            ]
+            + CRUISE_CONTROL_CONFIG_OPTIONS.split("\n")
+            + self.goals
+        )
+
+        if self.state.cluster.tls_enabled and self.state.unit_broker.certificate:
+            properties += self.cc_tls_properties + self.cc_zookeeper_tls_properties
+
+        return properties
+
+    @property
+    @override
+    def jaas_config(self) -> str:
+        return inspect.cleandoc(
+            f"""
+            Client {{
+                org.apache.zookeeper.server.auth.DigestLoginModule required
+                username="{self.state.balancer.zk_username}"
+                password="{self.state.balancer.zk_password}";
+            }};
+        """
+        )
+
+    def set_zk_jaas_config(self) -> None:
+        """Writes the ZooKeeper JAAS config using Balancer relation data."""
+        self.workload.write(content=self.jaas_config, path=self.workload.paths.balancer_jaas)
+
+    def set_cruise_control_properties(self) -> None:
+        """Writes all Cruise Control properties to the `cruisecontrol.properties` path."""
+        self.workload.write(
+            content="\n".join(self.cruise_control_properties),
+            path=self.workload.paths.cruise_control_properties,
+        )
+
+    def set_broker_capacities(self) -> None:
+        """Writes all broker storage capacities to `capacityJBOD.json`."""
+        self.workload.write(
+            content=json.dumps(self.state.balancer.broker_capacities),
+            path=self.workload.paths.capacity_jbod_json,
+        )
+
+    def set_environment(self) -> None:
+        """Writes the env-vars needed for passing to charmed-kafka service.
+
+        We avoid overwriting KAFKA_OPTS in /etc/environment because it is only used by the broker.
+        """
+        updated_env_list = [
+            self.kafka_jmx_opts,
+            self.cc_jmx_opts,
+            self.jvm_performance_opts,
+            self.heap_opts,
+            self.log_level,
+            self.kafka_opts,
+        ]
+
+        raw_current_env = self.workload.read("/etc/environment")
+        current_env = map_env(raw_current_env)
+
+        updated_env = current_env | map_env(updated_env_list)
+        content = "\n".join([f"{key}={value}" for key, value in updated_env.items()])
+
+        if not self.state.runs_broker:
+            self.workload.write(content=content, path="/etc/environment")
+
+    def set_cruise_control_auth(self) -> None:
+        """Write the credentials file for Cruise Control authentication."""
+        self.workload.write(
+            content=f"{self.state.cluster.balancer_username}: {self.state.cluster.balancer_password},ADMIN\n",
+            path=self.workload.paths.cruise_control_auth,
+        )
+
+
+def map_env(env: Iterable[str]) -> dict[str, str]:
+    """Parse env var into a dict."""
+    map_env = {}
+    for var in env:
+        key = "".join(var.split("=", maxsplit=1)[0])
+        value = "".join(var.split("=", maxsplit=1)[1:])
+        if key:
+            # only check for keys, as we can have an empty value for a variable
+            map_env[key] = value
+    return map_env

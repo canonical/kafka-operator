@@ -13,6 +13,7 @@ from literals import OAUTH_REL_NAME
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
+    from events.broker import BrokerOperator
 
 logger = logging.getLogger(__name__)
 
@@ -20,12 +21,13 @@ logger = logging.getLogger(__name__)
 class OAuthHandler(Object):
     """Handler for managing oauth relations."""
 
-    def __init__(self, charm):
-        super().__init__(charm, "oauth")
-        self.charm: "KafkaCharm" = charm
+    def __init__(self, dependent: "BrokerOperator") -> None:
+        super().__init__(dependent, "oauth")
+        self.dependent = dependent
+        self.charm: "KafkaCharm" = dependent.charm
 
         client_config = ClientConfig("https://kafka.local", "openid email", ["client_credentials"])
-        self.oauth = OAuthRequirer(charm, client_config, relation_name=OAUTH_REL_NAME)
+        self.oauth = OAuthRequirer(self.charm, client_config, relation_name=OAUTH_REL_NAME)
         self.framework.observe(
             self.charm.on[OAUTH_REL_NAME].relation_changed, self._on_oauth_relation_changed
         )
@@ -37,4 +39,4 @@ class OAuthHandler(Object):
         """Handler for `_on_oauth_relation_changed` event."""
         if not self.charm.unit.is_leader() or not self.charm.state.brokers:
             return
-        self.charm._on_config_changed(event)
+        self.dependent._on_config_changed(event)

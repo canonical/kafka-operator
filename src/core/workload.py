@@ -8,17 +8,18 @@ import secrets
 import string
 from abc import ABC, abstractmethod
 
-from literals import PATHS
+from literals import BALANCER, BROKER, Role
 
 
-class KafkaPaths:
+class CharmedKafkaPaths:
     """Object to store common paths for Kafka."""
 
-    def __init__(self):
-        self.conf_path = PATHS["CONF"]
-        self.data_path = PATHS["DATA"]
-        self.binaries_path = PATHS["BIN"]
-        self.logs_path = PATHS["LOGS"]
+    def __init__(self, role: Role):
+
+        self.conf_path = role.paths["CONF"]
+        self.data_path = role.paths["DATA"]
+        self.binaries_path = role.paths["BIN"]
+        self.logs_path = role.paths["LOGS"]
 
     @property
     def server_properties(self):
@@ -43,6 +44,11 @@ class KafkaPaths:
         Contains internal+external user credentials used in SASL auth.
         """
         return f"{self.conf_path}/zookeeper-jaas.cfg"
+
+    @property
+    def balancer_jaas(self):
+        """The cruise_control_jaas.conf filepath."""
+        return f"{self.conf_path}/cruise_control_jaas.conf"
 
     @property
     def keystore(self):
@@ -80,14 +86,34 @@ class KafkaPaths:
 
     @property
     def jmx_prometheus_config(self):
-        """The configuration for the JMX exporter."""
-        return f"{self.conf_path}/jmx_prometheus.yaml"
+        """The configuration for the Kafka JMX exporter."""
+        return f"{BROKER.paths['CONF']}/jmx_prometheus.yaml"
+
+    @property
+    def jmx_cc_config(self):
+        """The configuration for the CruiseControl JMX exporter."""
+        return f"{BALANCER.paths['CONF']}/jmx_cruise_control.yaml"
+
+    @property
+    def cruise_control_properties(self):
+        """The cruisecontrol.properties filepath."""
+        return f"{self.conf_path}/cruisecontrol.properties"
+
+    @property
+    def capacity_jbod_json(self):
+        """The JBOD capacity JSON."""
+        return f"{self.conf_path}/capacityJBOD.json"
+
+    @property
+    def cruise_control_auth(self):
+        """The credentials file."""
+        return f"{self.conf_path}/cruisecontrol.credentials"
 
 
 class WorkloadBase(ABC):
     """Base interface for common workload operations."""
 
-    paths = KafkaPaths()
+    paths: CharmedKafkaPaths
 
     @abstractmethod
     def start(self) -> None:
@@ -129,7 +155,10 @@ class WorkloadBase(ABC):
 
     @abstractmethod
     def exec(
-        self, command: str, env: dict[str, str] | None = None, working_dir: str | None = None
+        self,
+        command: list[str] | str,
+        env: dict[str, str] | None = None,
+        working_dir: str | None = None,
     ) -> str:
         """Runs a command on the workload substrate."""
         ...

@@ -66,9 +66,9 @@ class TLSManager:
         """Adds CA to JKS truststore."""
         command = f"{self.keytool} -import -v -alias ca -file ca.pem -keystore truststore.jks -storepass {self.state.unit_broker.truststore_password} -noprompt"
         try:
-            self.workload.exec(command=command, working_dir=self.workload.paths.conf_path)
-            self.workload.exec(f"chown {USER}:{GROUP} {self.workload.paths.truststore}")
-            self.workload.exec(f"chmod 770 {self.workload.paths.truststore}")
+            self.workload.exec(command=command.split(), working_dir=self.workload.paths.conf_path)
+            self.workload.exec(["chown", f"{USER}:{GROUP}", f"{self.workload.paths.truststore}"])
+            self.workload.exec(["chmod", "770", f"{self.workload.paths.truststore}"])
         except (subprocess.CalledProcessError, ExecError) as e:
             # in case this reruns and fails
             if e.stdout and "already exists" in e.stdout:
@@ -80,9 +80,9 @@ class TLSManager:
         """Creates and adds unit cert and private-key to the keystore."""
         command = f"openssl pkcs12 -export -in server.pem -inkey server.key -passin pass:{self.state.unit_broker.keystore_password} -certfile server.pem -out keystore.p12 -password pass:{self.state.unit_broker.keystore_password}"
         try:
-            self.workload.exec(command=command, working_dir=self.workload.paths.conf_path)
-            self.workload.exec(f"chown {USER}:{GROUP} {self.workload.paths.keystore}")
-            self.workload.exec(f"chmod 770 {self.workload.paths.keystore}")
+            self.workload.exec(command=command.split(), working_dir=self.workload.paths.conf_path)
+            self.workload.exec(["chown", f"{USER}:{GROUP}", f"{self.workload.paths.keystore}"])
+            self.workload.exec(["chmod", "770", f"{self.workload.paths.keystore}"])
         except (subprocess.CalledProcessError, ExecError) as e:
             logger.error(e.stdout)
             raise e
@@ -91,7 +91,7 @@ class TLSManager:
         """Add a certificate to the truststore."""
         command = f"{self.keytool} -import -v -alias {alias} -file {filename} -keystore truststore.jks -storepass {self.state.unit_broker.truststore_password} -noprompt"
         try:
-            self.workload.exec(command=command, working_dir=self.workload.paths.conf_path)
+            self.workload.exec(command=command.split(), working_dir=self.workload.paths.conf_path)
         except (subprocess.CalledProcessError, ExecError) as e:
             # in case this reruns and fails
             if e.stdout and "already exists" in e.stdout:
@@ -104,8 +104,10 @@ class TLSManager:
         """Remove a cert from the truststore."""
         try:
             command = f"{self.keytool} -delete -v -alias {alias} -keystore truststore.jks -storepass {self.state.unit_broker.truststore_password} -noprompt"
-            self.workload.exec(command=command, working_dir=self.workload.paths.conf_path)
-            self.workload.exec(f"rm -f {alias}.pem", working_dir=self.workload.paths.conf_path)
+            self.workload.exec(command=command.split(), working_dir=self.workload.paths.conf_path)
+            self.workload.exec(
+                ["rm", "-f", f"{alias}.pem"], working_dir=self.workload.paths.conf_path
+            )
         except (subprocess.CalledProcessError, ExecError) as e:
             if e.stdout and "does not exist" in e.stdout:
                 logger.warning(e.stdout)
@@ -117,7 +119,7 @@ class TLSManager:
         """Cleans up all keys/certs/stores on a unit."""
         try:
             self.workload.exec(
-                command="rm -rf *.pem *.key *.p12 *.jks",
+                command=["rm", "-rf", "*.pem", "*.key", "*.p12", "*.jks"],
                 working_dir=self.workload.paths.conf_path,
             )
         except (subprocess.CalledProcessError, ExecError) as e:

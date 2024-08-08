@@ -3,7 +3,7 @@
 name: kafka
 display-name: Charmed Kafka
 description: |
-  Kafka is an event streaming platform. This charm deploys and operates Kafka on 
+  Kafka is an event streaming platform. This charm deploys and operates Kafka on
   a VM machines environment.
 summary: Charmed Kafka Operator
 docs: https://discourse.charmhub.io/t/charmed-kafka-documentation/10288
@@ -28,6 +28,15 @@ peers:
   upgrade:
     interface: upgrade
 
+provides:
+  kafka-client:
+    interface: kafka_client
+  cos-agent:
+    interface: cos_agent
+  peer-cluster-orchestrator:
+    interface: peer_cluster
+    limit: 1
+
 requires:
   zookeeper:
     interface: zookeeper
@@ -42,22 +51,19 @@ requires:
   trusted-certificate:
     interface: tls-certificates
     optional: true
+  peer-cluster:
+    interface: peer_cluster
+    optional: true
   oauth:
     interface: oauth
     limit: 1
     optional: true
 
-provides:
-  kafka-client:
-    interface: kafka_client
-  cos-agent:
-    interface: cos_agent
-
 storage:
   data:
     type: filesystem
     description: Directories where the log data is stored
-    minimum-size: 10G
+    minimum-size: 1G
     location: /var/snap/charmed-kafka/common/var/lib/kafka
     multiple:
       range: 1-

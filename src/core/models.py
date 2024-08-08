@@ -4,20 +4,27 @@
 
 """Collection of state objects for the Kafka relations, apps and units."""
 
+import json
 import logging
-from typing import MutableMapping
+from typing import MutableMapping, TypeAlias
 
 import requests
-from charms.data_platform_libs.v0.data_interfaces import Data, DataPeerData, DataPeerUnitData
+from charms.data_platform_libs.v0.data_interfaces import (
+    Data,
+    DataPeerData,
+    DataPeerUnitData,
+)
 from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManager
 from kazoo.client import AuthFailedError, NoNodeError
 from ops.model import Application, Relation, Unit
 from tenacity import retry, retry_if_result, stop_after_attempt, wait_fixed
 from typing_extensions import override
 
-from literals import INTERNAL_USERS, SECRETS_APP, Substrates
+from literals import BALANCER, BROKER, INTERNAL_USERS, SECRETS_APP, Substrates
 
 logger = logging.getLogger(__name__)
+
+JSON: TypeAlias = dict[str, "JSON"] | list["JSON"] | str | int | float | bool | None
 
 
 class RelationState:
@@ -28,7 +35,7 @@ class RelationState:
         relation: Relation | None,
         data_interface: Data,
         component: Unit | Application | None,
-        substrate: Substrates,
+        substrate: Substrates | None = None,
     ):
         self.relation = relation
         self.data_interface = data_interface
@@ -58,6 +65,243 @@ class RelationState:
             del self.relation_data[field]
 
 
+class PeerCluster(RelationState):
+    """State collection metadata for a peer-cluster application."""
+
+    def __init__(
+        self,
+        relation: Relation | None,
+        data_interface: Data,
+        broker_username: str = "",
+        broker_password: str = "",
+        broker_uris: str = "",
+        racks: int = 0,
+        broker_capacities: dict[str, list[JSON]] = {},
+        zk_username: str = "",
+        zk_password: str = "",
+        zk_uris: str = "",
+        balancer_username: str = "",
+        balancer_password: str = "",
+        balancer_uris: str = "",
+    ):
+        super().__init__(relation, data_interface, None, None)
+        self._broker_username = broker_username
+        self._broker_password = broker_password
+        self._broker_uris = broker_uris
+        self._racks = racks
+        self._broker_capacities = broker_capacities
+        self._zk_username = zk_username
+        self._zk_password = zk_password
+        self._zk_uris = zk_uris
+        self._balancer_username = balancer_username
+        self._balancer_password = balancer_password
+        self._balancer_uris = balancer_uris
+
+    @property
+    def roles(self) -> str:
+        """All the roles pass from the related application."""
+        if not self.relation:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(relation_id=self.relation.id, field="roles")
+            or ""
+        )
+
+    @property
+    def broker_username(self) -> str:
+        """The provided username for the broker application."""
+        if self._broker_username:
+            return self._broker_username
+
+        if not self.relation or not self.relation.app:
+            return ""
+
+        return self.data_interface._fetch_relation_data_with_secrets(
+            component=self.relation.app,
+            req_secret_fields=BALANCER.requested_secrets,
+            relation=self.relation,
+            fields=BALANCER.requested_secrets,
+        ).get("broker-username", "")
+
+    @property
+    def broker_password(self) -> str:
+        """The provided password for the broker application."""
+        if self._broker_password:
+            return self._broker_password
+
+        if not self.relation or not self.relation.app:
+            return ""
+
+        return self.data_interface._fetch_relation_data_with_secrets(
+            component=self.relation.app,
+            req_secret_fields=BALANCER.requested_secrets,
+            relation=self.relation,
+            fields=BALANCER.requested_secrets,
+        ).get("broker-password", "")
+
+    @property
+    def broker_uris(self) -> str:
+        """The provided uris for the balancer application to connect to the broker application."""
+        if self._broker_uris:
+            return self._broker_uris
+
+        if not self.relation or not self.relation.app:
+            return ""
+
+        return self.data_interface._fetch_relation_data_with_secrets(
+            component=self.relation.app,
+            req_secret_fields=BALANCER.requested_secrets,
+            relation=self.relation,
+            fields=BALANCER.requested_secrets,
+        ).get("broker-uris", "")
+
+    @property
+    def racks(self) -> int:
+        """The number of racks for the brokers."""
+        if self._racks:
+            return self._racks
+
+        if not self.relation:
+            return 0
+
+        return int(
+            self.data_interface.fetch_relation_field(relation_id=self.relation.id, field="racks")
+            or 0
+        )
+
+    @property
+    def broker_capacities(self) -> dict[str, list[JSON]]:
+        """The capacities for all Kafka brokers."""
+        if self._broker_capacities:
+            return self._broker_capacities
+
+        if not self.relation:
+            return {}
+
+        return json.loads(
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="broker-capacities"
+            )
+            or "{}"
+        )
+
+    @property
+    def zk_username(self) -> str:
+        """Username to connect to ZooKeeper."""
+        if self._zk_username:
+            return self._zk_username
+
+        if not self.relation or not self.relation.app:
+            return ""
+
+        return self.data_interface._fetch_relation_data_with_secrets(
+            component=self.relation.app,
+            req_secret_fields=BALANCER.requested_secrets,
+            relation=self.relation,
+            fields=BALANCER.requested_secrets,
+        ).get("zk-username", "")
+
+    @property
+    def zk_password(self) -> str:
+        """Password to connect to ZooKeeper."""
+        if self._zk_password:
+            return self._zk_password
+
+        if not self.relation or not self.relation.app:
+            return ""
+
+        return self.data_interface._fetch_relation_data_with_secrets(
+            component=self.relation.app,
+            req_secret_fields=BALANCER.requested_secrets,
+            relation=self.relation,
+            fields=BALANCER.requested_secrets,
+        ).get("zk-password", "")
+
+    @property
+    def zk_uris(self) -> str:
+        """The ZooKeeper server endpoints for the balancer application to connect with."""
+        if self._zk_uris:
+            return self._zk_uris
+
+        if not self.relation or not self.relation.app:
+            return ""
+
+        return self.data_interface._fetch_relation_data_with_secrets(
+            component=self.relation.app,
+            req_secret_fields=BALANCER.requested_secrets,
+            relation=self.relation,
+            fields=BALANCER.requested_secrets,
+        ).get("zk-uris", "")
+
+    @property
+    def balancer_username(self) -> str:
+        """The provided username for the balancer application."""
+        if self._balancer_username:
+            return self._balancer_username
+
+        if not self.relation or not self.relation.app:
+            return ""
+
+        return self.data_interface._fetch_relation_data_with_secrets(
+            component=self.relation.app,
+            req_secret_fields=BROKER.requested_secrets,
+            relation=self.relation,
+            fields=BALANCER.requested_secrets,
+        ).get("balancer-username", "")
+
+    @property
+    def balancer_password(self) -> str:
+        """The provided password for the balancer application."""
+        if self._balancer_password:
+            return self._balancer_password
+
+        if not self.relation or not self.relation.app:
+            return ""
+
+        return self.data_interface._fetch_relation_data_with_secrets(
+            component=self.relation.app,
+            req_secret_fields=BROKER.requested_secrets,
+            relation=self.relation,
+            fields=BALANCER.requested_secrets,
+        ).get("balancer-password", "")
+
+    @property
+    def balancer_uris(self) -> str:
+        """The provided uris for the broker application to connect to the balancer application."""
+        if self._balancer_uris:
+            return self._balancer_uris
+
+        if not self.relation or not self.relation.app:
+            return ""
+
+        return self.data_interface._fetch_relation_data_with_secrets(
+            component=self.relation.app,
+            req_secret_fields=BROKER.requested_secrets,
+            relation=self.relation,
+            fields=BALANCER.requested_secrets,
+        ).get("balancer-uris", "")
+
+    @property
+    def broker_connected(self) -> bool:
+        """Checks if there is an active broker relation with all necessary data."""
+        if not all(
+            [
+                self.broker_username,
+                self.broker_password,
+                self.broker_uris,
+                self.zk_username,
+                self.zk_password,
+                self.zk_uris,
+                self.broker_capacities,
+                # rack is optional, empty if not rack-aware
+            ]
+        ):
+            return False
+
+        return True
+
+
 class KafkaCluster(RelationState):
     """State collection metadata for the peer relation."""
 
@@ -66,9 +310,8 @@ class KafkaCluster(RelationState):
         relation: Relation | None,
         data_interface: DataPeerData,
         component: Application,
-        substrate: Substrates,
     ):
-        super().__init__(relation, data_interface, component, substrate)
+        super().__init__(relation, data_interface, component, None)
         self.data_interface = data_interface
         self.app = component
 
@@ -130,6 +373,21 @@ class KafkaCluster(RelationState):
             True if TLS encryption should be active. Otherwise False
         """
         return self.relation_data.get("mtls", "disabled") == "enabled"
+
+    @property
+    def balancer_username(self) -> bool:
+        """Persisted balancer username."""
+        return self.relation_data.get("balancer-username", "")
+
+    @property
+    def balancer_password(self) -> bool:
+        """Persisted balancer password."""
+        return self.relation_data.get("balancer-password", "")
+
+    @property
+    def balancer_uris(self) -> bool:
+        """Persisted balancer uris."""
+        return self.relation_data.get("balancer-uris", "")
 
 
 class KafkaBroker(RelationState):
@@ -230,6 +488,21 @@ class KafkaBroker(RelationState):
         """
         return self.relation_data.get("truststore-password", "")
 
+    @property
+    def storages(self) -> JSON:
+        """The current Juju storages for the unit."""
+        return json.loads(self.relation_data.get("storages", "{}"))
+
+    @property
+    def cores(self) -> str:
+        """The number of CPU cores for the unit machine."""
+        return self.relation_data.get("cores", "")
+
+    @property
+    def rack(self) -> str:
+        """The rack for the broker on broker.rack from rack.properties."""
+        return self.relation_data.get("rack", "")
+
 
 class ZooKeeper(RelationState):
     """State collection metadata for a the Zookeeper relation."""
@@ -238,10 +511,9 @@ class ZooKeeper(RelationState):
         self,
         relation: Relation | None,
         data_interface: Data,
-        substrate: Substrates,
         local_app: Application | None = None,
     ):
-        super().__init__(relation, data_interface, None, substrate)
+        super().__init__(relation, data_interface, None, None)
         self._local_app = local_app
 
     @property
@@ -313,9 +585,15 @@ class ZooKeeper(RelationState):
         if not self.relation:
             return ""
 
-        return (
-            self.data_interface.fetch_relation_field(relation_id=self.relation.id, field="uris")
-            or ""
+        return ",".join(
+            sorted(  # sorting as they may be disordered
+                (
+                    self.data_interface.fetch_relation_field(
+                        relation_id=self.relation.id, field="uris"
+                    )
+                    or ""
+                ).split(",")
+            )
         )
 
     @property
@@ -388,14 +666,13 @@ class KafkaClient(RelationState):
         relation: Relation | None,
         data_interface: Data,
         component: Application,
-        substrate: Substrates,
         local_app: Application | None = None,
         bootstrap_server: str = "",
         password: str = "",  # nosec: B107
         tls: str = "",
         zookeeper_uris: str = "",
     ):
-        super().__init__(relation, data_interface, component, substrate)
+        super().__init__(relation, data_interface, component, None)
         self.app = component
         self._local_app = local_app
         self._bootstrap_server = bootstrap_server

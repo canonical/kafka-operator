@@ -40,6 +40,8 @@ PRODUCING_MESSAGES = 10
 
 logger = logging.getLogger(__name__)
 
+pytestmark = pytest.mark.broker
+
 
 @pytest.fixture()
 async def c_writes(ops_test: OpsTest):

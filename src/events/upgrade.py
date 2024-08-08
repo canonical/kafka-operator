@@ -4,6 +4,7 @@
 """Manager for handling Kafka in-place upgrades."""
 
 import logging
+import subprocess
 import time
 from typing import TYPE_CHECKING
 
@@ -14,11 +15,14 @@ from charms.data_platform_libs.v0.upgrade import (
     UpgradeGrantedEvent,
     verify_requirements,
 )
+from charms.operator_libs_linux.v0.sysctl import CalledProcessError
+from ops.pebble import ExecError
 from pydantic import BaseModel
 from typing_extensions import override
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
+    from events.broker import BrokerOperator
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +41,10 @@ class KafkaDependencyModel(BaseModel):
 class KafkaUpgrade(DataUpgrade):
     """Implementation of :class:`DataUpgrade` overrides for in-place upgrades."""
 
-    def __init__(self, charm: "KafkaCharm", **kwargs):
-        super().__init__(charm, **kwargs)
-        self.charm = charm
+    def __init__(self, dependent: "BrokerOperator", **kwargs) -> None:
+        super().__init__(dependent.charm, **kwargs)
+        self.dependent = dependent
+        self.charm: "KafkaCharm" = dependent.charm
 
     @property
     def idle(self) -> bool:
@@ -68,7 +73,7 @@ class KafkaUpgrade(DataUpgrade):
     @override
     def pre_upgrade_check(self) -> None:
         default_message = "Pre-upgrade check failed and cannot safely upgrade"
-        if not self.charm.healthy:
+        if not self.dependent.healthy:
             raise ClusterNotReadyError(message=default_message, cause="Cluster is not healthy")
 
     @override
@@ -99,17 +104,23 @@ class KafkaUpgrade(DataUpgrade):
             self.set_unit_failed()
             return
 
-        self.charm.workload.stop()
+        self.charm.broker.workload.stop()
+        try:
+            self.charm.balancer.workload.stop()
+        except CalledProcessError:
+            # cruise control added in charmed-kafka Rev.37
+            pass
 
-        if not self.charm.workload.install():
+        if not self.dependent.workload.install():
             logger.error("Unable to install Snap")
             self.set_unit_failed()
             return
 
-        self.charm.config_manager.set_environment()
+        self.dependent.config_manager.set_environment()
+        self.apply_backwards_compatibility_fixes(event)
 
         logger.info(f"{self.charm.unit.name} upgrading service...")
-        self.charm.workload.restart()
+        self.dependent.workload.restart()
 
         # Allow for some time to settle down
         # FIXME: This logic should be improved as part of ticket DPE-3155
@@ -132,3 +143,22 @@ class KafkaUpgrade(DataUpgrade):
         except ClusterNotReadyError as e:
             logger.error(e.cause)
             self.set_unit_failed()
+
+    def apply_backwards_compatibility_fixes(self, event) -> None:
+        """A range of functions needed for backwards compatibility."""
+        logger.info("Applying upgrade fixes")
+        # Rev.38 - Create credentials for missing internal user, to reconcile state during upgrades
+        if (
+            not self.charm.state.cluster.internal_user_credentials
+            and self.charm.state.zookeeper.zookeeper_connected
+        ):
+            try:
+                internal_user_credentials = self.dependent.zookeeper._create_internal_credentials()
+            except (KeyError, RuntimeError, subprocess.CalledProcessError, ExecError) as e:
+                logger.warning(str(e))
+                event.defer()
+                return
+
+            # only set to relation data when all set
+            for username, password in internal_user_credentials:
+                self.charm.state.cluster.update({f"{username}-password": password})

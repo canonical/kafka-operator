@@ -1,0 +1,77 @@
+{
+  "AnalyzerState": {
+    "isProposalReady": true,
+    "readyGoals": [
+      "NetworkInboundUsageDistributionGoal",
+      "PreferredLeaderElectionGoal",
+      "CpuUsageDistributionGoal",
+      "PotentialNwOutGoal",
+      "LeaderReplicaDistributionGoal",
+      "NetworkInboundCapacityGoal",
+      "LeaderBytesInDistributionGoal",
+      "DiskCapacityGoal",
+      "ReplicaDistributionGoal",
+      "TopicReplicaDistributionGoal",
+      "NetworkOutboundCapacityGoal",
+      "CpuCapacityGoal",
+      "DiskUsageDistributionGoal",
+      "NetworkOutboundUsageDistributionGoal",
+      "ReplicaCapacityGoal"
+    ]
+  },
+  "MonitorState": {
+    "trainingPct": 20,
+    "trained": false,
+    "numFlawedPartitions": 0,
+    "state": "RUNNING",
+    "numTotalPartitions": 170,
+    "numMonitoredWindows": 5,
+    "monitoringCoveragePct": 100,
+    "reasonOfLatestPauseOrResume": "N/A",
+    "numValidPartitions": 170
+  },
+  "ExecutorState": {
+    "state": "NO_TASK_IN_PROGRESS"
+  },
+  "AnomalyDetectorState": {
+    "recentBrokerFailures": [],
+    "recentGoalViolations": [],
+    "selfHealingDisabled": [
+      "BROKER_FAILURE",
+      "DISK_FAILURE",
+      "GOAL_VIOLATION",
+      "METRIC_ANOMALY",
+      "TOPIC_ANOMALY",
+      "MAINTENANCE_EVENT"
+    ],
+    "balancednessScore": 100,
+    "selfHealingEnabled": [],
+    "recentDiskFailures": [],
+    "metrics": {
+      "meanTimeToStartFixMs": 0,
+      "meanTimeBetweenAnomaliesMs": {
+        "BROKER_FAILURE": 0,
+        "MAINTENANCE_EVENT": 0,
+        "DISK_FAILURE": 0,
+        "GOAL_VIOLATION": 0,
+        "TOPIC_ANOMALY": 0,
+        "METRIC_ANOMALY": 0
+      },
+      "ongoingAnomalyDurationMs": 0,
+      "numSelfHealingStarted": 0,
+      "numSelfHealingFailedToStart": 0
+    },
+    "recentMetricAnomalies": [],
+    "recentTopicAnomalies": [],
+    "selfHealingEnabledRatio": {
+      "BROKER_FAILURE": 0,
+      "DISK_FAILURE": 0,
+      "GOAL_VIOLATION": 0,
+      "METRIC_ANOMALY": 0,
+      "TOPIC_ANOMALY": 0,
+      "MAINTENANCE_EVENT": 0
+    },
+    "recentMaintenanceEvents": []
+  },
+  "version": 1
+}

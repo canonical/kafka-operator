@@ -6,6 +6,7 @@ import logging
 import socket
 import subprocess
 from contextlib import closing
+from json.decoder import JSONDecodeError
 from pathlib import Path
 from subprocess import PIPE, check_output
 from typing import Any, Dict, List, Optional, Set
@@ -16,8 +17,13 @@ from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManag
 from kafka.admin import NewTopic
 from kazoo.exceptions import AuthFailedError, NoNodeError
 from pytest_operator.plugin import OpsTest
+from tenacity import retry
+from tenacity.retry import retry_if_result
+from tenacity.stop import stop_after_attempt
+from tenacity.wait import wait_fixed
 
-from literals import PATHS, SECURITY_PROTOCOL_PORTS
+from core.models import JSON
+from literals import BALANCER_WEBSERVER_USER, JMX_CC_PORT, PATHS, PEER, SECURITY_PROTOCOL_PORTS
 from managers.auth import Acl, AuthManager
 
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
@@ -244,7 +250,7 @@ def check_logs(ops_test: OpsTest, kafka_unit_name: str, topic: str) -> None:
         topic: the desired topic to check
     """
     logs = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {kafka_unit_name} sudo -i 'find {PATHS['DATA']}/data'",
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {kafka_unit_name} sudo -i 'find {PATHS['kafka']['DATA']}/data'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -266,7 +272,7 @@ async def run_client_properties(ops_test: OpsTest) -> str:
         + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT', 'SCRAM-SHA-512'].client}"
     )
     result = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.configs --bootstrap-server {bootstrap_server} --describe --all --command-config {PATHS['CONF']}/client.properties --entity-type users'",
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.configs --bootstrap-server {bootstrap_server} --describe --all --command-config {PATHS['kafka']['CONF']}/client.properties --entity-type users'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -278,7 +284,7 @@ async def run_client_properties(ops_test: OpsTest) -> str:
 async def set_mtls_client_acls(ops_test: OpsTest, bootstrap_server: str) -> str:
     """Adds ACLs for principal `User:client` and `TEST-TOPIC`."""
     result = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'sudo charmed-kafka.acls --bootstrap-server {bootstrap_server} --add --allow-principal=User:client --operation READ --operation WRITE --operation CREATE --topic TEST-TOPIC --command-config {PATHS['CONF']}/client.properties'",
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'sudo charmed-kafka.acls --bootstrap-server {bootstrap_server} --add --allow-principal=User:client --operation READ --operation WRITE --operation CREATE --topic TEST-TOPIC --command-config {PATHS['kafka']['CONF']}/client.properties'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -443,3 +449,113 @@ async def get_address(ops_test: OpsTest, app_name=APP_NAME, unit_num=0) -> str:
     status = await ops_test.model.get_status()  # noqa: F821
     address = status["applications"][app_name]["units"][f"{app_name}/{unit_num}"]["public-address"]
     return address
+
+
+def balancer_exporter_is_up(model_full_name: str | None, app_name: str) -> bool:
+    check_output(
+        f"JUJU_MODEL={model_full_name} juju ssh {app_name}/leader sudo -i 'curl http://localhost:{JMX_CC_PORT}/metrics'",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+    return True
+
+
+def balancer_is_running(model_full_name: str | None, app_name: str) -> bool:
+    check_output(
+        f"JUJU_MODEL={model_full_name} juju ssh {app_name}/leader sudo -i 'curl http://localhost:9090/kafkacruisecontrol/state'",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+    return True
+
+
+def balancer_is_secure(ops_test: OpsTest, app_name: str) -> bool:
+    model_full_name = ops_test.model_full_name
+    err_401 = "Error 401 Unauthorized"
+    unauthorized_ok = err_401 in check_output(
+        f"JUJU_MODEL={model_full_name} juju ssh {app_name}/leader sudo -i 'curl http://localhost:9090/kafkacruisecontrol/state'",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+
+    pwd = get_secret_by_label(ops_test=ops_test, label=f"{PEER}.{app_name}.app", owner=app_name)[
+        "balancer-password"
+    ]
+    authorized_ok = err_401 not in check_output(
+        f"JUJU_MODEL={model_full_name} juju ssh {app_name}/leader sudo -i 'curl http://localhost:9090/kafkacruisecontrol/state'"
+        f" -u {BALANCER_WEBSERVER_USER}:{pwd}",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+    return all((unauthorized_ok, authorized_ok))
+
+
+@retry(
+    wait=wait_fixed(20),  # long enough to not overwhelm the API
+    stop=stop_after_attempt(180),  # give it 60 minutes to load
+    retry=retry_if_result(lambda result: result is False),
+    retry_error_callback=lambda _: False,
+)
+def balancer_is_ready(ops_test: OpsTest, app_name: str) -> bool:
+    pwd = get_secret_by_label(ops_test=ops_test, label=f"{PEER}.{app_name}.app", owner=app_name)[
+        "balancer-password"
+    ]
+    monitor_state = check_output(
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {app_name}/leader sudo -i 'curl http://localhost:9090/kafkacruisecontrol/state?json=True'"
+        f" -u {BALANCER_WEBSERVER_USER}:{pwd}",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+
+    try:
+        monitor_state_json = json.loads(monitor_state).get("MonitorState", {})
+    except JSONDecodeError as e:
+        logger.error(e)
+        return False
+
+    print(f"{monitor_state_json=}")
+
+    return all(
+        [
+            monitor_state_json.get("numMonitoredWindows", 0),
+            monitor_state_json.get("numValidPartitions", 0),
+        ]
+    )
+
+
+@retry(
+    wait=wait_fixed(20),  # long enough to not overwhelm the API
+    stop=stop_after_attempt(6),
+    reraise=True,
+)
+def get_kafka_broker_state(ops_test: OpsTest, app_name: str) -> JSON:
+    pwd = get_secret_by_label(ops_test=ops_test, label=f"{PEER}.{app_name}.app", owner=app_name)[
+        "balancer-password"
+    ]
+    broker_state = check_output(
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {app_name}/leader sudo -i 'curl http://localhost:9090/kafkacruisecontrol/kafka_cluster_state?json=True'"
+        f" -u {BALANCER_WEBSERVER_USER}:{pwd}",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+
+    try:
+        broker_state_json = json.loads(broker_state).get("KafkaBrokerState", {})
+    except JSONDecodeError as e:
+        logger.error(e)
+        return False
+
+    print(f"{broker_state_json=}")
+
+    return broker_state_json
+
+
+def get_replica_count_by_broker_id(ops_test: OpsTest, app_name: str) -> dict[str, Any]:
+    broker_state_json = get_kafka_broker_state(ops_test, app_name)
+    return broker_state_json.get("ReplicaCountByBrokerId", {})

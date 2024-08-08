@@ -2,6 +2,12 @@
 # See LICENSE file for licensing details.
 
 options:
+  roles:
+    description: |
+      Comma separated list of the roles assigned to the nodes of this cluster.
+      This configuration accepts the following roles: 'broker' (standard functionality), 'balancer' (cruise control).
+    type: string
+    default: broker
   compression_type:
     description: Specify the final compression type for a given topic. This configuration accepts the standard compression codecs ('gzip', 'snappy', 'lz4', 'zstd'). It additionally accepts 'uncompressed' which is equivalent to no compression; and 'producer' which means retain the original compression codec set by the producer.
     type: string
@@ -24,7 +30,7 @@ options:
     default: "-1"
   log_retention_ms:
     description: The number of milliseconds to keep a log file before deleting it (in milliseconds).
-    type: string 
+    type: string
     default: "-1"
   log_segment_bytes:
     description: The maximum size of a single log file.
@@ -48,11 +54,11 @@ options:
     default: false
   log_cleaner_delete_retention_ms:
     description: How long are delete records retained.
-    type: string 
+    type: string
     default: "86400000"
   log_cleaner_min_compaction_lag_ms:
     description: The minimum time a message will remain uncompacted in the log. Only applicable for logs that are being compacted.
-    type: string 
+    type: string
     default: "0"
   log_cleanup_policy:
     description: "The default cleanup policy for segments beyond the retention window. A comma separated list of valid policies. Valid policies are: 'delete' and 'compact'"
@@ -79,14 +85,26 @@ options:
     type: string
     default: ""
   profile:
-     description: 'Profile representing the scope of deployment, and used to enable high-level customisation of sysconfigs, resource checks/allocation, warning levels, etc. Allowed values are: “production”, “staging” and “testing”'
-     type: string
-     default: production
+    description: "Profile representing the scope of deployment, and used to enable high-level customisation of sysconfigs, resource checks/allocation, warning levels, etc. Allowed values are: “production”, “staging” and “testing”"
+    type: string
+    default: production
   certificate_extra_sans:
-     description: Config options to add extra-sans to the ones used when requesting server certificates. The extra-sans are specified by comma-separated names to be added when requesting signed certificates. Use "{unit}" as a placeholder to be filled with the unit number, e.g. "worker-{unit}" will be translated as "worker-0" for unit 0 and "worker-1" for unit 1 when requesting the certificate.
-     type: string
-     default: ""
+    description: Config options to add extra-sans to the ones used when requesting server certificates. The extra-sans are specified by comma-separated names to be added when requesting signed certificates. Use "{unit}" as a placeholder to be filled with the unit number, e.g. "worker-{unit}" will be translated as "worker-0" for unit 0 and "worker-1" for unit 1 when requesting the certificate.
+    type: string
+    default: ""
   log_level:
-    description: 'Level of logging for the different components operated by the charm. Possible values: ERROR, WARNING, INFO, DEBUG'
+    description: "Level of logging for the different components operated by the charm. Possible values: ERROR, WARNING, INFO, DEBUG"
     type: string
     default: "INFO"
+  network_bandwidth:
+    description: The network bandwidth available for the cloud that the charm is deployed to, in KB.
+    type: int
+    default: 50000
+  cruisecontrol_balance_threshold:
+    description: The maximum allowed extent of unbalance between brokers for cpu, disk and network utilization, and replica counts. For example, a value of `1.1` ensures that no broker should have >1.1x average utilization of all the brokers
+    type: float
+    default: 1.1
+  cruisecontrol_capacity_threshold:
+    description: The maximum percentage of the total cpu, disk and network capacity that is allowed to be used on a broker. For example, a value of `0.8` ensures that no broker should have >80% utilization
+    type: float
+    default: 0.8

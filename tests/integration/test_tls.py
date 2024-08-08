@@ -34,6 +34,8 @@ from .test_charm import DUMMY_NAME
 
 logger = logging.getLogger(__name__)
 
+pytestmark = pytest.mark.broker
+
 TLS_NAME = "self-signed-certificates"
 CERTS_NAME = "tls-certificates-operator"
 MTLS_NAME = "mtls"
