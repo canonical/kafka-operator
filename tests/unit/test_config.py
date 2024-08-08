@@ -29,13 +29,12 @@ from literals import (
 )
 from managers.config import ConfigManager
 
-pytestmark = pytest.mark.broker
+pytestmark = [pytest.mark.broker, pytest.mark.balancer]
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", ".."))
 CONFIG = str(yaml.safe_load(Path(BASE_DIR + "/config.yaml").read_text()))
 ACTIONS = str(yaml.safe_load(Path(BASE_DIR + "/actions.yaml").read_text()))
 METADATA = str(yaml.safe_load(Path(BASE_DIR + "/metadata.yaml").read_text()))
-
 
 # override conftest fixtures
 @pytest.fixture(autouse=False)
