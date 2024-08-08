@@ -32,7 +32,6 @@ from literals import TLS_RELATION, TRUSTED_CA_RELATION, TRUSTED_CERTIFICATE_RELA
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
-    from events.broker import BrokerOperator
 
 logger = logging.getLogger(__name__)
 
@@ -40,10 +39,9 @@ logger = logging.getLogger(__name__)
 class TLSHandler(Object):
     """Handler for managing the client and unit TLS keys/certs."""
 
-    def __init__(self, dependent: "BrokerOperator") -> None:
-        super().__init__(dependent, "tls")
-        self.dependent = dependent
-        self.charm: "KafkaCharm" = dependent.charm
+    def __init__(self, charm: "KafkaCharm") -> None:
+        super().__init__(charm, "tls")
+        self.charm: "KafkaCharm" = charm
 
         self.certificates = TLSCertificatesRequiresV1(self.charm, TLS_RELATION)
 
@@ -120,7 +118,8 @@ class TLSHandler(Object):
         )
 
         # remove all existing keystores from the unit so we don't preserve certs
-        self.dependent.tls_manager.remove_stores()
+        self.charm.broker.tls_manager.remove_stores()
+        self.charm.balancer.tls_manager.remove_stores()
 
         if not self.charm.unit.is_leader():
             return
@@ -150,7 +149,7 @@ class TLSHandler(Object):
             event.defer()
             return
 
-        alias = self.dependent.tls_manager.generate_alias(
+        alias = self.charm.broker.tls_manager.generate_alias(
             app_name=event.app.name,
             relation_id=event.relation.id,
         )
@@ -191,7 +190,7 @@ class TLSHandler(Object):
             event.defer()
             return
 
-        alias = self.dependent.tls_manager.generate_alias(
+        alias = self.charm.broker.tls_manager.generate_alias(
             event.relation.app.name,
             event.relation.id,
         )
@@ -206,7 +205,7 @@ class TLSHandler(Object):
         self.charm.workload.write(
             content=content, path=f"{self.charm.workload.paths.conf_path}/{filename}"
         )
-        self.dependent.tls_manager.import_cert(alias=f"{alias}", filename=filename)
+        self.charm.broker.tls_manager.import_cert(alias=f"{alias}", filename=filename)
 
         # ensuring new config gets applied
         self.charm.on[f"{self.charm.restart.name}"].acquire_lock.emit()
@@ -223,13 +222,13 @@ class TLSHandler(Object):
             return
 
         # All units will need to remove the cert from their truststore
-        alias = self.dependent.tls_manager.generate_alias(
+        alias = self.charm.broker.tls_manager.generate_alias(
             app_name=event.relation.app.name,
             relation_id=event.relation.id,
         )
 
         logger.info(f"Removing {alias=} from truststore...")
-        self.dependent.tls_manager.remove_cert(alias=alias)
+        self.charm.broker.tls_manager.remove_cert(alias=alias)
 
         # The leader will also handle removing the "mtls" flag if needed
         if not self.charm.unit.is_leader():
@@ -263,11 +262,12 @@ class TLSHandler(Object):
             {"certificate": event.certificate, "ca-cert": event.ca, "ca": ""}
         )
 
-        self.dependent.tls_manager.set_server_key()
-        self.dependent.tls_manager.set_ca()
-        self.dependent.tls_manager.set_certificate()
-        self.dependent.tls_manager.set_truststore()
-        self.dependent.tls_manager.set_keystore()
+        for dependent in ["broker", "balancer"]:
+            getattr(self.charm, dependent).tls_manager.set_server_key()
+            getattr(self.charm, dependent).tls_manager.set_ca()
+            getattr(self.charm, dependent).tls_manager.set_certificate()
+            getattr(self.charm, dependent).tls_manager.set_truststore()
+            getattr(self.charm, dependent).tls_manager.set_keystore()
 
         # single-unit Kafka can lose restart events if it loses connection with TLS-enabled ZK
         self.charm.on.config_changed.emit()

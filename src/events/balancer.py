@@ -19,6 +19,7 @@ from literals import (
 )
 from managers.balancer import BalancerManager
 from managers.config import BalancerConfigManager
+from managers.tls import TLSManager
 from workload import BalancerWorkload
 
 if TYPE_CHECKING:
@@ -36,6 +37,9 @@ class BalancerOperator(Object):
 
         self.workload = BalancerWorkload()
 
+        self.tls_manager = TLSManager(
+            state=self.charm.state, workload=self.workload, substrate=self.charm.substrate
+        )
         # Fast exit after workload instantiation, but before any event observer
         if BALANCER.value not in self.charm.config.roles or not self.charm.unit.is_leader():
             return
@@ -50,7 +54,8 @@ class BalancerOperator(Object):
         self.framework.observe(self.charm.on.leader_elected, self._on_start)
 
         # ensures data updates, eventually
-        self.framework.observe(getattr(self.charm.on, "update_status"), self._on_config_changed)
+        self.framework.observe(self.charm.on.update_status, self._on_config_changed)
+        self.framework.observe(self.charm.on.config_changed, self._on_config_changed)
 
         self.framework.observe(getattr(self.charm.on, "rebalance_action"), self.rebalance)
 

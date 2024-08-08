@@ -104,13 +104,13 @@ def test_extra_sans_config(harness: Harness[KafkaCharm]):
     )
 
     harness.update_config({"certificate_extra_sans": ""})
-    assert harness.charm.broker.tls._extra_sans == []
+    assert harness.charm.tls._extra_sans == []
 
     harness.update_config({"certificate_extra_sans": "worker{unit}.com"})
-    assert harness.charm.broker.tls._extra_sans == ["worker0.com"]
+    assert harness.charm.tls._extra_sans == ["worker0.com"]
 
     harness.update_config({"certificate_extra_sans": "worker{unit}.com,{unit}.example"})
-    assert harness.charm.broker.tls._extra_sans == ["worker0.com", "0.example"]
+    assert harness.charm.tls._extra_sans == ["worker0.com", "0.example"]
 
 
 def test_sans(harness: Harness[KafkaCharm]):
@@ -124,14 +124,14 @@ def test_sans(harness: Harness[KafkaCharm]):
 
     sock_dns = socket.getfqdn()
     if SUBSTRATE == "vm":
-        assert harness.charm.broker.tls._sans == {
+        assert harness.charm.tls._sans == {
             "sans_ip": ["treebeard"],
             "sans_dns": [f"{CHARM_KEY}/0", sock_dns, "worker0.com"],
         }
     elif SUBSTRATE == "k8s":
         # NOTE previous k8s sans_ip like kafka-k8s-0.kafka-k8s-endpoints or binding pod address
         with patch("ops.model.Model.get_binding"):
-            assert harness.charm.broker.tls._sans["sans_dns"] == [
+            assert harness.charm.tls._sans["sans_dns"] == [
                 "kafka-k8s-0",
                 "kafka-k8s-0.kafka-k8s-endpoints",
                 sock_dns,
