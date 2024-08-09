@@ -15,6 +15,8 @@ from literals import (
     BALANCER,
     BALANCER_WEBSERVER_PORT,
     BALANCER_WEBSERVER_USER,
+    MODE_ADD,
+    MODE_REMOVE,
     Status,
 )
 from managers.balancer import BalancerManager
@@ -157,6 +159,17 @@ class BalancerOperator(Object):
                 not self.balancer_manager.cruise_control.ready,
                 "CruiseControl balancer service has not yet collected enough data to provide a partition reallocation proposal",
             ),
+            (
+                event.params.get("brokerid", None) is None
+                and event.params["mode"] in (MODE_ADD, MODE_REMOVE),
+                "'add' and 'remove' rebalance action require passing the 'brokerid' parameter",
+            ),
+            (
+                event.params["mode"] in (MODE_ADD, MODE_REMOVE)
+                and event.params.get("brokerid")
+                not in [broker.unit_id for broker in self.charm.state.brokers],
+                "invalid brokerid",
+            ),
         ]
 
         for check, msg in failure_conditions:
@@ -164,9 +177,7 @@ class BalancerOperator(Object):
                 event.fail(msg)
                 return
 
-        response, user_task_id = self.balancer_manager.rebalance(
-            mode=event.params["mode"], dryrun=event.params["dryrun"]
-        )
+        response, user_task_id = self.balancer_manager.rebalance(**event.params)
         logger.debug(f"rebalance - {vars(response)=}")
 
         if response.status_code != 200:

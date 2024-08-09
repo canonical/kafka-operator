@@ -7,12 +7,12 @@
 import json
 import logging
 import time
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any
 
 import requests
 
 from core.models import JSON
-from literals import BALANCER, BALANCER_TOPICS, STORAGE
+from literals import BALANCER, BALANCER_TOPICS, MODE_FULL, STORAGE
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -21,8 +21,6 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
-
-RebalanceMode = Literal["full", "add", "remove"]
 
 
 class CruiseControlClient:
@@ -60,10 +58,14 @@ class CruiseControlClient:
             dryrun: flag to decide whether to return only proposals (True), or execute (False)
             **kwargs: any REST API query parameters provided by that endpoint
         """
+        payload = {"dryrun": str(dryrun)}
+        if brokerid := kwargs.get("brokerid", None) is not None:
+            payload |= {"brokerid": brokerid}
+
         r = requests.post(
             url=f"{self.address}/{endpoint}",
             auth=(self.username, self.password),
-            params=kwargs | {"dryrun": str(dryrun)} | self.default_params,
+            params=kwargs | payload | self.default_params,
         )
         logger.debug(f"POST {endpoint} - {vars(r)}")
 
@@ -150,10 +152,6 @@ class BalancerManager:
 
     def create_internal_topics(self) -> None:
         """Create Cruise Control topics."""
-        # if self.charm.state.runs_broker:
-        #     property_file = f'{BROKER.paths["CONF"]}/client.properties'
-        #     bootstrap_servers = self.charm.state.internal_bootstrap_server
-        # else:
         bootstrap_servers = self.charm.state.balancer.broker_uris
         property_file = f'{BALANCER.paths["CONF"]}/cruisecontrol.properties'
 
@@ -182,15 +180,18 @@ class BalancerManager:
                 )
                 logger.info(f"Created topic {topic}")
 
-    def rebalance(self, mode: str, dryrun: bool = True) -> tuple[requests.Response, str]:
+    def rebalance(
+        self, mode: str, dryrun: bool = True, brokerid: int | None = None
+    ) -> tuple[requests.Response, str]:
         """Triggers a full Kafka cluster partition rebalance.
 
         Returns:
             Tuple of requests.Response and string of the CruiseControl User-Task-ID for the rebalance
         """
+        mode = f"{mode}_broker" if mode != MODE_FULL else mode
         rebalance_request = self.cruise_control.post(
-            endpoint=mode, dryrun=dryrun
-        )  # FIXME: will need updating to include add/remove_broker when it works
+            endpoint=mode, dryrun=dryrun, brokerid=brokerid
+        )
 
         return (rebalance_request, rebalance_request.headers.get("User-Task-ID", ""))
 

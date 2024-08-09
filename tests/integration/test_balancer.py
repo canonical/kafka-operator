@@ -260,6 +260,95 @@ class TestBalancer:
         assert balancer_is_running(model_full_name=ops_test.model_full_name, app_name=balancer_app)
 
     @pytest.mark.abort_on_fail
+    async def test_add_unit_targeted_rebalance(self, ops_test: OpsTest, balancer_app):
+        await ops_test.model.applications[APP_NAME].add_units(
+            count=1  # up to 4, new unit won't have any partitions
+        )
+        await ops_test.model.block_until(
+            lambda: len(ops_test.model.applications[APP_NAME].units) == 4
+        )
+        await ops_test.model.wait_for_idle(
+            apps=list({APP_NAME, ZK_NAME, PRODUCER_APP, balancer_app}),
+            status="active",
+            timeout=1800,
+            idle_period=30,
+        )
+        async with ops_test.fast_forward(fast_interval="20s"):
+            await asyncio.sleep(120)  # ensure update-status adds broker-capacities if missed
+
+        assert balancer_is_ready(ops_test=ops_test, app_name=balancer_app)
+
+        await asyncio.sleep(30)  # let the API breathe after so many requests
+
+        # verify CC can find the new broker_id 3, with no replica partitions allocated
+        broker_replica_count = get_replica_count_by_broker_id(ops_test, balancer_app)
+        new_broker_id = max(map(int, broker_replica_count.keys()))
+        new_broker_replica_count = int(broker_replica_count.get(str(new_broker_id), 0))
+
+        assert not new_broker_replica_count
+
+        for unit in ops_test.model.applications[balancer_app].units:
+            if await unit.is_leader_from_status():
+                leader_unit = unit
+
+        rebalance_action_dry_run = await leader_unit.run_action(
+            "rebalance", mode="add", brokerid=[new_broker_id], dryrun=True, timeout=600, block=True
+        )
+        response = await rebalance_action_dry_run.wait()
+        assert response.results
+
+        rebalance_action = await leader_unit.run_action(
+            "rebalance",
+            mode="add",
+            brokerid=new_broker_id,
+            dryrun=False,
+            timeout=600,
+            block=True,
+        )
+        response = await rebalance_action.wait()
+        assert response.results
+
+        assert int(
+            get_replica_count_by_broker_id(ops_test, balancer_app).get(str(new_broker_id), 0)
+        )  # replicas were successfully moved
+
+    @pytest.mark.abort_on_fail
+    async def test_balancer_prepare_unit_removal(self, ops_test: OpsTest, balancer_app):
+        broker_replica_count = get_replica_count_by_broker_id(ops_test, balancer_app)
+        new_broker_id = max(map(int, broker_replica_count.keys()))
+
+        for unit in ops_test.model.applications[balancer_app].units:
+            if await unit.is_leader_from_status():
+                leader_unit = unit
+
+        rebalance_action_dry_run = await leader_unit.run_action(
+            "rebalance",
+            mode="remove",
+            brokerid=new_broker_id,
+            dryrun=True,
+            timeout=600,
+            block=True,
+        )
+        response = await rebalance_action_dry_run.wait()
+        assert response.results
+
+        rebalance_action = await leader_unit.run_action(
+            "rebalance",
+            mode="remove",
+            brokerid=[new_broker_id],
+            dryrun=False,
+            timeout=600,
+            block=True,
+        )
+        response = await rebalance_action.wait()
+        assert response.results
+
+        broker_replica_count = get_replica_count_by_broker_id(ops_test, balancer_app)
+        new_broker_replica_count = int(broker_replica_count.get(str(new_broker_id), 0))
+
+        assert not new_broker_replica_count
+
+    @pytest.mark.abort_on_fail
     async def test_cleanup(self, ops_test: OpsTest, balancer_app):
         for app in list({APP_NAME, ZK_NAME, balancer_app, PRODUCER_APP}):
             await ops_test.model.remove_application(
