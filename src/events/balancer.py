@@ -15,6 +15,7 @@ from literals import (
     BALANCER,
     BALANCER_WEBSERVER_PORT,
     BALANCER_WEBSERVER_USER,
+    RebalanceMode,
     Status,
 )
 from managers.balancer import BalancerManager
@@ -157,6 +158,11 @@ class BalancerOperator(Object):
                 not self.balancer_manager.cruise_control.ready,
                 "CruiseControl balancer service has not yet collected enough data to provide a partition reallocation proposal",
             ),
+            (
+                event.params.get("brokerid", None) is None
+                and event.params["mode"] != RebalanceMode.FULL,
+                "'add' and 'remove' rebalance action require passing the 'brokerid' parameter",
+            ),
         ]
 
         for check, msg in failure_conditions:
@@ -164,9 +170,7 @@ class BalancerOperator(Object):
                 event.fail(msg)
                 return
 
-        response, user_task_id = self.balancer_manager.rebalance(
-            mode=event.params["mode"], dryrun=event.params["dryrun"]
-        )
+        response, user_task_id = self.balancer_manager.rebalance(**event.params)
         logger.debug(f"rebalance - {vars(response)=}")
 
         if response.status_code != 200:

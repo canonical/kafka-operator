@@ -180,6 +180,15 @@ HARD_BALANCER_GOALS = [
 ]
 
 
+class _RebalanceMode:
+    FULL = "full"
+    ADD = "add"
+    REMOVE = "remove"
+
+
+RebalanceMode = _RebalanceMode()
+
+
 @dataclass
 class StatusLevel:
     """Status object helper."""

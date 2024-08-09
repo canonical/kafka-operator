@@ -48,3 +48,8 @@ rebalance:
       description: Only generate the partition rebalance proposals and estimated result, without executing
       type: boolean
       default: true
+    brokerid:
+      description: Broker ID newly added to the cluster or to be removed
+      type: integer
+      minimum: 0
+  required: [mode, dryrun]
