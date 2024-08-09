@@ -47,6 +47,7 @@ async def test_deploy_tls(ops_test: OpsTest, kafka_charm):
     tls_config = {"ca-common-name": "kafka"}
 
     await asyncio.gather(
+        # FIXME (certs): Unpin the revision once the charm is fixed
         ops_test.model.deploy(
             TLS_NAME, channel="edge", config=tls_config, series="jammy", revision=163
         ),

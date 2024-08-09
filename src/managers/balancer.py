@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any
 import requests
 
 from core.models import JSON
-from literals import BALANCER, BALANCER_TOPICS, STORAGE, RebalanceMode
+from literals import BALANCER, BALANCER_TOPICS, MODE_FULL, STORAGE
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -188,7 +188,7 @@ class BalancerManager:
         Returns:
             Tuple of requests.Response and string of the CruiseControl User-Task-ID for the rebalance
         """
-        mode = f"{mode}_broker" if mode != RebalanceMode.FULL else mode
+        mode = f"{mode}_broker" if mode != MODE_FULL else mode
         rebalance_request = self.cruise_control.post(
             endpoint=mode, dryrun=dryrun, brokerid=brokerid
         )

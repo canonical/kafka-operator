@@ -226,6 +226,7 @@ async def test_connection_updated_on_tls_enabled(ops_test: OpsTest, app_charm):
 
     # deploying tls
     tls_config = {"ca-common-name": "kafka"}
+    # FIXME (certs): Unpin the revision once the charm is fixed
     await ops_test.model.deploy(
         TLS_NAME, channel="edge", config=tls_config, series="jammy", revision=163
     )

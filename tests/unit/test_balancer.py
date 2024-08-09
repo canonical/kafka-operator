@@ -149,7 +149,7 @@ def test_balancer_manager_create_internal_topics(harness: Harness[KafkaCharm]):
 @pytest.mark.parametrize("executing", [True, False])
 @pytest.mark.parametrize("ready", [True, False])
 @pytest.mark.parametrize("status", [200, 404])
-def test_balancer_manager_rebalance(
+def test_balancer_manager_rebalance_full(
     harness: Harness[KafkaCharm],
     proposal: dict,
     leader: bool,
@@ -199,7 +199,7 @@ def test_balancer_manager_rebalance(
 
 
 @pytest.mark.parametrize("mode", ["add", "remove"])
-@pytest.mark.parametrize("brokerid", [None, 1])
+@pytest.mark.parametrize("brokerid", [None, 0])
 def test_rebalance_add_remove_broker_id_length(
     harness: Harness[KafkaCharm], proposal: dict, mode: str, brokerid: int | None
 ):
@@ -238,11 +238,43 @@ def test_rebalance_add_remove_broker_id_length(
         harness.set_leader(True)
         harness.charm.balancer.rebalance(mock_event)
 
-        if not brokerid:
+        if brokerid is None:
             assert mock_event._mock_children.get("fail")  # event.fail was called
         else:
             assert patched_wait_for_task.call_count
             assert mock_event._mock_children.get("set_results")  # event.set_results was called
+
+
+def test_rebalance_broker_id_not_found(harness: Harness[KafkaCharm]):
+    mock_event = MagicMock()
+    payload = {"mode": "add", "dryrun": True, "brokerid": 999}
+    mock_event.params = payload
+
+    with (
+        harness.hooks_disabled(),
+        patch(
+            "managers.balancer.CruiseControlClient.monitoring",
+            new_callable=PropertyMock,
+            return_value=True,
+        ),
+        patch(
+            "managers.balancer.CruiseControlClient.executing",
+            new_callable=PropertyMock,
+            return_value=not True,
+        ),
+        patch(
+            "managers.balancer.CruiseControlClient.ready",
+            new_callable=PropertyMock,
+            return_value=True,
+        ),
+    ):
+        harness.set_leader(True)
+
+        # When
+        harness.charm.balancer.rebalance(mock_event)
+
+        # Then
+        assert mock_event._mock_children.get("fail")  # event.fail was called
 
 
 def test_balancer_manager_clean_results(harness: Harness[KafkaCharm], proposal: dict):

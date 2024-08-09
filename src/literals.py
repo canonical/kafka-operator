@@ -180,13 +180,9 @@ HARD_BALANCER_GOALS = [
 ]
 
 
-class _RebalanceMode:
-    FULL = "full"
-    ADD = "add"
-    REMOVE = "remove"
-
-
-RebalanceMode = _RebalanceMode()
+MODE_FULL = "full"
+MODE_ADD = "add"
+MODE_REMOVE = "remove"
 
 
 @dataclass

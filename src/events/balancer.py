@@ -15,7 +15,8 @@ from literals import (
     BALANCER,
     BALANCER_WEBSERVER_PORT,
     BALANCER_WEBSERVER_USER,
-    RebalanceMode,
+    MODE_ADD,
+    MODE_REMOVE,
     Status,
 )
 from managers.balancer import BalancerManager
@@ -160,8 +161,14 @@ class BalancerOperator(Object):
             ),
             (
                 event.params.get("brokerid", None) is None
-                and event.params["mode"] != RebalanceMode.FULL,
+                and event.params["mode"] in (MODE_ADD, MODE_REMOVE),
                 "'add' and 'remove' rebalance action require passing the 'brokerid' parameter",
+            ),
+            (
+                event.params["mode"] in (MODE_ADD, MODE_REMOVE)
+                and event.params.get("brokerid")
+                not in [broker.unit_id for broker in self.charm.state.brokers],
+                "invalid brokerid",
             ),
         ]
 
