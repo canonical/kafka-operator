@@ -50,8 +50,7 @@ can be obtained by
 juju show-model | yq '.[].type'
 ```
 
-> **IMPORTANT** If the model is `k8s`, please refer to the [Charmed Kafka K8s documentation](https://discourse.charmhub.io/t/charmed-kafka-k8s-documentation/10296) instead.
-
+> **IMPORTANT** If the cloud is `k8s`, please refer to the [Charmed Kafka K8s documentation](/t/charmed-kafka-k8s-documentation/10296) instead.
 
 ## Deploy Charmed Kafka and Charmed ZooKeeper
 

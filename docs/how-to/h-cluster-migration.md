@@ -65,7 +65,7 @@ OLD_SASL_JAAS_CONFIG
 
 ### Generating `mm2.properties` file on the Charmed Kafka cluster
 
-MirrorMaker takes a `.properties` file for its configuration to fine-tune behavior. See below an example `mm2.properties` file that can be placed on each of the Charmed Kafka units using the above credentials:
+MirrorMaker takes a `.properties` file for its configuration to fine-tune behaviour. See below an example `mm2.properties` file that can be placed on each of the Charmed Kafka units using the above credentials:
 
 ```bash
 # Aliases for each cluster, can be set to any unique alias
