@@ -1,6 +1,8 @@
 # How to manage units
 
-## Replication and Scaling
+Unit management guide for scaling and running admin utility scripts.
+
+## Replication and scaling
 
 Increasing the number of Kafka brokers can be achieved by adding more units
 to the Charmed Kafka application, e.g. 
@@ -15,17 +17,17 @@ It is important to note that when adding more units, the Kafka cluster will not
 *automatically* rebalance existing topics and partitions. New storage and new brokers
 will be used only when new topics and new partitions are created. 
 
-Partition reassigment can still be done manually by the admin user by using the 
+Partition reassignment can still be done manually by the admin user by using the 
 `charmed-kafka.reassign-partitions` Kafka bin utility script. Please refer to 
 its documentation for more information. 
 
 > **IMPORTANT** Scaling down is currently not supported in the charm automation.  
 > If partition reassignment is not manually performed before scaling down in order 
-> to makes sure the decommisioned units does not hold any data, **your cluster may 
+> to make sure the decommissioned units does not hold any data, **your cluster may 
 > suffer to data loss**. 
 
 
-## Running Kafka Admin utility scripts
+## Running Kafka admin utility scripts
 
 Apache Kafka ships with `bin/*.sh` commands to do various administrative tasks such as:
 * `bin/kafka-config.sh` to update cluster configuration
@@ -77,14 +79,15 @@ Commands can also be run within a Kafka broker, since both the authentication
 file (along with the truststore if needed) and the Charmed Kafka snap are 
 already present. 
 
-#### Example (Listing topics)
+#### Example (listing topics)
 
-For instance, in order to list the current topics on the Kafka cluster, you can run:
+For instance, to list the current topics on the Kafka cluster, you can run:
+
 ```
 juju ssh kafka/leader 'charmed-kafka.topics --bootstrap-server $BOOTSTRAP_SERVERS --list --command-config /var/snap/charmed-kafka/common/etc/kafka/client.properties'
 ```
 
-### Juju External users
+### Juju external users
 
 For external users managed by the  [Data Integrator Charm](https://charmhub.io/data-integrator), 
 the endpoints and credentials can be fetched using the dedicated action

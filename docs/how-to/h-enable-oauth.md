@@ -7,7 +7,7 @@ Versions used for this integration example:
 
 ## Initial deployment
 
-On MicroK8s, `metallb` addon is needed, this will allow Traefik ingress from the LXD model:
+On MicroK8s, the `metallb` add-on is needed, this will let Traefik ingress from the LXD model:
 
 ```bash
 $ microk8s enable metallb:10.64.140.43-10.64.140.49
@@ -82,4 +82,5 @@ proxied-endpoints: '{"hydra": {"url": "https://10.64.140.44/iam-hydra"}}'
 $ curl https://10.64.140.44/iam-hydra/oauth2/token -k -u eeec2a88-52bf-46e6-85bf-d20cd832aa61:C1nycFCBFECMQ1-XsOPk0E4e_Y -d "scope=profile" -d "grant_type=client_credentials" -d "audience=kafka" -s
 {"access_token":"ory_at_b2pcwnwTpCVHPbxoU7L45isbRJhNdBbn91y4Ex0YNrA.easwGEfsTJ7VnNfER2svIMHwen5ZzNXaVZm8i7QdLLg","expires_in":3599,"scope":"profile","token_type":"bearer"}
 ```
-With this token, a client can now authenticate on Kafka using oauth listeners.
+
+With this token, a client can now authenticate on Kafka using oAuth listeners.

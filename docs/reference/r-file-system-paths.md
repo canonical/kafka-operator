@@ -1,4 +1,4 @@
-# File system path
+# File system paths
 
 In the following table, we summarize some of the most relevant file paths used in the Kafka and ZooKeeper charms.
 
@@ -14,7 +14,7 @@ In the following table, we summarize some of the most relevant file paths used i
 
 External storage is used for storing persistent raw data that is mounted at `/var/snap/charmed-kafka/common/var/lib/kafka/<storage-id>`, with `<storage-id>` being a progressive number.
 
-Multiple storage volumes can be used for providing both horizontal scalability and provide IO parallelization to enhance throughput. 
+Multiple storage volumes can be used for providing both horizontal scalability and provide IO parallelisation to enhance throughput. 
 
 ## ZooKeeper 
 

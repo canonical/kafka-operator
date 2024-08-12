@@ -1,6 +1,7 @@
 # How to deploy Charmed Kafka
 
 To deploy a Charmed Kafka cluster on a bare environment, it is necessary to:
+
 1. Set up a Juju Controller
 2. Set up a Juju Model
 3. Deploy Charmed Kafka and Charmed ZooKeeper
@@ -10,7 +11,7 @@ In the next subsections we will cover these steps separately by referring to
 relevant Juju documentation and providing details on the Charmed Kafka specifics.
 If you already have a Juju controller and/or a Juju model, you can skip the associated steps.
 
-## Juju Controller setup
+## Juju controller setup
 
 Before deploying Kafka, make sure you have a Juju controller accessible from 
 your local environment using the [Juju client snap](https://snapcraft.io/juju). 
@@ -29,7 +30,7 @@ You can find more information on how to bootstrap and configure a controller for
 clouds [here](https://juju.is/docs/juju/manage-controllers#heading--bootstrap-a-controller). 
 Make sure you bootstrap a `machine` Juju controller. 
 
-## Juju Model setup
+## Juju model setup
 
 You can create a new Juju model using 
 
@@ -62,6 +63,7 @@ $ juju deploy kafka --channel 3/edge -n <kafka-units>
 ```
 
 After this, it is necessary to connect them:
+
 ```shell
 $ juju relate kafka zookeeper
 ```
