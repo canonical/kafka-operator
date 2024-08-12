@@ -34,6 +34,8 @@ from .test_charm import DUMMY_NAME
 
 logger = logging.getLogger(__name__)
 
+pytestmark = pytest.mark.broker
+
 TLS_NAME = "self-signed-certificates"
 CERTS_NAME = "tls-certificates-operator"
 MTLS_NAME = "mtls"
@@ -45,7 +47,10 @@ async def test_deploy_tls(ops_test: OpsTest, kafka_charm):
     tls_config = {"ca-common-name": "kafka"}
 
     await asyncio.gather(
-        ops_test.model.deploy(TLS_NAME, channel="edge", config=tls_config, series="jammy"),
+        # FIXME (certs): Unpin the revision once the charm is fixed
+        ops_test.model.deploy(
+            TLS_NAME, channel="edge", config=tls_config, series="jammy", revision=163
+        ),
         ops_test.model.deploy(ZK, channel="edge", series="jammy", application_name=ZK),
         ops_test.model.deploy(
             kafka_charm,

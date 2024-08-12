@@ -16,6 +16,7 @@ from literals import JVM_MEM_MAX_GB, JVM_MEM_MIN_GB
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
+    from events.broker import BrokerOperator
 
 logger = logging.getLogger(__name__)
 
@@ -23,47 +24,56 @@ logger = logging.getLogger(__name__)
 class KafkaHealth(Object):
     """Manager for handling Kafka machine health."""
 
-    def __init__(self, charm) -> None:
-        super().__init__(charm, "kafka_health")
-        self.charm: "KafkaCharm" = charm
+    def __init__(self, dependent: "BrokerOperator") -> None:
+        super().__init__(dependent, "kafka_health")
+        self.dependent = dependent
+        self.charm: "KafkaCharm" = dependent.charm
 
     @property
     def _service_pid(self) -> int:
         """Gets most recent Kafka service pid from the snap logs."""
-        return self.charm.workload.get_service_pid()
+        return self.dependent.workload.get_service_pid()
 
     def _get_current_memory_maps(self) -> int:
         """Gets the current number of memory maps for the Kafka process."""
-        return int(self.charm.workload.exec(f"cat /proc/{self._service_pid}/maps | wc -l"))
+        return int(
+            self.dependent.workload.exec(
+                ["bash", "-c", f"cat /proc/{self._service_pid}/maps | wc -l"]
+            )
+        )
 
     def _get_current_max_files(self) -> int:
         """Gets the current file descriptor limit for the Kafka process."""
         return int(
-            self.charm.workload.exec(
-                rf"cat /proc/{self._service_pid}/limits | grep files | awk '{{print $5}}'"
+            self.dependent.workload.exec(
+                [
+                    "bash",
+                    "-c",
+                    rf"cat /proc/{self._service_pid}/limits | grep files | awk '{{print $5}}'",
+                ]
             )
         )
 
     def _get_max_memory_maps(self) -> int:
         """Gets the current memory map limit for the machine."""
-        return int(self.charm.workload.exec("sysctl -n vm.max_map_count"))
+        return int(self.dependent.workload.exec(["sysctl", "-n", "vm.max_map_count"]))
 
     def _get_vm_swappiness(self) -> int:
         """Gets the current vm.swappiness configured for the machine."""
-        return int(self.charm.workload.exec("sysctl -n vm.swappiness"))
+        return int(self.dependent.workload.exec(["sysctl", "-n", "vm.swappiness"]))
 
     def _get_partitions_size(self) -> tuple[int, int]:
         """Gets the number of partitions and their average size from the log dirs."""
         log_dirs_command = [
             "--describe",
             f"--bootstrap-server {self.charm.state.bootstrap_server}",
-            f"--command-config {self.charm.workload.paths.client_properties}",
+            f"--command-config {self.dependent.workload.paths.client_properties}",
         ]
         try:
-            log_dirs = self.charm.workload.run_bin_command(
+            log_dirs = self.dependent.workload.run_bin_command(
                 bin_keyword="log-dirs",
                 bin_args=log_dirs_command,
-                opts=[self.charm.config_manager.tools_log4j_opts],
+                opts=[self.dependent.config_manager.tools_log4j_opts],
             )
         except subprocess.CalledProcessError:
             return (0, 0)
@@ -112,7 +122,7 @@ class KafkaHealth(Object):
 
     def _check_file_descriptors(self) -> bool:
         """Checks that the number of used file descriptors is not approaching threshold."""
-        if not self.charm.config_manager.client_listeners:
+        if not self.dependent.config_manager.client_listeners:
             return True
 
         total_partitions, average_partition_size = self._get_partitions_size()
@@ -144,7 +154,7 @@ class KafkaHealth(Object):
 
     def _check_total_memory(self) -> bool:
         """Checks that the total available memory is sufficient for desired profile."""
-        if not (meminfo := self.charm.workload.read(path="/proc/meminfo")):
+        if not (meminfo := self.dependent.workload.read(path="/proc/meminfo")):
             return False
 
         total_memory_gb = int(meminfo[0].split()[1]) / 1000000

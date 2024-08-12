@@ -18,6 +18,7 @@ from literals import CHARM_KEY, CONTAINER, DEPENDENCIES, PEER, SUBSTRATE, ZK
 
 logger = logging.getLogger(__name__)
 
+pytestmark = pytest.mark.broker
 
 CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
 ACTIONS = str(yaml.safe_load(Path("./actions.yaml").read_text()))
@@ -60,21 +61,21 @@ def harness(zk_data):
     return harness
 
 
-def test_pre_upgrade_check_raises_not_stable(harness: Harness):
+def test_pre_upgrade_check_raises_not_stable(harness: Harness[KafkaCharm]):
     with pytest.raises(ClusterNotReadyError):
-        harness.charm.upgrade.pre_upgrade_check()
+        harness.charm.broker.upgrade.pre_upgrade_check()
 
 
-def test_pre_upgrade_check_succeeds(harness: Harness):
+def test_pre_upgrade_check_succeeds(harness: Harness[KafkaCharm]):
     with (
-        patch("charm.KafkaCharm.healthy", return_value=True),
+        patch("events.broker.BrokerOperator.healthy", return_value=True),
         patch("events.upgrade.KafkaUpgrade._set_rolling_update_partition"),
     ):
-        harness.charm.upgrade.pre_upgrade_check()
+        harness.charm.broker.upgrade.pre_upgrade_check()
 
 
 @pytest.mark.skipif(SUBSTRATE == "k8s", reason="upgrade stack not used on K8s")
-def test_build_upgrade_stack(harness: Harness):
+def test_build_upgrade_stack(harness: Harness[KafkaCharm]):
     with harness.hooks_disabled():
         harness.add_relation_unit(harness.charm.state.peer_relation.id, f"{CHARM_KEY}/1")
         harness.update_relation_data(
@@ -89,25 +90,27 @@ def test_build_upgrade_stack(harness: Harness):
             {"private-address": "222.222.222"},
         )
 
-    stack = harness.charm.upgrade.build_upgrade_stack()
+    stack = harness.charm.broker.upgrade.build_upgrade_stack()
 
     assert len(stack) == 3
     assert len(stack) == len(set(stack))
 
 
 @pytest.mark.parametrize("upgrade_stack", ([], [0]))
-def test_run_password_rotation_while_upgrading(harness, upgrade_stack):
-    harness.charm.upgrade.upgrade_stack = upgrade_stack
+def test_run_password_rotation_while_upgrading(harness: Harness[KafkaCharm], upgrade_stack):
+    harness.charm.broker.upgrade.upgrade_stack = upgrade_stack
     harness.set_leader(True)
 
     mock_event = MagicMock()
     mock_event.params = {"username": "admin"}
 
     with (
-        patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
+        patch(
+            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=True
+        ),
         patch("managers.auth.AuthManager.add_user"),
     ):
-        harness.charm.password_action_events._set_password_action(mock_event)
+        harness.charm.broker.password_action_events._set_password_action(mock_event)
 
     if not upgrade_stack:
         mock_event.set_results.assert_called()
@@ -125,7 +128,7 @@ def test_kafka_dependency_model():
 
 
 def test_upgrade_granted_sets_failed_if_zookeeper_dependency_check_fails(
-    harness: Harness, upgrade_func: str
+    harness: Harness[KafkaCharm], upgrade_func: str
 ):
     with harness.hooks_disabled():
         harness.set_leader(True)
@@ -155,13 +158,13 @@ def test_upgrade_granted_sets_failed_if_zookeeper_dependency_check_fails(
         ),
     ):
         mock_event = MagicMock()
-        getattr(harness.charm.upgrade, upgrade_func)(mock_event)
+        getattr(harness.charm.broker.upgrade, upgrade_func)(mock_event)
 
-    assert harness.charm.upgrade.state == "failed"
+    assert harness.charm.broker.upgrade.state == "failed"
 
 
 @pytest.mark.skipif(SUBSTRATE == "k8s", reason="Upgrade granted not used on K8s charms")
-def test_upgrade_granted_sets_failed_if_failed_snap(harness: Harness):
+def test_upgrade_granted_sets_failed_if_failed_snap(harness: Harness[KafkaCharm]):
     with (
         patch(
             "events.upgrade.KafkaUpgrade.zookeeper_current_version",
@@ -169,16 +172,19 @@ def test_upgrade_granted_sets_failed_if_failed_snap(harness: Harness):
             return_value="3.6",
         ),
         patch("workload.KafkaWorkload.stop") as patched_stop,
+        patch("workload.BalancerWorkload.stop"),
         patch("workload.KafkaWorkload.install", return_value=False),
     ):
         mock_event = MagicMock()
-        harness.charm.upgrade._on_upgrade_granted(mock_event)
+        harness.charm.broker.upgrade._on_upgrade_granted(mock_event)
 
     patched_stop.assert_called_once()
-    assert harness.charm.upgrade.state == "failed"
+    assert harness.charm.broker.upgrade.state == "failed"
 
 
-def test_upgrade_sets_failed_if_failed_upgrade_check(harness: Harness, upgrade_func: str):
+def test_upgrade_sets_failed_if_failed_upgrade_check(
+    harness: Harness[KafkaCharm], upgrade_func: str
+):
     with (
         patch(
             "core.models.ZooKeeper.zookeeper_version",
@@ -194,7 +200,10 @@ def test_upgrade_sets_failed_if_failed_upgrade_check(harness: Harness, upgrade_f
         patch("workload.KafkaWorkload.start") as patched_start,
         patch("workload.KafkaWorkload.stop"),
         patch("workload.KafkaWorkload.install"),
-        patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=False),
+        patch("workload.BalancerWorkload.stop"),
+        patch(
+            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=False
+        ),
         patch(
             "core.cluster.ClusterState.ready_to_start",
             new_callable=PropertyMock,
@@ -207,13 +216,13 @@ def test_upgrade_sets_failed_if_failed_upgrade_check(harness: Harness, upgrade_f
         ),
     ):
         mock_event = MagicMock()
-        getattr(harness.charm.upgrade, upgrade_func)(mock_event)
+        getattr(harness.charm.broker.upgrade, upgrade_func)(mock_event)
 
     assert patched_restart.call_count or patched_start.call_count
-    assert harness.charm.upgrade.state == "failed"
+    assert harness.charm.broker.upgrade.state == "failed"
 
 
-def test_upgrade_succeeds(harness: Harness, upgrade_func: str):
+def test_upgrade_succeeds(harness: Harness[KafkaCharm], upgrade_func: str):
     with (
         patch(
             "core.models.ZooKeeper.zookeeper_version",
@@ -230,7 +239,10 @@ def test_upgrade_succeeds(harness: Harness, upgrade_func: str):
         patch("workload.KafkaWorkload.stop"),
         patch("workload.KafkaWorkload.install"),
         patch("workload.KafkaWorkload.active", new_callable=PropertyMock, return_value=True),
-        patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
+        patch("workload.BalancerWorkload.stop"),
+        patch(
+            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=True
+        ),
         patch(
             "core.cluster.ClusterState.ready_to_start",
             new_callable=PropertyMock,
@@ -247,14 +259,14 @@ def test_upgrade_succeeds(harness: Harness, upgrade_func: str):
         ),
     ):
         mock_event = MagicMock()
-        getattr(harness.charm.upgrade, upgrade_func)(mock_event)
+        getattr(harness.charm.broker.upgrade, upgrade_func)(mock_event)
 
     assert patched_restart.call_count or patched_start.call_count
-    assert harness.charm.upgrade.state == "completed"
+    assert harness.charm.broker.upgrade.state == "completed"
 
 
 @pytest.mark.skipif(SUBSTRATE == "k8s", reason="Upgrade granted not used on K8s charms")
-def test_upgrade_granted_recurses_upgrade_changed_on_leader(harness: Harness):
+def test_upgrade_granted_recurses_upgrade_changed_on_leader(harness: Harness[KafkaCharm]):
     with harness.hooks_disabled():
         harness.set_leader(True)
 
@@ -268,10 +280,13 @@ def test_upgrade_granted_recurses_upgrade_changed_on_leader(harness: Harness):
         patch("workload.KafkaWorkload.stop"),
         patch("workload.KafkaWorkload.restart"),
         patch("workload.KafkaWorkload.install", return_value=True),
-        patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
+        patch(
+            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=True
+        ),
+        patch("workload.BalancerWorkload.stop"),
         patch("events.upgrade.KafkaUpgrade.on_upgrade_changed") as patched_upgrade,
     ):
         mock_event = MagicMock()
-        harness.charm.upgrade._on_upgrade_granted(mock_event)
+        harness.charm.broker.upgrade._on_upgrade_granted(mock_event)
 
     patched_upgrade.assert_called_once()

@@ -19,6 +19,8 @@ from .helpers import (
 
 logger = logging.getLogger(__name__)
 
+pytestmark = pytest.mark.broker
+
 APP_NAME = "kafka"
 ZK = "zookeeper"
 DUMMY_NAME_1 = "app"
@@ -49,10 +51,10 @@ async def test_deploy_charms_relate_active(
     await ops_test.model.add_relation(APP_NAME, ZK)
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_CONSUMER}")
 
-    async with ops_test.fast_forward(fast_interval="60s"):
-        await ops_test.model.wait_for_idle(
-            apps=[APP_NAME, DUMMY_NAME_1, ZK], idle_period=30, status="active"
-        )
+    # async with ops_test.fast_forward(fast_interval="60s"):
+    await ops_test.model.wait_for_idle(
+        apps=[APP_NAME, DUMMY_NAME_1, ZK], idle_period=30, status="active"
+    )
 
     usernames.update(get_client_usernames(ops_test))
 
@@ -224,7 +226,10 @@ async def test_connection_updated_on_tls_enabled(ops_test: OpsTest, app_charm):
 
     # deploying tls
     tls_config = {"ca-common-name": "kafka"}
-    await ops_test.model.deploy(TLS_NAME, channel="edge", config=tls_config, series="jammy")
+    # FIXME (certs): Unpin the revision once the charm is fixed
+    await ops_test.model.deploy(
+        TLS_NAME, channel="edge", config=tls_config, series="jammy", revision=163
+    )
     await ops_test.model.wait_for_idle(
         apps=[TLS_NAME], idle_period=30, timeout=1800, status="active"
     )

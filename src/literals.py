@@ -12,12 +12,10 @@ from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, StatusBase
 
 CHARM_KEY = "kafka"
 SNAP_NAME = "charmed-kafka"
-CHARMED_KAFKA_SNAP_REVISION = 37
+CHARMED_KAFKA_SNAP_REVISION = 39
 CONTAINER = "kafka"
 SUBSTRATE = "vm"
-
-USER = "snap_daemon"
-GROUP = "root"
+STORAGE = "data"
 
 # FIXME: these need better names
 PEER = "cluster"
@@ -27,11 +25,22 @@ OAUTH_REL_NAME = "oauth"
 TLS_RELATION = "certificates"
 TRUSTED_CERTIFICATE_RELATION = "trusted-certificate"
 TRUSTED_CA_RELATION = "trusted-ca"
+PEER_CLUSTER_RELATION = "peer-cluster"
+PEER_CLUSTER_ORCHESTRATOR_RELATION = "peer-cluster-orchestrator"
+BALANCER_TOPICS = [
+    "__CruiseControlMetrics",
+    "__KafkaCruiseControlPartitionMetricSamples",
+    "__KafkaCruiseControlBrokerMetricSamples",
+]
+MIN_REPLICAS = 3
+
 
 INTER_BROKER_USER = "sync"
 ADMIN_USER = "admin"
 INTERNAL_USERS = [INTER_BROKER_USER, ADMIN_USER]
-SECRETS_APP = [f"{user}-password" for user in INTERNAL_USERS]
+BALANCER_WEBSERVER_USER = "balancer"
+BALANCER_WEBSERVER_PORT = 9090
+SECRETS_APP = [f"{user}-password" for user in INTERNAL_USERS + [BALANCER_WEBSERVER_USER]]
 SECRETS_UNIT = [
     "ca-cert",
     "csr",
@@ -42,6 +51,7 @@ SECRETS_UNIT = [
 ]
 
 JMX_EXPORTER_PORT = 9101
+JMX_CC_PORT = 9102
 METRICS_RULES_DIR = "./src/alert_rules/prometheus"
 LOGS_RULES_DIR = "./src/alert_rules/loki"
 
@@ -70,11 +80,20 @@ OS_REQUIREMENTS = {
     "vm.dirty_background_ratio": "5",
 }
 
+
 PATHS = {
-    "CONF": f"/var/snap/{SNAP_NAME}/current/etc/kafka",
-    "LOGS": f"/var/snap/{SNAP_NAME}/common/var/log/kafka",
-    "DATA": f"/var/snap/{SNAP_NAME}/common/var/lib/kafka",
-    "BIN": f"/snap/{SNAP_NAME}/current/opt/kafka",
+    "kafka": {
+        "CONF": f"/var/snap/{SNAP_NAME}/current/etc/kafka",
+        "LOGS": f"/var/snap/{SNAP_NAME}/common/var/log/kafka",
+        "DATA": f"/var/snap/{SNAP_NAME}/common/var/lib/kafka",
+        "BIN": f"/snap/{SNAP_NAME}/current/opt/kafka",
+    },
+    "cruise-control": {
+        "CONF": f"/var/snap/{SNAP_NAME}/current/etc/cruise-control",
+        "LOGS": f"/var/snap/{SNAP_NAME}/common/var/log/cruise-control",
+        "DATA": f"/var/snap/{SNAP_NAME}/common/var/lib/cruise-control",
+        "BIN": f"/snap/{SNAP_NAME}/current/opt/cruise-control",
+    },
 }
 
 
@@ -96,6 +115,77 @@ SECURITY_PROTOCOL_PORTS: dict[tuple[AuthProtocol, AuthMechanism], Ports] = {
 
 
 @dataclass
+class Role:
+    value: str
+    service: str
+    paths: dict[str, str]
+    relation: str
+    requested_secrets: list[str] | None = None
+
+    def __eq__(self, value: object, /) -> bool:
+        """Provide an easy comparison to the configuration key."""
+        return self.value == value
+
+
+BROKER = Role(
+    value="broker",
+    service="daemon",
+    paths=PATHS["kafka"],
+    relation=PEER_CLUSTER_RELATION,
+    requested_secrets=[
+        "balancer-username",
+        "balancer-password",
+        "balancer-uris",
+    ],
+)
+BALANCER = Role(
+    value="balancer",
+    service="cruise-control",
+    paths=PATHS["cruise-control"],
+    relation=PEER_CLUSTER_ORCHESTRATOR_RELATION,
+    requested_secrets=[
+        "broker-username",
+        "broker-password",
+        "broker-uris",
+        "zk-username",
+        "zk-password",
+        "zk-uris",
+    ],
+)
+
+DEFAULT_BALANCER_GOALS = [
+    "ReplicaCapacity",
+    "DiskCapacity",
+    "NetworkInboundCapacity",
+    "NetworkOutboundCapacity",
+    "CpuCapacity",
+    "ReplicaDistribution",
+    "PotentialNwOut",
+    "DiskUsageDistribution",
+    "NetworkInboundUsageDistribution",
+    "NetworkOutboundUsageDistribution",
+    "CpuUsageDistribution",
+    "LeaderReplicaDistribution",
+    "LeaderBytesInDistribution",
+    "TopicReplicaDistribution",
+    "PreferredLeaderElection",
+]
+HARD_BALANCER_GOALS = [
+    "ReplicaCapacity",
+    "DiskCapacity",
+    "NetworkInboundCapacity",
+    "NetworkOutboundCapacity",
+    "CpuCapacity",
+    "ReplicaDistribution",
+]
+
+
+MODE_FULL = "full"
+MODE_ADD = "add"
+MODE_REMOVE = "remove"
+
+
+@dataclass
 class StatusLevel:
     """Status object helper."""
 
@@ -108,8 +198,17 @@ class Status(Enum):
 
     ACTIVE = StatusLevel(ActiveStatus(), "DEBUG")
     NO_PEER_RELATION = StatusLevel(MaintenanceStatus("no peer relation yet"), "DEBUG")
+    NO_PEER_CLUSTER_RELATION = StatusLevel(
+        BlockedStatus("missing required peer-cluster relation"), "DEBUG"
+    )
     SNAP_NOT_INSTALLED = StatusLevel(BlockedStatus(f"unable to install {SNAP_NAME} snap"), "ERROR")
-    SNAP_NOT_RUNNING = StatusLevel(BlockedStatus("snap service not running"), "WARNING")
+    BROKER_NOT_RUNNING = StatusLevel(
+        BlockedStatus(f"{SNAP_NAME}.{BROKER.service} snap service not running"), "WARNING"
+    )
+    NOT_ALL_RELATED = StatusLevel(MaintenanceStatus("not all units related"), "DEBUG")
+    CC_NOT_RUNNING = StatusLevel(
+        BlockedStatus(f"{SNAP_NAME}.{BALANCER.service} snap service not running"), "WARNING"
+    )
     ZK_NOT_RELATED = StatusLevel(BlockedStatus("missing required zookeeper relation"), "DEBUG")
     ZK_NOT_CONNECTED = StatusLevel(BlockedStatus("unit not connected to zookeeper"), "ERROR")
     ZK_TLS_MISMATCH = StatusLevel(
@@ -141,6 +240,18 @@ class Status(Enum):
     SYSCONF_NOT_POSSIBLE = StatusLevel(
         BlockedStatus("sysctl params cannot be set. Is the machine running on a container?"),
         "WARNING",
+    )
+    NOT_IMPLEMENTED = StatusLevel(
+        BlockedStatus("feature not yet implemented"),
+        "WARNING",
+    )
+    NO_BALANCER_RELATION = StatusLevel(MaintenanceStatus("no balancer relation yet"), "DEBUG")
+    NO_BROKER_DATA = StatusLevel(MaintenanceStatus("missing broker data"), "DEBUG")
+    NOT_ENOUGH_BROKERS = StatusLevel(
+        WaitingStatus(f"waiting for {MIN_REPLICAS} online brokers"), "DEBUG"
+    )
+    WAITING_FOR_REBALANCE = StatusLevel(
+        WaitingStatus("awaiting completion of rebalance task"), "DEBUG"
     )
 
 

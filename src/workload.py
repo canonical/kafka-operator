@@ -8,24 +8,27 @@ import logging
 import os
 import re
 import subprocess
+from typing import Mapping
 
 from charms.operator_libs_linux.v1 import snap
 from tenacity import retry, retry_if_result, stop_after_attempt, wait_fixed
 from typing_extensions import override
 
-from core.workload import WorkloadBase
-from literals import CHARMED_KAFKA_SNAP_REVISION, GROUP, SNAP_NAME, USER
+from core.workload import CharmedKafkaPaths, WorkloadBase
+from literals import BALANCER, BROKER, CHARMED_KAFKA_SNAP_REVISION, GROUP, SNAP_NAME, USER
 
 logger = logging.getLogger(__name__)
 
 
-class KafkaWorkload(WorkloadBase):
+class Workload(WorkloadBase):
     """Wrapper for performing common operations specific to the Kafka Snap."""
 
     # FIXME: Paths and constants integrated into WorkloadBase?
     SNAP_NAME = "charmed-kafka"
-    SNAP_SERVICE = "daemon"
-    LOG_SLOT = "logs"
+    LOG_SLOTS = ["kafka-logs", "cc-logs"]
+
+    paths: CharmedKafkaPaths
+    service: str
 
     def __init__(self) -> None:
         self.kafka = snap.SnapCache()[SNAP_NAME]
@@ -33,21 +36,21 @@ class KafkaWorkload(WorkloadBase):
     @override
     def start(self) -> None:
         try:
-            self.kafka.start(services=[self.SNAP_SERVICE])
+            self.kafka.start(services=[self.service])
         except snap.SnapError as e:
             logger.exception(str(e))
 
     @override
     def stop(self) -> None:
         try:
-            self.kafka.stop(services=[self.SNAP_SERVICE])
+            self.kafka.stop(services=[self.service])
         except snap.SnapError as e:
             logger.exception(str(e))
 
     @override
     def restart(self) -> None:
         try:
-            self.kafka.restart(services=[self.SNAP_SERVICE])
+            self.kafka.restart(services=[self.service])
         except snap.SnapError as e:
             logger.exception(str(e))
 
@@ -67,25 +70,28 @@ class KafkaWorkload(WorkloadBase):
         with open(path, mode) as f:
             f.write(content)
 
-        self.exec(f"chown -R {USER}:{GROUP} {path}")
+        self.exec(["chown", "-R", f"{USER}:{GROUP}", f"{path}"])
 
     @override
     def exec(
-        self, command: str, env: dict[str, str] | None = None, working_dir: str | None = None
+        self,
+        command: list[str] | str,
+        env: Mapping[str, str] | None = None,
+        working_dir: str | None = None,
     ) -> str:
         try:
             output = subprocess.check_output(
                 command,
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
-                shell=True,
+                shell=isinstance(command, str),
                 env=env,
                 cwd=working_dir,
             )
             logger.debug(f"{output=}")
             return output
         except subprocess.CalledProcessError as e:
-            logger.debug(f"cmd failed - cmd={e.cmd}, stdout={e.stdout}, stderr={e.stderr}")
+            logger.error(f"cmd failed - cmd={e.cmd}, stdout={e.stdout}, stderr={e.stderr}")
             raise e
 
     @override
@@ -97,16 +103,9 @@ class KafkaWorkload(WorkloadBase):
     )
     def active(self) -> bool:
         try:
-            return bool(self.kafka.services[self.SNAP_SERVICE]["active"])
+            return bool(self.kafka.services[self.service]["active"])
         except KeyError:
             return False
-
-    @override
-    def run_bin_command(self, bin_keyword: str, bin_args: list[str], opts: list[str] = []) -> str:
-        opts_str = " ".join(opts)
-        bin_str = " ".join(bin_args)
-        command = f"{opts_str} {SNAP_NAME}.{bin_keyword} {bin_str}"
-        return self.exec(command)
 
     def install(self) -> bool:
         """Loads the Kafka snap from LP.
@@ -120,7 +119,7 @@ class KafkaWorkload(WorkloadBase):
             self.kafka.hold()
 
             return True
-        except (snap.SnapError) as e:
+        except snap.SnapError as e:
             logger.error(str(e))
             return False
 
@@ -153,13 +152,33 @@ class KafkaWorkload(WorkloadBase):
             with open(f"/proc/{pid}/cgroup", "r") as fid:
                 content = "".join(fid.readlines())
 
-                if f"{self.SNAP_NAME}.{self.SNAP_SERVICE}" in content:
+                if f"{self.SNAP_NAME}.{self.service}" in content:
                     logger.debug(
-                        f"Found Snap service {self.SNAP_SERVICE} for {self.SNAP_NAME} with PID {pid}"
+                        f"Found Snap service {self.service} for {self.SNAP_NAME} with PID {pid}"
                     )
                     return int(pid)
 
         raise snap.SnapError(f"Snap {self.SNAP_NAME} pid not found")
+
+    @override
+    def run_bin_command(
+        self, bin_keyword: str, bin_args: list[str], opts: list[str] | None = None
+    ) -> str:
+        if opts is None:
+            opts = []
+        opts_str = " ".join(opts)
+        bin_str = " ".join(bin_args)
+        command = f"{opts_str} {SNAP_NAME}.{bin_keyword} {bin_str}"
+        return self.exec(command)
+
+
+class KafkaWorkload(Workload):
+    """Broker specific wrapper."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.paths = CharmedKafkaPaths(BROKER)
+        self.service = BROKER.service
 
     @override
     def get_version(self) -> str:
@@ -170,3 +189,16 @@ class KafkaWorkload(WorkloadBase):
         except:  # noqa: E722
             version = ""
         return version
+
+
+class BalancerWorkload(Workload):
+    """Balancer specific wrapper."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.paths = CharmedKafkaPaths(BALANCER)
+        self.service = BALANCER.service
+
+    @override
+    def get_version(self) -> str:
+        raise NotImplementedError

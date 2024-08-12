@@ -14,6 +14,8 @@ from .helpers import get_active_brokers, get_kafka_zk_relation_data
 
 logger = logging.getLogger(__name__)
 
+pytestmark = pytest.mark.broker
+
 
 @pytest.mark.abort_on_fail
 async def test_kafka_simple_scale_up(ops_test: OpsTest, kafka_charm):

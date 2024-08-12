@@ -64,13 +64,14 @@ jobs:
           - integration-password-rotation
           - integration-tls
           - integration-upgrade
+          # - integration-balancer
     name: ${{ matrix.tox-environments }}
     needs:
       - lint
       - unit-test
       - build
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 240
     steps:
       - name: Checkout
         uses: actions/checkout@v3
