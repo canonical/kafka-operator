@@ -1,13 +1,14 @@
 Versions used for this integration example:
 
 - LXD (v5.21.1)
-- Microk8s (v1.28.10)
+- MicroK8s (v1.28.10)
 - Kafka charm: built from [this feature PR](https://github.com/canonical/kafka-operator/pull/168), which adds Hydra integration
 
 
 ## Initial deployment
 
-On microk8s, `metallb` addon is needed, this will allow traefik ingress from the lxd model:
+On MicroK8s, `metallb` addon is needed, this will allow Traefik ingress from the LXD model:
+
 ```bash
 $ microk8s enable metallb:10.64.140.43-10.64.140.49
 ```
@@ -52,6 +53,7 @@ $ juju integrate zookeeper self-signed-certificates
 ```
 
 Once everything is settled, integrate Kafka and Hydra:
+
 ```bash
 # On the lxd model
 $ juju integrate kafka hydra

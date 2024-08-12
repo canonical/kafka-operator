@@ -1,4 +1,4 @@
-# Charmed Kafka Snap Entrypoints
+# Charmed Kafka snap entrypoints
 
 Snap entrypoints wrap the Kafka Distribution Bash scripts and make sure
 that they run with the correct environment settings (configuration files, logging files, etc). 

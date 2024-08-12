@@ -2,7 +2,7 @@
 
 Relations to new applications are supported via the "[kafka_client](https://github.com/canonical/charm-relation-interfaces/blob/main/interfaces/kafka_client/v0/README.md)" interface.
 
-## Within juju via `kafka_client` interface
+## Within Juju via `kafka_client` interface
  
 If the charm supports the `kafka_client` interface, just create a relation between the two charms:
 
@@ -16,7 +16,7 @@ To remove a relation:
 juju remove-relation kafka application
 ```
 
-## Outside juju or for charms not implementing `kafka_client`
+## Outside Juju or for charms not implementing `kafka_client`
 
 The `kafka_client` interface is used with the `data-integrator` charm. This charm allows to automatically create and manage product credentials needed to authenticate with different kinds of data platform charmed products:
 

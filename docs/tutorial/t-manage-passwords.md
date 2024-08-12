@@ -1,6 +1,6 @@
 This is part of the [Charmed Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571). Please refer to this page for more information and the overview of the content.
 
-## Manage Passwords
+## Manage passwords
 
 Passwords help to secure our cluster and are essential for security. Over time it is a good practice to change the password frequently. Here we will go through setting and changing the password both for the admin user and external Kafka users managed by the data-integrator.
 
@@ -132,7 +132,7 @@ kafka:
 ok: "True"
 ```
 
-In order to rotate external password with no or limited downtime, please refer to the how-to guide on [app management](/t/charmed-kafka-how-to-manage-app/10285).
+To rotate external password with no or limited downtime, please refer to the how-to guide on [app management](/t/charmed-kafka-how-to-manage-app/10285).
 
 #### Remove the user
 

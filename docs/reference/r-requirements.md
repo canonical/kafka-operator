@@ -20,4 +20,4 @@ For production environments, it is recommended to deploy at least five nodes for
 
 ## Supported architectures
 
-The charm is based on SNAP "[charmed-kafka](https://snapcraft.io/charmed-kafka)", which is currently available for `amd64` only! The architecture `arm64` support is planned. Please [contact us](/t/13107) if you are interested in new architecture!
+The charm is based on the `charmed-kafka` [snap](https://snapcraft.io/charmed-kafka), which is currently available for `amd64` only! The architecture `arm64` support is planned. Please [contact us](/t/13107) if you are interested in new architecture!

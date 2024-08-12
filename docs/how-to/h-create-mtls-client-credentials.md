@@ -144,9 +144,9 @@ ssl.keystore.type=PKCS12
 ssl.client.auth=required
 ```
 
-## Authorization
+## Authorisation
 
-### Manage Authorization through ACLs
+### Manage Authorisation through ACLs
 
 Grant read and write privileges to user over _group_, _topic_ and _transaction_ resources:
 
