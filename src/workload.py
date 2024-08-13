@@ -6,7 +6,6 @@
 
 import logging
 import os
-import re
 import subprocess
 from typing import Mapping
 
@@ -21,7 +20,6 @@ from literals import (
     BROKER,
     CHARMED_KAFKA_SNAP_REVISION,
     GROUP,
-    JMX_EXPORTER_PORT,
     SNAP_NAME,
     USER,
 )
@@ -190,16 +188,6 @@ class KafkaWorkload(Workload):
         self.paths = CharmedKafkaPaths(BROKER)
         self.service = BROKER.service
         self.container = container
-
-    @override
-    def get_version(self) -> str:
-        if not self.active:
-            return ""
-        try:
-            version = re.split(r"[\s\-]", self.run_bin_command("topics", ["--version"]))[0]
-        except:  # noqa: E722
-            version = ""
-        return version
 
     @property
     @override
