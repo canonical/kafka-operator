@@ -6,8 +6,8 @@ from unittest.mock import PropertyMock, patch
 
 import pytest
 from ops import JujuVersion
+from src.literals import INTERNAL_USERS, SUBSTRATE
 
-from literals import INTERNAL_USERS, SUBSTRATE
 from managers.balancer import CruiseControlClient
 
 
@@ -78,12 +78,6 @@ def juju_has_secrets(mocker):
     mocker.patch.object(JujuVersion, "has_secrets", new_callable=PropertyMock).return_value = True
 
 
-@pytest.fixture(autouse=True)
-def patched_sleep():
-    with patch("time.sleep") as patched:
-        yield patched
-
-
 @pytest.fixture
 def client() -> CruiseControlClient:
     return CruiseControlClient("Beren", "Luthien")
@@ -119,3 +113,14 @@ def user_tasks() -> dict:
         content = f.read()
 
     return json.loads(content)
+
+
+@pytest.fixture(autouse=True)
+def patched_node_ip():
+    if SUBSTRATE == "k8s":
+        with patch(
+            "core.models.KafkaBroker.node_ip", new_callable=PropertyMock, return_value="1234"
+        ) as patched_node_ip:
+            yield patched_node_ip
+    else:
+        yield

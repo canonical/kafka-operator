@@ -108,3 +108,7 @@ options:
     description: The maximum percentage of the total cpu, disk and network capacity that is allowed to be used on a broker. For example, a value of `0.8` ensures that no broker should have >80% utilization
     type: float
     default: 0.8
+  expose-external:
+    description: "String to determine how to expose the Kafka cluster externally from the Kubernetes cluster. Possible values: 'nodeport', 'none'"
+    type: string
+    default: "nodeport"

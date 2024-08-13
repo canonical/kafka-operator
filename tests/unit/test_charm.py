@@ -52,6 +52,7 @@ def harness() -> Harness:
         {
             "log_retention_ms": "-1",
             "compression_type": "producer",
+            "expose-external": "none",
         }
     )
     harness.begin()
@@ -70,7 +71,7 @@ def test_install_blocks_snap_install_failure(harness: Harness[KafkaCharm]):
         assert harness.charm.unit.status == Status.SNAP_NOT_INSTALLED.value.status
 
 
-def test_install_sets_env_vars(harness: Harness, patched_etc_environment):
+def test_install_sets_env_vars(harness: Harness[KafkaCharm], patched_etc_environment):
     """Checks KAFKA_OPTS and other vars are written to /etc/environment on install hook."""
     with patch("workload.KafkaWorkload.install"):
         harness.charm.on.install.emit()
@@ -172,10 +173,7 @@ def test_healthy_fails_if_snap_not_active(harness: Harness[KafkaCharm], zk_data,
     with patch("workload.KafkaWorkload.active", return_value=False) as patched_snap_active:
         assert not harness.charm.broker.healthy
         assert patched_snap_active.call_count == 1
-        if SUBSTRATE == "vm":
-            assert harness.charm.unit.status == Status.BROKER_NOT_RUNNING.value.status
-        elif SUBSTRATE == "k8s":
-            assert harness.charm.unit.status == Status.SERVICE_NOT_RUNNING.value.status
+        assert harness.charm.unit.status == Status.BROKER_NOT_RUNNING.value.status
 
 
 def test_healthy_succeeds(harness: Harness[KafkaCharm], zk_data, passwords_data):
@@ -251,7 +249,7 @@ def test_start_sets_pebble_layer(harness: Harness[KafkaCharm], zk_data, password
         expected_plan = {
             "services": {
                 CONTAINER: {
-                    "override": "replace",
+                    "override": "merge",
                     "summary": "kafka",
                     "command": command,
                     "startup": "enabled",
@@ -531,7 +529,7 @@ def test_zookeeper_broken_stops_service_and_removes_meta_properties(harness: Har
         harness.remove_relation(zk_rel_id)
 
         patched_stop_snap_service.assert_called_once()
-        assert re.match(r"rm .*/meta.properties", " ".join(patched_exec.call_args_list[0].args[0]))
+        assert re.match(r"rm .*/meta.properties", " ".join(patched_exec.call_args_list[1].args[0]))
         assert isinstance(harness.charm.unit.status, BlockedStatus)
 
 
@@ -688,7 +686,7 @@ def test_workload_version_is_setted(harness: Harness[KafkaCharm], monkeypatch):
         "run_bin_command",
         Mock(side_effect=[output_install, output_changed]),
     )
-    monkeypatch.setattr(harness.charm.workload, "install", Mock(return_value=True))
+    monkeypatch.setattr(harness.charm.broker.workload, "install", Mock(return_value=True))
 
     harness.charm.on.install.emit()
     assert harness.get_workload_version() == "3.6.0"

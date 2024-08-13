@@ -12,7 +12,7 @@ from charms.data_platform_libs.v0.data_interfaces import DatabaseRequirerEventHa
 from ops import Object, RelationChangedEvent, RelationEvent
 from ops.pebble import ExecError
 
-from literals import INTERNAL_USERS, STORAGE, ZK, Status
+from literals import INTERNAL_USERS, ZK, Status
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -36,6 +36,9 @@ class ZooKeeperHandler(Object):
         self.framework.observe(self.charm.on[ZK].relation_created, self._on_zookeeper_created)
         self.framework.observe(self.charm.on[ZK].relation_joined, self._on_zookeeper_changed)
         self.framework.observe(self.charm.on[ZK].relation_changed, self._on_zookeeper_changed)
+        self.framework.observe(
+            getattr(self.zookeeper_requires.on, "database_created"), self._on_zookeeper_changed
+        )
         self.framework.observe(self.charm.on[ZK].relation_broken, self._on_zookeeper_broken)
 
     def _on_zookeeper_created(self, _) -> None:
@@ -86,14 +89,15 @@ class ZooKeeperHandler(Object):
 
         # attempt re-start of Kafka for all units on zookeeper-changed
         # avoids relying on deferred events elsewhere that may not exist after cluster init
-        if not self.dependent.healthy and self.charm.state.cluster.internal_user_credentials:
+        if not self.dependent.healthy:
             self.charm.on.start.emit()
 
         self.charm.on.config_changed.emit()
 
     def _on_zookeeper_broken(self, _: RelationEvent) -> None:
         """Handler for `zookeeper_relation_broken` event, ensuring charm blocks."""
-        self.dependent.workload.stop()
+        self.charm.workload.stop()
+        self.charm.workload.exec(["rm", self.charm.workload.paths.zk_jaas])
 
         logger.info(f'Broker {self.model.unit.name.split("/")[1]} disconnected')
         self.charm._set_status(Status.ZK_NOT_RELATED)
@@ -101,8 +105,8 @@ class ZooKeeperHandler(Object):
         # Kafka keeps a meta.properties in every log.dir with a unique ClusterID
         # this ID is provided by ZK, and removing it on relation-broken allows
         # re-joining to another ZK cluster.
-        for storage in self.charm.model.storages[STORAGE]:
-            self.dependent.workload.exec(["rm", f"{storage.location}/meta.properties"])
+        for storage in self.charm.model.storages["data"]:
+            self.charm.workload.exec(["rm", f"{storage.location}/meta.properties"])
 
         if not self.charm.unit.is_leader():
             return
@@ -124,7 +128,7 @@ class ZooKeeperHandler(Object):
             subprocess.CalledProcessError if command to ZooKeeper failed
         """
         credentials = [
-            (username, self.dependent.workload.generate_password()) for username in INTERNAL_USERS
+            (username, self.charm.workload.generate_password()) for username in INTERNAL_USERS
         ]
         for username, password in credentials:
             self.dependent.auth_manager.add_user(

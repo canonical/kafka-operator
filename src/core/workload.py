@@ -8,7 +8,9 @@ import secrets
 import string
 from abc import ABC, abstractmethod
 
-from literals import BALANCER, BROKER, Role
+from ops.pebble import Layer
+
+from literals import Role
 
 
 class CharmedKafkaPaths:
@@ -87,12 +89,12 @@ class CharmedKafkaPaths:
     @property
     def jmx_prometheus_config(self):
         """The configuration for the Kafka JMX exporter."""
-        return f"{BROKER.paths['CONF']}/jmx_prometheus.yaml"
+        return f"{self.conf_path}/jmx_prometheus.yaml"
 
     @property
     def jmx_cc_config(self):
         """The configuration for the CruiseControl JMX exporter."""
-        return f"{BALANCER.paths['CONF']}/jmx_cruise_control.yaml"
+        return f"{self.conf_path}/jmx_cruise_control.yaml"
 
     @property
     def cruise_control_properties(self):
@@ -116,8 +118,12 @@ class WorkloadBase(ABC):
     paths: CharmedKafkaPaths
 
     @abstractmethod
-    def start(self) -> None:
-        """Starts the workload service."""
+    def start(self, layer: Layer | None) -> None:
+        """Starts the workload service.
+
+        Args:
+            layer (optional): the Pebble Layer for the workload
+        """
         ...
 
     @abstractmethod
@@ -191,6 +197,11 @@ class WorkloadBase(ABC):
             String of kafka version
         """
         ...
+
+    @property
+    @abstractmethod
+    def layer(self) -> Layer:
+        """Gets the Pebble Layer definition for the current workload."""
 
     @staticmethod
     def generate_password() -> str:

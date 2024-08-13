@@ -29,6 +29,9 @@ class KafkaHealth(Object):
         self.dependent = dependent
         self.charm: "KafkaCharm" = dependent.charm
 
+        if self.charm.substrate == "k8s":
+            raise Exception("Health object cannot be instantiated on K8s charms.")
+
     @property
     def _service_pid(self) -> int:
         """Gets most recent Kafka service pid from the snap logs."""

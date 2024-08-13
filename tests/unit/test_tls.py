@@ -4,11 +4,11 @@
 
 import socket
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import PropertyMock, patch
 
 import pytest
 import yaml
-from ops.model import ActiveStatus, BlockedStatus
+from ops.model import ActiveStatus
 from ops.testing import Harness
 
 from charm import KafkaCharm
@@ -33,6 +33,7 @@ def harness():
         {
             "log_retention_ms": "-1",
             "compression_type": "producer",
+            "expose-external": "none",
         }
     )
     harness.begin()
@@ -64,7 +65,9 @@ def harness():
     return harness
 
 
-def test_blocked_if_trusted_certificate_added_before_tls_relation(harness: Harness[KafkaCharm]):
+def test_mtls_not_enabled_if_trusted_certificate_added_before_tls_relation(
+    harness: Harness[KafkaCharm],
+):
     # Create peer relation
     peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
     harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/1")
@@ -75,7 +78,7 @@ def test_blocked_if_trusted_certificate_added_before_tls_relation(harness: Harne
     harness.set_leader(True)
     harness.add_relation("trusted-certificate", "tls-one")
 
-    assert isinstance(harness.charm.app.status, BlockedStatus)
+    assert not harness.charm.state.cluster.mtls_enabled
 
 
 def test_mtls_flag_added(harness: Harness[KafkaCharm]):
@@ -90,8 +93,7 @@ def test_mtls_flag_added(harness: Harness[KafkaCharm]):
     harness.set_leader(True)
     harness.add_relation("trusted-certificate", "tls-one")
 
-    peer_relation_data = harness.get_relation_data(peer_relation_id, CHARM_KEY)
-    assert peer_relation_data.get("mtls", "disabled") == "enabled"
+    assert harness.charm.state.cluster.mtls_enabled
     assert isinstance(harness.charm.app.status, ActiveStatus)
 
 
@@ -103,37 +105,56 @@ def test_extra_sans_config(harness: Harness[KafkaCharm]):
         peer_relation_id, f"{CHARM_KEY}/0", {"private-address": "treebeard"}
     )
 
-    harness.update_config({"certificate_extra_sans": ""})
-    assert harness.charm.tls._extra_sans == []
+    manager = harness.charm.broker.tls_manager
 
-    harness.update_config({"certificate_extra_sans": "worker{unit}.com"})
-    assert harness.charm.tls._extra_sans == ["worker0.com"]
+    harness._update_config({"certificate_extra_sans": ""})
+    manager.config = harness.charm.config
+    assert manager._build_extra_sans() == []
 
-    harness.update_config({"certificate_extra_sans": "worker{unit}.com,{unit}.example"})
-    assert harness.charm.tls._extra_sans == ["worker0.com", "0.example"]
+    harness._update_config({"certificate_extra_sans": "worker{unit}.com"})
+    manager.config = harness.charm.config
+    assert "worker0.com" in "".join(manager._build_extra_sans())
+
+    harness._update_config({"certificate_extra_sans": "worker{unit}.com,{unit}.example"})
+    manager.config = harness.charm.config
+    assert "worker0.com" in "".join(manager._build_extra_sans())
+    assert "0.example" in "".join(manager._build_extra_sans())
 
 
-def test_sans(harness: Harness[KafkaCharm]):
+def test_sans(harness: Harness[KafkaCharm], patched_node_ip):
     # Create peer relation
     peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
     harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/0")
     harness.update_relation_data(
         peer_relation_id, f"{CHARM_KEY}/0", {"private-address": "treebeard"}
     )
+
+    manager = harness.charm.broker.tls_manager
     harness.update_config({"certificate_extra_sans": "worker{unit}.com"})
+    manager.config = harness.charm.config
 
     sock_dns = socket.getfqdn()
     if SUBSTRATE == "vm":
-        assert harness.charm.tls._sans == {
+        assert manager.build_sans() == {
             "sans_ip": ["treebeard"],
             "sans_dns": [f"{CHARM_KEY}/0", sock_dns, "worker0.com"],
         }
     elif SUBSTRATE == "k8s":
         # NOTE previous k8s sans_ip like kafka-k8s-0.kafka-k8s-endpoints or binding pod address
-        with patch("ops.model.Model.get_binding"):
-            assert harness.charm.tls._sans["sans_dns"] == [
-                "kafka-k8s-0",
-                "kafka-k8s-0.kafka-k8s-endpoints",
-                sock_dns,
-                "worker0.com",
-            ]
+        with (
+            patch("ops.model.Model.get_binding"),
+            patch(
+                "core.models.KafkaBroker.node_ip",
+                new_callable=PropertyMock,
+                return_value="palantir",
+            ),
+        ):
+            assert sorted(manager.build_sans()["sans_dns"]) == sorted(
+                [
+                    "kafka-k8s-0",
+                    "kafka-k8s-0.kafka-k8s-endpoints",
+                    sock_dns,
+                    "worker0.com",
+                ]
+            )
+            assert "palantir" in "".join(manager.build_sans()["sans_ip"])

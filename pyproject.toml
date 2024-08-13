@@ -44,6 +44,7 @@ cryptography = ">42.0.0"
 pydantic ="<2"
 pyyaml = "^6.0.1"
 requests = "^2.32.3"
+lightkube = "^0.15.0"
 
 [tool.poetry.group.fmt]
 optional = true
@@ -60,7 +61,8 @@ optional = true
 black = "^22.3.0"
 ruff = ">=0.1.0"
 codespell = ">=2.2.2"
-pyright = "^1.1.301"
+lightkube = "0.15.0"
+pyright = ">=1.1.366"
 
 [tool.poetry.group.unit]
 optional = true

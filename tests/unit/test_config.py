@@ -2,6 +2,7 @@
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import logging
 import os
 from pathlib import Path
 from unittest.mock import PropertyMock, mock_open, patch
@@ -29,22 +30,14 @@ from literals import (
 )
 from managers.config import ConfigManager
 
-pytestmark = [pytest.mark.broker, pytest.mark.balancer]
+pytestmark = pytest.mark.broker
+
+logger = logging.getLogger(__name__)
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", ".."))
 CONFIG = str(yaml.safe_load(Path(BASE_DIR + "/config.yaml").read_text()))
 ACTIONS = str(yaml.safe_load(Path(BASE_DIR + "/actions.yaml").read_text()))
 METADATA = str(yaml.safe_load(Path(BASE_DIR + "/metadata.yaml").read_text()))
-
-# override conftest fixtures
-@pytest.fixture(autouse=False)
-def patched_workload_write():
-    yield
-
-
-@pytest.fixture(autouse=False)
-def patched_etc_environment():
-    yield
 
 
 @pytest.fixture
@@ -59,6 +52,7 @@ def harness():
         {
             "log_retention_ms": "-1",
             "compression_type": "producer",
+            "expose-external": "none",
         }
     )
     harness.begin()
@@ -151,7 +145,7 @@ def test_listeners_in_server_properties(harness: Harness[KafkaCharm]):
 
     host = "treebeard" if SUBSTRATE == "vm" else "kafka-k8s-0.kafka-k8s-endpoints"
     sasl_pm = "SASL_PLAINTEXT_SCRAM_SHA_512"
-    expected_listeners = f"listeners=INTERNAL_{sasl_pm}://:19092"
+    expected_listeners = f"listeners=INTERNAL_{sasl_pm}://0.0.0.0:19092"
     expected_advertised_listeners = f"advertised.listeners=INTERNAL_{sasl_pm}://{host}:19092"
 
     with patch(
@@ -200,9 +194,9 @@ def test_oauth_client_listeners_in_server_properties(harness: Harness[KafkaCharm
     oauth_client_protocol, oauth_client_port = "CLIENT_SASL_PLAINTEXT_OAUTHBEARER", "9095"
 
     expected_listeners = (
-        f"listeners={internal_protocol}://:{internal_port},"
-        f"{scram_client_protocol}://:{scram_client_port},"
-        f"{oauth_client_protocol}://:{oauth_client_port}"
+        f"listeners={internal_protocol}://0.0.0.0:{internal_port},"
+        f"{scram_client_protocol}://0.0.0.0:{scram_client_port},"
+        f"{oauth_client_protocol}://0.0.0.0:{oauth_client_port}"
     )
     expected_advertised_listeners = (
         f"advertised.listeners={internal_protocol}://{host}:{internal_port},"
@@ -252,10 +246,9 @@ def test_ssl_listeners_in_server_properties(harness: Harness[KafkaCharm]):
     host = "treebeard" if SUBSTRATE == "vm" else "kafka-k8s-0.kafka-k8s-endpoints"
     sasl_pm = "SASL_SSL_SCRAM_SHA_512"
     ssl_pm = "SSL_SSL"
-    expected_listeners = (
-        f"listeners=INTERNAL_{sasl_pm}://:19093,CLIENT_{sasl_pm}://:9093,CLIENT_{ssl_pm}://:9094"
-    )
+    expected_listeners = f"listeners=INTERNAL_{sasl_pm}://0.0.0.0:19093,CLIENT_{sasl_pm}://0.0.0.0:9093,CLIENT_{ssl_pm}://0.0.0.0:9094"
     expected_advertised_listeners = f"advertised.listeners=INTERNAL_{sasl_pm}://{host}:19093,CLIENT_{sasl_pm}://{host}:9093,CLIENT_{ssl_pm}://{host}:9094"
+
     with patch(
         "core.models.KafkaCluster.internal_user_credentials",
         new_callable=PropertyMock,
@@ -347,9 +340,7 @@ def test_cc_jmx_opts(harness: Harness[KafkaCharm]):
     assert "CC_JMX_OPTS" in args
 
 
-def test_set_environment(
-    harness: Harness[KafkaCharm], patched_workload_write, patched_etc_environment
-):
+def test_set_environment(harness: Harness[KafkaCharm]):
     """Checks all necessary env-vars are written to /etc/environment."""
     with (
         patch("workload.KafkaWorkload.write") as patched_write,
@@ -358,15 +349,13 @@ def test_set_environment(
     ):
         harness.charm.broker.config_manager.set_environment()
 
-        call = patched_write.call_args_list[0]
-        assert "KAFKA_OPTS" in call.kwargs.get("content", "")
-        assert "KAFKA_JMX_OPTS" in call.kwargs.get("content", "")
-        assert "KAFKA_HEAP_OPTS" in call.kwargs.get("content", "")
-        assert "KAFKA_JVM_PERFORMANCE_OPTS" in call.kwargs.get("content", "")
-        assert "KAFKA_CFG_LOGLEVEL" in call.kwargs.get("content", "")
-        assert "/etc/environment" == call.kwargs.get("path", "")
-
-        assert "KAFKA_LOG4J_OPTS" not in call.kwargs.get("content", "")
+        for call in patched_write.call_args_list:
+            assert "KAFKA_OPTS" in call.kwargs.get("content", "")
+            assert "KAFKA_LOG4J_OPTS" in call.kwargs.get("content", "")
+            assert "KAFKA_JMX_OPTS" in call.kwargs.get("content", "")
+            assert "KAFKA_HEAP_OPTS" in call.kwargs.get("content", "")
+            assert "KAFKA_JVM_PERFORMANCE_OPTS" in call.kwargs.get("content", "")
+            assert "/etc/environment" == call.kwargs.get("path", "")
 
 
 def test_bootstrap_server(harness: Harness[KafkaCharm]):
