@@ -118,12 +118,8 @@ class WorkloadBase(ABC):
     paths: CharmedKafkaPaths
 
     @abstractmethod
-    def start(self, layer: Layer | None) -> None:
-        """Starts the workload service.
-
-        Args:
-            layer (optional): the Pebble Layer for the workload
-        """
+    def start(self) -> None:
+        """Starts the workload service."""
         ...
 
     @abstractmethod
@@ -202,6 +198,7 @@ class WorkloadBase(ABC):
     @abstractmethod
     def layer(self) -> Layer:
         """Gets the Pebble Layer definition for the current workload."""
+        ...
 
     @staticmethod
     def generate_password() -> str:

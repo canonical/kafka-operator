@@ -204,36 +204,7 @@ class KafkaWorkload(Workload):
     @property
     @override
     def layer(self) -> pebble.Layer:
-        """Returns a Pebble configuration layer for Kafka."""
-        extra_opts = [
-            f"-javaagent:{self.paths.jmx_prometheus_javaagent}={JMX_EXPORTER_PORT}:{self.paths.jmx_prometheus_config}",
-            f"-Djava.security.auth.login.config={self.paths.zk_jaas}",
-        ]
-        command = (
-            f"{self.paths.binaries_path}/bin/kafka-server-start.sh {self.paths.server_properties}"
-        )
-
-        layer_config: pebble.LayerDict = {
-            "summary": "kafka layer",
-            "description": "Pebble config layer for kafka",
-            "services": {
-                BROKER.service: {
-                    "override": "merge",
-                    "summary": "kafka",
-                    "command": command,
-                    "startup": "enabled",
-                    "user": str(USER),
-                    "group": GROUP,
-                    "environment": {
-                        "KAFKA_OPTS": " ".join(extra_opts),
-                        # FIXME https://github.com/canonical/kafka-k8s-operator/issues/80
-                        "JAVA_HOME": "/usr/lib/jvm/java-18-openjdk-amd64",
-                        "LOG_DIR": self.paths.logs_path,
-                    },
-                }
-            },
-        }
-        return pebble.Layer(layer_config)
+        raise NotImplementedError
 
 
 class BalancerWorkload(Workload):
@@ -252,32 +223,4 @@ class BalancerWorkload(Workload):
     @property
     @override
     def layer(self) -> pebble.Layer:
-        """Returns a Pebble configuration layer for CruiseControl."""
-        extra_opts = [
-            # FIXME: Port already in use by the broker. To be fixed once we have CC_JMX_OPTS
-            # f"-javaagent:{CharmedKafkaPaths(BROKER).jmx_prometheus_javaagent}={JMX_EXPORTER_PORT}:{CharmedKafkaPaths(BROKER).jmx_prometheus_config}",
-            f"-Djava.security.auth.login.config={self.paths.balancer_jaas}",
-        ]
-        command = f"{self.paths.binaries_path}/bin/kafka-cruise-control-start.sh {self.paths.cruise_control_properties}"
-
-        layer_config: pebble.LayerDict = {
-            "summary": "kafka layer",
-            "description": "Pebble config layer for kafka",
-            "services": {
-                BALANCER.service: {
-                    "override": "merge",
-                    "summary": "balancer",
-                    "command": command,
-                    "startup": "enabled",
-                    "user": str(USER),
-                    "group": GROUP,
-                    "environment": {
-                        "KAFKA_OPTS": " ".join(extra_opts),
-                        # FIXME https://github.com/canonical/kafka-k8s-operator/issues/80
-                        "JAVA_HOME": "/usr/lib/jvm/java-18-openjdk-amd64",
-                        "LOG_DIR": self.paths.logs_path,
-                    },
-                }
-            },
-        }
-        return pebble.Layer(layer_config)
+        raise NotImplementedError
