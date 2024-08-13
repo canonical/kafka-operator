@@ -1,4 +1,4 @@
-# Charmed Kafka Snap Entrypoints
+# Charmed Kafka snap entrypoints
 
 Snap entrypoints wrap the Kafka Distribution Bash scripts and make sure
 that they run with the correct environment settings (configuration files, logging files, etc). 
@@ -33,8 +33,8 @@ Below is a reference table for the mapping between entrypoints and wrapped bash 
 | `charmed-kafka.trogdor`                         | `$SNAP/opt/kafka/bin/trogdor.sh`                         |
 | `charmed-kafka.keytool`                         | `$SNAP/usr/lib/jvm/java-17-openjdk-amd64/bin/keytool`    |
 
-
 Available Kafka bin commands can also be found with:
+
 ```
 snap info charmed-kafka --channel 3/stable
 ```

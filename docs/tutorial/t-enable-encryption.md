@@ -6,16 +6,18 @@ This is part of the [Charmed Kafka Tutorial](/t/charmed-kafka-tutorial-overview/
 
 Again, relations come in handy here as TLS is enabled via relations; i.e. by relating Charmed Kafka to the [Self-signed Certificates Charm](https://charmhub.io/self-signed-certificates) via the [`tls-certificates`](https://github.com/canonical/charm-relation-interfaces/blob/main/interfaces/tls_certificates/v1/README.md) charm relations. The `tls-certificates` relation centralises TLS certificate management in a consistent manner and handles providing, requesting, and renewing TLS certificates, making it possible to use different providers, like the self-signed certificates but also other services, e.g. Let's Encrypt. 
 
-> *Note: In this tutorial, we will distribute [self-signed certificates](https://en.wikipedia.org/wiki/Self-signed_certificate) to all charms (Kafka, Zookeeper and client applications) that are signed using a root self-signed CA
+> *Note: In this tutorial, we will distribute [self-signed certificates](https://en.wikipedia.org/wiki/Self-signed_certificate) to all charms (Kafka, ZooKeeper and client applications) that are signed using a root self-signed CA
 that is also trusted by all applications. This setup is only for show-casing purposes and self-signed certificates should **never** be used in a production cluster. For more information about which charm may better suit your use-case, please refer to [this post](https://charmhub.io/topics/security-with-x-509-certificates).* 
 
 ### Configure TLS
+
 Before enabling TLS on Charmed Kafka we must first deploy the `self-signed-certificates` charm:
+
 ```shell
 juju deploy self-signed-certificates --config ca-common-name="Tutorial CA"
 ```
 
-Wait for the charm settles into an `active/idle` state, as shown by the `juju status`
+Wait for the charm settle into an `active/idle` state, as shown by the `juju status`
 
 ```shell
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
@@ -34,6 +36,7 @@ self-signed-certificates/0*   active    idle   10.1.36.91
 
 To enable TLS on Charmed Kafka, relate the both the `kafka` and `zookeeper` charms with the
 `self-signed-certificates` charm:
+
 ```shell
 juju relate zookeeper self-signed-certificates
 juju relate kafka:certificates self-signed-certificates
@@ -85,10 +88,12 @@ juju exec --application kafka-test-app "tail /tmp/*.log"
 
 Note that if the `kafka-test-app` was running before, there may be multiple logs related to the different
 runs. Refer to the latest logs produced and also check that in the logs the connection is indeed established 
-with the encrypted port 9093. 
+with the encrypted port `9093`. 
 
 ### Remove external TLS certificate
+
 To remove the external TLS and return to the locally generate one, un-relate applications:
+
 ```shell
 juju remove-relation kafka self-signed-certificates
 juju remove-relation zookeeper self-signed-certificates

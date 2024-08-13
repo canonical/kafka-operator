@@ -1,8 +1,8 @@
 This is part of the [Charmed Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571). Please refer to this page for more information and the overview of the content. 
 
-## Deploy Charmed Kafka (and Charmed Zookeeper)
+## Deploy Charmed Kafka (and Charmed ZooKeeper)
 
-To deploy Charmed Kafka, all you need to do is run the following commands, which will automatically fetch [Kafka](https://charmhub.io/kafka?channel=3/stable) and [Zookeeper](https://charmhub.io/zookeeper?channel=3/stable) charms from [Charmhub](https://charmhub.io/) and deploy them to your model. For example, to deploy a 5 Zookeeper unit and 3 Kafka unit cluster, you can simply run
+To deploy Charmed Kafka, all you need to do is run the following commands, which will automatically fetch [Kafka](https://charmhub.io/kafka?channel=3/stable) and [ZooKeeper](https://charmhub.io/zookeeper?channel=3/stable) charms from [Charmhub](https://charmhub.io/) and deploy them to your model. For example, to deploy a five ZooKeeper unit and three Kafka unit cluster, you can simply run:
 
 ```shell
 $ juju deploy zookeeper -n 5
@@ -16,14 +16,16 @@ $ juju relate kafka zookeeper
 ```
 
 Juju will now fetch Charmed Kafka and Zookeeper and begin deploying it to the LXD cloud. This process can take several minutes depending on how provisioned (RAM, CPU, etc) your machine is. You can track the progress by running:
+
 ```shell
 juju status --watch 1s
 ```
 
-This command is useful for checking the status of Charmed Zookeeper and Charmed Kafka and gathering information about the machines hosting the two applications. Some of the helpful information it displays include IP addresses, ports, state, etc. 
-The command updates the status of the cluster every second and as the application starts you can watch the status and messages of Charmed Kafka and Zookeeper change. 
+This command is useful for checking the status of Charmed ZooKeeper and Charmed Kafka and gathering information about the machines hosting the two applications. Some of the helpful information it displays includes IP addresses, ports, state, etc. 
+The command updates the status of the cluster every second and as the application starts you can watch the status and messages of Charmed Kafka and ZooKeeper change. 
 
 Wait until the application is ready - when it is ready, `juju status --watch 1s` will show:
+
 ```shell
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
 tutorial  overlord    localhost/localhost  3.1.6    unsupported  08:20:12Z
@@ -52,16 +54,19 @@ Machine  State    Address        Inst id        Series  AZ  Message
 6        started  10.244.26.6    juju-f1a2cd-6  jammy       Running
 7        started  10.244.26.19   juju-f1a2cd-7  jammy       Running
 ```
+
 To exit the screen with `juju status --watch 1s`, enter `Ctrl+c`.
 
 ## Access Kafka cluster
 
 To watch the process, `juju status` can be used. Once all the units show as `active|idle` the credentials to access a broker can be queried with:
+
 ```shell
 juju run kafka/leader get-admin-credentials
 ```
 
 The output of the previous command is something like this:
+
 ```shell
 client-properties: |-
   sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="admin" password="e2sMfYLQg7sbbBMFTx1qlaZQKTUxr09x";
@@ -74,16 +79,16 @@ username: admin
 
 Providing you the `username` and `password` of the Kafka cluster admin user. 
 
-> **IMPORTANT** Note that when no other application is related to Kafka, the cluster is secured-by-default and external listeners (binded to port 9092) are disabled, thus preventing any external incoming connection. 
+> **IMPORTANT** Note that when no other application is related to Kafka, the cluster is secured-by-default and external listeners (bound to port `9092`) are disabled, thus preventing any external incoming connection. 
 
 Nevertheless, it is still possible to run a command from within the Kafka cluster using the internal listeners in place of the external ones. 
-The internal endpoints can be constructed by replacing the 19092 port in the `bootstrap.servers` returned in the output above, e.g. 
+The internal endpoints can be constructed by replacing the `19092` port in the `bootstrap.servers` returned in the output above, for example:
 
 ```shell
 INTERNAL_LISTENERS=$(juju run kafka/leader get-admin-credentials | grep "bootstrap.servers" | cut -d "=" -f2 | sed -s "s/\:9092/:19092/g")
 ```
 
-Once you have fetched the `INTERNAL_LISTENERS`, log in into one of the Kafka container in one of the units
+Once you have fetched the `INTERNAL_LISTENERS`, log in to one of the Kafka containers in one of the units:
 
 ```shell
 juju ssh kafka/leader sudo -i
@@ -97,6 +102,7 @@ CLIENT_PROPERTIES=/var/snap/charmed-kafka/current/etc/kafka/client.properties
 ```
 
 For example, in order to create a topic, you can run:
+
 ```shell
 charmed-kafka.topics \
     --create --topic test_topic \
@@ -104,7 +110,8 @@ charmed-kafka.topics \
     --command-config $CLIENT_PROPERTIES
 ```
 
-You can similarly then list the topic, using
+You can similarly then list the topic, using:
+
 ```shell
 charmed-kafka.topics \
     --list \
@@ -114,7 +121,7 @@ charmed-kafka.topics \
 
 making sure the topic was successfully created.
 
-You can finally delete the topic, using 
+You can finally delete the topic, using:
 
 ```shell
 charmed-kafka.topics \
@@ -124,6 +131,7 @@ charmed-kafka.topics \
 ```
 
 Other available Kafka bin commands can also be found with:
+
 ```shell
 snap info charmed-kafka
 ```

@@ -1,13 +1,13 @@
 Versions used for this integration example:
 
 - LXD (v5.21.1)
-- Microk8s (v1.28.10)
+- MicroK8s (v1.28.10)
 - Kafka charm: built from [this feature PR](https://github.com/canonical/kafka-operator/pull/168), which adds Hydra integration
-
 
 ## Initial deployment
 
-On microk8s, `metallb` addon is needed, this will allow traefik ingress from the lxd model:
+On microk8s, `metallb` addon is needed, this will allow Traefik ingress from the LXD model:
+
 ```bash
 $ microk8s enable metallb:10.64.140.43-10.64.140.49
 ```
@@ -36,6 +36,7 @@ $ juju offer admin/iam.self-signed-certificates:certificates
 ```
 
 Kafka setup:
+
 ```bash
 # On the lxd controller
 $ juju add-model kafka
@@ -52,6 +53,7 @@ $ juju integrate zookeeper self-signed-certificates
 ```
 
 Once everything is settled, integrate Kafka and Hydra:
+
 ```bash
 # On the lxd model
 $ juju integrate kafka hydra
@@ -80,4 +82,5 @@ proxied-endpoints: '{"hydra": {"url": "https://10.64.140.44/iam-hydra"}}'
 $ curl https://10.64.140.44/iam-hydra/oauth2/token -k -u eeec2a88-52bf-46e6-85bf-d20cd832aa61:C1nycFCBFECMQ1-XsOPk0E4e_Y -d "scope=profile" -d "grant_type=client_credentials" -d "audience=kafka" -s
 {"access_token":"ory_at_b2pcwnwTpCVHPbxoU7L45isbRJhNdBbn91y4Ex0YNrA.easwGEfsTJ7VnNfER2svIMHwen5ZzNXaVZm8i7QdLLg","expires_in":3599,"scope":"profile","token_type":"bearer"}
 ```
-With this token, a client can now authenticate on Kafka using oauth listeners.
+
+With this token, a client can now authenticate on Kafka using oAuth listeners.
