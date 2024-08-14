@@ -143,7 +143,7 @@ BROKER = Role(
 )
 BALANCER = Role(
     value="balancer",
-    service="balancer",
+    service="cruise-control",
     paths=PATHS["cruise-control"],
     relation=PEER_CLUSTER_ORCHESTRATOR_RELATION,
     requested_secrets=[
