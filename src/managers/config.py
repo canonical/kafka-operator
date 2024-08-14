@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 """Manager for handling Kafka configuration."""
@@ -56,9 +56,10 @@ class Listener:
     """Definition of a listener.
 
     Args:
+        auth_map: AuthMap representing the auth.protocol and auth.mechanism for the listener
+        scope: scope of the listener, CLIENT, INTERNAL or EXTERNAL
         host: string with the host that will be announced
-        protocol: auth protocol to be used
-        scope: scope of the listener, CLIENT or INTERNAL
+        node_port (optional): the node-port for the listener if scope=EXTERNAL
     """
 
     def __init__(
@@ -105,7 +106,7 @@ class Listener:
 
     @property
     def listener(self) -> str:
-        """Return `name://:port`."""
+        """Return `name://0.0.0.0:port`."""
         return f"{self.name}://0.0.0.0:{self.port}"
 
     @property
@@ -628,7 +629,6 @@ class ConfigManager(CommonConfigManager):
         updated_env_list = [
             self.kafka_opts,
             self.kafka_jmx_opts,
-            self.cc_jmx_opts,
             self.jvm_performance_opts,
             self.heap_opts,
             self.log_level,
@@ -767,8 +767,8 @@ class BalancerConfigManager(CommonConfigManager):
                 f"zookeeper.connect={self.state.balancer.zk_uris}",
                 "zookeeper.security.enabled=true",
                 f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{self.state.balancer.broker_username}" password="{self.state.balancer.broker_password}";',
-                "sasl.mechanism=SCRAM-SHA-512",
-                f"security.protocol={self.state.default_auth}",
+                f"sasl.mechanism={self.state.default_auth.mechanism}",
+                f"security.protocol={self.state.default_auth.protocol}",
                 f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
                 "webserver.security.enable=true",
                 f"webserver.auth.credentials.file={self.workload.paths.cruise_control_auth}",

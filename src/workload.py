@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 """KafkaSnap class and methods."""
@@ -40,6 +40,11 @@ class Workload(WorkloadBase):
     def __init__(self, container: Container | None = None) -> None:
         self.container = container
         self.kafka = snap.SnapCache()[SNAP_NAME]
+
+    @property
+    @override
+    def container_can_connect(self) -> bool:
+        return True  # Always True on VM
 
     @override
     def start(self) -> None:

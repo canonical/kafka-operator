@@ -334,7 +334,7 @@ class ClusterState(Object):
         )
 
         # FIXME: will need updating when we support multiple concurrent security.protocols
-        # as this is what is sent across the relation, currently SASL only, inferred from self.security_protocol
+        # as this is what is sent across the relation, currently SASL only
         return AuthMap(auth_protocol, "SCRAM-SHA-512")
 
     @property

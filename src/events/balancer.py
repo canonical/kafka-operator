@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 """Balancer role core charm logic."""
@@ -84,10 +84,7 @@ class BalancerOperator(Object):
 
     def _on_install(self, event: InstallEvent) -> None:
         """Handler for `install` event."""
-        if (
-            self.charm.substrate == "k8s"
-            and not self.charm.unit.get_container(CONTAINER).can_connect()
-        ):
+        if not self.workload.container_can_connect:
             event.defer()
             return
 
