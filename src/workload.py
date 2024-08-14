@@ -1,21 +1,28 @@
 #!/usr/bin/env python3
-# Copyright 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 """KafkaSnap class and methods."""
 
 import logging
 import os
-import re
 import subprocess
 from typing import Mapping
 
 from charms.operator_libs_linux.v1 import snap
+from ops import Container, pebble
 from tenacity import retry, retry_if_result, stop_after_attempt, wait_fixed
 from typing_extensions import override
 
 from core.workload import CharmedKafkaPaths, WorkloadBase
-from literals import BALANCER, BROKER, CHARMED_KAFKA_SNAP_REVISION, GROUP, SNAP_NAME, USER
+from literals import (
+    BALANCER,
+    BROKER,
+    CHARMED_KAFKA_SNAP_REVISION,
+    GROUP,
+    SNAP_NAME,
+    USER,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +37,14 @@ class Workload(WorkloadBase):
     paths: CharmedKafkaPaths
     service: str
 
-    def __init__(self) -> None:
+    def __init__(self, container: Container | None = None) -> None:
+        self.container = container
         self.kafka = snap.SnapCache()[SNAP_NAME]
+
+    @property
+    @override
+    def container_can_connect(self) -> bool:
+        return True  # Always True on VM
 
     @override
     def start(self) -> None:
@@ -175,30 +188,32 @@ class Workload(WorkloadBase):
 class KafkaWorkload(Workload):
     """Broker specific wrapper."""
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, container: Container | None = None) -> None:
+        super().__init__(container=container)
         self.paths = CharmedKafkaPaths(BROKER)
         self.service = BROKER.service
+        self.container = container
 
+    @property
     @override
-    def get_version(self) -> str:
-        if not self.active:
-            return ""
-        try:
-            version = re.split(r"[\s\-]", self.run_bin_command("topics", ["--version"]))[0]
-        except:  # noqa: E722
-            version = ""
-        return version
+    def layer(self) -> pebble.Layer:
+        raise NotImplementedError
 
 
 class BalancerWorkload(Workload):
     """Balancer specific wrapper."""
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, container: Container | None = None) -> None:
+        super().__init__(container=container)
         self.paths = CharmedKafkaPaths(BALANCER)
         self.service = BALANCER.service
+        self.container = container
 
     @override
     def get_version(self) -> str:
+        raise NotImplementedError
+
+    @property
+    @override
+    def layer(self) -> pebble.Layer:
         raise NotImplementedError

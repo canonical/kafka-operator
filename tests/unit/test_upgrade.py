@@ -48,6 +48,7 @@ def harness(zk_data):
         {
             "log_retention_ms": "-1",
             "compression_type": "producer",
+            "expose-external": "none",
         }
     )
     harness.begin()
@@ -169,7 +170,7 @@ def test_upgrade_granted_sets_failed_if_failed_snap(harness: Harness[KafkaCharm]
         patch(
             "events.upgrade.KafkaUpgrade.zookeeper_current_version",
             new_callable=PropertyMock,
-            return_value="3.6",
+            return_value="3.6.2",
         ),
         patch("workload.KafkaWorkload.stop") as patched_stop,
         patch("workload.BalancerWorkload.stop"),
@@ -274,7 +275,7 @@ def test_upgrade_granted_recurses_upgrade_changed_on_leader(harness: Harness[Kaf
         patch(
             "events.upgrade.KafkaUpgrade.zookeeper_current_version",
             new_callable=PropertyMock,
-            return_value="3.6",
+            return_value="3.6.2",
         ),
         patch("time.sleep"),
         patch("workload.KafkaWorkload.stop"),

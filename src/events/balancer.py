@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+# Copyright 2024 Canonical Ltd.
+# See LICENSE file for licensing details.
+
 """Balancer role core charm logic."""
 
 import logging
@@ -5,16 +9,21 @@ from subprocess import CalledProcessError
 from typing import TYPE_CHECKING
 
 from ops import (
+    ActionEvent,
     ActiveStatus,
     EventBase,
+    InstallEvent,
     Object,
+    PebbleReadyEvent,
+    StartEvent,
 )
-from ops.charm import ActionEvent
+from ops.pebble import ExecError
 
 from literals import (
     BALANCER,
     BALANCER_WEBSERVER_PORT,
     BALANCER_WEBSERVER_USER,
+    CONTAINER,
     MODE_ADD,
     MODE_REMOVE,
     Status,
@@ -37,11 +46,19 @@ class BalancerOperator(Object):
         super().__init__(charm, BALANCER.value)
         self.charm: "KafkaCharm" = charm
 
-        self.workload = BalancerWorkload()
+        self.workload = BalancerWorkload(
+            container=self.charm.unit.get_container(CONTAINER)
+            if self.charm.substrate == "k8s"
+            else None
+        )
 
         self.tls_manager = TLSManager(
-            state=self.charm.state, workload=self.workload, substrate=self.charm.substrate
+            state=self.charm.state,
+            workload=self.workload,
+            substrate=self.charm.substrate,
+            config=self.charm.config,
         )
+
         # Fast exit after workload instantiation, but before any event observer
         if BALANCER.value not in self.charm.config.roles or not self.charm.unit.is_leader():
             return
@@ -53,6 +70,10 @@ class BalancerOperator(Object):
 
         self.framework.observe(self.charm.on.install, self._on_install)
         self.framework.observe(self.charm.on.start, self._on_start)
+
+        if self.charm.substrate == "k8s":
+            self.framework.observe(getattr(self.charm.on, "kafka_pebble_ready"), self._on_start)
+
         self.framework.observe(self.charm.on.leader_elected, self._on_start)
 
         # ensures data updates, eventually
@@ -61,12 +82,16 @@ class BalancerOperator(Object):
 
         self.framework.observe(getattr(self.charm.on, "rebalance_action"), self.rebalance)
 
-    def _on_install(self, _) -> None:
+    def _on_install(self, event: InstallEvent) -> None:
         """Handler for `install` event."""
+        if not self.workload.container_can_connect:
+            event.defer()
+            return
+
         self.config_manager.set_environment()
 
-    def _on_start(self, event: EventBase) -> None:
-        """Handler for `start` event."""
+    def _on_start(self, event: StartEvent | PebbleReadyEvent) -> None:
+        """Handler for `start` or `pebble-ready` events."""
         self.charm._set_status(self.charm.state.ready_to_start)
         if not isinstance(self.charm.unit.status, ActiveStatus):
             event.defer()
@@ -91,16 +116,15 @@ class BalancerOperator(Object):
 
         try:
             self.balancer_manager.create_internal_topics()
-        except CalledProcessError as e:
+        except (CalledProcessError, ExecError) as e:
             logger.warning(e.stdout)
             event.defer()
             return
 
-        self.workload.restart()
+        self.workload.start()
+        logger.info("CruiseControl service started")
 
-        logger.info("Cruise-control started")
-
-    def _on_config_changed(self, event: EventBase) -> None:
+    def _on_config_changed(self, _: EventBase) -> None:
         """Generic handler for 'something changed' events."""
         if not self.charm.unit.is_leader():
             return
@@ -128,7 +152,7 @@ class BalancerOperator(Object):
             if set(file_content) ^ set(state_content):
                 logger.info(
                     (
-                        f'Balancer {self.charm.unit.name.split("/")[1]} updating config - '
+                        f"Balancer {self.charm.unit.name.split('/')[1]} updating config - "
                         f"OLD {kind.upper()} = {set(map(str.strip, file_content)) - set(map(str.strip, state_content))}, "
                         f"NEW {kind.upper()} = {set(map(str.strip, state_content)) - set(map(str.strip, file_content))}"
                     )
@@ -141,7 +165,7 @@ class BalancerOperator(Object):
             self.config_manager.set_broker_capacities()
             self.config_manager.set_zk_jaas_config()
 
-            self._on_start(event)
+            self.charm.on.start.emit()
 
     def rebalance(self, event: ActionEvent) -> None:
         """Handles the `rebalance` Juju Action."""
