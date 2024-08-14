@@ -49,7 +49,7 @@ def test_service_pid(harness: Harness[KafkaCharm]):
         patch(
             "builtins.open",
             new_callable=mock_open,
-            read_data="0::/system.slice/snap.charmed-kafka.kafka.service",
+            read_data="0::/system.slice/snap.charmed-kafka.daemon.service",
         ),
         patch("subprocess.check_output", return_value="1314231"),
     ):

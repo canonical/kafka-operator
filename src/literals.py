@@ -132,7 +132,7 @@ class Role:
 
 BROKER = Role(
     value="broker",
-    service="kafka",
+    service="daemon",
     paths=PATHS["kafka"],
     relation=PEER_CLUSTER_RELATION,
     requested_secrets=[
