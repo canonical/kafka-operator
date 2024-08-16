@@ -25,6 +25,7 @@ APP_NAME = "kafka"
 ZK = "zookeeper"
 DUMMY_NAME_1 = "app"
 DUMMY_NAME_2 = "appii"
+DUMMY_NAME_3 = "prefix-app"
 TLS_NAME = "self-signed-certificates"
 
 REL_NAME_CONSUMER = "kafka-client-consumer"
@@ -213,6 +214,30 @@ async def test_admin_removed_from_super_users(ops_test: OpsTest):
 
     # adding cleanup to save memory
     await ops_test.model.remove_application(DUMMY_NAME_2, block_until_done=True)
+
+
+@pytest.mark.abort_on_fail
+async def test_prefixed_topic_creation(ops_test: OpsTest, app_charm):
+    await asyncio.gather(
+        ops_test.model.deploy(
+            app_charm,
+            application_name=DUMMY_NAME_3,
+            num_units=1,
+            series="jammy",
+            config={"topic-name": "test-*"},
+        )
+    )
+    await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_3}:{REL_NAME_PRODUCER}")
+
+    async with ops_test.fast_forward(fast_interval="60s"):
+        await ops_test.model.wait_for_idle(
+            apps=[APP_NAME, DUMMY_NAME_3, ZK], idle_period=30, status="active"
+        )
+
+    action = await ops_test.model.units.get(f"{DUMMY_NAME_3}/0").run_action("create-topic")
+    response = await action.wait()
+
+    assert response.results.get("success", None) == "TRUE"
 
 
 @pytest.mark.abort_on_fail

@@ -229,12 +229,20 @@ class AuthManager:
         ]
 
         if resource_type == "TOPIC":
-            command += [f"--topic={resource_name}"]
+            if len(resource_name) > 3 and resource_name.endswith("*"):
+                pattern = "PREFIXED"
+                resource_name = resource_name[:-1]
+            else:
+                pattern = "LITERAL"
+
+            command += [f"--topic={resource_name}", f"--resource-pattern-type={pattern}"]
+
         if resource_type == "GROUP":
             command += [
                 f"--group={resource_name}",
                 "--resource-pattern-type=PREFIXED",
             ]
+        logger.info(f"CREATE ACL - {command}")
         self.workload.run_bin_command(bin_keyword="acls", bin_args=command, opts=[self.log4j_opts])
 
     def remove_acl(
@@ -263,7 +271,14 @@ class AuthManager:
         ]
 
         if resource_type == "TOPIC":
-            command += [f"--topic={resource_name}"]
+            if len(resource_name) > 3 and resource_name.endswith("*"):
+                pattern = "PREFIXED"
+                resource_name = resource_name[:-1]
+            else:
+                pattern = "LITERAL"
+
+            command += [f"--topic={resource_name}", f"--resource-pattern-type={pattern}"]
+
         if resource_type == "GROUP":
             command += [
                 f"--group={resource_name}",

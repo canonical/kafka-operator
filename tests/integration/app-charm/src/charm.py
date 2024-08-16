@@ -32,7 +32,7 @@ REL_NAME_ADMIN = "kafka-client-admin"
 ZK = "zookeeper"
 CONSUMER_GROUP_PREFIX = "test-prefix"
 SNAP_PATH = "/var/snap/charmed-kafka/current/etc/kafka"
-CHARMED_KAFKA_SNAP_REVISION = 19
+DEFAULT_TOPIC_NAME = "test-topic"
 
 
 class ApplicationCharm(CharmBase):
@@ -42,19 +42,27 @@ class ApplicationCharm(CharmBase):
         super().__init__(*args)
         self.name = CHARM_KEY
 
+        if self.config["topic-name"] != DEFAULT_TOPIC_NAME:
+            self.topic_name = self.config["topic-name"]
+        else:
+            self.topic_name = DEFAULT_TOPIC_NAME
+
         self.framework.observe(getattr(self.on, "start"), self._on_start)
         self.kafka_requirer_consumer = KafkaRequires(
             self,
             relation_name=REL_NAME_CONSUMER,
-            topic="test-topic",
+            topic=self.topic_name,
             extra_user_roles="consumer",
             consumer_group_prefix=CONSUMER_GROUP_PREFIX,
         )
         self.kafka_requirer_producer = KafkaRequires(
-            self, relation_name=REL_NAME_PRODUCER, topic="test-topic", extra_user_roles="producer"
+            self,
+            relation_name=REL_NAME_PRODUCER,
+            topic=self.topic_name,
+            extra_user_roles="producer",
         )
         self.kafka_requirer_admin = KafkaRequires(
-            self, relation_name=REL_NAME_ADMIN, topic="test-topic", extra_user_roles="admin"
+            self, relation_name=REL_NAME_ADMIN, topic=self.topic_name, extra_user_roles="admin"
         )
         self.framework.observe(
             self.kafka_requirer_consumer.on.topic_created, self.on_topic_created_consumer
@@ -73,6 +81,7 @@ class ApplicationCharm(CharmBase):
             getattr(self.on, "run_mtls_producer_action"), self.run_mtls_producer
         )
         self.framework.observe(getattr(self.on, "get_offsets_action"), self.get_offsets)
+        self.framework.observe(getattr(self.on, "create_topic_action"), self.create_topic)
 
     def _on_start(self, _) -> None:
         self.unit.status = ActiveStatus()
@@ -82,14 +91,41 @@ class ApplicationCharm(CharmBase):
 
     def on_topic_created_consumer(self, event: TopicCreatedEvent):
         logger.info(f"{event.username} {event.password} {event.bootstrap_server} {event.tls}")
+        if not (peer_relation := self.model.get_relation("cluster")):
+            event.defer()
+            return
+
+        peer_relation.data[self.app]["username"] = event.username or ""
+        peer_relation.data[self.app]["password"] = event.password or ""
+        peer_relation.data[self.app]["bootstrap-server"] = event.bootstrap_server or ""
+        peer_relation.data[self.app]["tls"] = event.tls or ""
+
         return
 
     def on_topic_created_producer(self, event: TopicCreatedEvent):
         logger.info(f"{event.username} {event.password} {event.bootstrap_server} {event.tls}")
+        if not (peer_relation := self.model.get_relation("cluster")):
+            event.defer()
+            return
+
+        peer_relation.data[self.app]["username"] = event.username or ""
+        peer_relation.data[self.app]["password"] = event.password or ""
+        peer_relation.data[self.app]["bootstrap-server"] = event.bootstrap_server or ""
+        peer_relation.data[self.app]["tls"] = event.tls or ""
+
         return
 
     def on_topic_created_admin(self, event: TopicCreatedEvent):
         logger.info(f"{event.username} {event.password} {event.bootstrap_server} {event.tls}")
+        if not (peer_relation := self.model.get_relation("cluster")):
+            event.defer()
+            return
+
+        peer_relation.data[self.app]["username"] = event.username or ""
+        peer_relation.data[self.app]["password"] = event.password or ""
+        peer_relation.data[self.app]["bootstrap-server"] = event.bootstrap_server or ""
+        peer_relation.data[self.app]["tls"] = event.tls or ""
+
         return
 
     def _install_packages(self):
@@ -314,6 +350,49 @@ class ApplicationCharm(CharmBase):
             event.set_results({"output": output})
         except subprocess.CalledProcessError as e:
             logger.exception(e.output)
+            event.fail()
+
+        return
+
+    def create_topic(self, event: ActionEvent) -> None:
+        logger.info("creating client.properties file")
+        if not (peer_relation := self.model.get_relation("cluster")):
+            event.fail("No peer relation")
+            return
+
+        self._install_packages()
+
+        username = peer_relation.data[self.app]["username"]
+        password = peer_relation.data[self.app]["password"]
+        bootstrap_server = peer_relation.data[self.app]["bootstrap-server"]
+
+        properties = [
+            f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";',
+            "sasl.mechanism=SCRAM-SHA-512",
+            "security.protocol=SASL_PLAINTEXT",
+            f"bootstrap.servers={bootstrap_server}",
+        ]
+
+        safe_write_to_file(
+            content="\n".join(properties),
+            path=f"{SNAP_PATH}/client.properties",
+        )
+
+        logger.info("creating topic")
+        try:
+            subprocess.check_output(
+                # if requested acls for prefixed `test-*`, should be able to create `test-topic`
+                f"charmed-kafka.topics --bootstrap-server {bootstrap_server} --topic={DEFAULT_TOPIC_NAME} --create --command-config client.properties",
+                stderr=subprocess.STDOUT,
+                shell=True,
+                universal_newlines=True,
+                cwd=SNAP_PATH,
+            )
+            event.set_results({"success": "TRUE"})
+
+        except subprocess.CalledProcessError as e:
+            logger.exception(vars(e))
+            event.set_results({"success": "FALSE"})
             event.fail()
 
         return
