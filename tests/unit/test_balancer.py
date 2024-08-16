@@ -16,8 +16,6 @@ from managers.balancer import CruiseControlClient
 
 logger = logging.getLogger(__name__)
 
-pytestmark = pytest.mark.balancer
-
 CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
 ACTIONS = str(yaml.safe_load(Path("./actions.yaml").read_text()))
 METADATA = str(yaml.safe_load(Path("./metadata.yaml").read_text()))
@@ -118,7 +116,7 @@ def test_balancer_manager_create_internal_topics(harness: Harness[KafkaCharm]):
     with (
         patch("core.models.PeerCluster.broker_uris", new_callable=PropertyMock, return_value=""),
         patch(
-            "workload.Workload.run_bin_command",
+            "workload.BalancerWorkload.run_bin_command",
             new_callable=None,
             return_value=BALANCER_TOPICS[0],  # pretend it exists already
         ) as patched_run,
@@ -236,8 +234,11 @@ def test_rebalance_add_remove_broker_id_length(
         ) as patched_wait_for_task,
     ):
         harness.set_leader(True)
+
+        # When
         harness.charm.balancer.rebalance(mock_event)
 
+        # Then
         if brokerid is None:
             assert mock_event._mock_children.get("fail")  # event.fail was called
         else:

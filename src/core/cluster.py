@@ -6,6 +6,7 @@
 
 import os
 from functools import cached_property
+from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, Any
 
 from charms.data_platform_libs.v0.data_interfaces import (
@@ -44,7 +45,7 @@ from literals import (
     SECRETS_UNIT,
     SECURITY_PROTOCOL_PORTS,
     ZK,
-    AuthMechanism,
+    AuthMap,
     Status,
     Substrates,
 )
@@ -92,6 +93,7 @@ class ClusterState(Object):
         self.substrate: Substrates = substrate
         self.roles = charm.config.roles
         self.network_bandwidth = charm.config.network_bandwidth
+        self.config = charm.config
 
         self.peer_app_interface = DataPeerData(self.model, relation_name=PEER)
         self.peer_unit_interface = DataPeerUnitData(
@@ -289,6 +291,16 @@ class ClusterState(Object):
     # ---- GENERAL VALUES ----
 
     @property
+    def bind_address(self) -> IPv4Address | IPv6Address | str:
+        """The network binding address from the peer relation."""
+        bind_address = None
+        if self.peer_relation:
+            if binding := self.model.get_binding(self.peer_relation):
+                bind_address = binding.network.bind_address
+
+        return bind_address or ""
+
+    @property
     def super_users(self) -> str:
         """Generates all users with super/admin permissions for the cluster from relations.
 
@@ -313,13 +325,41 @@ class ClusterState(Object):
         return ";".join(super_users_arg)
 
     @property
-    def port(self) -> int:
-        """Return the port to be used internally."""
-        mechanism: AuthMechanism = "SCRAM-SHA-512"
-        return (
-            SECURITY_PROTOCOL_PORTS["SASL_SSL", mechanism].client
-            if (self.cluster.tls_enabled and self.unit_broker.certificate)
-            else SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", mechanism].client
+    def default_auth(self) -> AuthMap:
+        """The current enabled auth.protocol for bootstrap."""
+        auth_protocol = (
+            "SASL_SSL"
+            if self.cluster.tls_enabled and self.unit_broker.certificate
+            else "SASL_PLAINTEXT"
+        )
+
+        # FIXME: will need updating when we support multiple concurrent security.protocols
+        # as this is what is sent across the relation, currently SASL only
+        return AuthMap(auth_protocol, "SCRAM-SHA-512")
+
+    @property
+    def enabled_auth(self) -> list[AuthMap]:
+        """The currently enabled auth.protocols and their auth.mechanisms, based on related applications."""
+        enabled_auth = []
+        if self.client_relations or self.runs_balancer or self.peer_cluster_relation:
+            enabled_auth.append(self.default_auth)
+        if self.oauth_relation:
+            enabled_auth.append(AuthMap(self.default_auth.protocol, "OAUTHBEARER"))
+        if self.cluster.mtls_enabled:
+            enabled_auth.append(AuthMap("SSL", "SSL"))
+
+        return enabled_auth
+
+    @property
+    def bootstrap_servers_external(self) -> str:
+        """Comma-delimited string of `bootstrap-server` for external access."""
+        return ",".join(
+            sorted(
+                {
+                    f"{broker.node_ip}:{self.unit_broker.k8s.get_bootstrap_nodeport(self.default_auth)}"
+                    for broker in self.brokers
+                }
+            )
         )
 
     @property
@@ -332,7 +372,17 @@ class ClusterState(Object):
         if not self.peer_relation:
             return ""
 
-        return ",".join(sorted([f"{broker.host}:{self.port}" for broker in self.brokers]))
+        if self.config.expose_external:  # implicitly checks for k8s in structured_config
+            return self.bootstrap_servers_external
+
+        return ",".join(
+            sorted(
+                [
+                    f"{broker.internal_address}:{SECURITY_PROTOCOL_PORTS[self.default_auth].client}"
+                    for broker in self.brokers
+                ]
+            )
+        )
 
     @property
     def log_dirs(self) -> str:

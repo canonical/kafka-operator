@@ -6,6 +6,7 @@
 
 import json
 import logging
+from functools import cached_property
 from typing import MutableMapping, TypeAlias
 
 import requests
@@ -16,11 +17,19 @@ from charms.data_platform_libs.v0.data_interfaces import (
 )
 from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManager
 from kazoo.client import AuthFailedError, NoNodeError
+from lightkube.resources.core_v1 import Node, Pod
 from ops.model import Application, Relation, Unit
 from tenacity import retry, retry_if_result, stop_after_attempt, wait_fixed
 from typing_extensions import override
 
-from literals import BALANCER, BROKER, INTERNAL_USERS, SECRETS_APP, Substrates
+from literals import (
+    BALANCER,
+    BROKER,
+    INTERNAL_USERS,
+    SECRETS_APP,
+    Substrates,
+)
+from managers.k8s import K8sManager
 
 logger = logging.getLogger(__name__)
 
@@ -403,6 +412,10 @@ class KafkaBroker(RelationState):
         super().__init__(relation, data_interface, component, substrate)
         self.data_interface = data_interface
         self.unit = component
+        self.k8s = K8sManager(
+            pod_name=self.pod_name,
+            namespace=self.unit._backend.model_name,
+        )
 
     @property
     def unit_id(self) -> int:
@@ -413,17 +426,26 @@ class KafkaBroker(RelationState):
         return int(self.unit.name.split("/")[1])
 
     @property
-    def host(self) -> str:
-        """Return the hostname of a unit."""
-        host = ""
+    def internal_address(self) -> str:
+        """The address for internal communication between brokers."""
+        addr = ""
         if self.substrate == "vm":
             for key in ["hostname", "ip", "private-address"]:
-                if host := self.relation_data.get(key, ""):
+                if addr := self.relation_data.get(key, ""):
                     break
-        if self.substrate == "k8s":
-            host = f"{self.unit.name.split('/')[0]}-{self.unit_id}.{self.unit.name.split('/')[0]}-endpoints"
 
-        return host
+        if self.substrate == "k8s":
+            addr = f"{self.unit.name.split('/')[0]}-{self.unit_id}.{self.unit.name.split('/')[0]}-endpoints"
+
+        return addr
+
+    @property
+    def host(self) -> str:
+        """Return the hostname of a unit."""
+        if self.substrate == "vm":
+            return self.internal_address
+        else:
+            return self.node_ip or self.internal_address
 
     # --- TLS ---
 
@@ -502,6 +524,38 @@ class KafkaBroker(RelationState):
     def rack(self) -> str:
         """The rack for the broker on broker.rack from rack.properties."""
         return self.relation_data.get("rack", "")
+
+    @property
+    def pod_name(self) -> str:
+        """The name of the K8s Pod for the unit.
+
+        K8s-only.
+        """
+        return self.unit.name.replace("/", "-")
+
+    @cached_property
+    def pod(self) -> Pod:
+        """The Pod of the unit.
+
+        K8s-only.
+        """
+        return self.k8s.get_pod(pod_name=self.pod_name)
+
+    @cached_property
+    def node(self) -> Node:
+        """The Node the unit is scheduled on.
+
+        K8s-only.
+        """
+        return self.k8s.get_node(pod=self.pod)
+
+    @cached_property
+    def node_ip(self) -> str:
+        """The IPV4/IPV6 IP address the Node the unit is on.
+
+        K8s-only.
+        """
+        return self.k8s.get_node_ip(node=self.node)
 
 
 class ZooKeeper(RelationState):

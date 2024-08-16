@@ -1,4 +1,5 @@
-# Copyright 2023 Canonical Ltd.
+#!/usr/bin/env python3
+# Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 """Manager for handling Kafka OAuth configuration."""

@@ -44,6 +44,9 @@ cryptography = ">42.0.0"
 pydantic ="<2"
 pyyaml = "^6.0.1"
 requests = "^2.32.3"
+lightkube = "0.15.0"
+# FIXME: Unpin once rustc 1.76 is available at build time
+rpds-py = "<0.19"
 
 [tool.poetry.group.fmt]
 optional = true
@@ -61,6 +64,9 @@ black = "^22.3.0"
 ruff = ">=0.1.0"
 codespell = ">=2.2.2"
 pyright = "^1.1.301"
+lightkube = "0.15.0"
+# FIXME: Unpin once rustc 1.76 is available at build time
+rpds-py = "<0.19"
 
 [tool.poetry.group.unit]
 optional = true
@@ -76,7 +82,7 @@ optional = true
 
 [tool.poetry.group.integration.dependencies]
 pytest = ">=7.2"
-juju = "^3.4.0"
+juju = "3.5.0.0"
 coverage = {extras = ["toml"], version = ">7.0"}
 pytest-operator = ">0.20"
 kazoo = ">=2.8"

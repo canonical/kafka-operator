@@ -10,7 +10,7 @@ from enum import Enum
 from charms.data_platform_libs.v0.data_models import BaseConfigModel
 from pydantic import Field, validator
 
-from literals import BALANCER, BROKER
+from literals import BALANCER, BROKER, SUBSTRATE
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +78,7 @@ class CharmConfig(BaseConfigModel):
     network_bandwidth: int = Field(default=50000, validate_default=False, gt=0)
     cruisecontrol_balance_threshold: float = Field(default=1.1, validate_default=False, ge=1)
     cruisecontrol_capacity_threshold: float = Field(default=0.8, validate_default=False, le=1)
+    expose_external: str | None
 
     @validator("*", pre=True)
     @classmethod
@@ -227,6 +228,18 @@ class CharmConfig(BaseConfigModel):
         """Check profile config option is one of `testing`, `staging` or `production`."""
         if value not in ["testing", "staging", "production"]:
             raise ValueError("Value not one of 'testing', 'staging' or 'production'")
+
+        return value
+
+    @validator("expose_external")
+    @classmethod
+    def expose_external_validator(cls, value: str) -> str | None:
+        """Check expose-external config option is only used on Kubernetes charm."""
+        if SUBSTRATE == "vm":
+            return
+
+        if value == "none":
+            return
 
         return value
 

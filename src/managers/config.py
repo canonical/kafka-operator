@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 """Manager for handling Kafka configuration."""
@@ -13,6 +13,7 @@ import textwrap
 from abc import abstractmethod
 from typing import Iterable
 
+from lightkube.core.exceptions import ApiError
 from typing_extensions import override
 
 from core.cluster import ClusterState
@@ -29,8 +30,7 @@ from literals import (
     JVM_MEM_MIN_GB,
     PROFILE_TESTING,
     SECURITY_PROTOCOL_PORTS,
-    AuthMechanism,
-    AuthProtocol,
+    AuthMap,
     Scope,
 )
 
@@ -72,16 +72,21 @@ class Listener:
     """Definition of a listener.
 
     Args:
+        auth_map: AuthMap representing the auth.protocol and auth.mechanism for the listener
+        scope: scope of the listener, CLIENT, INTERNAL or EXTERNAL
         host: string with the host that will be announced
-        protocol: auth protocol to be used
-        scope: scope of the listener, CLIENT or INTERNAL
+        node_port (optional): the node-port for the listener if scope=EXTERNAL
     """
 
-    def __init__(self, host: str, protocol: AuthProtocol, mechanism: AuthMechanism, scope: Scope):
-        self.protocol: AuthProtocol = protocol
-        self.mechanism: AuthMechanism = mechanism
+    def __init__(
+        self, auth_map: AuthMap, scope: Scope, host: str = "", node_port: int | None = None
+    ):
+        self.auth_map = auth_map
+        self.protocol = auth_map.protocol
+        self.mechanism = auth_map.mechanism
         self.host = host
         self.scope = scope
+        self.node_port = node_port
 
     @property
     def scope(self) -> Scope:
@@ -91,8 +96,8 @@ class Listener:
     @scope.setter
     def scope(self, value):
         """Internal scope validator."""
-        if value not in ["CLIENT", "INTERNAL"]:
-            raise ValueError("Only CLIENT and INTERNAL scopes are accepted")
+        if value not in ["CLIENT", "INTERNAL", "EXTERNAL"]:
+            raise ValueError("Only CLIENT, INTERNAL and EXTERNAL scopes are accepted")
 
         self._scope = value
 
@@ -100,15 +105,10 @@ class Listener:
     def port(self) -> int:
         """Port associated with the protocol/scope.
 
-        Defaults to internal port.
-
         Returns:
             Integer of port number
         """
-        port = SECURITY_PROTOCOL_PORTS[self.protocol, self.mechanism]
-        if self.scope == "CLIENT":
-            return port.client
-        return port.internal
+        return getattr(SECURITY_PROTOCOL_PORTS[self.auth_map], self.scope.lower())
 
     @property
     def name(self) -> str:
@@ -122,12 +122,15 @@ class Listener:
 
     @property
     def listener(self) -> str:
-        """Return `name://:port`."""
-        return f"{self.name}://:{self.port}"
+        """Return `name://0.0.0.0:port`."""
+        return f"{self.name}://0.0.0.0:{self.port}"
 
     @property
     def advertised_listener(self) -> str:
         """Return `name://host:port`."""
+        if self.scope == "EXTERNAL":
+            return f"{self.name}://{self.host}:{self.node_port}"
+
         return f"{self.name}://{self.host}:{self.port}"
 
 
@@ -246,16 +249,6 @@ class CommonConfigManager:
 
         return f"KAFKA_HEAP_OPTS='{' '.join(opts)}'"
 
-    @property
-    def security_protocol(self) -> AuthProtocol:
-        """Infers current charm security.protocol based on current relations."""
-        # FIXME: When we have multiple auth_mechanims/listeners, remove this method
-        return (
-            "SASL_SSL"
-            if (self.state.cluster.tls_enabled and self.state.unit_broker.certificate)
-            else "SASL_PLAINTEXT"
-        )
-
 
 class ConfigManager(CommonConfigManager):
     """Manager for handling Kafka configuration."""
@@ -371,8 +364,7 @@ class ConfigManager(CommonConfigManager):
             f'listener.name.{listener_name}.{listener_mechanism}.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";',
             f"listener.name.{listener_name}.sasl.enabled.mechanisms={self.internal_listener.mechanism}",
         ]
-
-        for auth in self.client_listeners:
+        for auth in self.client_listeners + self.external_listeners:
             if not auth.mechanism.startswith("SCRAM"):
                 continue
 
@@ -415,7 +407,7 @@ class ConfigManager(CommonConfigManager):
         if not self.state.oauth.uses_trusted_ca:
             truststore_cfg = f'oauth.ssl.truststore.location="{self.workload.paths.truststore}" oauth.ssl.truststore.password="{self.state.unit_broker.truststore_password}" oauth.ssl.truststore.type="JKS"'
 
-        scram_properties = [
+        oauth_properties = [
             textwrap.dedent(
                 f"""\
                 listener.name.{listener.name.lower()}.{listener.mechanism.lower()}.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \\
@@ -435,58 +427,64 @@ class ConfigManager(CommonConfigManager):
             "principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder",
         ]
 
-        return scram_properties
-
-    @property
-    def security_protocol(self) -> AuthProtocol:
-        """Infers current charm security.protocol based on current relations."""
-        return (
-            "SASL_SSL"
-            if (self.state.cluster.tls_enabled and self.state.unit_broker.certificate)
-            else "SASL_PLAINTEXT"
-        )
+        return oauth_properties
 
     @property
     def internal_listener(self) -> Listener:
         """Return the internal listener."""
-        protocol = self.security_protocol
-        mechanism: AuthMechanism = "SCRAM-SHA-512"
         return Listener(
-            host=self.state.unit_broker.host,
-            protocol=protocol,
-            mechanism=mechanism,
+            host=self.state.unit_broker.internal_address,
+            auth_map=self.state.default_auth,
             scope="INTERNAL",
         )
 
     @property
     def client_listeners(self) -> list[Listener]:
         """Return a list of extra listeners."""
-        protocol_mechanism_dict: list[tuple[AuthProtocol, AuthMechanism]] = []
-
-        related_clients = bool(self.state.client_relations)
-        balancer_involved = self.state.runs_balancer or self.state.peer_cluster_relation
-
-        if related_clients or balancer_involved:
-            protocol_mechanism_dict.append((self.security_protocol, "SCRAM-SHA-512"))
-        if self.state.oauth_relation:
-            protocol_mechanism_dict.append((self.security_protocol, "OAUTHBEARER"))
-        if self.state.cluster.mtls_enabled:
-            protocol_mechanism_dict.append(("SSL", "SSL"))
-
         return [
             Listener(
-                host=self.state.unit_broker.host,
-                protocol=protocol,
-                mechanism=mechanism,
-                scope="CLIENT",
+                host=self.state.unit_broker.internal_address, auth_map=auth_map, scope="CLIENT"
             )
-            for protocol, mechanism in protocol_mechanism_dict
+            for auth_map in self.state.enabled_auth
         ]
+
+    @property
+    def external_listeners(self) -> list[Listener]:
+        """Return a list of extra listeners."""
+        if not self.config.expose_external:
+            return []
+
+        listeners = []
+        for auth in self.state.enabled_auth:
+            node_port = 0
+            try:
+                node_port = self.state.unit_broker.k8s.get_listener_nodeport(auth)
+            except ApiError as e:
+                # don't worry about defining a service during cluster init
+                # as it doesn't exist yet to `kubectl get`
+                logger.debug(e)
+                continue
+
+            if not node_port:
+                continue
+
+            listeners.append(
+                Listener(
+                    auth_map=auth,
+                    scope="EXTERNAL",
+                    host=self.state.unit_broker.host,
+                    # default in case service not created yet during cluster init
+                    # will resolve during config-changed
+                    node_port=node_port,
+                )
+            )
+
+        return listeners
 
     @property
     def all_listeners(self) -> list[Listener]:
         """Return a list with all expected listeners."""
-        return [self.internal_listener] + self.client_listeners
+        return [self.internal_listener] + self.client_listeners + self.external_listeners
 
     @property
     def inter_broker_protocol_version(self) -> str:
@@ -541,8 +539,8 @@ class ConfigManager(CommonConfigManager):
 
         properties = [
             f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";',
-            "sasl.mechanism=SCRAM-SHA-512",
-            f"security.protocol={self.security_protocol}",
+            f"sasl.mechanism={self.state.default_auth.mechanism}",
+            f"security.protocol={self.state.default_auth.protocol}",
             f"bootstrap.servers={self.state.bootstrap_server}",
         ]
 
@@ -788,8 +786,8 @@ class BalancerConfigManager(CommonConfigManager):
                 f"zookeeper.connect={self.state.balancer.zk_uris}",
                 "zookeeper.security.enabled=true",
                 f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{self.state.balancer.broker_username}" password="{self.state.balancer.broker_password}";',
-                "sasl.mechanism=SCRAM-SHA-512",
-                f"security.protocol={self.security_protocol}",
+                f"sasl.mechanism={self.state.default_auth.mechanism}",
+                f"security.protocol={self.state.default_auth.protocol}",
                 f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
                 "webserver.security.enable=true",
                 f"webserver.auth.credentials.file={self.workload.paths.cruise_control_auth}",

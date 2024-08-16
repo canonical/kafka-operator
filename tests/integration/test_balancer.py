@@ -19,7 +19,6 @@ from literals import (
 
 from .helpers import (
     APP_NAME,
-    KAFKA_CONTAINER,
     ZK_NAME,
     balancer_exporter_is_up,
     balancer_is_ready,
@@ -58,9 +57,15 @@ class TestBalancer:
                     "roles": "broker,balancer" if self.balancer_app == APP_NAME else "broker",
                     "profile": "testing",
                 },
+                trust=True,
             ),
             ops_test.model.deploy(
-                ZK_NAME, channel="3/edge", application_name=ZK_NAME, num_units=1, series="jammy"
+                ZK_NAME,
+                channel="3/edge",
+                application_name=ZK_NAME,
+                num_units=1,
+                series="jammy",
+                trust=True,
             ),
             ops_test.model.deploy(
                 "kafka-test-app",
@@ -75,6 +80,7 @@ class TestBalancer:
                     "partitions": 100,
                     "replication_factor": "3",
                 },
+                trust=True,
             ),
         )
 
@@ -88,6 +94,7 @@ class TestBalancer:
                     "roles": self.balancer_app,
                     "profile": "testing",
                 },
+                trust=True,
             )
 
         await ops_test.model.wait_for_idle(

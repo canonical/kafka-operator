@@ -64,7 +64,7 @@ class PasswordActionEvents(Object):
             event.fail(msg)
             return
 
-        new_password = event.params.get("password", self.charm.workload.generate_password())
+        new_password = event.params.get("password", self.dependent.workload.generate_password())
 
         if new_password in self.charm.state.cluster.internal_user_credentials.values():
             msg = "Password already exists, please choose a different password."
