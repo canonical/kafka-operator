@@ -184,6 +184,8 @@ MODE_FULL = "full"
 MODE_ADD = "add"
 MODE_REMOVE = "remove"
 
+PROFILE_TESTING = "testing"
+
 
 @dataclass
 class StatusLevel:

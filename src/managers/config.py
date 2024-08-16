@@ -27,6 +27,7 @@ from literals import (
     JMX_EXPORTER_PORT,
     JVM_MEM_MAX_GB,
     JVM_MEM_MIN_GB,
+    PROFILE_TESTING,
     SECURITY_PROTOCOL_PORTS,
     AuthMechanism,
     AuthProtocol,
@@ -42,12 +43,27 @@ allow.everyone.if.no.acl.found=false
 auto.create.topics.enable=false
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
 """
+TESTING_OPTIONS = """
+cruise.control.metrics.reporter.metrics.reporting.interval.ms=6000
+"""
 CRUISE_CONTROL_CONFIG_OPTIONS = """
 metric.reporter.topic=__CruiseControlMetrics
 sample.store.class=com.linkedin.kafka.cruisecontrol.monitor.sampling.KafkaSampleStore
 partition.metric.sample.store.topic=__KafkaCruiseControlPartitionMetricSamples
 broker.metric.sample.store.topic=__KafkaCruiseControlModelTrainingSamples
 max.active.user.tasks=10
+"""
+# Divided periods by 20
+CRUISE_CONTROL_TESTING_OPTIONS = """
+cruise.control.metrics.reporter.metrics.reporting.interval.ms=3000
+broker.metrics.window.ms=15000
+partition.metrics.window.ms=15000
+metadata.max.age.ms=5000
+metric.sampling.interval.ms=6000
+min.samples.per.broker.metrics.window=1
+min.samples.per.partition.metrics.window=1
+num.partition.metrics.windows=1
+num.broker.metrics.windows=10
 """
 SERVER_PROPERTIES_BLACKLIST = ["profile", "log_level", "certificate_extra_sans"]
 
@@ -586,6 +602,9 @@ class ConfigManager(CommonConfigManager):
         if self.state.cluster.tls_enabled and self.state.unit_broker.certificate:
             properties += self.tls_properties + self.zookeeper_tls_properties
 
+        if self.config.profile == PROFILE_TESTING:
+            properties += TESTING_OPTIONS
+
         return properties
 
     @property
@@ -781,6 +800,9 @@ class BalancerConfigManager(CommonConfigManager):
 
         if self.state.cluster.tls_enabled and self.state.unit_broker.certificate:
             properties += self.cc_tls_properties + self.cc_zookeeper_tls_properties
+
+        if self.config.profile == PROFILE_TESTING:
+            properties += CRUISE_CONTROL_TESTING_OPTIONS
 
         return properties
 

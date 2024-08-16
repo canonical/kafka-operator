@@ -29,13 +29,14 @@ from literals import (
     DEPENDENCIES,
     GROUP,
     PEER,
+    PROFILE_TESTING,
     REL_NAME,
     USER,
     Status,
 )
 from managers.auth import AuthManager
 from managers.balancer import BalancerManager
-from managers.config import ConfigManager
+from managers.config import TESTING_OPTIONS, ConfigManager
 from managers.tls import TLSManager
 from workload import KafkaWorkload
 
@@ -109,6 +110,13 @@ class BrokerOperator(Object):
         """Handler for `install` event."""
         self.config_manager.set_environment()
         self.charm.unit.set_workload_version(self.workload.get_version())
+
+        if self.charm.config.profile == PROFILE_TESTING:
+            logger.info(
+                "Kafka is deployed with the 'testing' profile."
+                "The following properties will be set:\n"
+                f"{TESTING_OPTIONS}"
+            )
 
     def _on_start(self, event: StartEvent) -> None:
         """Handler for `start` event."""

@@ -2,6 +2,7 @@
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import os
 from pathlib import Path
 
 import pytest
@@ -14,8 +15,13 @@ def usernames():
 
 
 @pytest.fixture(scope="module")
-async def kafka_charm(ops_test: OpsTest) -> Path:
+async def kafka_charm(ops_test: OpsTest):
     """Kafka charm used for integration testing."""
+    in_ci = os.environ.get("CI", None) is not None
+    local_charm = next(iter(Path(".").glob("*.charm")), None)
+    if in_ci and local_charm is not None:
+        return local_charm.absolute()
+
     charm = await ops_test.build_charm(".")
     return charm
 

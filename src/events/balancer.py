@@ -17,10 +17,11 @@ from literals import (
     BALANCER_WEBSERVER_USER,
     MODE_ADD,
     MODE_REMOVE,
+    PROFILE_TESTING,
     Status,
 )
 from managers.balancer import BalancerManager
-from managers.config import BalancerConfigManager
+from managers.config import CRUISE_CONTROL_TESTING_OPTIONS, BalancerConfigManager
 from managers.tls import TLSManager
 from workload import BalancerWorkload
 
@@ -64,6 +65,12 @@ class BalancerOperator(Object):
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
         self.config_manager.set_environment()
+        if self.charm.config.profile == PROFILE_TESTING:
+            logger.info(
+                "CruiseControl is deployed with the 'testing' profile."
+                "The following properties will be set:\n"
+                f"{CRUISE_CONTROL_TESTING_OPTIONS}"
+            )
 
     def _on_start(self, event: EventBase) -> None:
         """Handler for `start` event."""
@@ -145,6 +152,12 @@ class BalancerOperator(Object):
 
     def rebalance(self, event: ActionEvent) -> None:
         """Handles the `rebalance` Juju Action."""
+        if self.charm.state.runs_broker:
+            available_brokers = [broker.unit_id for broker in self.charm.state.brokers]
+        else:
+            brokers: list = self.charm.state.balancer.broker_capacities.get("brokerCapacities", [])
+            available_brokers = [int(broker["brokerId"]) for broker in brokers]
+
         failure_conditions = [
             (not self.charm.unit.is_leader(), "Action must be ran on the application leader"),
             (
@@ -166,8 +179,7 @@ class BalancerOperator(Object):
             ),
             (
                 event.params["mode"] in (MODE_ADD, MODE_REMOVE)
-                and event.params.get("brokerid")
-                not in [broker.unit_id for broker in self.charm.state.brokers],
+                and event.params.get("brokerid") not in available_brokers,
                 "invalid brokerid",
             ),
         ]

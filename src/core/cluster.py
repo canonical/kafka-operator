@@ -357,7 +357,7 @@ class ClusterState(Object):
     def broker_capacities(self) -> dict[str, list[JSON]]:
         """The capacities for all Kafka broker."""
         broker_capacities = []
-        for broker in self.brokers:
+        for broker in sorted(self.brokers, key=lambda broker: broker.unit_id, reverse=True):
             if not all([broker.cores, broker.storages]):
                 return {}
 
