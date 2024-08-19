@@ -148,7 +148,7 @@ class BrokerOperator(Object):
                 f"{TESTING_OPTIONS}"
             )
 
-    def _on_start(self, event: StartEvent) -> None:
+    def _on_start(self, event: StartEvent | PebbleReadyEvent) -> None:
         """Handler for `start` event."""
         if self.charm.state.peer_relation:
             self.charm.state.unit_broker.update(
