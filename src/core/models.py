@@ -7,7 +7,7 @@
 import json
 import logging
 from functools import cached_property
-from typing import MutableMapping, TypeAlias
+from typing import MutableMapping, TypeAlias, TypedDict
 
 import requests
 from charms.data_platform_libs.v0.data_interfaces import (
@@ -34,6 +34,14 @@ from managers.k8s import K8sManager
 logger = logging.getLogger(__name__)
 
 JSON: TypeAlias = dict[str, "JSON"] | list["JSON"] | str | int | float | bool | None
+
+
+CPU = TypedDict("CPU", {"num.cores": str})
+Capacity = TypedDict("Capacity", {"DISK": dict[str, str], "CPU": CPU, "NW_IN": str, "NW_OUT": str})
+BrokerCapacity = TypedDict("BrokerCapacity", {"brokerId": str, "capacity": Capacity, "doc": str})
+BrokerCapacities = TypedDict(
+    "BrokerCapacities", {"brokerCapacities": list[BrokerCapacity]}, total=False
+)
 
 
 class RelationState:
@@ -85,7 +93,7 @@ class PeerCluster(RelationState):
         broker_password: str = "",
         broker_uris: str = "",
         racks: int = 0,
-        broker_capacities: dict[str, list[JSON]] = {},
+        broker_capacities: BrokerCapacities = {},
         zk_username: str = "",
         zk_password: str = "",
         zk_uris: str = "",
@@ -180,7 +188,7 @@ class PeerCluster(RelationState):
         )
 
     @property
-    def broker_capacities(self) -> dict[str, list[JSON]]:
+    def broker_capacities(self) -> BrokerCapacities:
         """The capacities for all Kafka brokers."""
         if self._broker_capacities:
             return self._broker_capacities

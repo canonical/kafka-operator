@@ -21,6 +21,7 @@ from core.structured_config import CharmConfig, LogLevel
 from core.workload import WorkloadBase
 from literals import (
     ADMIN_USER,
+    BALANCER_GOALS_TESTING,
     DEFAULT_BALANCER_GOALS,
     HARD_BALANCER_GOALS,
     INTER_BROKER_USER,
@@ -44,7 +45,7 @@ auto.create.topics.enable=false
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
 """
 TESTING_OPTIONS = """
-cruise.control.metrics.reporter.metrics.reporting.interval.ms=6000
+cruise.control.metrics.reporter.metrics.reporting.interval.ms=12000
 """
 CRUISE_CONTROL_CONFIG_OPTIONS = """
 metric.reporter.topic=__CruiseControlMetrics
@@ -53,13 +54,13 @@ partition.metric.sample.store.topic=__KafkaCruiseControlPartitionMetricSamples
 broker.metric.sample.store.topic=__KafkaCruiseControlModelTrainingSamples
 max.active.user.tasks=10
 """
-# Divided periods by 20
+# Divided periods by 10
 CRUISE_CONTROL_TESTING_OPTIONS = """
-cruise.control.metrics.reporter.metrics.reporting.interval.ms=3000
-broker.metrics.window.ms=15000
-partition.metrics.window.ms=15000
-metadata.max.age.ms=5000
-metric.sampling.interval.ms=6000
+cruise.control.metrics.reporter.metrics.reporting.interval.ms=6000
+broker.metrics.window.ms=30000
+partition.metrics.window.ms=30000
+metadata.max.age.ms=10000
+metric.sampling.interval.ms=12000
 min.samples.per.broker.metrics.window=1
 min.samples.per.partition.metrics.window=1
 num.partition.metrics.windows=1
@@ -601,7 +602,7 @@ class ConfigManager(CommonConfigManager):
             properties += self.tls_properties + self.zookeeper_tls_properties
 
         if self.config.profile == PROFILE_TESTING:
-            properties += TESTING_OPTIONS
+            properties += TESTING_OPTIONS.split("\n")
 
         return properties
 
@@ -726,9 +727,12 @@ class BalancerConfigManager(CommonConfigManager):
         """
         goals = DEFAULT_BALANCER_GOALS
 
+        if self.config.profile == PROFILE_TESTING:
+            goals = BALANCER_GOALS_TESTING
+
         if self.state.balancer.racks:
             if (
-                min([3, len(self.state.balancer.broker_capacities["brokerCapacities"])])
+                min([3, len(self.state.balancer.broker_capacities.get("brokerCapacities", []))])
                 > self.state.balancer.racks
             ):  # replication-factor > racks is not ideal
                 goals = goals + ["RackAwareDistribution"]
@@ -801,7 +805,7 @@ class BalancerConfigManager(CommonConfigManager):
             properties += self.cc_tls_properties + self.cc_zookeeper_tls_properties
 
         if self.config.profile == PROFILE_TESTING:
-            properties += CRUISE_CONTROL_TESTING_OPTIONS
+            properties += CRUISE_CONTROL_TESTING_OPTIONS.split("\n")
 
         return properties
 

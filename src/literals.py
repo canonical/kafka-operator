@@ -181,6 +181,7 @@ HARD_BALANCER_GOALS = [
     "CpuCapacity",
     "ReplicaDistribution",
 ]
+BALANCER_GOALS_TESTING = ["ReplicaDistribution"]
 
 
 MODE_FULL = "full"

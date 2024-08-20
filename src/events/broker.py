@@ -149,7 +149,11 @@ class BrokerOperator(Object):
             )
 
     def _on_start(self, event: StartEvent | PebbleReadyEvent) -> None:
-        """Handler for `start` event."""
+        """Handler for `start` or `pebble-ready` events."""
+        if not self.workload.container_can_connect:
+            event.defer()
+            return
+
         if self.charm.state.peer_relation:
             self.charm.state.unit_broker.update(
                 {"cores": str(self.balancer_manager.cores), "rack": self.config_manager.rack}

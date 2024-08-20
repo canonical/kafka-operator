@@ -23,7 +23,7 @@ from ops import Object, Relation
 from ops.model import Unit
 
 from core.models import (
-    JSON,
+    BrokerCapacities,
     KafkaBroker,
     KafkaClient,
     KafkaCluster,
@@ -404,7 +404,7 @@ class ClusterState(Object):
         return len({broker.rack for broker in self.brokers if broker.rack})
 
     @property
-    def broker_capacities(self) -> dict[str, list[JSON]]:
+    def broker_capacities(self) -> BrokerCapacities:
         """The capacities for all Kafka broker."""
         broker_capacities = []
         for broker in sorted(self.brokers, key=lambda broker: broker.unit_id, reverse=True):

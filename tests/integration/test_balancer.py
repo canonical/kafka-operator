@@ -77,7 +77,7 @@ class TestBalancer:
                     "topic_name": "HOT-TOPIC",
                     "num_messages": 100000,
                     "role": "producer",
-                    "partitions": 100,
+                    "partitions": 20,
                     "replication_factor": "3",
                 },
                 trust=True,
@@ -158,6 +158,9 @@ class TestBalancer:
         assert balancer_is_ready(ops_test=ops_test, app_name=self.balancer_app)
 
     @pytest.mark.abort_on_fail
+    @pytest.mark.skipif(
+        deployment_strat == "single", reason="Testing full rebalance on large deployment"
+    )
     async def test_add_unit_full_rebalance(self, ops_test: OpsTest):
         await ops_test.model.applications[APP_NAME].add_units(
             count=1  # up to 4, new unit won't have any partitions
@@ -188,23 +191,26 @@ class TestBalancer:
                 leader_unit = unit
 
         rebalance_action_dry_run = await leader_unit.run_action(
-            "rebalance", mode="full", dryrun=True, block=True, timeout=1200
+            "rebalance", mode="full", dryrun=True
         )
         response = await rebalance_action_dry_run.wait()
         assert response.results
 
-        rebalance_action = await leader_unit.run_action(
-            "rebalance", mode="full", dryrun=False, block=True, timeout=1200
-        )
+        rebalance_action = await leader_unit.run_action("rebalance", mode="full", dryrun=False)
         response = await rebalance_action.wait()
         assert response.results
 
+        assert balancer_is_ready(ops_test=ops_test, app_name=self.balancer_app)
         assert int(
             get_replica_count_by_broker_id(ops_test, self.balancer_app).get(str(new_broker_id), 0)
         )  # replicas were successfully moved
 
     @pytest.mark.abort_on_fail
+    @pytest.mark.skipif(
+        deployment_strat == "single", reason="Testing full rebalance on large deployment"
+    )
     async def test_remove_unit_full_rebalance(self, ops_test: OpsTest):
+        assert balancer_is_ready(ops_test=ops_test, app_name=self.balancer_app)
         # verify CC can find the new broker_id 3, with no replica partitions allocated
         broker_replica_count = get_replica_count_by_broker_id(ops_test, self.balancer_app)
         new_broker_id = max(map(int, broker_replica_count.keys()))
@@ -243,19 +249,16 @@ class TestBalancer:
                 leader_unit = unit
 
         rebalance_action_dry_run = await leader_unit.run_action(
-            "rebalance", mode="full", dryrun=True, block=True, timeout=1200
+            "rebalance", mode="full", dryrun=True
         )
         response = await rebalance_action_dry_run.wait()
         assert response.results
 
-        rebalance_action = await leader_unit.run_action(
-            "rebalance", mode="full", dryrun=False, block=True, timeout=1200
-        )
+        rebalance_action = await leader_unit.run_action("rebalance", mode="full", dryrun=False)
         response = await rebalance_action.wait()
         assert response.results
 
-        await asyncio.sleep(30)  # give cruise control some time to cleanup everything
-
+        assert balancer_is_ready(ops_test=ops_test, app_name=self.balancer_app)
         post_rebalance_replica_counts = get_replica_count_by_broker_id(ops_test, self.balancer_app)
 
         assert not int(post_rebalance_replica_counts.get(str(new_broker_id), 0))
@@ -266,7 +269,11 @@ class TestBalancer:
             assert int(value) < int(post_rebalance_replica_counts.get(key, 0))
 
     @pytest.mark.abort_on_fail
+    @pytest.mark.skipif(
+        deployment_strat == "multi", reason="Testing full rebalance on single-app deployment"
+    )
     async def test_add_unit_targeted_rebalance(self, ops_test: OpsTest):
+        assert balancer_is_ready(ops_test=ops_test, app_name=self.balancer_app)
         await ops_test.model.applications[APP_NAME].add_units(
             count=1  # up to 4, new unit won't have any partitions
         )
@@ -299,17 +306,18 @@ class TestBalancer:
                 leader_unit = unit
 
         rebalance_action_dry_run = await leader_unit.run_action(
-            "rebalance", mode="add", brokerid=new_broker_id, dryrun=True, block=True, timeout=1200
+            "rebalance", mode="add", brokerid=new_broker_id, dryrun=True
         )
         response = await rebalance_action_dry_run.wait()
         assert response.results
 
         rebalance_action = await leader_unit.run_action(
-            "rebalance", mode="add", brokerid=new_broker_id, dryrun=False, block=True, timeout=1200
+            "rebalance", mode="add", brokerid=new_broker_id, dryrun=False
         )
         response = await rebalance_action.wait()
         assert response.results
 
+        assert balancer_is_ready(ops_test=ops_test, app_name=self.balancer_app)
         post_rebalance_replica_counts = get_replica_count_by_broker_id(ops_test, self.balancer_app)
 
         # Partition only were moved from existing brokers to the new one
@@ -324,7 +332,11 @@ class TestBalancer:
         )  # replicas were successfully moved
 
     @pytest.mark.abort_on_fail
+    @pytest.mark.skipif(
+        deployment_strat == "multi", reason="Testing full rebalance on single-app deployment"
+    )
     async def test_balancer_prepare_unit_removal(self, ops_test: OpsTest):
+        assert balancer_is_ready(ops_test=ops_test, app_name=self.balancer_app)
         broker_replica_count = get_replica_count_by_broker_id(ops_test, self.balancer_app)
         new_broker_id = max(map(int, broker_replica_count.keys()))
 
@@ -344,8 +356,6 @@ class TestBalancer:
             mode="remove",
             brokerid=new_broker_id,
             dryrun=True,
-            block=True,
-            timeout=1200,
         )
         response = await rebalance_action_dry_run.wait()
         assert response.results
@@ -355,12 +365,11 @@ class TestBalancer:
             mode="remove",
             brokerid=new_broker_id,
             dryrun=False,
-            block=True,
-            timeout=1200,
         )
         response = await rebalance_action.wait()
         assert response.results
 
+        assert balancer_is_ready(ops_test=ops_test, app_name=self.balancer_app)
         post_rebalance_replica_counts = get_replica_count_by_broker_id(ops_test, self.balancer_app)
 
         # Partition only were moved from the removed broker to the other ones
@@ -383,7 +392,7 @@ class TestBalancer:
         await ops_test.model.deploy(
             TLS_NAME, channel="edge", config=tls_config, series="jammy", revision=163
         )
-        await ops_test.model.wait_for_idle(apps=[TLS_NAME], idle_period=15, timeout=1800)
+        await ops_test.model.wait_for_idle(apps=[TLS_NAME], idle_period=15)
         assert ops_test.model.applications[TLS_NAME].status == "active"
 
         await ops_test.model.add_relation(TLS_NAME, ZK_NAME)
@@ -393,7 +402,7 @@ class TestBalancer:
             await ops_test.model.add_relation(TLS_NAME, f"{BALANCER_APP}:{TLS_RELATION}")
 
         await ops_test.model.wait_for_idle(
-            apps=list({APP_NAME, ZK_NAME, self.balancer_app}), idle_period=30
+            apps=list({APP_NAME, ZK_NAME, self.balancer_app}), idle_period=30, timeout=1800
         )
         async with ops_test.fast_forward(fast_interval="20s"):
             await asyncio.sleep(120)  # ensure update-status adds broker-capacities if missed

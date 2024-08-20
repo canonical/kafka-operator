@@ -4,6 +4,7 @@
 
 """Balancer role core charm logic."""
 
+import json
 import logging
 from subprocess import CalledProcessError
 from typing import TYPE_CHECKING
@@ -27,6 +28,7 @@ from literals import (
     MODE_ADD,
     MODE_REMOVE,
     PROFILE_TESTING,
+    SUBSTRATE,
     Status,
 )
 from managers.balancer import BalancerManager
@@ -48,9 +50,9 @@ class BalancerOperator(Object):
         self.charm: "KafkaCharm" = charm
 
         self.workload = BalancerWorkload(
-            container=self.charm.unit.get_container(CONTAINER)
-            if self.charm.substrate == "k8s"
-            else None
+            container=(
+                self.charm.unit.get_container(CONTAINER) if self.charm.substrate == "k8s" else None
+            )
         )
 
         self.tls_manager = TLSManager(
@@ -90,6 +92,7 @@ class BalancerOperator(Object):
             return
 
         self.config_manager.set_environment()
+
         if self.charm.config.profile == PROFILE_TESTING:
             logger.info(
                 "CruiseControl is deployed with the 'testing' profile."
@@ -165,6 +168,21 @@ class BalancerOperator(Object):
                     )
                 )
                 content_changed = True
+
+        # On k8s, adding/removing a broker does not change the bootstrap server property if exposed by nodeport
+        broker_capacities = self.charm.state.balancer.broker_capacities
+        if (
+            SUBSTRATE == "k8s"
+            and (
+                file_content := json.loads(
+                    "".join(self.workload.read(self.workload.paths.capacity_jbod_json))
+                )
+            )
+            != broker_capacities
+        ):
+            logger.info(f"Balancer {self.charm.unit.name.split('/')[1]} updating capacity config")
+
+            content_changed = True
 
         if content_changed:
             # safe to update everything even if it hasn't changed, service will restart anyway
