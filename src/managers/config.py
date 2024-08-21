@@ -18,10 +18,11 @@ from typing_extensions import override
 
 from core.cluster import ClusterState
 from core.structured_config import CharmConfig, LogLevel
-from core.workload import WorkloadBase
+from core.workload import CharmedKafkaPaths, WorkloadBase
 from literals import (
     ADMIN_USER,
     BALANCER_GOALS_TESTING,
+    BROKER,
     DEFAULT_BALANCER_GOALS,
     HARD_BALANCER_GOALS,
     INTER_BROKER_USER,
@@ -178,7 +179,7 @@ class CommonConfigManager:
         """
         opts = [
             "-Dcom.sun.management.jmxremote",
-            f"-javaagent:{self.workload.paths.jmx_prometheus_javaagent}={JMX_CC_PORT}:{self.workload.paths.jmx_cc_config}",
+            f"-javaagent:{CharmedKafkaPaths(BROKER).jmx_prometheus_javaagent}={JMX_CC_PORT}:{self.workload.paths.jmx_cc_config}",
         ]
 
         return f"CC_JMX_OPTS='{' '.join(opts)}'"
