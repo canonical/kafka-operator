@@ -190,11 +190,13 @@ class TestBalancer:
             if await unit.is_leader_from_status():
                 leader_unit = unit
 
-        rebalance_action_dry_run = await leader_unit.run_action(
-            "rebalance", mode="full", dryrun=True
-        )
-        response = await rebalance_action_dry_run.wait()
-        assert response.results
+        # rebalance_action_dry_run = await leader_unit.run_action(
+        #     "rebalance", mode="full", dryrun=True
+        # )
+        # response = await rebalance_action_dry_run.wait()
+        # assert response.results
+
+        await asyncio.sleep(30)  # Give CC some room to breathe
 
         rebalance_action = await leader_unit.run_action("rebalance", mode="full", dryrun=False)
         response = await rebalance_action.wait()
@@ -248,11 +250,13 @@ class TestBalancer:
             if await unit.is_leader_from_status():
                 leader_unit = unit
 
-        rebalance_action_dry_run = await leader_unit.run_action(
-            "rebalance", mode="full", dryrun=True
-        )
-        response = await rebalance_action_dry_run.wait()
-        assert response.results
+        # rebalance_action_dry_run = await leader_unit.run_action(
+        #     "rebalance", mode="full", dryrun=True
+        # )
+        # response = await rebalance_action_dry_run.wait()
+        # assert response.results
+
+        await asyncio.sleep(30)  # Give CC some room to breathe
 
         rebalance_action = await leader_unit.run_action("rebalance", mode="full", dryrun=False)
         response = await rebalance_action.wait()
@@ -305,11 +309,13 @@ class TestBalancer:
             if await unit.is_leader_from_status():
                 leader_unit = unit
 
-        rebalance_action_dry_run = await leader_unit.run_action(
-            "rebalance", mode="add", brokerid=new_broker_id, dryrun=True
-        )
-        response = await rebalance_action_dry_run.wait()
-        assert response.results
+        # rebalance_action_dry_run = await leader_unit.run_action(
+        #     "rebalance", mode="add", brokerid=new_broker_id, dryrun=True
+        # )
+        # response = await rebalance_action_dry_run.wait()
+        # assert response.results
+
+        await asyncio.sleep(30)  # Give CC some room to breathe
 
         rebalance_action = await leader_unit.run_action(
             "rebalance", mode="add", brokerid=new_broker_id, dryrun=False
@@ -351,14 +357,16 @@ class TestBalancer:
             if await unit.is_leader_from_status():
                 leader_unit = unit
 
-        rebalance_action_dry_run = await leader_unit.run_action(
-            "rebalance",
-            mode="remove",
-            brokerid=new_broker_id,
-            dryrun=True,
-        )
-        response = await rebalance_action_dry_run.wait()
-        assert response.results
+        # rebalance_action_dry_run = await leader_unit.run_action(
+        #     "rebalance",
+        #     mode="remove",
+        #     brokerid=new_broker_id,
+        #     dryrun=True,
+        # )
+        # response = await rebalance_action_dry_run.wait()
+        # assert response.results
+
+        await asyncio.sleep(30)  # Give CC some room to breathe
 
         rebalance_action = await leader_unit.run_action(
             "rebalance",

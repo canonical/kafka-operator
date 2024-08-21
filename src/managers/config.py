@@ -46,7 +46,7 @@ auto.create.topics.enable=false
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
 """
 TESTING_OPTIONS = """
-cruise.control.metrics.reporter.metrics.reporting.interval.ms=12000
+cruise.control.metrics.reporter.metrics.reporting.interval.ms=6000
 """
 CRUISE_CONTROL_CONFIG_OPTIONS = """
 metric.reporter.topic=__CruiseControlMetrics
@@ -64,7 +64,7 @@ metadata.max.age.ms=10000
 metric.sampling.interval.ms=12000
 min.samples.per.broker.metrics.window=1
 min.samples.per.partition.metrics.window=1
-num.partition.metrics.windows=1
+num.partition.metrics.windows=3
 num.broker.metrics.windows=10
 """
 SERVER_PROPERTIES_BLACKLIST = ["profile", "log_level", "certificate_extra_sans"]
