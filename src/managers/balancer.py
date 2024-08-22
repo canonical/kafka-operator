@@ -10,6 +10,7 @@ import time
 from typing import TYPE_CHECKING, Any
 
 import requests
+from tenacity import retry, retry_if_result, stop_after_attempt, wait_fixed
 
 from core.models import JSON
 from literals import BALANCER, BALANCER_TOPICS, MODE_FULL, STORAGE
@@ -85,8 +86,12 @@ class CruiseControlClient:
         return ""
 
     @property
+    @retry(
+        wait=wait_fixed(5), stop=stop_after_attempt(3), retry=retry_if_result(lambda res: not res)
+    )
     def monitoring(self) -> bool:
         """Flag to confirm that the CruiseControl Monitor is up-and-running."""
+        # Retry-able because CC oftentimes goes into "SAMPLING"
         return (
             self.get(endpoint="state", verbose="True")
             .json()
@@ -134,9 +139,9 @@ class BalancerManager:
         )
 
     @property
-    def cores(self) -> int:
+    def cores(self) -> str:
         """Gets the total number of CPU cores for the machine."""
-        return int(self.dependent.workload.exec(["nproc", "--all"]))
+        return self.dependent.workload.exec(["nproc", "--all"]).strip()
 
     @property
     def storages(self) -> str:

@@ -420,7 +420,7 @@ class ClusterState(Object):
                         "NW_IN": str(self.network_bandwidth),
                         "NW_OUT": str(self.network_bandwidth),
                     },
-                    "doc": str(broker.host),
+                    "doc": "",
                 }
             )
 

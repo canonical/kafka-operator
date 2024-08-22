@@ -28,7 +28,6 @@ from literals import (
     MODE_ADD,
     MODE_REMOVE,
     PROFILE_TESTING,
-    SUBSTRATE,
     Status,
 )
 from managers.balancer import BalancerManager
@@ -131,7 +130,7 @@ class BalancerOperator(Object):
             event.defer()
             return
 
-        self.workload.start()
+        self.workload.restart()
         logger.info("CruiseControl service started")
 
     def _on_config_changed(self, _: EventBase) -> None:
@@ -172,14 +171,10 @@ class BalancerOperator(Object):
         # On k8s, adding/removing a broker does not change the bootstrap server property if exposed by nodeport
         broker_capacities = self.charm.state.balancer.broker_capacities
         if (
-            SUBSTRATE == "k8s"
-            and (
-                file_content := json.loads(
-                    "".join(self.workload.read(self.workload.paths.capacity_jbod_json))
-                )
+            file_content := json.loads(
+                "".join(self.workload.read(self.workload.paths.capacity_jbod_json))
             )
-            != broker_capacities
-        ):
+        ) != broker_capacities:
             logger.info(f"Balancer {self.charm.unit.name.split('/')[1]} updating capacity config")
 
             content_changed = True
@@ -215,8 +210,8 @@ class BalancerOperator(Object):
                 "CruiseControl balancer service has not yet collected enough data to provide a partition reallocation proposal",
             ),
             (
-                event.params.get("brokerid", None) is None
-                and event.params["mode"] in (MODE_ADD, MODE_REMOVE),
+                event.params["mode"] in (MODE_ADD, MODE_REMOVE)
+                and event.params.get("brokerid", None) is None,
                 "'add' and 'remove' rebalance action require passing the 'brokerid' parameter",
             ),
             (
@@ -228,15 +223,18 @@ class BalancerOperator(Object):
 
         for check, msg in failure_conditions:
             if check:
+                logging.error(msg)
+                event.set_results({"return-code": 1})
                 event.fail(msg)
                 return
 
         response, user_task_id = self.balancer_manager.rebalance(**event.params)
         logger.debug(f"rebalance - {vars(response)=}")
 
-        if response.status_code != 200:
+        if response.status_code != 200 or "errorMessage" in response.json():
+            event.set_results({"return-code": 1})
             event.fail(
-                f"'{event.params['mode']}' rebalance failed with status code {response.status_code}"
+                f"'{event.params['mode']}' rebalance failed with status code {response.status_code} - {response.json().get('errorMessage', '')}"
             )
             return
 
@@ -246,6 +244,7 @@ class BalancerOperator(Object):
 
         sanitised_response = self.balancer_manager.clean_results(response.json())
         if not isinstance(sanitised_response, dict):
+            event.set_results({"return-code": 1})
             event.fail("Unknown error")
             return
 

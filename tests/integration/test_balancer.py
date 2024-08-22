@@ -190,19 +190,10 @@ class TestBalancer:
             if await unit.is_leader_from_status():
                 leader_unit = unit
 
-        # rebalance_action_dry_run = await leader_unit.run_action(
-        #     "rebalance", mode="full", dryrun=True
-        # )
-        # response = await rebalance_action_dry_run.wait()
-        # assert response.results
-
-        await asyncio.sleep(30)  # Give CC some room to breathe
-
         rebalance_action = await leader_unit.run_action("rebalance", mode="full", dryrun=False)
         response = await rebalance_action.wait()
         assert response.results
 
-        assert balancer_is_ready(ops_test=ops_test, app_name=self.balancer_app)
         assert int(
             get_replica_count_by_broker_id(ops_test, self.balancer_app).get(str(new_broker_id), 0)
         )  # replicas were successfully moved
@@ -212,7 +203,6 @@ class TestBalancer:
         deployment_strat == "single", reason="Testing full rebalance on large deployment"
     )
     async def test_remove_unit_full_rebalance(self, ops_test: OpsTest):
-        assert balancer_is_ready(ops_test=ops_test, app_name=self.balancer_app)
         # verify CC can find the new broker_id 3, with no replica partitions allocated
         broker_replica_count = get_replica_count_by_broker_id(ops_test, self.balancer_app)
         new_broker_id = max(map(int, broker_replica_count.keys()))
@@ -250,19 +240,10 @@ class TestBalancer:
             if await unit.is_leader_from_status():
                 leader_unit = unit
 
-        # rebalance_action_dry_run = await leader_unit.run_action(
-        #     "rebalance", mode="full", dryrun=True
-        # )
-        # response = await rebalance_action_dry_run.wait()
-        # assert response.results
-
-        await asyncio.sleep(30)  # Give CC some room to breathe
-
         rebalance_action = await leader_unit.run_action("rebalance", mode="full", dryrun=False)
         response = await rebalance_action.wait()
         assert response.results
 
-        assert balancer_is_ready(ops_test=ops_test, app_name=self.balancer_app)
         post_rebalance_replica_counts = get_replica_count_by_broker_id(ops_test, self.balancer_app)
 
         assert not int(post_rebalance_replica_counts.get(str(new_broker_id), 0))
@@ -309,21 +290,13 @@ class TestBalancer:
             if await unit.is_leader_from_status():
                 leader_unit = unit
 
-        # rebalance_action_dry_run = await leader_unit.run_action(
-        #     "rebalance", mode="add", brokerid=new_broker_id, dryrun=True
-        # )
-        # response = await rebalance_action_dry_run.wait()
-        # assert response.results
-
-        await asyncio.sleep(30)  # Give CC some room to breathe
-
         rebalance_action = await leader_unit.run_action(
             "rebalance", mode="add", brokerid=new_broker_id, dryrun=False
         )
+
         response = await rebalance_action.wait()
         assert response.results
 
-        assert balancer_is_ready(ops_test=ops_test, app_name=self.balancer_app)
         post_rebalance_replica_counts = get_replica_count_by_broker_id(ops_test, self.balancer_app)
 
         # Partition only were moved from existing brokers to the new one
@@ -357,16 +330,7 @@ class TestBalancer:
             if await unit.is_leader_from_status():
                 leader_unit = unit
 
-        # rebalance_action_dry_run = await leader_unit.run_action(
-        #     "rebalance",
-        #     mode="remove",
-        #     brokerid=new_broker_id,
-        #     dryrun=True,
-        # )
-        # response = await rebalance_action_dry_run.wait()
-        # assert response.results
-
-        await asyncio.sleep(30)  # Give CC some room to breathe
+        assert balancer_is_ready(ops_test=ops_test, app_name=self.balancer_app)
 
         rebalance_action = await leader_unit.run_action(
             "rebalance",
@@ -377,7 +341,6 @@ class TestBalancer:
         response = await rebalance_action.wait()
         assert response.results
 
-        assert balancer_is_ready(ops_test=ops_test, app_name=self.balancer_app)
         post_rebalance_replica_counts = get_replica_count_by_broker_id(ops_test, self.balancer_app)
 
         # Partition only were moved from the removed broker to the other ones
