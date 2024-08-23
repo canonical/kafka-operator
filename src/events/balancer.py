@@ -224,7 +224,7 @@ class BalancerOperator(Object):
         for check, msg in failure_conditions:
             if check:
                 logging.error(msg)
-                event.set_results({"return-code": 1})
+                event.set_results({"in-error": 1})
                 event.fail(msg)
                 return
 
@@ -232,7 +232,7 @@ class BalancerOperator(Object):
         logger.debug(f"rebalance - {vars(response)=}")
 
         if response.status_code != 200 or "errorMessage" in response.json():
-            event.set_results({"return-code": 1})
+            event.set_results({"in-error": 1})
             event.fail(
                 f"'{event.params['mode']}' rebalance failed with status code {response.status_code} - {response.json().get('errorMessage', '')}"
             )
@@ -244,7 +244,7 @@ class BalancerOperator(Object):
 
         sanitised_response = self.balancer_manager.clean_results(response.json())
         if not isinstance(sanitised_response, dict):
-            event.set_results({"return-code": 1})
+            event.set_results({"in-error": 1})
             event.fail("Unknown error")
             return
 
