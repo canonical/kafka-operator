@@ -191,7 +191,7 @@ class TestBalancer:
 
         rebalance_action = await leader_unit.run_action("rebalance", mode="full", dryrun=False)
         response = await rebalance_action.wait()
-        assert not response.results.get("in-error", 0)
+        assert not response.results.get("error", "")
 
         assert int(
             get_replica_count_by_broker_id(ops_test, self.balancer_app).get(str(new_broker_id), 0)
@@ -239,7 +239,7 @@ class TestBalancer:
         )
 
         response = await rebalance_action.wait()
-        assert not response.results.get("in-error", 0)
+        assert not response.results.get("error", "")
 
         post_rebalance_replica_counts = get_replica_count_by_broker_id(ops_test, self.balancer_app)
 
@@ -283,7 +283,7 @@ class TestBalancer:
             dryrun=False,
         )
         response = await rebalance_action.wait()
-        assert not response.results.get("in-error", 0)
+        assert not response.results.get("error", "")
 
         post_rebalance_replica_counts = get_replica_count_by_broker_id(ops_test, self.balancer_app)
 
