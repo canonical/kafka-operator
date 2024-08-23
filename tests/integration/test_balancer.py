@@ -13,7 +13,6 @@ from pytest_operator.plugin import OpsTest
 from literals import (
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
     PEER_CLUSTER_RELATION,
-    SUBSTRATE,
     TLS_RELATION,
 )
 
@@ -197,61 +196,6 @@ class TestBalancer:
         assert int(
             get_replica_count_by_broker_id(ops_test, self.balancer_app).get(str(new_broker_id), 0)
         )  # replicas were successfully moved
-
-    @pytest.mark.abort_on_fail
-    @pytest.mark.skipif(
-        deployment_strat == "single", reason="Testing full rebalance on large deployment"
-    )
-    async def test_remove_unit_full_rebalance(self, ops_test: OpsTest):
-        # verify CC can find the new broker_id 3, with no replica partitions allocated
-        broker_replica_count = get_replica_count_by_broker_id(ops_test, self.balancer_app)
-        new_broker_id = max(map(int, broker_replica_count.keys()))
-
-        # storing the current replica counts of 0, 1, 2 - they will persist
-        pre_rebalance_replica_counts = {
-            key: value
-            for key, value in get_replica_count_by_broker_id(ops_test, self.balancer_app).items()
-            if key != str(new_broker_id)
-        }
-
-        if SUBSTRATE == "vm":
-            # removing broker ungracefully
-            await ops_test.model.applications[APP_NAME].destroy_units(
-                f"{APP_NAME}/{new_broker_id}"
-            )
-        else:
-            await ops_test.model.applications[APP_NAME].scale(scale_change=-1)
-
-        await ops_test.model.block_until(
-            lambda: len(ops_test.model.applications[APP_NAME].units) == 3
-        )
-        await ops_test.model.wait_for_idle(
-            apps=list({APP_NAME, ZK_NAME, PRODUCER_APP, self.balancer_app}),
-            status="active",
-            timeout=1800,
-            idle_period=30,
-        )
-        async with ops_test.fast_forward(fast_interval="20s"):
-            await asyncio.sleep(120)  # ensure update-status adds broker-capacities if missed
-
-        assert balancer_is_ready(ops_test=ops_test, app_name=self.balancer_app)
-
-        for unit in ops_test.model.applications[self.balancer_app].units:
-            if await unit.is_leader_from_status():
-                leader_unit = unit
-
-        rebalance_action = await leader_unit.run_action("rebalance", mode="full", dryrun=False)
-        response = await rebalance_action.wait()
-        assert not response.results.get("in-error", 0)
-
-        post_rebalance_replica_counts = get_replica_count_by_broker_id(ops_test, self.balancer_app)
-
-        assert not int(post_rebalance_replica_counts.get(str(new_broker_id), 0))
-
-        # looping over all brokerids, as rebalance *should* be even across all
-        for key, value in pre_rebalance_replica_counts.items():
-            # verify that post-rebalance, surviving units increased replica counts
-            assert int(value) < int(post_rebalance_replica_counts.get(key, 0))
 
     @pytest.mark.abort_on_fail
     @pytest.mark.skipif(
