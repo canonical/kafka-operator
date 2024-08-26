@@ -87,7 +87,10 @@ class CruiseControlClient:
 
     @property
     @retry(
-        wait=wait_fixed(5), stop=stop_after_attempt(3), retry=retry_if_result(lambda res: not res)
+        wait=wait_fixed(5),
+        stop=stop_after_attempt(3),
+        retry=retry_if_result(lambda res: res is False),
+        retry_error_callback=lambda _: False,
     )
     def monitoring(self) -> bool:
         """Flag to confirm that the CruiseControl Monitor is up-and-running."""

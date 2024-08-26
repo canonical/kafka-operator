@@ -234,6 +234,8 @@ class TestBalancer:
             if await unit.is_leader_from_status():
                 leader_unit = unit
 
+        await asyncio.sleep(120)  # Give CC some room to breathe before making other API calls
+        assert balancer_is_ready(ops_test=ops_test, app_name=self.balancer_app)
         rebalance_action = await leader_unit.run_action(
             "rebalance", mode="add", brokerid=new_broker_id, dryrun=False
         )
