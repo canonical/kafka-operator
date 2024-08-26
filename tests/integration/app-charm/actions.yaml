@@ -23,3 +23,10 @@ get-offsets:
     bootstrap-server:
       type: string
       description: The address for mtls Kafka
+
+create-topic:
+  description: Attempts the configured topic
+  params:
+    bootstrap-server:
+      type: string
+      description: The address for SASL_PLAINTEXT Kafka

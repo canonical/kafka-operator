@@ -112,3 +112,45 @@ def test_add_user_adds_zk_tls_flag(harness: Harness[KafkaCharm]):
             in args["bin_args"]
         ), "--zk-tls-config-file flag not found"
         assert "--zookeeper=" in args["bin_args"], "--zookeeper flag not found"
+
+
+def test_prefixed_acls(harness: Harness[KafkaCharm]):
+    """Checks the requirements for adding and removing PREFIXED ACLs."""
+    with patch("workload.KafkaWorkload.run_bin_command") as patched_run_bin:
+        for func in [
+            harness.charm.broker.auth_manager.add_acl,
+            harness.charm.broker.auth_manager.remove_acl,
+        ]:
+            func(
+                username="bilbo",
+                operation="WRITE",
+                resource_type="TOPIC",
+                resource_name="there-and-back-again",
+            )
+            func(
+                username="bilbo",
+                operation="WRITE",
+                resource_type="TOPIC",
+                resource_name="there-and-back-*",
+            )
+            func(username="bilbo", operation="WRITE", resource_type="TOPIC", resource_name="??*")
+
+            assert (
+                "--resource-pattern-type=LITERAL"
+                in patched_run_bin.call_args_list[0].kwargs["bin_args"]
+            )
+
+            assert (
+                "--resource-pattern-type=PREFIXED"
+                in patched_run_bin.call_args_list[1].kwargs["bin_args"]
+            )
+
+            # checks that the prefixed topic removes the '*' char from the end
+            assert (
+                "--topic=there-and-back-" in patched_run_bin.call_args_list[1].kwargs["bin_args"]
+            )
+
+            assert (
+                "--resource-pattern-type=LITERAL"
+                in patched_run_bin.call_args_list[2].kwargs["bin_args"]
+            )
