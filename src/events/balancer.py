@@ -28,7 +28,6 @@ from literals import (
     MODE_ADD,
     MODE_REMOVE,
     PROFILE_TESTING,
-    SUBSTRATE,
     Status,
 )
 from managers.balancer import BalancerManager
@@ -131,11 +130,7 @@ class BalancerOperator(Object):
             event.defer()
             return
 
-        if SUBSTRATE == "k8s":
-            # pebble already takes care of config changes
-            self.workload.start()
-        else:
-            self.workload.restart()
+        self.workload.restart()
         logger.info("CruiseControl service started")
 
     def _on_config_changed(self, _: EventBase) -> None:
