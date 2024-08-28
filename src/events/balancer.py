@@ -199,8 +199,10 @@ class BalancerOperator(Object):
         if self.charm.state.runs_broker:
             available_brokers = [broker.unit_id for broker in self.charm.state.brokers]
         else:
-            brokers: list = self.charm.state.balancer.broker_capacities.get("brokerCapacities", [])
-            available_brokers = [int(broker["brokerId"]) for broker in brokers]
+            brokers: list = [
+                broker.name for broker in getattr(self.charm.state.balancer.relation, "units", [])
+            ]
+            available_brokers = [int(broker.split("/")[1]) for broker in brokers]
 
         failure_conditions = [
             (not self.charm.unit.is_leader(), "Action must be ran on the application leader"),
