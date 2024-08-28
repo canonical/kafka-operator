@@ -175,7 +175,14 @@ class BalancerOperator(Object):
                 "".join(self.workload.read(self.workload.paths.capacity_jbod_json))
             )
         ) != broker_capacities:
-            logger.info(f"Balancer {self.charm.unit.name.split('/')[1]} updating capacity config")
+            deleted, added = self.balancer_manager.compare_capacities_files(
+                file_content, broker_capacities
+            )
+            logger.info(
+                f"Balancer {self.charm.unit.name.split('/')[1]} updating capacity config - "
+                f"ADDED {added}, "
+                f"DELETED {deleted}"
+            )
 
             content_changed = True
 

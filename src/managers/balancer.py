@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any
 import requests
 from tenacity import retry, retry_if_result, stop_after_attempt, wait_fixed
 
-from core.models import JSON
+from core.models import JSON, BrokerCapacities, BrokerCapacity
 from literals import BALANCER, BALANCER_TOPICS, MODE_FULL, STORAGE
 
 if TYPE_CHECKING:
@@ -303,3 +303,31 @@ class BalancerManager:
 
         else:
             return value
+
+    def compare_capacities_files(
+        self, old: BrokerCapacities, new: BrokerCapacities
+    ) -> tuple[list[BrokerCapacity], list[BrokerCapacity]]:
+        """Compare two capacities files to get the added/deleted brokers.
+
+        This method keeps the diff simple: a change in a nested field is a complete change of a broker.
+        """
+        if not old:
+            return [], new.get("brokerCapacities", [])
+
+        if not new:
+            return new.get("brokerCapacities", []), []
+
+        # we keep it simple at the most macro level, no need to get the exact key change
+        deleted = [
+            broker_capacity
+            for broker_capacity in old.get("brokerCapacities", [])
+            if broker_capacity not in new.get("brokerCapacities", [])
+        ]
+
+        added = [
+            broker_capacity
+            for broker_capacity in new.get("brokerCapacities", [])
+            if broker_capacity not in old.get("brokerCapacities", [])
+        ]
+
+        return deleted, added
