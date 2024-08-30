@@ -4,11 +4,11 @@ This is part of the [Charmed Kafka Tutorial](/t/charmed-kafka-tutorial-overview/
 
 As mentioned in the previous section of the Tutorial, the recommended way to create and manage users is by means of another charm: the [Data Integrator Charm](https://charmhub.io/data-integrator). This lets us to encode users directly in the Juju model, and - as shown in the following - rotate user credentials with and without application downtime using Relations.
 
-> Relations, or what Juju documentation describes also as [Integrations](https://juju.is/docs/sdk/integration), let two charms to exchange information and interact with one another. Creating a relation between Kafka and the Data integrator will automatically generate a username, password, and assign read/write permissions on a given topic. This is the simplest method to create and manage users in Charmed Kafka.
+> Relations, or what Juju documentation describes also as [Integrations](https://juju.is/docs/sdk/integration), let two charms to exchange information and interact with one another. Creating a relation between Kafka and the Data Integrator will automatically generate a username, password, and assign read/write permissions on a given topic. This is the simplest method to create and manage users in Charmed Kafka.
 
-### Data integrator charm
+### Data Integrator charm
 
-The [Data integrator charm](https://charmhub.io/data-integrator) is a bare-bones charm for central management of database users, providing support for different kinds of data platforms (e.g. MongoDB, MySQL, PostgreSQL, Kafka, OpenSearch, etc.) with a consistent, opinionated and robust user experience. To deploy the Data integrator charm we can use the command `juju deploy` we have learned above:
+The [Data Integrator charm](https://charmhub.io/data-integrator) is a bare-bones charm for central management of database users, providing support for different kinds of data platforms (e.g. MongoDB, MySQL, PostgreSQL, Kafka, OpenSearch, etc.) with a consistent, opinionated and robust user experience. To deploy the Data Integrator charm we can use the command `juju deploy` we have learned above:
 
 ```shell
 juju deploy data-integrator --channel stable --config topic-name=test-topic --config extra-user-roles=producer,consumer
@@ -169,7 +169,7 @@ python3 -m charms.kafka.v0.client \
 
 ### Charm client applications
 
-Actually, the Data integrator is only a very special client charm, that implements the `kafka_client` relation for exchanging data with the Kafka charm and user management via relations. 
+Actually, the Data Integrator is only a very special client charm, that implements the `kafka_client` relation for exchanging data with the Kafka charm and user management via relations. 
 
 For example, the steps above for producing and consuming messages to Kafka have also been implemented in the `kafka-test-app` charm (that also implement the `kafka_client` relation) providing a fully integrated charmed user-experience, where producing/consuming messages can simply be achieved using relations.  
 
@@ -230,4 +230,4 @@ After configuring the Kafka Test App, just relate it again with the Kafka charm.
 
 ## What's next?
 
-In the next section, we will learn how to rotate and manage the passwords for the Kafka users, both the admin one and the ones managed by the data-integrator.
+In the next section, we will learn how to rotate and manage the passwords for the Kafka users, both the admin one and the ones managed by the Data Integrator.

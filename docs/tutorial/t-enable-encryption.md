@@ -17,7 +17,7 @@ Before enabling TLS on Charmed Kafka we must first deploy the `self-signed-certi
 juju deploy self-signed-certificates --config ca-common-name="Tutorial CA"
 ```
 
-Wait for the charm settle into an `active/idle` state, as shown by the `juju status`
+Wait for the charm to settle into an `active/idle` state, as shown by the `juju status`
 
 ```shell
 Model     Controller  Cloud/Region         Version  SLA          Timestamp

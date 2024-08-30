@@ -44,7 +44,8 @@ juju run kafka/leader pre-upgrade-check
 
 Make sure that the output of the action is successful.
 
-> Note that to upgrade successfully you need to complete this action.
+> **Note**: This action must be run before Charmed Kafka upgrades.
+
 The action will also configure the charm to minimize high-availability reduction and ensure a safe upgrade process. After successful execution, the charm is ready to be upgraded.
 
 ## Step 3: Upgrade

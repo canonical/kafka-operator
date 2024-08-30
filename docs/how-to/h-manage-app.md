@@ -18,9 +18,9 @@ juju remove-relation kafka application
 
 ## Outside Juju or for charms not implementing `kafka_client`
 
-The `kafka_client` interface is used with the `data-integrator` charm. This charm can automatically create and manage product credentials needed to authenticate with different kinds of data platform charmed products:
+The `kafka_client` interface is used with the `data-integrator` charm. This charm automatically creates and manages product credentials needed to authenticate with different kinds of data platform charmed products:
 
-Deploy the data-integrator charm with the desired `topic-name` and user roles:
+Deploy the Data Integrator charm with the desired `topic-name` and user roles:
 
 ```shell
 juju deploy data-integrator --channel edge
