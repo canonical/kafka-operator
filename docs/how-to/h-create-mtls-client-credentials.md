@@ -1,16 +1,17 @@
-# Create mTLS Client Credentials
+# Create mTLS client credentials
 
 Requirements:
 - Charmed Kafka cluster up and running
 - [Admin credentials](./h-manage-app.md)
 - [Encryption enabled](./h-enable-encryption.md)
 - [Java JRE](https://ubuntu.com/tutorials/install-jre#1-overview) installed
-- [charmed-kafka snap](https://snapcraft.io/charmed-kafka) installed
+- [`charmed-kafka` snap](https://snapcraft.io/charmed-kafka) installed
 - [jq](https://snapcraft.io/jq) installed
 
 Goal: Create mTLS credentials for a client application to be able to connect to the Kafka cluster.
 
 ## Authentication
+
 ```bash
 # ---------- Environment
 SNAP_KAFKA_PATH=/var/snap/charmed-kafka/current/etc/kafka
@@ -33,9 +34,9 @@ KAFKA_CLIENT_MTLS_NAME=<client-name>
 KAFKA_CLIENT_MTLS_IP=<client-ip>
 ```
 
-### Retrieve Root CA
+### Retrieve root CA
 
-If you are using the [tls-certificates-operator charm](https://charmhub.io/tls-certificates-operator), retrieve the Root CA executing the following commands:
+If you are using the [`tls-certificates-operator` charm](https://charmhub.io/tls-certificates-operator), retrieve the root CA executing the following commands:
 
 ```bash
 # ---------- Root CA
@@ -47,9 +48,9 @@ juju show-unit tls-certificates-operator/0 --format json | jq -r '.[]."relation-
 SS_KEY_PASSWORD=$(juju show-unit tls-certificates-operator/0 --format json | jq -r '.[]."relation-info"[]."application-data"."self_signed_ca_private_key_password" // empty')
 ```
 
-Otherwise retrieve Root CA from your certs provider.
+Otherwise, retrieve root CA from your certificates provider.
 
-### Retrieve Server CA
+### Retrieve server CA
 
 ```bash
 # ---------- Server CA
@@ -57,7 +58,8 @@ Otherwise retrieve Root CA from your certs provider.
 juju show-unit kafka/0 --format json | jq -r '.[]."relation-info"[]."local-unit".data.ca // empty' > kafka_ca.pem
 ```
 
-### Create Keystore (Client Cert)
+### Create keystore (client cert)
+
 Create a client cert signed by the server
 
 ```bash
@@ -80,9 +82,9 @@ openssl pkcs12 -export -in client_chain.pem \
 -name client-chain -noiter -nomaciter
 ```
 
-### Create Trustsore (Server Cert)
+### Create trustsore (server cert)
 
-Inject Root CA and Server CA into the truststore file:
+Inject root CA and server CA into the truststore file:
 
 ```bash
 
@@ -107,11 +109,12 @@ charmed-kafka.keytool -list -keystore client.truststore.jks -storepass $KAFKA_CL
 charmed-kafka.keytool -list -keystore client.truststore.jks -storepass $KAFKA_CLIENT_TRUSTSTORE_PASSWORD -v | grep until
 ```
 ### mTLS
+
 This is a mutual TLS communication which means:
 
 1. The client needs to trust the server certificates.
 
-2. Instead of username and passwords, the client needs its own certificate signed by a certificate trusted by the server for the authentication.
+2. Instead of usernames and passwords, the client needs its own certificate signed by a certificate trusted by the server for the authentication.
 
 ```bash
 # Map the CN on the cert to be considered the principal (username)
@@ -144,9 +147,9 @@ ssl.keystore.type=PKCS12
 ssl.client.auth=required
 ```
 
-## Authorization
+## Authorisation
 
-### Manage Authorization through ACLs
+### Manage authorisation through ACLs
 
 Grant read and write privileges to user over _group_, _topic_ and _transaction_ resources:
 
@@ -167,7 +170,7 @@ sudo charmed-kafka.acls --bootstrap-server $KAFKA_SERVERS_SASL --command-config 
 "
 ```
 
-## Test Access
+## Test access
 
 ```bash
 # ---------- Test Access
