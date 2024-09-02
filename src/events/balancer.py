@@ -199,9 +199,11 @@ class BalancerOperator(Object):
         if self.charm.state.runs_broker:
             available_brokers = [broker.unit_id for broker in self.charm.state.brokers]
         else:
-            brokers: list = [
-                broker.name for broker in getattr(self.charm.state.balancer.relation, "units", [])
-            ]
+            brokers = (
+                [broker.name for broker in self.charm.state.balancer.relation.units]
+                if self.charm.state.balancer.relation
+                else []
+            )
             available_brokers = [int(broker.split("/")[1]) for broker in brokers]
 
         failure_conditions = [
