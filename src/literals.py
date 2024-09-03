@@ -12,7 +12,7 @@ from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, StatusBase
 
 CHARM_KEY = "kafka"
 SNAP_NAME = "charmed-kafka"
-CHARMED_KAFKA_SNAP_REVISION = 39
+CHARMED_KAFKA_SNAP_REVISION = 42
 CONTAINER = "kafka"
 SUBSTRATE = "vm"
 STORAGE = "data"
@@ -114,6 +114,12 @@ PATHS = {
         "DATA": f"/var/snap/{SNAP_NAME}/common/var/lib/cruise-control",
         "BIN": f"/snap/{SNAP_NAME}/current/opt/cruise-control",
     },
+    "kraft": {
+        "CONF": f"/var/snap/{SNAP_NAME}/current/etc/kraft",
+        "LOGS": f"/var/snap/{SNAP_NAME}/common/var/log/kraft",
+        "DATA": f"/var/snap/{SNAP_NAME}/common/var/lib/kraft",
+        "BIN": f"/snap/{SNAP_NAME}/current/opt/kraft",
+    },
 }
 
 
@@ -154,6 +160,13 @@ BALANCER = Role(
         "zk-password",
         "zk-uris",
     ],
+)
+CONTROLLER = Role(
+    value="controller",
+    service="controller",
+    paths=PATHS["kraft"],
+    relation=PEER_CLUSTER_ORCHESTRATOR_RELATION,
+    requested_secrets=[],
 )
 
 DEFAULT_BALANCER_GOALS = [

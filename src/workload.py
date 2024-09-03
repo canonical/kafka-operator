@@ -19,6 +19,7 @@ from literals import (
     BALANCER,
     BROKER,
     CHARMED_KAFKA_SNAP_REVISION,
+    CONTROLLER,
     GROUP,
     SNAP_NAME,
     USER,
@@ -212,6 +213,21 @@ class BalancerWorkload(Workload):
     @override
     def get_version(self) -> str:
         raise NotImplementedError
+
+    @property
+    @override
+    def layer(self) -> pebble.Layer:
+        raise NotImplementedError
+
+
+class ControllerWorkload(Workload):
+    """Controller specific wrapper"""
+
+    def __init__(self, container: Container | None = None) -> None:
+        super().__init__(container=container)
+        self.paths = CharmedKafkaPaths(CONTROLLER)
+        self.service = CONTROLLER.service
+        self.container = container
 
     @property
     @override

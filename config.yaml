@@ -5,7 +5,7 @@ options:
   roles:
     description: |
       Comma separated list of the roles assigned to the nodes of this cluster.
-      This configuration accepts the following roles: 'broker' (standard functionality), 'balancer' (cruise control).
+      This configuration accepts the following roles: 'broker' (standard functionality), 'balancer' (cruise control), 'controller' (KRaft mode).
     type: string
     default: broker
   compression_type:
