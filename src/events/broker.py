@@ -42,10 +42,10 @@ from literals import (
 )
 from managers.auth import AuthManager
 from managers.balancer import BalancerManager
-from managers.config import ConfigManager
+from managers.config import ConfigManager, ControllerConfigManager
 from managers.k8s import K8sManager
 from managers.tls import TLSManager
-from workload import KafkaWorkload
+from workload import ControllerWorkload, KafkaWorkload
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -65,6 +65,7 @@ class BrokerOperator(Object):
             if self.charm.substrate == "k8s"
             else None
         )
+        self.controller_workload = ControllerWorkload()
 
         self.tls_manager = TLSManager(
             state=self.charm.state,
@@ -97,6 +98,11 @@ class BrokerOperator(Object):
             workload=self.workload,
             config=self.charm.config,
             current_version=self.upgrade.current_version,
+        )
+        self.controller_config_manager = ControllerConfigManager(
+            state=self.charm.state,
+            workload=self.controller_workload,
+            config=self.charm.config,
         )
         self.auth_manager = AuthManager(
             state=self.charm.state,
@@ -154,6 +160,9 @@ class BrokerOperator(Object):
         # don't want to run default start/pebble-ready events during upgrades
         if not self.upgrade.idle:
             return
+
+        self.controller_config_manager.set_controller_properties()
+        self.controller_workload.start()
 
         self.charm._set_status(self.charm.state.ready_to_start)
         if not isinstance(self.charm.unit.status, ActiveStatus):

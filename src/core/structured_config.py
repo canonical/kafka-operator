@@ -10,7 +10,7 @@ from enum import Enum
 from charms.data_platform_libs.v0.data_models import BaseConfigModel
 from pydantic import Field, validator
 
-from literals import BALANCER, BROKER, SUBSTRATE
+from literals import BALANCER, BROKER, CONTROLLER, SUBSTRATE
 
 logger = logging.getLogger(__name__)
 
@@ -261,7 +261,7 @@ class CharmConfig(BaseConfigModel):
         """Check roles values."""
         roles = set(map(str.strip, value.split(",")))
 
-        if unknown_roles := roles - {BROKER.value, BALANCER.value}:
+        if unknown_roles := roles - {BROKER.value, BALANCER.value, CONTROLLER.value}:
             raise ValueError("Unknown role(s):", unknown_roles)
 
         return ",".join(sorted(roles))  # this has to be a string as it goes in to properties
