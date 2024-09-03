@@ -674,6 +674,59 @@ class ConfigManager(CommonConfigManager):
         return key.replace("_", ".") if key not in SERVER_PROPERTIES_BLACKLIST else f"# {key}"
 
 
+class ControllerConfigManager(CommonConfigManager):
+    """Manager for handling controller configuration."""
+    def __init__(
+        self,
+        state: ClusterState,
+        workload: WorkloadBase,
+        config: CharmConfig,
+    ):
+        self.state = state
+        self.workload = workload
+        self.config = config
+
+    @property
+    def controller_properties(self) -> list[str]:
+        """Builds all properties necessary for starting Kafka controller service.
+
+        Returns:
+            List of properties to be set
+        """
+        properties = (
+            [
+                f"process.roles=controller",
+                "node.id=100",
+                "controller.quorum.voters=1@localhost:9097",
+                "listeners=CONTROLLER://:9097",
+                f"log.dirs={self.state.log_dirs}",
+                # f"listener.security.protocol.map={','.join(protocol_map)}",
+                "controller.listener.names=CONTROLLER",
+                "num.network.threads=3",
+                "num.io.threads=8",
+                "socket.send.buffer.bytes=102400",
+                "socket.receive.buffer.bytes=102400",
+                "socket.request.max.bytes=104857600",
+                "num.partitions=1",
+                "num.recovery.threads.per.data.dir=1",
+                "offsets.topic.replication.factor=1",
+                "transaction.state.log.replication.factor=1",
+                "transaction.state.log.min.isr=1",
+                "log.retention.hours=168",
+                "log.segment.bytes=1073741824",
+                "log.retention.check.interval.ms=300000",
+            ]
+        )
+
+        return properties
+
+    def set_controller_properties(self) -> None:
+        self.workload.write(
+            content="\n".join(self.controller_properties),
+            path=self.workload.paths.controller_properties,
+        )
+
+
 class BalancerConfigManager(CommonConfigManager):
     """Manager for handling Balancer configuration."""
 
