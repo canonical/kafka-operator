@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-# Copyright 2024 Canonical Ltd.
+# Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-from pathlib import Path
 
 import pytest
 from pytest_operator.plugin import OpsTest
@@ -14,14 +13,14 @@ def usernames():
 
 
 @pytest.fixture(scope="module")
-async def kafka_charm(ops_test: OpsTest) -> Path:
+async def kafka_charm(ops_test: OpsTest):
     """Kafka charm used for integration testing."""
     charm = await ops_test.build_charm(".")
     return charm
 
 
 @pytest.fixture(scope="module")
-async def app_charm(ops_test: OpsTest) -> Path:
+async def app_charm(ops_test: OpsTest):
     """Build the application charm."""
     charm_path = "tests/integration/app-charm"
     charm = await ops_test.build_charm(charm_path)

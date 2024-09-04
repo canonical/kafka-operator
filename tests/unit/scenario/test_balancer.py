@@ -235,6 +235,21 @@ def test_ready_to_start_ok(charm_configuration, base_state: State, zk_data):
     state_in = base_state.replace(
         relations=[cluster_peer, relation, restart_peer], planned_units=3
     )
+    capacity_jbod_file_loaded = {
+        "brokerCapacities": [
+            {
+                "brokerId": str(i),
+                "capacity": {
+                    "DISK": {f"/var/snap/charmed-kafka/common/var/lib/kafka/data/{i}": "10240"},
+                    "CPU": {"num.cores": "8"},
+                    "NW_IN": "50000",
+                    "NW_OUT": "50000",
+                },
+                "doc": "",
+            }
+            for i in range(2, -1, -1)
+        ]
+    }
 
     # When
     with (
@@ -276,6 +291,13 @@ def test_ready_to_start_ok(charm_configuration, base_state: State, zk_data):
             return_value="",
         ),
         patch("health.KafkaHealth.machine_configured", return_value=True),
+        patch("json.loads", return_value=capacity_jbod_file_loaded),
+        patch("charms.operator_libs_linux.v1.snap.SnapCache"),
+        patch(
+            "core.models.PeerCluster.broker_capacities",
+            new_callable=PropertyMock,
+            return_value=capacity_jbod_file_loaded,
+        ),
     ):
         state_out = ctx.run("start", state_in)
 

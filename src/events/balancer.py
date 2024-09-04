@@ -4,6 +4,7 @@
 
 """Balancer role core charm logic."""
 
+import json
 import logging
 from subprocess import CalledProcessError
 from typing import TYPE_CHECKING
@@ -26,10 +27,11 @@ from literals import (
     CONTAINER,
     MODE_ADD,
     MODE_REMOVE,
+    PROFILE_TESTING,
     Status,
 )
 from managers.balancer import BalancerManager
-from managers.config import BalancerConfigManager
+from managers.config import CRUISE_CONTROL_TESTING_OPTIONS, BalancerConfigManager
 from managers.tls import TLSManager
 from workload import BalancerWorkload
 
@@ -47,9 +49,9 @@ class BalancerOperator(Object):
         self.charm: "KafkaCharm" = charm
 
         self.workload = BalancerWorkload(
-            container=self.charm.unit.get_container(CONTAINER)
-            if self.charm.substrate == "k8s"
-            else None
+            container=(
+                self.charm.unit.get_container(CONTAINER) if self.charm.substrate == "k8s" else None
+            )
         )
 
         self.tls_manager = TLSManager(
@@ -90,6 +92,13 @@ class BalancerOperator(Object):
 
         self.config_manager.set_environment()
 
+        if self.charm.config.profile == PROFILE_TESTING:
+            logger.info(
+                "CruiseControl is deployed with the 'testing' profile."
+                "The following properties will be set:\n"
+                f"{CRUISE_CONTROL_TESTING_OPTIONS}"
+            )
+
     def _on_start(self, event: StartEvent | PebbleReadyEvent) -> None:
         """Handler for `start` or `pebble-ready` events."""
         self.charm._set_status(self.charm.state.ready_to_start)
@@ -121,7 +130,7 @@ class BalancerOperator(Object):
             event.defer()
             return
 
-        self.workload.start()
+        self.workload.restart()
         logger.info("CruiseControl service started")
 
     def _on_config_changed(self, _: EventBase) -> None:
@@ -159,6 +168,24 @@ class BalancerOperator(Object):
                 )
                 content_changed = True
 
+        # On k8s, adding/removing a broker does not change the bootstrap server property if exposed by nodeport
+        broker_capacities = self.charm.state.balancer.broker_capacities
+        if (
+            file_content := json.loads(
+                "".join(self.workload.read(self.workload.paths.capacity_jbod_json))
+            )
+        ) != broker_capacities:
+            deleted, added = self.balancer_manager.compare_capacities_files(
+                file_content, broker_capacities
+            )
+            logger.info(
+                f"Balancer {self.charm.unit.name.split('/')[1]} updating capacity config - "
+                f"ADDED {added}, "
+                f"DELETED {deleted}"
+            )
+
+            content_changed = True
+
         if content_changed:
             # safe to update everything even if it hasn't changed, service will restart anyway
             self.config_manager.set_cruise_control_properties()
@@ -169,6 +196,16 @@ class BalancerOperator(Object):
 
     def rebalance(self, event: ActionEvent) -> None:
         """Handles the `rebalance` Juju Action."""
+        if self.charm.state.runs_broker:
+            available_brokers = [broker.unit_id for broker in self.charm.state.brokers]
+        else:
+            brokers = (
+                [broker.name for broker in self.charm.state.balancer.relation.units]
+                if self.charm.state.balancer.relation
+                else []
+            )
+            available_brokers = [int(broker.split("/")[1]) for broker in brokers]
+
         failure_conditions = [
             (not self.charm.unit.is_leader(), "Action must be ran on the application leader"),
             (
@@ -184,29 +221,31 @@ class BalancerOperator(Object):
                 "CruiseControl balancer service has not yet collected enough data to provide a partition reallocation proposal",
             ),
             (
-                event.params.get("brokerid", None) is None
-                and event.params["mode"] in (MODE_ADD, MODE_REMOVE),
+                event.params["mode"] in (MODE_ADD, MODE_REMOVE)
+                and event.params.get("brokerid", None) is None,
                 "'add' and 'remove' rebalance action require passing the 'brokerid' parameter",
             ),
             (
                 event.params["mode"] in (MODE_ADD, MODE_REMOVE)
-                and event.params.get("brokerid")
-                not in [broker.unit_id for broker in self.charm.state.brokers],
+                and event.params.get("brokerid") not in available_brokers,
                 "invalid brokerid",
             ),
         ]
 
         for check, msg in failure_conditions:
             if check:
+                logging.error(msg)
+                event.set_results({"error": msg})
                 event.fail(msg)
                 return
 
         response, user_task_id = self.balancer_manager.rebalance(**event.params)
         logger.debug(f"rebalance - {vars(response)=}")
 
-        if response.status_code != 200:
+        if response.status_code != 200 or "errorMessage" in response.json():
+            event.set_results({"error": response.json().get("errorMessage", "")})
             event.fail(
-                f"'{event.params['mode']}' rebalance failed with status code {response.status_code}"
+                f"'{event.params['mode']}' rebalance failed with status code {response.status_code} - {response.json().get('errorMessage', '')}"
             )
             return
 
@@ -216,6 +255,7 @@ class BalancerOperator(Object):
 
         sanitised_response = self.balancer_manager.clean_results(response.json())
         if not isinstance(sanitised_response, dict):
+            event.set_results({"error": "Unknown error"})
             event.fail("Unknown error")
             return
 

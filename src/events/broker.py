@@ -36,13 +36,14 @@ from literals import (
     DEPENDENCIES,
     GROUP,
     PEER,
+    PROFILE_TESTING,
     REL_NAME,
     USER,
     Status,
 )
 from managers.auth import AuthManager
 from managers.balancer import BalancerManager
-from managers.config import ConfigManager
+from managers.config import TESTING_OPTIONS, ConfigManager
 from managers.k8s import K8sManager
 from managers.tls import TLSManager
 from workload import KafkaWorkload
@@ -61,9 +62,9 @@ class BrokerOperator(Object):
         self.charm: "KafkaCharm" = charm
 
         self.workload = KafkaWorkload(
-            container=self.charm.unit.get_container(CONTAINER)
-            if self.charm.substrate == "k8s"
-            else None
+            container=(
+                self.charm.unit.get_container(CONTAINER) if self.charm.substrate == "k8s" else None
+            )
         )
 
         self.tls_manager = TLSManager(
@@ -139,6 +140,13 @@ class BrokerOperator(Object):
 
         # any external services must be created before setting of properties
         self.update_external_services()
+
+        if self.charm.config.profile == PROFILE_TESTING:
+            logger.info(
+                "Kafka is deployed with the 'testing' profile."
+                "The following properties will be set:\n"
+                f"{TESTING_OPTIONS}"
+            )
 
     def _on_start(self, event: StartEvent | PebbleReadyEvent) -> None:
         """Handler for `start` or `pebble-ready` events."""

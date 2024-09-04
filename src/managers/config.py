@@ -18,9 +18,11 @@ from typing_extensions import override
 
 from core.cluster import ClusterState
 from core.structured_config import CharmConfig, LogLevel
-from core.workload import WorkloadBase
+from core.workload import CharmedKafkaPaths, WorkloadBase
 from literals import (
     ADMIN_USER,
+    BALANCER_GOALS_TESTING,
+    BROKER,
     DEFAULT_BALANCER_GOALS,
     HARD_BALANCER_GOALS,
     INTER_BROKER_USER,
@@ -28,6 +30,7 @@ from literals import (
     JMX_EXPORTER_PORT,
     JVM_MEM_MAX_GB,
     JVM_MEM_MIN_GB,
+    PROFILE_TESTING,
     SECURITY_PROTOCOL_PORTS,
     AuthMap,
     Scope,
@@ -42,12 +45,27 @@ allow.everyone.if.no.acl.found=false
 auto.create.topics.enable=false
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
 """
+TESTING_OPTIONS = """
+cruise.control.metrics.reporter.metrics.reporting.interval.ms=6000
+"""
 CRUISE_CONTROL_CONFIG_OPTIONS = """
 metric.reporter.topic=__CruiseControlMetrics
 sample.store.class=com.linkedin.kafka.cruisecontrol.monitor.sampling.KafkaSampleStore
 partition.metric.sample.store.topic=__KafkaCruiseControlPartitionMetricSamples
 broker.metric.sample.store.topic=__KafkaCruiseControlModelTrainingSamples
 max.active.user.tasks=10
+"""
+# Divided periods by 10
+CRUISE_CONTROL_TESTING_OPTIONS = """
+cruise.control.metrics.reporter.metrics.reporting.interval.ms=6000
+broker.metrics.window.ms=30000
+partition.metrics.window.ms=30000
+metadata.max.age.ms=10000
+metric.sampling.interval.ms=12000
+min.samples.per.broker.metrics.window=1
+min.samples.per.partition.metrics.window=1
+num.partition.metrics.windows=3
+num.broker.metrics.windows=10
 """
 SERVER_PROPERTIES_BLACKLIST = ["profile", "log_level", "certificate_extra_sans"]
 
@@ -161,7 +179,7 @@ class CommonConfigManager:
         """
         opts = [
             "-Dcom.sun.management.jmxremote",
-            f"-javaagent:{self.workload.paths.jmx_prometheus_javaagent}={JMX_CC_PORT}:{self.workload.paths.jmx_cc_config}",
+            f"-javaagent:{CharmedKafkaPaths(BROKER).jmx_prometheus_javaagent}={JMX_CC_PORT}:{self.workload.paths.jmx_cc_config}",
         ]
 
         return f"CC_JMX_OPTS='{' '.join(opts)}'"
@@ -585,6 +603,9 @@ class ConfigManager(CommonConfigManager):
         if self.state.cluster.tls_enabled and self.state.unit_broker.certificate:
             properties += self.tls_properties + self.zookeeper_tls_properties
 
+        if self.config.profile == PROFILE_TESTING:
+            properties += TESTING_OPTIONS.split("\n")
+
         return properties
 
     @property
@@ -630,6 +651,7 @@ class ConfigManager(CommonConfigManager):
         updated_env_list = [
             self.kafka_opts,
             self.kafka_jmx_opts,
+            self.cc_jmx_opts,
             self.jvm_performance_opts,
             self.heap_opts,
             self.log_level,
@@ -707,9 +729,12 @@ class BalancerConfigManager(CommonConfigManager):
         """
         goals = DEFAULT_BALANCER_GOALS
 
+        if self.config.profile == PROFILE_TESTING:
+            goals = BALANCER_GOALS_TESTING
+
         if self.state.balancer.racks:
             if (
-                min([3, len(self.state.balancer.broker_capacities["brokerCapacities"])])
+                min([3, len(self.state.balancer.broker_capacities.get("brokerCapacities", []))])
                 > self.state.balancer.racks
             ):  # replication-factor > racks is not ideal
                 goals = goals + ["RackAwareDistribution"]
@@ -780,6 +805,9 @@ class BalancerConfigManager(CommonConfigManager):
 
         if self.state.cluster.tls_enabled and self.state.unit_broker.certificate:
             properties += self.cc_tls_properties + self.cc_zookeeper_tls_properties
+
+        if self.config.profile == PROFILE_TESTING:
+            properties += CRUISE_CONTROL_TESTING_OPTIONS.split("\n")
 
         return properties
 

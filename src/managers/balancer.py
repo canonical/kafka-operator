@@ -10,8 +10,9 @@ import time
 from typing import TYPE_CHECKING, Any
 
 import requests
+from tenacity import retry, retry_if_result, stop_after_attempt, wait_fixed
 
-from core.models import JSON
+from core.models import JSON, BrokerCapacities, BrokerCapacity
 from literals import BALANCER, BALANCER_TOPICS, MODE_FULL, STORAGE
 
 if TYPE_CHECKING:
@@ -59,7 +60,7 @@ class CruiseControlClient:
             **kwargs: any REST API query parameters provided by that endpoint
         """
         payload = {"dryrun": str(dryrun)}
-        if brokerid := kwargs.get("brokerid", None) is not None:
+        if (brokerid := kwargs.get("brokerid", None)) is not None:
             payload |= {"brokerid": brokerid}
 
         r = requests.post(
@@ -85,8 +86,15 @@ class CruiseControlClient:
         return ""
 
     @property
+    @retry(
+        wait=wait_fixed(5),
+        stop=stop_after_attempt(3),
+        retry=retry_if_result(lambda res: res is False),
+        retry_error_callback=lambda _: False,
+    )
     def monitoring(self) -> bool:
         """Flag to confirm that the CruiseControl Monitor is up-and-running."""
+        # Retry-able because CC oftentimes goes into "SAMPLING"
         return (
             self.get(endpoint="state", verbose="True")
             .json()
@@ -134,9 +142,9 @@ class BalancerManager:
         )
 
     @property
-    def cores(self) -> int:
+    def cores(self) -> str:
         """Gets the total number of CPU cores for the machine."""
-        return int(self.dependent.workload.exec(["nproc", "--all"]))
+        return self.dependent.workload.exec(["nproc", "--all"]).strip()
 
     @property
     def storages(self) -> str:
@@ -181,14 +189,14 @@ class BalancerManager:
                 logger.info(f"Created topic {topic}")
 
     def rebalance(
-        self, mode: str, dryrun: bool = True, brokerid: int | None = None
+        self, mode: str, dryrun: bool = True, brokerid: int | None = None, **kwargs
     ) -> tuple[requests.Response, str]:
         """Triggers a full Kafka cluster partition rebalance.
 
         Returns:
             Tuple of requests.Response and string of the CruiseControl User-Task-ID for the rebalance
         """
-        mode = f"{mode}_broker" if mode != MODE_FULL else mode
+        mode = f"{mode}_broker" if mode != MODE_FULL else "rebalance"
         rebalance_request = self.cruise_control.post(
             endpoint=mode, dryrun=dryrun, brokerid=brokerid
         )
@@ -295,3 +303,31 @@ class BalancerManager:
 
         else:
             return value
+
+    def compare_capacities_files(
+        self, old: BrokerCapacities, new: BrokerCapacities
+    ) -> tuple[list[BrokerCapacity], list[BrokerCapacity]]:
+        """Compare two capacities files to get the added/deleted brokers.
+
+        This method keeps the diff simple: a change in a nested field is a complete change of a broker.
+        """
+        if not old:
+            return [], new.get("brokerCapacities", [])
+
+        if not new:
+            return new.get("brokerCapacities", []), []
+
+        # we keep it simple at the most macro level, no need to get the exact key change
+        deleted = [
+            broker_capacity
+            for broker_capacity in old.get("brokerCapacities", [])
+            if broker_capacity not in new.get("brokerCapacities", [])
+        ]
+
+        added = [
+            broker_capacity
+            for broker_capacity in new.get("brokerCapacities", [])
+            if broker_capacity not in old.get("brokerCapacities", [])
+        ]
+
+        return deleted, added

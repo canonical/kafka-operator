@@ -54,7 +54,6 @@ jobs:
 
   integration-test:
     strategy:
-      max-parallel: 2
       fail-fast: false
       matrix:
         tox-environments:
@@ -64,7 +63,8 @@ jobs:
           - integration-password-rotation
           - integration-tls
           - integration-upgrade
-          # - integration-balancer
+          - integration-balancer-single
+          - integration-balancer-multi
     name: ${{ matrix.tox-environments }}
     needs:
       - lint
