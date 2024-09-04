@@ -1,6 +1,6 @@
 This is part of the [Charmed Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571). Please refer to this page for more information and the overview of the content.
 
-## Manage Passwords
+## Manage passwords
 
 Passwords help to secure our cluster and are essential for security. Over time it is a good practice to change the password frequently. Here we will go through setting and changing the password both for the admin user and external Kafka users managed by the data-integrator.
 
@@ -11,10 +11,13 @@ The admin user password management is handled directing by the charm, by using J
 #### Retrieve the admin password
 
 As previously mentioned, the admin password can be retrieved by running the `get-admin-credentials` action on the Charmed Kafka application:
+
 ```shell
 juju run kafka/leader get-admin-credentials
 ```
+
 Running the command should output:
+
 ```yaml
 unit-kafka-1:
   UnitId: kafka/1
@@ -33,15 +36,19 @@ unit-kafka-1:
     enqueued: 2023-04-25 12:49:27 +0000 UTC
     started: 2023-04-25 12:49:28 +0000 UTC
 ```
+
 The admin password is under the result: `password`.
 
 #### Rotate the admin password
 
 You can change the admin password to a new random password by entering:
+
 ```shell
 juju run kafka/leader set-password username=admin
 ```
+
 Running the command should output:
+
 ```yaml
 unit-kafka-1:
   UnitId: kafka/1
@@ -54,16 +61,21 @@ unit-kafka-1:
     enqueued: 2023-04-25 12:51:35 +0000 UTC
     started: 2023-04-25 12:51:36 +0000 UTC
 ```
+
 The admin password is under the result: `admin-password`. It should be different from your previous password.
 
 > **Note** When changing the admin password you will also need to update the admin password the in Kafka connection parameters; as the old password will no longer be valid.*
 
 #### Set the admin password
+
 You can change the admin password to a specific password by entering:
+
 ```shell
 juju run kafka/leader set-password username=admin password=<password>
 ```
+
 Running the command should output:
+
 ```yaml
 unit-kafka-1:
   UnitId: kafka/1
@@ -76,6 +88,7 @@ unit-kafka-1:
     enqueued: 2023-04-25 12:57:37 +0000 UTC
     started: 2023-04-25 12:57:38 +0000 UTC
 ```
+
 The admin password under the result: `admin-password` should match whatever you passed in when you entered the command.
 
 > **Note** When changing the admin password you will also need to update the admin password in the Kafka connection parameters, as the old password will no longer be valid.*
@@ -87,10 +100,13 @@ Unlike Admin management, the password management for external Kafka users is ins
 #### Retrieve the password
 
 Similarly to the Kafka application, also the `data-integrator` exposes an action to retrieve the credentials, e.g. 
+
 ```shell
 juju run data-integrator/leader get-credentials
 ```
+
 Running the command should output:
+
 ```shell 
 kafka:
   endpoints: 10.244.26.43:9092,10.244.26.6:9092,10.244.26.19:9092
@@ -121,6 +137,7 @@ juju run data-integrator/leader get-credentials
 ```
 
 Running the command should now output a different password:
+
 ```shell 
 kafka:
   endpoints: 10.244.26.43:9092,10.244.26.6:9092,10.244.26.19:9092
@@ -132,7 +149,7 @@ kafka:
 ok: "True"
 ```
 
-In order to rotate external password with no or limited downtime, please refer to the how-to guide on [app management](/t/charmed-kafka-how-to-manage-app/10285).
+To rotate external passwords with no or limited downtime, please refer to the how-to guide on [app management](/t/charmed-kafka-how-to-manage-app/10285).
 
 #### Remove the user
 
@@ -141,7 +158,7 @@ To remove the user, remove the relation. Removing the relation automatically rem
 juju remove-relation kafka data-integrator
 ```
 
-The output of the juju model should be something like this:
+The output of the Juju model should be something like this:
 
 ```shell
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
@@ -175,8 +192,7 @@ Machine  State    Address        Inst id        Series  AZ  Message
 8        started  10.244.26.4    juju-f1a2cd-8  jammy       Running
 ```
 
-
-> **Note** The operations above would also apply to charmed applications that implement  the `kafka_client` relation, for which password rotation and user deletion can be achieved in the same consistent way.
+> **Note** The operations above would also apply to charmed applications that implement the `kafka_client` relation, for which password rotation and user deletion can be achieved in the same consistent way.
 
 ## What's next?
 

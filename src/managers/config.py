@@ -317,6 +317,7 @@ class ConfigManager(CommonConfigManager):
         return [
             f"broker.id={self.state.unit_broker.unit_id}",
             f"zookeeper.connect={self.state.zookeeper.connect}",
+            "zookeeper.set.acl=true",
         ]
 
     @property
