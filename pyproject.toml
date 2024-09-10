@@ -91,7 +91,7 @@ pure-sasl = ">=0.5"
 kafka-python = ">=2.0"
 requests = ">2.25"
 
-pytest-operator-cache = {git = "https://github.com/canonical/data-platform-workflows", tag = "v7", subdirectory = "python/pytest_plugins/pytest_operator_cache"}
+pytest-operator-cache = {git = "https://github.com/canonical/data-platform-workflows", tag = "v21.0.1", subdirectory = "python/pytest_plugins/pytest_operator_cache"}
 # To be enabled if we are using groups on integration tests
 # pytest-operator-groups = {git = "https://github.com/canonical/data-platform-workflows", tag = "v7", subdirectory = "python/pytest_plugins/pytest_operator_groups"}
 
