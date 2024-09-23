@@ -398,6 +398,10 @@ class KafkaCluster(RelationState):
         """Persisted balancer uris."""
         return self.relation_data.get("balancer-uris", "")
 
+    @property
+    def cluster_uuid(self) -> str:
+        """Cluster uuid used for initializing storages."""
+        return self.relation_data.get("cluster-uuid", "")
 
 class KafkaBroker(RelationState):
     """State collection metadata for a unit."""

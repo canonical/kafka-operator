@@ -33,14 +33,6 @@ class CharmedKafkaPaths:
         return f"{self.conf_path}/server.properties"
 
     @property
-    def controller_properties(self):
-        """The controller.properties filepath.
-
-        Contains all the main configuration for the service when running in KRaft mode.
-        """
-        return f"{self.conf_path}/controller.properties"
-
-    @property
     def client_properties(self):
         """The main client.properties filepath.
 

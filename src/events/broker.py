@@ -7,6 +7,7 @@
 import json
 import logging
 from datetime import datetime
+import subprocess
 from typing import TYPE_CHECKING
 
 from charms.operator_libs_linux.v1.snap import SnapError
@@ -23,6 +24,7 @@ from ops import (
     StorageEvent,
     UpdateStatusEvent,
 )
+from ops.pebble import ExecError
 
 from events.oauth import OAuthHandler
 from events.password_actions import PasswordActionEvents
@@ -35,6 +37,7 @@ from literals import (
     CONTAINER,
     DEPENDENCIES,
     GROUP,
+    INTERNAL_USERS,
     PEER,
     REL_NAME,
     USER,
@@ -42,10 +45,10 @@ from literals import (
 )
 from managers.auth import AuthManager
 from managers.balancer import BalancerManager
-from managers.config import ConfigManager, ControllerConfigManager
+from managers.config import ConfigManager
 from managers.k8s import K8sManager
 from managers.tls import TLSManager
-from workload import ControllerWorkload, KafkaWorkload
+from workload import KafkaWorkload
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -65,7 +68,6 @@ class BrokerOperator(Object):
             if self.charm.substrate == "k8s"
             else None
         )
-        self.controller_workload = ControllerWorkload()
 
         self.tls_manager = TLSManager(
             state=self.charm.state,
@@ -87,7 +89,9 @@ class BrokerOperator(Object):
             ),
         )
         self.password_action_events = PasswordActionEvents(self)
-        self.zookeeper = ZooKeeperHandler(self)
+        if not self.charm.state.runs_controller:
+            self.zookeeper = ZooKeeperHandler(self)
+
         self.provider = KafkaProvider(self)
         self.oauth = OAuthHandler(self)
 
@@ -98,11 +102,6 @@ class BrokerOperator(Object):
             workload=self.workload,
             config=self.charm.config,
             current_version=self.upgrade.current_version,
-        )
-        self.controller_config_manager = ControllerConfigManager(
-            state=self.charm.state,
-            workload=self.controller_workload,
-            config=self.charm.config,
         )
         self.auth_manager = AuthManager(
             state=self.charm.state,
@@ -161,8 +160,25 @@ class BrokerOperator(Object):
         if not self.upgrade.idle:
             return
 
-        self.controller_config_manager.set_controller_properties()
-        self.controller_workload.start()
+        if self.charm.state.runs_controller: # TODO: also leader
+            if not (uuid := self.charm.state.cluster.cluster_uuid):
+                uuid = self.workload.run_bin_command(bin_keyword="storage", bin_args=["random-uuid", "2>", "/dev/null"]).strip()
+                self.charm.state.cluster.update({"cluster-uuid": uuid})
+
+        if not self.charm.state.cluster.internal_user_credentials and self.model.unit.is_leader():
+            try:
+                internal_user_credentials = self._create_internal_credentials()
+            except (KeyError, RuntimeError, subprocess.CalledProcessError, ExecError) as e:
+                logger.warning(str(e))
+                event.defer()
+                return
+
+            # only set to relation data when all set
+            for username, password in internal_user_credentials:
+                self.charm.state.cluster.update({f"{username}-password": password})
+
+        self.config_manager.set_server_properties()
+        self.workload.format_storages(uuid=uuid, internal_user_credentials=internal_user_credentials)
 
         self.charm._set_status(self.charm.state.ready_to_start)
         if not isinstance(self.charm.unit.status, ActiveStatus):
@@ -172,7 +188,6 @@ class BrokerOperator(Object):
         self.update_external_services()
 
         # required settings given zookeeper connection config has been created
-        self.config_manager.set_server_properties()
         self.config_manager.set_zk_jaas_config()
         self.config_manager.set_client_properties()
 
@@ -295,9 +310,10 @@ class BrokerOperator(Object):
         if not self.upgrade.idle or not self.healthy:
             return
 
-        if not self.charm.state.zookeeper.broker_active():
-            self.charm._set_status(Status.ZK_NOT_CONNECTED)
-            return
+        if not self.charm.state.runs_controller:
+            if not self.charm.state.zookeeper.broker_active():
+                self.charm._set_status(Status.ZK_NOT_CONNECTED)
+                return
 
         # NOTE for situations like IP change and late integration with rack-awareness charm.
         # If properties have changed, the broker will restart.
@@ -335,10 +351,12 @@ class BrokerOperator(Object):
 
         self.charm.state.unit_broker.update({"storages": self.balancer_manager.storages})
 
-        if self.charm.substrate == "vm":
+        # FIXME: if KRaft, don't execute
+        if self.charm.substrate == "vm" and not self.charm.state.runs_controller:
             # new dirs won't be used until topic partitions are assigned to it
             # either automatically for new topics, or manually for existing
             # set status only for running services, not on startup
+            # FIXME re-add this
             self.workload.exec(["chmod", "-R", "750", f"{self.workload.paths.data_path}"])
             self.workload.exec(
                 ["chown", "-R", f"{USER}:{GROUP}", f"{self.workload.paths.data_path}"]
@@ -388,6 +406,27 @@ class BrokerOperator(Object):
             return False
 
         return True
+
+    def _create_internal_credentials(self) -> list[tuple[str, str]]:
+        """Creates internal SCRAM users during cluster start.
+
+        Returns:
+            List of (username, password) for all internal users
+
+        Raises:
+            RuntimeError if called from non-leader unit
+            KeyError if attempted to update non-leader unit
+            subprocess.CalledProcessError if command to ZooKeeper failed
+        """
+        credentials = [
+            (username, self.charm.workload.generate_password()) for username in INTERNAL_USERS
+        ]
+        # for username, password in credentials:
+        #     self.auth_manager.add_user(
+        #         username=username, password=password, zk_auth=False
+        #     )
+
+        return credentials
 
     def update_external_services(self) -> None:
         """Attempts to update any external Kubernetes services."""

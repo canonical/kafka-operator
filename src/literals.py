@@ -114,12 +114,6 @@ PATHS = {
         "DATA": f"/var/snap/{SNAP_NAME}/common/var/lib/cruise-control",
         "BIN": f"/snap/{SNAP_NAME}/current/opt/cruise-control",
     },
-    "kraft": {
-        "CONF": f"/var/snap/{SNAP_NAME}/current/etc/kraft",
-        "LOGS": f"/var/snap/{SNAP_NAME}/common/var/log/kraft",
-        "DATA": f"/var/snap/{SNAP_NAME}/common/var/lib/kraft",
-        "BIN": f"/snap/{SNAP_NAME}/current/opt/kraft",
-    },
 }
 
 
@@ -147,6 +141,13 @@ BROKER = Role(
         "balancer-uris",
     ],
 )
+CONTROLLER = Role(
+    value="controller",
+    service="daemon",
+    paths=PATHS["kafka"],
+    relation=PEER_CLUSTER_RELATION,
+    requested_secrets=[],
+)
 BALANCER = Role(
     value="balancer",
     service="cruise-control",
@@ -160,13 +161,6 @@ BALANCER = Role(
         "zk-password",
         "zk-uris",
     ],
-)
-CONTROLLER = Role(
-    value="controller",
-    service="controller",
-    paths=PATHS["kraft"],
-    relation=PEER_CLUSTER_ORCHESTRATOR_RELATION,
-    requested_secrets=[],
 )
 
 DEFAULT_BALANCER_GOALS = [
