@@ -37,6 +37,7 @@ from literals import (
     ADMIN_USER,
     BALANCER,
     BROKER,
+    CONTROLLER,
     INTERNAL_USERS,
     MIN_REPLICAS,
     OAUTH_REL_NAME,
@@ -475,15 +476,17 @@ class ClusterState(Object):
         if not self.runs_broker:
             return Status.ACTIVE
 
-        if not self.zookeeper:
-            return Status.ZK_NOT_RELATED
+        # FIXME
+        if not self.runs_controller:
+            if not self.zookeeper:
+                return Status.ZK_NOT_RELATED
 
-        if not self.zookeeper.zookeeper_connected:
-            return Status.ZK_NO_DATA
+            if not self.zookeeper.zookeeper_connected:
+                return Status.ZK_NO_DATA
 
-        # TLS must be enabled for Kafka and ZK or disabled for both
-        if self.cluster.tls_enabled ^ self.zookeeper.tls:
-            return Status.ZK_TLS_MISMATCH
+            # TLS must be enabled for Kafka and ZK or disabled for both
+            if self.cluster.tls_enabled ^ self.zookeeper.tls:
+                return Status.ZK_TLS_MISMATCH
 
         if self.cluster.tls_enabled and not self.unit_broker.certificate:
             return Status.NO_CERT
@@ -502,3 +505,8 @@ class ClusterState(Object):
     def runs_broker(self) -> bool:
         """Is the charm enabling the broker(s)?"""
         return BROKER.value in self.roles
+
+    @property
+    def runs_controller(self) -> bool:
+        """Is the charm enabling the controller?"""
+        return CONTROLLER.value in self.roles

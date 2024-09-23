@@ -40,7 +40,6 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_CONFIG_OPTIONS = """
 sasl.mechanism.inter.broker.protocol=SCRAM-SHA-512
-authorizer.class.name=kafka.security.authorizer.AclAuthorizer
 allow.everyone.if.no.acl.found=false
 auto.create.topics.enable=false
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
@@ -67,7 +66,13 @@ min.samples.per.partition.metrics.window=1
 num.partition.metrics.windows=3
 num.broker.metrics.windows=10
 """
-SERVER_PROPERTIES_BLACKLIST = ["profile", "log_level", "certificate_extra_sans"]
+SERVER_PROPERTIES_BLACKLIST = [
+    "profile",
+    "log_level",
+    "certificate_extra_sans",
+    "roles",
+    "expose_external",
+]
 
 
 class Listener:
@@ -270,9 +275,11 @@ class ConfigManager(CommonConfigManager):
     @property
     @override
     def kafka_opts(self) -> str:
-        opts = [
-            f"-Djava.security.auth.login.config={self.workload.paths.zk_jaas}",
-        ]
+        opts = []
+        if not self.state.runs_controller:
+            opts = [
+                f"-Djava.security.auth.login.config={self.workload.paths.zk_jaas}",
+            ]
 
         http_proxy = os.environ.get("JUJU_CHARM_HTTP_PROXY")
         https_proxy = os.environ.get("JUJU_CHARM_HTTPS_PROXY")
@@ -442,6 +449,11 @@ class ConfigManager(CommonConfigManager):
         )
 
     @property
+    def controller_listener(self) -> Listener:
+        """Return the controller listener."""
+        pass # TODO: No good abstraction in place for the controller use case
+
+    @property
     def client_listeners(self) -> list[Listener]:
         """Return a list of extra listeners."""
         return [
@@ -565,6 +577,33 @@ class ConfigManager(CommonConfigManager):
         )
 
     @property
+    def authorizer_class(self) -> list[str]:
+        """Return the authorizer Java class used on Kafka."""
+        if self.state.runs_controller:
+            return ["authorizer.class.name=org.apache.kafka.metadata.authorizer.StandardAuthorizer"]
+        return ["authorizer.class.name=kafka.security.authorizer.AclAuthorizer"]
+
+    @property
+    def controller_properties(self) -> list[str]:
+        """Builds all properties necessary for starting Kafka controller service.
+
+        Returns:
+            List of properties to be set
+        """
+        # TODO: this check will need to be done on relation data
+        roles = "process.roles="
+        if self.state.runs_controller:
+            roles += self.config.roles
+        properties = [
+            "" if roles=="process.roles=" else roles,
+            "node.id=1",
+            "controller.quorum.voters=1@localhost:9097",
+            "controller.listener.names=INTERNAL_CONTROLLER",
+        ]
+
+        return properties
+
+    @property
     def server_properties(self) -> list[str]:
         """Builds all properties necessary for starting Kafka service.
 
@@ -580,6 +619,10 @@ class ConfigManager(CommonConfigManager):
         listeners_repr = [listener.listener for listener in self.all_listeners]
         advertised_listeners = [listener.advertised_listener for listener in self.all_listeners]
 
+        if self.state.runs_controller:
+            protocol_map.append("INTERNAL_CONTROLLER:PLAINTEXT")
+            listeners_repr.append("INTERNAL_CONTROLLER://:9097")
+
         properties = (
             [
                 f"super.users={self.state.super_users}",
@@ -594,14 +637,23 @@ class ConfigManager(CommonConfigManager):
             + self.oauth_properties
             + self.config_properties
             + self.default_replication_properties
-            + self.auth_properties
             + self.rack_properties
             + self.metrics_reporter_properties
             + DEFAULT_CONFIG_OPTIONS.split("\n")
+            + self.authorizer_class
         )
 
+        # FIXME
+        if not self.state.runs_controller:
+            properties += self.auth_properties
+
+        if self.state.runs_controller:
+            properties += self.controller_properties
+
         if self.state.cluster.tls_enabled and self.state.unit_broker.certificate:
-            properties += self.tls_properties + self.zookeeper_tls_properties
+            properties += self.tls_properties
+            if not self.state.runs_controller:
+                properties += self.zookeeper_tls_properties
 
         if self.config.profile == PROFILE_TESTING:
             properties += TESTING_OPTIONS.split("\n")
@@ -672,59 +724,6 @@ class ConfigManager(CommonConfigManager):
             String with Kafka configuration name to be placed in the server.properties file
         """
         return key.replace("_", ".") if key not in SERVER_PROPERTIES_BLACKLIST else f"# {key}"
-
-
-class ControllerConfigManager(CommonConfigManager):
-    """Manager for handling controller configuration."""
-    def __init__(
-        self,
-        state: ClusterState,
-        workload: WorkloadBase,
-        config: CharmConfig,
-    ):
-        self.state = state
-        self.workload = workload
-        self.config = config
-
-    @property
-    def controller_properties(self) -> list[str]:
-        """Builds all properties necessary for starting Kafka controller service.
-
-        Returns:
-            List of properties to be set
-        """
-        properties = (
-            [
-                f"process.roles=controller",
-                "node.id=100",
-                "controller.quorum.voters=1@localhost:9097",
-                "listeners=CONTROLLER://:9097",
-                f"log.dirs={self.state.log_dirs}",
-                # f"listener.security.protocol.map={','.join(protocol_map)}",
-                "controller.listener.names=CONTROLLER",
-                "num.network.threads=3",
-                "num.io.threads=8",
-                "socket.send.buffer.bytes=102400",
-                "socket.receive.buffer.bytes=102400",
-                "socket.request.max.bytes=104857600",
-                "num.partitions=1",
-                "num.recovery.threads.per.data.dir=1",
-                "offsets.topic.replication.factor=1",
-                "transaction.state.log.replication.factor=1",
-                "transaction.state.log.min.isr=1",
-                "log.retention.hours=168",
-                "log.segment.bytes=1073741824",
-                "log.retention.check.interval.ms=300000",
-            ]
-        )
-
-        return properties
-
-    def set_controller_properties(self) -> None:
-        self.workload.write(
-            content="\n".join(self.controller_properties),
-            path=self.workload.paths.controller_properties,
-        )
 
 
 class BalancerConfigManager(CommonConfigManager):
