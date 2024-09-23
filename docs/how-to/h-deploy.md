@@ -58,18 +58,19 @@ juju show-model | yq '.[].type'
 The Kafka and ZooKeeper charms can both be deployed as follows:
 
 ```shell
-$ juju deploy zookeeper --channel 3/edge -n <zookeeper-units>
-$ juju deploy kafka --channel 3/edge -n <kafka-units>
+$ juju deploy kafka --channel 3/stable -n <kafka-units> --trust
+$ juju deploy zookeeper --channel 3/stable -n <zookeeper-units>
 ```
+
+where `<kafka-units>` and `<zookeeper-units>` – the number of units to deploy for Kafka and ZooKeeper. We recommend values of at least `3` and `5` respectively.
+
+> **NOTE** The `--trust` option is needed for the Kafka application if NodePort is used. For more information about the trust options usage, see the [Juju documentation](/t/5476#heading--trust-an-application-with-a-credential). 
 
 After this, it is necessary to connect them:
 
 ```shell
 $ juju relate kafka zookeeper
 ```
-
-> We recommend values for `<kafka-units>` of at least three and for `<zookeeper-units>` of five, to 
-ensure reasonable high-availability margins.
 
 Once all the units show as `active|idle` in the `juju status` output, the deployment 
 should be ready to be used. 

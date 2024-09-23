@@ -6,7 +6,7 @@ To deploy Charmed Kafka, all you need to do is run the following commands, which
 
 ```shell
 $ juju deploy zookeeper -n 5
-$ juju deploy kafka -n 3
+$ juju deploy kafka -n 3 --trust
 ```
 
 After this, it is necessary to connect them:
