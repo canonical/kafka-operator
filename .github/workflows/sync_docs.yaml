@@ -3,7 +3,7 @@ name: Sync docs from Discourse
 on:
   workflow_dispatch:
   schedule:
-    - cron: '53 0 * * *' # Daily at 00:53 UTC
+    - cron: '33 0 * * *' # Daily at 00:53 UTC
   # Triggered on push to branch "main" by .github/workflows/release.yaml
   workflow_call:
 
@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Open PR with docs changes
-        uses: deusebio/discourse-gatekeeper@main
+        uses: canonical/discourse-gatekeeper@main
         id: docs-pr
         with:
           discourse_host: discourse.charmhub.io
