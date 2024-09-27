@@ -11,7 +11,7 @@ Every artifact bundled into the Charmed Kafka snap and Charmed ZooKeeper snap ar
 
 ## Sources verification
 
-Charmed Kafka and Charmed ZooKeeper artifacts are published programatically using release pipelines implemented via GitHub Actions of the 
+Charmed Kafka and Charmed ZooKeeper artifacts are published programmatically using release pipelines implemented via GitHub Actions of the 
 associated repositories. 
 All repositories containing the source code of the Charmed Kafka project (i.e. charm and snap codebases) are set up with 
 
