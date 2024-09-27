@@ -47,6 +47,7 @@ async def test_build_and_deploy_same_machine(ops_test: OpsTest, kafka_charm):
             channel="edge",
             application_name=SAME_ZK,
             num_units=1,
+            revision=137,
             series="jammy",
             to=machine_ids[0],
         ),
@@ -94,7 +95,12 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
             storage={"data": {"pool": "test_pool", "size": 10240}},
         ),
         ops_test.model.deploy(
-            ZK_NAME, channel="edge", application_name=ZK_NAME, num_units=1, series="jammy"
+            ZK_NAME,
+            channel="edge",
+            application_name=ZK_NAME,
+            num_units=1,
+            series="jammy",
+            revision=137,
         ),
     )
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], idle_period=30, timeout=3600)

@@ -38,7 +38,12 @@ async def test_deploy_charms_relate_active(
     """Test deploy and relate operations."""
     await asyncio.gather(
         ops_test.model.deploy(
-            "zookeeper", channel="edge", application_name=ZK, num_units=3, series="jammy"
+            "zookeeper",
+            channel="edge",
+            revision=137,
+            application_name=ZK,
+            num_units=3,
+            series="jammy",
         ),
         ops_test.model.deploy(kafka_charm, application_name=APP_NAME, num_units=1, series="jammy"),
         ops_test.model.deploy(

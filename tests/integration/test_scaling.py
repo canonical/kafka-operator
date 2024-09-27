@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 async def test_kafka_simple_scale_up(ops_test: OpsTest, kafka_charm):
     await asyncio.gather(
         ops_test.model.deploy(
-            ZK, channel="edge", application_name=ZK, num_units=1, series="jammy"
+            ZK, channel="edge", application_name=ZK, revision=137, num_units=1, series="jammy"
         ),
         ops_test.model.deploy(
             kafka_charm, application_name=CHARM_KEY, num_units=1, series="jammy"

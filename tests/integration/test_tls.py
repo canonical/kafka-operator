@@ -46,7 +46,9 @@ async def test_deploy_tls(ops_test: OpsTest, kafka_charm):
 
     await asyncio.gather(
         ops_test.model.deploy(TLS_NAME, channel="edge", config=tls_config, series="jammy"),
-        ops_test.model.deploy(ZK, channel="edge", series="jammy", application_name=ZK),
+        ops_test.model.deploy(
+            ZK, channel="edge", revision=137, series="jammy", application_name=ZK
+        ),
         ops_test.model.deploy(
             kafka_charm,
             application_name=CHARM_KEY,
