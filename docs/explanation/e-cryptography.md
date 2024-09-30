@@ -4,25 +4,43 @@
 
 Every version of the Charmed Kafka and Charmed ZooKeeper operators install a pinned revision of the Charmed Kafka snap
 and Charmed ZooKeeper, respectively, in order to 
-provide reproducible and secure environments. The Charmed Kafka snap and Charmed ZooKeeper snap package the 
+provide reproducible and secure environments. The [Charmed Kafka snap](https://snapstore.io/charmed-kafka) and [Charmed ZooKeeper snap](https://snapstore.io/charmed-zookeeper) package the 
 Kafka and ZooKeeper workload together with 
-a set of dependencies and utilities required by the lifecycle of the operators. 
-Every artifact bundled into the Charmed Kafka snap and Charmed ZooKeeper snap are verified against their checksum. 
+a set of dependencies and utilities required by the lifecycle of the operators (see [Charmed Kafka snap contents](https://github.com/canonical/charmed-kafka-snap/blob/3/edge/snap/snapcraft.yaml) and [Charmed ZooKeeper snap contents](https://github.com/canonical/charmed-zookeeper-snap/blob/3/edge/snap/snapcraft.yaml)). . 
+Every artifact bundled into the Charmed Kafka snap and Charmed ZooKeeper snap are verified against their MD5 SHA512 checksum after download. 
 
 ## Sources verification
 
-Charmed Kafka and Charmed ZooKeeper artifacts are published programmatically using release pipelines implemented via GitHub Actions of the 
-associated repositories. 
-All repositories containing the source code of the Charmed Kafka project (i.e. charm and snap codebases) are set up with 
+Charmed Kafka sources are stored in:
 
-* Branch protection rules requiring additional commits to be merged via Pull-Request with at least 2 approvals from repository maintainers
-* Signed commits requirements (using GPG keys)
-* Requiring developers to sign CLA agreement
+* GitHub repositories for snaps, rocks and charms
+* LaunchPad repositories for the Kafka and ZooKeeper upstream fork used for building their respective distributions
+
+### LaunchPad
+
+Distributions are built using private repositories only, hosted as part of the [SOSS namespace]() to eventually
+integrate with the Canonical process for fixing CVEs. 
+Branches associated with releases are also mirrored to a public repository, hosted in the [Data Platform namespace]() 
+to also provide community with the patched source code. 
+
+### GitHub 
+
+All Charmed Kafka and Charmed ZooKeeper artifacts are published and released 
+programmatically using release pipelines implemented via GitHub Actions. 
+Distributions are published as both GitHub and LaunchPad releases via the [central-uploader] repository, while 
+charms, snaps and rocks are published using the workflows of their respective repositories. 
+
+All repositories in GitHub are set up with branch protection rules, requiring:
+
+* new commits to be merged to main branches via Pull-Request with at least 2 approvals from repository maintainers
+* new commits to be signed (e.g. using GPG keys)
+* developers to sign the [Canonical Contributor License Agreement (CLA)]()
 
 ## Encryption
 
-The Charmed Kafka operator allow to deploy a secure Kafka cluster providing encryption-in-transit capabilities out of the box 
-for
+The Charmed Kafka operator can be used to deploy a secure Kafka cluster that provides encryption-in-transit capabilities out of the box 
+for:
+
 * Interbroker communications
 * ZooKeeper connection
 * External client connection 
@@ -39,11 +57,11 @@ Encryption at rest is currently not supported, although it can be provided by th
 
 ## Authentication
 
-There exists 3 layers of authentication in the Charmed Kafka solution:
+In the Charmed Kafka solution, authentication layers can be enabled for
 
-1. ZooKeeper authentication
-2. Kafka inter broker authentication 
-3. Client authentication to Kafka
+1. ZooKeeper connections
+2. Kafka inter broker communication 
+3. Kafka Clients
 
 ### Kafka authentication to ZooKeeper
 
@@ -58,9 +76,11 @@ Permission on the file is restricted to the root user.
 ### Kafka Inter-broker authentication
 
 Authentication among brokers is based on SCRAM-SHA-512 protocol. Username and passwords are exchanged 
-via peer relations, using Juju secrets from revision 168 on Kafka
+via peer relations, using Juju secrets from revision 168 on Charmed Kafka.
 
-Username and password are stored in ZooKeeper servers in a JAAS configuration file in plain format. The file needs to be readable and
+Kafka username and password used by brokers to authenticate one another are stored 
+both in a ZooKeeper zNode and in a JAAS configuration file in the Kafka server in plain format. 
+The file needs to be readable and
 writable by root (as it is created by the charm), and be readable by the `snap_daemon` user running the Kafka server snap commands.
 
 ### Client authentication to Kafka
@@ -68,7 +88,7 @@ writable by root (as it is created by the charm), and be readable by the `snap_d
 Clients can authenticate to Kafka using:
 
 1. username and password exchanged using SCRAM-SHA-512 protocols 
-2. client certificates (mTLS)
+2. client certificates or CAs (mTLS)
 
 When using SCRAM, username and passwords are stored in ZooKeeper to be used by the Kafka processes, 
 in peer-relation data to be used by the Kafka charm and in external relation to be shared with client applications. 
