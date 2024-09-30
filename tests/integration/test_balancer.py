@@ -112,8 +112,8 @@ class TestBalancer:
         await ops_test.model.add_relation(PRODUCER_APP, APP_NAME)
         if self.balancer_app != APP_NAME:
             await ops_test.model.add_relation(
-                f"{APP_NAME}:{PEER_CLUSTER_RELATION}",
-                f"{BALANCER_APP}:{PEER_CLUSTER_ORCHESTRATOR_RELATION}",
+                f"{APP_NAME}:{PEER_CLUSTER_ORCHESTRATOR_RELATION}",
+                f"{BALANCER_APP}:{PEER_CLUSTER_RELATION}",
             )
 
         await ops_test.model.wait_for_idle(
