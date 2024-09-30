@@ -71,7 +71,7 @@ class ZooKeeperHandler(Object):
             event.defer()
             return
 
-        if not self.charm.state.cluster.internal_user_credentials and self.model.unit.is_leader():
+        if self.model.unit.is_leader():
             # loading the minimum config needed to authenticate to zookeeper
             self.dependent.config_manager.set_zk_jaas_config()
             self.dependent.config_manager.set_server_properties()
@@ -86,6 +86,17 @@ class ZooKeeperHandler(Object):
             # only set to relation data when all set
             for username, password in internal_user_credentials:
                 self.charm.state.cluster.update({f"{username}-password": password})
+
+        # Kafka keeps a meta.properties in every log.dir with a unique ClusterID
+        # this ID is provided by ZK, and removing it on relation-changed allows
+        # re-joining a ZK cluster undergoing backup restoration.
+        self.charm.workload.exec(
+            [
+                "bash",
+                "-c",
+                f"""find {self.charm.workload.paths.data_path} -type f -name meta.properties -delete || true""",
+            ]
+        )
 
         # attempt re-start of Kafka for all units on zookeeper-changed
         # avoids relying on deferred events elsewhere that may not exist after cluster init
