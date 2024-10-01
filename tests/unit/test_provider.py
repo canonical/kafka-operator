@@ -126,7 +126,7 @@ def test_client_relation_joined_sets_necessary_relation_data(harness: Harness):
         patch("charm.KafkaCharm.healthy", new_callable=PropertyMock, return_value=True),
         patch("managers.auth.AuthManager.add_user"),
         patch("workload.KafkaWorkload.run_bin_command"),
-        patch("core.cluster.ZooKeeper.connect", new_callable=PropertyMock, return_value="yes"),
+        patch("core.models.ZooKeeper.uris", new_callable=PropertyMock, return_value="yes"),
     ):
         harness.set_leader(True)
         client_rel_id = harness.add_relation(REL_NAME, "app")
@@ -136,11 +136,11 @@ def test_client_relation_joined_sets_necessary_relation_data(harness: Harness):
             client_relation.id, "app", {"topic": "TOPIC", "extra-user-roles": "consumer"}
         )
         harness.add_relation_unit(client_rel_id, "app/0")
-        logger.info(f"keys: {client_relation.data[harness.charm.app].keys()}")
         assert sorted(
             [
                 "username",
                 "password",
+                "tls-ca",
                 "endpoints",
                 "data",
                 "zookeeper-uris",

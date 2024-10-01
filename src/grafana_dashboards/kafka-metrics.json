@@ -151,7 +151,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "count(kafka_server_replicamanager_leadercount{job=~\"$job\"})",
+          "expr": "count(kafka_server_replicamanager_leadercount{})",
           "format": "time_series",
           "instant": false,
           "interval": "",
@@ -243,7 +243,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "sum(kafka_controller_kafkacontroller_activecontrollercount{job=~\"$job\"})",
+          "expr": "sum(kafka_controller_kafkacontroller_activecontrollercount{})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -334,7 +334,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "sum(kafka_controller_kafkacontroller_globaltopiccount{job=~\"$job\"})",
+          "expr": "sum(kafka_controller_kafkacontroller_globaltopiccount{})",
           "format": "time_series",
           "hide": false,
           "interval": "",
@@ -425,7 +425,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "sum(kafka_server_replicamanager_underreplicatedpartitions{job=~\"$job\"})",
+          "expr": "sum(kafka_server_replicamanager_underreplicatedpartitions{})",
           "format": "time_series",
           "hide": false,
           "interval": "",
@@ -516,7 +516,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "sum(kafka_server_replicamanager_partitioncount{job=~\"$job\"})",
+          "expr": "sum(kafka_server_replicamanager_partitioncount{})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -605,7 +605,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "sum(kafka_controller_kafkacontroller_offlinepartitionscount{job=~\"$job\"})",
+          "expr": "sum(kafka_controller_kafkacontroller_offlinepartitionscount{})",
           "format": "time_series",
           "hide": false,
           "interval": "",
@@ -742,7 +742,7 @@
       ],
       "targets": [
         {
-          "expr": "kafka_controller_kafkacontroller_activecontrollercount{job=~\"$job\"}",
+          "expr": "kafka_controller_kafkacontroller_activecontrollercount{}",
           "format": "table",
           "instant": true,
           "interval": "",
@@ -805,7 +805,7 @@
       "pluginVersion": "7.3.4",
       "targets": [
         {
-          "expr": "sum(kafka_server_brokertopicmetrics_messagesinpersec{job=\"$job\",topic=\"\"})",
+          "expr": "sum(kafka_server_brokertopicmetrics_messagesinpersec{topic=\"\"})",
           "interval": "",
           "legendFormat": "Total messages in per sec ",
           "refId": "A"
@@ -967,7 +967,7 @@
       ],
       "targets": [
         {
-          "expr": "kafka_server_replicamanager_leadercount{job=~\"$job\"} / kafka_server_replicamanager_partitioncount{job=\"$job\"} * 100",
+          "expr": "kafka_server_replicamanager_leadercount{} / kafka_server_replicamanager_partitioncount{} * 100",
           "format": "table",
           "hide": true,
           "instant": true,
@@ -977,7 +977,7 @@
           "refId": "C"
         },
         {
-          "expr": "kafka_server_replicamanager_leadercount{job=~\"$job\"}",
+          "expr": "kafka_server_replicamanager_leadercount{}",
           "format": "table",
           "hide": false,
           "instant": true,
@@ -987,7 +987,7 @@
           "refId": "A"
         },
         {
-          "expr": "count(kafka_cluster_partition_replicascount{job=\"$job\"} <= 1)by(instance)",
+          "expr": "count(kafka_cluster_partition_replicascount{} <= 1)by(instance)",
           "format": "table",
           "instant": true,
           "interval": "",
@@ -1050,7 +1050,7 @@
       "pluginVersion": "7.3.4",
       "targets": [
         {
-          "expr": "sum(increase(kafka_server_brokertopicmetrics_messagesinpersec{job=\"$job\",topic=\"\"}[$__range]))",
+          "expr": "sum(increase(kafka_server_brokertopicmetrics_messagesinpersec{topic=\"\"}[$__range]))",
           "interval": "",
           "legendFormat": "Total messages from ${__from:date:MM-DD hA} to ${__to:date:MM-DD hA}",
           "refId": "A"
@@ -1069,7 +1069,7 @@
         "defaults": {
           "custom": {},
           "decimals": 2,
-          "displayName": "Broker: $broker",
+          "displayName": "Broker: $juju_unit",
           "mappings": [
             {
               "$$hashKey": "object:230",
@@ -1129,11 +1129,11 @@
       "repeatDirection": "h",
       "targets": [
         {
-          "expr": "100 - (kafka_network_socketserver_networkprocessoravgidlepercent{job=\"$job\",instance=~\"$broker\"}*100)",
+          "expr": "100 - (kafka_network_socketserver_networkprocessoravgidlepercent{juju_unit=\"$juju_unit\"}*100)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Network processor avg {{instance}}",
+          "legendFormat": "Network processor avg {{juju_unit}}",
           "refId": "A"
         }
       ],
@@ -1162,7 +1162,7 @@
         "defaults": {
           "custom": {},
           "decimals": 2,
-          "displayName": "Broker: $broker",
+          "displayName": "Broker: $juju_unit",
           "mappings": [
             {
               "$$hashKey": "object:230",
@@ -1226,11 +1226,11 @@
       "repeatDirection": "h",
       "targets": [
         {
-          "expr": "kafka_server_kafkarequesthandlerpool_requesthandleravgidlepercent_total{job=\"$job\",instance=~\"$broker\"}",
+          "expr": "kafka_server_kafkarequesthandlerpool_requesthandleravgidlepercent_total{juju_unit=\"$juju_unit\"}",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Request handler avg {{instance}}",
+          "legendFormat": "Request handler avg {{juju_unit}}",
           "refId": "A"
         }
       ],
@@ -1316,7 +1316,7 @@
       "repeatDirection": "h",
       "targets": [
         {
-          "expr": "avg by(request) (kafka_network_requestmetrics_totaltimems{instance=~\"$broker\",job=\"$job\",quantile=\"0.99\",request=\"Produce\"})",
+          "expr": "avg by(request) (kafka_network_requestmetrics_totaltimems{juju_unit=\"$juju_unit\",quantile=\"0.99\",request=\"Produce\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1390,7 +1390,7 @@
       "repeatDirection": "h",
       "targets": [
         {
-          "expr": "avg by(request) (kafka_network_requestmetrics_totaltimems{instance=~\"$broker\",job=\"$job\",quantile=\"0.99\",request=\"FetchConsumer\"})",
+          "expr": "avg by(request) (kafka_network_requestmetrics_totaltimems{juju_unit=\"$juju_unit\",quantile=\"0.99\",request=\"FetchConsumer\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1464,7 +1464,7 @@
       "repeatDirection": "h",
       "targets": [
         {
-          "expr": "avg by(request) (kafka_network_requestmetrics_totaltimems{instance=~\"$broker\",job=\"$job\",quantile=\"0.99\",request=\"FetchFollower\"})",
+          "expr": "avg by(request) (kafka_network_requestmetrics_totaltimems{juju_unit=\"$juju_unit\",quantile=\"0.99\",request=\"FetchFollower\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1533,11 +1533,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg by(instance) (kafka_network_requestmetrics_totaltimems{instance=~\"$broker\",job=\"$job\",quantile=\"0.99\",request=\"Produce\"})",
+          "expr": "avg by(juju_unit) (kafka_network_requestmetrics_totaltimems{juju_unit=\"$juju_unit\",quantile=\"0.99\",request=\"Produce\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{instance}}",
+          "legendFormat": "{{juju_unit}}",
           "refId": "D"
         }
       ],
@@ -1638,11 +1638,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg by(instance) (kafka_network_requestmetrics_totaltimems{instance=~\"$broker\",job=\"$job\",quantile=\"0.99\",request=\"FetchConsumer\"})",
+          "expr": "avg by(juju_unit) (kafka_network_requestmetrics_totaltimems{juju_unit=\"$juju_unit\",quantile=\"0.99\",request=\"FetchConsumer\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{instance}}",
+          "legendFormat": "{{juju_unit}}",
           "refId": "D"
         }
       ],
@@ -1743,11 +1743,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg by(instance) (kafka_network_requestmetrics_totaltimems{instance=~\"$broker\",job=\"$job\",quantile=\"0.99\",request=\"FetchFollower\"})",
+          "expr": "avg by(juju_unit) (kafka_network_requestmetrics_totaltimems{juju_unit=\"$juju_unit\",quantile=\"0.99\",request=\"FetchFollower\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{instance}}",
+          "legendFormat": "{{juju_unit}}",
           "refId": "D"
         }
       ],
@@ -1862,7 +1862,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "rate(kafka_server_brokertopicmetrics_messagesinpersec{instance=~\"$broker\", job=\"$job\", juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", topic!=\"\", topic=~\"$topic\"}[5m])",
+          "expr": "rate(kafka_server_brokertopicmetrics_messagesinpersec{juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", topic!=\"\", topic=~\"$topic\"}[5m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1970,7 +1970,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "rate(kafka_server_brokertopicmetrics_bytesinpersec{instance=~\"$broker\",job=\"$job\",topic!=\"\",topic=~\"$topic\"}[5m])",
+          "expr": "rate(kafka_server_brokertopicmetrics_bytesinpersec{juju_unit=\"$juju_unit\",topic!=\"\",topic=~\"$topic\"}[5m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 2,
@@ -2084,7 +2084,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "rate(kafka_server_brokertopicmetrics_totalproducerequestspersec{instance=~\"$broker\", job=\"$job\", juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", topic!=\"\"}[5m])",
+          "expr": "rate(kafka_server_brokertopicmetrics_totalproducerequestspersec{juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", topic!=\"\"}[5m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -2189,12 +2189,12 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "rate(kafka_network_requestmetrics_requestspersec{instance=~\"$broker\", job=\"$job\", juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", request=~\"Produce\"}[5m])",
+          "expr": "rate(kafka_network_requestmetrics_requestspersec{juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", request=~\"Produce\"}[5m])",
           "format": "time_series",
           "instant": false,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Request: {{instance}}",
+          "legendFormat": "Request: {{juju_unit}}",
           "refId": "A"
         }
       ],
@@ -2308,7 +2308,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "rate(kafka_server_brokertopicmetrics_failedproducerequestspersec{instance=~\"$broker\", job=~\"$job\", juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", topic!=\"\", topic=~\"$topic\"}[5m])",
+          "expr": "rate(kafka_server_brokertopicmetrics_failedproducerequestspersec{juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", topic!=\"\", topic=~\"$topic\"}[5m])",
           "format": "time_series",
           "instant": false,
           "interval": "",
@@ -2413,7 +2413,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum by(topic) (kafka_server_brokertopicmetrics_failedfetchrequestspersec{instance=~\"$broker\",job=~\"$job\",topic!=\"\",topic=~\"$topic\"})",
+          "expr": "sum by(topic) (kafka_server_brokertopicmetrics_failedfetchrequestspersec{juju_unit=\"$juju_unit\",topic!=\"\",topic=~\"$topic\"})",
           "format": "time_series",
           "instant": false,
           "interval": "",
@@ -2518,7 +2518,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "rate(kafka_server_brokertopicmetrics_failedproducerequestspersec{instance=~\"$broker\",job=~\"$job\",juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\"}[5m])",
+          "expr": "rate(kafka_server_brokertopicmetrics_failedproducerequestspersec{juju_application=\"$juju_application\",juju_model=\"$juju_model\",juju_model_uuid=\"$juju_model_uuid\",juju_unit=\"$juju_unit\"}[5m])",
           "format": "time_series",
           "instant": false,
           "interval": "",
@@ -2623,11 +2623,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum (kafka_server_sessionexpirelistener_zookeeperdisconnectspersec{job=\"$job\",instance=~\"$broker\"})by(instance)",
+          "expr": "sum (kafka_server_sessionexpirelistener_zookeeperdisconnectspersec{juju_unit=\"$juju_unit\"})by(juju_unit)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Broker - {{instance}}",
+          "legendFormat": "Broker - {{juju_unit}}",
           "refId": "A"
         }
       ],
@@ -2727,11 +2727,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum (kafka_server_sessionexpirelistener_zookeeperexpirespersec{job=\"$job\",instance=~\"$broker\"})by(instance)",
+          "expr": "sum (kafka_server_sessionexpirelistener_zookeeperexpirespersec{juju_unit=\"$juju_unit\"})by(juju_unit)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Broker - {{instance}}",
+          "legendFormat": "Broker - {{juju_unit}}",
           "refId": "A"
         }
       ],
@@ -2833,11 +2833,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(kafka_server_zookeeperclientmetrics_zookeeperrequestlatencyms{job=\"$job\",instance=~\"$broker\"})by(instance)",
+          "expr": "sum(kafka_server_zookeeperclientmetrics_zookeeperrequestlatencyms{juju_unit=\"$juju_unit\"})by(juju_unit)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Broker: {{instance}}",
+          "legendFormat": "Broker: {{juju_unit}}",
           "refId": "A"
         }
       ],
@@ -2944,7 +2944,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum (kafka_server_replicamanager_isrshrinkspersec{job=\"$job\",instance=~\"$broker\"})",
+          "expr": "sum (kafka_server_replicamanager_isrshrinkspersec{juju_unit=\"$juju_unit\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -2952,7 +2952,7 @@
           "refId": "A"
         },
         {
-          "expr": "sum (kafka_server_replicamanager_isrexpandspersec{job=\"$job\",instance=~\"$broker\"})",
+          "expr": "sum (kafka_server_replicamanager_isrexpandspersec{juju_unit=\"$juju_unit\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -3056,7 +3056,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "rate(kafka_network_requestmetrics_requestspersec{instance=~\"$broker\", job=\"$job\", juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", request=~\"FetchFollower\"}[5m])",
+          "expr": "rate(kafka_network_requestmetrics_requestspersec{juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", request=~\"FetchFollower\"}[5m])",
           "format": "time_series",
           "instant": false,
           "interval": "",
@@ -3162,7 +3162,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "rate(kafka_network_requestmetrics_requestspersec{instance=~\"$broker\", job=\"$job\", juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", request=\"FetchConsumer\"}[5m])",
+          "expr": "rate(kafka_network_requestmetrics_requestspersec{juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", request=\"FetchConsumer\"}[5m])",
           "format": "time_series",
           "instant": false,
           "interval": "",
@@ -3272,11 +3272,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum (kafka_server_delayedoperationpurgatory_purgatorysize{job=\"$job\",delayedOperation=\"Fetch\",instance=~\"$broker\"})by(instance)",
+          "expr": "sum (kafka_server_delayedoperationpurgatory_purgatorysize{delayedOperation=\"Fetch\",juju_unit=\"$juju_unit\"})by(juju_unit)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Broker {{instance}}",
+          "legendFormat": "Broker {{juju_unit}}",
           "refId": "A"
         }
       ],
@@ -3376,11 +3376,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "rate(kafka_server_brokertopicmetrics_totalfetchrequestspersec{instance=~\"$broker\", job=\"$job\", juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", topic!=\"\"}[5m])",
+          "expr": "rate(kafka_server_brokertopicmetrics_totalfetchrequestspersec{juju_application=\"$juju_application\", juju_model=\"$juju_model\", juju_model_uuid=\"$juju_model_uuid\", juju_unit=\"$juju_unit\", topic!=\"\"}[5m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Broker: $broker",
+          "legendFormat": "Broker: $juju_unit",
           "refId": "A"
         }
       ],
@@ -3482,11 +3482,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum (kafka_server_delayedoperationpurgatory_purgatorysize{job=\"$job\",delayedOperation=\"Produce\",instance=~\"$broker\"})by(instance)",
+          "expr": "sum (kafka_server_delayedoperationpurgatory_purgatorysize{delayedOperation=\"Produce\",juju_unit=\"$juju_unit\"})by(juju_unit)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Broker {{instance}}",
+          "legendFormat": "Broker {{juju_unit}}",
           "refId": "A"
         }
       ],
@@ -3589,11 +3589,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum (kafka_controller_controllerstats_leaderelectionrateandtimems{job=\"$job\",instance=~\"$broker\"})by(instance)",
+          "expr": "sum (kafka_controller_controllerstats_leaderelectionrateandtimems{juju_unit=\"$juju_unit\"})by(juju_unit)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Broker - {{instance}}",
+          "legendFormat": "Broker - {{juju_unit}}",
           "refId": "A"
         }
       ],
@@ -3768,7 +3768,7 @@
       ],
       "targets": [
         {
-          "expr": "kafka_cluster_partition_replicascount{job=~\"$job\",topic=~\"$topic\"}",
+          "expr": "kafka_cluster_partition_replicascount{topic=~\"$topic\"}",
           "format": "table",
           "instant": true,
           "interval": "",
@@ -3838,12 +3838,12 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sort(sum(kafka_log_log_size{job=~\"$job\",instance=~\"$broker\"})by(instance))",
+          "expr": "sort(sum(kafka_log_log_size{juju_unit=\"$juju_unit\"})by(juju_unit))",
           "format": "time_series",
           "instant": true,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Instance Broker:  {{instance}}",
+          "legendFormat": "Instance Broker:  {{juju_unit}}",
           "refId": "A"
         }
       ],
@@ -3944,12 +3944,12 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sort(sum(kafka_server_replicamanager_partitioncount{job=~\"$job\"}) by (instance))",
+          "expr": "sort(sum(kafka_server_replicamanager_partitioncount{}) by (juju_unit))",
           "format": "time_series",
           "instant": true,
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "Instance Broker: {{instance}}",
+          "legendFormat": "Instance Broker: {{juju_unit}}",
           "refId": "A"
         }
       ],
@@ -4063,11 +4063,11 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "jvm_threads_current{job=\"$job\",instance=~\"$broker\"}",
+              "expr": "jvm_threads_current{juju_unit=\"$juju_unit\"}",
               "format": "time_series",
               "interval": "",
               "intervalFactor": 1,
-              "legendFormat": "{{instance}}",
+              "legendFormat": "{{juju_unit}}",
               "refId": "A"
             }
           ],
@@ -4165,11 +4165,11 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum without(area)(jvm_memory_bytes_used{job=\"$job\",instance=~\"$broker\"} )",
+              "expr": "sum without(area)(jvm_memory_bytes_used{juju_unit=\"$juju_unit\"} )",
               "format": "time_series",
               "interval": "",
               "intervalFactor": 1,
-              "legendFormat": "Broker - {{instance}}",
+              "legendFormat": "Broker - {{juju_unit}}",
               "refId": "A"
             }
           ],
@@ -4267,11 +4267,11 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "rate(process_cpu_seconds_total{job=~\"$job\",instance=~\"$broker\"}[5m])",
+              "expr": "rate(process_cpu_seconds_total{juju_unit=\"$juju_unit\"}[5m])",
               "format": "time_series",
               "interval": "",
               "intervalFactor": 1,
-              "legendFormat": "Broker - {{instance}}",
+              "legendFormat": "Broker - {{juju_unit}}",
               "refId": "A"
             }
           ],
@@ -4369,11 +4369,11 @@
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum without(gc)(rate(jvm_gc_collection_seconds_sum{job=\"$job\",instance=~\"$broker\"}[1m]))",
+              "expr": "sum without(gc)(rate(jvm_gc_collection_seconds_sum{juju_unit=\"$juju_unit\"}[1m]))",
               "format": "time_series",
               "interval": "",
               "intervalFactor": 1,
-              "legendFormat": "{{instance}}",
+              "legendFormat": "{{juju_unit}}",
               "refId": "A"
             }
           ],
@@ -4436,53 +4436,7 @@
         "allValue": null,
         "current": {},
         "datasource": "${prometheusds}",
-        "definition": "label_values(kafka_controller_kafkacontroller_controllerstate, job)",
-        "error": null,
-        "hide": 0,
-        "includeAll": false,
-        "label": "job",
-        "multi": false,
-        "name": "job",
-        "options": [],
-        "query": "label_values(kafka_controller_kafkacontroller_controllerstate, job)",
-        "refresh": 1,
-        "regex": "",
-        "skipUrlSync": false,
-        "sort": 0,
-        "tagValuesQuery": "",
-        "tags": [],
-        "tagsQuery": "",
-        "type": "query",
-        "useTags": false
-      },
-      {
-        "allValue": null,
-        "current": {},
-        "datasource": "${prometheusds}",
-        "definition": "label_values(kafka_controller_kafkacontroller_controllerstate{job=\"$job\"}, instance)",
-        "error": null,
-        "hide": 0,
-        "includeAll": true,
-        "label": "Broker",
-        "multi": true,
-        "name": "broker",
-        "options": [],
-        "query": "label_values(kafka_controller_kafkacontroller_controllerstate{job=\"$job\"}, instance)",
-        "refresh": 1,
-        "regex": "",
-        "skipUrlSync": false,
-        "sort": 0,
-        "tagValuesQuery": "",
-        "tags": [],
-        "tagsQuery": "",
-        "type": "query",
-        "useTags": false
-      },
-      {
-        "allValue": null,
-        "current": {},
-        "datasource": "${prometheusds}",
-        "definition": "label_values(kafka_cluster_partition_replicascount{job=\"$job\"}, topic)",
+        "definition": "label_values(kafka_cluster_partition_replicascount{}, topic)",
         "error": null,
         "hide": 0,
         "includeAll": true,
@@ -4490,7 +4444,7 @@
         "multi": true,
         "name": "topic",
         "options": [],
-        "query": "label_values(kafka_cluster_partition_replicascount{job=\"$job\"}, topic)",
+        "query": "label_values(kafka_cluster_partition_replicascount{}, topic)",
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
@@ -4505,7 +4459,7 @@
         "allValue": null,
         "current": {},
         "datasource": "${prometheusds}",
-        "definition": "query_result(count(up{job=~\"$job\"}))",
+        "definition": "query_result(count(up{}))",
         "error": null,
         "hide": 2,
         "includeAll": false,
@@ -4513,7 +4467,7 @@
         "multi": false,
         "name": "online_broker",
         "options": [],
-        "query": "query_result(count(up{job=~\"$job\"}))",
+        "query": "query_result(count(up{}))",
         "refresh": 1,
         "regex": "/.* ([^\\ ]*) .*/",
         "skipUrlSync": false,
