@@ -105,8 +105,13 @@ class ZooKeeperHandler(Object):
         # Kafka keeps a meta.properties in every log.dir with a unique ClusterID
         # this ID is provided by ZK, and removing it on relation-broken allows
         # re-joining to another ZK cluster.
-        for storage in self.charm.model.storages["data"]:
-            self.charm.workload.exec(["rm", f"{storage.location}/meta.properties"])
+        self.charm.workload.exec(
+            [
+                "bash",
+                "-c",
+                f"""find {self.charm.workload.paths.data_path} -type f -name meta.properties -delete || true""",
+            ]
+        )
 
         if not self.charm.unit.is_leader():
             return

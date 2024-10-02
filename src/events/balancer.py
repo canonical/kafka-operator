@@ -101,8 +101,9 @@ class BalancerOperator(Object):
 
     def _on_start(self, event: StartEvent | PebbleReadyEvent) -> None:
         """Handler for `start` or `pebble-ready` events."""
-        self.charm._set_status(self.charm.state.ready_to_start)
-        if not isinstance(self.charm.unit.status, ActiveStatus):
+        current_status = self.charm.state.ready_to_start
+        if current_status is not Status.ACTIVE:
+            self.charm._set_status(current_status)
             event.defer()
             return
 
@@ -261,8 +262,6 @@ class BalancerOperator(Object):
 
         event.set_results(sanitised_response)
 
-        self.charm._set_status(Status.ACTIVE)
-
     @property
     def healthy(self) -> bool:
         """Checks and updates various charm lifecycle states.
@@ -274,8 +273,9 @@ class BalancerOperator(Object):
         if not self.charm.state.runs_balancer:
             return True
 
-        self.charm._set_status(self.charm.state.ready_to_start)
-        if not isinstance(self.charm.unit.status, ActiveStatus):
+        current_status = self.charm.state.ready_to_start
+        if not isinstance(current_status, ActiveStatus):
+            self.charm._set_status(current_status)
             return False
 
         if not self.workload.active() and self.charm.unit.is_leader():
