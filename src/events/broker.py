@@ -6,8 +6,8 @@
 
 import json
 import logging
-from datetime import datetime
 import subprocess
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from charms.operator_libs_linux.v1.snap import SnapError
@@ -160,26 +160,36 @@ class BrokerOperator(Object):
         if not self.upgrade.idle:
             return
 
-        if self.charm.state.runs_controller: # TODO: also leader
-            if not (uuid := self.charm.state.cluster.cluster_uuid):
+        # NOTE make init_server no-op and always run
+        if self.charm.state.runs_controller:
+            if not self.charm.state.cluster.cluster_uuid and self.model.unit.is_leader():
                 uuid = self.workload.run_bin_command(bin_keyword="storage", bin_args=["random-uuid", "2>", "/dev/null"]).strip()
                 self.charm.state.cluster.update({"cluster-uuid": uuid})
 
-        if not self.charm.state.cluster.internal_user_credentials and self.model.unit.is_leader():
-            try:
-                internal_user_credentials = self._create_internal_credentials()
-            except (KeyError, RuntimeError, subprocess.CalledProcessError, ExecError) as e:
-                logger.warning(str(e))
+            if not self.charm.state.cluster.internal_user_credentials and self.model.unit.is_leader():
+                try:
+                    internal_user_credentials = self._create_internal_credentials()
+                except (KeyError, RuntimeError, subprocess.CalledProcessError, ExecError) as e:
+                    logger.warning(str(e))
+                    event.defer()
+                    return
+
+                # only set to relation data when all set
+                for username, password in internal_user_credentials:
+                    self.charm.state.cluster.update({f"{username}-password": password})
+
+            if not self.charm.state.cluster.cluster_uuid or not self.charm.state.cluster.internal_user_credentials:
                 event.defer()
+                self.charm._set_status(Status.NO_BROKER_CREDS)
                 return
 
-            # only set to relation data when all set
-            for username, password in internal_user_credentials:
-                self.charm.state.cluster.update({f"{username}-password": password})
+            self.config_manager.set_server_properties()
+            self.workload.format_storages(
+                uuid=self.charm.state.cluster.cluster_uuid,
+                internal_user_credentials=self.charm.state.cluster.internal_user_credentials,
+            )
 
-        self.config_manager.set_server_properties()
-        self.workload.format_storages(uuid=uuid, internal_user_credentials=internal_user_credentials)
-
+        # FIXME ready to start probably needs to account for credentials being created beforehand
         self.charm._set_status(self.charm.state.ready_to_start)
         if not isinstance(self.charm.unit.status, ActiveStatus):
             event.defer()
@@ -188,6 +198,7 @@ class BrokerOperator(Object):
         self.update_external_services()
 
         # required settings given zookeeper connection config has been created
+        self.config_manager.set_server_properties()
         self.config_manager.set_zk_jaas_config()
         self.config_manager.set_client_properties()
 
@@ -207,6 +218,13 @@ class BrokerOperator(Object):
         # start kafka service
         self.workload.start()
         logger.info("Kafka service started")
+
+        # Update users
+        if self.charm.state.runs_controller:
+            for username, password in self.charm.state.cluster.internal_user_credentials.items():
+                self.auth_manager.add_user(
+                    username=username, password=password, zk_auth=False, internal=True,
+                )
 
         # service_start might fail silently, confirm with ZK if kafka is actually connected
         self.charm.on.update_status.emit()
@@ -421,10 +439,6 @@ class BrokerOperator(Object):
         credentials = [
             (username, self.charm.workload.generate_password()) for username in INTERNAL_USERS
         ]
-        # for username, password in credentials:
-        #     self.auth_manager.add_user(
-        #         username=username, password=password, zk_auth=False
-        #     )
 
         return credentials
 

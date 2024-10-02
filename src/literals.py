@@ -86,6 +86,8 @@ SECURITY_PROTOCOL_PORTS: dict[AuthMap, Ports] = {
     AuthMap("SASL_PLAINTEXT", "OAUTHBEARER"): Ports(9095, 19095, 29095),
     AuthMap("SASL_SSL", "OAUTHBEARER"): Ports(9096, 19096, 29096),
 }
+# FIXME this port should exist on the previous abstraction
+CONTROLLER_PORT = 9097
 
 DebugLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
 DatabagScope = Literal["unit", "app"]

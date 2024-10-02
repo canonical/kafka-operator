@@ -21,6 +21,7 @@ from core.structured_config import CharmConfig, LogLevel
 from core.workload import WorkloadBase
 from literals import (
     ADMIN_USER,
+    CONTROLLER_PORT,
     DEFAULT_BALANCER_GOALS,
     HARD_BALANCER_GOALS,
     INTER_BROKER_USER,
@@ -577,12 +578,20 @@ class ConfigManager(CommonConfigManager):
         roles = "process.roles="
         if self.state.runs_controller:
             roles += self.config.roles
-        properties = [
-            "" if roles=="process.roles=" else roles,
-            "node.id=1",
-            "controller.quorum.voters=1@localhost:9097",
-            "controller.listener.names=INTERNAL_CONTROLLER",
-        ]
+        # TODO node.id based on unit number for colocated, if only controller unit number + 100
+        # FIXME node.id will have to be a crunched form of model uuid + app name or similar
+        # FIXME quorum_voters into abstraction on state -> can be created from peer_orchestrator
+        # relation or from own cluster if controller runs colocated.
+        quorum_voters = [f"{broker.unit_id}@{broker.host}:{CONTROLLER_PORT}" for broker in self.state.brokers]
+
+        properties = (
+            [
+                "" if roles=="process.roles=" else roles,
+                f"node.id={self.state.unit_broker.unit_id}",
+                f"controller.quorum.voters={','.join(quorum_voters)}",
+                "controller.listener.names=INTERNAL_CONTROLLER",
+            ]
+        )
 
         return properties
 
@@ -604,7 +613,7 @@ class ConfigManager(CommonConfigManager):
 
         if self.state.runs_controller:
             protocol_map.append("INTERNAL_CONTROLLER:PLAINTEXT")
-            listeners_repr.append("INTERNAL_CONTROLLER://:9097")
+            listeners_repr.append(f"INTERNAL_CONTROLLER://0.0.0.0:{CONTROLLER_PORT}")
 
         properties = (
             [
@@ -623,7 +632,7 @@ class ConfigManager(CommonConfigManager):
             + self.rack_properties
             + self.metrics_reporter_properties
             + DEFAULT_CONFIG_OPTIONS.split("\n")
-            + self.authorizer_class
+            # + self.authorizer_class
         )
 
         # FIXME
