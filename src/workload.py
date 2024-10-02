@@ -19,7 +19,6 @@ from literals import (
     BALANCER,
     BROKER,
     CHARMED_KAFKA_SNAP_REVISION,
-    CONTROLLER,
     GROUP,
     SNAP_NAME,
     USER,
@@ -185,6 +184,30 @@ class Workload(WorkloadBase):
         command = f"{opts_str} {SNAP_NAME}.{bin_keyword} {bin_str}"
         return self.exec(command)
 
+    def format_storages(self, uuid: str, internal_user_credentials: dict[str, str] | None = None) -> None:
+        """Use a passed uuid to format storages."""
+        # NOTE data dirs have changed permissions by storage_attached hook. For some reason
+        # storage command bin needs these locations to be root owned. Momentarily raise permissions
+        # during the format phase.
+        self.exec(["chown", "-R", "root:root", f"{self.paths.data_path}"])
+
+        command = [
+            "format",
+            "--ignore-formatted",
+            "--cluster-id",
+            uuid,
+            "-c",
+            self.paths.server_properties,
+        ]
+        if internal_user_credentials:
+            for user, password in internal_user_credentials.items():
+                command += ["--add-scram", f"'SCRAM-SHA-512=[name={user},password={password}]'"]
+        self.run_bin_command(bin_keyword="storage", bin_args=command)
+
+        # Drop permissions again for the main process
+        self.exec(["chmod", "-R", "750", f"{self.paths.data_path}"])
+        self.exec(["chown", "-R", f"{USER}:{GROUP}", f"{self.paths.data_path}"])
+
 
 class KafkaWorkload(Workload):
     """Broker specific wrapper."""
@@ -213,21 +236,6 @@ class BalancerWorkload(Workload):
     @override
     def get_version(self) -> str:
         raise NotImplementedError
-
-    @property
-    @override
-    def layer(self) -> pebble.Layer:
-        raise NotImplementedError
-
-
-class ControllerWorkload(Workload):
-    """Controller specific wrapper"""
-
-    def __init__(self, container: Container | None = None) -> None:
-        super().__init__(container=container)
-        self.paths = CharmedKafkaPaths(CONTROLLER)
-        self.service = CONTROLLER.service
-        self.container = container
 
     @property
     @override

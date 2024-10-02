@@ -89,6 +89,11 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             self._set_status(Status.SNAP_NOT_INSTALLED)
             return
 
+        # TODO: run on install
+        # if self.state.runs_controller:
+        #     uuid = self.workload.run_bin_command(bin_keyword="storage", bin_args=["random-uuid"])
+        #     self.state.cluster.update({"cluster-uuid": uuid.strip()})
+
         self._set_os_config()
 
     def _set_os_config(self) -> None:
