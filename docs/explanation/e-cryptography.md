@@ -18,23 +18,23 @@ Charmed Kafka sources are stored in:
 
 ### LaunchPad
 
-Distributions are built using private repositories only, hosted as part of the [SOSS namespace]() to eventually
+Distributions are built using private repositories only, hosted as part of the [SOSS namespace](https://launchpad.net/soss) to eventually
 integrate with the Canonical process for fixing CVEs. 
-Branches associated with releases are also mirrored to a public repository, hosted in the [Data Platform namespace]() 
+Branches associated with releases are also mirrored to a public repository, hosted in the [Data Platform namespace](https://launchpad.net/~data-platform) 
 to also provide community with the patched source code. 
 
 ### GitHub 
 
 All Charmed Kafka and Charmed ZooKeeper artifacts are published and released 
 programmatically using release pipelines implemented via GitHub Actions. 
-Distributions are published as both GitHub and LaunchPad releases via the [central-uploader] repository, while 
+Distributions are published as both GitHub and LaunchPad releases via the [central-uploader repository](https://github.com/canonical/central-uploader), while 
 charms, snaps and rocks are published using the workflows of their respective repositories. 
 
 All repositories in GitHub are set up with branch protection rules, requiring:
 
 * new commits to be merged to main branches via Pull-Request with at least 2 approvals from repository maintainers
 * new commits to be signed (e.g. using GPG keys)
-* developers to sign the [Canonical Contributor License Agreement (CLA)]()
+* developers to sign the [Canonical Contributor License Agreement (CLA)](https://ubuntu.com/legal/contributors)
 
 ## Encryption
 
