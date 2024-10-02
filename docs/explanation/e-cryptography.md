@@ -51,7 +51,10 @@ python library to create X.509 compatible certificates. The CSR is signed by the
 stored in a password-protected Keystore file. The password of the Keystore is stored in Juju secrets starting from revision 168 on Kafka 
 and revision 130 on ZooKeeper. The relation provides also the certificate for the CA to be loaded in a password-protected Truststore file.
 
-When encryption is enabled, hostname verification is turned on for client connections, including inter-broker communication. 
+When encryption is enabled, hostname verification is turned on for client connections, including inter-broker communication. Cipher suite can 
+be customized by providing a list of allowed cipher suite to be used for external clients and zookeeper connections, using the charm config options
+`ssl_cipher_suites`  and `zookeeper_ssl_cipher_suites` config options respectively. Please refer to the [reference documentation](https://charmhub.io/kafka/configurations)
+for more information. 
 
 Encryption at rest is currently not supported, although it can be provided by the substrate (cloud or on-premises).
 
