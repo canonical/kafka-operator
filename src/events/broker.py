@@ -6,7 +6,6 @@
 
 import json
 import logging
-import subprocess
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -24,7 +23,6 @@ from ops import (
     StorageEvent,
     UpdateStatusEvent,
 )
-from ops.pebble import ExecError
 
 from events.oauth import OAuthHandler
 from events.password_actions import PasswordActionEvents
@@ -175,15 +173,7 @@ class BrokerOperator(Object):
                 self.charm.state.cluster.update({"cluster-uuid": uuid})
 
             if not self.charm.state.cluster.internal_user_credentials and self.model.unit.is_leader():
-                try:
-                    internal_user_credentials = self._create_internal_credentials()
-                except (KeyError, RuntimeError, subprocess.CalledProcessError, ExecError) as e:
-                    logger.warning(str(e))
-                    event.defer()
-                    return
-
-                # only set to relation data when all set
-                for username, password in internal_user_credentials:
+                for username, password in self._create_internal_credentials():
                     self.charm.state.cluster.update({f"{username}-password": password})
 
             if not self.charm.state.cluster.cluster_uuid or not self.charm.state.cluster.internal_user_credentials:
