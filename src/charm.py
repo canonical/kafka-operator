@@ -12,6 +12,7 @@ from charms.grafana_agent.v0.cos_agent import COSAgentProvider
 from charms.operator_libs_linux.v0 import sysctl
 from charms.rolling_ops.v0.rollingops import RollingOpsManager, RunWithLock
 from ops import (
+    ActiveStatus,
     CollectStatusEvent,
     EventBase,
     StatusBase,
@@ -165,7 +166,21 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             return
 
     def _on_collect_status(self, event: CollectStatusEvent):
-        event.add_status(self.state.ready_to_start.value.status)
+        ready_to_start = self.state.ready_to_start.value.status
+        event.add_status(ready_to_start)
+
+        if not isinstance(ready_to_start, ActiveStatus):
+            return
+
+        if not self.state.runs_broker:
+            # early return, the next checks only concern the broker
+            return
+
+        if not self.broker.workload.active():
+            event.add_status(Status.BROKER_NOT_RUNNING.value.status)
+
+        if not self.state.zookeeper.broker_active():
+            event.add_status(Status.ZK_NOT_CONNECTED.value.status)
 
 
 if __name__ == "__main__":
