@@ -72,6 +72,7 @@ class PeerClusterEventsHandler(Object):
         if not self.charm.unit.is_leader() or not event.relation.app:
             return
 
+        # TODO 3 cases with one, the other or both -> list(set(BALANCER.requested_secrets) | set(CONTROLLER.requested_secrets))
         requested_secrets = (
             BALANCER.requested_secrets
             if self.charm.state.runs_balancer
@@ -92,21 +93,21 @@ class PeerClusterEventsHandler(Object):
 
     def _on_peer_cluster_changed(self, event: RelationChangedEvent) -> None:
         """Generic handler for peer-cluster `relation-changed` events."""
-        if (
-            not self.charm.unit.is_leader()
-            or not self.charm.state.runs_balancer  # only balancer needs handle this event
-            or not self.charm.state.balancer.roles  # ensures secrets have set-up before writing
-        ):
+        # TODO 3 cases with one, the other or both
+
+        # ensures secrets have set-up before writing
+        if not self.charm.unit.is_leader() or not self.charm.state.peer_cluster.roles:
             return
 
         self._default_relation_changed(event)
 
         # will no-op if relation does not exist
-        self.charm.state.balancer.update(
+        self.charm.state.peer_cluster.update(
             {
-                "balancer-username": self.charm.state.balancer.balancer_username,
-                "balancer-password": self.charm.state.balancer.balancer_password,
-                "balancer-uris": self.charm.state.balancer.balancer_uris,
+                "balancer-username": self.charm.state.peer_cluster.balancer_username,
+                "balancer-password": self.charm.state.peer_cluster.balancer_password,
+                "balancer-uris": self.charm.state.peer_cluster.balancer_uris,
+                "controller-quorum-uris": self.charm.state.peer_cluster.controller_quorum_uris,
             }
         )
 
@@ -114,28 +115,30 @@ class PeerClusterEventsHandler(Object):
 
     def _on_peer_cluster_orchestrator_changed(self, event: RelationChangedEvent) -> None:
         """Generic handler for peer-cluster-orchestrator `relation-changed` events."""
+        # TODO: `cluster_manager` check instead of runs_broker 
         if (
             not self.charm.unit.is_leader()
             or not self.charm.state.runs_broker  # only broker needs handle this event
             or "balancer"
-            not in self.charm.state.balancer.roles  # ensures secrets have set-up before writing, and only writing to balancers
+            not in self.charm.state.peer_cluster.roles  # ensures secrets have set-up before writing, and only writing to balancers
         ):
             return
 
         self._default_relation_changed(event)
 
         # will no-op if relation does not exist
-        self.charm.state.balancer.update(
+        self.charm.state.peer_cluster.update(
             {
                 "roles": self.charm.state.roles,
-                "broker-username": self.charm.state.balancer.broker_username,
-                "broker-password": self.charm.state.balancer.broker_password,
-                "broker-uris": self.charm.state.balancer.broker_uris,
-                "racks": str(self.charm.state.balancer.racks),
-                "broker-capacities": json.dumps(self.charm.state.balancer.broker_capacities),
-                "zk-uris": self.charm.state.balancer.zk_uris,
-                "zk-username": self.charm.state.balancer.zk_username,
-                "zk-password": self.charm.state.balancer.zk_password,
+                "broker-username": self.charm.state.peer_cluster.broker_username,
+                "broker-password": self.charm.state.peer_cluster.broker_password,
+                "broker-uris": self.charm.state.peer_cluster.broker_uris,
+                "cluster-uuid": self.charm.state.peer_cluster.cluster_uuid,
+                "racks": str(self.charm.state.peer_cluster.racks),
+                "broker-capacities": json.dumps(self.charm.state.peer_cluster.broker_capacities),
+                "zk-uris": self.charm.state.peer_cluster.zk_uris,
+                "zk-username": self.charm.state.peer_cluster.zk_username,
+                "zk-password": self.charm.state.peer_cluster.zk_password,
             }
         )
 

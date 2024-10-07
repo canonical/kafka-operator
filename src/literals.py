@@ -141,6 +141,7 @@ BROKER = Role(
         "balancer-username",
         "balancer-password",
         "balancer-uris",
+        "controller-quorum-uris",
     ],
 )
 CONTROLLER = Role(
@@ -148,7 +149,10 @@ CONTROLLER = Role(
     service="daemon",
     paths=PATHS["kafka"],
     relation=PEER_CLUSTER_RELATION,
-    requested_secrets=[],
+    requested_secrets=[
+        "broker-username",
+        "broker-password",
+    ],
 )
 BALANCER = Role(
     value="balancer",
