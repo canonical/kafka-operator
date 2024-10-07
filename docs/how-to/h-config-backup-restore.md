@@ -99,6 +99,11 @@ Below is a list of parameters shown for each backup:
 
 ## Restore a backup
 
+[warning]
+This operation puts you at risk of losing unsaved configuration data.
+We recommend creating a backup first.
+[/warning]
+
 To restore from backup, run the `restore` command and pass the `backup-id` (in the `YYYY-MM-DDTHH:MM:SSZ` format) that is listed in the `list-backups` action output:
 
 ```shell
