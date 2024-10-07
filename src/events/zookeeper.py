@@ -54,6 +54,18 @@ class ZooKeeperHandler(Object):
 
     def _on_zookeeper_changed(self, event: RelationChangedEvent) -> None:
         """Handler for `zookeeper_relation_created/joined/changed` events, ensuring internal users get created."""
+        if not self.charm.state.zookeeper.endpoints:
+            # Kafka keeps a meta.properties in every log.dir with a unique ClusterID
+            # this ID is provided by ZK, and removing it on relation-changed allows
+            # re-joining a ZK cluster undergoing backup restoration.
+            self.charm.workload.exec(
+                [
+                    "bash",
+                    "-c",
+                    f"""find {self.charm.workload.paths.data_path} -type f -name meta.properties -delete || true""",
+                ]
+            )
+
         if not self.charm.state.zookeeper.zookeeper_connected:
             self.charm._set_status(Status.ZK_NO_DATA)
             return
@@ -71,7 +83,7 @@ class ZooKeeperHandler(Object):
             event.defer()
             return
 
-        if not self.charm.state.cluster.internal_user_credentials and self.model.unit.is_leader():
+        if self.model.unit.is_leader():
             # loading the minimum config needed to authenticate to zookeeper
             self.dependent.config_manager.set_zk_jaas_config()
             self.dependent.config_manager.set_server_properties()
