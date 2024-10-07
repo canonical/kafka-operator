@@ -629,6 +629,10 @@ class ConfigManager(CommonConfigManager):
         advertised_listeners = [listener.advertised_listener for listener in self.all_listeners]
 
         if self.state.runs_controller:
+            # TODO:
+            # - protocol map always needs CONTROLLER on broker and controller properties (colocated or split).
+            # - listeners only adds CONTROLLER when running colocated or in the controller for split 
+            #   (in split mode `broker` does not need CONTROLLER listener)
             protocol_map.append("INTERNAL_CONTROLLER:PLAINTEXT")
             listeners_repr.append(f"INTERNAL_CONTROLLER://0.0.0.0:{CONTROLLER_PORT}")
 
@@ -793,10 +797,10 @@ class BalancerConfigManager(CommonConfigManager):
         if self.config.profile == PROFILE_TESTING:
             goals = BALANCER_GOALS_TESTING
 
-        if self.state.balancer.racks:
+        if self.state.peer_cluster.racks:
             if (
-                min([3, len(self.state.balancer.broker_capacities.get("brokerCapacities", []))])
-                > self.state.balancer.racks
+                min([3, len(self.state.peer_cluster.broker_capacities.get("brokerCapacities", []))])
+                > self.state.peer_cluster.racks
             ):  # replication-factor > racks is not ideal
                 goals = goals + ["RackAwareDistribution"]
             else:
@@ -850,10 +854,10 @@ class BalancerConfigManager(CommonConfigManager):
         """
         properties = (
             [
-                f"bootstrap.servers={self.state.balancer.broker_uris}",
-                f"zookeeper.connect={self.state.balancer.zk_uris}",
+                f"bootstrap.servers={self.state.peer_cluster.broker_uris}",
+                f"zookeeper.connect={self.state.peer_cluster.zk_uris}",
                 "zookeeper.security.enabled=true",
-                f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{self.state.balancer.broker_username}" password="{self.state.balancer.broker_password}";',
+                f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{self.state.peer_cluster.broker_username}" password="{self.state.peer_cluster.broker_password}";',
                 f"sasl.mechanism={self.state.default_auth.mechanism}",
                 f"security.protocol={self.state.default_auth.protocol}",
                 f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
@@ -879,8 +883,8 @@ class BalancerConfigManager(CommonConfigManager):
             f"""
             Client {{
                 org.apache.zookeeper.server.auth.DigestLoginModule required
-                username="{self.state.balancer.zk_username}"
-                password="{self.state.balancer.zk_password}";
+                username="{self.state.peer_cluster.zk_username}"
+                password="{self.state.peer_cluster.zk_password}";
             }};
         """
         )
@@ -899,7 +903,7 @@ class BalancerConfigManager(CommonConfigManager):
     def set_broker_capacities(self) -> None:
         """Writes all broker storage capacities to `capacityJBOD.json`."""
         self.workload.write(
-            content=json.dumps(self.state.balancer.broker_capacities),
+            content=json.dumps(self.state.peer_cluster.broker_capacities),
             path=self.workload.paths.capacity_jbod_json,
         )
 

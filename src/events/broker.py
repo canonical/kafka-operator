@@ -166,7 +166,7 @@ class BrokerOperator(Object):
         if not self.upgrade.idle:
             return
 
-        # NOTE make init_server no-op and always run
+        # TODO make init_server no-op and always run
         if self.charm.state.runs_controller:
             if not self.charm.state.cluster.cluster_uuid and self.model.unit.is_leader():
                 uuid = self.workload.run_bin_command(bin_keyword="storage", bin_args=["random-uuid", "2>", "/dev/null"]).strip()
@@ -485,17 +485,19 @@ class BrokerOperator(Object):
         if not self.charm.unit.is_leader() or not self.healthy:
             return
 
-        self.charm.state.balancer.update(
+        self.charm.state.peer_cluster.update(
             {
                 "roles": self.charm.state.roles,
-                "broker-username": self.charm.state.balancer.broker_username,
-                "broker-password": self.charm.state.balancer.broker_password,
-                "broker-uris": self.charm.state.balancer.broker_uris,
-                "racks": str(self.charm.state.balancer.racks),
-                "broker-capacities": json.dumps(self.charm.state.balancer.broker_capacities),
-                "zk-uris": self.charm.state.balancer.zk_uris,
-                "zk-username": self.charm.state.balancer.zk_username,
-                "zk-password": self.charm.state.balancer.zk_password,
+                "broker-username": self.charm.state.peer_cluster.broker_username,
+                "broker-password": self.charm.state.peer_cluster.broker_password,
+                "broker-uris": self.charm.state.peer_cluster.broker_uris,
+                "controller-quorum-uris": self.charm.state.peer_cluster.controller_quorum_uris,
+                "cluster-uuid": self.charm.state.peer_cluster.cluster_uuid,
+                "racks": str(self.charm.state.peer_cluster.racks),
+                "broker-capacities": json.dumps(self.charm.state.peer_cluster.broker_capacities),
+                "zk-uris": self.charm.state.peer_cluster.zk_uris,
+                "zk-username": self.charm.state.peer_cluster.zk_username,
+                "zk-password": self.charm.state.peer_cluster.zk_password,
             }
         )
 
