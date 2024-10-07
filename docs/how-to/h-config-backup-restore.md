@@ -6,14 +6,7 @@ S3 access and configurations are managed with the [`s3-integrator` charm](https:
 
 This guide contains step-by-step instructions on how to deploy and configure the `s3-integrator` charm for [AWS S3](https://aws.amazon.com/s3/), send the configurations to the Charmed ZooKeeper application, and finally manage your Charmed ZooKeeper backups.
 
-## Summary
-
-- [Configure `s3-integrator`](#heading--s3)
-- [Create a backup](#heading--create)
-- [List backups](#heading--list)
-- [Restore a backup](#heading--restore)
-
-<a href="#heading--s3"><h2 id="heading--s3">Configure `s3-integrator`</h2></a>
+## Configure `s3-integrator`
 
 First, deploy the `s3-integrator` charm:
 
@@ -52,7 +45,7 @@ juju run zookeeper/leader list-backups
 juju run zookeeper/leader restore backup-id=<backup-id-here>
 ```
 
-<a href="#heading--create"><h2 id="heading--create">Create a backup</h2></a>
+## Create a backup
 
 Check that Charmed ZooKeeper deployment with configurations set for S3 storage is `active` and `idle` with the `juju status` command. Once it's active, create a backup with the `create-backup` command:
 
@@ -74,7 +67,7 @@ The command will output the ID of the newly created backup:
 └──────────────────────┴─────────────────────┴────────────────────────────────┘
 ```
 
-<a href="#heading--list"><h2 id="heading--list">List backups</h2></a>
+## List backups
 
 To list available backups, run the `list-backups` command:
 
@@ -104,7 +97,7 @@ Below is a list of parameters shown for each backup:
 - `Log-Sequence-number`: a database-specific number to identify its state. Learn more about the Zxid on [Apache ZooKeeper documentation](https://zookeeper.apache.org/doc/r3.9.2/zookeeperProgrammers.html#sc_timeInZk).
 - `Path`: path of the snapshot file in the S3 repository.
 
-<a href="#heading--restore"><h2 id="heading--restore">Restore a backup</h2></a>
+## Restore a backup
 
 To restore from backup, run the `restore` command and pass the `backup-id` (in the `YYYY-MM-DDTHH:MM:SSZ` format) that is listed in the `list-backups` action output:
 
