@@ -45,6 +45,8 @@ DEFAULT_CONFIG_OPTIONS = """
 sasl.mechanism.inter.broker.protocol=SCRAM-SHA-512
 allow.everyone.if.no.acl.found=false
 auto.create.topics.enable=false
+"""
+KAFKA_CRUISE_CONTROL_OPTIONS = """
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
 """
 TESTING_OPTIONS = """
@@ -667,7 +669,6 @@ class ConfigManager(CommonConfigManager):
             + self.config_properties
             + self.default_replication_properties
             + self.rack_properties
-            + self.metrics_reporter_properties
             + DEFAULT_CONFIG_OPTIONS.split("\n")
             + self.authorizer_class
             + self.controller_properties
@@ -677,6 +678,12 @@ class ConfigManager(CommonConfigManager):
             properties += self.tls_properties
             if self.state.kraft_mode == False:  # noqa: E712
                 properties += self.zookeeper_tls_properties
+
+        # FIXME: change peer_cluster_relation to peer_cluster_orchestrator_relations after the center-of-star
+        #  change is effective
+        if self.state.runs_balancer or self.state.peer_cluster_relation:
+            properties += KAFKA_CRUISE_CONTROL_OPTIONS.splitlines()
+            properties += self.metrics_reporter_properties
 
         if self.config.profile == PROFILE_TESTING:
             properties += TESTING_OPTIONS.split("\n")
