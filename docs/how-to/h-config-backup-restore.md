@@ -53,7 +53,7 @@ Check that Charmed ZooKeeper deployment with configurations set for S3 storage i
 juju run zookeeper/leader create-backup
 ```
 
-Charmed ZooKeeper backups created with the command above will always be **full** backups: a copy of _all_ the Charmed Kafka configuration will be stored in S3.
+Charmed ZooKeeper backups created with the command above will always be **full** backups: a copy of *all* the Charmed Kafka configuration will be stored in S3.
 
 The command will output the ID of the newly created backup:
 
