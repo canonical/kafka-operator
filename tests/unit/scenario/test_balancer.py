@@ -18,7 +18,6 @@ from charm import KafkaCharm
 from literals import (
     BALANCER_WEBSERVER_USER,
     CONTAINER,
-    INTERNAL_USERS,
     PEER,
     SUBSTRATE,
     ZK,
@@ -53,16 +52,30 @@ def base_state():
     return state
 
 
-@pytest.mark.skipif(SUBSTRATE == "k8s", reason="snap not used on K8s")
-def test_install_blocks_snap_install_failure(charm_configuration, base_state: State):
-    # Given
+@pytest.fixture()
+def ctx_balancer_only(charm_configuration: dict) -> Context:
     charm_configuration["options"]["roles"]["default"] = "balancer"
     ctx = Context(
-        KafkaCharm,
-        meta=METADATA,
-        config=charm_configuration,
-        actions=ACTIONS,
+        KafkaCharm, meta=METADATA, config=charm_configuration, actions=ACTIONS, unit_id=0
     )
+    return ctx
+
+
+@pytest.fixture()
+def ctx_broker_and_balancer(charm_configuration: dict) -> Context:
+    charm_configuration["options"]["roles"]["default"] = "broker,balancer"
+    ctx = Context(
+        KafkaCharm, meta=METADATA, config=charm_configuration, actions=ACTIONS, unit_id=0
+    )
+    return ctx
+
+
+@pytest.mark.skipif(SUBSTRATE == "k8s", reason="snap not used on K8s")
+def test_install_blocks_snap_install_failure(
+    ctx_balancer_only: Context, base_state: State
+) -> None:
+    # Given
+    ctx = ctx_balancer_only
     state_in = base_state
 
     # When
@@ -76,16 +89,10 @@ def test_install_blocks_snap_install_failure(charm_configuration, base_state: St
 @patch("workload.Workload.restart")
 @patch("workload.Workload.start")
 def test_stop_workload_if_not_leader(
-    patched_start, patched_restart, charm_configuration, base_state: State
-):
+    patched_start, patched_restart, ctx_balancer_only: Context, base_state: State
+) -> None:
     # Given
-    charm_configuration["options"]["roles"]["default"] = "balancer"
-    ctx = Context(
-        KafkaCharm,
-        meta=METADATA,
-        config=charm_configuration,
-        actions=ACTIONS,
-    )
+    ctx = ctx_balancer_only
     state_in = dataclasses.replace(base_state, leader=False)
 
     # When
@@ -96,15 +103,9 @@ def test_stop_workload_if_not_leader(
     assert not patched_restart.called
 
 
-def test_stop_workload_if_role_not_present(charm_configuration, base_state: State):
+def test_stop_workload_if_role_not_present(ctx_balancer_only: Context, base_state: State) -> None:
     # Given
-    charm_configuration["options"]["roles"]["default"] = "balancer"
-    ctx = Context(
-        KafkaCharm,
-        meta=METADATA,
-        config=charm_configuration,
-        actions=ACTIONS,
-    )
+    ctx = ctx_balancer_only
     state_in = dataclasses.replace(base_state, config={"roles": "broker"})
 
     # When
@@ -118,15 +119,11 @@ def test_stop_workload_if_role_not_present(charm_configuration, base_state: Stat
     patched_stopped.assert_called_once()
 
 
-def test_ready_to_start_maintenance_no_peer_relation(charm_configuration, base_state: State):
+def test_ready_to_start_maintenance_no_peer_relation(
+    ctx_balancer_only: Context, base_state: State
+) -> None:
     # Given
-    charm_configuration["options"]["roles"]["default"] = "balancer"
-    ctx = Context(
-        KafkaCharm,
-        meta=METADATA,
-        config=charm_configuration,
-        actions=ACTIONS,
-    )
+    ctx = ctx_balancer_only
     state_in = base_state
 
     # When
@@ -136,16 +133,10 @@ def test_ready_to_start_maintenance_no_peer_relation(charm_configuration, base_s
     assert state_out.unit_status == Status.NO_PEER_RELATION.value.status
 
 
-def test_ready_to_start_no_peer_cluster(charm_configuration, base_state):
+def test_ready_to_start_no_peer_cluster(ctx_balancer_only: Context, base_state: State) -> None:
     """Balancer only, need a peer cluster relation."""
     # Given
-    charm_configuration["options"]["roles"]["default"] = "balancer"
-    ctx = Context(
-        KafkaCharm,
-        meta=METADATA,
-        config=charm_configuration,
-        actions=ACTIONS,
-    )
+    ctx = ctx_balancer_only
     cluster_peer = PeerRelation(PEER, PEER)
     state_in = dataclasses.replace(base_state, relations=[cluster_peer])
 
@@ -156,15 +147,9 @@ def test_ready_to_start_no_peer_cluster(charm_configuration, base_state):
     assert state_out.unit_status == Status.NO_PEER_CLUSTER_RELATION.value.status
 
 
-def test_ready_to_start_no_zk_data(charm_configuration, base_state: State):
+def test_ready_to_start_no_zk_data(ctx_broker_and_balancer: Context, base_state: State) -> None:
     # Given
-    charm_configuration["options"]["roles"]["default"] = "balancer,broker"
-    ctx = Context(
-        KafkaCharm,
-        meta=METADATA,
-        config=charm_configuration,
-        actions=ACTIONS,
-    )
+    ctx = ctx_broker_and_balancer
     cluster_peer = PeerRelation(PEER, PEER)
     relation = Relation(
         interface=ZK,
@@ -180,18 +165,15 @@ def test_ready_to_start_no_zk_data(charm_configuration, base_state: State):
     assert state_out.unit_status == Status.ZK_NO_DATA.value.status
 
 
-def test_ready_to_start_no_broker_data(charm_configuration, base_state: State, zk_data):
+def test_ready_to_start_no_broker_data(
+    ctx_broker_and_balancer: Context,
+    base_state: State,
+    zk_data: dict[str, str],
+    passwords_data: dict[str, str],
+) -> None:
     # Given
-    charm_configuration["options"]["roles"]["default"] = "balancer,broker"
-    ctx = Context(
-        KafkaCharm,
-        meta=METADATA,
-        config=charm_configuration,
-        actions=ACTIONS,
-    )
-    cluster_peer = PeerRelation(
-        PEER, PEER, local_app_data={f"{user}-password": "pwd" for user in INTERNAL_USERS}
-    )
+    ctx = ctx_broker_and_balancer
+    cluster_peer = PeerRelation(PEER, PEER, local_app_data=passwords_data)
     relation = Relation(interface=ZK, endpoint=ZK, remote_app_name=ZK, remote_app_data=zk_data)
     state_in = dataclasses.replace(base_state, relations=[cluster_peer, relation])
 
@@ -202,16 +184,17 @@ def test_ready_to_start_no_broker_data(charm_configuration, base_state: State, z
     assert state_out.unit_status == Status.NO_BROKER_DATA.value.status
 
 
-def test_ready_to_start_ok(charm_configuration, base_state: State, zk_data):
+def test_ready_to_start_ok(
+    ctx_broker_and_balancer: Context,
+    base_state: State,
+    zk_data: dict[str, str],
+    passwords_data: dict[str, str],
+) -> None:
     # Given
-    charm_configuration["options"]["roles"]["default"] = "balancer,broker"
-    ctx = Context(
-        KafkaCharm, meta=METADATA, config=charm_configuration, actions=ACTIONS, unit_id=0
-    )
-    restart_peer = PeerRelation("restart", "restart")
+    ctx = ctx_broker_and_balancer
     cluster_peer = PeerRelation(
         PEER,
-        local_app_data={f"{user}-password": "pwd" for user in INTERNAL_USERS},
+        local_app_data=passwords_data,
         peers_data={
             i: {
                 "cores": "8",
@@ -228,31 +211,25 @@ def test_ready_to_start_ok(charm_configuration, base_state: State, zk_data):
             ),
         },
     )
-
+    restart_peer = PeerRelation("restart", "restart")
     relation = Relation(interface=ZK, endpoint=ZK, remote_app_name=ZK)
     state_in = dataclasses.replace(
-        base_state, relations=[cluster_peer, relation, restart_peer], planned_units=3
+        base_state, relations=[cluster_peer, restart_peer, relation], planned_units=3
     )
-    capacity_jbod_file_loaded = {
-        "brokerCapacities": [
-            {
-                "brokerId": str(i),
-                "capacity": {
-                    "DISK": {f"/var/snap/charmed-kafka/common/var/lib/kafka/data/{i}": "10240"},
-                    "CPU": {"num.cores": "8"},
-                    "NW_IN": "50000",
-                    "NW_OUT": "50000",
-                },
-                "doc": "",
-            }
-            for i in range(2, -1, -1)
-        ]
-    }
 
     # When
     with (
         patch("workload.BalancerWorkload.write") as patched_writer,
         patch("workload.BalancerWorkload.read"),
+        patch(
+            "json.loads",
+            return_value={"brokerCapacities": [{}, {}, {}]},
+        ),
+        patch(
+            "core.cluster.ClusterState.broker_capacities",
+            new_callable=PropertyMock,
+            return_value={"brokerCapacities": [{}, {}, {}]},
+        ),
         patch("workload.KafkaWorkload.read"),
         patch("workload.BalancerWorkload.exec"),
         patch("workload.BalancerWorkload.restart"),
@@ -289,13 +266,7 @@ def test_ready_to_start_ok(charm_configuration, base_state: State, zk_data):
             return_value="",
         ),
         patch("health.KafkaHealth.machine_configured", return_value=True),
-        patch("json.loads", return_value=capacity_jbod_file_loaded),
-        patch("charms.operator_libs_linux.v1.snap.SnapCache"),
-        patch(
-            "core.models.PeerCluster.broker_capacities",
-            new_callable=PropertyMock,
-            return_value=capacity_jbod_file_loaded,
-        ),
+        patch("charms.operator_libs_linux.v1.snap.SnapCache"),  # specific VM, works fine on k8s
     ):
         state_out = ctx.run(ctx.on.start(), state_in)
 
