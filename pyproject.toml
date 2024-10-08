@@ -75,7 +75,7 @@ optional = true
 pytest = ">=7.2"
 coverage = {extras = ["toml"], version = ">7.0"}
 pytest-mock = "^3.11.1"
-ops-scenario = "^6.0.0"
+ops-scenario = "^7.0.0"
 
 [tool.poetry.group.integration]
 optional = true
