@@ -77,14 +77,14 @@ class PeerClusterOrchestratorData(ProviderData, RequirerData):
     """Broker provider data model."""
 
     SECRET_LABEL_MAP = SECRET_LABEL_MAP
-    SECRET_FIELDS = BALANCER.requested_secrets
+    SECRET_FIELDS = BROKER.requested_secrets
 
 
 class PeerClusterData(ProviderData, RequirerData):
     """Broker provider data model."""
 
     SECRET_LABEL_MAP = SECRET_LABEL_MAP
-    SECRET_FIELDS = BROKER.requested_secrets
+    SECRET_FIELDS = BALANCER.requested_secrets
 
 
 class ClusterState(Object):
@@ -124,9 +124,9 @@ class ClusterState(Object):
         return set(self.model.relations[REL_NAME])
 
     @property
-    def peer_cluster_orchestrator_relations(self) -> set[Relation]:
-        """The `peer-cluster-orchestrator` relations that this charm is providing."""
-        return set(self.model.relations[PEER_CLUSTER_ORCHESTRATOR_RELATION])
+    def peer_cluster_orchestrator_relation(self) -> Relation | None:
+        """The `peer-cluster-orchestrator` relation that this charm is providing."""
+        return self.model.get_relation(PEER_CLUSTER_ORCHESTRATOR_RELATION)
 
     @property
     def peer_cluster_relation(self) -> Relation | None:
@@ -134,32 +134,34 @@ class ClusterState(Object):
         return self.model.get_relation(PEER_CLUSTER_RELATION)
 
     @property
-    def peer_clusters(self) -> set[PeerCluster]:
-        """The state for all related `peer-cluster` applications that this charm is providing for."""
-        peer_clusters = set()
-        balancer_kwargs: dict[str, Any] = {
-            "balancer_username": self.cluster.balancer_username,
-            "balancer_password": self.cluster.balancer_password,
-            "balancer_uris": self.cluster.balancer_uris,
-        }
-        for relation in self.peer_cluster_orchestrator_relations:
-            if not relation.app or not self.runs_balancer:
-                continue
+    def peer_cluster_orchestrator(self) -> PeerCluster:
+        """The state for the related `peer-cluster-orchestrator` application that this charm is requiring from."""
+        balancer_kwargs: dict[str, Any] = (
+            {
+                "balancer_username": self.cluster.balancer_username,
+                "balancer_password": self.cluster.balancer_password,
+                "balancer_uris": self.cluster.balancer_uris,
+            }
+            if self.runs_balancer
+            else {}
+        )
 
-            peer_clusters.add(
-                PeerCluster(
-                    relation=relation,
-                    data_interface=PeerClusterOrchestratorData(self.model, relation.name),
-                    **balancer_kwargs,
-                )
-            )
+        return PeerCluster(
+            relation=self.peer_cluster_relation,
+            data_interface=PeerClusterData(self.model, PEER_CLUSTER_RELATION),
+            **balancer_kwargs,
+        )
 
-        return peer_clusters
+    @property
+    def peer_cluster(self) -> PeerCluster:
+        """The state for the related `peer-cluster` application that this charm is providing to."""
+        return PeerCluster(
+            relation=self.peer_cluster_orchestrator_relation,
+            data_interface=PeerClusterOrchestratorData(
+                self.model, PEER_CLUSTER_ORCHESTRATOR_RELATION
+            ),
+        )
 
-    # FIXME: will need renaming once we use Kraft as the orchestrator
-    # uses the 'already there' BALANCER username now
-    # will need to create one independently with Basic HTTP auth + multiple broker apps
-    # right now, multiple<->multiple is very brittle
     @property
     def balancer(self) -> PeerCluster:
         """The state for the `peer-cluster-orchestrator` related balancer application."""
@@ -173,10 +175,12 @@ class ClusterState(Object):
             else {}
         )
 
-        if self.runs_broker:  # must be requiring, initialise with necessary broker data
+        if self.runs_broker:  # must be providing, initialise with necessary broker data
             return PeerCluster(
-                relation=self.peer_cluster_relation,  # if same app, this will be None and OK
-                data_interface=PeerClusterData(self.model, PEER_CLUSTER_RELATION),
+                relation=self.peer_cluster_orchestrator_relation,  # if same app, this will be None and OK
+                data_interface=PeerClusterOrchestratorData(
+                    self.model, PEER_CLUSTER_ORCHESTRATOR_RELATION
+                ),
                 broker_username=ADMIN_USER,
                 broker_password=self.cluster.internal_user_credentials.get(ADMIN_USER, ""),
                 broker_uris=self.bootstrap_server,
@@ -189,9 +193,7 @@ class ClusterState(Object):
             )
 
         else:  # must be roles=balancer only then, only load with necessary balancer data
-            return list(self.peer_clusters)[
-                0
-            ]  # for broker - balancer relation, currently limited to 1
+            return self.peer_cluster_orchestrator
 
     @property
     def oauth_relation(self) -> Relation | None:
@@ -343,7 +345,7 @@ class ClusterState(Object):
     def enabled_auth(self) -> list[AuthMap]:
         """The currently enabled auth.protocols and their auth.mechanisms, based on related applications."""
         enabled_auth = []
-        if self.client_relations or self.runs_balancer or self.peer_cluster_relation:
+        if self.client_relations or self.runs_balancer or self.peer_cluster_orchestrator_relation:
             enabled_auth.append(self.default_auth)
         if self.oauth_relation:
             enabled_auth.append(AuthMap(self.default_auth.protocol, "OAUTHBEARER"))
@@ -456,7 +458,7 @@ class ClusterState(Object):
         if not self.runs_balancer or not self.unit_broker.unit.is_leader():
             return Status.ACTIVE
 
-        if not self.peer_cluster_orchestrator_relations and not self.runs_broker:
+        if not self.peer_cluster_relation and not self.runs_broker:
             return Status.NO_PEER_CLUSTER_RELATION
 
         if not self.balancer.broker_connected:
