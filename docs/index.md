@@ -61,6 +61,7 @@ The Charmed Kafka Operator is free software, distributed under the Apache Softwa
   1. [Migrate a cluster](how-to/h-cluster-migration.md)
   1. [Create mTLS Client Credentials](how-to/h-create-mtls-client-credentials.md)
   1. [Enable Oauth through Hydra](how-to/h-enable-oauth.md)
+  1. [Backup and restore configuration](how-to/h-backup-restore-configuration.md)
 1. [Reference](reference)
   1. [Release Notes](reference/r-releases)
     1. [Revision 156/126](reference/r-releases/r-rev156_126.md)
@@ -74,3 +75,4 @@ The Charmed Kafka Operator is free software, distributed under the Apache Softwa
   1. [Contact](reference/r-contacts.md)
 1. [Explanation](explanation)
   1. [Security](explanation/e-security.md)
+  1. [Overview of Cluster Configuration](explanation/e-cluster-configuration.md)
