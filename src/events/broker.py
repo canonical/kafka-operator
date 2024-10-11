@@ -4,11 +4,9 @@
 
 """Broker role core charm logic."""
 
-import subprocess
 import json
 import logging
 from datetime import datetime
-import time
 from typing import TYPE_CHECKING
 
 from charms.operator_libs_linux.v1.snap import SnapError
@@ -206,8 +204,6 @@ class BrokerOperator(Object):
         self.workload.start()
         logger.info("Kafka service started")
 
-        time.sleep(10)
-
         # TODO: Update users. Not sure if this is the best place, as cluster might be still
         # stabilizing.
         # if self.charm.state.kraft_mode and self.charm.state.runs_broker:
@@ -333,15 +329,14 @@ class BrokerOperator(Object):
         # If properties have changed, the broker will restart.
         self.charm.on.config_changed.emit()
 
-        if self.charm.state.runs_broker:
-            try:
-                if self.health and not self.health.machine_configured():
-                    self.charm._set_status(Status.SYSCONF_NOT_OPTIMAL)
-                    return
-            except SnapError as e:
-                logger.debug(f"Error: {e}")
-                self.charm._set_status(Status.BROKER_NOT_RUNNING)
+        try:
+            if self.health and not self.health.machine_configured():
+                self.charm._set_status(Status.SYSCONF_NOT_OPTIMAL)
                 return
+        except SnapError as e:
+            logger.debug(f"Error: {e}")
+            self.charm._set_status(Status.BROKER_NOT_RUNNING)
+            return
 
         self.charm._set_status(Status.ACTIVE)
 
