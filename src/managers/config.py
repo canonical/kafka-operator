@@ -322,6 +322,9 @@ class ConfigManager(CommonConfigManager):
         Returns:
             List of properties to be set
         """
+        if self.state.kraft_mode:
+            return []
+
         return [
             f"broker.id={self.state.unit_broker.unit_id}",
             f"zookeeper.connect={self.state.zookeeper.connect}",
@@ -591,21 +594,22 @@ class ConfigManager(CommonConfigManager):
         Returns:
             List of properties to be set
         """
-        # TODO: this check will need to be done on relation data
-        roles = "process.roles="
+        if self.state.kraft_mode == False:  # noqa: E712
+            return []
+
+        roles = []
+        node_id = self.state.unit_broker.unit_id
+        if self.state.runs_broker:
+            roles.append("broker")
         if self.state.runs_controller:
-            roles += self.config.roles
-        # TODO node.id based on unit number for colocated, if only controller unit number + 100
-        # FIXME node.id will have to be a crunched form of model uuid + app name or similar
-        # FIXME quorum_voters into abstraction on state -> can be created from peer_orchestrator
-        # relation or from own cluster if controller runs colocated.
-        quorum_voters = [f"{broker.unit_id}@{broker.host}:{CONTROLLER_PORT}" for broker in self.state.brokers]
+            roles.append("controller")
+            node_id += 100
 
         properties = (
             [
-                "" if roles=="process.roles=" else roles,
-                f"node.id={self.state.unit_broker.unit_id}",
-                f"controller.quorum.voters={','.join(quorum_voters)}",
+                f"process.roles={','.join(roles)}",
+                f"node.id={node_id}",
+                f"controller.quorum.voters={self.state.peer_cluster.controller_quorum_uris}",
                 "controller.listener.names=INTERNAL_CONTROLLER",
             ]
         )
@@ -628,13 +632,22 @@ class ConfigManager(CommonConfigManager):
         listeners_repr = [listener.listener for listener in self.all_listeners]
         advertised_listeners = [listener.advertised_listener for listener in self.all_listeners]
 
-        if self.state.runs_controller:
-            # TODO:
-            # - protocol map always needs CONTROLLER on broker and controller properties (colocated or split).
-            # - listeners only adds CONTROLLER when running colocated or in the controller for split 
-            #   (in split mode `broker` does not need CONTROLLER listener)
-            protocol_map.append("INTERNAL_CONTROLLER:PLAINTEXT")
-            listeners_repr.append(f"INTERNAL_CONTROLLER://0.0.0.0:{CONTROLLER_PORT}")
+        if self.state.kraft_mode:
+            controller_protocol_map = "INTERNAL_CONTROLLER:PLAINTEXT"
+            controller_listener = f"INTERNAL_CONTROLLER://0.0.0.0:{CONTROLLER_PORT}"
+
+            # NOTE: Case where the controller is running standalone. Early return with a
+            # smaller subset of config options
+            if not self.state.runs_broker:
+                properties = (
+                    [f"log.dirs={self.state.log_dirs}", f"listeners={controller_listener}"]
+                    + self.controller_properties
+                )
+                return properties
+
+            protocol_map.append(controller_protocol_map)
+            if self.state.runs_controller:
+                listeners_repr.append(controller_listener)
 
         properties = (
             [
@@ -647,6 +660,7 @@ class ConfigManager(CommonConfigManager):
                 f"inter.broker.protocol.version={self.inter_broker_protocol_version}",
             ]
             + self.scram_properties
+            + self.auth_properties
             + self.oauth_properties
             + self.config_properties
             + self.default_replication_properties
@@ -654,18 +668,12 @@ class ConfigManager(CommonConfigManager):
             + self.metrics_reporter_properties
             + DEFAULT_CONFIG_OPTIONS.split("\n")
             # + self.authorizer_class
+            + self.controller_properties
         )
-
-        # FIXME
-        if not self.state.runs_controller:
-            properties += self.auth_properties
-
-        if self.state.runs_controller:
-            properties += self.controller_properties
 
         if self.state.cluster.tls_enabled and self.state.unit_broker.certificate:
             properties += self.tls_properties
-            if not self.state.runs_controller:
+            if self.state.kraft_mode == False:  # noqa: E712
                 properties += self.zookeeper_tls_properties
 
         if self.config.profile == PROFILE_TESTING:

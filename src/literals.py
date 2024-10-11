@@ -141,7 +141,6 @@ BROKER = Role(
         "balancer-username",
         "balancer-password",
         "balancer-uris",
-        "controller-quorum-uris",
     ],
 )
 CONTROLLER = Role(
@@ -224,6 +223,9 @@ class Status(Enum):
     BROKER_NOT_RUNNING = StatusLevel(BlockedStatus("Broker not running"), "WARNING")
     NOT_ALL_RELATED = StatusLevel(MaintenanceStatus("not all units related"), "DEBUG")
     CC_NOT_RUNNING = StatusLevel(BlockedStatus("Cruise Control not running"), "WARNING")
+    MISSING_MODE = StatusLevel(BlockedStatus("Application needs ZooKeeper or KRaft mode"), "DEBUG")
+    NO_CLUSTER_UUID = StatusLevel(WaitingStatus("Waiting for cluster uuid"), "DEBUG")
+    NO_QUORUM_URIS = StatusLevel(WaitingStatus("Waiting for quorum uris"), "DEBUG")
     ZK_NOT_RELATED = StatusLevel(BlockedStatus("missing required zookeeper relation"), "DEBUG")
     ZK_NOT_CONNECTED = StatusLevel(BlockedStatus("unit not connected to zookeeper"), "ERROR")
     ZK_TLS_MISMATCH = StatusLevel(

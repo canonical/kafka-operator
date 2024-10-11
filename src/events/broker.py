@@ -4,9 +4,11 @@
 
 """Broker role core charm logic."""
 
+import subprocess
 import json
 import logging
 from datetime import datetime
+import time
 from typing import TYPE_CHECKING
 
 from charms.operator_libs_linux.v1.snap import SnapError
@@ -33,6 +35,7 @@ from health import KafkaHealth
 from literals import (
     BROKER,
     CONTAINER,
+    CONTROLLER,
     DEPENDENCIES,
     GROUP,
     INTERNAL_USERS,
@@ -76,7 +79,7 @@ class BrokerOperator(Object):
         )
 
         # Fast exit after workload instantiation, but before any event observer
-        if BROKER.value not in self.charm.config.roles:
+        if not any([role in self.charm.config.roles for role in [BROKER.value, CONTROLLER.value]]):
             return
 
         self.health = KafkaHealth(self) if self.charm.substrate == "vm" else None
@@ -151,7 +154,7 @@ class BrokerOperator(Object):
                 f"{TESTING_OPTIONS}"
             )
 
-    def _on_start(self, event: StartEvent | PebbleReadyEvent) -> None:
+    def _on_start(self, event: StartEvent | PebbleReadyEvent) -> None:  # noqa: C901
         """Handler for `start` or `pebble-ready` events."""
         if not self.workload.container_can_connect:
             event.defer()
@@ -166,32 +169,18 @@ class BrokerOperator(Object):
         if not self.upgrade.idle:
             return
 
-        # TODO make init_server no-op and always run
-        if self.charm.state.runs_controller:
-            if not self.charm.state.cluster.cluster_uuid and self.model.unit.is_leader():
-                uuid = self.workload.run_bin_command(bin_keyword="storage", bin_args=["random-uuid", "2>", "/dev/null"]).strip()
-                self.charm.state.cluster.update({"cluster-uuid": uuid})
-
-            if not self.charm.state.cluster.internal_user_credentials and self.model.unit.is_leader():
-                for username, password in self._create_internal_credentials():
-                    self.charm.state.cluster.update({f"{username}-password": password})
-
-            if not self.charm.state.cluster.cluster_uuid or not self.charm.state.cluster.internal_user_credentials:
-                event.defer()
-                self.charm._set_status(Status.NO_BROKER_CREDS)
-                return
-
-            self.config_manager.set_server_properties()
-            self.workload.format_storages(
-                uuid=self.charm.state.cluster.cluster_uuid,
-                internal_user_credentials=self.charm.state.cluster.internal_user_credentials,
-            )
+        if self.charm.state.kraft_mode:
+            self._init_kraft_mode()
 
         # FIXME ready to start probably needs to account for credentials being created beforehand
         self.charm._set_status(self.charm.state.ready_to_start)
         if not isinstance(self.charm.unit.status, ActiveStatus):
             event.defer()
             return
+
+        if self.charm.state.kraft_mode:
+            self.config_manager.set_server_properties()
+            self._format_storages()
 
         self.update_external_services()
 
@@ -217,12 +206,21 @@ class BrokerOperator(Object):
         self.workload.start()
         logger.info("Kafka service started")
 
-        # Update users
-        if self.charm.state.runs_controller:
-            for username, password in self.charm.state.cluster.internal_user_credentials.items():
-                self.auth_manager.add_user(
-                    username=username, password=password, zk_auth=False, internal=True,
-                )
+        time.sleep(10)
+
+        # TODO: Update users. Not sure if this is the best place, as cluster might be still
+        # stabilizing.
+        # if self.charm.state.kraft_mode and self.charm.state.runs_broker:
+        #     for username, password in self.charm.state.cluster.internal_user_credentials.items():
+        #         try:
+        #             self.auth_manager.add_user(
+        #                username=username, password=password, zk_auth=False, internal=True,
+        #             )
+        #         except subprocess.CalledProcessError:
+        #             logger.warning("Error adding users, cluster might not be ready yet")
+        #             logger.error(f"\n\tOn start:\nAdding user {username} failed. Let the rest of the hook run\n")
+        #             # event.defer()
+        #             continue
 
         # service_start might fail silently, confirm with ZK if kafka is actually connected
         self.charm.on.update_status.emit()
@@ -318,7 +316,7 @@ class BrokerOperator(Object):
         if self.model.relations.get(REL_NAME, None) and self.charm.unit.is_leader():
             self.update_client_data()
 
-        if self.charm.state.peer_cluster_relation and self.charm.unit.is_leader():
+        if self.charm.state.peer_cluster_orchestrator_relation and self.charm.unit.is_leader():
             self.update_peer_cluster_data()
 
     def _on_update_status(self, _: UpdateStatusEvent) -> None:
@@ -326,7 +324,7 @@ class BrokerOperator(Object):
         if not self.upgrade.idle or not self.healthy:
             return
 
-        if not self.charm.state.runs_controller:
+        if self.charm.state.kraft_mode == False:
             if not self.charm.state.zookeeper.broker_active():
                 self.charm._set_status(Status.ZK_NOT_CONNECTED)
                 return
@@ -335,14 +333,15 @@ class BrokerOperator(Object):
         # If properties have changed, the broker will restart.
         self.charm.on.config_changed.emit()
 
-        try:
-            if self.health and not self.health.machine_configured():
-                self.charm._set_status(Status.SYSCONF_NOT_OPTIMAL)
+        if self.charm.state.runs_broker:
+            try:
+                if self.health and not self.health.machine_configured():
+                    self.charm._set_status(Status.SYSCONF_NOT_OPTIMAL)
+                    return
+            except SnapError as e:
+                logger.debug(f"Error: {e}")
+                self.charm._set_status(Status.BROKER_NOT_RUNNING)
                 return
-        except SnapError as e:
-            logger.debug(f"Error: {e}")
-            self.charm._set_status(Status.BROKER_NOT_RUNNING)
-            return
 
         self.charm._set_status(Status.ACTIVE)
 
@@ -423,22 +422,45 @@ class BrokerOperator(Object):
 
         return True
 
-    def _create_internal_credentials(self) -> list[tuple[str, str]]:
-        """Creates internal SCRAM users during cluster start.
+    def _init_kraft_mode(self) -> None:
+        """Initialize the server when running controller mode."""
+        # NOTE: checks for `runs_broker` in this method should be `is_cluster_manager` in
+        # the large deployment feature.
+        if self.model.unit.is_leader():
+            if not self.charm.state.cluster.internal_user_credentials and self.charm.state.runs_broker:
+                credentials = [
+                    (username, self.charm.workload.generate_password()) for username in INTERNAL_USERS
+                ]
+                for username, password in credentials:
+                    self.charm.state.cluster.update({f"{username}-password": password})
 
-        Returns:
-            List of (username, password) for all internal users
+            # cluster-uuid is only created on the broker (`cluster-manager` in large deployments)
+            if not self.charm.state.cluster.cluster_uuid and self.charm.state.runs_broker:
+                uuid = self.workload.run_bin_command(bin_keyword="storage", bin_args=["random-uuid", "2>", "/dev/null"]).strip()
+                self.charm.state.cluster.update({"cluster-uuid": uuid})
+                self.charm.state.peer_cluster.update({"cluster-uuid": uuid})
 
-        Raises:
-            RuntimeError if called from non-leader unit
-            KeyError if attempted to update non-leader unit
-            subprocess.CalledProcessError if command to ZooKeeper failed
-        """
-        credentials = [
-            (username, self.charm.workload.generate_password()) for username in INTERNAL_USERS
-        ]
+            # Controller is tasked with populating quorum uris
+            if self.charm.state.runs_controller:
+                quorum_uris = {"controller-quorum-uris": self.charm.state.controller_quorum_uris}
+                self.charm.state.cluster.update(quorum_uris)
 
-        return credentials
+                if self.charm.state.peer_cluster_orchestrator:
+                    self.charm.state.peer_cluster_orchestrator.update(quorum_uris)
+
+    def _format_storages(self) -> None:
+        """Format storages provided relevant keys exist"""
+        if self.charm.state.runs_broker:
+            credentials = self.charm.state.cluster.internal_user_credentials 
+        elif self.charm.state.runs_controller:
+            credentials = {
+                self.charm.state.peer_cluster.broker_username: self.charm.state.peer_cluster.broker_password
+            }
+
+        self.workload.format_storages(
+            uuid=self.charm.state.peer_cluster.cluster_uuid,
+            internal_user_credentials=credentials,
+        )
 
     def update_external_services(self) -> None:
         """Attempts to update any external Kubernetes services."""
@@ -491,7 +513,6 @@ class BrokerOperator(Object):
                 "broker-username": self.charm.state.peer_cluster.broker_username,
                 "broker-password": self.charm.state.peer_cluster.broker_password,
                 "broker-uris": self.charm.state.peer_cluster.broker_uris,
-                "controller-quorum-uris": self.charm.state.peer_cluster.controller_quorum_uris,
                 "cluster-uuid": self.charm.state.peer_cluster.cluster_uuid,
                 "racks": str(self.charm.state.peer_cluster.racks),
                 "broker-capacities": json.dumps(self.charm.state.peer_cluster.broker_capacities),
