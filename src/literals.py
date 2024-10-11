@@ -86,6 +86,8 @@ SECURITY_PROTOCOL_PORTS: dict[AuthMap, Ports] = {
     AuthMap("SASL_PLAINTEXT", "OAUTHBEARER"): Ports(9095, 19095, 29095),
     AuthMap("SASL_SSL", "OAUTHBEARER"): Ports(9096, 19096, 29096),
 }
+# FIXME this port should exist on the previous abstraction
+CONTROLLER_PORT = 9097
 
 DebugLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
 DatabagScope = Literal["unit", "app"]
@@ -114,12 +116,6 @@ PATHS = {
         "DATA": f"/var/snap/{SNAP_NAME}/common/var/lib/cruise-control",
         "BIN": f"/snap/{SNAP_NAME}/current/opt/cruise-control",
     },
-    "kraft": {
-        "CONF": f"/var/snap/{SNAP_NAME}/current/etc/kraft",
-        "LOGS": f"/var/snap/{SNAP_NAME}/common/var/log/kraft",
-        "DATA": f"/var/snap/{SNAP_NAME}/common/var/lib/kraft",
-        "BIN": f"/snap/{SNAP_NAME}/current/opt/kraft",
-    },
 }
 
 
@@ -147,6 +143,13 @@ BROKER = Role(
         "balancer-uris",
     ],
 )
+CONTROLLER = Role(
+    value="controller",
+    service="daemon",
+    paths=PATHS["kafka"],
+    relation=PEER_CLUSTER_RELATION,
+    requested_secrets=[],
+)
 BALANCER = Role(
     value="balancer",
     service="cruise-control",
@@ -160,13 +163,6 @@ BALANCER = Role(
         "zk-password",
         "zk-uris",
     ],
-)
-CONTROLLER = Role(
-    value="controller",
-    service="controller",
-    paths=PATHS["kraft"],
-    relation=PEER_CLUSTER_ORCHESTRATOR_RELATION,
-    requested_secrets=[],
 )
 
 DEFAULT_BALANCER_GOALS = [
