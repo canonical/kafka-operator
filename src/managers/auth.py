@@ -136,7 +136,9 @@ class AuthManager:
 
         return consumer_acls
 
-    def add_user(self, username: str, password: str, zk_auth: bool = False) -> None:
+    def add_user(
+        self, username: str, password: str, zk_auth: bool = False, internal: bool = False
+    ) -> None:
         """Adds new user credentials to ZooKeeper.
 
         Args:
@@ -144,6 +146,7 @@ class AuthManager:
             password: the user password
             zk_auth: flag to specify adding users using ZooKeeper authorizer
                 For use before cluster start
+            internal: flag to use internal ports or client ones
 
         Raises:
             `(subprocess.CalledProcessError | ops.pebble.ExecError)`: if the error returned a non-zero exit code
@@ -164,8 +167,9 @@ class AuthManager:
             ]
             opts = [self.kafka_opts]
         else:
+            bootstrap_server = f"{self.state.unit_broker.internal_address}:19092" if internal else self.state.bootstrap_server
             command = base_command + [
-                f"--bootstrap-server={self.state.bootstrap_server}",
+                f"--bootstrap-server={bootstrap_server}",
                 f"--command-config={self.workload.paths.client_properties}",
             ]
             opts = []
