@@ -23,6 +23,7 @@ from core.cluster import custom_secret_groups
 from literals import (
     BALANCER,
     BROKER,
+    CONTROLLER,
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
     PEER_CLUSTER_RELATION,
 )
@@ -72,19 +73,20 @@ class PeerClusterEventsHandler(Object):
         if not self.charm.unit.is_leader() or not event.relation.app:
             return
 
-        # TODO 3 cases with one, the other or both -> list(set(BALANCER.requested_secrets) | set(CONTROLLER.requested_secrets))
-        requested_secrets = (
-            BALANCER.requested_secrets
-            if self.charm.state.runs_balancer
-            else BROKER.requested_secrets
-        ) or []
+        requested_secrets = set()
+        if self.charm.state.runs_balancer:
+            requested_secrets = requested_secrets | set(BALANCER.requested_secrets)
+        if self.charm.state.runs_controller:
+            requested_secrets = requested_secrets | set(CONTROLLER.requested_secrets)
+        if self.charm.state.runs_broker:
+            requested_secrets = requested_secrets | set(BROKER.requested_secrets)
 
         # request secrets for the relation
         set_encoded_field(
             event.relation,
             self.charm.state.cluster.app,
             REQ_SECRET_FIELDS,
-            requested_secrets,
+            list(requested_secrets),
         )
 
         # explicitly update the roles early, as we can't determine which model to instantiate
@@ -93,8 +95,6 @@ class PeerClusterEventsHandler(Object):
 
     def _on_peer_cluster_changed(self, event: RelationChangedEvent) -> None:
         """Generic handler for peer-cluster `relation-changed` events."""
-        # TODO 3 cases with one, the other or both
-
         # ensures secrets have set-up before writing
         if not self.charm.unit.is_leader() or not self.charm.state.peer_cluster.roles:
             return
@@ -115,12 +115,11 @@ class PeerClusterEventsHandler(Object):
 
     def _on_peer_cluster_orchestrator_changed(self, event: RelationChangedEvent) -> None:
         """Generic handler for peer-cluster-orchestrator `relation-changed` events."""
-        # TODO: `cluster_manager` check instead of runs_broker 
+        # TODO: `cluster_manager` check instead of runs_broker
         if (
             not self.charm.unit.is_leader()
             or not self.charm.state.runs_broker  # only broker needs handle this event
-            or "balancer"
-            not in self.charm.state.peer_cluster.roles  # ensures secrets have set-up before writing, and only writing to balancers
+            or not any([role in self.charm.state.peer_cluster.roles for role in [BALANCER.value, CONTROLLER.value]]) # ensures secrets have set-up before writing, and only writing to controller,balancers
         ):
             return
 

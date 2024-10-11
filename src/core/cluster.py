@@ -38,6 +38,7 @@ from literals import (
     BALANCER,
     BROKER,
     CONTROLLER,
+    CONTROLLER_PORT,
     INTERNAL_USERS,
     MIN_REPLICAS,
     OAUTH_REL_NAME,
@@ -60,7 +61,7 @@ custom_secret_groups = SECRET_GROUPS
 setattr(custom_secret_groups, "BROKER", "broker")
 setattr(custom_secret_groups, "BALANCER", "balancer")
 setattr(custom_secret_groups, "ZOOKEEPER", "zookeeper")
-setattr(custom_secret_groups, "CONTROLLER", "controller")
+# setattr(custom_secret_groups, "CONTROLLER", "controller")
 
 SECRET_LABEL_MAP = {
     "broker-username": getattr(custom_secret_groups, "BROKER"),
@@ -72,7 +73,7 @@ SECRET_LABEL_MAP = {
     "balancer-username": getattr(custom_secret_groups, "BALANCER"),
     "balancer-password": getattr(custom_secret_groups, "BALANCER"),
     "balancer-uris": getattr(custom_secret_groups, "BALANCER"),
-    "controller-quorum-uris": getattr(custom_secret_groups, "CONTROLLER"),
+    # "controller-quorum-uris": getattr(custom_secret_groups, "CONTROLLER"),
 }
 
 
@@ -178,7 +179,7 @@ class ClusterState(Object):
                 }
             )
 
-        # FIXME: `cluster_manager` check instead of running broker 
+        # FIXME: `cluster_manager` check instead of running broker
         # must be providing, initialise with necessary broker data
         if self.runs_broker:
             return PeerCluster(
@@ -189,6 +190,7 @@ class ClusterState(Object):
                 broker_username=ADMIN_USER,
                 broker_password=self.cluster.internal_user_credentials.get(ADMIN_USER, ""),
                 broker_uris=self.bootstrap_server,
+                cluster_uuid=self.cluster.cluster_uuid,
                 racks=self.racks,
                 broker_capacities=self.broker_capacities,
                 zk_username=self.zookeeper.username,
@@ -400,6 +402,20 @@ class ClusterState(Object):
         )
 
     @property
+    def controller_quorum_uris(self) -> str:
+        """The current controller quorum uris when running KRaft mode."""
+        # FIXME: when running controller node.id will be unit.id + 100. If unit is only running
+        # the broker node.id == unit.id. This way we can keep a human readable mapping of ids.
+        if self.kraft_mode and self.runs_controller:
+            return ",".join(
+                [
+                    f"{broker.unit_id+100}@{broker.host}:{CONTROLLER_PORT}"
+                    for broker in self.brokers
+                ]
+            )
+        return ""
+
+    @property
     def log_dirs(self) -> str:
         """Builds the necessary log.dirs based on mounted storage volumes.
 
@@ -451,7 +467,7 @@ class ClusterState(Object):
         if not self.peer_relation:
             return Status.NO_PEER_RELATION
 
-        for status in [self._broker_status, self._balancer_status]:
+        for status in [self._broker_status, self._balancer_status, self._controller_status]:
             if status != Status.ACTIVE:
                 return status
 
@@ -480,8 +496,17 @@ class ClusterState(Object):
         if not self.runs_broker:
             return Status.ACTIVE
 
-        # FIXME
-        if not self.runs_controller:
+        # Neither ZooKeeper or KRaft are active
+        if self.kraft_mode is None:
+            return Status.MISSING_MODE
+
+        if self.kraft_mode:
+            if not self.peer_cluster.controller_quorum_uris:  # FIXME: peer_cluster or cluster?
+                return Status.NO_QUORUM_URIS
+            if not self.cluster.cluster_uuid:
+                return Status.NO_CLUSTER_UUID
+
+        if self.kraft_mode == False:  # noqa: E712
             if not self.zookeeper:
                 return Status.ZK_NOT_RELATED
 
@@ -499,6 +524,37 @@ class ClusterState(Object):
             return Status.NO_BROKER_CREDS
 
         return Status.ACTIVE
+
+    @property
+    def _controller_status(self) -> Status:
+        """Checks for role=controller specific readiness."""
+        if not self.runs_controller:
+            return Status.ACTIVE
+
+        if not self.peer_cluster_relation and not self.runs_broker:
+            return Status.NO_PEER_CLUSTER_RELATION
+
+        if not self.peer_cluster.broker_connected_kraft_mode:
+            return Status.NO_BROKER_DATA
+
+        return Status.ACTIVE
+
+    @property
+    def kraft_mode(self) -> bool | None:
+        """Is the deployment running in KRaft mode?
+
+        Returns:
+            True if Kraft mode, False if ZooKeeper, None when undefined.
+        """
+        # NOTE: self.roles when running colocated, peer_cluster.roles when multiapp
+        if CONTROLLER.value in (self.roles + self.peer_cluster.roles):
+            return True
+        if self.zookeeper_relation:
+            return False
+
+        # FIXME raise instead of none
+        # NOTE: if previous checks are not met, we don't know yet how the charm is being deployed
+        return None
 
     @property
     def runs_balancer(self) -> bool:

@@ -187,12 +187,14 @@ class PeerCluster(RelationState):
         if not self.relation or not self.relation.app:
             return ""
 
-        return self.data_interface._fetch_relation_data_with_secrets(
-            component=self.relation.app,
-            req_secret_fields=BROKER.requested_secrets,
-            relation=self.relation,
-            fields=CONTROLLER.requested_secrets,
-        ).get("controller-quorum-uris", "")
+        return self.data_interface.fetch_relation_field(relation_id=self.relation.id, field="controller-quorum-uris") or ""
+
+        # return self.data_interface._fetch_relation_data_with_secrets(
+        #     component=self.relation.app,
+        #     req_secret_fields=BROKER.requested_secrets,
+        #     relation=self.relation,
+        #     fields=CONTROLLER.requested_secrets,
+        # ).get("controller-quorum-uris", "")
 
     @property
     def cluster_uuid(self) -> str:
@@ -334,6 +336,7 @@ class PeerCluster(RelationState):
     @property
     def broker_connected(self) -> bool:
         """Checks if there is an active broker relation with all necessary data."""
+        # FIXME rename to specify balancer-broker connection
         if not all(
             [
                 self.broker_username,
@@ -344,6 +347,20 @@ class PeerCluster(RelationState):
                 self.zk_uris,
                 self.broker_capacities,
                 # rack is optional, empty if not rack-aware
+            ]
+        ):
+            return False
+
+        return True
+
+    @property
+    def broker_connected_kraft_mode(self) -> bool:
+        """Checks for necessary data required by a controller."""
+        if not all(
+            [
+                self.broker_username,
+                self.broker_password,
+                self.cluster_uuid,
             ]
         ):
             return False
