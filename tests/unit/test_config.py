@@ -1,21 +1,22 @@
 #!/usr/bin/env python3
-# Copyright 2024 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import dataclasses
+import json
 import logging
-import os
 from pathlib import Path
+from typing import cast
 from unittest.mock import PropertyMock, mock_open, patch
 
 import pytest
 import yaml
-from ops.testing import Harness
-from pydantic import ValidationError
+from ops import CharmMeta
+from scenario import Container, Context, PeerRelation, Relation, State, Storage
 
 from charm import KafkaCharm
 from literals import (
     ADMIN_USER,
-    CHARM_KEY,
     CONTAINER,
     DEPENDENCIES,
     INTER_BROKER_USER,
@@ -27,184 +28,193 @@ from literals import (
     OAUTH_REL_NAME,
     PEER,
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
+    REL_NAME,
     SUBSTRATE,
     ZK,
 )
-from managers.config import ConfigManager
 
 pytestmark = pytest.mark.broker
 
+
 logger = logging.getLogger(__name__)
 
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", ".."))
-CONFIG = str(yaml.safe_load(Path(BASE_DIR + "/config.yaml").read_text()))
-ACTIONS = str(yaml.safe_load(Path(BASE_DIR + "/actions.yaml").read_text()))
-METADATA = str(yaml.safe_load(Path(BASE_DIR + "/metadata.yaml").read_text()))
+
+CONFIG = yaml.safe_load(Path("./config.yaml").read_text())
+ACTIONS = yaml.safe_load(Path("./actions.yaml").read_text())
+METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 
 
-@pytest.fixture
-def harness():
-    harness = Harness(KafkaCharm, meta=METADATA, actions=ACTIONS, config=CONFIG)
+@pytest.fixture()
+def charm_configuration():
+    """Enable direct mutation on configuration dict."""
+    return json.loads(json.dumps(CONFIG))
 
+
+@pytest.fixture()
+def base_state():
     if SUBSTRATE == "k8s":
-        harness.set_can_connect(CONTAINER, True)
+        state = State(leader=True, containers=[Container(name=CONTAINER, can_connect=True)])
 
-    harness.add_relation("restart", CHARM_KEY)
-    harness._update_config(
-        {
-            "log_retention_ms": "-1",
-            "compression_type": "producer",
-            "expose-external": "none",
-        }
-    )
-    harness.begin()
-    return harness
+    else:
+        state = State(leader=True)
+
+    return state
 
 
-def test_all_storages_in_log_dirs(harness: Harness[KafkaCharm]):
+@pytest.fixture()
+def ctx() -> Context:
+    ctx = Context(KafkaCharm, meta=METADATA, config=CONFIG, actions=ACTIONS, unit_id=0)
+    return ctx
+
+
+def test_all_storages_in_log_dirs(ctx: Context, base_state: State) -> None:
     """Checks that the log.dirs property updates with all available storages."""
-    storage_metadata = harness.charm.meta.storages["data"]
-    min_storages = storage_metadata.multiple_range[0] if storage_metadata.multiple_range else 1
-    with harness.hooks_disabled():
-        harness.add_storage(storage_name="data", count=min_storages, attach=True)
+    # Given
+    storage_medatada = CharmMeta(METADATA).storages["data"]
+    min_storages = storage_medatada.multiple_range[0] if storage_medatada.multiple_range else 1
+    storages = [Storage("data") for _ in range(min_storages)]
+    state_in = dataclasses.replace(base_state, storages=storages)
 
-    assert len(harness.charm.state.log_dirs.split(",")) == len(
-        harness.charm.model.storages["data"]
+    # When
+    with ctx(ctx.on.storage_attached(storages[0]), state_in) as manager:
+        charm = cast(KafkaCharm, manager.charm)
+
+        # Then
+        assert len(charm.state.log_dirs.split(",")) == len(charm.model.storages["data"])
+
+
+def test_internal_credentials_only_return_when_all_present(
+    ctx: Context, base_state: State, passwords_data: dict[str, str]
+) -> None:
+    # Given
+    cluster_peer_incomplete = PeerRelation(
+        PEER, PEER, local_app_data={f"{INTERNAL_USERS[0]}": "mellon"}
     )
+    state_incomplete = dataclasses.replace(base_state, relations=[cluster_peer_incomplete])
+    cluster_peer_complete = PeerRelation(PEER, PEER, local_app_data=passwords_data)
+    state_complete = dataclasses.replace(base_state, relations=[cluster_peer_complete])
+
+    # When
+    with ctx(ctx.on.start(), state_incomplete) as manager:
+        charm = cast(KafkaCharm, manager.charm)
+
+        # Then
+        assert not charm.state.cluster.internal_user_credentials
+
+    # When
+    with ctx(ctx.on.start(), state_complete) as manager:
+        charm = cast(KafkaCharm, manager.charm)
+
+        # Then
+        assert charm.state.cluster.internal_user_credentials
+        assert len(charm.state.cluster.internal_user_credentials) == len(INTERNAL_USERS)
 
 
-def test_internal_credentials_only_return_when_all_present(harness: Harness[KafkaCharm]):
-    peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
-    harness.update_relation_data(
-        peer_rel_id, CHARM_KEY, {f"{INTERNAL_USERS[0]}-password": "mellon"}
-    )
-
-    assert not harness.charm.state.cluster.internal_user_credentials
-
-    for user in INTERNAL_USERS:
-        harness.update_relation_data(peer_rel_id, CHARM_KEY, {f"{user}-password": "mellon"})
-
-    assert harness.charm.state.cluster.internal_user_credentials
-    assert len(harness.charm.state.cluster.internal_user_credentials) == len(INTERNAL_USERS)
-
-
-def test_log_dirs_in_server_properties(harness: Harness[KafkaCharm]):
+def test_log_dirs_in_server_properties(ctx: Context, base_state: State) -> None:
     """Checks that log.dirs are added to server_properties."""
-    zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
-    harness.update_relation_data(
-        zk_relation_id,
-        harness.charm.app.name,
-        {
-            "database": "/kafka",
-            "chroot": "/kafka",
-            "username": "moria",
-            "password": "mellon",
-            "endpoints": "1.1.1.1,2.2.2.2",
-            "uris": "1.1.1.1:2181/kafka,2.2.2.2:2181/kafka",
-            "tls": "disabled",
-        },
-    )
-    peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
-    harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/1")
-    harness.update_relation_data(
-        peer_relation_id, f"{CHARM_KEY}/0", {"private-address": "treebeard"}
-    )
-
+    # Given
     found_log_dirs = False
-    with patch(
-        "core.models.KafkaCluster.internal_user_credentials",
-        new_callable=PropertyMock,
-        return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
-    ):
-        for prop in harness.charm.broker.config_manager.server_properties:
+    state_in = base_state
+
+    # When
+    with (ctx(ctx.on.config_changed(), state_in) as manager,):
+        charm = cast(KafkaCharm, manager.charm)
+        for prop in charm.broker.config_manager.server_properties:
             if "log.dirs" in prop:
                 found_log_dirs = True
 
-        assert found_log_dirs
+    # Then
+    assert found_log_dirs
 
 
-def test_listeners_in_server_properties(harness: Harness[KafkaCharm]):
-    """Checks that listeners are split into INTERNAL and EXTERNAL."""
-    zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
-    harness.update_relation_data(
-        zk_relation_id,
-        harness.charm.app.name,
-        {
-            "database": "/kafka",
-            "chroot": "/kafka",
-            "username": "moria",
-            "password": "mellon",
-            "endpoints": "1.1.1.1,2.2.2.2",
-            "uris": "1.1.1.1:2181/kafka,2.2.2.2:2181/kafka",
-            "tls": "disabled",
-        },
+def test_listeners_in_server_properties(
+    charm_configuration: dict, base_state: State, zk_data: dict[str, str]
+) -> None:
+    """Checks that listeners are split into INTERNAL, CLIENT and EXTERNAL."""
+    # Given
+    charm_configuration["options"]["expose-external"]["default"] = "nodeport"
+    cluster_peer = PeerRelation(PEER, PEER, local_unit_data={"private-address": "treebeard"})
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
+    client_relation = Relation(REL_NAME, "app")
+    state_in = dataclasses.replace(
+        base_state, relations=[cluster_peer, zk_relation, client_relation]
     )
-    peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
-    harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/1")
-    harness.update_relation_data(
-        peer_relation_id, f"{CHARM_KEY}/0", {"private-address": "treebeard"}
+    ctx = Context(
+        KafkaCharm, meta=METADATA, config=charm_configuration, actions=ACTIONS, unit_id=0
     )
 
     host = "treebeard" if SUBSTRATE == "vm" else "kafka-k8s-0.kafka-k8s-endpoints"
     sasl_pm = "SASL_PLAINTEXT_SCRAM_SHA_512"
-    expected_listeners = f"listeners=INTERNAL_{sasl_pm}://0.0.0.0:19092"
-    expected_advertised_listeners = f"advertised.listeners=INTERNAL_{sasl_pm}://{host}:19092"
 
-    with patch(
-        "core.models.KafkaCluster.internal_user_credentials",
-        new_callable=PropertyMock,
-        return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
+    expected_listeners = [
+        f"INTERNAL_{sasl_pm}://0.0.0.0:19092",
+        f"CLIENT_{sasl_pm}://0.0.0.0:9092",
+    ]
+    expected_advertised_listeners = [
+        f"INTERNAL_{sasl_pm}://{host}:19092",
+        f"CLIENT_{sasl_pm}://{host}:9092",
+    ]
+    if SUBSTRATE == "k8s":
+        expected_listeners += [f"EXTERNAL_{sasl_pm}://0.0.0.0:29092"]
+        expected_advertised_listeners += [
+            f"EXTERNAL_{sasl_pm}://1234:20000"  # values for nodeip:nodeport in conftest
+        ]
+
+    # When
+    with (
+        patch(
+            "core.models.KafkaCluster.internal_user_credentials",
+            new_callable=PropertyMock,
+            return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
+        ),
+        patch(
+            "managers.k8s.K8sManager._get_service",
+        ),
+        patch(
+            "managers.k8s.K8sManager.get_node_port",
+        ),
+        ctx(ctx.on.config_changed(), state_in) as manager,
     ):
-        assert expected_listeners in harness.charm.broker.config_manager.server_properties
-        assert (
-            expected_advertised_listeners in harness.charm.broker.config_manager.server_properties
-        )
+        charm = cast(KafkaCharm, manager.charm)
+
+        listeners = [
+            prop
+            for prop in charm.broker.config_manager.server_properties
+            if prop.startswith("listeners=")
+        ][0]
+        advertised_listeners = [
+            prop
+            for prop in charm.broker.config_manager.server_properties
+            if prop.startswith("advertised.listeners=")
+        ][0]
+
+    # Then
+    for listener in expected_listeners:
+        assert listener in listeners
+
+    for listener in expected_advertised_listeners:
+        assert listener in advertised_listeners
 
 
-def test_extra_listeners_in_server_properties(harness: Harness[KafkaCharm]):
+def test_extra_listeners_in_server_properties(
+    charm_configuration: dict, base_state: State, zk_data: dict[str, str]
+):
     """Checks that the extra-listeners are properly set from config."""
-    # verifying structured config validators
-    for value in [
-        "missing.port",
-        "low.port:15000",
-        "high.port:60000",
-        "non.unique:30000,other.non.unique:30000",
-        "close.port:30000,other.close.port:30001",
-    ]:
-        with pytest.raises(ValidationError):
-            harness._update_config({"extra_listeners": value})
-            harness.charm.broker.config_manager.config = harness.charm.config
-
-    harness._update_config(
-        {"extra_listeners": "worker-{unit}.foo.com:30000,worker-{unit}.bar.com:40000"}
+    # Given
+    charm_configuration["options"]["extra_listeners"][
+        "default"
+    ] = "worker-{unit}.foo.com:30000,worker-{unit}.bar.com:40000"
+    cluster_peer = PeerRelation(PEER, PEER, local_unit_data={"private-address": "treebeard"})
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
+    client_relation = Relation(
+        REL_NAME, "app", remote_app_data={"extra-user-roles": "admin,producer"}
     )
-    harness.charm.broker.config_manager.config = harness.charm.config
-
-    peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
-    harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/1")
-    harness.update_relation_data(
-        peer_relation_id, f"{CHARM_KEY}/0", {"private-address": "treebeard"}
+    state_in = dataclasses.replace(
+        base_state, relations=[cluster_peer, zk_relation, client_relation]
     )
-
-    # adding client
-    client_relation_id = harness.add_relation("kafka-client", "app")
-    harness.update_relation_data(client_relation_id, "app", {"extra-user-roles": "admin,producer"})
-    assert (
-        len(harness.charm.broker.config_manager.all_listeners) == 4
-    )  # 2 extra, 1 internal, 1 client
-
-    # adding SSL
-    harness.update_relation_data(peer_relation_id, CHARM_KEY, {"tls": "enabled"})
-    assert (
-        len(harness.charm.broker.config_manager.all_listeners) == 4
-    )  # 2 extra, 1 internal, 1 client
-
-    # adding SSL
-    harness.update_relation_data(peer_relation_id, CHARM_KEY, {"mtls": "enabled"})
-    assert (
-        len(harness.charm.broker.config_manager.all_listeners) == 7
-    )  # 2 extra sasl_ssl, 2 extra ssl, 1 internal, 2 client
-
+    ctx = Context(
+        KafkaCharm, meta=METADATA, config=charm_configuration, actions=ACTIONS, unit_id=0
+    )
     expected_listener_names = {
         "INTERNAL_SASL_PLAINTEXT_SCRAM_SHA_512",
         "CLIENT_SASL_PLAINTEXT_SCRAM_SHA_512",
@@ -215,48 +225,76 @@ def test_extra_listeners_in_server_properties(harness: Harness[KafkaCharm]):
         "EXTRA_SSL_SSL_1",
     }
 
-    advertised_listeners_prop = ""
-    for prop in harness.charm.broker.config_manager.server_properties:
-        if "advertised.listener" in prop:
-            advertised_listeners_prop = prop
+    # When
+    with ctx(ctx.on.config_changed(), state_in) as manager:
+        charm = cast(KafkaCharm, manager.charm)
 
-    # validating every expected listener is present
-    for name in expected_listener_names:
-        assert name in advertised_listeners_prop
+        # Then
+        # 2 extra, 1 internal, 1 client
+        assert len(charm.broker.config_manager.all_listeners) == 4
 
-    # validating their allocated ports are expected
-    ports = []
-    for listener in advertised_listeners_prop.split("=")[1].split(","):
-        name, _, port = listener.split(":")
+    # Adding SSL
+    cluster_peer = dataclasses.replace(cluster_peer, local_app_data={"tls": "enabled"})
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, client_relation])
 
-        if name.endswith("_0") or name.endswith("_1"):
-            # verifying allocation uses the baseport
-            digit = 10**4
-            assert int(port) // digit * digit in (30000, 40000)
+    # When
+    with ctx(ctx.on.config_changed(), state_in) as manager:
+        charm = cast(KafkaCharm, manager.charm)
 
-            # verifying allocation is in steps of 100
-            digit = 10**2
-            assert int(port) // digit * digit in (39000, 39100, 49000, 49100)
+        # Then
+        # 2 extra, 1 internal, 1 client
+        assert len(charm.broker.config_manager.all_listeners) == 4
 
-            # verifying all ports are unique
-            assert port not in ports
-            ports.append(port)
-
-
-def test_oauth_client_listeners_in_server_properties(harness: Harness[KafkaCharm]):
-    """Checks that oauth client listeners are properly set when a relating through oauth."""
-    harness.add_relation(ZK, CHARM_KEY)
-    peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
-    harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/1")
-    harness.update_relation_data(
-        peer_relation_id, f"{CHARM_KEY}/0", {"private-address": "treebeard"}
+    # Adding SSL
+    cluster_peer = dataclasses.replace(
+        cluster_peer, local_app_data={"tls": "enabled", "mtls": "enabled"}
     )
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, client_relation])
 
-    oauth_relation_id = harness.add_relation(OAUTH_REL_NAME, "hydra")
-    harness.update_relation_data(
-        oauth_relation_id,
+    # When
+    with ctx(ctx.on.config_changed(), state_in) as manager:
+        charm = cast(KafkaCharm, manager.charm)
+
+        # Then
+        # 2 extra sasl_ssl, 2 extra ssl, 1 internal, 2 client
+        assert len(charm.broker.config_manager.all_listeners) == 7
+
+        advertised_listeners_prop = ""
+        for prop in charm.broker.config_manager.server_properties:
+            if "advertised.listener" in prop:
+                advertised_listeners_prop = prop
+
+        # validating every expected listener is present
+        for name in expected_listener_names:
+            assert name in advertised_listeners_prop
+
+        # validating their allocated ports are expected
+        ports = []
+        for listener in advertised_listeners_prop.split("=")[1].split(","):
+            name, _, port = listener.split(":")
+
+            if name.endswith("_0") or name.endswith("_1"):
+                # verifying allocation uses the baseport
+                digit = 10**4
+                assert int(port) // digit * digit in (30000, 40000)
+
+                # verifying allocation is in steps of 100
+                digit = 10**2
+                assert int(port) // digit * digit in (39000, 39100, 49000, 49100)
+
+                # verifying all ports are unique
+                assert port not in ports
+                ports.append(port)
+
+
+def test_oauth_client_listeners_in_server_properties(ctx: Context, base_state: State) -> None:
+    """Checks that oauth client listeners are properly set when a relating through oauth."""
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER, local_unit_data={"private-address": "treebeard"})
+    oauth_relation = Relation(
+        OAUTH_REL_NAME,
         "hydra",
-        {
+        remote_app_data={
             "issuer_url": "issuer",
             "jwks_endpoint": "jwks",
             "authorization_endpoint": "authz",
@@ -267,10 +305,12 @@ def test_oauth_client_listeners_in_server_properties(harness: Harness[KafkaCharm
             "jwt_access_token": "False",
         },
     )
-
-    # let's add a scram client just for fun
-    client_relation_id = harness.add_relation("kafka-client", "app")
-    harness.update_relation_data(client_relation_id, "app", {"extra-user-roles": "admin,producer"})
+    client_relation = Relation(
+        REL_NAME, "app", remote_app_data={"extra-user-roles": "admin,producer"}
+    )
+    state_in = dataclasses.replace(
+        base_state, relations=[cluster_peer, oauth_relation, client_relation]
+    )
 
     host = "treebeard" if SUBSTRATE == "vm" else "kafka-k8s-0.kafka-k8s-endpoints"
     internal_protocol, internal_port = "INTERNAL_SASL_PLAINTEXT_SCRAM_SHA_512", "19092"
@@ -287,44 +327,37 @@ def test_oauth_client_listeners_in_server_properties(harness: Harness[KafkaCharm
         f"{scram_client_protocol}://{host}:{scram_client_port},"
         f"{oauth_client_protocol}://{host}:{oauth_client_port}"
     )
-    assert expected_listeners in harness.charm.broker.config_manager.server_properties
-    assert expected_advertised_listeners in harness.charm.broker.config_manager.server_properties
+
+    # When
+    with ctx(ctx.on.config_changed(), state_in) as manager:
+        charm = cast(KafkaCharm, manager.charm)
+
+        # Then
+        assert expected_listeners in charm.broker.config_manager.server_properties
+        assert expected_advertised_listeners in charm.broker.config_manager.server_properties
 
 
-def test_ssl_listeners_in_server_properties(harness: Harness[KafkaCharm]):
+def test_ssl_listeners_in_server_properties(
+    ctx: Context, base_state: State, zk_data: dict[str, str]
+) -> None:
     """Checks that listeners are added after TLS relation are created."""
-    zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
+    # Given
+    cluster_peer = PeerRelation(
+        PEER,
+        PEER,
+        local_unit_data={"private-address": "treebeard", "certificate": "keepitsecret"},
+        local_app_data={"tls": "enabled", "mtls": "enabled"},
+    )
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data | {"tls": "enabled"})
     # Simulate data-integrator relation
-    client_relation_id = harness.add_relation("kafka-client", "app")
-    harness.update_relation_data(client_relation_id, "app", {"extra-user-roles": "admin,producer"})
-    client_relation_id = harness.add_relation("kafka-client", "appii")
-    harness.update_relation_data(
-        client_relation_id, "appii", {"extra-user-roles": "admin,consumer"}
+    client_relation = Relation(
+        REL_NAME, "app", remote_app_data={"extra-user-roles": "admin,producer"}
     )
-
-    harness.update_relation_data(
-        zk_relation_id,
-        harness.charm.app.name,
-        {
-            "database": "/kafka",
-            "chroot": "/kafka",
-            "username": "moria",
-            "password": "mellon",
-            "endpoints": "1.1.1.1,2.2.2.2",
-            "uris": "1.1.1.1:2181/kafka,2.2.2.2:2181/kafka",
-            "tls": "enabled",
-        },
+    client_ii_relation = Relation(
+        REL_NAME, "appii", remote_app_data={"extra-user-roles": "admin,consumer"}
     )
-    peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
-    harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/1")
-    harness.update_relation_data(
-        peer_relation_id,
-        f"{CHARM_KEY}/0",
-        {"private-address": "treebeard", "certificate": "keepitsecret"},
-    )
-
-    harness.update_relation_data(
-        peer_relation_id, CHARM_KEY, {"tls": "enabled", "mtls": "enabled"}
+    state_in = dataclasses.replace(
+        base_state, relations=[cluster_peer, zk_relation, client_relation, client_ii_relation]
     )
 
     host = "treebeard" if SUBSTRATE == "vm" else "kafka-k8s-0.kafka-k8s-endpoints"
@@ -333,24 +366,29 @@ def test_ssl_listeners_in_server_properties(harness: Harness[KafkaCharm]):
     expected_listeners = f"listeners=INTERNAL_{sasl_pm}://0.0.0.0:19093,CLIENT_{sasl_pm}://0.0.0.0:9093,CLIENT_{ssl_pm}://0.0.0.0:9094"
     expected_advertised_listeners = f"advertised.listeners=INTERNAL_{sasl_pm}://{host}:19093,CLIENT_{sasl_pm}://{host}:9093,CLIENT_{ssl_pm}://{host}:9094"
 
-    with patch(
-        "core.models.KafkaCluster.internal_user_credentials",
-        new_callable=PropertyMock,
-        return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
+    # When
+    with (
+        patch(
+            "core.models.KafkaCluster.internal_user_credentials",
+            new_callable=PropertyMock,
+            return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
+        ),
+        ctx(ctx.on.config_changed(), state_in) as manager,
     ):
-        assert expected_listeners in harness.charm.broker.config_manager.server_properties
-        assert (
-            expected_advertised_listeners in harness.charm.broker.config_manager.server_properties
-        )
+        charm = cast(KafkaCharm, manager.charm)
+
+        # Then
+        assert expected_listeners in charm.broker.config_manager.server_properties
+        assert expected_advertised_listeners in charm.broker.config_manager.server_properties
 
 
-def test_zookeeper_config_succeeds_fails_config(harness: Harness[KafkaCharm]):
+def test_zookeeper_config_succeeds_fails_config(ctx: Context, base_state: State) -> None:
     """Checks that no ZK config is returned if missing field."""
-    zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
-    harness.update_relation_data(
-        zk_relation_id,
-        harness.charm.app.name,
-        {
+    # Given
+    zk_relation = Relation(
+        ZK,
+        ZK,
+        remote_app_data={
             "database": "/kafka",
             "chroot": "/kafka",
             "username": "moria",
@@ -359,16 +397,23 @@ def test_zookeeper_config_succeeds_fails_config(harness: Harness[KafkaCharm]):
             "tls": "disabled",
         },
     )
-    assert not harness.charm.state.zookeeper.zookeeper_connected
+    state_in = dataclasses.replace(base_state, relations=[zk_relation])
+
+    # When
+    with ctx(ctx.on.config_changed(), state_in) as manager:
+        charm = cast(KafkaCharm, manager.charm)
+
+        # Then
+        assert not charm.state.zookeeper.zookeeper_connected
 
 
-def test_zookeeper_config_succeeds_valid_config(harness: Harness[KafkaCharm]):
+def test_zookeeper_config_succeeds_valid_config(ctx: Context, base_state: State) -> None:
     """Checks that ZK config is returned if all fields."""
-    zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
-    harness.update_relation_data(
-        zk_relation_id,
-        harness.charm.app.name,
-        {
+    # Given
+    zk_relation = Relation(
+        ZK,
+        ZK,
+        remote_app_data={
             "database": "/kafka",
             "chroot": "/kafka",
             "username": "moria",
@@ -378,272 +423,360 @@ def test_zookeeper_config_succeeds_valid_config(harness: Harness[KafkaCharm]):
             "tls": "disabled",
         },
     )
-    assert harness.charm.state.zookeeper.connect == "1.1.1.1:2181,2.2.2.2:2181/kafka"
-    assert harness.charm.state.zookeeper.zookeeper_connected
+    state_in = dataclasses.replace(base_state, relations=[zk_relation])
+
+    # When
+    with ctx(ctx.on.config_changed(), state_in) as manager:
+        charm = cast(KafkaCharm, manager.charm)
+
+        # Then
+        assert charm.state.zookeeper.zookeeper_connected
+        assert charm.state.zookeeper.connect == "1.1.1.1:2181,2.2.2.2:2181/kafka"
 
 
-def test_kafka_opts(harness: Harness[KafkaCharm]):
+def test_kafka_opts(ctx: Context, base_state: State) -> None:
     """Checks necessary args for KAFKA_OPTS."""
-    args = harness.charm.broker.config_manager.kafka_opts
-    assert "-Djava.security.auth.login.config" in args
-    assert "KAFKA_OPTS" in args
+    # Given
+    state_in = base_state
+
+    # When
+    with ctx(ctx.on.config_changed(), state_in) as manager:
+        charm = cast(KafkaCharm, manager.charm)
+
+        # Then
+        args = charm.broker.config_manager.kafka_opts
+        assert "-Djava.security.auth.login.config" in args
+        assert "KAFKA_OPTS" in args
 
 
 @pytest.mark.parametrize(
     "profile,expected",
     [("production", JVM_MEM_MAX_GB), ("testing", JVM_MEM_MIN_GB)],
 )
-def test_heap_opts(harness: Harness[KafkaCharm], profile, expected):
+def test_heap_opts(
+    charm_configuration: dict, base_state: State, profile: str, expected: int
+) -> None:
     """Checks necessary args for KAFKA_HEAP_OPTS."""
-    # Harness doesn't reinitialize KafkaCharm when calling update_config, which means that
-    # self.config is not passed again to ConfigManager
-    harness.update_config({"profile": profile})
-    conf_manager = ConfigManager(
-        harness.charm.state, harness.charm.workload, harness.charm.config, "1"
+    # Given
+    charm_configuration["options"]["profile"]["default"] = profile
+    ctx = Context(
+        KafkaCharm, meta=METADATA, config=charm_configuration, actions=ACTIONS, unit_id=0
     )
-    args = conf_manager.heap_opts
+    state_in = base_state
 
+    # When
+    with ctx(ctx.on.config_changed(), state_in) as manager:
+        charm = cast(KafkaCharm, manager.charm)
+
+        args = charm.broker.config_manager.heap_opts
+
+    # Then
     assert f"Xms{expected}G" in args
     assert f"Xmx{expected}G" in args
     assert "KAFKA_HEAP_OPTS" in args
 
 
-def test_kafka_jmx_opts(harness: Harness[KafkaCharm]):
+def test_kafka_jmx_opts(ctx: Context, base_state: State) -> None:
     """Checks necessary args for KAFKA_JMX_OPTS."""
-    args = harness.charm.broker.config_manager.kafka_jmx_opts
+    # Given
+    state_in = base_state
+
+    # When
+    with ctx(ctx.on.config_changed(), state_in) as manager:
+        charm = cast(KafkaCharm, manager.charm)
+        args = charm.broker.config_manager.kafka_jmx_opts
+
+    # Then
     assert "-javaagent:" in args
     assert args.split(":")[1].split("=")[-1] == str(JMX_EXPORTER_PORT)
     assert "KAFKA_JMX_OPTS" in args
 
 
-def test_cc_jmx_opts(harness: Harness[KafkaCharm]):
+def test_cc_jmx_opts(ctx: Context, base_state: State) -> None:
     """Checks necessary args for CC_JMX_OPTS."""
-    args = harness.charm.broker.config_manager.cc_jmx_opts
+    # Given
+    state_in = base_state
+
+    # When
+    with ctx(ctx.on.config_changed(), state_in) as manager:
+        charm = cast(KafkaCharm, manager.charm)
+        args = charm.broker.config_manager.cc_jmx_opts
+
+    # Then
     assert "-javaagent:" in args
     assert args.split(":")[1].split("=")[-1] == str(JMX_CC_PORT)
     assert "CC_JMX_OPTS" in args
 
 
-def test_set_environment(harness: Harness[KafkaCharm]):
+def test_set_environment(ctx: Context, base_state: State) -> None:
     """Checks all necessary env-vars are written to /etc/environment."""
+    # Given
+    state_in = base_state
+
+    # When
     with (
         patch("workload.KafkaWorkload.write") as patched_write,
         patch("builtins.open", mock_open()),
         patch("shutil.chown"),
+        ctx(ctx.on.config_changed(), state_in) as manager,
     ):
-        harness.charm.broker.config_manager.set_environment()
+        charm = cast(KafkaCharm, manager.charm)
+        charm.broker.config_manager.set_environment()
 
-        for call in patched_write.call_args_list:
-            assert "KAFKA_OPTS" in call.kwargs.get("content", "")
-            assert "KAFKA_LOG4J_OPTS" in call.kwargs.get("content", "")
-            assert "KAFKA_JMX_OPTS" in call.kwargs.get("content", "")
-            assert "KAFKA_HEAP_OPTS" in call.kwargs.get("content", "")
-            assert "KAFKA_JVM_PERFORMANCE_OPTS" in call.kwargs.get("content", "")
-            assert "/etc/environment" == call.kwargs.get("path", "")
+    # Then
+    for call in patched_write.call_args_list:
+        assert "KAFKA_OPTS" in call.kwargs.get("content", "")
+        assert "KAFKA_LOG4J_OPTS" in call.kwargs.get("content", "")
+        assert "KAFKA_JMX_OPTS" in call.kwargs.get("content", "")
+        assert "KAFKA_HEAP_OPTS" in call.kwargs.get("content", "")
+        assert "KAFKA_JVM_PERFORMANCE_OPTS" in call.kwargs.get("content", "")
+        assert "/etc/environment" == call.kwargs.get("path", "")
 
 
-def test_bootstrap_server(harness: Harness[KafkaCharm]):
+def test_bootstrap_server(ctx: Context, base_state: State) -> None:
     """Checks the bootstrap-server property setting."""
-    peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
-    harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/1")
-    harness.update_relation_data(
-        peer_relation_id, f"{CHARM_KEY}/0", {"private-address": "treebeard"}
+    # Given
+    cluster_peer = PeerRelation(
+        PEER,
+        PEER,
+        local_unit_data={"private-address": "treebeard"},
+        peers_data={1: {"private-address": "shelob"}},
     )
-    harness.update_relation_data(peer_relation_id, f"{CHARM_KEY}/1", {"private-address": "shelob"})
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer])
 
-    assert len(harness.charm.state.bootstrap_server.split(",")) == 2
-    for server in harness.charm.state.bootstrap_server.split(","):
-        assert "9092" in server
+    # When
+    with ctx(ctx.on.config_changed(), state_in) as manager:
+        charm = cast(KafkaCharm, manager.charm)
+
+        # Then
+        assert len(charm.state.bootstrap_server.split(",")) == 2
+        for server in charm.state.bootstrap_server.split(","):
+            assert "9092" in server
 
 
-def test_default_replication_properties_less_than_three(harness: Harness[KafkaCharm]):
+def test_default_replication_properties_less_than_three(ctx: Context, base_state: State) -> None:
     """Checks replication property defaults updates with units < 3."""
-    assert "num.partitions=1" in harness.charm.broker.config_manager.default_replication_properties
-    assert (
-        "default.replication.factor=1"
-        in harness.charm.broker.config_manager.default_replication_properties
-    )
-    assert (
-        "min.insync.replicas=1"
-        in harness.charm.broker.config_manager.default_replication_properties
-    )
+    # Given
+    state_in = base_state
 
+    # When
+    with ctx(ctx.on.config_changed(), state_in) as manager:
+        charm = cast(KafkaCharm, manager.charm)
 
-def test_default_replication_properties_more_than_three(harness: Harness[KafkaCharm]):
-    """Checks replication property defaults updates with units > 3."""
-    peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
-    harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/1")
-    harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/2")
-    harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/3")
-    harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/4")
-    harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/5")
-
-    assert "num.partitions=3" in harness.charm.broker.config_manager.default_replication_properties
-    assert (
-        "default.replication.factor=3"
-        in harness.charm.broker.config_manager.default_replication_properties
-    )
-    assert (
-        "min.insync.replicas=2"
-        in harness.charm.broker.config_manager.default_replication_properties
-    )
-
-
-def test_ssl_principal_mapping_rules(harness: Harness[KafkaCharm]):
-    """Check that a change in ssl_principal_mapping_rules is reflected in server_properties."""
-    harness.add_relation(PEER, CHARM_KEY)
-    zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
-    harness.update_relation_data(
-        zk_relation_id,
-        harness.charm.app.name,
-        {
-            "database": "/kafka",
-            "chroot": "/kafka",
-            "username": "moria",
-            "password": "mellon",
-            "endpoints": "1.1.1.1,2.2.2.2",
-            "uris": "1.1.1.1:2181/kafka,2.2.2.2:2181/kafka",
-            "tls": "disabled",
-        },
-    )
-
-    with patch(
-        "core.models.KafkaCluster.internal_user_credentials",
-        new_callable=PropertyMock,
-        return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
-    ):
-        # Harness doesn't reinitialize KafkaCharm when calling update_config, which means that
-        # self.config is not passed again to ConfigManager
-        harness._update_config({"ssl_principal_mapping_rules": "RULE:^(erebor)$/$1,DEFAULT"})
-        conf_manager = ConfigManager(
-            harness.charm.state, harness.charm.workload, harness.charm.config, "1"
+        # Then
+        assert "num.partitions=1" in charm.broker.config_manager.default_replication_properties
+        assert (
+            "default.replication.factor=1"
+            in charm.broker.config_manager.default_replication_properties
+        )
+        assert (
+            "min.insync.replicas=1" in charm.broker.config_manager.default_replication_properties
         )
 
+
+def test_default_replication_properties_more_than_three(ctx: Context, base_state: State) -> None:
+    """Checks replication property defaults updates with units > 3."""
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER, peers_data={i: {} for i in range(1, 6)})
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer], planned_units=6)
+
+    # When
+    with ctx(ctx.on.config_changed(), state_in) as manager:
+        charm = cast(KafkaCharm, manager.charm)
+
+        # Then
+        assert "num.partitions=3" in charm.broker.config_manager.default_replication_properties
+        assert (
+            "default.replication.factor=3"
+            in charm.broker.config_manager.default_replication_properties
+        )
+        assert (
+            "min.insync.replicas=2" in charm.broker.config_manager.default_replication_properties
+        )
+
+
+def test_ssl_principal_mapping_rules(
+    charm_configuration: dict, base_state: State, zk_data: dict[str, str]
+) -> None:
+    """Check that a change in ssl_principal_mapping_rules is reflected in server_properties."""
+    # Given
+    charm_configuration["options"]["ssl_principal_mapping_rules"][
+        "default"
+    ] = "RULE:^(erebor)$/$1,DEFAULT"
+    cluster_peer = PeerRelation(PEER, PEER)
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, zk_relation])
+    ctx = Context(
+        KafkaCharm, meta=METADATA, config=charm_configuration, actions=ACTIONS, unit_id=0
+    )
+
+    # Given
+    with (
+        patch(
+            "core.models.KafkaCluster.internal_user_credentials",
+            new_callable=PropertyMock,
+            return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
+        ),
+        ctx(ctx.on.config_changed(), state_in) as manager,
+    ):
+        charm = cast(KafkaCharm, manager.charm)
+
+        # Then
         assert (
             "ssl.principal.mapping.rules=RULE:^(erebor)$/$1,DEFAULT"
-            in conf_manager.server_properties
+            in charm.broker.config_manager.server_properties
         )
 
 
-def test_auth_properties(harness: Harness[KafkaCharm]):
+def test_auth_properties(ctx: Context, base_state: State, zk_data: dict[str, str]) -> None:
     """Checks necessary auth properties are present."""
-    zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
-    peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
-    harness.update_relation_data(
-        peer_relation_id, harness.charm.app.name, {"sync_password": "mellon"}
-    )
-    harness.update_relation_data(
-        zk_relation_id,
-        harness.charm.app.name,
-        {
-            "database": "/kafka",
-            "chroot": "/kafka",
-            "username": "moria",
-            "password": "mellon",
-            "endpoints": "1.1.1.1,2.2.2.2",
-            "uris": "1.1.1.1:2181/kafka,2.2.2.2:2181/kafka",
-            "tls": "disabled",
-        },
-    )
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER)
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, zk_relation])
 
-    assert "broker.id=0" in harness.charm.broker.config_manager.auth_properties
-    assert (
-        f"zookeeper.connect={harness.charm.state.zookeeper.connect}"
-        in harness.charm.broker.config_manager.auth_properties
-    )
+    # When
+    with ctx(ctx.on.config_changed(), state_in) as manager:
+        charm = cast(KafkaCharm, manager.charm)
+
+        # Then
+        assert "broker.id=0" in charm.broker.config_manager.auth_properties
+        assert (
+            f"zookeeper.connect={charm.state.zookeeper.connect}"
+            in charm.broker.config_manager.auth_properties
+        )
 
 
-def test_rack_properties(harness: Harness[KafkaCharm]):
+def test_rack_properties(ctx: Context, base_state: State, zk_data: dict[str, str]) -> None:
     """Checks that rack properties are added to server properties."""
-    harness.add_relation(PEER, CHARM_KEY)
-    zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
-    harness.update_relation_data(
-        zk_relation_id,
-        harness.charm.app.name,
-        {
-            "database": "/kafka",
-            "chroot": "/kafka",
-            "username": "moria",
-            "password": "mellon",
-            "endpoints": "1.1.1.1,2.2.2.2",
-            "uris": "1.1.1.1:2181/kafka,2.2.2.2:2181/kafka",
-            "tls": "disabled",
-        },
-    )
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER)
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, zk_relation])
 
-    with patch(
-        "managers.config.ConfigManager.rack_properties",
-        new_callable=PropertyMock,
-        return_value=["broker.rack=gondor-west"],
+    # When
+    with (
+        patch(
+            "managers.config.ConfigManager.rack_properties",
+            new_callable=PropertyMock,
+            return_value=["broker.rack=gondor-west"],
+        ),
+        ctx(ctx.on.config_changed(), state_in) as manager,
     ):
-        assert "broker.rack=gondor-west" in harness.charm.broker.config_manager.server_properties
+        charm = cast(KafkaCharm, manager.charm)
+
+        # Then
+        assert "broker.rack=gondor-west" in charm.broker.config_manager.server_properties
 
 
-def test_inter_broker_protocol_version(harness: Harness[KafkaCharm]):
+def test_inter_broker_protocol_version(ctx: Context, base_state: State, zk_data) -> None:
     """Checks that rack properties are added to server properties."""
-    harness.add_relation(PEER, CHARM_KEY)
-    zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
-    harness.update_relation_data(
-        zk_relation_id,
-        harness.charm.app.name,
-        {
-            "database": "/kafka",
-            "chroot": "/kafka",
-            "username": "moria",
-            "password": "mellon",
-            "endpoints": "1.1.1.1,2.2.2.2",
-            "uris": "1.1.1.1:2181/kafka,2.2.2.2:2181/kafka",
-            "tls": "disabled",
-        },
-    )
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER)
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, zk_relation])
+
+    # When
+    with ctx(ctx.on.config_changed(), state_in) as manager:
+        charm = cast(KafkaCharm, manager.charm)
+
+        # Then
+        assert "inter.broker.protocol.version=3.6" in charm.broker.config_manager.server_properties
     assert len(DEPENDENCIES["kafka_service"]["version"].split(".")) == 3
 
-    assert (
-        "inter.broker.protocol.version=3.6"
-        in harness.charm.broker.config_manager.server_properties
-    )
 
-
-def test_super_users(harness: Harness[KafkaCharm]):
+def test_super_users(ctx: Context, base_state: State) -> None:
     """Checks super-users property is updated for new admin clients."""
-    peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
-    app_relation_id = harness.add_relation("kafka-client", "app")
-    harness.update_relation_data(app_relation_id, "app", {"extra-user-roles": "admin,producer"})
-    appii_relation_id = harness.add_relation("kafka-client", "appii")
-    harness.update_relation_data(
-        appii_relation_id, "appii", {"extra-user-roles": "admin,consumer"}
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER)
+    client_relation = Relation(
+        REL_NAME, "app", remote_app_data={"extra-user-roles": "admin,producer"}
+    )
+    client_ii_relation = Relation(
+        REL_NAME, "appii", remote_app_data={"extra-user-roles": "admin,consumer"}
+    )
+    state_in = dataclasses.replace(
+        base_state, relations=[cluster_peer, client_relation, client_ii_relation]
     )
 
-    assert len(harness.charm.state.super_users.split(";")) == len(INTERNAL_USERS)
+    # When
+    with ctx(ctx.on.config_changed(), state_in) as manager:
+        charm = cast(KafkaCharm, manager.charm)
 
-    harness.update_relation_data(
-        peer_relation_id, harness.charm.app.name, {f"relation-{app_relation_id}": "mellon"}
+        # Then
+        assert len(charm.state.super_users.split(";")) == len(INTERNAL_USERS)
+
+    cluster_peer = dataclasses.replace(
+        cluster_peer, local_app_data={f"relation-{client_relation.id}": "mellon"}
+    )
+    state_in = dataclasses.replace(
+        base_state, relations=[cluster_peer, client_relation, client_ii_relation]
     )
 
-    assert len(harness.charm.state.super_users.split(";")) == (len(INTERNAL_USERS) + 1)
+    # When
+    with ctx(ctx.on.config_changed(), state_in) as manager:
+        charm = cast(KafkaCharm, manager.charm)
 
-    harness.update_relation_data(
-        peer_relation_id, harness.charm.app.name, {f"relation-{appii_relation_id}": "mellon"}
+        # Then
+        assert len(charm.state.super_users.split(";")) == len(INTERNAL_USERS) + 1
+
+    cluster_peer = dataclasses.replace(
+        cluster_peer,
+        local_app_data={
+            f"relation-{client_relation.id}": "mellon",
+            f"relation-{client_ii_relation.id}": "mellon",
+        },
+    )
+    state_in = dataclasses.replace(
+        base_state, relations=[cluster_peer, client_relation, client_ii_relation]
     )
 
-    assert len(harness.charm.state.super_users.split(";")) == (len(INTERNAL_USERS) + 2)
+    # When
+    with ctx(ctx.on.config_changed(), state_in) as manager:
+        charm = cast(KafkaCharm, manager.charm)
 
-    harness.update_relation_data(appii_relation_id, "appii", {"extra-user-roles": "consumer"})
+        # Then
+        assert len(charm.state.super_users.split(";")) == len(INTERNAL_USERS) + 2
 
-    assert len(harness.charm.state.super_users.split(";")) == (len(INTERNAL_USERS) + 1)
+    client_ii_relation = dataclasses.replace(
+        client_ii_relation, remote_app_data={"extra-user-roles": "consumer"}
+    )
+    state_in = dataclasses.replace(
+        base_state, relations=[cluster_peer, client_relation, client_ii_relation]
+    )
+
+    # When
+    with ctx(ctx.on.config_changed(), state_in) as manager:
+        charm = cast(KafkaCharm, manager.charm)
+
+        # Then
+        assert len(charm.state.super_users.split(";")) == len(INTERNAL_USERS) + 1
 
 
-def test_cruise_control_reporter_only_with_balancer(harness: Harness[KafkaCharm]):
+def test_cruise_control_reporter_only_with_balancer(ctx: Context, base_state: State):
+    # Given
+    state_in = base_state
     reporters_config_value = "metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter"
-    # Default roles value does not include balancer
-    assert reporters_config_value not in harness.charm.broker.config_manager.server_properties
 
-    with harness.hooks_disabled():
-        peer_cluster_relation_id = harness.add_relation(
-            PEER_CLUSTER_ORCHESTRATOR_RELATION, CHARM_KEY
-        )
-        harness.update_relation_data(
-            peer_cluster_relation_id, harness.charm.app.name, {"roles": "broker,balancer"}
-        )
+    # When
+    with ctx(ctx.on.config_changed(), state_in) as manager:
+        charm = cast(KafkaCharm, manager.charm)
 
-    assert reporters_config_value in harness.charm.broker.config_manager.server_properties
+        # Then
+        # Default roles value does not include balancer
+        assert reporters_config_value not in charm.broker.config_manager.server_properties
+
+    # Given
+
+    cluster_peer = PeerRelation(PEER, PEER)
+    cluster_peer_cluster = Relation(
+        PEER_CLUSTER_ORCHESTRATOR_RELATION, "peer-cluster", remote_app_data={"roles": "balancer"}
+    )
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, cluster_peer_cluster])
+
+    # When
+    with ctx(ctx.on.config_changed(), state_in) as manager:
+        charm = cast(KafkaCharm, manager.charm)
+
+        # Then
+        assert reporters_config_value in charm.broker.config_manager.server_properties

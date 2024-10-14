@@ -124,3 +124,15 @@ def patched_node_ip():
             yield patched_node_ip
     else:
         yield
+
+
+@pytest.fixture(autouse=True)
+def patched_node_port():
+    if SUBSTRATE == "k8s":
+        with patch(
+            "managers.k8s.K8sManager.get_listener_nodeport",
+            return_value=20000,
+        ) as patched_node_port:
+            yield patched_node_port
+    else:
+        yield

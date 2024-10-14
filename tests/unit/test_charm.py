@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2024 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 import dataclasses
@@ -11,8 +11,6 @@ from unittest.mock import PropertyMock, patch
 
 import pytest
 import yaml
-from charms.operator_libs_linux.v0.sysctl import ApplyError
-from charms.operator_libs_linux.v1.snap import SnapError
 from scenario import Container, Context, PeerRelation, Relation, State, Storage
 
 from charm import KafkaCharm
@@ -21,7 +19,6 @@ from literals import (
     CONTAINER,
     INTERNAL_USERS,
     JMX_EXPORTER_PORT,
-    OS_REQUIREMENTS,
     PEER,
     REL_NAME,
     SUBSTRATE,
@@ -29,7 +26,13 @@ from literals import (
     Status,
 )
 
-pytestmark = [pytest.mark.broker, pytest.mark.balancer]
+if SUBSTRATE == "vm":
+    from charms.operator_libs_linux.v0.sysctl import ApplyError
+    from charms.operator_libs_linux.v1.snap import SnapError
+
+    from literals import OS_REQUIREMENTS
+
+pytestmark = pytest.mark.broker
 
 
 logger = logging.getLogger(__name__)
@@ -133,7 +136,7 @@ def test_ready_to_start_blocks_no_zookeeper_relation(ctx: Context, base_state: S
     state_out = ctx.run(ctx.on.start(), state_in)
 
     # Then
-    assert state_out.unit_status == Status.ZK_NOT_RELATED.value.status
+    assert state_out.unit_status == Status.MISSING_MODE.value.status
 
 
 def test_ready_to_start_waits_no_zookeeper_data(ctx: Context, base_state: State) -> None:
@@ -549,7 +552,7 @@ def test_storage_add_disableenables_and_starts(
 ) -> None:
     # Given
     cluster_peer = PeerRelation(PEER, PEER, local_app_data=passwords_data)
-    restart_peer = PeerRelation("restart", "rolling_op")
+    restart_peer = PeerRelation("restart", "restart")
     zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
     storage = Storage("data")
     state_in = dataclasses.replace(
@@ -578,7 +581,7 @@ def test_storage_add_disableenables_and_starts(
 
 
 def test_zookeeper_changed_sets_passwords_and_creates_users_with_zk(
-    ctx: Context, base_state: State, zk_data: dict[str, str], passwords_data: dict[str, str]
+    ctx: Context, base_state: State, zk_data: dict[str, str]
 ) -> None:
     """Checks inter-broker passwords are created on zookeeper-changed hook using zk auth."""
     # Given
@@ -792,7 +795,7 @@ def test_config_changed_updates_client_data(ctx: Context, base_state: State) -> 
     patched_update_client_data.assert_called_once()
 
 
-def test_config_changed_restarts(ctx: Context, base_state: State, monkeypatch) -> None:
+def test_config_changed_restarts(ctx: Context, base_state: State) -> None:
     """Checks units rolling-restat on config changed hook."""
     # Given
     cluster_peer = PeerRelation(PEER, PEER)
@@ -838,7 +841,7 @@ def test_on_remove_sysctl_is_deleted(ctx: Context, base_state: State):
     patched_sysctl_remove.assert_called_once()
 
 
-def test_workload_version_is_setted(ctx: Context, base_state: State, monkeypatch):
+def test_workload_version_is_setted(ctx: Context, base_state: State):
     # Given
     output_bin_install = "3.6.0-ubuntu0"
     output_bin_changed = "3.6.1-ubuntu0"
