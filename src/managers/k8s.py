@@ -4,8 +4,11 @@
 
 """Manager for handling Kafka Kubernetes resources for a single Kafka pod."""
 
+import json
 import logging
-from functools import cached_property
+import math
+import time
+from functools import cache
 
 from lightkube.core.client import Client
 from lightkube.core.exceptions import ApiError
@@ -15,13 +18,12 @@ from lightkube.resources.core_v1 import Node, Pod, Service
 
 from literals import SECURITY_PROTOCOL_PORTS, AuthMap, AuthMechanism
 
-logger = logging.getLogger(__name__)
-
 # default logging from lightkube httpx requests is very noisy
-logging.getLogger("lightkube").disabled = True
-logging.getLogger("lightkube.core.client").disabled = True
-logging.getLogger("httpx").disabled = True
-logging.getLogger("httpcore").disabled = True
+logging.getLogger("lightkube").setLevel(logging.CRITICAL)
+logging.getLogger("httpx").setLevel(logging.CRITICAL)
+logging.getLogger("httpcore").setLevel(logging.CRITICAL)
+
+logger = logging.getLogger(__name__)
 
 
 class K8sManager:
@@ -42,7 +44,22 @@ class K8sManager:
             "SSL": "ssl",
         }
 
-    @cached_property
+    def __eq__(self, other: object) -> bool:
+        """__eq__ dunder.
+
+        Needed to get an cache hit on calls on the same method from different instances of K8sManager
+        as `self` is passed to methods.
+        """
+        return isinstance(other, K8sManager) and self.__dict__ == other.__dict__
+
+    def __hash__(self) -> int:
+        """__hash__ dunder.
+
+        K8sManager needs to be hashable so that `self` can be passed to the 'dict-like' cache.
+        """
+        return hash(json.dumps(self.__dict__, sort_keys=True))
+
+    @property
     def client(self) -> Client:
         """The Lightkube client."""
         return Client(  # pyright: ignore[reportArgumentType]
@@ -50,46 +67,34 @@ class K8sManager:
             namespace=self.namespace,
         )
 
+    @staticmethod
+    def get_ttl_hash(seconds=60 * 2) -> int:
+        """Gets a unique time hash for the cache, expiring after 2 minutes.
+
+        When 2m has passed, a new value will be created, ensuring an cache miss
+        and a re-loading of that K8s API call.
+        """
+        return math.floor(time.time() / seconds)
+
     # --- GETTERS ---
 
     def get_pod(self, pod_name: str = "") -> Pod:
         """Gets the Pod via the K8s API."""
-        # Allows us to get pods from other peer units
-        pod_name = pod_name or self.pod_name
+        return self._get_pod(pod_name, self.get_ttl_hash())
 
-        return self.client.get(
-            res=Pod,
-            name=self.pod_name,
-        )
-
-    def get_node(self, pod: Pod) -> Node:
+    def get_node(self, pod_name: str) -> Node:
         """Gets the Node the Pod is running on via the K8s API."""
-        if not pod.spec or not pod.spec.nodeName:
-            raise Exception("Could not find podSpec or nodeName")
+        return self._get_node(pod_name, self.get_ttl_hash())
 
-        return self.client.get(
-            Node,
-            name=pod.spec.nodeName,
-        )
-
-    def get_node_ip(self, node: Node) -> str:
-        """Gets the IP Address of the Node via the K8s API."""
-        # all these redundant checks are because Lightkube's typing is awful
-        if not node.status or not node.status.addresses:
-            raise Exception(f"No status found for {node}")
-
-        for addresses in node.status.addresses:
-            if addresses.type in ["ExternalIP", "InternalIP", "Hostname"]:
-                return addresses.address
-
-        return ""
+    def get_node_ip(self, pod_name: str) -> str:
+        """Gets the IP Address of the Node of a given Pod via the K8s API."""
+        return self._get_node_ip(pod_name, self.get_ttl_hash())
 
     def get_service(self, service_name: str) -> Service | None:
         """Gets the Service via the K8s API."""
-        return self.client.get(
-            res=Service,
-            name=service_name,
-        )
+        return self._get_service(service_name, self.get_ttl_hash())
+
+    # SERVICE BUILDERS
 
     def get_node_port(
         self,
@@ -139,7 +144,7 @@ class K8sManager:
 
     def build_bootstrap_services(self) -> Service:
         """Builds a ClusterIP service for initial client connection."""
-        pod = self.get_pod(pod_name=self.pod_name)
+        pod = self.get_pod(self.pod_name)
         if not pod.metadata:
             raise Exception(f"Could not find metadata for {pod}")
 
@@ -231,3 +236,46 @@ class K8sManager:
                 return
             else:
                 raise
+
+    # PRIVATE METHODS
+
+    @cache
+    def _get_pod(self, pod_name: str = "", *_) -> Pod:
+        # Allows us to get pods from other peer units
+        pod_name = pod_name or self.pod_name
+
+        return self.client.get(
+            res=Pod,
+            name=pod_name,
+        )
+
+    @cache
+    def _get_node(self, pod_name: str, *_) -> Node:
+        pod = self.get_pod(pod_name)
+        if not pod.spec or not pod.spec.nodeName:
+            raise Exception("Could not find podSpec or nodeName")
+
+        return self.client.get(
+            Node,
+            name=pod.spec.nodeName,
+        )
+
+    @cache
+    def _get_node_ip(self, pod_name: str, *_) -> str:
+        # all these redundant checks are because Lightkube's typing is awful
+        node = self.get_node(pod_name)
+        if not node.status or not node.status.addresses:
+            raise Exception(f"No status found for {node}")
+
+        for addresses in node.status.addresses:
+            if addresses.type in ["ExternalIP", "InternalIP", "Hostname"]:
+                return addresses.address
+
+        return ""
+
+    @cache
+    def _get_service(self, service_name: str, *_) -> Service | None:
+        return self.client.get(
+            res=Service,
+            name=service_name,
+        )

@@ -8,33 +8,71 @@ from typing import Iterable
 
 import pytest
 import yaml
-from ops.testing import Harness
+from pydantic import ValidationError
+from scenario import Container, Context, State
 
 from charm import KafkaCharm
-from literals import CHARM_KEY, CONTAINER, SUBSTRATE
+from core.structured_config import CharmConfig
+from literals import (
+    CONTAINER,
+    SUBSTRATE,
+)
 
 pytestmark = [pytest.mark.broker, pytest.mark.balancer]
 
-CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
-ACTIONS = str(yaml.safe_load(Path("./actions.yaml").read_text()))
-METADATA = str(yaml.safe_load(Path("./metadata.yaml").read_text()))
 
 logger = logging.getLogger(__name__)
 
 
-@pytest.fixture
-def harness():
-    harness = Harness(KafkaCharm, meta=METADATA, config=CONFIG, actions=ACTIONS)
+CONFIG = yaml.safe_load(Path("./config.yaml").read_text())
+ACTIONS = yaml.safe_load(Path("./actions.yaml").read_text())
+METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 
+
+@pytest.fixture()
+def base_state():
     if SUBSTRATE == "k8s":
-        harness.set_can_connect(CONTAINER, True)
+        state = State(leader=True, containers=[Container(name=CONTAINER, can_connect=True)])
 
-    harness.add_relation("restart", CHARM_KEY)
-    harness.begin()
-    return harness
+    else:
+        state = State(leader=True)
+
+    return state
 
 
-def test_config_parsing_parameters_integer_values(harness) -> None:
+@pytest.fixture()
+def ctx() -> Context:
+    ctx = Context(KafkaCharm, meta=METADATA, config=CONFIG, actions=ACTIONS, unit_id=0)
+    return ctx
+
+
+def get_flat_dict_from_config(config: dict) -> dict:
+    options = config.get("options", {})
+    out_dict = {option_name: mapping.get("default") for option_name, mapping in options.items()}
+    return out_dict
+
+
+def check_valid_values(field: str, accepted_values: Iterable) -> None:
+    """Check the correctness of the passed values for a field."""
+    flat_config_options = {
+        option_name: mapping.get("default") for option_name, mapping in CONFIG["options"].items()
+    }
+    for value in accepted_values:
+        CharmConfig(**{**flat_config_options, **{field: value}})
+
+
+def check_invalid_values(field: str, erroneus_values: Iterable) -> None:
+    """Check the incorrectness of the passed values for a field."""
+    flat_config_options = {
+        option_name: mapping.get("default") for option_name, mapping in CONFIG["options"].items()
+    }
+    for value in erroneus_values:
+        with pytest.raises(ValidationError) as excinfo:
+            CharmConfig(**{**flat_config_options, **{field: value}})
+        assert field in excinfo.value.errors()[0]["loc"]
+
+
+def test_config_parsing_parameters_integer_values() -> None:
     """Check that integer fields are parsed correctly."""
     integer_fields = [
         "log_flush_offset_checkpoint_interval_ms",
@@ -47,59 +85,41 @@ def test_config_parsing_parameters_integer_values(harness) -> None:
     erroneus_values = [2147483648, -2147483649]
     valid_values = [42, 1000, 1]
     for field in integer_fields:
-        check_invalid_values(harness, field, erroneus_values)
-        check_valid_values(harness, field, valid_values)
+        check_invalid_values(field, erroneus_values)
+        check_valid_values(field, valid_values)
 
 
-def check_valid_values(
-    _harness, field: str, accepted_values: Iterable, is_long_field=False
-) -> None:
-    """Check the correctness of the passed values for a field."""
-    for value in accepted_values:
-        _harness.update_config({field: value})
-        assert _harness.charm.config[field] == value if not is_long_field else int(value)
-
-
-def check_invalid_values(_harness, field: str, erroneus_values: Iterable) -> None:
-    """Check the incorrectness of the passed values for a field."""
-    with _harness.hooks_disabled():
-        for value in erroneus_values:
-            _harness.update_config({field: value})
-            with pytest.raises(ValueError):
-                _ = _harness.charm.config[field]
-
-
-def test_product_related_values(harness) -> None:
+def test_product_related_values() -> None:
     """Test specific parameters for each field."""
     # log_message_timestamp_type field
     erroneus_values = ["test-value", "CreateTimes", "foo", "bar"]
 
-    check_invalid_values(harness, "log_message_timestamp_type", erroneus_values)
+    check_invalid_values("log_message_timestamp_type", erroneus_values)
     accepted_values = ["CreateTime", "LogAppendTime"]
-    check_valid_values(harness, "log_message_timestamp_type", accepted_values)
+    check_valid_values("log_message_timestamp_type", accepted_values)
 
     # log_cleanup_policy field
-    check_invalid_values(harness, "log_cleanup_policy", erroneus_values)
+    check_invalid_values("log_cleanup_policy", erroneus_values)
     accepted_values = ["compact", "delete"]
-    check_valid_values(harness, "log_cleanup_policy", accepted_values)
+    check_valid_values("log_cleanup_policy", accepted_values)
 
     # compression_type field
-    check_invalid_values(harness, "compression_type", erroneus_values)
+    check_invalid_values("compression_type", erroneus_values)
     accepted_values = ["gzip", "snappy", "lz4", "zstd", "uncompressed", "producer"]
-    check_valid_values(harness, "compression_type", accepted_values)
+    check_valid_values("compression_type", accepted_values)
 
 
-def test_values_gt_zero(harness) -> None:
+def test_values_gt_zero() -> None:
     """Check fields greater than zero."""
     gt_zero_fields = ["log_flush_interval_messages", "log_flush_interval_ms"]
     erroneus_values = map(str, [0, -2147483649, -34])
     valid_values = map(str, [42, 1000, 1, 9223372036854775807])
     for field in gt_zero_fields:
-        check_invalid_values(harness, field, erroneus_values)
-        check_valid_values(harness, field, valid_values, is_long_field=True)
+        check_invalid_values(field, erroneus_values)
+        check_valid_values(field, valid_values)
 
 
-def test_values_gteq_zero(harness) -> None:
+def test_values_gteq_zero() -> None:
     """Check fields greater or equal than zero."""
     gteq_zero_fields = [
         "replication_quota_window_num",
@@ -109,27 +129,23 @@ def test_values_gteq_zero(harness) -> None:
     erroneus_values = [-2147483649, -34]
     valid_values = [42, 1000, 1, 0]
     for field in gteq_zero_fields:
-        check_invalid_values(harness, field, erroneus_values)
-        check_valid_values(harness, field, valid_values)
+        check_invalid_values(field, erroneus_values)
+        check_valid_values(field, valid_values)
 
 
-def test_values_in_specific_intervals(harness) -> None:
+def test_values_in_specific_intervals() -> None:
     """Check fields on predefined intervals."""
     # "log_cleaner_delete_retention_ms"
     erroneus_values = map(str, [-1, 0, 1000 * 60 * 60 * 24 * 90 + 1])
     valid_values = map(str, [42, 1000, 10000, 1, 1000 * 60 * 60 * 24 * 90])
-    check_invalid_values(harness, "log_cleaner_delete_retention_ms", erroneus_values)
-    check_valid_values(
-        harness, "log_cleaner_delete_retention_ms", valid_values, is_long_field=True
-    )
+    check_invalid_values("log_cleaner_delete_retention_ms", erroneus_values)
+    check_valid_values("log_cleaner_delete_retention_ms", valid_values)
 
     # "log_cleaner_min_compaction_lag_ms"
     erroneus_values = map(str, [-1, 1000 * 60 * 60 * 24 * 7 + 1])
     valid_values = map(str, [42, 1000, 10000, 1, 1000 * 60 * 60 * 24 * 7])
-    check_invalid_values(harness, "log_cleaner_min_compaction_lag_ms", erroneus_values)
-    check_valid_values(
-        harness, "log_cleaner_min_compaction_lag_ms", valid_values, is_long_field=True
-    )
+    check_invalid_values("log_cleaner_min_compaction_lag_ms", erroneus_values)
+    check_valid_values("log_cleaner_min_compaction_lag_ms", valid_values)
 
     partititions_fields = [
         "transaction_state_log_num_partitions",
@@ -138,11 +154,11 @@ def test_values_in_specific_intervals(harness) -> None:
     erroneus_values = [10001, -1]
     valid_values = [42, 1000, 10000, 1]
     for field in partititions_fields:
-        check_invalid_values(harness, field, erroneus_values)
-        check_valid_values(harness, field, valid_values)
+        check_invalid_values(field, erroneus_values)
+        check_valid_values(field, valid_values)
 
 
-def test_config_parsing_parameters_long_values(harness) -> None:
+def test_config_parsing_parameters_long_values() -> None:
     """Check long fields are parsed correctly."""
     long_fields = [
         "log_flush_interval_messages",
@@ -155,14 +171,12 @@ def test_config_parsing_parameters_long_values(harness) -> None:
     erroneus_values = map(str, [-9223372036854775808, 9223372036854775809])
     valid_values = map(str, [42, 1000, 9223372036854775808])
     for field in long_fields:
-        check_invalid_values(harness, field, erroneus_values)
-        check_valid_values(harness, field, valid_values, is_long_field=True)
+        check_invalid_values(field, erroneus_values)
+        check_valid_values(field, valid_values)
 
 
-def test_incorrect_roles(harness):
+def test_incorrect_roles():
     erroneus_values = ["", "something_else" "broker, something_else" "broker,balancer,"]
     valid_values = ["broker", "balancer", "balancer,broker", "broker, balancer "]
-    check_invalid_values(harness, "roles", erroneus_values)
-    for value in valid_values:
-        harness.update_config({"roles": value})
-        assert harness.charm.config.roles
+    check_invalid_values("roles", erroneus_values)
+    check_valid_values("roles", valid_values)
