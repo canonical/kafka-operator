@@ -70,7 +70,7 @@ groups:
   # =========================
   - alert: Active Controllers
     expr: sum(kafka_controller_kafkacontroller_activecontrollercount{juju_charm!=".*"}) == 0
-    for: 0m
+    for: 1m
     labels:
       severity: critical
     annotations:
