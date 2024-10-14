@@ -61,6 +61,9 @@ class BalancerOperator(Object):
             config=self.charm.config,
         )
 
+        # Before fast exit to avoid silently ignoring the action
+        self.framework.observe(getattr(self.charm.on, "rebalance_action"), self.rebalance)
+
         # Fast exit after workload instantiation, but before any event observer
         if BALANCER.value not in self.charm.config.roles or not self.charm.unit.is_leader():
             return
@@ -81,8 +84,6 @@ class BalancerOperator(Object):
         # ensures data updates, eventually
         self.framework.observe(self.charm.on.update_status, self._on_config_changed)
         self.framework.observe(self.charm.on.config_changed, self._on_config_changed)
-
-        self.framework.observe(getattr(self.charm.on, "rebalance_action"), self.rebalance)
 
     def _on_install(self, event: InstallEvent) -> None:
         """Handler for `install` event."""
@@ -208,33 +209,36 @@ class BalancerOperator(Object):
             available_brokers = [int(broker.split("/")[1]) for broker in brokers]
 
         failure_conditions = [
-            (not self.charm.unit.is_leader(), "Action must be ran on the application leader"),
             (
-                not self.balancer_manager.cruise_control.monitoring,
+                lambda: not self.charm.unit.is_leader(),
+                "Action must be ran on the application leader",
+            ),
+            (
+                lambda: not self.balancer_manager.cruise_control.monitoring,
                 "CruiseControl balancer service is not yet ready",
             ),
             (
-                self.balancer_manager.cruise_control.executing,
+                lambda: self.balancer_manager.cruise_control.executing,
                 "CruiseControl balancer service is currently executing a task, please try again later",
             ),
             (
-                not self.balancer_manager.cruise_control.ready,
+                lambda: not self.balancer_manager.cruise_control.ready,
                 "CruiseControl balancer service has not yet collected enough data to provide a partition reallocation proposal",
             ),
             (
-                event.params["mode"] in (MODE_ADD, MODE_REMOVE)
+                lambda: event.params["mode"] in (MODE_ADD, MODE_REMOVE)
                 and event.params.get("brokerid", None) is None,
                 "'add' and 'remove' rebalance action require passing the 'brokerid' parameter",
             ),
             (
-                event.params["mode"] in (MODE_ADD, MODE_REMOVE)
+                lambda: event.params["mode"] in (MODE_ADD, MODE_REMOVE)
                 and event.params.get("brokerid") not in available_brokers,
                 "invalid brokerid",
             ),
         ]
 
         for check, msg in failure_conditions:
-            if check:
+            if check():
                 logging.error(msg)
                 event.set_results({"error": msg})
                 event.fail(msg)

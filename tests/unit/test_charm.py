@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2024 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 import dataclasses
@@ -11,8 +11,6 @@ from unittest.mock import PropertyMock, patch
 
 import pytest
 import yaml
-from charms.operator_libs_linux.v0.sysctl import ApplyError
-from charms.operator_libs_linux.v1.snap import SnapError
 from scenario import Container, Context, PeerRelation, Relation, State, Storage
 
 from charm import KafkaCharm
@@ -21,7 +19,6 @@ from literals import (
     CONTAINER,
     INTERNAL_USERS,
     JMX_EXPORTER_PORT,
-    OS_REQUIREMENTS,
     PEER,
     REL_NAME,
     SUBSTRATE,
@@ -29,7 +26,13 @@ from literals import (
     Status,
 )
 
-pytestmark = [pytest.mark.broker, pytest.mark.balancer]
+if SUBSTRATE == "vm":
+    from charms.operator_libs_linux.v0.sysctl import ApplyError
+    from charms.operator_libs_linux.v1.snap import SnapError
+
+    from literals import OS_REQUIREMENTS
+
+pytestmark = pytest.mark.broker
 
 
 logger = logging.getLogger(__name__)
@@ -549,7 +552,7 @@ def test_storage_add_disableenables_and_starts(
 ) -> None:
     # Given
     cluster_peer = PeerRelation(PEER, PEER, local_app_data=passwords_data)
-    restart_peer = PeerRelation("restart", "rolling_op")
+    restart_peer = PeerRelation("restart", "restart")
     zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
     storage = Storage("data")
     state_in = dataclasses.replace(
