@@ -8,7 +8,7 @@ import subprocess
 from contextlib import closing
 from json.decoder import JSONDecodeError
 from pathlib import Path
-from subprocess import PIPE, check_output
+from subprocess import PIPE, CalledProcessError, check_output
 from typing import Any, Dict, List, Optional, Set
 
 import yaml
@@ -514,7 +514,7 @@ def balancer_is_ready(ops_test: OpsTest, app_name: str) -> bool:
 
     try:
         monitor_state_json = json.loads(monitor_state).get("MonitorState", {})
-    except JSONDecodeError as e:
+    except (JSONDecodeError, CalledProcessError) as e:
         logger.error(e)
         return False
 
