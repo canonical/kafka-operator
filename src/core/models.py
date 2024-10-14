@@ -547,7 +547,7 @@ class KafkaBroker(RelationState):
 
         K8s-only.
         """
-        return self.k8s.get_pod(pod_name=self.pod_name)
+        return self.k8s.get_pod(self.pod_name)
 
     @cached_property
     def node(self) -> Node:
@@ -555,7 +555,7 @@ class KafkaBroker(RelationState):
 
         K8s-only.
         """
-        return self.k8s.get_node(pod=self.pod)
+        return self.k8s.get_node(self.pod_name)
 
     @cached_property
     def node_ip(self) -> str:
@@ -563,7 +563,7 @@ class KafkaBroker(RelationState):
 
         K8s-only.
         """
-        return self.k8s.get_node_ip(node=self.node)
+        return self.k8s.get_node_ip(self.pod_name)
 
 
 class ZooKeeper(RelationState):
