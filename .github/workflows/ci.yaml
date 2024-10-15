@@ -9,7 +9,7 @@ concurrency:
 on:
   pull_request:
   schedule:
-    - cron: '53 0 * * *' # Daily at 00:53 UTC
+    - cron: "53 0 * * *" # Daily at 00:53 UTC
   # Triggered on push to branch "main" by .github/workflows/release.yaml
   workflow_call:
 
@@ -20,23 +20,24 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
-      - name: Install tox
-        # TODO: Consider replacing with custom image on self-hosted runner OR pinning version
-        run: python3 -m pip install tox
+        uses: actions/checkout@v4
+      - name: Install tox & poetry
+        run: |
+          pipx install tox
+          pipx install poetry
       - name: Run linters
         run: tox run -e lint
 
   unit-test:
     name: Unit tests
     runs-on: ubuntu-22.04
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install tox
         # TODO: Consider replacing with custom image on self-hosted runner OR pinning version
-        run: python3 -m pip install tox
+        run: pipx install tox
       - name: Run tests
         run: tox run -e unit
 
@@ -45,12 +46,20 @@ jobs:
     uses: ./.github/workflows/sync_docs.yaml
     secrets: inherit
     permissions:
-      contents: write  # Needed to update tags
+      contents: write # Needed to update tags
       pull-requests: write # Need to create PR
 
   build:
     name: Build charms
-    uses: canonical/data-platform-workflows/.github/workflows/build_charms_with_cache.yaml@v7
+    uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v22.0.0
+    with:
+      cache: true
+      path-to-charm-directory: ${{ matrix.path }}
+    strategy:
+      matrix:
+        path:
+          - .
+          - tests/integration/app-charm
 
   integration-test:
     strategy:
@@ -74,7 +83,7 @@ jobs:
     timeout-minutes: 240
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup operator environment
         # TODO: Replace with custom image on self-hosted runner
         uses: charmed-kubernetes/actions-operator@main
@@ -83,9 +92,10 @@ jobs:
           juju-channel: 3.4/stable
           bootstrap-options: "--agent-version 3.4.2"
       - name: Download packed charm(s)
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: ${{ needs.build.outputs.artifact-name }}
+          pattern: packed-charm-cache-true-*
+          merge-multiple: true
       - name: Select tests
         id: select-tests
         run: |
@@ -118,7 +128,7 @@ jobs:
     timeout-minutes: 120
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup operator environment
         # TODO: Replace with custom image on self-hosted runner
         uses: charmed-kubernetes/actions-operator@main
@@ -127,9 +137,10 @@ jobs:
           juju-channel: 3.4/stable
           bootstrap-options: "--agent-version 3.4.2"
       - name: Download packed charm(s)
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: ${{ needs.build.outputs.artifact-name }}
+          pattern: packed-charm-cache-true-*
+          merge-multiple: true
       - name: Select tests
         id: select-tests
         run: |

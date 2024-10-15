@@ -14,7 +14,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Check libs
@@ -22,6 +22,12 @@ jobs:
         with:
           credentials: "${{ secrets.CHARMHUB_TOKEN }}" # FIXME: current token will expire in 2023-07-04
           github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+  build:
+    name: Build charm
+    uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v22.0.0
+    with:
+      cache: false
 
   ci-tests:
     needs:
@@ -33,17 +39,13 @@ jobs:
       pull-requests: write # Need to create PR
       actions: write
 
-  build:
-    name: Build charm
-    uses: canonical/data-platform-workflows/.github/workflows/build_charm_without_cache.yaml@v7
-
   release:
     name: Release to Charmhub
     needs:
       - lib-check
       - ci-tests
       - build
-    uses: canonical/data-platform-workflows/.github/workflows/release_charm.yaml@v7
+    uses: canonical/data-platform-workflows/.github/workflows/release_charm.yaml@v22.0.0
     with:
       channel: 3/edge
       artifact-name: ${{ needs.build.outputs.artifact-name }}
