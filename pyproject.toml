@@ -48,6 +48,19 @@ lightkube = "0.15.0"
 # FIXME: Unpin once rustc 1.76 is available at build time
 rpds-py = "<0.19"
 
+[tool.poetry.group.charm-libs.dependencies]
+# data_platform_libs/v0/data_interfaces.py
+ops = ">=2.0.0"
+# data_platform_libs/v0/upgrade.py
+# grafana_agent/v0/cos_agent.py requires pydantic <2
+poetry-core = "*"
+pydantic = "^1.10, <2"
+# tls_certificates_interface/v1/tls_certificates.py
+# tls_certificates lib uses a feature only available in cryptography >=42.0.5
+cryptography = ">=42.0.5"
+# hydra/v0/oauth.py
+jsonschema = "*"
+
 [tool.poetry.group.fmt]
 optional = true
 
@@ -64,7 +77,6 @@ black = "^22.3.0"
 ruff = ">=0.1.0"
 codespell = ">=2.2.2"
 pyright = "^1.1.301"
-lightkube = "0.15.0"
 # FIXME: Unpin once rustc 1.76 is available at build time
 rpds-py = "<0.19"
 
@@ -75,7 +87,7 @@ optional = true
 pytest = ">=7.2"
 coverage = {extras = ["toml"], version = ">7.0"}
 pytest-mock = "^3.11.1"
-ops-scenario = "^6.0.0"
+ops-scenario = "^7.0.0"
 
 [tool.poetry.group.integration]
 optional = true
@@ -91,7 +103,7 @@ pure-sasl = ">=0.5"
 kafka-python = ">=2.0"
 requests = ">2.25"
 
-pytest-operator-cache = {git = "https://github.com/canonical/data-platform-workflows", tag = "v7", subdirectory = "python/pytest_plugins/pytest_operator_cache"}
+pytest-operator-cache = {git = "https://github.com/canonical/data-platform-workflows", tag = "v22.0.0", subdirectory = "python/pytest_plugins/pytest_operator_cache"}
 # To be enabled if we are using groups on integration tests
 # pytest-operator-groups = {git = "https://github.com/canonical/data-platform-workflows", tag = "v7", subdirectory = "python/pytest_plugins/pytest_operator_groups"}
 
