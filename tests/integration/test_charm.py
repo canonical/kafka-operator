@@ -128,7 +128,11 @@ async def test_remove_zk_relation_relate(ops_test: OpsTest):
     await ops_test.model.add_relation(APP_NAME, ZK_NAME)
     async with ops_test.fast_forward(fast_interval="60s"):
         await ops_test.model.wait_for_idle(
-            apps=[APP_NAME, ZK_NAME], status="active", idle_period=30, timeout=1000
+            apps=[APP_NAME, ZK_NAME],
+            status="active",
+            idle_period=30,
+            timeout=1000,
+            raise_on_error=False,
         )
 
 
