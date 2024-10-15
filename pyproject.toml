@@ -31,7 +31,7 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = ">=3.8,<4.0"
-ops = ">=2.4.1"
+ops = ">=2.17.0"
 kazoo = ">=2.8.0"
 
 # The cosl dep could be removed from here once PYDEPS is released:
