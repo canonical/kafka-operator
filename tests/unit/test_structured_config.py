@@ -46,12 +46,6 @@ def ctx() -> Context:
     return ctx
 
 
-def get_flat_dict_from_config(config: dict) -> dict:
-    options = config.get("options", {})
-    out_dict = {option_name: mapping.get("default") for option_name, mapping in options.items()}
-    return out_dict
-
-
 def check_valid_values(field: str, accepted_values: Iterable) -> None:
     """Check the correctness of the passed values for a field."""
     flat_config_options = {
