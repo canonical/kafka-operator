@@ -118,8 +118,13 @@ async def test_consistency_between_workload_and_metadata(ops_test: OpsTest):
 
 @pytest.mark.abort_on_fail
 async def test_remove_zk_relation_relate(ops_test: OpsTest):
-    remove_relation_cmd = f"remove-relation {APP_NAME} {ZK_NAME}"
-    await ops_test.juju(*remove_relation_cmd.split(), check=True)
+    check_output(
+        f"JUJU_MODEL={ops_test.model_full_name} juju remove-relation {APP_NAME} {ZK_NAME}",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+
     await ops_test.model.wait_for_idle(
         apps=[APP_NAME, ZK_NAME], idle_period=40, timeout=3600, raise_on_error=False
     )
@@ -128,7 +133,8 @@ async def test_remove_zk_relation_relate(ops_test: OpsTest):
     assert ops_test.model.applications[ZK_NAME].status == "active"
 
     await ops_test.model.add_relation(APP_NAME, ZK_NAME)
-    async with ops_test.fast_forward(fast_interval="60s"):
+
+    async with ops_test.fast_forward(fast_interval="90s"):
         await ops_test.model.wait_for_idle(
             apps=[APP_NAME, ZK_NAME],
             status="active",
