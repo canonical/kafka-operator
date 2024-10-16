@@ -6,7 +6,7 @@
 
 import logging
 import re
-import subprocess
+import subprocess  # nosec B404
 from dataclasses import asdict, dataclass
 
 from ops.pebble import ExecError
@@ -30,16 +30,13 @@ class Acl:
 class AuthManager:
     """Object for updating Kafka users and ACLs."""
 
-    def __init__(self, state: ClusterState, workload: WorkloadBase, kafka_opts: str):
+    def __init__(
+        self, state: ClusterState, workload: WorkloadBase, kafka_opts: str, log4j_opts: str
+    ):
         self.state = state
         self.workload = workload
         self.kafka_opts = kafka_opts
-
-        self.zookeeper_connect = self.state.zookeeper.connect
-        self.bootstrap_server = ",".join(self.state.bootstrap_server)
-        self.client_properties = self.workload.paths.client_properties
-        self.server_properties = self.workload.paths.server_properties
-
+        self.log4j_opts = log4j_opts
         self.new_user_acls: set[Acl] = set()
 
     @property
@@ -51,11 +48,13 @@ class AuthManager:
     def _get_acls_from_cluster(self) -> str:
         """Loads the currently active ACLs from the Kafka cluster."""
         command = [
-            f"--bootstrap-server={self.bootstrap_server}",
-            f"--command-config={self.client_properties}",
+            f"--bootstrap-server={self.state.bootstrap_server}",
+            f"--command-config={self.workload.paths.client_properties}",
             "--list",
         ]
-        acls = self.workload.run_bin_command(bin_keyword="acls", bin_args=command)
+        acls = self.workload.run_bin_command(
+            bin_keyword="acls", bin_args=command, opts=[self.log4j_opts]
+        )
 
         return acls
 
@@ -160,18 +159,20 @@ class AuthManager:
         # instead must be authorized using ZooKeeper JAAS
         if zk_auth:
             command = base_command + [
-                f"--zookeeper={self.zookeeper_connect}",
-                f"--zk-tls-config-file={self.server_properties}",
+                f"--zookeeper={self.state.zookeeper.connect}",
+                f"--zk-tls-config-file={self.workload.paths.server_properties}",
             ]
             opts = [self.kafka_opts]
         else:
             command = base_command + [
-                f"--bootstrap-server={self.bootstrap_server}",
-                f"--command-config={self.client_properties}",
+                f"--bootstrap-server={self.state.bootstrap_server}",
+                f"--command-config={self.workload.paths.client_properties}",
             ]
             opts = []
 
-        self.workload.run_bin_command(bin_keyword="configs", bin_args=command, opts=opts)
+        self.workload.run_bin_command(
+            bin_keyword="configs", bin_args=command, opts=opts + [self.log4j_opts]
+        )
 
     def delete_user(self, username: str) -> None:
         """Deletes user credentials from ZooKeeper.
@@ -183,15 +184,17 @@ class AuthManager:
             `(subprocess.CalledProcessError | ops.pebble.ExecError)`: if the error returned a non-zero exit code
         """
         command = [
-            f"--bootstrap-server={self.bootstrap_server}",
-            f"--command-config={self.client_properties}",
+            f"--bootstrap-server={self.state.bootstrap_server}",
+            f"--command-config={self.workload.paths.client_properties}",
             "--alter",
             "--entity-type=users",
             f"--entity-name={username}",
             "--delete-config=SCRAM-SHA-512",
         ]
         try:
-            self.workload.run_bin_command(bin_keyword="configs", bin_args=command)
+            self.workload.run_bin_command(
+                bin_keyword="configs", bin_args=command, opts=[self.log4j_opts]
+            )
         except (subprocess.CalledProcessError, ExecError) as e:
             if e.stderr and "delete a user credential that does not exist" in e.stderr:
                 logger.warning(f"User: {username} can't be deleted, it does not exist")
@@ -218,8 +221,8 @@ class AuthManager:
             `(subprocess.CalledProcessError | ops.pebble.ExecError)`: if the error returned a non-zero exit code
         """
         command = [
-            f"--bootstrap-server={self.bootstrap_server}",
-            f"--command-config={self.client_properties}",
+            f"--bootstrap-server={self.state.bootstrap_server}",
+            f"--command-config={self.workload.paths.client_properties}",
             "--add",
             f"--allow-principal=User:{username}",
             f"--operation={operation}",
@@ -232,7 +235,7 @@ class AuthManager:
                 f"--group={resource_name}",
                 "--resource-pattern-type=PREFIXED",
             ]
-        self.workload.run_bin_command(bin_keyword="acls", bin_args=command)
+        self.workload.run_bin_command(bin_keyword="acls", bin_args=command, opts=[self.log4j_opts])
 
     def remove_acl(
         self, username: str, operation: str, resource_type: str, resource_name: str
@@ -251,8 +254,8 @@ class AuthManager:
             `(subprocess.CalledProcessError | ops.pebble.ExecError)`: if the error returned a non-zero exit code
         """
         command = [
-            f"--bootstrap-server={self.bootstrap_server}",
-            f"--command-config={self.client_properties}",
+            f"--bootstrap-server={self.state.bootstrap_server}",
+            f"--command-config={self.workload.paths.client_properties}",
             "--remove",
             f"--allow-principal=User:{username}",
             f"--operation={operation}",
@@ -267,7 +270,7 @@ class AuthManager:
                 "--resource-pattern-type=PREFIXED",
             ]
 
-        self.workload.run_bin_command(bin_keyword="acls", bin_args=command)
+        self.workload.run_bin_command(bin_keyword="acls", bin_args=command, opts=[self.log4j_opts])
 
     def remove_all_user_acls(self, username: str) -> None:
         """Removes all active ACLs for a given user.

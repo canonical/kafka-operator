@@ -63,6 +63,14 @@ class KafkaPaths:
         return f"{self.conf_path}/log4j.properties"
 
     @property
+    def tools_log4j_properties(self):
+        """The tooling Log4j properties filepath.
+
+        Contains the Log4j configuration options primarily for the bin commands.
+        """
+        return f"{self.conf_path}/tools-log4j.properties"
+
+    @property
     def jmx_prometheus_javaagent(self):
         """The JMX exporter JAR filepath.
 
@@ -143,6 +151,15 @@ class WorkloadBase(ABC):
 
         Returns:
             String of kafka bin command output
+        """
+        ...
+
+    @abstractmethod
+    def get_version(self) -> str:
+        """Get the workload version.
+
+        Returns:
+            String of kafka version
         """
         ...
 
