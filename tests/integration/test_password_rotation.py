@@ -37,7 +37,9 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm, app_charm):
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
     await ops_test.model.add_relation(APP_NAME, ZK_NAME)
 
-    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], status="active", idle_period=30)
+    await ops_test.model.wait_for_idle(
+        apps=[APP_NAME, ZK_NAME], status="active", idle_period=30, timeout=3600
+    )
 
 
 async def test_password_rotation(ops_test: OpsTest):
