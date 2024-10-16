@@ -17,15 +17,13 @@ The environment where applications operate can be divided in two components:
 
 ### Cloud
 
-Charmed Kafka can be deployed on top of several clouds and virtualization layers. 
-The following table provides references for the security documentation for the 
-main supported cloud platforms.
+Charmed Kafka can be deployed on top of several clouds and virtualization layers: 
 
-| Cloud     | Security guide                                                                                                                                                                                                                                                |
-|-----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| OpenStack | [OpenStack Security Guide](https://docs.openstack.org/security-guide/)                                                                                                                                                                                        |
-| AWS       | [Best Practices for Security, Identity and Compliance](https://aws.amazon.com/architecture/security-identity-compliance), [AWS security credentials](https://docs.aws.amazon.com/IAM/latest/UserGuide/security-creds.html#access-keys-and-secret-access-keys) | 
-| Azure     | [Azure security best practices and patterns](https://learn.microsoft.com/en-us/azure/security/fundamentals/best-practices-and-patterns), [Managed identities for Azure resource](https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/)                                                                            |
+| Cloud     | Security guide                                                                                                                                                                                                                                                         |
+|-----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| OpenStack | [OpenStack Security Guide](https://docs.openstack.org/security-guide/)                                                                                                                                                                                                 |
+| AWS       | [Best Practices for Security, Identity and Compliance](https://aws.amazon.com/architecture/security-identity-compliance), [AWS security credentials](https://docs.aws.amazon.com/IAM/latest/UserGuide/security-creds.html#access-keys-and-secret-access-keys)          | 
+| Azure     | [Azure security best practices and patterns](https://learn.microsoft.com/en-us/azure/security/fundamentals/best-practices-and-patterns), [Managed identities for Azure resource](https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/) |
 
 ### Juju 
 
@@ -43,9 +41,9 @@ virtual machines, networks, storages, etc. Please refer to the references below 
 
 | Cloud     | Cloud user policies                                                                                                                                                                                                                            |
 |-----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| OpenStack |                                                                                                                                                                                                                                                |
+| OpenStack | N/A                                                                                                                                                                                                                                            |
 | AWS       | [Juju AWS Permission](https://discourse.charmhub.io/t/juju-aws-permissions/5307), [AWS Instance Profiles](https://discourse.charmhub.io/t/using-aws-instance-profiles-with-juju-2-9/5185), [Juju on AWS](https://juju.is/docs/juju/amazon-ec2) | 
-| Azure     | [Juju Azure Permission](https://juju.is/docs/juju/microsoft-azure), [How to use Juju with Microsoft Azure](https://discourse.charmhub.io/t/how-to-use-juju-with-microsoft-azure/15219)                                                                                                  |
+| Azure     | [Juju Azure Permission](https://juju.is/docs/juju/microsoft-azure), [How to use Juju with Microsoft Azure](https://discourse.charmhub.io/t/how-to-use-juju-with-microsoft-azure/15219)                                                         |
 
 #### Juju users
 
@@ -53,7 +51,7 @@ It is very important that the different juju users are set up with minimal permi
 Please refer to the [User access levels](https://juju.is/docs/juju/user-permissions) documentation for more information on the access level and corresponding abilities 
 that the different users can be granted. 
 
-Juju user credentials must be stored securely and rotated regularly to prevent leakage and unauthorized access. 
+Juju user credentials must be stored securely and rotated regularly to limit the chances of unauthorized access due to credentials leakage.
 
 ## Applications
 
