@@ -34,7 +34,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install tox
-        # TODO: Consider replacing with custom image on self-hosted runner OR pinning version
         run: pipx install tox
       - name: Run tests
         run: tox run -e unit
@@ -83,7 +82,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup operator environment
-        # TODO: Replace with custom image on self-hosted runner
         uses: charmed-kubernetes/actions-operator@main
         with:
           provider: lxd
@@ -128,7 +126,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup operator environment
-        # TODO: Replace with custom image on self-hosted runner
         uses: charmed-kubernetes/actions-operator@main
         with:
           provider: lxd
