@@ -12,7 +12,7 @@ from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, StatusBase
 
 CHARM_KEY = "kafka"
 SNAP_NAME = "charmed-kafka"
-CHARMED_KAFKA_SNAP_REVISION = 39
+CHARMED_KAFKA_SNAP_REVISION = 42
 CONTAINER = "kafka"
 SUBSTRATE = "vm"
 STORAGE = "data"
@@ -86,6 +86,8 @@ SECURITY_PROTOCOL_PORTS: dict[AuthMap, Ports] = {
     AuthMap("SASL_PLAINTEXT", "OAUTHBEARER"): Ports(9095, 19095, 29095),
     AuthMap("SASL_SSL", "OAUTHBEARER"): Ports(9096, 19096, 29096),
 }
+# FIXME this port should exist on the previous abstraction
+CONTROLLER_PORT = 9097
 
 DebugLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
 DatabagScope = Literal["unit", "app"]
@@ -140,6 +142,13 @@ BROKER = Role(
         "balancer-password",
         "balancer-uris",
     ],
+)
+CONTROLLER = Role(
+    value="controller",
+    service="daemon",
+    paths=PATHS["kafka"],
+    relation=PEER_CLUSTER_RELATION,
+    requested_secrets=[],
 )
 BALANCER = Role(
     value="balancer",
