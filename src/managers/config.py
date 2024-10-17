@@ -583,8 +583,9 @@ class ConfigManager(CommonConfigManager):
     @property
     def authorizer_class(self) -> list[str]:
         """Return the authorizer Java class used on Kafka."""
-        if self.state.runs_controller:
-            return ["authorizer.class.name=org.apache.kafka.metadata.authorizer.StandardAuthorizer"]
+        if self.state.kraft_mode:
+            # return ["authorizer.class.name=org.apache.kafka.metadata.authorizer.StandardAuthorizer"]
+            return []
         return ["authorizer.class.name=kafka.security.authorizer.AclAuthorizer"]
 
     @property
@@ -642,6 +643,7 @@ class ConfigManager(CommonConfigManager):
                 properties = (
                     [f"log.dirs={self.state.log_dirs}", f"listeners={controller_listener}"]
                     + self.controller_properties
+                    # + self.authorizer_class
                 )
                 return properties
 
@@ -667,7 +669,7 @@ class ConfigManager(CommonConfigManager):
             + self.rack_properties
             + self.metrics_reporter_properties
             + DEFAULT_CONFIG_OPTIONS.split("\n")
-            # + self.authorizer_class
+            + self.authorizer_class
             + self.controller_properties
         )
 

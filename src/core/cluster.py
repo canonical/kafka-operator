@@ -552,7 +552,7 @@ class ClusterState(Object):
         if self.zookeeper_relation:
             return False
 
-        # FIXME raise instead of none
+        # FIXME raise instead of none. `not kraft_mode` is falsy
         # NOTE: if previous checks are not met, we don't know yet how the charm is being deployed
         return None
 

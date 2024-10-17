@@ -362,7 +362,7 @@ class BrokerOperator(Object):
         self.charm.state.unit_broker.update({"storages": self.balancer_manager.storages})
 
         # FIXME: if KRaft, don't execute
-        if self.charm.substrate == "vm" and not self.charm.state.runs_controller:
+        if self.charm.substrate == "vm" and not self.charm.state.kraft_mode:
             # new dirs won't be used until topic partitions are assigned to it
             # either automatically for new topics, or manually for existing
             # set status only for running services, not on startup
