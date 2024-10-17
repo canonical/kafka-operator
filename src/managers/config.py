@@ -453,9 +453,9 @@ class ConfigManager(CommonConfigManager):
         )
 
     @property
-    def controller_listener(self) -> Listener:
+    def controller_listener(self) -> None:
         """Return the controller listener."""
-        pass # TODO: No good abstraction in place for the controller use case
+        pass  # TODO: No good abstraction in place for the controller use case
 
     @property
     def client_listeners(self) -> list[Listener]:
@@ -606,14 +606,12 @@ class ConfigManager(CommonConfigManager):
             roles.append("controller")
             node_id += 100
 
-        properties = (
-            [
-                f"process.roles={','.join(roles)}",
-                f"node.id={node_id}",
-                f"controller.quorum.voters={self.state.peer_cluster.controller_quorum_uris}",
-                "controller.listener.names=INTERNAL_CONTROLLER",
-            ]
-        )
+        properties = [
+            f"process.roles={','.join(roles)}",
+            f"node.id={node_id}",
+            f"controller.quorum.voters={self.state.peer_cluster.controller_quorum_uris}",
+            "controller.listener.names=INTERNAL_CONTROLLER",
+        ]
 
         return properties
 
@@ -809,7 +807,9 @@ class BalancerConfigManager(CommonConfigManager):
 
         if self.state.peer_cluster.racks:
             if (
-                min([3, len(self.state.peer_cluster.broker_capacities.get("brokerCapacities", []))])
+                min(
+                    [3, len(self.state.peer_cluster.broker_capacities.get("brokerCapacities", []))]
+                )
                 > self.state.peer_cluster.racks
             ):  # replication-factor > racks is not ideal
                 goals = goals + ["RackAwareDistribution"]

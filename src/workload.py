@@ -184,7 +184,9 @@ class Workload(WorkloadBase):
         command = f"{opts_str} {SNAP_NAME}.{bin_keyword} {bin_str}"
         return self.exec(command)
 
-    def format_storages(self, uuid: str, internal_user_credentials: dict[str, str] | None = None) -> None:
+    def format_storages(
+        self, uuid: str, internal_user_credentials: dict[str, str] | None = None
+    ) -> None:
         """Use a passed uuid to format storages."""
         # NOTE data dirs have changed permissions by storage_attached hook. For some reason
         # storage command bin needs these locations to be root owned. Momentarily raise permissions

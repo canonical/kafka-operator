@@ -25,7 +25,6 @@ from typing_extensions import override
 from literals import (
     BALANCER,
     BROKER,
-    CONTROLLER,
     INTERNAL_USERS,
     SECRETS_APP,
     Substrates,
@@ -187,7 +186,12 @@ class PeerCluster(RelationState):
         if not self.relation or not self.relation.app:
             return ""
 
-        return self.data_interface.fetch_relation_field(relation_id=self.relation.id, field="controller-quorum-uris") or ""
+        return (
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="controller-quorum-uris"
+            )
+            or ""
+        )
 
         # return self.data_interface._fetch_relation_data_with_secrets(
         #     component=self.relation.app,
@@ -205,7 +209,12 @@ class PeerCluster(RelationState):
         if not self.relation or not self.relation.app:
             return ""
 
-        return self.data_interface.fetch_relation_field(relation_id=self.relation.id, field="cluster-uuid") or ""
+        return (
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="cluster-uuid"
+            )
+            or ""
+        )
 
     @property
     def racks(self) -> int:
@@ -464,6 +473,7 @@ class KafkaCluster(RelationState):
     def cluster_uuid(self) -> str:
         """Cluster uuid used for initializing storages."""
         return self.relation_data.get("cluster-uuid", "")
+
 
 class KafkaBroker(RelationState):
     """State collection metadata for a unit."""

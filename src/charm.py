@@ -120,8 +120,10 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         This handler is in charge of stopping the workloads, since the sub-operators would not
         be instantiated if roles are changed.
         """
-
-        if not (self.state.runs_broker or self.state.runs_controller) and self.broker.workload.active():
+        if (
+            not (self.state.runs_broker or self.state.runs_controller)
+            and self.broker.workload.active()
+        ):
             self.broker.workload.stop()
 
         if (

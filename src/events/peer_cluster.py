@@ -125,7 +125,10 @@ class PeerClusterEventsHandler(Object):
         if (
             not self.charm.unit.is_leader()
             or not self.charm.state.runs_broker  # only broker needs handle this event
-            or not any([role in self.charm.state.peer_cluster.roles for role in [BALANCER.value, CONTROLLER.value]]) # ensures secrets have set-up before writing, and only writing to controller,balancers
+            or not any(
+                role in self.charm.state.peer_cluster.roles
+                for role in [BALANCER.value, CONTROLLER.value]
+            )  # ensures secrets have set-up before writing, and only writing to controller,balancers
         ):
             return
 
@@ -150,8 +153,8 @@ class PeerClusterEventsHandler(Object):
         self.charm.on.config_changed.emit()  # ensure both broker+balancer get a changed event
 
     def _on_peer_cluster_broken(self, _: RelationBrokenEvent):
-        """Handle the required logic to remove """
-        if self.charm.state.kraft_mode == None:
+        """Handle the required logic to remove."""
+        if self.charm.state.kraft_mode is None:
             self.charm.workload.stop()
             logger.info(f'Service {self.model.unit.name.split("/")[1]} stopped')
 
@@ -165,7 +168,8 @@ class PeerClusterEventsHandler(Object):
                         [
                             "rm",
                             f"{storage.location}/meta.properties",
-                            f"{storage.location}/__cluster_metadata-0/quorum-state"]
+                            f"{storage.location}/__cluster_metadata-0/quorum-state",
+                        ]
                     )
 
                 if self.charm.unit.is_leader():
