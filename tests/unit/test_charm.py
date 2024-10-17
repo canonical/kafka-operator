@@ -101,12 +101,12 @@ def test_ready_to_start_maintenance_no_peer_relation(harness: Harness[KafkaCharm
     assert harness.charm.unit.status == Status.NO_PEER_RELATION.value.status
 
 
-def test_ready_to_start_blocks_no_zookeeper_relation(harness: Harness[KafkaCharm]):
+def test_ready_to_start_blocks_no_mode(harness: Harness[KafkaCharm]):
     with harness.hooks_disabled():
         harness.add_relation(PEER, CHARM_KEY)
 
     harness.charm.on.start.emit()
-    assert harness.charm.unit.status == Status.ZK_NOT_RELATED.value.status
+    assert harness.charm.unit.status == Status.MISSING_MODE.value.status
 
 
 def test_ready_to_start_waits_no_zookeeper_data(harness: Harness[KafkaCharm]):
