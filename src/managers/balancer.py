@@ -137,8 +137,8 @@ class BalancerManager:
     def cruise_control(self) -> CruiseControlClient:
         """Client for the CruiseControl REST API."""
         return CruiseControlClient(
-            username=self.charm.state.balancer.balancer_username,
-            password=self.charm.state.balancer.balancer_password,
+            username=self.charm.state.peer_cluster.balancer_username,
+            password=self.charm.state.peer_cluster.balancer_password,
         )
 
     @property
@@ -160,7 +160,7 @@ class BalancerManager:
 
     def create_internal_topics(self) -> None:
         """Create Cruise Control topics."""
-        bootstrap_servers = self.charm.state.balancer.broker_uris
+        bootstrap_servers = self.charm.state.peer_cluster.broker_uris
         property_file = f'{BALANCER.paths["CONF"]}/cruisecontrol.properties'
 
         for topic in BALANCER_TOPICS:
