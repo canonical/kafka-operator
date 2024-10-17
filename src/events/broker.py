@@ -77,7 +77,7 @@ class BrokerOperator(Object):
         )
 
         # Fast exit after workload instantiation, but before any event observer
-        if not any([role in self.charm.config.roles for role in [BROKER.value, CONTROLLER.value]]):
+        if not any(role in self.charm.config.roles for role in [BROKER.value, CONTROLLER.value]):
             return
 
         self.health = KafkaHealth(self) if self.charm.substrate == "vm" else None
@@ -320,7 +320,7 @@ class BrokerOperator(Object):
         if not self.upgrade.idle or not self.healthy:
             return
 
-        if self.charm.state.kraft_mode == False:
+        if not self.charm.state.kraft_mode:
             if not self.charm.state.zookeeper.broker_active():
                 self.charm._set_status(Status.ZK_NOT_CONNECTED)
                 return
@@ -422,16 +422,22 @@ class BrokerOperator(Object):
         # NOTE: checks for `runs_broker` in this method should be `is_cluster_manager` in
         # the large deployment feature.
         if self.model.unit.is_leader():
-            if not self.charm.state.cluster.internal_user_credentials and self.charm.state.runs_broker:
+            if (
+                not self.charm.state.cluster.internal_user_credentials
+                and self.charm.state.runs_broker
+            ):
                 credentials = [
-                    (username, self.charm.workload.generate_password()) for username in INTERNAL_USERS
+                    (username, self.charm.workload.generate_password())
+                    for username in INTERNAL_USERS
                 ]
                 for username, password in credentials:
                     self.charm.state.cluster.update({f"{username}-password": password})
 
             # cluster-uuid is only created on the broker (`cluster-manager` in large deployments)
             if not self.charm.state.cluster.cluster_uuid and self.charm.state.runs_broker:
-                uuid = self.workload.run_bin_command(bin_keyword="storage", bin_args=["random-uuid", "2>", "/dev/null"]).strip()
+                uuid = self.workload.run_bin_command(
+                    bin_keyword="storage", bin_args=["random-uuid", "2>", "/dev/null"]
+                ).strip()
                 self.charm.state.cluster.update({"cluster-uuid": uuid})
                 self.charm.state.peer_cluster.update({"cluster-uuid": uuid})
 
@@ -444,9 +450,9 @@ class BrokerOperator(Object):
                     self.charm.state.peer_cluster_orchestrator.update(quorum_uris)
 
     def _format_storages(self) -> None:
-        """Format storages provided relevant keys exist"""
+        """Format storages provided relevant keys exist."""
         if self.charm.state.runs_broker:
-            credentials = self.charm.state.cluster.internal_user_credentials 
+            credentials = self.charm.state.cluster.internal_user_credentials
         elif self.charm.state.runs_controller:
             credentials = {
                 self.charm.state.peer_cluster.broker_username: self.charm.state.peer_cluster.broker_password

@@ -167,7 +167,11 @@ class AuthManager:
             ]
             opts = [self.kafka_opts]
         else:
-            bootstrap_server = f"{self.state.unit_broker.internal_address}:19092" if internal else self.state.bootstrap_server
+            bootstrap_server = (
+                f"{self.state.unit_broker.internal_address}:19092"
+                if internal
+                else self.state.bootstrap_server
+            )
             command = base_command + [
                 f"--bootstrap-server={bootstrap_server}",
                 f"--command-config={self.workload.paths.client_properties}",

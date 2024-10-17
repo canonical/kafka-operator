@@ -491,7 +491,7 @@ class ClusterState(Object):
         return Status.ACTIVE
 
     @property
-    def _broker_status(self) -> Status:
+    def _broker_status(self) -> Status:  # noqa: C901
         """Checks for role=broker specific readiness."""
         if not self.runs_broker:
             return Status.ACTIVE
