@@ -7,7 +7,6 @@
   * [Authenticate](#authenticate)
 * [Bootstrap Juju controller on AWS EC2](#bootstrap-juju-controller-on-aws-ec2)
 * [Deploy charms](#deploy-charms)
-* [Expose database (optional)](#expose-database-optional)
 * [Clean up](#clean-up)
 
 ---
