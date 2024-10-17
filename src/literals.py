@@ -125,7 +125,7 @@ class Role:
     service: str
     paths: dict[str, str]
     relation: str
-    requested_secrets: list[str] = []
+    requested_secrets: list[str]
 
     def __eq__(self, value: object, /) -> bool:
         """Provide an easy comparison to the configuration key."""
