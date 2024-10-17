@@ -221,7 +221,7 @@ Or also use it without specifying the `--name` argument to get the full list. Yo
 role assignment bound to `<AZURE_ROLE>` registered using
 
 ```shell
-az role assigment list --role <AZURE_ROLE>
+az role assignment list --role <AZURE_ROLE>
 ```
 
 If this is the case, you can remove the role assignment first and then the role itself with the following commands:
