@@ -61,7 +61,7 @@ class PeerClusterEventsHandler(Object):
 
         # ensures data updates, eventually
         self.framework.observe(
-            getattr(self.charm.on, "update_status"), self._on_peer_cluster_changed
+            getattr(self.charm.on, "update_status"), self._on_peer_cluster_orchestrator_changed
         )
 
     def _on_secret_changed_event(self, _: SecretChangedEvent) -> None:
@@ -94,8 +94,31 @@ class PeerClusterEventsHandler(Object):
         """Generic handler for peer-cluster `relation-changed` events."""
         if (
             not self.charm.unit.is_leader()
-            or not self.charm.state.runs_broker
-            or "balancer" not in self.charm.state.balancer.roles
+            or not self.charm.state.runs_balancer  # only balancer needs handle this event
+            or not self.charm.state.balancer.roles  # ensures secrets have set-up before writing
+        ):
+            return
+
+        self._default_relation_changed(event)
+
+        # will no-op if relation does not exist
+        self.charm.state.balancer.update(
+            {
+                "balancer-username": self.charm.state.balancer.balancer_username,
+                "balancer-password": self.charm.state.balancer.balancer_password,
+                "balancer-uris": self.charm.state.balancer.balancer_uris,
+            }
+        )
+
+        self.charm.on.config_changed.emit()  # ensure both broker+balancer get a changed event
+
+    def _on_peer_cluster_orchestrator_changed(self, event: RelationChangedEvent) -> None:
+        """Generic handler for peer-cluster-orchestrator `relation-changed` events."""
+        if (
+            not self.charm.unit.is_leader()
+            or not self.charm.state.runs_broker  # only broker needs handle this event
+            or "balancer"
+            not in self.charm.state.balancer.roles  # ensures secrets have set-up before writing, and only writing to balancers
         ):
             return
 
@@ -115,29 +138,6 @@ class PeerClusterEventsHandler(Object):
                 "zk-password": self.charm.state.balancer.zk_password,
             }
         )
-
-        self.charm.on.config_changed.emit()  # ensure both broker+balancer get a changed event
-
-    def _on_peer_cluster_orchestrator_changed(self, event: RelationChangedEvent) -> None:
-        """Generic handler for peer-cluster-orchestrator `relation-changed` events."""
-        if not self.charm.unit.is_leader() or not self.charm.state.runs_balancer:
-            return
-
-        self._default_relation_changed(event)
-
-        for peer_cluster in self.charm.state.peer_clusters:
-            if "broker" not in peer_cluster.roles:
-                # TODO: maybe a log here?
-                continue
-
-            # will no-op if relation does not exist
-            peer_cluster.update(
-                {
-                    "balancer-username": self.charm.state.balancer.balancer_username,
-                    "balancer-password": self.charm.state.balancer.balancer_password,
-                    "balancer-uris": self.charm.state.balancer.balancer_uris,
-                }
-            )
 
         self.charm.on.config_changed.emit()  # ensure both broker+balancer get a changed event
 

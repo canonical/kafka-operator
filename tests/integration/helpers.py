@@ -8,7 +8,7 @@ import subprocess
 from contextlib import closing
 from json.decoder import JSONDecodeError
 from pathlib import Path
-from subprocess import PIPE, check_output
+from subprocess import PIPE, CalledProcessError, check_output
 from typing import Any, Dict, List, Optional, Set
 
 import yaml
@@ -504,17 +504,17 @@ def balancer_is_ready(ops_test: OpsTest, app_name: str) -> bool:
     pwd = get_secret_by_label(ops_test=ops_test, label=f"{PEER}.{app_name}.app", owner=app_name)[
         "balancer-password"
     ]
-    monitor_state = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {app_name}/leader sudo -i 'curl http://localhost:9090/kafkacruisecontrol/state?json=True'"
-        f" -u {BALANCER_WEBSERVER_USER}:{pwd}",
-        stderr=PIPE,
-        shell=True,
-        universal_newlines=True,
-    )
 
     try:
+        monitor_state = check_output(
+            f"JUJU_MODEL={ops_test.model_full_name} juju ssh {app_name}/leader sudo -i 'curl http://localhost:9090/kafkacruisecontrol/state?json=True'"
+            f" -u {BALANCER_WEBSERVER_USER}:{pwd}",
+            stderr=PIPE,
+            shell=True,
+            universal_newlines=True,
+        )
         monitor_state_json = json.loads(monitor_state).get("MonitorState", {})
-    except JSONDecodeError as e:
+    except (JSONDecodeError, CalledProcessError) as e:
         logger.error(e)
         return False
 

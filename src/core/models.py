@@ -392,17 +392,17 @@ class KafkaCluster(RelationState):
         return self.relation_data.get("mtls", "disabled") == "enabled"
 
     @property
-    def balancer_username(self) -> bool:
+    def balancer_username(self) -> str:
         """Persisted balancer username."""
         return self.relation_data.get("balancer-username", "")
 
     @property
-    def balancer_password(self) -> bool:
+    def balancer_password(self) -> str:
         """Persisted balancer password."""
         return self.relation_data.get("balancer-password", "")
 
     @property
-    def balancer_uris(self) -> bool:
+    def balancer_uris(self) -> str:
         """Persisted balancer uris."""
         return self.relation_data.get("balancer-uris", "")
 

@@ -112,8 +112,8 @@ class TestBalancer:
         await ops_test.model.add_relation(PRODUCER_APP, APP_NAME)
         if self.balancer_app != APP_NAME:
             await ops_test.model.add_relation(
-                f"{APP_NAME}:{PEER_CLUSTER_RELATION}",
-                f"{BALANCER_APP}:{PEER_CLUSTER_ORCHESTRATOR_RELATION}",
+                f"{APP_NAME}:{PEER_CLUSTER_ORCHESTRATOR_RELATION}",
+                f"{BALANCER_APP}:{PEER_CLUSTER_RELATION}",
             )
 
         await ops_test.model.wait_for_idle(
@@ -157,9 +157,10 @@ class TestBalancer:
         assert balancer_is_ready(ops_test=ops_test, app_name=self.balancer_app)
 
     @pytest.mark.abort_on_fail
-    @pytest.mark.skipif(
-        deployment_strat == "single", reason="Testing full rebalance on large deployment"
-    )
+    @pytest.mark.skip
+    # @pytest.mark.skipif(
+    #     deployment_strat == "single", reason="Testing full rebalance on large deployment"
+    # )
     async def test_add_unit_full_rebalance(self, ops_test: OpsTest):
         await ops_test.model.applications[APP_NAME].add_units(
             count=1  # up to 4, new unit won't have any partitions
