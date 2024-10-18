@@ -12,13 +12,23 @@ from charms.grafana_agent.v0.cos_agent import COSAgentProvider
 from charms.operator_libs_linux.v0 import sysctl
 from charms.operator_libs_linux.v1.snap import SnapError
 from charms.rolling_ops.v0.rollingops import RollingOpsManager, RunWithLock
-from ops.charm import StorageAttachedEvent, StorageDetachingEvent, StorageEvent
-from ops.framework import EventBase
+from ops import (
+    ActiveStatus,
+    EventBase,
+    SecretChangedEvent,
+    StartEvent,
+    StatusBase,
+    StorageAttachedEvent,
+    StorageDetachingEvent,
+    StorageEvent,
+    UpdateStatusEvent,
+)
 from ops.main import main
-from ops.model import ActiveStatus, StatusBase
 
 from core.cluster import ClusterState
+from core.models import Substrates
 from core.structured_config import CharmConfig
+from events.oauth import OAuthHandler
 from events.password_actions import PasswordActionEvents
 from events.provider import KafkaProvider
 from events.tls import TLSHandler
@@ -35,13 +45,13 @@ from literals import (
     OS_REQUIREMENTS,
     PEER,
     REL_NAME,
+    SUBSTRATE,
     USER,
     DebugLevel,
     Status,
-    Substrate,
 )
 from managers.auth import AuthManager
-from managers.config import KafkaConfigManager
+from managers.config import ConfigManager
 from managers.tls import TLSManager
 from workload import KafkaWorkload
 
@@ -56,7 +66,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
     def __init__(self, *args):
         super().__init__(*args)
         self.name = CHARM_KEY
-        self.substrate: Substrate = "vm"
+        self.substrate: Substrates = SUBSTRATE
         self.workload = KafkaWorkload()
         self.state = ClusterState(self, substrate=self.substrate)
 
@@ -67,6 +77,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.password_action_events = PasswordActionEvents(self)
         self.zookeeper = ZooKeeperHandler(self)
         self.tls = TLSHandler(self)
+        self.oauth = OAuthHandler(self)
         self.provider = KafkaProvider(self)
         self.upgrade = KafkaUpgrade(
             self,
@@ -77,7 +88,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         # MANAGERS
 
-        self.config_manager = KafkaConfigManager(
+        self.config_manager = ConfigManager(
             state=self.state,
             workload=self.workload,
             config=self.config,
@@ -87,7 +98,10 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             state=self.state, workload=self.workload, substrate=self.substrate
         )
         self.auth_manager = AuthManager(
-            state=self.state, workload=self.workload, kafka_opts=self.config_manager.kafka_opts
+            state=self.state,
+            workload=self.workload,
+            kafka_opts=self.config_manager.kafka_opts,
+            log4j_opts=self.config_manager.tools_log4j_opts,
         )
 
         # LIB HANDLERS
@@ -111,6 +125,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.framework.observe(getattr(self.on, "config_changed"), self._on_config_changed)
         self.framework.observe(getattr(self.on, "update_status"), self._on_update_status)
         self.framework.observe(getattr(self.on, "remove"), self._on_remove)
+        self.framework.observe(getattr(self.on, "secret_changed"), self._on_secret_changed)
 
         self.framework.observe(self.on[PEER].relation_changed, self._on_config_changed)
 
@@ -126,10 +141,12 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         if self.workload.install():
             self._set_os_config()
             self.config_manager.set_environment()
+            self.unit.set_workload_version(self.workload.get_version())
+
         else:
             self._set_status(Status.SNAP_NOT_INSTALLED)
 
-    def _on_start(self, event: EventBase) -> None:
+    def _on_start(self, event: StartEvent) -> None:
         """Handler for `start` event."""
         self._set_status(self.state.ready_to_start)
         if not isinstance(self.unit.status, ActiveStatus):
@@ -146,7 +163,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         logger.info("Kafka snap started")
 
         # check for connection
-        self._on_update_status(event)
+        self.on.update_status.emit()
 
         # only log once on successful 'on-start' run
         if isinstance(self.unit.status, ActiveStatus):
@@ -173,6 +190,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         # update environment
         self.config_manager.set_environment()
+        self.unit.set_workload_version(self.workload.get_version())
 
         if zk_jaas_changed:
             clean_broker_jaas = [conf.strip() for conf in zk_jaas]
@@ -204,7 +222,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
                     callback_override="_disable_enable_restart"
                 )
             else:
-                logger.info("Acquiring lock from _on_config_changed...")
                 self.on[f"{self.restart.name}"].acquire_lock.emit()
 
         # update client_properties whenever possible
@@ -212,9 +229,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         # If Kafka is related to client charms, update their information.
         if self.model.relations.get(REL_NAME, None) and self.unit.is_leader():
-            self.provider.update_connection_info()
+            self.update_client_data()
 
-    def _on_update_status(self, event: EventBase) -> None:
+    def _on_update_status(self, _: UpdateStatusEvent) -> None:
         """Handler for `update-status` events."""
         if not self.healthy or not self.upgrade.idle:
             return
@@ -225,7 +242,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         # NOTE for situations like IP change and late integration with rack-awareness charm.
         # If properties have changed, the broker will restart.
-        self._on_config_changed(event)
+        self.on.config_changed.emit()
 
         try:
             if not self.health.machine_configured():
@@ -242,18 +259,33 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         """Handler for stop."""
         self.sysctl_config.remove()
 
+    def _on_secret_changed(self, event: SecretChangedEvent) -> None:
+        """Handler for `secret_changed` events."""
+        if not event.secret.label or not self.state.cluster.relation:
+            return
+
+        if event.secret.label == self.state.cluster.data_interface._generate_secret_label(
+            PEER,
+            self.state.cluster.relation.id,
+            "extra",  # pyright: ignore[reportArgumentType] -- Changes with the https://github.com/canonical/data-platform-libs/issues/124
+        ):
+            self.on.config_changed.emit()
+
     def _on_storage_attached(self, event: StorageAttachedEvent) -> None:
         """Handler for `storage_attached` events."""
         # new dirs won't be used until topic partitions are assigned to it
         # either automatically for new topics, or manually for existing
         # set status only for running services, not on startup
+        self.workload.exec(f"chmod -R 750 {self.workload.paths.data_path}")
+        self.workload.exec(f"chown -R {USER}:{GROUP} {self.workload.paths.data_path}")
+        self.workload.exec(
+            f"""find {self.workload.paths.data_path} -type f -name "meta.properties" -delete || true"""
+        )
         if self.workload.active():
             self._set_status(Status.ADDED_STORAGE)
-            self.workload.exec(f"chown -R {USER}:{GROUP} {self.workload.paths.data_path}")
-            self.workload.exec(f"chmod -R 770 {self.workload.paths.data_path}")
             self._on_config_changed(event)
 
-    def _on_storage_detaching(self, event: StorageDetachingEvent) -> None:
+    def _on_storage_detaching(self, _: StorageDetachingEvent) -> None:
         """Handler for `storage_detaching` events."""
         # in the case where there may be replication recovery may be possible
         if self.state.brokers and len(self.state.brokers) > 1:
@@ -261,7 +293,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         else:
             self._set_status(Status.REMOVED_STORAGE_NO_REPL)
 
-        self._on_config_changed(event)
+        self.on.config_changed.emit()
 
     def _restart(self, event: EventBase) -> None:
         """Handler for `rolling_ops` restart events."""
@@ -323,6 +355,31 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             return False
 
         return True
+
+    def update_client_data(self) -> None:
+        """Writes necessary relation data to all related client applications."""
+        if not self.unit.is_leader() or not self.healthy:
+            return
+
+        for client in self.state.clients:
+            if not client.password:
+                logger.debug(
+                    f"Skipping update of {client.app.name}, user has not yet been added..."
+                )
+                continue
+
+            client.update(
+                {
+                    "endpoints": client.bootstrap_server,
+                    "zookeeper-uris": client.zookeeper_uris,
+                    "consumer-group-prefix": client.consumer_group_prefix,
+                    "topic": client.topic,
+                    "username": client.username,
+                    "password": client.password,
+                    "tls": client.tls,
+                    "tls-ca": client.tls,  # TODO: fix tls-ca
+                }
+            )
 
     def _set_status(self, key: Status) -> None:
         """Sets charm status."""

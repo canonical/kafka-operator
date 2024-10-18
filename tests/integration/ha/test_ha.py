@@ -83,10 +83,10 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm, app_charm):
     assert ops_test.model.applications[ZK_NAME].status == "active"
 
     await ops_test.model.add_relation(APP_NAME, ZK_NAME)
-    async with ops_test.fast_forward():
-        await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], idle_period=30)
-        assert ops_test.model.applications[APP_NAME].status == "active"
-        assert ops_test.model.applications[ZK_NAME].status == "active"
+    async with ops_test.fast_forward(fast_interval="20s"):
+        await asyncio.sleep(90)
+
+    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], idle_period=30, status="active")
 
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
     await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME], idle_period=30)
@@ -101,7 +101,7 @@ async def test_replicated_events(ops_test: OpsTest):
     )
     logger.info("Producing messages and checking on all units")
     produce_and_check_logs(
-        model_full_name=ops_test.model_full_name,
+        ops_test=ops_test,
         kafka_unit_name=f"{APP_NAME}/0",
         provider_unit_name=f"{DUMMY_NAME}/0",
         topic="replicated-topic",
@@ -145,7 +145,7 @@ async def test_multi_cluster_isolation(ops_test: OpsTest, kafka_charm):
     )
 
     produce_and_check_logs(
-        model_full_name=ops_test.model_full_name,
+        ops_test=ops_test,
         kafka_unit_name=f"{APP_NAME}/0",
         provider_unit_name=f"{DUMMY_NAME}/0",
         topic="hot-topic",
@@ -156,16 +156,18 @@ async def test_multi_cluster_isolation(ops_test: OpsTest, kafka_charm):
     # Check that logs are not found on the second cluster
     with pytest.raises(AssertionError):
         check_logs(
-            model_full_name=ops_test.model_full_name,
+            ops_test=ops_test,
             kafka_unit_name=f"{second_kafka_name}/0",
             topic="hot-topic",
         )
 
     await asyncio.gather(
         ops_test.juju(
-            f"remove-application --force --destroy-storage --no-wait {second_kafka_name}"
+            f"remove-application --force --destroy-storage --no-wait --no-prompt {second_kafka_name}"
         ),
-        ops_test.juju(f"remove-application --force --destroy-storage --no-wait {second_zk_name}"),
+        ops_test.juju(
+            f"remove-application --force --destroy-storage --no-wait --no-prompt {second_zk_name}"
+        ),
     )
 
 

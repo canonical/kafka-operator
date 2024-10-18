@@ -9,7 +9,7 @@
 
 The Charmed Kafka Operator delivers automated operations management from day 0 to day 2 on the [Apache Kafka](https://kafka.apache.org) event streaming platform. It is an open source, end-to-end, production ready data platform on top of cloud native technologies. 
 
-This operator can be found on [Charmhub](https://charmhub.io/kafka) and it comes with production-ready features such as:
+The Kafka Operator can be found on [Charmhub](https://charmhub.io/kafka) and it comes with production-ready features such as:
 - Fault-tolerance, replication, scalability and high-availability out-of-the-box.
 - SASL/SCRAM auth for Broker-Broker and Client-Broker authenticaion enabled by default.
 - Access control management supported with user-provided ACL lists.

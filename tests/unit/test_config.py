@@ -2,6 +2,7 @@
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import os
 from pathlib import Path
 from unittest.mock import PropertyMock, mock_open, patch
 
@@ -20,15 +21,27 @@ from literals import (
     JMX_EXPORTER_PORT,
     JVM_MEM_MAX_GB,
     JVM_MEM_MIN_GB,
+    OAUTH_REL_NAME,
     PEER,
     SUBSTRATE,
     ZK,
 )
-from managers.config import KafkaConfigManager
+from managers.config import ConfigManager
 
-CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
-ACTIONS = str(yaml.safe_load(Path("./actions.yaml").read_text()))
-METADATA = str(yaml.safe_load(Path("./metadata.yaml").read_text()))
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", ".."))
+CONFIG = str(yaml.safe_load(Path(BASE_DIR + "/config.yaml").read_text()))
+ACTIONS = str(yaml.safe_load(Path(BASE_DIR + "/actions.yaml").read_text()))
+METADATA = str(yaml.safe_load(Path(BASE_DIR + "/metadata.yaml").read_text()))
+
+# override conftest fixtures
+@pytest.fixture(autouse=False)
+def patched_workload_write():
+    yield
+
+
+@pytest.fixture(autouse=False)
+def patched_etc_environment():
+    yield
 
 
 @pytest.fixture
@@ -83,6 +96,7 @@ def test_log_dirs_in_server_properties(harness: Harness):
         zk_relation_id,
         harness.charm.app.name,
         {
+            "database": "/kafka",
             "chroot": "/kafka",
             "username": "moria",
             "password": "mellon",
@@ -119,6 +133,7 @@ def test_listeners_in_server_properties(harness: Harness):
         zk_relation_id,
         harness.charm.app.name,
         {
+            "database": "/kafka",
             "chroot": "/kafka",
             "username": "moria",
             "password": "mellon",
@@ -133,8 +148,10 @@ def test_listeners_in_server_properties(harness: Harness):
         peer_relation_id, f"{CHARM_KEY}/0", {"private-address": "treebeard"}
     )
 
-    expected_listeners = "listeners=INTERNAL_SASL_PLAINTEXT://:19092"
-    expected_advertised_listeners = f"advertised.listeners=INTERNAL_SASL_PLAINTEXT://{'treebeard' if SUBSTRATE == 'vm' else 'kafka-k8s-0.kafka-k8s-endpoints'}:19092"
+    host = "treebeard" if SUBSTRATE == "vm" else "kafka-k8s-0.kafka-k8s-endpoints"
+    sasl_pm = "SASL_PLAINTEXT_SCRAM_SHA_512"
+    expected_listeners = f"listeners=INTERNAL_{sasl_pm}://:19092"
+    expected_advertised_listeners = f"advertised.listeners=INTERNAL_{sasl_pm}://{host}:19092"
 
     with (
         patch(
@@ -145,6 +162,54 @@ def test_listeners_in_server_properties(harness: Harness):
     ):
         assert expected_listeners in harness.charm.config_manager.server_properties
         assert expected_advertised_listeners in harness.charm.config_manager.server_properties
+
+
+def test_oauth_client_listeners_in_server_properties(harness):
+    """Checks that oauth client listeners are properly set when a relating through oauth."""
+    harness.add_relation(ZK, CHARM_KEY)
+    peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
+    harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/1")
+    harness.update_relation_data(
+        peer_relation_id, f"{CHARM_KEY}/0", {"private-address": "treebeard"}
+    )
+
+    oauth_relation_id = harness.add_relation(OAUTH_REL_NAME, "hydra")
+    harness.update_relation_data(
+        oauth_relation_id,
+        "hydra",
+        {
+            "issuer_url": "issuer",
+            "jwks_endpoint": "jwks",
+            "authorization_endpoint": "authz",
+            "token_endpoint": "token",
+            "introspection_endpoint": "introspection",
+            "userinfo_endpoint": "userinfo",
+            "scope": "scope",
+            "jwt_access_token": "False",
+        },
+    )
+
+    # let's add a scram client just for fun
+    client_relation_id = harness.add_relation("kafka-client", "app")
+    harness.update_relation_data(client_relation_id, "app", {"extra-user-roles": "admin,producer"})
+
+    host = "treebeard" if SUBSTRATE == "vm" else "kafka-k8s-0.kafka-k8s-endpoints"
+    internal_protocol, internal_port = "INTERNAL_SASL_PLAINTEXT_SCRAM_SHA_512", "19092"
+    scram_client_protocol, scram_client_port = "CLIENT_SASL_PLAINTEXT_SCRAM_SHA_512", "9092"
+    oauth_client_protocol, oauth_client_port = "CLIENT_SASL_PLAINTEXT_OAUTHBEARER", "9095"
+
+    expected_listeners = (
+        f"listeners={internal_protocol}://:{internal_port},"
+        f"{scram_client_protocol}://:{scram_client_port},"
+        f"{oauth_client_protocol}://:{oauth_client_port}"
+    )
+    expected_advertised_listeners = (
+        f"advertised.listeners={internal_protocol}://{host}:{internal_port},"
+        f"{scram_client_protocol}://{host}:{scram_client_port},"
+        f"{oauth_client_protocol}://{host}:{oauth_client_port}"
+    )
+    assert expected_listeners in harness.charm.config_manager.server_properties
+    assert expected_advertised_listeners in harness.charm.config_manager.server_properties
 
 
 def test_ssl_listeners_in_server_properties(harness: Harness):
@@ -162,6 +227,7 @@ def test_ssl_listeners_in_server_properties(harness: Harness):
         zk_relation_id,
         harness.charm.app.name,
         {
+            "database": "/kafka",
             "chroot": "/kafka",
             "username": "moria",
             "password": "mellon",
@@ -183,11 +249,12 @@ def test_ssl_listeners_in_server_properties(harness: Harness):
     )
 
     host = "treebeard" if SUBSTRATE == "vm" else "kafka-k8s-0.kafka-k8s-endpoints"
+    sasl_pm = "SASL_SSL_SCRAM_SHA_512"
+    ssl_pm = "SSL_SSL"
     expected_listeners = (
-        "listeners=INTERNAL_SASL_SSL://:19093,CLIENT_SASL_SSL://:9093,CLIENT_SSL://:9094"
+        f"listeners=INTERNAL_{sasl_pm}://:19093,CLIENT_{sasl_pm}://:9093,CLIENT_{ssl_pm}://:9094"
     )
-    expected_advertised_listeners = f"advertised.listeners=INTERNAL_SASL_SSL://{host}:19093,CLIENT_SASL_SSL://{host}:9093,CLIENT_SSL://{host}:9094"
-
+    expected_advertised_listeners = f"advertised.listeners=INTERNAL_{sasl_pm}://{host}:19093,CLIENT_{sasl_pm}://{host}:9093,CLIENT_{ssl_pm}://{host}:9094"
     with (
         patch(
             "core.models.KafkaCluster.internal_user_credentials",
@@ -206,6 +273,7 @@ def test_zookeeper_config_succeeds_fails_config(harness: Harness):
         zk_relation_id,
         harness.charm.app.name,
         {
+            "database": "/kafka",
             "chroot": "/kafka",
             "username": "moria",
             "endpoints": "1.1.1.1,2.2.2.2",
@@ -223,6 +291,7 @@ def test_zookeeper_config_succeeds_valid_config(harness: Harness):
         zk_relation_id,
         harness.charm.app.name,
         {
+            "database": "/kafka",
             "chroot": "/kafka",
             "username": "moria",
             "password": "mellon",
@@ -249,9 +318,9 @@ def test_kafka_opts(harness: Harness):
 def test_heap_opts(harness: Harness, profile, expected):
     """Checks necessary args for KAFKA_HEAP_OPTS."""
     # Harness doesn't reinitialize KafkaCharm when calling update_config, which means that
-    # self.config is not passed again to KafkaConfigManager
+    # self.config is not passed again to ConfigManager
     harness.update_config({"profile": profile})
-    conf_manager = KafkaConfigManager(
+    conf_manager = ConfigManager(
         harness.charm.state, harness.charm.workload, harness.charm.config, "1"
     )
     args = conf_manager.heap_opts
@@ -269,7 +338,7 @@ def test_jmx_opts(harness: Harness):
     assert "KAFKA_JMX_OPTS" in args
 
 
-def test_set_environment(harness: Harness):
+def test_set_environment(harness: Harness, patched_workload_write, patched_etc_environment):
     """Checks all necessary env-vars are written to /etc/environment."""
     with (
         patch("workload.KafkaWorkload.write") as patched_write,
@@ -280,11 +349,13 @@ def test_set_environment(harness: Harness):
 
         for call in patched_write.call_args_list:
             assert "KAFKA_OPTS" in call.kwargs.get("content", "")
-            assert "KAFKA_LOG4J_OPTS" in call.kwargs.get("content", "")
             assert "KAFKA_JMX_OPTS" in call.kwargs.get("content", "")
             assert "KAFKA_HEAP_OPTS" in call.kwargs.get("content", "")
             assert "KAFKA_JVM_PERFORMANCE_OPTS" in call.kwargs.get("content", "")
+            assert "KAFKA_CFG_LOGLEVEL" in call.kwargs.get("content", "")
             assert "/etc/environment" == call.kwargs.get("path", "")
+
+            assert "KAFKA_LOG4J_OPTS" not in call.kwargs.get("content", "")
 
 
 def test_bootstrap_server(harness: Harness):
@@ -296,8 +367,8 @@ def test_bootstrap_server(harness: Harness):
     )
     harness.update_relation_data(peer_relation_id, f"{CHARM_KEY}/1", {"private-address": "shelob"})
 
-    assert len(harness.charm.state.bootstrap_server) == 2
-    for server in harness.charm.state.bootstrap_server:
+    assert len(harness.charm.state.bootstrap_server.split(",")) == 2
+    for server in harness.charm.state.bootstrap_server.split(","):
         assert "9092" in server
 
 
@@ -336,6 +407,7 @@ def test_ssl_principal_mapping_rules(harness: Harness):
         zk_relation_id,
         harness.charm.app.name,
         {
+            "database": "/kafka",
             "chroot": "/kafka",
             "username": "moria",
             "password": "mellon",
@@ -353,9 +425,9 @@ def test_ssl_principal_mapping_rules(harness: Harness):
         )
     ):
         # Harness doesn't reinitialize KafkaCharm when calling update_config, which means that
-        # self.config is not passed again to KafkaConfigManager
+        # self.config is not passed again to ConfigManager
         harness._update_config({"ssl_principal_mapping_rules": "RULE:^(erebor)$/$1,DEFAULT"})
-        conf_manager = KafkaConfigManager(
+        conf_manager = ConfigManager(
             harness.charm.state, harness.charm.workload, harness.charm.config, "1"
         )
 
@@ -376,6 +448,7 @@ def test_auth_properties(harness: Harness):
         zk_relation_id,
         harness.charm.app.name,
         {
+            "database": "/kafka",
             "chroot": "/kafka",
             "username": "moria",
             "password": "mellon",
@@ -400,6 +473,7 @@ def test_rack_properties(harness: Harness):
         zk_relation_id,
         harness.charm.app.name,
         {
+            "database": "/kafka",
             "chroot": "/kafka",
             "username": "moria",
             "password": "mellon",
@@ -411,7 +485,7 @@ def test_rack_properties(harness: Harness):
 
     with (
         patch(
-            "managers.config.KafkaConfigManager.rack_properties",
+            "managers.config.ConfigManager.rack_properties",
             new_callable=PropertyMock,
             return_value=["broker.rack=gondor-west"],
         )
@@ -427,6 +501,7 @@ def test_inter_broker_protocol_version(harness: Harness):
         zk_relation_id,
         harness.charm.app.name,
         {
+            "database": "/kafka",
             "chroot": "/kafka",
             "username": "moria",
             "password": "mellon",
