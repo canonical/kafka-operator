@@ -3,7 +3,7 @@
 [Azure](https://azure.com/) is the cloud computing platform developed by Microsoft. It has management, access and development of applications and services to individuals, companies, and governments through its global infrastructure. Access the Azure web console at [portal.azure.com](https://portal.azure.com/).
 
 ## Summary
-* [Install Azure and Juju tooling](#install-azure-and-juju-tooling)
+* [Install Azure and Juju tooling](#install-client-environment)
   * [Authenticate](#authenticate)
 * [Bootstrap Juju controller on Azure](#bootstrap-juju-controller-on-azure)
 * [Deploy charms](#deploy-charms)
