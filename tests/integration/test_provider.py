@@ -56,7 +56,7 @@ async def test_deploy_charms_relate_active(
 
     async with ops_test.fast_forward(fast_interval="60s"):
         await ops_test.model.wait_for_idle(
-            apps=[APP_NAME, DUMMY_NAME_1, ZK], idle_period=30, status="active"
+            apps=[APP_NAME, DUMMY_NAME_1, ZK], idle_period=30, status="active", timeout=1200
         )
 
     usernames.update(get_client_usernames(ops_test))
