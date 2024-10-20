@@ -66,6 +66,8 @@ juju refresh kafka --path ./kafka_ubuntu-22.04-amd64.charm
 
 When issuing the commands, all units will refresh (i.e. receive new charm content), and the upgrade charm event will be fired. The charm will take care of executing a update (if required) and a restart of the workload one unit at the time to not lose high-availability. 
 
+> **Note** On Juju<3.4.4, the refresh operation may transitively fail because of [this issue](https://bugs.launchpad.net/juju/+bug/2053242) on Juju. The failure will resolve itself and the upgrade process will resume normally in few minutes (as soon as the new charm has been downloaded and the upgrade events are appropriately emitted. 
+
 The upgrade process can be monitored using `juju status` command, where the message of the units will provide information about which units have been upgraded already, which unit is currently upgrading and which units are waiting for the upgrade to be triggered, as shown below: 
 
 ```shell
@@ -102,6 +104,26 @@ juju refresh kafka --revision=${KAFKA_CHARM_REVISION}
 
 We strongly recommend to also retrieve the full set of logs with `juju debug-log`, to extract insights on why the upgrade failed. 
 
+## ZooKeeper Upgrade
+
+Although the previous steps focused on upgrading Kafka, the same process can also be applied to Zookeeper. However, for revisions prior to XXX, a patch needs to be applied before running the aforementioned process. The ZooKeeper process, as part of its operations, overwrites the `zoo.cfg` pinning the snap revision for the `dynamicConfigFile`. This may create problems in the upgrade if `snapd` removes the previous revision once the snap is refreshed. In order to prevent this, it is sufficient to replace the `<SNAP_REVISION>` with `current`. 
+
+To do so, on each unit, first apply the patch
+
+```
+juju exec -u zookeeper/<UNIT_ID> 'sed -i "s#dynamicConfigFile=/var/snap/charmed-zookeeper/[0-9]*#dynamicConfigFile=/var/snap/charmed-zookeeper/current#g" /var/snap/charmed-zookeeper/current/etc/zookeeper/zoo.cfg'
+```
+
+and then restart the service
+
+```
+juju exec -u zookeeper/<UNIT_ID> 'snap restart charmed-zookeeper`
+```
+
+Check that the server has started correctly, and then apply the patch to the next unit. 
+
+Once all the units have been patched, proceed with the upgrade process, as outline above. 
+
 ## Kafka and Zookeeper combined upgrades
 
-Although the following guide will focus on upgrading Kafka, the same process can also be applied to Zookeeper, should you need to upgrade this component as well. If Kafka and Zookeeper charms need both to be upgraded, we recommend you to start the upgrade from the Zookeeper cluster. As outlined above, the two upgrades should **NEVER** be done concurrently.
+If Kafka and Zookeeper charms need both to be upgraded, we recommend you to start the upgrade from the Zookeeper cluster. As outlined above, the two upgrades should **NEVER** be done concurrently.

@@ -56,12 +56,14 @@ class KafkaHealth(Object):
         """Gets the number of partitions and their average size from the log dirs."""
         log_dirs_command = [
             "--describe",
-            f"--bootstrap-server {','.join(self.charm.state.bootstrap_server)}",
+            f"--bootstrap-server {self.charm.state.bootstrap_server}",
             f"--command-config {self.charm.workload.paths.client_properties}",
         ]
         try:
             log_dirs = self.charm.workload.run_bin_command(
-                bin_keyword="log-dirs", bin_args=log_dirs_command
+                bin_keyword="log-dirs",
+                bin_args=log_dirs_command,
+                opts=[self.charm.config_manager.tools_log4j_opts],
             )
         except subprocess.CalledProcessError:
             return (0, 0)

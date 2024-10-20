@@ -12,31 +12,54 @@ from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, StatusBase
 
 CHARM_KEY = "kafka"
 SNAP_NAME = "charmed-kafka"
-CHARMED_KAFKA_SNAP_REVISION = 30
+CHARMED_KAFKA_SNAP_REVISION = 37
 CONTAINER = "kafka"
+SUBSTRATE = "vm"
 
+USER = "snap_daemon"
+GROUP = "root"
+
+# FIXME: these need better names
 PEER = "cluster"
 ZK = "zookeeper"
 REL_NAME = "kafka-client"
-INTER_BROKER_USER = "sync"
-ADMIN_USER = "admin"
+OAUTH_REL_NAME = "oauth"
 TLS_RELATION = "certificates"
 TRUSTED_CERTIFICATE_RELATION = "trusted-certificate"
 TRUSTED_CA_RELATION = "trusted-ca"
+
+INTER_BROKER_USER = "sync"
+ADMIN_USER = "admin"
 INTERNAL_USERS = [INTER_BROKER_USER, ADMIN_USER]
+SECRETS_APP = [f"{user}-password" for user in INTERNAL_USERS]
+SECRETS_UNIT = [
+    "ca-cert",
+    "csr",
+    "certificate",
+    "truststore-password",
+    "keystore-password",
+    "private-key",
+]
+
 JMX_EXPORTER_PORT = 9101
 METRICS_RULES_DIR = "./src/alert_rules/prometheus"
 LOGS_RULES_DIR = "./src/alert_rules/loki"
 
 SUBSTRATE = "vm"
-USER = "snap_daemon"
+# '584788' refers to snap_daemon, which do not exists on the storage-attached hook prior to the
+# snap install.
+# FIXME (24.04): From snapd 2.61 onwards, snap_daemon is being deprecated and replaced with _daemon_,
+# which now possesses a UID of 584792.
+# See https://snapcraft.io/docs/system-usernames.
+USER = 584788
 GROUP = "root"
 
-AuthMechanism = Literal["SASL_PLAINTEXT", "SASL_SSL", "SSL"]
+AuthProtocol = Literal["SASL_PLAINTEXT", "SASL_SSL", "SSL"]
+AuthMechanism = Literal["SCRAM-SHA-512", "OAUTHBEARER", "SSL"]
 Scope = Literal["INTERNAL", "CLIENT"]
 DebugLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
-Substrate = Literal["vm", "k8s"]
 DatabagScope = Literal["unit", "app"]
+Substrates = Literal["vm", "k8s"]
 
 JVM_MEM_MIN_GB = 1
 JVM_MEM_MAX_GB = 6
@@ -63,10 +86,12 @@ class Ports:
     internal: int
 
 
-SECURITY_PROTOCOL_PORTS: dict[AuthMechanism, Ports] = {
-    "SASL_PLAINTEXT": Ports(9092, 19092),
-    "SASL_SSL": Ports(9093, 19093),
-    "SSL": Ports(9094, 19094),
+SECURITY_PROTOCOL_PORTS: dict[tuple[AuthProtocol, AuthMechanism], Ports] = {
+    ("SASL_PLAINTEXT", "SCRAM-SHA-512"): Ports(9092, 19092),
+    ("SASL_PLAINTEXT", "OAUTHBEARER"): Ports(9095, 19095),
+    ("SASL_SSL", "SCRAM-SHA-512"): Ports(9093, 19093),
+    ("SASL_SSL", "OAUTHBEARER"): Ports(9096, 19096),
+    ("SSL", "SSL"): Ports(9094, 19094),
 }
 
 
@@ -124,6 +149,6 @@ DEPENDENCIES = {
         "dependencies": {"zookeeper": "^3.6"},
         "name": "kafka",
         "upgrade_supported": ">3",
-        "version": "3.6.0",
+        "version": "3.6.1",
     },
 }

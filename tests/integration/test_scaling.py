@@ -4,7 +4,6 @@
 
 import asyncio
 import logging
-import time
 
 import pytest
 from pytest_operator.plugin import OpsTest
@@ -20,7 +19,7 @@ logger = logging.getLogger(__name__)
 async def test_kafka_simple_scale_up(ops_test: OpsTest, kafka_charm):
     await asyncio.gather(
         ops_test.model.deploy(
-            ZK, channel="edge", application_name=ZK, num_units=1, series="jammy"
+            ZK, channel="edge", application_name=ZK, revision=137, num_units=1, series="jammy"
         ),
         ops_test.model.deploy(
             kafka_charm, application_name=CHARM_KEY, num_units=1, series="jammy"
@@ -34,14 +33,22 @@ async def test_kafka_simple_scale_up(ops_test: OpsTest, kafka_charm):
 
     await ops_test.model.applications[CHARM_KEY].add_units(count=2)
     await ops_test.model.wait_for_idle(
-        apps=[CHARM_KEY], status="active", timeout=600, idle_period=30, wait_for_exact_units=3
+        apps=[CHARM_KEY], status="active", timeout=600, idle_period=20, wait_for_exact_units=3
     )
 
+    # ensuring deferred events get cleaned up
+    async with ops_test.fast_forward(fast_interval="10s"):
+        await asyncio.sleep(60)
+
     kafka_zk_relation_data = get_kafka_zk_relation_data(
-        unit_name="kafka/2", model_full_name=ops_test.model_full_name
+        ops_test=ops_test,
+        unit_name="kafka/2",
+        owner=ZK,
     )
+
     active_brokers = get_active_brokers(config=kafka_zk_relation_data)
-    chroot = kafka_zk_relation_data.get("chroot", "")
+    chroot = kafka_zk_relation_data.get("database", kafka_zk_relation_data.get("chroot", ""))
+
     assert f"{chroot}/brokers/ids/0" in active_brokers
     assert f"{chroot}/brokers/ids/1" in active_brokers
     assert f"{chroot}/brokers/ids/2" in active_brokers
@@ -54,13 +61,19 @@ async def test_kafka_simple_scale_down(ops_test: OpsTest):
         apps=[CHARM_KEY], status="active", timeout=1000, idle_period=30, wait_for_exact_units=2
     )
 
-    time.sleep(30)
+    # ensuring ZK data gets updated
+    async with ops_test.fast_forward(fast_interval="20s"):
+        await asyncio.sleep(60)
 
     kafka_zk_relation_data = get_kafka_zk_relation_data(
-        unit_name="kafka/2", model_full_name=ops_test.model_full_name
+        ops_test=ops_test,
+        unit_name="kafka/2",
+        owner=ZK,
     )
+
     active_brokers = get_active_brokers(config=kafka_zk_relation_data)
-    chroot = kafka_zk_relation_data.get("chroot", "")
+    chroot = kafka_zk_relation_data.get("database", kafka_zk_relation_data.get("chroot", ""))
+
     assert f"{chroot}/brokers/ids/0" in active_brokers
     assert f"{chroot}/brokers/ids/1" not in active_brokers
     assert f"{chroot}/brokers/ids/2" in active_brokers
