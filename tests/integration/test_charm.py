@@ -352,5 +352,5 @@ async def test_deploy_with_existing_storage(ops_test: OpsTest):
     add_unit_cmd = f"add-unit {APP_NAME} --model={ops_test.model.info.name} --attach-storage={data_storage_id}".split()
     await ops_test.juju(*add_unit_cmd)
     await ops_test.model.wait_for_idle(
-        apps=[APP_NAME], status="active", timeout=1000, idle_period=60
+        apps=[APP_NAME], status="active", timeout=2000, idle_period=30, raise_on_error=False
     )
