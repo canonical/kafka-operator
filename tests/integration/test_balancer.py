@@ -320,9 +320,12 @@ class TestBalancer:
             await ops_test.model.add_relation(TLS_NAME, f"{BALANCER_APP}:{TLS_RELATION}")
 
         await ops_test.model.wait_for_idle(
-            apps=list({APP_NAME, ZK_NAME, self.balancer_app}), idle_period=30, timeout=1800
+            apps=list({APP_NAME, ZK_NAME, self.balancer_app}),
+            status="active",
+            idle_period=30,
+            timeout=1800,
         )
-        async with ops_test.fast_forward(fast_interval="20s"):
+        async with ops_test.fast_forward(fast_interval="30s"):
             await asyncio.sleep(120)  # ensure update-status adds broker-capacities if missed
 
         # Assert that balancer is running and using certificates
