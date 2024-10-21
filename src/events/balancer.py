@@ -278,7 +278,7 @@ class BalancerOperator(Object):
             return True
 
         current_status = self.charm.state.ready_to_start
-        if not isinstance(current_status, ActiveStatus):
+        if current_status is not Status.ACTIVE:
             self.charm._set_status(current_status)
             return False
 
