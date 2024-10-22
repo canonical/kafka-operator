@@ -3,6 +3,7 @@
 [Azure](https://azure.com/) is the cloud computing platform developed by Microsoft. It has management, access and development of applications and services to individuals, companies, and governments through its global infrastructure. Access the Azure web console at [portal.azure.com](https://portal.azure.com/).
 
 ## Summary
+
 * [Install Azure and Juju tooling](#install-client-environment)
   * [Authenticate](#authenticate)
 * [Bootstrap Juju controller on Azure](#bootstrap-juju-controller-on-azure)
@@ -41,15 +42,15 @@ which should show:
 
 ### Azure CLI
 
-Follow the [user guide](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux?pivots=apt) for installing the Azure CLI on Linux distributions.
+Install the Azure CLI on Linux distributions by following the [Azure CLI's installation guide](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux?pivots=apt).
 
-Verify that it is correctly installed running the command below:
+Verify that it is correctly installed:
 
 ```shell
 az --version
 ```
 
-which should show the following output:
+The above command should produce output similar to the following:
 
 ```shell
 azure-cli                         2.65.0
@@ -85,16 +86,10 @@ az login
 After providing the authentication via web browser, you will be shown a list of information and a table with the subscriptions connected to your user, e.g.:
 
 ```shell
-
-...
-
 No     Subscription name                     Subscription ID                       Tenant
 -----  ------------------------------------  ------------------------------------  -------------
 [1] *  <subscription_name>                   <subscription_id>                     canonical.com
 [2]    <other_subscription_name>             <other_subscription_id>               canonical.com
-
-...
-
 ```
 
 In the prompt, select the subscription id you would like to connect the controller to, and store the id 
@@ -117,8 +112,7 @@ This will start a script that will help you set up the credentials, where you wi
 * `application_name`: please generate a random string to avoid collision with other users or applications
 * `role-definition-name`: please generate a random string to avoid collision with other users or applications, and store it as `<AZURE_ROLE>`
 
-After prompting all these information, you will be asked to authenticate the requests via web browser, as shown in the 
-outputs that will display
+Next, you will be asked to authenticate the requests via your web browser with the following message:
 
 ```shell
 To sign in, use a web browser to open the page https://microsoft.com/devicelogin and enter the code <YOUR_CODE> to authenticate.
@@ -128,13 +122,13 @@ In the browser, open the [authentication page](https://microsoft.com/devicelogin
 
 You will be asked to authenticate twice, for allowing the creation of two different resources in Azure.
 
-If everything was fine, you will be confirmed that the credentials have been correctly added locally:
+You will see a message that the credentials have been added locally:
 
 ```shell
 Credential <CREDENTIAL_NAME> added locally for cloud "azure".
 ```
 
-Once the credentials are correctly added, we can bootstrap a controller
+Once the credentials are correctly added, we can bootstrap a controller:
 
 ```shell
 juju bootstrap azure <CONTROLLER_NAME>
@@ -143,6 +137,7 @@ juju bootstrap azure <CONTROLLER_NAME>
 ## Deploy charms
 
 Create a new Juju model, if needed:
+
 ```shell
 juju add-model <MODEL_NAME>
 ```
@@ -152,9 +147,11 @@ juju add-model <MODEL_NAME>
 > ```
 
 Then, Charmed Kafka can be deployed as usual. However, note that the smallest instance types on Azure may not have enough resources for hosting 
-a Kafka broker. We therefore recommend you to select some types that provides at the very least 8GB of RAM and 4 cores, although for production use-case
-we recommend you to use the guidance provided in the [requirement page](/t/charmed-kafka-reference-requirements/10563). You can find more information about 
-the available instance types in the [Azure web page](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/overview). 
+a Kafka broker. We recommend selecting an instance type that provides at the very least `8` GB of RAM and `4` cores.
+For more guidance on production environment sizing, see the [Requirements page](/t/charmed-kafka-reference-requirements/10563).
+You can find more information about the available instance types in the [Azure documentation](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/overview).
+
+Deploy and integrate Kafka and ZooKeepe, for example:
 
 ```shell
 juju deploy zookeeper -n3 --channel 3/stable
@@ -176,42 +173,42 @@ And integrate it with the Kafka application:
 juju integrate kafka admin
 ```
 
-For more information on Data Integrator and how to use it, please refer to the [how-to manage applications](/t/charmed-kafka-how-to-manage-app/10285) user guide.
+For more information on Data Integrator and how to use it, please refer to the [how-to manage applications](/t/charmed-kafka-how-to-manage-app/10285) guide.
 
 ## Clean up
 
 [note type="caution"]
-Always clean Azure resources that are no longer necessary -  they could be costly!
+Always clean Azure resources that are no longer necessary! Abandoned resources are tricky to detect and they can become expensive over time.
 [/note]
 
-To destroy the Juju controller and remove Azure instance (warning: all your data will be permanently removed):
+To destroy the Juju controller and remove the Azure instance (Warning: all your data will be permanently removed):
+
 ```shell
 juju destroy-controller <CONTROLLER_NAME> --destroy-all-models --destroy-storage --force
 ```
 
 > Use `juju list-controllers` to retrieve the names of the controllers that have been registered to your local client. 
 
-Next, check and manually delete all unnecessary Azure VM instances, to show the list of all your Azure VMs run the following command (make sure the correct region used!): 
+Next, check and manually delete all unnecessary Azure VM instances, to show the list of all your Azure VMs run the following command (make sure to use the correct region): 
 ```shell
 az resource list
 ```
 
-List your Juju credentials:
+List your Juju credentials with the `juju credentials` command:
+
 ```shell
-> juju credentials
-...
 Client Credentials:
 Cloud        Credentials
 azure        NAME_OF_YOUR_CREDENTIAL
-...
 ```
 Remove Azure CLI credentials from Juju:
+
 ```shell
-> juju remove-credential azure NAME_OF_YOUR_CREDENTIAL
+juju remove-credential azure NAME_OF_YOUR_CREDENTIAL
 ```
 
 After deleting the credentials, the `interactive` process may still leave the role resource and its assignment hanging around. 
-We recommend you to check if these are still present by 
+We recommend checking if these are still present by running:
 
 ```shell
 az role definition list --name <AZURE_ROLE>
@@ -220,7 +217,7 @@ az role definition list --name <AZURE_ROLE>
 To get the full list, use it without specifying the `--name` argument. 
 
 You can check whether you still have a 
-role assignment bound to `<AZURE_ROLE>` registered using
+role assignment bound to `<AZURE_ROLE>` registered by using:
 
 ```shell
 az role assignment list --role <AZURE_ROLE>
