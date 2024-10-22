@@ -69,6 +69,7 @@ Check AWS credentials:
 ## Bootstrap Juju controller on AWS EC2
 
 Add AWS credentials to Juju:
+
 ```shell
 juju add-credential aws -f ~/.aws/credentials.yaml
 ```
