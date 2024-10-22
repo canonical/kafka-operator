@@ -141,6 +141,7 @@ Create a new Juju model, if needed:
 ```shell
 juju add-model <MODEL_NAME>
 ```
+
 > (Optional) Increase the debug level if you are troubleshooting charms:
 > ```shell
 > juju model-config logging-config='<root>=INFO;unit=DEBUG'
@@ -151,7 +152,7 @@ a Kafka broker. We recommend selecting an instance type that provides at the ver
 For more guidance on production environment sizing, see the [Requirements page](/t/charmed-kafka-reference-requirements/10563).
 You can find more information about the available instance types in the [Azure documentation](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/overview).
 
-Deploy and integrate Kafka and ZooKeepe, for example:
+Deploy and integrate Kafka and ZooKeeper, for example:
 
 ```shell
 juju deploy zookeeper -n3 --channel 3/stable
@@ -201,6 +202,7 @@ Client Credentials:
 Cloud        Credentials
 azure        NAME_OF_YOUR_CREDENTIAL
 ```
+
 Remove Azure CLI credentials from Juju:
 
 ```shell
