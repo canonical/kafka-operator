@@ -226,7 +226,7 @@ role assignment bound to `<AZURE_ROLE>` registered using
 az role assignment list --role <AZURE_ROLE>
 ```
 
-If this is the case, you can remove the role assignment first and then the role itself with the following commands:
+If there is an unwanted role left, you can remove the role assignment first and then the role itself with the following commands:
 
 ```shell
 az role assignment delete --role <AZURE_ROLE>
