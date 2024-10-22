@@ -20,8 +20,7 @@ Install Juju via snap:
 sudo snap install juju
 ```
 
-Follow the installation guides for:
-* [AWs CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) - the Amazon Web Services CLI
+Follow the [AWS documentation](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) for guidance on how to install the Amazon Web Services CLI.
 
 To check whether both Juju and AWS CLI are correctly installed, run commands to display their versions:
 
@@ -35,7 +34,8 @@ aws-cli/2.13.25 Python/3.11.5 Linux/6.2.0-33-generic exe/x86_64.ubuntu.23 prompt
 
 ### Authenticate
 
-[Create an IAM account](https://docs.aws.amazon.com/eks/latest/userguide/getting-started-console.html) (or use legacy access keys) to operate AWS EC2:
+[Create an IAM account](https://docs.aws.amazon.com/eks/latest/userguide/getting-started-console.html) or use legacy user access keys and secret key to operate AWS EC2:
+
 ```shell
 mkdir -p ~/.aws && cat <<- EOF >  ~/.aws/credentials.yaml
 credentials:
@@ -106,9 +106,6 @@ to create a new model to deploy workloads.
 ```
 [/details]
 
-Check the [AWS EC2 instance availability](https://us-east-1.console.aws.amazon.com/ec2/home?region=us-east-1#Instances:instanceState=running) to ensure the right AWS region is chosen:
-![image|690x118](upload://putAO5NyHdaeWE6jXI8X1hZHTYv.png)
-
 ## Deploy charms
 
 Create a new Juju model, if needed:
@@ -121,23 +118,24 @@ juju add-model <MODEL_NAME>
 > juju model-config logging-config='<root>=INFO;unit=DEBUG'
 > ```
 
-Then, Charmed Kafka can be deployed as usual. However, note that the smallest instance types on Azure may not have enough resources for hosting 
-a Kafka broker. We recommend selecting an instance type that provides at the very least `8` GB of RAM and `4` cores.
+Then, Charmed Kafka can be deployed as usual. However, note that the smallest instance types on AWS may not have enough resources for hosting 
+a Kafka broker. We recommend selecting an instance type that provides at the very least 8 GB of RAM and 4 cores.
 For more guidance on production environment sizing, see the [Requirements page](/t/charmed-kafka-reference-requirements/10563).
-You can find more information about the available instance types in the [Azure documentation](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/overview).
+You can find more information about the available instance types in the [AWS documentation](https://us-east-1.console.aws.amazon.com/ec2/home?region=us-east-1#Instances:instanceState=running), 
+ensuring that you select the correct AWS.
 
-Deploy and integrate Kafka and ZooKeepe, for example:
+Deploy and integrate Kafka and ZooKeeper, for example:
 
 ```shell
 juju deploy zookeeper -n3 --channel 3/stable
-juju deploy kafka -n3 --constraints "instance-type=Standard_A4_v2" --channel 3/stable
+juju deploy kafka -n3 --constraints "instance-type=m7i.xlarge" --channel 3/stable
 juju integrate kafka zookeeper
 ```
 
 We also recommend to deploy a [Data Integrator](https://charmhub.io/data-integrator) for creating an admin user to manage the content of the Kafka cluster:
 
 ```shell
-juju deploy data-integrator admin --channel edge \
+juju deploy data-integrator admin \
   --config extra-user-roles=admin \
   --config topic-name=admin-topic
 ```
@@ -161,14 +159,12 @@ To list all controllers use the `juju controllers` command.
 To destroy the Juju controller and remove AWS instance (**Warning**: all your data will be permanently deleted):
 
 ```shell
-> juju controllers
-Controller      Model  User   Access     Cloud/Region   Models  Nodes    HA  Version
-aws-us-east-1*  -      admin  superuser  aws/us-east-1       1      1  none  3.5.4  
-
-> juju destroy-controller aws-us-east-1 --destroy-all-models --destroy-storage --force
+juju destroy-controller <CONTROLLER_NAME> --destroy-all-models --destroy-storage --force
 ```
 
-Next, check and manually delete all unnecessary AWS EC2 instances, to show the list of all your EC2 instances run the following command (make sure to use the correct region):
+Use `juju list-controllers` to list the available controllers the client has registered to. 
+
+After destroying the controller, check and manually delete all unnecessary AWS EC2 instances, to show the list of all your EC2 instances run the following command (make sure to use the correct region):
  
 ```shell
 aws ec2 describe-instances --region us-east-1 --query "Reservations[].Instances[*].{InstanceType: InstanceType, InstanceId: InstanceId, State: State.Name}" --output table
@@ -181,10 +177,10 @@ aws ec2 describe-instances --region us-east-1 --query "Reservations[].Instances[
 +---------------------+----------------+--------------+
 |     InstanceId      | InstanceType   |    State     |
 +---------------------+----------------+--------------+
-|  i-0f374435695ffc54c|  m7i.large     |  terminated  |
-|  i-0e1e8279f6b2a08e0|  m7i.large     |  terminated  |
-|  i-061e0d10d36c8cffe|  m7i.large     |  terminated  |
-|  i-0f4615983d113166d|  m7i.large     |  terminated  |
+|  i-0f374435695ffc54c|  m7i.xlarge    |  terminated  |
+|  i-0e1e8279f6b2a08e0|  m7i.xlarge    |  terminated  |
+|  i-061e0d10d36c8cffe|  m7i.xlarge    |  terminated  |
+|  i-0f4615983d113166d|  m7i.xlarge    |  terminated  |
 +---------------------+----------------+--------------+
 ```
 [/details]
