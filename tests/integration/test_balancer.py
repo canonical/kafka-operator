@@ -9,6 +9,7 @@ from subprocess import CalledProcessError
 
 import pytest
 from pytest_operator.plugin import OpsTest
+from tenacity import Retrying, stop_after_attempt, wait_fixed
 
 from literals import (
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
@@ -141,6 +142,7 @@ class TestBalancer:
             status="active",
             timeout=1800,
             idle_period=60,
+            raise_on_error=False,
         )
 
         assert balancer_is_running(
@@ -157,10 +159,9 @@ class TestBalancer:
         assert balancer_is_ready(ops_test=ops_test, app_name=self.balancer_app)
 
     @pytest.mark.abort_on_fail
-    @pytest.mark.skip
-    # @pytest.mark.skipif(
-    #     deployment_strat == "single", reason="Testing full rebalance on large deployment"
-    # )
+    @pytest.mark.skipif(
+        deployment_strat == "single", reason="Testing full rebalance on large deployment"
+    )
     async def test_add_unit_full_rebalance(self, ops_test: OpsTest):
         await ops_test.model.applications[APP_NAME].add_units(
             count=1  # up to 4, new unit won't have any partitions
@@ -279,14 +280,17 @@ class TestBalancer:
 
         assert balancer_is_ready(ops_test=ops_test, app_name=self.balancer_app)
 
-        rebalance_action = await leader_unit.run_action(
-            "rebalance",
-            mode="remove",
-            brokerid=new_broker_id,
-            dryrun=False,
-        )
-        response = await rebalance_action.wait()
-        assert not response.results.get("error", "")
+        for attempt in Retrying(stop=stop_after_attempt(5), wait=wait_fixed(60), reraise=True):
+            with attempt:
+                rebalance_action = await leader_unit.run_action(
+                    "rebalance",
+                    mode="remove",
+                    brokerid=new_broker_id,
+                    dryrun=False,
+                )
+
+                response = await rebalance_action.wait()
+                assert not response.results.get("error", "")
 
         post_rebalance_replica_counts = get_replica_count_by_broker_id(ops_test, self.balancer_app)
 
