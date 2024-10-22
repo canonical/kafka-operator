@@ -16,7 +16,7 @@ from charms.data_platform_libs.v0.data_interfaces import (
     DataPeerUnitData,
 )
 from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManager
-from kazoo.client import AuthFailedError, NoNodeError
+from kazoo.client import AuthFailedError, ConnectionLoss, NoNodeError
 from kazoo.exceptions import NoAuthError
 from lightkube.resources.core_v1 import Node, Pod
 from ops.model import Application, Relation, Unit
@@ -714,7 +714,13 @@ class ZooKeeper(RelationState):
         zk = ZooKeeperManager(hosts=hosts, username=self.username, password=self.password)
         try:
             brokers = zk.leader_znodes(path=path)
-        except (NoNodeError, AuthFailedError, QuorumLeaderNotFoundError, NoAuthError) as e:
+        except (
+            NoNodeError,
+            AuthFailedError,
+            QuorumLeaderNotFoundError,
+            ConnectionLoss,
+            NoAuthError,
+        ) as e:
             logger.debug(str(e))
             brokers = set()
 

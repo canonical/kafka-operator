@@ -11,7 +11,6 @@ from charms.tls_certificates_interface.v1.tls_certificates import generate_priva
 from pytest_operator.plugin import OpsTest
 
 from literals import (
-    CHARM_KEY,
     REL_NAME,
     SECURITY_PROTOCOL_PORTS,
     TLS_RELATION,
@@ -20,6 +19,7 @@ from literals import (
 )
 
 from .helpers import (
+    APP_NAME,
     REL_NAME_ADMIN,
     check_tls,
     extract_ca,
@@ -33,8 +33,6 @@ from .helpers import (
 from .test_charm import DUMMY_NAME
 
 logger = logging.getLogger(__name__)
-
-pytestmark = pytest.mark.broker
 
 TLS_NAME = "self-signed-certificates"
 CERTS_NAME = "tls-certificates-operator"
@@ -54,7 +52,7 @@ async def test_deploy_tls(ops_test: OpsTest, kafka_charm):
         ops_test.model.deploy(ZK, channel="edge", series="jammy", application_name=ZK),
         ops_test.model.deploy(
             kafka_charm,
-            application_name=CHARM_KEY,
+            application_name=APP_NAME,
             series="jammy",
             config={
                 "ssl_principal_mapping_rules": "RULE:^.*[Cc][Nn]=([a-zA-Z0-9.]*).*$/$1/L,DEFAULT"
@@ -62,11 +60,9 @@ async def test_deploy_tls(ops_test: OpsTest, kafka_charm):
         ),
     )
     await ops_test.model.block_until(lambda: len(ops_test.model.applications[ZK].units) == 1)
-    await ops_test.model.wait_for_idle(
-        apps=[CHARM_KEY, ZK, TLS_NAME], idle_period=15, timeout=1800
-    )
+    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK, TLS_NAME], idle_period=15, timeout=1800)
 
-    assert ops_test.model.applications[CHARM_KEY].status == "blocked"
+    assert ops_test.model.applications[APP_NAME].status == "blocked"
     assert ops_test.model.applications[ZK].status == "active"
     assert ops_test.model.applications[TLS_NAME].status == "active"
 
@@ -86,13 +82,13 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm):
     """
     # Relate Zookeeper[TLS] to Kafka[Non-TLS]
     async with ops_test.fast_forward(fast_interval="60s"):
-        await ops_test.model.add_relation(ZK, CHARM_KEY)
+        await ops_test.model.add_relation(ZK, APP_NAME)
         await ops_test.model.wait_for_idle(
             apps=[ZK], idle_period=15, timeout=1000, status="active"
         )
 
         # Unit is on 'blocked' but whole app is on 'waiting'
-        assert ops_test.model.applications[CHARM_KEY].status == "blocked"
+        assert ops_test.model.applications[APP_NAME].status == "blocked"
 
     # Set a custom private key, by running set-tls-private-key action with no parameters,
     # as this will generate a random one
@@ -102,19 +98,19 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm):
     # Extract the key
     private_key = extract_private_key(
         ops_test=ops_test,
-        unit_name=f"{CHARM_KEY}/{num_unit}",
+        unit_name=f"{APP_NAME}/{num_unit}",
     )
 
     # ensuring at least a few update-status
-    await ops_test.model.add_relation(f"{CHARM_KEY}:{TLS_RELATION}", TLS_NAME)
+    await ops_test.model.add_relation(f"{APP_NAME}:{TLS_RELATION}", TLS_NAME)
     async with ops_test.fast_forward(fast_interval="20s"):
         await asyncio.sleep(60)
 
     await ops_test.model.wait_for_idle(
-        apps=[CHARM_KEY, ZK, TLS_NAME], idle_period=30, timeout=1200, status="active"
+        apps=[APP_NAME, ZK, TLS_NAME], idle_period=30, timeout=1200, status="active"
     )
 
-    kafka_address = await get_address(ops_test=ops_test, app_name=CHARM_KEY)
+    kafka_address = await get_address(ops_test=ops_test, app_name=APP_NAME)
 
     assert not check_tls(
         ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client
@@ -123,15 +119,15 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm):
     await asyncio.gather(
         ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series="jammy"),
     )
-    await ops_test.model.wait_for_idle(apps=[CHARM_KEY, DUMMY_NAME], timeout=1000, idle_period=30)
+    await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME], timeout=1000, idle_period=30)
 
     # ensuring at least a few update-status
-    await ops_test.model.add_relation(CHARM_KEY, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
+    await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
     async with ops_test.fast_forward(fast_interval="20s"):
         await asyncio.sleep(60)
 
     await ops_test.model.wait_for_idle(
-        apps=[CHARM_KEY, DUMMY_NAME], idle_period=30, status="active"
+        apps=[APP_NAME, DUMMY_NAME], idle_period=30, status="active"
     )
 
     assert check_tls(
@@ -150,7 +146,7 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm):
     # Extract the key
     private_key_2 = extract_private_key(
         ops_test=ops_test,
-        unit_name=f"{CHARM_KEY}/{num_unit}",
+        unit_name=f"{APP_NAME}/{num_unit}",
     )
 
     assert private_key != private_key_2
@@ -181,16 +177,16 @@ async def test_mtls(ops_test: OpsTest):
     )
     await ops_test.model.wait_for_idle(apps=[MTLS_NAME], timeout=1000, idle_period=15)
     await ops_test.model.add_relation(
-        f"{CHARM_KEY}:{TRUSTED_CERTIFICATE_RELATION}", f"{MTLS_NAME}:{TLS_RELATION}"
+        f"{APP_NAME}:{TRUSTED_CERTIFICATE_RELATION}", f"{MTLS_NAME}:{TLS_RELATION}"
     )
     await ops_test.model.wait_for_idle(
-        apps=[CHARM_KEY, MTLS_NAME], idle_period=60, timeout=2000, status="active"
+        apps=[APP_NAME, MTLS_NAME], idle_period=60, timeout=2000, status="active"
     )
 
     # getting kafka ca and address
-    broker_ca = extract_ca(ops_test=ops_test, unit_name=f"{CHARM_KEY}/0")
+    broker_ca = extract_ca(ops_test=ops_test, unit_name=f"{APP_NAME}/0")
 
-    address = await get_address(ops_test, app_name=CHARM_KEY)
+    address = await get_address(ops_test, app_name=APP_NAME)
     ssl_port = SECURITY_PROTOCOL_PORTS["SSL", "SSL"].client
     sasl_port = SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client
     ssl_bootstrap_server = f"{address}:{ssl_port}"
@@ -235,7 +231,7 @@ async def test_mtls(ops_test: OpsTest):
 async def test_mtls_broken(ops_test: OpsTest):
     await ops_test.model.remove_application(MTLS_NAME, block_until_done=True)
     await ops_test.model.wait_for_idle(
-        apps=[CHARM_KEY],
+        apps=[APP_NAME],
         status="active",
         idle_period=30,
         timeout=2000,
@@ -245,20 +241,18 @@ async def test_mtls_broken(ops_test: OpsTest):
 @pytest.mark.abort_on_fail
 async def test_kafka_tls_scaling(ops_test: OpsTest):
     """Scale the application while using TLS to check that new units will configure correctly."""
-    await ops_test.model.applications[CHARM_KEY].add_units(count=2)
+    await ops_test.model.applications[APP_NAME].add_units(count=2)
     await ops_test.model.block_until(
-        lambda: len(ops_test.model.applications[CHARM_KEY].units) == 3, timeout=1000
+        lambda: len(ops_test.model.applications[APP_NAME].units) == 3, timeout=1000
     )
+
     # Wait for model to settle
     await ops_test.model.wait_for_idle(
-        apps=[CHARM_KEY],
-        status="active",
-        idle_period=40,
-        timeout=1000,
+        apps=[APP_NAME], status="active", idle_period=40, timeout=1000, raise_on_error=False
     )
 
     kafka_zk_relation_data = get_kafka_zk_relation_data(
-        unit_name=f"{CHARM_KEY}/2",
+        unit_name=f"{APP_NAME}/2",
         ops_test=ops_test,
         owner=ZK,
     )
@@ -268,16 +262,16 @@ async def test_kafka_tls_scaling(ops_test: OpsTest):
     assert f"{chroot}/brokers/ids/1" in active_brokers
     assert f"{chroot}/brokers/ids/2" in active_brokers
 
-    kafka_address = await get_address(ops_test=ops_test, app_name=CHARM_KEY, unit_num=2)
+    kafka_address = await get_address(ops_test=ops_test, app_name=APP_NAME, unit_num=2)
     assert check_tls(
         ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client
     )
 
     # remove relation and check connection again
-    await ops_test.model.applications[CHARM_KEY].remove_relation(
-        f"{CHARM_KEY}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_ADMIN}"
+    await ops_test.model.applications[APP_NAME].remove_relation(
+        f"{APP_NAME}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_ADMIN}"
     )
-    await ops_test.model.wait_for_idle(apps=[CHARM_KEY])
+    await ops_test.model.wait_for_idle(apps=[APP_NAME])
     assert not check_tls(
         ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client
     )
@@ -286,10 +280,10 @@ async def test_kafka_tls_scaling(ops_test: OpsTest):
 async def test_tls_removed(ops_test: OpsTest):
     await ops_test.model.remove_application(TLS_NAME, block_until_done=True)
     await ops_test.model.wait_for_idle(
-        apps=[CHARM_KEY, ZK], timeout=3600, idle_period=30, status="active"
+        apps=[APP_NAME, ZK], timeout=3600, idle_period=30, status="active"
     )
 
-    kafka_address = await get_address(ops_test=ops_test, app_name=CHARM_KEY)
+    kafka_address = await get_address(ops_test=ops_test, app_name=APP_NAME)
     assert not check_tls(
         ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client
     )
