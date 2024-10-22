@@ -234,6 +234,7 @@ az role definition delete --name <AZURE_ROLE>
 ```
 
 Finally, logout Azure CLI user credentials to prevent any credential leakage:
+
 ```shell
 az logout 
 ```
