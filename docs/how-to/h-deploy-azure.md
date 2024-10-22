@@ -217,7 +217,9 @@ We recommend you to check if these are still present by
 az role definition list --name <AZURE_ROLE>
 ```
 
-Or also use it without specifying the `--name` argument to get the full list. You can also check whether you still have a 
+To get the full list, use it without specifying the `--name` argument. 
+
+You can check whether you still have a 
 role assignment bound to `<AZURE_ROLE>` registered using
 
 ```shell
