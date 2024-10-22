@@ -40,6 +40,7 @@ from literals import (
     CONTROLLER,
     CONTROLLER_PORT,
     INTERNAL_USERS,
+    KRAFT_NODE_ID_OFFSET,
     MIN_REPLICAS,
     OAUTH_REL_NAME,
     PEER,
@@ -404,9 +405,13 @@ class ClusterState(Object):
         """The current controller quorum uris when running KRaft mode."""
         # FIXME: when running broker node.id will be unit-id + 100. If unit is only running
         # the controller node.id == unit-id. This way we can keep a human readable mapping of ids.
-        if self.kraft_mode and self.runs_controller:
+        if self.runs_controller:
+            node_offset = KRAFT_NODE_ID_OFFSET if self.runs_broker else 0
             return ",".join(
-                [f"{broker.unit_id}@{broker.host}:{CONTROLLER_PORT}" for broker in self.brokers]
+                [
+                    f"{broker.unit_id + node_offset}@{broker.host}:{CONTROLLER_PORT}"
+                    for broker in self.brokers
+                ]
             )
         return ""
 
