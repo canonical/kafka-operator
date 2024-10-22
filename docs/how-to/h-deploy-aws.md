@@ -15,6 +15,7 @@
 ## Install AWS and Juju tooling
 
 Install Juju via snap:
+
 ```shell
 sudo snap install juju
 ```
