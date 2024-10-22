@@ -88,6 +88,11 @@ SECURITY_PROTOCOL_PORTS: dict[AuthMap, Ports] = {
 }
 # FIXME this port should exist on the previous abstraction
 CONTROLLER_PORT = 9097
+CONTROLLER_LISTENER_NAME = "INTERNAL_CONTROLLER"
+
+# FIXME: when running broker node.id will be unit-id + 100. If unit is only running
+# the controller node.id == unit-id. This way we can keep a human readable mapping of ids.
+KRAFT_NODE_ID_OFFSET = 100
 
 DebugLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
 DatabagScope = Literal["unit", "app"]

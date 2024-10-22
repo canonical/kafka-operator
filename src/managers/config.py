@@ -23,6 +23,7 @@ from literals import (
     ADMIN_USER,
     BALANCER_GOALS_TESTING,
     BROKER,
+    CONTROLLER_LISTENER_NAME,
     CONTROLLER_PORT,
     DEFAULT_BALANCER_GOALS,
     HARD_BALANCER_GOALS,
@@ -31,6 +32,7 @@ from literals import (
     JMX_EXPORTER_PORT,
     JVM_MEM_MAX_GB,
     JVM_MEM_MIN_GB,
+    KRAFT_NODE_ID_OFFSET,
     PROFILE_TESTING,
     SECURITY_PROTOCOL_PORTS,
     AuthMap,
@@ -602,15 +604,15 @@ class ConfigManager(CommonConfigManager):
         node_id = self.state.unit_broker.unit_id
         if self.state.runs_broker:
             roles.append("broker")
+            node_id += KRAFT_NODE_ID_OFFSET
         if self.state.runs_controller:
             roles.append("controller")
-            node_id += 100
 
         properties = [
             f"process.roles={','.join(roles)}",
             f"node.id={node_id}",
             f"controller.quorum.voters={self.state.peer_cluster.controller_quorum_uris}",
-            "controller.listener.names=INTERNAL_CONTROLLER",
+            f"controller.listener.names={CONTROLLER_LISTENER_NAME}",
         ]
 
         return properties
@@ -632,8 +634,8 @@ class ConfigManager(CommonConfigManager):
         advertised_listeners = [listener.advertised_listener for listener in self.all_listeners]
 
         if self.state.kraft_mode:
-            controller_protocol_map = "INTERNAL_CONTROLLER:PLAINTEXT"
-            controller_listener = f"INTERNAL_CONTROLLER://0.0.0.0:{CONTROLLER_PORT}"
+            controller_protocol_map = f"{CONTROLLER_LISTENER_NAME}:PLAINTEXT"
+            controller_listener = f"{CONTROLLER_LISTENER_NAME}://0.0.0.0:{CONTROLLER_PORT}"
 
             # NOTE: Case where the controller is running standalone. Early return with a
             # smaller subset of config options

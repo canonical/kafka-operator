@@ -13,6 +13,7 @@ from ops.pebble import ExecError
 
 from core.cluster import ClusterState
 from core.workload import WorkloadBase
+from literals import SECURITY_PROTOCOL_PORTS
 
 logger = logging.getLogger(__name__)
 
@@ -168,7 +169,7 @@ class AuthManager:
             opts = [self.kafka_opts]
         else:
             bootstrap_server = (
-                f"{self.state.unit_broker.internal_address}:19092"
+                f"{self.state.unit_broker.internal_address}:{SECURITY_PROTOCOL_PORTS[self.state.default_auth].internal}"
                 if internal
                 else self.state.bootstrap_server
             )

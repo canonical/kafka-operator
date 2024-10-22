@@ -61,7 +61,6 @@ custom_secret_groups = SECRET_GROUPS
 setattr(custom_secret_groups, "BROKER", "broker")
 setattr(custom_secret_groups, "BALANCER", "balancer")
 setattr(custom_secret_groups, "ZOOKEEPER", "zookeeper")
-# setattr(custom_secret_groups, "CONTROLLER", "controller")
 
 SECRET_LABEL_MAP = {
     "broker-username": getattr(custom_secret_groups, "BROKER"),
@@ -73,7 +72,6 @@ SECRET_LABEL_MAP = {
     "balancer-username": getattr(custom_secret_groups, "BALANCER"),
     "balancer-password": getattr(custom_secret_groups, "BALANCER"),
     "balancer-uris": getattr(custom_secret_groups, "BALANCER"),
-    # "controller-quorum-uris": getattr(custom_secret_groups, "CONTROLLER"),
 }
 
 
@@ -404,14 +402,11 @@ class ClusterState(Object):
     @property
     def controller_quorum_uris(self) -> str:
         """The current controller quorum uris when running KRaft mode."""
-        # FIXME: when running controller node.id will be unit.id + 100. If unit is only running
-        # the broker node.id == unit.id. This way we can keep a human readable mapping of ids.
+        # FIXME: when running broker node.id will be unit-id + 100. If unit is only running
+        # the controller node.id == unit-id. This way we can keep a human readable mapping of ids.
         if self.kraft_mode and self.runs_controller:
             return ",".join(
-                [
-                    f"{broker.unit_id+100}@{broker.host}:{CONTROLLER_PORT}"
-                    for broker in self.brokers
-                ]
+                [f"{broker.unit_id}@{broker.host}:{CONTROLLER_PORT}" for broker in self.brokers]
             )
         return ""
 

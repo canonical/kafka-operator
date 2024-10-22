@@ -193,13 +193,6 @@ class PeerCluster(RelationState):
             or ""
         )
 
-        # return self.data_interface._fetch_relation_data_with_secrets(
-        #     component=self.relation.app,
-        #     req_secret_fields=BROKER.requested_secrets,
-        #     relation=self.relation,
-        #     fields=CONTROLLER.requested_secrets,
-        # ).get("controller-quorum-uris", "")
-
     @property
     def cluster_uuid(self) -> str:
         """The cluster uuid used to format storages in KRaft mode."""
@@ -365,13 +358,7 @@ class PeerCluster(RelationState):
     @property
     def broker_connected_kraft_mode(self) -> bool:
         """Checks for necessary data required by a controller."""
-        if not all(
-            [
-                self.broker_username,
-                self.broker_password,
-                self.cluster_uuid,
-            ]
-        ):
+        if not all([self.broker_username, self.broker_password, self.cluster_uuid]):
             return False
 
         return True

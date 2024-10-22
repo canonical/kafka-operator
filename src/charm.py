@@ -182,8 +182,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         if not self.broker.workload.active():
             event.add_status(Status.BROKER_NOT_RUNNING.value.status)
 
-        if not self.state.zookeeper.broker_active():
-            event.add_status(Status.ZK_NOT_CONNECTED.value.status)
+        if not self.state.kraft_mode:
+            if not self.state.zookeeper.broker_active():
+                event.add_status(Status.ZK_NOT_CONNECTED.value.status)
 
 
 if __name__ == "__main__":
