@@ -351,7 +351,11 @@ class ClusterState(Object):
     def enabled_auth(self) -> list[AuthMap]:
         """The currently enabled auth.protocols and their auth.mechanisms, based on related applications."""
         enabled_auth = []
-        if self.client_relations or self.runs_balancer or self.peer_cluster_orchestrator_relation:
+        if (
+            self.client_relations
+            or self.runs_balancer
+            or BALANCER.value in self.peer_cluster_orchestrator.roles
+        ):
             enabled_auth.append(self.default_auth)
         if self.oauth_relation:
             enabled_auth.append(AuthMap(self.default_auth.protocol, "OAUTHBEARER"))

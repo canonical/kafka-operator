@@ -108,7 +108,7 @@ class TestKRaft:
         )
 
         async with ops_test.fast_forward(fast_interval="40s"):
-            await asyncio.sleep(120)  # ensure update-status adds broker-capacities if missed
+            await asyncio.sleep(120)
 
         assert ops_test.model.applications[APP_NAME].status == "active"
         assert ops_test.model.applications[self.controller_app].status == "active"
