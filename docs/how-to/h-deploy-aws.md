@@ -73,10 +73,13 @@ Add AWS credentials to Juju:
 ```shell
 juju add-credential aws -f ~/.aws/credentials.yaml
 ```
+
 Bootstrap Juju controller ([check all supported configuration options](https://juju.is/docs/juju/amazon-ec2)):
+
 ```shell
 juju bootstrap aws <CONTROLLER_NAME>
 ```
+
 [details="Output example"]
 ```shell
 > juju bootstrap aws
@@ -103,12 +106,13 @@ to create a new model to deploy workloads.
 ```
 [/details]
 
-You can check the [AWS EC2 instance availability](https://us-east-1.console.aws.amazon.com/ec2/home?region=us-east-1#Instances:instanceState=running) (ensure the right AWS region chosen!):
+Check the [AWS EC2 instance availability](https://us-east-1.console.aws.amazon.com/ec2/home?region=us-east-1#Instances:instanceState=running) to ensure the right AWS region is chosen:
 ![image|690x118](upload://putAO5NyHdaeWE6jXI8X1hZHTYv.png)
 
 ## Deploy charms
 
 Create a new Juju model, if needed:
+
 ```shell
 juju add-model <MODEL_NAME>
 ```
@@ -118,9 +122,11 @@ juju add-model <MODEL_NAME>
 > ```
 
 Then, Charmed Kafka can be deployed as usual. However, note that the smallest instance types on Azure may not have enough resources for hosting 
-a Kafka broker. We therefore recommend you to select some types that provides at the very least 8GB of RAM and 4 cores, although for production use-case
-we recommend you to use the guidance provided in the [requirement page](/t/charmed-kafka-reference-requirements/10563). You can find more information about 
-the available instance types in the [Azure web page](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/overview). 
+a Kafka broker. We recommend selecting an instance type that provides at the very least `8` GB of RAM and `4` cores.
+For more guidance on production environment sizing, see the [Requirements page](/t/charmed-kafka-reference-requirements/10563).
+You can find more information about the available instance types in the [Azure documentation](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/overview).
+
+Deploy and integrate Kafka and ZooKeepe, for example:
 
 ```shell
 juju deploy zookeeper -n3 --channel 3/stable
@@ -142,15 +148,18 @@ And integrate it with the Kafka application:
 juju integrate kafka admin
 ```
 
-For more information on Data Integrator and how to use it, please refer to the [how-to manage applications](/t/charmed-kafka-how-to-manage-app/10285) user guide.
+For more information on Data Integrator and how to use it, please refer to the [how-to manage applications](/t/charmed-kafka-how-to-manage-app/10285) guide.
 
 ## Clean up
 
 [note type="caution"]
-Always clean AWS resources that are no longer necessary -  they could be costly!
+Always clean AWS resources that are no longer necessary! Abandoned resources are tricky to detect and they can become expensive over time.
 [/note]
 
-To destroy the Juju controller and remove AWS instance (warning: all your data will be permanently removed):
+To list all controllers use the `juju controllers` command.
+
+To destroy the Juju controller and remove AWS instance (**Warning**: all your data will be permanently deleted):
+
 ```shell
 > juju controllers
 Controller      Model  User   Access     Cloud/Region   Models  Nodes    HA  Version
@@ -159,10 +168,12 @@ aws-us-east-1*  -      admin  superuser  aws/us-east-1       1      1  none  3.5
 > juju destroy-controller aws-us-east-1 --destroy-all-models --destroy-storage --force
 ```
 
-Next, check and manually delete all unnecessary AWS EC2 instances, to show the list of all your EC2 instances run the following command (make sure the correct region used!): 
+Next, check and manually delete all unnecessary AWS EC2 instances, to show the list of all your EC2 instances run the following command (make sure to use the correct region):
+ 
 ```shell
 aws ec2 describe-instances --region us-east-1 --query "Reservations[].Instances[*].{InstanceType: InstanceType, InstanceId: InstanceId, State: State.Name}" --output table
 ```
+
 [details="Output example"]
 ```shell
 -------------------------------------------------------
@@ -178,9 +189,9 @@ aws ec2 describe-instances --region us-east-1 --query "Reservations[].Instances[
 ```
 [/details]
 
-List your Juju credentials:
+List your Juju credentials with the `juju credentials` command:
+
 ```shell
-> juju credentials
 ...
 Client Credentials:
 Cloud        Credentials
@@ -188,11 +199,13 @@ aws          NAME_OF_YOUR_CREDENTIAL
 ...
 ```
 Remove AWS EC2 CLI credentials from Juju:
+
 ```shell
-> juju remove-credential aws NAME_OF_YOUR_CREDENTIAL
+juju remove-credential aws NAME_OF_YOUR_CREDENTIAL
 ```
 
 Finally, remove AWS CLI user credentials (to avoid forgetting and leaking):
+
 ```shell
 rm -f ~/.aws/credentials.yaml
 ```
