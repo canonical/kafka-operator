@@ -32,7 +32,9 @@ To check whether both Juju and AWS CLI are correctly installed, run commands to 
 ~$ aws --version
 aws-cli/2.13.25 Python/3.11.5 Linux/6.2.0-33-generic exe/x86_64.ubuntu.23 prompt/off
 ```
+
 ### Authenticate
+
 [Create an IAM account](https://docs.aws.amazon.com/eks/latest/userguide/getting-started-console.html) (or use legacy access keys) to operate AWS EC2:
 ```shell
 mkdir -p ~/.aws && cat <<- EOF >  ~/.aws/credentials.yaml
