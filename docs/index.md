@@ -52,6 +52,8 @@ The Charmed Kafka Operator is free software, distributed under the Apache Softwa
   1. [7. Cleanup your environment](tutorial/t-cleanup-environment.md)
 1. [How To](how-to)
   1. [Deploy](how-to/h-deploy.md)
+  1. [Deploy on AWS](how-to/h-deploy-aws.md)
+  1. [Deploy on Azure](how-to/h-deploy-azure.md)
   1. [Manage units](how-to/h-manage-units.md)
   1. [Manage applications](how-to/h-manage-app.md)
   1. [Enable encryption](how-to/h-enable-encryption.md)
