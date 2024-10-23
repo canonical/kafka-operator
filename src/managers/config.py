@@ -23,6 +23,7 @@ from literals import (
     ADMIN_USER,
     BALANCER_GOALS_TESTING,
     BROKER,
+    CONTROLLER_LISTENER_NAME,
     CONTROLLER_PORT,
     DEFAULT_BALANCER_GOALS,
     HARD_BALANCER_GOALS,
@@ -31,6 +32,7 @@ from literals import (
     JMX_EXPORTER_PORT,
     JVM_MEM_MAX_GB,
     JVM_MEM_MIN_GB,
+    KRAFT_NODE_ID_OFFSET,
     PROFILE_TESTING,
     SECURITY_PROTOCOL_PORTS,
     AuthMap,
@@ -322,6 +324,9 @@ class ConfigManager(CommonConfigManager):
         Returns:
             List of properties to be set
         """
+        if self.state.kraft_mode:
+            return []
+
         return [
             f"broker.id={self.state.unit_broker.unit_id}",
             f"zookeeper.connect={self.state.zookeeper.connect}",
@@ -450,9 +455,9 @@ class ConfigManager(CommonConfigManager):
         )
 
     @property
-    def controller_listener(self) -> Listener:
+    def controller_listener(self) -> None:
         """Return the controller listener."""
-        pass # TODO: No good abstraction in place for the controller use case
+        pass  # TODO: No good abstraction in place for the controller use case
 
     @property
     def client_listeners(self) -> list[Listener]:
@@ -580,8 +585,9 @@ class ConfigManager(CommonConfigManager):
     @property
     def authorizer_class(self) -> list[str]:
         """Return the authorizer Java class used on Kafka."""
-        if self.state.runs_controller:
-            return ["authorizer.class.name=org.apache.kafka.metadata.authorizer.StandardAuthorizer"]
+        if self.state.kraft_mode:
+            # return ["authorizer.class.name=org.apache.kafka.metadata.authorizer.StandardAuthorizer"]
+            return []
         return ["authorizer.class.name=kafka.security.authorizer.AclAuthorizer"]
 
     @property
@@ -591,24 +597,23 @@ class ConfigManager(CommonConfigManager):
         Returns:
             List of properties to be set
         """
-        # TODO: this check will need to be done on relation data
-        roles = "process.roles="
-        if self.state.runs_controller:
-            roles += self.config.roles
-        # TODO node.id based on unit number for colocated, if only controller unit number + 100
-        # FIXME node.id will have to be a crunched form of model uuid + app name or similar
-        # FIXME quorum_voters into abstraction on state -> can be created from peer_orchestrator
-        # relation or from own cluster if controller runs colocated.
-        quorum_voters = [f"{broker.unit_id}@{broker.host}:{CONTROLLER_PORT}" for broker in self.state.brokers]
+        if self.state.kraft_mode == False:  # noqa: E712
+            return []
 
-        properties = (
-            [
-                "" if roles=="process.roles=" else roles,
-                f"node.id={self.state.unit_broker.unit_id}",
-                f"controller.quorum.voters={','.join(quorum_voters)}",
-                "controller.listener.names=INTERNAL_CONTROLLER",
-            ]
-        )
+        roles = []
+        node_id = self.state.unit_broker.unit_id
+        if self.state.runs_broker:
+            roles.append("broker")
+            node_id += KRAFT_NODE_ID_OFFSET
+        if self.state.runs_controller:
+            roles.append("controller")
+
+        properties = [
+            f"process.roles={','.join(roles)}",
+            f"node.id={node_id}",
+            f"controller.quorum.voters={self.state.peer_cluster.controller_quorum_uris}",
+            f"controller.listener.names={CONTROLLER_LISTENER_NAME}",
+        ]
 
         return properties
 
@@ -628,9 +633,23 @@ class ConfigManager(CommonConfigManager):
         listeners_repr = [listener.listener for listener in self.all_listeners]
         advertised_listeners = [listener.advertised_listener for listener in self.all_listeners]
 
-        if self.state.runs_controller:
-            protocol_map.append("INTERNAL_CONTROLLER:PLAINTEXT")
-            listeners_repr.append(f"INTERNAL_CONTROLLER://0.0.0.0:{CONTROLLER_PORT}")
+        if self.state.kraft_mode:
+            controller_protocol_map = f"{CONTROLLER_LISTENER_NAME}:PLAINTEXT"
+            controller_listener = f"{CONTROLLER_LISTENER_NAME}://0.0.0.0:{CONTROLLER_PORT}"
+
+            # NOTE: Case where the controller is running standalone. Early return with a
+            # smaller subset of config options
+            if not self.state.runs_broker:
+                properties = (
+                    [f"log.dirs={self.state.log_dirs}", f"listeners={controller_listener}"]
+                    + self.controller_properties
+                    # + self.authorizer_class
+                )
+                return properties
+
+            protocol_map.append(controller_protocol_map)
+            if self.state.runs_controller:
+                listeners_repr.append(controller_listener)
 
         properties = (
             [
@@ -643,25 +662,20 @@ class ConfigManager(CommonConfigManager):
                 f"inter.broker.protocol.version={self.inter_broker_protocol_version}",
             ]
             + self.scram_properties
+            + self.auth_properties
             + self.oauth_properties
             + self.config_properties
             + self.default_replication_properties
             + self.rack_properties
             + self.metrics_reporter_properties
             + DEFAULT_CONFIG_OPTIONS.split("\n")
-            # + self.authorizer_class
+            + self.authorizer_class
+            + self.controller_properties
         )
-
-        # FIXME
-        if not self.state.runs_controller:
-            properties += self.auth_properties
-
-        if self.state.runs_controller:
-            properties += self.controller_properties
 
         if self.state.cluster.tls_enabled and self.state.unit_broker.certificate:
             properties += self.tls_properties
-            if not self.state.runs_controller:
+            if self.state.kraft_mode == False:  # noqa: E712
                 properties += self.zookeeper_tls_properties
 
         if self.config.profile == PROFILE_TESTING:
@@ -793,10 +807,12 @@ class BalancerConfigManager(CommonConfigManager):
         if self.config.profile == PROFILE_TESTING:
             goals = BALANCER_GOALS_TESTING
 
-        if self.state.balancer.racks:
+        if self.state.peer_cluster.racks:
             if (
-                min([3, len(self.state.balancer.broker_capacities.get("brokerCapacities", []))])
-                > self.state.balancer.racks
+                min(
+                    [3, len(self.state.peer_cluster.broker_capacities.get("brokerCapacities", []))]
+                )
+                > self.state.peer_cluster.racks
             ):  # replication-factor > racks is not ideal
                 goals = goals + ["RackAwareDistribution"]
             else:
@@ -850,10 +866,10 @@ class BalancerConfigManager(CommonConfigManager):
         """
         properties = (
             [
-                f"bootstrap.servers={self.state.balancer.broker_uris}",
-                f"zookeeper.connect={self.state.balancer.zk_uris}",
+                f"bootstrap.servers={self.state.peer_cluster.broker_uris}",
+                f"zookeeper.connect={self.state.peer_cluster.zk_uris}",
                 "zookeeper.security.enabled=true",
-                f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{self.state.balancer.broker_username}" password="{self.state.balancer.broker_password}";',
+                f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{self.state.peer_cluster.broker_username}" password="{self.state.peer_cluster.broker_password}";',
                 f"sasl.mechanism={self.state.default_auth.mechanism}",
                 f"security.protocol={self.state.default_auth.protocol}",
                 f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
@@ -879,8 +895,8 @@ class BalancerConfigManager(CommonConfigManager):
             f"""
             Client {{
                 org.apache.zookeeper.server.auth.DigestLoginModule required
-                username="{self.state.balancer.zk_username}"
-                password="{self.state.balancer.zk_password}";
+                username="{self.state.peer_cluster.zk_username}"
+                password="{self.state.peer_cluster.zk_password}";
             }};
         """
         )
@@ -899,7 +915,7 @@ class BalancerConfigManager(CommonConfigManager):
     def set_broker_capacities(self) -> None:
         """Writes all broker storage capacities to `capacityJBOD.json`."""
         self.workload.write(
-            content=json.dumps(self.state.balancer.broker_capacities),
+            content=json.dumps(self.state.peer_cluster.broker_capacities),
             path=self.workload.paths.capacity_jbod_json,
         )
 

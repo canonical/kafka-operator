@@ -71,6 +71,8 @@ jobs:
           - integration-upgrade
           - integration-balancer-single
           - integration-balancer-multi
+          - integration-kraft-single
+          - integration-kraft-multi
     name: ${{ matrix.tox-environments }}
     needs:
       - lint

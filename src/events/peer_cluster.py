@@ -16,13 +16,20 @@ from charms.data_platform_libs.v0.data_interfaces import (
     diff,
     set_encoded_field,
 )
-from ops.charm import RelationChangedEvent, RelationCreatedEvent, RelationEvent, SecretChangedEvent
+from ops.charm import (
+    RelationBrokenEvent,
+    RelationChangedEvent,
+    RelationCreatedEvent,
+    RelationEvent,
+    SecretChangedEvent,
+)
 from ops.framework import Object
 
 from core.cluster import custom_secret_groups
 from literals import (
     BALANCER,
     BROKER,
+    CONTROLLER,
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
     PEER_CLUSTER_RELATION,
 )
@@ -72,18 +79,20 @@ class PeerClusterEventsHandler(Object):
         if not self.charm.unit.is_leader() or not event.relation.app:
             return
 
-        requested_secrets = (
-            BALANCER.requested_secrets
-            if self.charm.state.runs_balancer
-            else BROKER.requested_secrets
-        ) or []
+        requested_secrets = set()
+        if self.charm.state.runs_balancer:
+            requested_secrets |= set(BALANCER.requested_secrets)
+        if self.charm.state.runs_controller:
+            requested_secrets |= set(CONTROLLER.requested_secrets)
+        if self.charm.state.runs_broker:
+            requested_secrets |= set(BROKER.requested_secrets)
 
         # request secrets for the relation
         set_encoded_field(
             event.relation,
             self.charm.state.cluster.app,
             REQ_SECRET_FIELDS,
-            requested_secrets,
+            list(requested_secrets),
         )
 
         # explicitly update the roles early, as we can't determine which model to instantiate
@@ -92,21 +101,19 @@ class PeerClusterEventsHandler(Object):
 
     def _on_peer_cluster_changed(self, event: RelationChangedEvent) -> None:
         """Generic handler for peer-cluster `relation-changed` events."""
-        if (
-            not self.charm.unit.is_leader()
-            or not self.charm.state.runs_balancer  # only balancer needs handle this event
-            or not self.charm.state.balancer.roles  # ensures secrets have set-up before writing
-        ):
+        # ensures secrets have set-up before writing
+        if not self.charm.unit.is_leader() or not self.charm.state.peer_cluster.roles:
             return
 
         self._default_relation_changed(event)
 
         # will no-op if relation does not exist
-        self.charm.state.balancer.update(
+        self.charm.state.peer_cluster.update(
             {
-                "balancer-username": self.charm.state.balancer.balancer_username,
-                "balancer-password": self.charm.state.balancer.balancer_password,
-                "balancer-uris": self.charm.state.balancer.balancer_uris,
+                "balancer-username": self.charm.state.peer_cluster.balancer_username,
+                "balancer-password": self.charm.state.peer_cluster.balancer_password,
+                "balancer-uris": self.charm.state.peer_cluster.balancer_uris,
+                "controller-quorum-uris": self.charm.state.peer_cluster.controller_quorum_uris,
             }
         )
 
@@ -114,32 +121,64 @@ class PeerClusterEventsHandler(Object):
 
     def _on_peer_cluster_orchestrator_changed(self, event: RelationChangedEvent) -> None:
         """Generic handler for peer-cluster-orchestrator `relation-changed` events."""
+        # TODO: `cluster_manager` check instead of runs_broker
         if (
             not self.charm.unit.is_leader()
             or not self.charm.state.runs_broker  # only broker needs handle this event
-            or "balancer"
-            not in self.charm.state.balancer.roles  # ensures secrets have set-up before writing, and only writing to balancers
+            or not any(
+                role in self.charm.state.peer_cluster.roles
+                for role in [BALANCER.value, CONTROLLER.value]
+            )  # ensures secrets have set-up before writing, and only writing to controller,balancers
         ):
             return
 
         self._default_relation_changed(event)
 
         # will no-op if relation does not exist
-        self.charm.state.balancer.update(
+        self.charm.state.peer_cluster.update(
             {
                 "roles": self.charm.state.roles,
-                "broker-username": self.charm.state.balancer.broker_username,
-                "broker-password": self.charm.state.balancer.broker_password,
-                "broker-uris": self.charm.state.balancer.broker_uris,
-                "racks": str(self.charm.state.balancer.racks),
-                "broker-capacities": json.dumps(self.charm.state.balancer.broker_capacities),
-                "zk-uris": self.charm.state.balancer.zk_uris,
-                "zk-username": self.charm.state.balancer.zk_username,
-                "zk-password": self.charm.state.balancer.zk_password,
+                "broker-username": self.charm.state.peer_cluster.broker_username,
+                "broker-password": self.charm.state.peer_cluster.broker_password,
+                "broker-uris": self.charm.state.peer_cluster.broker_uris,
+                "cluster-uuid": self.charm.state.peer_cluster.cluster_uuid,
+                "racks": str(self.charm.state.peer_cluster.racks),
+                "broker-capacities": json.dumps(self.charm.state.peer_cluster.broker_capacities),
+                "zk-uris": self.charm.state.peer_cluster.zk_uris,
+                "zk-username": self.charm.state.peer_cluster.zk_username,
+                "zk-password": self.charm.state.peer_cluster.zk_password,
             }
         )
 
         self.charm.on.config_changed.emit()  # ensure both broker+balancer get a changed event
+
+    def _on_peer_cluster_broken(self, _: RelationBrokenEvent):
+        """Handle the required logic to remove."""
+        if self.charm.state.kraft_mode is not None:
+            return
+
+        self.charm.workload.stop()
+        logger.info(f'Service {self.model.unit.name.split("/")[1]} stopped')
+
+        # FIXME: probably a mix between cluster_manager and broker
+        if self.charm.state.runs_broker:
+            # Kafka keeps a meta.properties in every log.dir with a unique ClusterID
+            # this ID is provided by ZK, and removing it on relation-broken allows
+            # re-joining to another ZK cluster.
+            for storage in self.charm.model.storages["data"]:
+                self.charm.workload.exec(
+                    [
+                        "rm",
+                        f"{storage.location}/meta.properties",
+                        f"{storage.location}/__cluster_metadata-0/quorum-state",
+                    ]
+                )
+
+            if self.charm.unit.is_leader():
+                # other charm methods assume credentials == ACLs
+                # necessary to clean-up credentials once ZK relation is lost
+                for username in self.charm.state.cluster.internal_user_credentials:
+                    self.charm.state.cluster.update({f"{username}-password": ""})
 
     def _default_relation_changed(self, event: RelationChangedEvent):
         """Implements required logic from multiple 'handled' events from the `data-interfaces` library."""
