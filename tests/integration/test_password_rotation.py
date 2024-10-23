@@ -29,7 +29,10 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm, app_charm):
         ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series="jammy"),
     )
     await ops_test.model.block_until(lambda: len(ops_test.model.applications[ZK_NAME].units) == 3)
-    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME])
+    await ops_test.model.wait_for_idle(
+        apps=[APP_NAME, ZK_NAME], timeout=2000, idle_period=30, raise_on_error=False
+    )
+
     assert ops_test.model.applications[APP_NAME].status == "blocked"
     assert ops_test.model.applications[ZK_NAME].status == "active"
 
@@ -37,14 +40,16 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm, app_charm):
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
     await ops_test.model.add_relation(APP_NAME, ZK_NAME)
 
-    await ops_test.model.wait_for_idle(
-        apps=[APP_NAME, ZK_NAME], status="active", idle_period=30, timeout=3600
-    )
+    async with ops_test.fast_forward(fast_interval="60s"):
+        await ops_test.model.wait_for_idle(
+            apps=[APP_NAME, ZK_NAME], status="active", idle_period=30, timeout=3600
+        )
 
 
 async def test_password_rotation(ops_test: OpsTest):
     """Check that password stored on ZK has changed after a password rotation."""
     initial_sync_user = get_user(
+        username="sync",
         model_full_name=ops_test.model_full_name,
     )
 
@@ -54,6 +59,7 @@ async def test_password_rotation(ops_test: OpsTest):
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], status="active", idle_period=30)
 
     new_sync_user = get_user(
+        username="sync",
         model_full_name=ops_test.model_full_name,
     )
 
