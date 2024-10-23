@@ -93,6 +93,8 @@ class PeerCluster(RelationState):
         broker_username: str = "",
         broker_password: str = "",
         broker_uris: str = "",
+        cluster_uuid: str = "",
+        controller_quorum_uris: str = "",
         racks: int = 0,
         broker_capacities: BrokerCapacities = {},
         zk_username: str = "",
@@ -106,6 +108,8 @@ class PeerCluster(RelationState):
         self._broker_username = broker_username
         self._broker_password = broker_password
         self._broker_uris = broker_uris
+        self._cluster_uuid = cluster_uuid
+        self._controller_quorum_uris = controller_quorum_uris
         self._racks = racks
         self._broker_capacities = broker_capacities
         self._zk_username = zk_username
@@ -173,6 +177,38 @@ class PeerCluster(RelationState):
             relation=self.relation,
             fields=BALANCER.requested_secrets,
         ).get("broker-uris", "")
+
+    @property
+    def controller_quorum_uris(self) -> str:
+        """The quorum voters in KRaft mode."""
+        if self._controller_quorum_uris:
+            return self._controller_quorum_uris
+
+        if not self.relation or not self.relation.app:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="controller-quorum-uris"
+            )
+            or ""
+        )
+
+    @property
+    def cluster_uuid(self) -> str:
+        """The cluster uuid used to format storages in KRaft mode."""
+        if self._cluster_uuid:
+            return self._cluster_uuid
+
+        if not self.relation or not self.relation.app:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="cluster-uuid"
+            )
+            or ""
+        )
 
     @property
     def racks(self) -> int:
@@ -303,6 +339,7 @@ class PeerCluster(RelationState):
     @property
     def broker_connected(self) -> bool:
         """Checks if there is an active broker relation with all necessary data."""
+        # FIXME rename to specify balancer-broker connection
         if not all(
             [
                 self.broker_username,
@@ -315,6 +352,14 @@ class PeerCluster(RelationState):
                 # rack is optional, empty if not rack-aware
             ]
         ):
+            return False
+
+        return True
+
+    @property
+    def broker_connected_kraft_mode(self) -> bool:
+        """Checks for necessary data required by a controller."""
+        if not all([self.broker_username, self.broker_password, self.cluster_uuid]):
             return False
 
         return True
@@ -406,6 +451,16 @@ class KafkaCluster(RelationState):
     def balancer_uris(self) -> str:
         """Persisted balancer uris."""
         return self.relation_data.get("balancer-uris", "")
+
+    @property
+    def controller_quorum_uris(self) -> str:
+        """Persisted controller quorum voters."""
+        return self.relation_data.get("controller-quorum-uris", "")
+
+    @property
+    def cluster_uuid(self) -> str:
+        """Cluster uuid used for initializing storages."""
+        return self.relation_data.get("cluster-uuid", "")
 
 
 class KafkaBroker(RelationState):

@@ -169,7 +169,7 @@ class BalancerOperator(Object):
                 content_changed = True
 
         # On k8s, adding/removing a broker does not change the bootstrap server property if exposed by nodeport
-        broker_capacities = self.charm.state.balancer.broker_capacities
+        broker_capacities = self.charm.state.peer_cluster.broker_capacities
         if (
             file_content := json.loads(
                 "".join(self.workload.read(self.workload.paths.capacity_jbod_json))
@@ -200,8 +200,8 @@ class BalancerOperator(Object):
             available_brokers = [broker.unit_id for broker in self.charm.state.brokers]
         else:
             brokers = (
-                [broker.name for broker in self.charm.state.balancer.relation.units]
-                if self.charm.state.balancer.relation
+                [broker.name for broker in self.charm.state.peer_cluster.relation.units]
+                if self.charm.state.peer_cluster.relation
                 else []
             )
             available_brokers = [int(broker.split("/")[1]) for broker in brokers]

@@ -37,7 +37,10 @@ from literals import (
     ADMIN_USER,
     BALANCER,
     BROKER,
+    CONTROLLER,
+    CONTROLLER_PORT,
     INTERNAL_USERS,
+    KRAFT_NODE_ID_OFFSET,
     MIN_REPLICAS,
     OAUTH_REL_NAME,
     PEER,
@@ -84,7 +87,7 @@ class PeerClusterData(ProviderData, RequirerData):
     """Broker provider data model."""
 
     SECRET_LABEL_MAP = SECRET_LABEL_MAP
-    SECRET_FIELDS = BALANCER.requested_secrets
+    SECRET_FIELDS = list(set(BALANCER.requested_secrets) | set(CONTROLLER.requested_secrets))
 
 
 class ClusterState(Object):
@@ -136,46 +139,48 @@ class ClusterState(Object):
     @property
     def peer_cluster_orchestrator(self) -> PeerCluster:
         """The state for the related `peer-cluster-orchestrator` application that this charm is requiring from."""
-        balancer_kwargs: dict[str, Any] = (
-            {
-                "balancer_username": self.cluster.balancer_username,
-                "balancer_password": self.cluster.balancer_password,
-                "balancer_uris": self.cluster.balancer_uris,
-            }
-            if self.runs_balancer
-            else {}
-        )
+        extra_kwargs: dict[str, Any] = {}
+
+        if self.runs_balancer:
+            extra_kwargs.update(
+                {
+                    "balancer_username": self.cluster.balancer_username,
+                    "balancer_password": self.cluster.balancer_password,
+                    "balancer_uris": self.cluster.balancer_uris,
+                }
+            )
+
+        if self.runs_controller:
+            extra_kwargs.update(
+                {
+                    "controller_quorum_uris": self.cluster.controller_quorum_uris,
+                }
+            )
 
         return PeerCluster(
             relation=self.peer_cluster_relation,
             data_interface=PeerClusterData(self.model, PEER_CLUSTER_RELATION),
-            **balancer_kwargs,
+            **extra_kwargs,
         )
 
     @property
     def peer_cluster(self) -> PeerCluster:
-        """The state for the related `peer-cluster` application that this charm is providing to."""
-        return PeerCluster(
-            relation=self.peer_cluster_orchestrator_relation,
-            data_interface=PeerClusterOrchestratorData(
-                self.model, PEER_CLUSTER_ORCHESTRATOR_RELATION
-            ),
-        )
-
-    @property
-    def balancer(self) -> PeerCluster:
         """The state for the `peer-cluster-orchestrator` related balancer application."""
-        balancer_kwargs: dict[str, Any] = (
-            {
-                "balancer_username": self.cluster.balancer_username,
-                "balancer_password": self.cluster.balancer_password,
-                "balancer_uris": self.cluster.balancer_uris,
-            }
-            if self.runs_balancer
-            else {}
-        )
+        extra_kwargs: dict[str, Any] = {}
 
-        if self.runs_broker:  # must be providing, initialise with necessary broker data
+        if self.runs_controller or self.runs_balancer:
+            extra_kwargs.update(
+                {
+                    "balancer_username": self.cluster.balancer_username,
+                    "balancer_password": self.cluster.balancer_password,
+                    "balancer_uris": self.cluster.balancer_uris,
+                    "controller_quorum_uris": self.cluster.controller_quorum_uris,
+                }
+            )
+
+        # FIXME: `cluster_manager` check instead of running broker
+        # must be providing, initialise with necessary broker data
+        if self.runs_broker:
             return PeerCluster(
                 relation=self.peer_cluster_orchestrator_relation,  # if same app, this will be None and OK
                 data_interface=PeerClusterOrchestratorData(
@@ -184,12 +189,13 @@ class ClusterState(Object):
                 broker_username=ADMIN_USER,
                 broker_password=self.cluster.internal_user_credentials.get(ADMIN_USER, ""),
                 broker_uris=self.bootstrap_server,
+                cluster_uuid=self.cluster.cluster_uuid,
                 racks=self.racks,
                 broker_capacities=self.broker_capacities,
                 zk_username=self.zookeeper.username,
                 zk_password=self.zookeeper.password,
                 zk_uris=self.zookeeper.uris,
-                **balancer_kwargs,  # in case of roles=broker,balancer on this app
+                **extra_kwargs,  # in case of roles=broker,[balancer,controller] on this app
             )
 
         else:  # must be roles=balancer only then, only load with necessary balancer data
@@ -345,7 +351,11 @@ class ClusterState(Object):
     def enabled_auth(self) -> list[AuthMap]:
         """The currently enabled auth.protocols and their auth.mechanisms, based on related applications."""
         enabled_auth = []
-        if self.client_relations or self.runs_balancer or self.peer_cluster_orchestrator_relation:
+        if (
+            self.client_relations
+            or self.runs_balancer
+            or BALANCER.value in self.peer_cluster_orchestrator.roles
+        ):
             enabled_auth.append(self.default_auth)
         if self.oauth_relation:
             enabled_auth.append(AuthMap(self.default_auth.protocol, "OAUTHBEARER"))
@@ -393,6 +403,21 @@ class ClusterState(Object):
                 ]
             )
         )
+
+    @property
+    def controller_quorum_uris(self) -> str:
+        """The current controller quorum uris when running KRaft mode."""
+        # FIXME: when running broker node.id will be unit-id + 100. If unit is only running
+        # the controller node.id == unit-id. This way we can keep a human readable mapping of ids.
+        if self.runs_controller:
+            node_offset = KRAFT_NODE_ID_OFFSET if self.runs_broker else 0
+            return ",".join(
+                [
+                    f"{broker.unit_id + node_offset}@{broker.host}:{CONTROLLER_PORT}"
+                    for broker in self.brokers
+                ]
+            )
+        return ""
 
     @property
     def log_dirs(self) -> str:
@@ -446,7 +471,7 @@ class ClusterState(Object):
         if not self.peer_relation:
             return Status.NO_PEER_RELATION
 
-        for status in [self._broker_status, self._balancer_status]:
+        for status in [self._broker_status, self._balancer_status, self._controller_status]:
             if status != Status.ACTIVE:
                 return status
 
@@ -461,29 +486,40 @@ class ClusterState(Object):
         if not self.peer_cluster_relation and not self.runs_broker:
             return Status.NO_PEER_CLUSTER_RELATION
 
-        if not self.balancer.broker_connected:
+        if not self.peer_cluster.broker_connected:
             return Status.NO_BROKER_DATA
 
-        if len(self.balancer.broker_capacities.get("brokerCapacities", [])) < MIN_REPLICAS:
+        if len(self.peer_cluster.broker_capacities.get("brokerCapacities", [])) < MIN_REPLICAS:
             return Status.NOT_ENOUGH_BROKERS
 
         return Status.ACTIVE
 
     @property
-    def _broker_status(self) -> Status:
+    def _broker_status(self) -> Status:  # noqa: C901
         """Checks for role=broker specific readiness."""
         if not self.runs_broker:
             return Status.ACTIVE
 
-        if not self.zookeeper:
-            return Status.ZK_NOT_RELATED
+        # Neither ZooKeeper or KRaft are active
+        if self.kraft_mode is None:
+            return Status.MISSING_MODE
 
-        if not self.zookeeper.zookeeper_connected:
-            return Status.ZK_NO_DATA
+        if self.kraft_mode:
+            if not self.peer_cluster.controller_quorum_uris:  # FIXME: peer_cluster or cluster?
+                return Status.NO_QUORUM_URIS
+            if not self.cluster.cluster_uuid:
+                return Status.NO_CLUSTER_UUID
 
-        # TLS must be enabled for Kafka and ZK or disabled for both
-        if self.cluster.tls_enabled ^ self.zookeeper.tls:
-            return Status.ZK_TLS_MISMATCH
+        if self.kraft_mode == False:  # noqa: E712
+            if not self.zookeeper:
+                return Status.ZK_NOT_RELATED
+
+            if not self.zookeeper.zookeeper_connected:
+                return Status.ZK_NO_DATA
+
+            # TLS must be enabled for Kafka and ZK or disabled for both
+            if self.cluster.tls_enabled ^ self.zookeeper.tls:
+                return Status.ZK_TLS_MISMATCH
 
         if self.cluster.tls_enabled and not self.unit_broker.certificate:
             return Status.NO_CERT
@@ -494,6 +530,37 @@ class ClusterState(Object):
         return Status.ACTIVE
 
     @property
+    def _controller_status(self) -> Status:
+        """Checks for role=controller specific readiness."""
+        if not self.runs_controller:
+            return Status.ACTIVE
+
+        if not self.peer_cluster_relation and not self.runs_broker:
+            return Status.NO_PEER_CLUSTER_RELATION
+
+        if not self.peer_cluster.broker_connected_kraft_mode:
+            return Status.NO_BROKER_DATA
+
+        return Status.ACTIVE
+
+    @property
+    def kraft_mode(self) -> bool | None:
+        """Is the deployment running in KRaft mode?
+
+        Returns:
+            True if Kraft mode, False if ZooKeeper, None when undefined.
+        """
+        # NOTE: self.roles when running colocated, peer_cluster.roles when multiapp
+        if CONTROLLER.value in (self.roles + self.peer_cluster.roles):
+            return True
+        if self.zookeeper_relation:
+            return False
+
+        # FIXME raise instead of none. `not kraft_mode` is falsy
+        # NOTE: if previous checks are not met, we don't know yet how the charm is being deployed
+        return None
+
+    @property
     def runs_balancer(self) -> bool:
         """Is the charm enabling the balancer?"""
         return BALANCER.value in self.roles
@@ -502,3 +569,8 @@ class ClusterState(Object):
     def runs_broker(self) -> bool:
         """Is the charm enabling the broker(s)?"""
         return BROKER.value in self.roles
+
+    @property
+    def runs_controller(self) -> bool:
+        """Is the charm enabling the controller?"""
+        return CONTROLLER.value in self.roles

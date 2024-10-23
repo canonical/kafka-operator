@@ -120,7 +120,10 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         This handler is in charge of stopping the workloads, since the sub-operators would not
         be instantiated if roles are changed.
         """
-        if not self.state.runs_broker and self.broker.workload.active():
+        if (
+            not (self.state.runs_broker or self.state.runs_controller)
+            and self.broker.workload.active()
+        ):
             self.broker.workload.stop()
 
         if (
@@ -179,8 +182,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         if not self.broker.workload.active():
             event.add_status(Status.BROKER_NOT_RUNNING.value.status)
 
-        if not self.state.zookeeper.broker_active():
-            event.add_status(Status.ZK_NOT_CONNECTED.value.status)
+        if not self.state.kraft_mode:
+            if not self.state.zookeeper.broker_active():
+                event.add_status(Status.ZK_NOT_CONNECTED.value.status)
 
 
 if __name__ == "__main__":
