@@ -2,6 +2,7 @@
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import dataclasses
 import json
 import logging
 from pathlib import Path
@@ -59,16 +60,16 @@ def test_ready_to_start_maintenance_no_peer_relation(charm_configuration, base_s
         config=charm_configuration,
         actions=ACTIONS,
     )
-    state_in = State(leader=True, relations=[])
+    state_in = base_state
 
     # When
-    state_out = ctx.run("start", state_in)
+    state_out = ctx.run(ctx.on.start(), state_in)
 
     # Then
     assert state_out.unit_status == Status.NO_PEER_RELATION.value.status
 
 
-def test_ready_to_start_no_peer_cluster(charm_configuration):
+def test_ready_to_start_no_peer_cluster(charm_configuration, base_state: State):
     # Given
     charm_configuration["options"]["roles"]["default"] = "controller"
     ctx = Context(
@@ -78,10 +79,10 @@ def test_ready_to_start_no_peer_cluster(charm_configuration):
         actions=ACTIONS,
     )
     cluster_peer = PeerRelation(PEER, PEER)
-    state_in = State(leader=True, relations=[cluster_peer])
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer])
 
     # When
-    state_out = ctx.run("start", state_in)
+    state_out = ctx.run(ctx.on.start(), state_in)
 
     # Then
     assert state_out.unit_status == Status.NO_PEER_CLUSTER_RELATION.value.status
@@ -99,10 +100,10 @@ def test_ready_to_start_missing_data_as_controller(charm_configuration, base_sta
     )
     cluster_peer = PeerRelation(PEER, PEER)
     peer_cluster = Relation(PEER_CLUSTER_RELATION, "peer_cluster")
-    state_in = base_state.replace(relations=[cluster_peer, peer_cluster])
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, peer_cluster])
 
     # When
-    state_out = ctx.run("start", state_in)
+    state_out = ctx.run(ctx.on.start(), state_in)
 
     # Then
     assert state_out.unit_status == Status.NO_BROKER_DATA.value.status
@@ -122,11 +123,11 @@ def test_ready_to_start_missing_data_as_broker(charm_configuration, base_state: 
     peer_cluster = Relation(
         PEER_CLUSTER_ORCHESTRATOR_RELATION, "peer_cluster", remote_app_data={"roles": "controller"}
     )
-    state_in = base_state.replace(relations=[cluster_peer, peer_cluster])
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, peer_cluster])
 
     # When
     with patch("workload.KafkaWorkload.run_bin_command", return_value="cluster-uuid-number"):
-        state_out = ctx.run("start", state_in)
+        state_out = ctx.run(ctx.on.start(), state_in)
 
     # Then
     assert state_out.unit_status == Status.NO_QUORUM_URIS.value.status
@@ -143,7 +144,7 @@ def test_ready_to_start(charm_configuration, base_state: State):
         actions=ACTIONS,
     )
     cluster_peer = PeerRelation(PEER, PEER)
-    state_in = base_state.replace(relations=[cluster_peer])
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer])
 
     # When
     with (
@@ -154,7 +155,7 @@ def test_ready_to_start(charm_configuration, base_state: State):
         patch("workload.KafkaWorkload.start"),
         patch("charms.operator_libs_linux.v1.snap.SnapCache"),
     ):
-        state_out = ctx.run("start", state_in)
+        state_out = ctx.run(ctx.on.start(), state_in)
 
     # Then
     # Second call of format will have to pass "cluster-uuid-number" as set above
@@ -162,10 +163,6 @@ def test_ready_to_start(charm_configuration, base_state: State):
     assert "cluster-uuid" in state_out.get_relations(PEER)[0].local_app_data
     assert "controller-quorum-uris" in state_out.get_relations(PEER)[0].local_app_data
     # Only the internal users should be created.
-    # FIXME: This is a convoluted way to unpack secret contents.
-    # In scenario v7 use "tracked_content" instead to access last revision directly
-    assert all(
-        user in sorted(state_out.secrets[0].contents.items())[-1][1]
-        for user in ("admin-password", "sync-password")
-    )
+    assert "admin-password" in next(iter(state_out.secrets)).latest_content
+    assert "sync-password" in next(iter(state_out.secrets)).latest_content
     assert state_out.unit_status == ActiveStatus()
