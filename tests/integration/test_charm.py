@@ -116,7 +116,6 @@ async def test_consistency_between_workload_and_metadata(ops_test: OpsTest):
     assert application.data.get("workload-version", "") == DEPENDENCIES["kafka_service"]["version"]
 
 
-@pytest.mark.abort_on_fail
 async def test_remove_zk_relation_relate(ops_test: OpsTest):
     check_output(
         f"JUJU_MODEL={ops_test.model_full_name} juju remove-relation {APP_NAME} {ZK_NAME}",
