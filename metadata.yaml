@@ -1,10 +1,13 @@
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 name: kafka
-display-name: Charmed Kafka
+display-name: Apache Kafka
 description: |
   Kafka is an event streaming platform. This charm deploys and operates Kafka on
   a VM machines environment.
+
+  Apache Kafka is a free, open source software project by the Apache Software Foundation. 
+  Users can find out more at the [Kafka project page](https://kafka.apache.org/).
 summary: Charmed Kafka Operator
 docs: https://discourse.charmhub.io/t/charmed-kafka-documentation/10288
 source: https://github.com/canonical/kafka-operator
