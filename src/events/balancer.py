@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING
 
 from ops import (
     ActionEvent,
-    ActiveStatus,
     EventBase,
     InstallEvent,
     Object,
