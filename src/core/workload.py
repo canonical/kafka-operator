@@ -98,6 +98,11 @@ class CharmedKafkaPaths:
         return f"{BALANCER.paths['CONF']}/jmx_cruise_control.yaml"
 
     @property
+    def telemetry_jar(self):
+        """Telemetry JAR."""
+        return f"{self.conf_path}/opentelemetry-javaagent.jar"
+
+    @property
     def cruise_control_properties(self):
         """The cruisecontrol.properties filepath."""
         return f"{self.conf_path}/cruisecontrol.properties"

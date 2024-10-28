@@ -28,12 +28,14 @@ from events.peer_cluster import PeerClusterEventsHandler
 from events.tls import TLSHandler
 from literals import (
     CHARM_KEY,
+    GROUP,
     JMX_CC_PORT,
     JMX_EXPORTER_PORT,
     LOGS_RULES_DIR,
     METRICS_RULES_DIR,
     OS_REQUIREMENTS,
     SUBSTRATE,
+    USER,
     DebugLevel,
     Status,
 )
@@ -70,6 +72,13 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             metrics_rules_dir=METRICS_RULES_DIR,
             logs_rules_dir=LOGS_RULES_DIR,
             log_slots=[f"{self.workload.SNAP_NAME}:{slot}" for slot in self.workload.LOG_SLOTS],
+            tracing_protocols=[
+                "otlp_grpc", 
+                "otlp_http",
+                "zipkin",
+                "jaeger_thrift_http",
+                "jaeger_grpc",
+            ]
         )
 
         self.framework.observe(getattr(self.on, "install"), self._on_install)
@@ -91,6 +100,12 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         if not self.workload.install():
             self._set_status(Status.SNAP_NOT_INSTALLED)
             return
+
+        command = ["wget", "https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar"]
+        self.workload.exec(command=command, working_dir=self.workload.paths.conf_path)
+
+        self.workload.exec(["chmod", "-R", "777", f"{self.workload.paths.telemetry_jar}"])
+        self.workload.exec(["chown", "-R", f"{USER}:{GROUP}", f"{self.workload.paths.telemetry_jar}"])
 
         self._set_os_config()
 
