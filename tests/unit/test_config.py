@@ -556,6 +556,11 @@ def test_cruise_control_reporter_only_with_balancer(harness: Harness[KafkaCharm]
     assert reporters_config_value not in harness.charm.broker.config_manager.server_properties
 
     with harness.hooks_disabled():
-        harness.add_relation(PEER_CLUSTER_ORCHESTRATOR_RELATION, "broker")
+        peer_cluster_relation_id = harness.add_relation(
+            PEER_CLUSTER_ORCHESTRATOR_RELATION, CHARM_KEY
+        )
+        harness.update_relation_data(
+            peer_cluster_relation_id, harness.charm.app.name, {"roles": "broker,balancer"}
+        )
 
     assert reporters_config_value in harness.charm.broker.config_manager.server_properties
