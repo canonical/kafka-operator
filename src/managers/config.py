@@ -21,6 +21,7 @@ from core.structured_config import CharmConfig, LogLevel
 from core.workload import CharmedKafkaPaths, WorkloadBase
 from literals import (
     ADMIN_USER,
+    BALANCER,
     BALANCER_GOALS_TESTING,
     BROKER,
     CONTROLLER_LISTENER_NAME,
@@ -679,7 +680,7 @@ class ConfigManager(CommonConfigManager):
             if self.state.kraft_mode == False:  # noqa: E712
                 properties += self.zookeeper_tls_properties
 
-        if self.state.runs_balancer or self.state.peer_cluster_orchestrator_relation:
+        if self.state.runs_balancer or BALANCER.value in self.state.peer_cluster.roles:
             properties += KAFKA_CRUISE_CONTROL_OPTIONS.splitlines()
             properties += self.metrics_reporter_properties
 
