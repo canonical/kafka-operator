@@ -8,8 +8,8 @@ from typing import Iterable
 
 import pytest
 import yaml
+from ops.testing import Container, Context, State
 from pydantic import ValidationError
-from scenario import Container, Context, State
 
 from charm import KafkaCharm
 from core.structured_config import CharmConfig

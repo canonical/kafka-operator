@@ -13,12 +13,11 @@ import pytest
 import yaml
 from charms.data_platform_libs.v0.upgrade import ClusterNotReadyError, DependencyModel
 from kazoo.client import KazooClient
-from ops.testing import ActionFailed, Harness
-from scenario import Container, Context, PeerRelation, State
+from ops.testing import ActionFailed, Container, Context, PeerRelation, State
 
 from charm import KafkaCharm
 from events.upgrade import KafkaDependencyModel
-from literals import CHARM_KEY, CONTAINER, DEPENDENCIES, PEER, SUBSTRATE, ZK
+from literals import CONTAINER, DEPENDENCIES, PEER, SUBSTRATE
 
 logger = logging.getLogger(__name__)
 
@@ -60,34 +59,6 @@ def upgrade_func() -> str:
         return "_on_kafka_pebble_ready_upgrade"
 
     return "_on_upgrade_granted"
-
-
-@pytest.fixture
-def harness(zk_data):
-    harness = Harness(KafkaCharm, meta=str(METADATA), config=str(CONFIG), actions=str(ACTIONS))
-    harness.add_relation("restart", CHARM_KEY)
-    harness.add_relation("upgrade", CHARM_KEY)
-
-    if SUBSTRATE == "k8s":
-        harness.set_can_connect(CONTAINER, True)
-
-    peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
-    zk_rel_id = harness.add_relation(ZK, ZK)
-    harness._update_config(
-        {
-            "log_retention_ms": "-1",
-            "compression_type": "producer",
-        }
-    )
-    harness.begin()
-    with harness.hooks_disabled():
-        harness.add_relation_unit(peer_rel_id, f"{CHARM_KEY}/0")
-        harness.update_relation_data(
-            peer_rel_id, f"{CHARM_KEY}/0", {"private-address": "000.000.000"}
-        )
-        harness.update_relation_data(zk_rel_id, ZK, zk_data)
-
-    return harness
 
 
 def test_pre_upgrade_check_raises_not_stable(ctx: Context, base_state: State) -> None:

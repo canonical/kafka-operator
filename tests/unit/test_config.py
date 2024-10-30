@@ -12,7 +12,7 @@ from unittest.mock import PropertyMock, mock_open, patch
 import pytest
 import yaml
 from ops import CharmMeta
-from scenario import Container, Context, PeerRelation, Relation, State, Storage
+from ops.testing import Container, Context, PeerRelation, Relation, State, Storage
 
 from charm import KafkaCharm
 from literals import (

@@ -10,7 +10,7 @@ from unittest.mock import mock_open, patch
 
 import pytest
 import yaml
-from scenario import Container, Context, State
+from ops.testing import Container, Context, State
 
 from charm import KafkaCharm
 from literals import (

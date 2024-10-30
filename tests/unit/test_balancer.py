@@ -13,8 +13,7 @@ from unittest.mock import PropertyMock, patch
 import pytest
 import yaml
 from ops import ActiveStatus
-from ops.testing import ActionFailed
-from scenario import Container, Context, PeerRelation, Relation, State
+from ops.testing import ActionFailed, Container, Context, PeerRelation, Relation, State
 
 from charm import KafkaCharm
 from literals import (
