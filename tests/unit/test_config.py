@@ -25,6 +25,7 @@ from literals import (
     JVM_MEM_MIN_GB,
     OAUTH_REL_NAME,
     PEER,
+    PEER_CLUSTER_ORCHESTRATOR_RELATION,
     SUBSTRATE,
     ZK,
 )
@@ -547,3 +548,19 @@ def test_super_users(harness: Harness[KafkaCharm]):
     harness.update_relation_data(appii_relation_id, "appii", {"extra-user-roles": "consumer"})
 
     assert len(harness.charm.state.super_users.split(";")) == (len(INTERNAL_USERS) + 1)
+
+
+def test_cruise_control_reporter_only_with_balancer(harness: Harness[KafkaCharm]):
+    reporters_config_value = "metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter"
+    # Default roles value does not include balancer
+    assert reporters_config_value not in harness.charm.broker.config_manager.server_properties
+
+    with harness.hooks_disabled():
+        peer_cluster_relation_id = harness.add_relation(
+            PEER_CLUSTER_ORCHESTRATOR_RELATION, CHARM_KEY
+        )
+        harness.update_relation_data(
+            peer_cluster_relation_id, harness.charm.app.name, {"roles": "broker,balancer"}
+        )
+
+    assert reporters_config_value in harness.charm.broker.config_manager.server_properties
