@@ -8,7 +8,7 @@ import logging
 import time
 
 from charms.data_platform_libs.v0.data_models import TypedCharmBase
-from charms.grafana_agent.v0.cos_agent import COSAgentProvider
+from charms.grafana_agent.v0.cos_agent import COSAgentProvider, charm_tracing_config
 from charms.operator_libs_linux.v0 import sysctl
 from charms.rolling_ops.v0.rollingops import RollingOpsManager, RunWithLock
 from ops import (
@@ -73,13 +73,12 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             logs_rules_dir=LOGS_RULES_DIR,
             log_slots=[f"{self.workload.SNAP_NAME}:{slot}" for slot in self.workload.LOG_SLOTS],
             tracing_protocols=[
-                "otlp_grpc", 
+                # "otlp_grpc", 
                 "otlp_http",
-                "zipkin",
-                "jaeger_thrift_http",
-                "jaeger_grpc",
             ]
         )
+
+        # self._telemetry_endpoint = charm_tracing_config(endpoint_requirer=self._grafana_agent, cert_path=None)
 
         self.framework.observe(getattr(self.on, "install"), self._on_install)
         self.framework.observe(getattr(self.on, "remove"), self._on_remove)
