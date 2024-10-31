@@ -50,7 +50,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         super().__init__(*args)
         self.name = CHARM_KEY
         self.substrate: Substrates = SUBSTRATE
-        self.unit_statuses: list[Status] = []
+        self.pending_inactive_statuses: list[Status] = []
 
         # Common attrs init
         self.state = ClusterState(self, substrate=self.substrate)
@@ -113,7 +113,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         log_level: DebugLevel = key.value.log_level
 
         getattr(logger, log_level.lower())(status.message)
-        self.unit_statuses.append(key)
+        self.pending_inactive_statuses.append(key)
 
     def _on_roles_changed(self, _):
         """Handler for `config_changed` events.
@@ -170,7 +170,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             return
 
     def _on_collect_status(self, event: CollectStatusEvent):
-        for status in self.unit_statuses + [Status.ACTIVE]:
+        for status in self.pending_inactive_statuses + [Status.ACTIVE]:
             event.add_status(status.value.status)
 
 

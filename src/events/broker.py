@@ -223,7 +223,7 @@ class BrokerOperator(Object):
         self.charm.on.update_status.emit()
 
         # only log once on successful 'on-start' run
-        if not self.charm.unit_statuses:  # No status other than Active to be set
+        if not self.charm.pending_inactive_statuses:
             logger.info(f'Broker {self.charm.unit.name.split("/")[1]} connected')
 
     def _on_config_changed(self, event: EventBase) -> None:
