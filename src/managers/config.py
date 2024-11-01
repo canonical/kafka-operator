@@ -284,7 +284,9 @@ class ConfigManager(CommonConfigManager):
                 f"-Djava.security.auth.login.config={self.workload.paths.zk_jaas}",
             ]
 
-        opts.append(f"-javaagent:{self.workload.paths.telemetry_jar}")
+        opts.append(
+            f"-javaagent:{self.workload.paths.telemetry_jar} -Dotel.traces.exporter=otlp -Dotel.service.name={self.state.model.app.name}-{self.state.model.unit.name}"
+        )
 
         http_proxy = os.environ.get("JUJU_CHARM_HTTP_PROXY")
         https_proxy = os.environ.get("JUJU_CHARM_HTTPS_PROXY")
