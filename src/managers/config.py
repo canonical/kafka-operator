@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import re
+import socket
 import textwrap
 from abc import abstractmethod
 from typing import Iterable
@@ -93,13 +94,19 @@ class Listener:
     """
 
     def __init__(
-        self, auth_map: AuthMap, scope: Scope, host: str = "", node_port: int | None = None
+        self,
+        auth_map: AuthMap,
+        scope: Scope,
+        host: str = "",
+        extra_count: int = 0,
+        node_port: int | None = None,
     ):
         self.auth_map = auth_map
         self.protocol = auth_map.protocol
         self.mechanism = auth_map.mechanism
         self.host = host
         self.scope = scope
+        self.extra_count = extra_count
         self.node_port = node_port
 
     @property
@@ -110,8 +117,8 @@ class Listener:
     @scope.setter
     def scope(self, value):
         """Internal scope validator."""
-        if value not in ["CLIENT", "INTERNAL", "EXTERNAL"]:
-            raise ValueError("Only CLIENT, INTERNAL and EXTERNAL scopes are accepted")
+        if value not in ["CLIENT", "INTERNAL", "EXTERNAL", "EXTRA"]:
+            raise ValueError("Only CLIENT, INTERNAL, EXTERNAL and EXTRA scopes are accepted")
 
         self._scope = value
 
@@ -122,12 +129,20 @@ class Listener:
         Returns:
             Integer of port number
         """
+        # results in ports 39092, 39192, 39292 etc, for each extra listener
+        if self.scope == "EXTRA":
+            return getattr(SECURITY_PROTOCOL_PORTS[self.auth_map], "client") + (
+                30000 + (self.extra_count * 100)
+            )
+
         return getattr(SECURITY_PROTOCOL_PORTS[self.auth_map], self.scope.lower())
 
     @property
     def name(self) -> str:
         """Name of the listener."""
-        return f"{self.scope}_{self.protocol}_{self.mechanism.replace('-', '_')}"
+        return f"{self.scope}_{self.protocol}_{self.mechanism.replace('-', '_')}" + (
+            f"_{self.extra_count}" if self.extra_count else ""
+        )
 
     @property
     def protocol_map(self) -> str:
@@ -384,7 +399,7 @@ class ConfigManager(CommonConfigManager):
             f'listener.name.{listener_name}.{listener_mechanism}.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";',
             f"listener.name.{listener_name}.sasl.enabled.mechanisms={self.internal_listener.mechanism}",
         ]
-        for auth in self.client_listeners + self.external_listeners:
+        for auth in self.client_listeners + self.external_listeners + self.extra_listeners:
             if not auth.mechanism.startswith("SCRAM"):
                 continue
 
@@ -464,6 +479,27 @@ class ConfigManager(CommonConfigManager):
         pass  # TODO: No good abstraction in place for the controller use case
 
     @property
+    def extra_listeners(self) -> list[Listener]:
+        """Foo."""
+        if not self.config.extra_listeners:
+            return []
+
+        extra_hosts = []
+        for sans in self.config.extra_listeners.split(","):
+            if "{unit}" not in sans:
+                continue
+
+            extra_hosts.append(sans.replace("{unit}", str(self.state.unit_broker.unit_id)))
+
+        extra_hosts.append(socket.gethostname())
+
+        return [
+            Listener(host=extra_host, auth_map=auth_map, scope="EXTRA", extra_count=i)
+            for auth_map in self.state.enabled_auth
+            for i, extra_host in enumerate(extra_hosts)
+        ]
+
+    @property
     def client_listeners(self) -> list[Listener]:
         """Return a list of extra listeners."""
         return [
@@ -509,7 +545,12 @@ class ConfigManager(CommonConfigManager):
     @property
     def all_listeners(self) -> list[Listener]:
         """Return a list with all expected listeners."""
-        return [self.internal_listener] + self.client_listeners + self.external_listeners
+        return (
+            [self.internal_listener]
+            + self.client_listeners
+            + self.external_listeners
+            + self.extra_listeners
+        )
 
     @property
     def inter_broker_protocol_version(self) -> str:
