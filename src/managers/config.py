@@ -76,6 +76,7 @@ SERVER_PROPERTIES_BLACKLIST = [
     "profile",
     "log_level",
     "certificate_extra_sans",
+    "extra_listeners",
     "roles",
     "expose_external",
 ]

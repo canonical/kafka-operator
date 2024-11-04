@@ -74,6 +74,7 @@ class CharmConfig(BaseConfigModel):
     zookeeper_ssl_cipher_suites: str | None
     profile: str
     certificate_extra_sans: str | None
+    extra_listeners: str | None
     log_level: str
     network_bandwidth: int = Field(default=50000, validate_default=False, gt=0)
     cruisecontrol_balance_threshold: float = Field(default=1.1, validate_default=False, ge=1)

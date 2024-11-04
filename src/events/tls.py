@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import re
+import warnings
 from typing import TYPE_CHECKING
 
 from charms.tls_certificates_interface.v1.tls_certificates import (
@@ -295,6 +296,13 @@ class TLSHandler(Object):
             return
 
         sans = self.charm.broker.tls_manager.build_sans()
+
+        # only warn during certificate creation, not every event if in structured_config
+        if self.charm.config.certificate_extra_sans:
+            warnings.warn(
+                "'certificate_extra_sans' config option is deprecated, use 'extra_listeners' instead",
+                DeprecationWarning,
+            )
 
         csr = generate_csr(
             private_key=self.charm.state.unit_broker.private_key.encode("utf-8"),
