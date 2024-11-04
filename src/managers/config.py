@@ -491,7 +491,7 @@ class ConfigManager(CommonConfigManager):
 
             extra_hosts.append(sans.replace("{unit}", str(self.state.unit_broker.unit_id)))
 
-        extra_hosts.append(socket.gethostname())
+        # extra_hosts.append(socket.gethostname())
 
         return [
             Listener(host=extra_host, auth_map=auth_map, scope="EXTRA", extra_count=i)
