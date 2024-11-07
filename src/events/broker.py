@@ -88,7 +88,8 @@ class BrokerOperator(Object):
                 **DEPENDENCIES  # pyright: ignore[reportArgumentType]
             ),
         )
-        self.password_action_events = ActionEvents(self)
+        self.action_events = ActionEvents(self)
+
         if not self.charm.state.runs_controller:
             self.zookeeper = ZooKeeperHandler(self)
 
