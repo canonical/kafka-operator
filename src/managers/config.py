@@ -9,7 +9,6 @@ import json
 import logging
 import os
 import re
-import socket
 import textwrap
 from abc import abstractmethod
 from typing import Iterable
@@ -88,8 +87,9 @@ class Listener:
 
     Args:
         auth_map: AuthMap representing the auth.protocol and auth.mechanism for the listener
-        scope: scope of the listener, CLIENT, INTERNAL or EXTERNAL
+        scope: scope of the listener, CLIENT, INTERNAL, EXTERNAL or EXTRA
         host: string with the host that will be announced
+        baseport (optional): integer port to offset CLIENT port numbers for EXTRA listeners
         node_port (optional): the node-port for the listener if scope=EXTERNAL
     """
 
@@ -98,7 +98,8 @@ class Listener:
         auth_map: AuthMap,
         scope: Scope,
         host: str = "",
-        extra_count: int = 0,
+        baseport: int = 30000,
+        extra_count: int = -1,
         node_port: int | None = None,
     ):
         self.auth_map = auth_map
@@ -106,6 +107,7 @@ class Listener:
         self.mechanism = auth_map.mechanism
         self.host = host
         self.scope = scope
+        self.baseport = baseport
         self.extra_count = extra_count
         self.node_port = node_port
 
@@ -129,10 +131,12 @@ class Listener:
         Returns:
             Integer of port number
         """
-        # results in ports 39092, 39192, 39292 etc, for each extra listener
+        # generates ports 39092, 39192, 39292 etc for listener auth if baseport=30000
         if self.scope == "EXTRA":
-            return getattr(SECURITY_PROTOCOL_PORTS[self.auth_map], "client") + (
-                30000 + (self.extra_count * 100)
+            return (
+                getattr(SECURITY_PROTOCOL_PORTS[self.auth_map], "client")
+                + self.baseport
+                + (self.extra_count * 100)
             )
 
         return getattr(SECURITY_PROTOCOL_PORTS[self.auth_map], self.scope.lower())
@@ -141,7 +145,7 @@ class Listener:
     def name(self) -> str:
         """Name of the listener."""
         return f"{self.scope}_{self.protocol}_{self.mechanism.replace('-', '_')}" + (
-            f"_{self.extra_count}" if self.extra_count else ""
+            f"_{self.extra_count}" if self.extra_count >= 0 else ""
         )
 
     @property
@@ -480,28 +484,33 @@ class ConfigManager(CommonConfigManager):
 
     @property
     def extra_listeners(self) -> list[Listener]:
-        """Foo."""
-        if not self.config.extra_listeners:
-            return []
-
-        extra_hosts = []
-        for sans in self.config.extra_listeners.split(","):
-            if "{unit}" not in sans:
-                continue
-
-            extra_hosts.append(sans.replace("{unit}", str(self.state.unit_broker.unit_id)))
-
-        # extra_hosts.append(socket.gethostname())
-
-        return [
-            Listener(host=extra_host, auth_map=auth_map, scope="EXTRA", extra_count=i)
-            for auth_map in self.state.enabled_auth
-            for i, extra_host in enumerate(extra_hosts)
+        """Return a list of extra listeners."""
+        extra_host_baseports = [
+            tuple(listener.split(":")) for listener in self.config.extra_listeners
         ]
+
+        extra_listeners = []
+        extra_count = 0
+        for host, baseport in extra_host_baseports:
+            for auth_map in self.state.enabled_auth:
+                host = host.replace("{unit}", str(self.state.unit_broker.unit_id))
+                extra_listeners.append(
+                    Listener(
+                        host=host,
+                        auth_map=auth_map,
+                        scope="EXTRA",
+                        baseport=int(baseport),
+                        extra_count=extra_count,
+                    )
+                )
+
+            extra_count += 1
+
+        return extra_listeners
 
     @property
     def client_listeners(self) -> list[Listener]:
-        """Return a list of extra listeners."""
+        """Return a list of client listeners."""
         return [
             Listener(
                 host=self.state.unit_broker.internal_address, auth_map=auth_map, scope="CLIENT"

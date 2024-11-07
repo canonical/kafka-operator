@@ -24,8 +24,8 @@ from ops import (
     UpdateStatusEvent,
 )
 
+from events.actions import ActionEvents
 from events.oauth import OAuthHandler
-from events.password_actions import PasswordActionEvents
 from events.provider import KafkaProvider
 from events.upgrade import KafkaDependencyModel, KafkaUpgrade
 from events.zookeeper import ZooKeeperHandler
@@ -88,7 +88,7 @@ class BrokerOperator(Object):
                 **DEPENDENCIES  # pyright: ignore[reportArgumentType]
             ),
         )
-        self.password_action_events = PasswordActionEvents(self)
+        self.password_action_events = ActionEvents(self)
         if not self.charm.state.runs_controller:
             self.zookeeper = ZooKeeperHandler(self)
 

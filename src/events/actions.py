@@ -35,8 +35,30 @@ class ActionEvents(Object):
             self._get_admin_credentials_action,
         )
         self.framework.observe(
-            getattr(self.charm.on, "set_password_action"), self._set_password_action
+            getattr(self.charm.on, "get_listeners_action"), self._get_listeners_action
         )
+
+    def _get_listeners_action(self, event: ActionEvent) -> None:
+        """Handler for get-listeners action."""
+        listeners = self.dependent.config_manager.all_listeners
+
+        result = {}
+        for listener in listeners:
+            key = listener.name.replace("_", "-").lower()
+            result.update(
+                {
+                    key: {
+                        "name": listener.name,
+                        "scope": listener.scope,
+                        "port": listener.port,
+                        "protocol": listener.protocol,
+                        "auth-mechanism": listener.mechanism,
+                        "advertised-listener": listener.advertised_listener,
+                    }
+                }
+            )
+
+        event.set_results(result)
 
     def _set_password_action(self, event: ActionEvent) -> None:
         """Handler for set-password action.

@@ -93,7 +93,7 @@ options:
     type: string
     default: ""
   extra_listeners:
-    description: Config options to add extra-sans to the ones used when requesting server certificates, and to define custom `advertised.listeners` for clients external to the Juju model. These items are comma-separated. Use "{unit}" as a placeholder to be filled with the unit number, e.g. "worker-{unit}" will be translated as "worker-0" for unit 0 and "worker-1" for unit 1.
+    description: "Config options to add extra SANs to the ones used when requesting server certificates, and to define custom `advertised.listeners` and ports for clients external to the Juju model. These items are comma-separated. Use '{unit}' as a placeholder to be filled with the unit number if necessary. For port allocations, providing the port for a given listener will offset the generated port number by that amount, with an accepted value range of 20001-50000. For example, a provided value of 'worker-{unit}.domain.com:30000' will generate listeners for unit 0 with name 'worker-0.domain.com', and be allocated ports 39092, 39093 etc for each authentication scheme."
     type: string
     default: ""
   log_level:
