@@ -120,6 +120,19 @@ def test_extra_sans_config(harness: Harness[KafkaCharm]):
     assert "worker0.com" in "".join(manager._build_extra_sans())
     assert "0.example" in "".join(manager._build_extra_sans())
 
+    # verifying that sans can be built with both certificate_extra_sans and extra_listeners
+    harness._update_config(
+        {
+            "certificate_extra_sans": "",
+            "extra_listeners": "worker{unit}.com:30000,{unit}.example:40000,nonunit.domain.com:45000",
+        }
+    )
+    manager.config = harness.charm.config
+    assert manager._build_extra_sans
+    assert "worker0.com" in "".join(manager._build_extra_sans())
+    assert "0.example" in "".join(manager._build_extra_sans())
+    assert "nonunit.domain.com" in "".join(manager._build_extra_sans())
+
 
 def test_sans(harness: Harness[KafkaCharm], patched_node_ip):
     # Create peer relation
