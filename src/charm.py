@@ -188,4 +188,4 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
 
 if __name__ == "__main__":
-    ops.main(KafkaCharm)  # # pyright: ignore[reportCallIssue]
+    ops.main(KafkaCharm)  # pyright: ignore[reportCallIssue]
