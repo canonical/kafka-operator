@@ -160,6 +160,76 @@ def test_listeners_in_server_properties(harness: Harness[KafkaCharm]):
         )
 
 
+def test_extra_listeners_in_server_properties(harness: Harness[KafkaCharm]):
+    """Checks that the extra-listeners are properly set from config."""
+    harness._update_config(
+        {"extra_listeners": "worker-{unit}.foo.com:30000,worker-{unit}.bar.com:40000"}
+    )
+    harness.charm.broker.config_manager.config = harness.charm.config
+
+    peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
+    harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/1")
+    harness.update_relation_data(
+        peer_relation_id, f"{CHARM_KEY}/0", {"private-address": "treebeard"}
+    )
+
+    # adding client
+    client_relation_id = harness.add_relation("kafka-client", "app")
+    harness.update_relation_data(client_relation_id, "app", {"extra-user-roles": "admin,producer"})
+    assert (
+        len(harness.charm.broker.config_manager.all_listeners) == 4
+    )  # 2 extra, 1 internal, 1 client
+
+    # adding SSL
+    harness.update_relation_data(peer_relation_id, CHARM_KEY, {"tls": "enabled"})
+    assert (
+        len(harness.charm.broker.config_manager.all_listeners) == 4
+    )  # 2 extra, 1 internal, 1 client
+
+    # adding SSL
+    harness.update_relation_data(peer_relation_id, CHARM_KEY, {"mtls": "enabled"})
+    assert (
+        len(harness.charm.broker.config_manager.all_listeners) == 7
+    )  # 2 extra sasl_ssl, 2 extra ssl, 1 internal, 2 client
+
+    expected_listener_names = {
+        "INTERNAL_SASL_PLAINTEXT_SCRAM_SHA_512",
+        "CLIENT_SASL_PLAINTEXT_SCRAM_SHA_512",
+        "CLIENT_SSL_SSL",
+        "EXTRA_SASL_PLAINTEXT_SCRAM_SHA_512_0",
+        "EXTRA_SASL_PLAINTEXT_SCRAM_SHA_512_1",
+        "EXTRA_SSL_SSL_0",
+        "EXTRA_SSL_SSL_1",
+    }
+
+    advertised_listeners_prop = ""
+    for prop in harness.charm.broker.config_manager.server_properties:
+        if "advertised.listener" in prop:
+            advertised_listeners_prop = prop
+
+    # validating every expected listener is present
+    for name in expected_listener_names:
+        assert name in advertised_listeners_prop
+
+    # validating their allocated ports are expected
+    ports = []
+    for listener in advertised_listeners_prop.split("=")[1].split(","):
+        name, _, port = listener.split(":")
+
+        if name.endswith("_0") or name.endswith("_1"):
+            # verifying allocation uses the baseport
+            digit = 10**4
+            assert int(port) // digit * digit in (30000, 40000)
+
+            # verifying allocation is in steps of 100
+            digit = 10**2
+            assert int(port) // digit * digit in (39000, 39100, 49000, 49100)
+
+            # verifying all ports are unique
+            assert port not in ports
+            ports.append(port)
+
+
 def test_oauth_client_listeners_in_server_properties(harness: Harness[KafkaCharm]):
     """Checks that oauth client listeners are properly set when a relating through oauth."""
     harness.add_relation(ZK, CHARM_KEY)
