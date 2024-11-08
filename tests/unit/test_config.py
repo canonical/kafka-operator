@@ -172,9 +172,7 @@ def test_extra_listeners_in_server_properties(harness: Harness[KafkaCharm]):
         "close.port:30000,other.close.port:30001",
     ]:
         with pytest.raises(ValidationError):
-            harness._update_config(
-                {"extra_listeners": value}
-            )
+            harness._update_config({"extra_listeners": value})
             harness.charm.broker.config_manager.config = harness.charm.config
 
     harness._update_config(
