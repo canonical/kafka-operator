@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class ActionEvents(Object):
-    """Event handlers for password-related Juju Actions."""
+    """Event handlers for Juju Actions."""
 
     def __init__(self, dependent: "BrokerOperator") -> None:
         super().__init__(dependent, "action_events")
