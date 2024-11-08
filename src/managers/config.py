@@ -133,11 +133,7 @@ class Listener:
         """
         # generates ports 39092, 39192, 39292 etc for listener auth if baseport=30000
         if self.scope == "EXTRA":
-            return (
-                getattr(SECURITY_PROTOCOL_PORTS[self.auth_map], "client")
-                + self.baseport
-                + (self.extra_count * 100)
-            )
+            return getattr(SECURITY_PROTOCOL_PORTS[self.auth_map], "client") + self.baseport
 
         return getattr(SECURITY_PROTOCOL_PORTS[self.auth_map], self.scope.lower())
 
