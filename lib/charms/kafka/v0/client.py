@@ -315,7 +315,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-r",
         "--replication-factor",
-        help="replcation.factor for created topics",
+        help="replication.factor for created topics",
         type=int,
     )
     parser.add_argument("--producer", action="store_true", default=False)
