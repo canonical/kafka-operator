@@ -10,6 +10,7 @@ from unittest.mock import PropertyMock, mock_open, patch
 import pytest
 import yaml
 from ops.testing import Harness
+from pydantic import ValidationError
 
 from charm import KafkaCharm
 from literals import (
@@ -162,6 +163,20 @@ def test_listeners_in_server_properties(harness: Harness[KafkaCharm]):
 
 def test_extra_listeners_in_server_properties(harness: Harness[KafkaCharm]):
     """Checks that the extra-listeners are properly set from config."""
+    # verifying structured config validators
+    for value in [
+        "missing.port",
+        "low.port:15000",
+        "high.port:60000",
+        "non.unique:30000,other.non.unique:30000",
+        "close.port:30000,other.close.port:30001",
+    ]:
+        with pytest.raises(ValidationError):
+            harness._update_config(
+                {"extra_listeners": value}
+            )
+            harness.charm.broker.config_manager.config = harness.charm.config
+
     harness._update_config(
         {"extra_listeners": "worker-{unit}.foo.com:30000,worker-{unit}.bar.com:40000"}
     )
