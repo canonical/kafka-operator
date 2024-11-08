@@ -295,6 +295,15 @@ class CharmConfig(BaseConfigModel):
 
             ports.append(port)
 
+        current_port = 0
+        for port in ports:
+            if not current_port - 100 < int(port) > current_port + 100:
+                raise ValueError(
+                    "Value for port is too close to other value for port. Accepted values must be at least 100 apart from each other"
+                )
+
+            current_port = int(port)
+
         if len(ports) != len(set(ports)):
             raise ValueError("Value for port is not unique for each listener.")
 
