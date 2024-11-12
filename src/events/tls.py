@@ -10,6 +10,7 @@ import logging
 import os
 import re
 import socket
+import warnings
 from typing import TYPE_CHECKING
 
 from charms.tls_certificates_interface.v1.tls_certificates import (
@@ -312,6 +313,13 @@ class TLSHandler(Object):
             logger.error("Can't request certificate, missing private key")
             return
 
+        # only warn during certificate creation, not every event if in structured_config
+        if self.charm.config.certificate_extra_sans:
+            warnings.warn(
+                "'certificate_extra_sans' config option is deprecated, use 'extra_listeners' instead",
+                DeprecationWarning,
+            )
+
         csr = generate_csr(
             private_key=self.charm.state.unit_broker.private_key.encode("utf-8"),
             subject=self.charm.state.unit_broker.relation_data.get("private-address", ""),
@@ -348,13 +356,12 @@ class TLSHandler(Object):
     @property
     def _extra_sans(self) -> list[str]:
         """Parse the certificate_extra_sans config option."""
-        extra_sans = self.charm.config.certificate_extra_sans or ""
-        parsed_sans = []
-
-        if extra_sans == "":
-            return parsed_sans
-
-        for sans in extra_sans.split(","):
-            parsed_sans.append(sans.replace("{unit}", self.charm.unit.name.split("/")[1]))
+        extra_sans = (
+            self.charm.config.extra_listeners or self.charm.config.certificate_extra_sans or []
+        )
+        clean_sans = [san.split(":")[0] for san in extra_sans]
+        parsed_sans = [
+            san.replace("{unit}", str(self.charm.state.unit_broker.unit_id)) for san in clean_sans
+        ]
 
         return parsed_sans

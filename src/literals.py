@@ -56,7 +56,7 @@ GROUP = "root"
 
 AuthProtocol = Literal["SASL_PLAINTEXT", "SASL_SSL", "SSL"]
 AuthMechanism = Literal["SCRAM-SHA-512", "OAUTHBEARER", "SSL"]
-Scope = Literal["INTERNAL", "CLIENT"]
+Scope = Literal["INTERNAL", "CLIENT", "EXTRA"]
 DebugLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
 DatabagScope = Literal["unit", "app"]
 Substrates = Literal["vm", "k8s"]
@@ -84,6 +84,7 @@ class Ports:
 
     client: int
     internal: int
+    extra: int = 0
 
 
 SECURITY_PROTOCOL_PORTS: dict[tuple[AuthProtocol, AuthMechanism], Ports] = {

@@ -110,6 +110,18 @@ def test_extra_sans_config(harness: Harness):
     harness.update_config({"certificate_extra_sans": "worker{unit}.com,{unit}.example"})
     assert harness.charm.tls._extra_sans == ["worker0.com", "0.example"]
 
+    # verifying that sans can be built with both certificate_extra_sans and extra_listeners
+    harness._update_config(
+        {
+            "certificate_extra_sans": "",
+            "extra_listeners": "worker{unit}.com:30000,{unit}.example:40000,nonunit.domain.com:45000",
+        }
+    )
+    assert harness.charm.tls._extra_sans
+    assert "worker0.com" in "".join(harness.charm.tls._extra_sans)
+    assert "0.example" in "".join(harness.charm.tls._extra_sans)
+    assert "nonunit.domain.com" in "".join(harness.charm.tls._extra_sans)
+
 
 def test_sans(harness: Harness):
     # Create peer relation

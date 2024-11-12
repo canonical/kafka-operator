@@ -7,6 +7,7 @@
 import logging
 import time
 
+import ops
 from charms.data_platform_libs.v0.data_models import TypedCharmBase
 from charms.grafana_agent.v0.cos_agent import COSAgentProvider
 from charms.operator_libs_linux.v0 import sysctl
@@ -23,13 +24,12 @@ from ops import (
     StorageEvent,
     UpdateStatusEvent,
 )
-from ops.main import main
 
 from core.cluster import ClusterState
 from core.models import Substrates
 from core.structured_config import CharmConfig
+from events.actions import ActionEvents
 from events.oauth import OAuthHandler
-from events.password_actions import PasswordActionEvents
 from events.provider import KafkaProvider
 from events.tls import TLSHandler
 from events.upgrade import KafkaDependencyModel, KafkaUpgrade
@@ -74,7 +74,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         # HANDLERS
 
-        self.password_action_events = PasswordActionEvents(self)
+        self.action_events = ActionEvents(self)
         self.zookeeper = ZooKeeperHandler(self)
         self.tls = TLSHandler(self)
         self.oauth = OAuthHandler(self)
@@ -391,4 +391,4 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
 
 if __name__ == "__main__":
-    main(KafkaCharm)
+    ops.main(KafkaCharm)  # pyright: ignore[reportCallIssue]

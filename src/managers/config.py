@@ -34,7 +34,7 @@ allow.everyone.if.no.acl.found=false
 auto.create.topics.enable=false
 """
 
-SERVER_PROPERTIES_BLACKLIST = ["profile", "log_level", "certificate_extra_sans"]
+SERVER_PROPERTIES_BLACKLIST = ["profile", "log_level", "certificate_extra_sans", "extra_listeners"]
 
 
 class Listener:
@@ -43,14 +43,24 @@ class Listener:
     Args:
         host: string with the host that will be announced
         protocol: auth protocol to be used
-        scope: scope of the listener, CLIENT or INTERNAL
+        scope: scope of the listener, CLIENT, INTERNAL or EXTRA
     """
 
-    def __init__(self, host: str, protocol: AuthProtocol, mechanism: AuthMechanism, scope: Scope):
+    def __init__(
+        self,
+        host: str,
+        protocol: AuthProtocol,
+        mechanism: AuthMechanism,
+        scope: Scope,
+        baseport: int = 30000,
+        extra_count: int = -1,
+    ):
         self.protocol: AuthProtocol = protocol
         self.mechanism: AuthMechanism = mechanism
         self.host = host
         self.scope = scope
+        self.baseport = baseport
+        self.extra_count = extra_count
 
     @property
     def scope(self) -> Scope:
@@ -60,8 +70,8 @@ class Listener:
     @scope.setter
     def scope(self, value):
         """Internal scope validator."""
-        if value not in ["CLIENT", "INTERNAL"]:
-            raise ValueError("Only CLIENT and INTERNAL scopes are accepted")
+        if value not in ["CLIENT", "INTERNAL", "EXTRA"]:
+            raise ValueError("Only CLIENT, INTERNAL and EXTRA scopes are accepted")
 
         self._scope = value
 
@@ -74,6 +84,13 @@ class Listener:
         Returns:
             Integer of port number
         """
+        # generates ports 39092, 39192, 39292 etc for listener auth if baseport=30000
+        if self.scope == "EXTRA":
+            return (
+                getattr(SECURITY_PROTOCOL_PORTS[self.protocol, self.mechanism], "client")
+                + self.baseport
+            )
+
         port = SECURITY_PROTOCOL_PORTS[self.protocol, self.mechanism]
         if self.scope == "CLIENT":
             return port.client
@@ -82,7 +99,9 @@ class Listener:
     @property
     def name(self) -> str:
         """Name of the listener."""
-        return f"{self.scope}_{self.protocol}_{self.mechanism.replace('-', '_')}"
+        return f"{self.scope}_{self.protocol}_{self.mechanism.replace('-', '_')}" + (
+            f"_{self.extra_count}" if self.extra_count >= 0 else ""
+        )
 
     @property
     def protocol_map(self) -> str:
@@ -293,7 +312,7 @@ class ConfigManager:
             f"listener.name.{listener_name}.sasl.enabled.mechanisms={self.internal_listener.mechanism}",
         ]
 
-        for auth in self.client_listeners:
+        for auth in self.client_listeners + self.extra_listeners:
             if not auth.mechanism.startswith("SCRAM"):
                 continue
 
@@ -401,9 +420,44 @@ class ConfigManager:
         ]
 
     @property
+    def extra_listeners(self) -> list[Listener]:
+        """Return a list of extra listeners."""
+        protocol_mechanism_dict: list[tuple[AuthProtocol, AuthMechanism]] = []
+        if self.state.client_relations:
+            protocol_mechanism_dict.append((self.security_protocol, "SCRAM-SHA-512"))
+        if self.state.oauth_relation:
+            protocol_mechanism_dict.append((self.security_protocol, "OAUTHBEARER"))
+        if self.state.cluster.mtls_enabled:
+            protocol_mechanism_dict.append(("SSL", "SSL"))
+
+        extra_host_baseports = [
+            tuple(listener.split(":")) for listener in self.config.extra_listeners
+        ]
+
+        extra_listeners = []
+        extra_count = 0
+        for host, baseport in extra_host_baseports:
+            for protocol, mechanism in protocol_mechanism_dict:
+                host = host.replace("{unit}", str(self.state.unit_broker.unit_id))
+                extra_listeners.append(
+                    Listener(
+                        host=host,
+                        protocol=protocol,
+                        mechanism=mechanism,
+                        scope="EXTRA",
+                        baseport=int(baseport),
+                        extra_count=extra_count,
+                    )
+                )
+
+            extra_count += 1
+
+        return extra_listeners
+
+    @property
     def all_listeners(self) -> list[Listener]:
         """Return a list with all expected listeners."""
-        return [self.internal_listener] + self.client_listeners
+        return [self.internal_listener] + self.client_listeners + self.extra_listeners
 
     @property
     def inter_broker_protocol_version(self) -> str:
