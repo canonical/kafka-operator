@@ -129,14 +129,11 @@ class TLSManager:
 
     def _build_extra_sans(self) -> list[str]:
         """Parse the certificate_extra_sans config option."""
-        extra_sans = self.config.certificate_extra_sans or ""
-        parsed_sans = []
-
-        if extra_sans == "":
-            return parsed_sans
-
-        for sans in extra_sans.split(","):
-            parsed_sans.append(sans.replace("{unit}", str(self.state.unit_broker.unit_id)))
+        extra_sans = self.config.extra_listeners or self.config.certificate_extra_sans or []
+        clean_sans = [san.split(":")[0] for san in extra_sans]
+        parsed_sans = [
+            san.replace("{unit}", str(self.state.unit_broker.unit_id)) for san in clean_sans
+        ]
 
         return parsed_sans
 

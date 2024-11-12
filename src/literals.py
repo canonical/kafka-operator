@@ -72,11 +72,12 @@ class Ports:
     client: int
     internal: int
     external: int
+    extra: int = 0
 
 
 AuthProtocol = Literal["SASL_PLAINTEXT", "SASL_SSL", "SSL"]
 AuthMechanism = Literal["SCRAM-SHA-512", "OAUTHBEARER", "SSL"]
-Scope = Literal["INTERNAL", "CLIENT", "EXTERNAL"]
+Scope = Literal["INTERNAL", "CLIENT", "EXTERNAL", "EXTRA"]
 AuthMap = NamedTuple("AuthMap", protocol=AuthProtocol, mechanism=AuthMechanism)
 
 SECURITY_PROTOCOL_PORTS: dict[AuthMap, Ports] = {

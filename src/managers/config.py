@@ -76,6 +76,7 @@ SERVER_PROPERTIES_BLACKLIST = [
     "profile",
     "log_level",
     "certificate_extra_sans",
+    "extra_listeners",
     "roles",
     "expose_external",
 ]
@@ -86,19 +87,28 @@ class Listener:
 
     Args:
         auth_map: AuthMap representing the auth.protocol and auth.mechanism for the listener
-        scope: scope of the listener, CLIENT, INTERNAL or EXTERNAL
+        scope: scope of the listener, CLIENT, INTERNAL, EXTERNAL or EXTRA
         host: string with the host that will be announced
+        baseport (optional): integer port to offset CLIENT port numbers for EXTRA listeners
         node_port (optional): the node-port for the listener if scope=EXTERNAL
     """
 
     def __init__(
-        self, auth_map: AuthMap, scope: Scope, host: str = "", node_port: int | None = None
+        self,
+        auth_map: AuthMap,
+        scope: Scope,
+        host: str = "",
+        baseport: int = 30000,
+        extra_count: int = -1,
+        node_port: int | None = None,
     ):
         self.auth_map = auth_map
         self.protocol = auth_map.protocol
         self.mechanism = auth_map.mechanism
         self.host = host
         self.scope = scope
+        self.baseport = baseport
+        self.extra_count = extra_count
         self.node_port = node_port
 
     @property
@@ -109,8 +119,8 @@ class Listener:
     @scope.setter
     def scope(self, value):
         """Internal scope validator."""
-        if value not in ["CLIENT", "INTERNAL", "EXTERNAL"]:
-            raise ValueError("Only CLIENT, INTERNAL and EXTERNAL scopes are accepted")
+        if value not in ["CLIENT", "INTERNAL", "EXTERNAL", "EXTRA"]:
+            raise ValueError("Only CLIENT, INTERNAL, EXTERNAL and EXTRA scopes are accepted")
 
         self._scope = value
 
@@ -121,12 +131,18 @@ class Listener:
         Returns:
             Integer of port number
         """
+        # generates ports 39092, 39192, 39292 etc for listener auth if baseport=30000
+        if self.scope == "EXTRA":
+            return getattr(SECURITY_PROTOCOL_PORTS[self.auth_map], "client") + self.baseport
+
         return getattr(SECURITY_PROTOCOL_PORTS[self.auth_map], self.scope.lower())
 
     @property
     def name(self) -> str:
         """Name of the listener."""
-        return f"{self.scope}_{self.protocol}_{self.mechanism.replace('-', '_')}"
+        return f"{self.scope}_{self.protocol}_{self.mechanism.replace('-', '_')}" + (
+            f"_{self.extra_count}" if self.extra_count >= 0 else ""
+        )
 
     @property
     def protocol_map(self) -> str:
@@ -383,7 +399,7 @@ class ConfigManager(CommonConfigManager):
             f'listener.name.{listener_name}.{listener_mechanism}.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";',
             f"listener.name.{listener_name}.sasl.enabled.mechanisms={self.internal_listener.mechanism}",
         ]
-        for auth in self.client_listeners + self.external_listeners:
+        for auth in self.client_listeners + self.external_listeners + self.extra_listeners:
             if not auth.mechanism.startswith("SCRAM"):
                 continue
 
@@ -463,8 +479,34 @@ class ConfigManager(CommonConfigManager):
         pass  # TODO: No good abstraction in place for the controller use case
 
     @property
-    def client_listeners(self) -> list[Listener]:
+    def extra_listeners(self) -> list[Listener]:
         """Return a list of extra listeners."""
+        extra_host_baseports = [
+            tuple(listener.split(":")) for listener in self.config.extra_listeners
+        ]
+
+        extra_listeners = []
+        extra_count = 0
+        for host, baseport in extra_host_baseports:
+            for auth_map in self.state.enabled_auth:
+                host = host.replace("{unit}", str(self.state.unit_broker.unit_id))
+                extra_listeners.append(
+                    Listener(
+                        host=host,
+                        auth_map=auth_map,
+                        scope="EXTRA",
+                        baseport=int(baseport),
+                        extra_count=extra_count,
+                    )
+                )
+
+            extra_count += 1
+
+        return extra_listeners
+
+    @property
+    def client_listeners(self) -> list[Listener]:
+        """Return a list of client listeners."""
         return [
             Listener(
                 host=self.state.unit_broker.internal_address, auth_map=auth_map, scope="CLIENT"
@@ -508,7 +550,12 @@ class ConfigManager(CommonConfigManager):
     @property
     def all_listeners(self) -> list[Listener]:
         """Return a list with all expected listeners."""
-        return [self.internal_listener] + self.client_listeners + self.external_listeners
+        return (
+            [self.internal_listener]
+            + self.client_listeners
+            + self.external_listeners
+            + self.extra_listeners
+        )
 
     @property
     def inter_broker_protocol_version(self) -> str:

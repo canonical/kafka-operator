@@ -7,6 +7,7 @@
 import logging
 import time
 
+import ops
 from charms.data_platform_libs.v0.data_models import TypedCharmBase
 from charms.grafana_agent.v0.cos_agent import COSAgentProvider
 from charms.operator_libs_linux.v0 import sysctl
@@ -17,7 +18,6 @@ from ops import (
     EventBase,
     StatusBase,
 )
-from ops.main import main
 
 from core.cluster import ClusterState
 from core.models import Substrates
@@ -188,4 +188,4 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
 
 if __name__ == "__main__":
-    main(KafkaCharm)
+    ops.main(KafkaCharm)  # pyright: ignore[reportCallIssue]
