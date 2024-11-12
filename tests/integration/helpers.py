@@ -293,6 +293,25 @@ async def set_mtls_client_acls(ops_test: OpsTest, bootstrap_server: str) -> str:
     return result
 
 
+async def create_test_topic(ops_test: OpsTest, bootstrap_server: str) -> str:
+    """Creates `test` topic and adds ACLs for principal `User:*`."""
+    _ = check_output(
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'sudo charmed-kafka.topics --bootstrap-server {bootstrap_server} --command-config {PATHS['kafka']['CONF']}/client.properties -create -topic test'",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+
+    result = check_output(
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'sudo charmed-kafka.acls --bootstrap-server {bootstrap_server} --add --allow-principal=User:* --operation READ --operation WRITE --operation CREATE --topic test --command-config {PATHS['kafka']['CONF']}/client.properties'",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+
+    return result
+
+
 def count_lines_with(model_full_name: str | None, unit: str, file: str, pattern: str) -> int:
     result = check_output(
         f"JUJU_MODEL={model_full_name} juju ssh {unit} sudo -i 'grep \"{pattern}\" {file} | wc -l'",
@@ -328,6 +347,33 @@ def get_secret_by_label(ops_test: OpsTest, label: str, owner: str) -> dict[str, 
 
     secret_data = json.loads(secrets_data_raw)
     return secret_data[secret_id]["content"]["Data"]
+
+
+def search_secrets(ops_test: OpsTest, owner: str, search_key: str) -> str:
+    secrets_meta_raw = check_output(
+        f"JUJU_MODEL={ops_test.model_full_name} juju list-secrets --format json",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    ).strip()
+    secrets_meta = json.loads(secrets_meta_raw)
+
+    for secret_id in secrets_meta:
+        if owner and not secrets_meta[secret_id]["owner"] == owner:
+            continue
+
+        secrets_data_raw = check_output(
+            f"JUJU_MODEL={ops_test.model_full_name} juju show-secret --format json --reveal {secret_id}",
+            stderr=PIPE,
+            shell=True,
+            universal_newlines=True,
+        )
+
+        secret_data = json.loads(secrets_data_raw)
+        if search_key in secret_data[secret_id]["content"]["Data"]:
+            return secret_data[secret_id]["content"]["Data"][search_key]
+
+    return ""
 
 
 def show_unit(ops_test: OpsTest, unit_name: str) -> Any:
