@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-# Copyright 2024 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import dataclasses
 import logging
 import re
 from pathlib import Path
-from unittest.mock import Mock, PropertyMock, patch
+from typing import cast
+from unittest.mock import PropertyMock, patch
 
 import pytest
 import yaml
-from ops.model import BlockedStatus
-from ops.testing import Harness
+from ops.testing import Container, Context, PeerRelation, Relation, State, Storage
 
 from charm import KafkaCharm
 from literals import (
@@ -31,222 +32,299 @@ if SUBSTRATE == "vm":
 
     from literals import OS_REQUIREMENTS
 
-logger = logging.getLogger(__name__)
-
 pytestmark = pytest.mark.broker
 
-CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
-ACTIONS = str(yaml.safe_load(Path("./actions.yaml").read_text()))
-METADATA = str(yaml.safe_load(Path("./metadata.yaml").read_text()))
+
+logger = logging.getLogger(__name__)
 
 
-@pytest.fixture
-def harness() -> Harness:
-    harness = Harness(KafkaCharm, meta=METADATA, actions=ACTIONS, config=CONFIG)
+CONFIG = yaml.safe_load(Path("./config.yaml").read_text())
+ACTIONS = yaml.safe_load(Path("./actions.yaml").read_text())
+METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 
+
+@pytest.fixture()
+def base_state():
     if SUBSTRATE == "k8s":
-        harness.set_can_connect(CONTAINER, True)
+        state = State(leader=True, containers=[Container(name=CONTAINER, can_connect=True)])
 
-    harness.add_relation("restart", CHARM_KEY)
-    harness._update_config(
-        {
-            "log_retention_ms": "-1",
-            "compression_type": "producer",
-            "expose-external": "none",
-        }
-    )
-    harness.begin()
-    storage_metadata = getattr(harness.charm, "meta").storages["data"]
-    min_storages = storage_metadata.multiple_range[0] if storage_metadata.multiple_range else 1
-    with harness.hooks_disabled():
-        harness.add_storage(storage_name="data", count=min_storages, attach=True)
-    return harness
+    else:
+        state = State(leader=True)
+
+    return state
+
+
+@pytest.fixture()
+def ctx() -> Context:
+    ctx = Context(KafkaCharm, meta=METADATA, config=CONFIG, actions=ACTIONS, unit_id=0)
+    return ctx
 
 
 @pytest.mark.skipif(SUBSTRATE == "k8s", reason="sysctl config not used on K8s")
-def test_install_blocks_snap_install_failure(harness: Harness[KafkaCharm]):
+def test_install_blocks_snap_install_failure(ctx: Context, base_state: State) -> None:
     """Checks unit goes to BlockedStatus after snap failure on install hook."""
-    with patch("workload.KafkaWorkload.install", return_value=False):
-        harness.charm.on.install.emit()
-        assert harness.charm.unit.status == Status.SNAP_NOT_INSTALLED.value.status
+    # Given
+    state_in = base_state
+
+    # When
+    with patch("workload.Workload.install", return_value=False), patch("workload.Workload.write"):
+        state_out = ctx.run(ctx.on.install(), state_in)
+
+    # Then
+    assert state_out.unit_status == Status.SNAP_NOT_INSTALLED.value.status
 
 
-def test_install_sets_env_vars(harness: Harness[KafkaCharm], patched_etc_environment):
+def test_install_sets_env_vars(ctx: Context, base_state: State, patched_etc_environment) -> None:
     """Checks KAFKA_OPTS and other vars are written to /etc/environment on install hook."""
-    with patch("workload.KafkaWorkload.install"):
-        harness.charm.on.install.emit()
-        patched_etc_environment.assert_called_once()
+    # Given
+    state_in = base_state
+
+    # When
+    with patch("workload.Workload.install"):
+        _ = ctx.run(ctx.on.install(), state_in)
+
+    # Then
+    patched_etc_environment.assert_called_once()
 
 
 @pytest.mark.skipif(SUBSTRATE == "k8s", reason="sysctl config not used on K8s")
-def test_install_configures_os(harness: Harness[KafkaCharm], patched_sysctl_config):
-    with patch("workload.KafkaWorkload.install"):
-        harness.charm.on.install.emit()
-        patched_sysctl_config.assert_called_once_with(OS_REQUIREMENTS)
+def test_install_configures_os(ctx: Context, base_state: State, patched_sysctl_config) -> None:
+    # Given
+    state_in = base_state
+
+    # When
+    with patch("workload.Workload.install"):
+        _ = ctx.run(ctx.on.install(), state_in)
+
+    # Then
+    patched_sysctl_config.assert_called_once_with(OS_REQUIREMENTS)
 
 
 @pytest.mark.skipif(SUBSTRATE == "k8s", reason="sysctl config not used on K8s")
 def test_install_sets_status_if_os_config_fails(
-    harness: Harness[KafkaCharm], patched_sysctl_config
-):
-    with patch("workload.KafkaWorkload.install"):
+    ctx: Context, base_state: State, patched_sysctl_config
+) -> None:
+    # Given
+    state_in = base_state
+
+    # When
+    with patch("workload.Workload.install"):
         patched_sysctl_config.side_effect = ApplyError("Error setting values")
-        harness.charm.on.install.emit()
+        state_out = ctx.run(ctx.on.install(), state_in)
 
-        assert harness.charm.unit.status == Status.SYSCONF_NOT_POSSIBLE.value.status
-
-
-def test_ready_to_start_maintenance_no_peer_relation(harness: Harness[KafkaCharm]):
-    harness.charm.on.start.emit()
-    assert harness.charm.unit.status == Status.NO_PEER_RELATION.value.status
+    # Then
+    assert state_out.unit_status == Status.SYSCONF_NOT_POSSIBLE.value.status
 
 
-def test_ready_to_start_blocks_no_mode(harness: Harness[KafkaCharm]):
-    with harness.hooks_disabled():
-        harness.add_relation(PEER, CHARM_KEY)
+def test_ready_to_start_maintenance_no_peer_relation(ctx: Context, base_state: State) -> None:
+    # Given
+    state_in = base_state
 
-    harness.charm.on.start.emit()
-    assert harness.charm.unit.status == Status.MISSING_MODE.value.status
+    # When
+    state_out = ctx.run(ctx.on.start(), state_in)
 
-
-def test_ready_to_start_waits_no_zookeeper_data(harness: Harness[KafkaCharm]):
-    with harness.hooks_disabled():
-        harness.add_relation(PEER, CHARM_KEY)
-        harness.add_relation(ZK, ZK)
-
-    harness.charm.on.start.emit()
-    assert harness.charm.unit.status == Status.ZK_NO_DATA.value.status
+    # Then
+    assert state_out.unit_status == Status.NO_PEER_RELATION.value.status
 
 
-def test_ready_to_start_waits_no_user_credentials(harness: Harness[KafkaCharm], zk_data):
-    with harness.hooks_disabled():
-        harness.add_relation(PEER, CHARM_KEY)
-        zk_rel_id = harness.add_relation(ZK, ZK)
-        harness.update_relation_data(zk_rel_id, ZK, zk_data)
+def test_ready_to_start_blocks_no_zookeeper_relation(ctx: Context, base_state: State) -> None:
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer])
 
-    harness.charm.on.start.emit()
-    assert harness.charm.unit.status == Status.NO_BROKER_CREDS.value.status
+    # When
+    state_out = ctx.run(ctx.on.start(), state_in)
 
-
-def test_ready_to_start_blocks_mismatch_tls(harness: Harness[KafkaCharm], zk_data, passwords_data):
-    with harness.hooks_disabled():
-        peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
-        zk_rel_id = harness.add_relation(ZK, ZK)
-        harness.update_relation_data(zk_rel_id, ZK, zk_data)
-        harness.update_relation_data(peer_rel_id, CHARM_KEY, passwords_data)
-        harness.update_relation_data(peer_rel_id, CHARM_KEY, {"tls": "enabled"})
-
-    harness.charm.on.start.emit()
-    assert harness.charm.unit.status == Status.ZK_TLS_MISMATCH.value.status
+    # Then
+    assert state_out.unit_status == Status.MISSING_MODE.value.status
 
 
-def test_ready_to_start_succeeds(harness: Harness[KafkaCharm], zk_data, passwords_data):
-    with harness.hooks_disabled():
-        peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
-        zk_rel_id = harness.add_relation(ZK, ZK)
-        harness.update_relation_data(zk_rel_id, ZK, zk_data)
-        harness.update_relation_data(peer_rel_id, CHARM_KEY, passwords_data)
+def test_ready_to_start_waits_no_zookeeper_data(ctx: Context, base_state: State) -> None:
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER)
+    zk_relation = Relation(ZK, ZK)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, zk_relation])
 
-    assert harness.charm.state.ready_to_start.value.status == Status.ACTIVE.value.status
+    # When
+    state_out = ctx.run(ctx.on.start(), state_in)
+
+    # Then
+    assert state_out.unit_status == Status.ZK_NO_DATA.value.status
+
+
+def test_ready_to_start_waits_no_user_credentials(
+    ctx: Context, base_state: State, zk_data: dict[str, str]
+) -> None:
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER)
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, zk_relation])
+
+    # When
+    state_out = ctx.run(ctx.on.start(), state_in)
+
+    # Then
+    assert state_out.unit_status == Status.NO_BROKER_CREDS.value.status
+
+
+def test_ready_to_start_blocks_mismatch_tls(
+    ctx: Context, base_state: State, zk_data: dict[str, str], passwords_data: dict[str, str]
+) -> None:
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER, local_app_data=passwords_data | {"tls": "enabled"})
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, zk_relation])
+
+    # When
+    state_out = ctx.run(ctx.on.start(), state_in)
+
+    # Then
+    assert state_out.unit_status == Status.ZK_TLS_MISMATCH.value.status
+
+
+def test_ready_to_start_succeeds(
+    ctx: Context, base_state: State, zk_data: dict[str, str], passwords_data: dict[str, str]
+) -> None:
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER, local_app_data=passwords_data)
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, zk_relation])
+
+    # When
+    with (
+        patch("workload.KafkaWorkload.active", return_value=True),
+        patch("workload.KafkaWorkload.write"),
+        patch("workload.KafkaWorkload.start") as patched_start,
+        patch("events.broker.BrokerOperator._on_update_status", autospec=True),
+    ):
+        ctx.run(ctx.on.start(), state_in)
+
+    # Then
+    assert patched_start.call_count
 
 
 def test_healthy_fails_if_not_ready_to_start(
-    harness: Harness[KafkaCharm], zk_data, passwords_data
+    ctx: Context, base_state: State, zk_data: dict[str, str], passwords_data: dict[str, str]
+) -> None:
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER, local_app_data=passwords_data | {"tls": "enabled"})
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, zk_relation])
+
+    # When
+    with ctx(ctx.on.start(), state_in) as manager:
+        charm = cast(KafkaCharm, manager.charm)
+        assert not charm.broker.healthy
+
+
+def test_healthy_fails_if_snap_not_active(
+    ctx: Context, base_state: State, zk_data: dict[str, str], passwords_data: dict[str, str]
+) -> None:
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER, local_app_data=passwords_data)
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, zk_relation])
+
+    # When
+    with (
+        patch("workload.KafkaWorkload.active", return_value=False) as patched_snap_active,
+        patch("workload.KafkaWorkload.start"),
+        ctx(ctx.on.start(), state_in) as manager,
+    ):
+        charm = cast(KafkaCharm, manager.charm)
+        assert not charm.broker.healthy
+        state_out = manager.run()
+
+    # Then
+    assert patched_snap_active.call_count
+    assert state_out.unit_status == Status.BROKER_NOT_RUNNING.value.status
+
+
+def test_healthy_succeeds(
+    ctx: Context, base_state: State, zk_data: dict[str, str], passwords_data: dict[str, str]
 ):
-    with harness.hooks_disabled():
-        peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
-        zk_rel_id = harness.add_relation(ZK, ZK)
-        harness.update_relation_data(zk_rel_id, ZK, zk_data)
-        harness.update_relation_data(peer_rel_id, CHARM_KEY, passwords_data)
-        harness.update_relation_data(peer_rel_id, CHARM_KEY, {"tls": "enabled"})
-
-    assert not harness.charm.broker.healthy
-
-
-def test_healthy_fails_if_snap_not_active(harness: Harness[KafkaCharm], zk_data, passwords_data):
-    with harness.hooks_disabled():
-        peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
-        zk_rel_id = harness.add_relation(ZK, ZK)
-        harness.update_relation_data(zk_rel_id, ZK, zk_data)
-        harness.update_relation_data(peer_rel_id, CHARM_KEY, passwords_data)
-
-    with patch("workload.KafkaWorkload.active", return_value=False) as patched_snap_active:
-        assert not harness.charm.broker.healthy
-        assert patched_snap_active.call_count == 1
-        assert harness.charm.unit.status == Status.BROKER_NOT_RUNNING.value.status
-
-
-def test_healthy_succeeds(harness: Harness[KafkaCharm], zk_data, passwords_data):
-    with harness.hooks_disabled():
-        peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
-        zk_rel_id = harness.add_relation(ZK, ZK)
-        harness.update_relation_data(zk_rel_id, ZK, zk_data)
-        harness.update_relation_data(peer_rel_id, CHARM_KEY, passwords_data)
-
-    with patch("workload.KafkaWorkload.active", return_value=True):
-        assert harness.charm.broker.healthy
-
-
-def test_start_defers_without_zookeeper(harness: Harness[KafkaCharm]):
-    """Checks event deferred and not lost without ZK relation on start hook."""
-    with patch("ops.framework.EventBase.defer") as patched_defer:
-        harness.charm.on.start.emit()
-
-        patched_defer.assert_called_once()
-
-
-def test_start_sets_necessary_config(harness: Harness[KafkaCharm], zk_data, passwords_data):
-    """Checks event writes all needed config to unit on start hook."""
-    with harness.hooks_disabled():
-        peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
-        zk_rel_id = harness.add_relation(ZK, ZK)
-        harness.set_leader(True)
-        harness.add_relation_unit(zk_rel_id, "zookeeper/0")
-        harness.update_relation_data(zk_rel_id, ZK, zk_data)
-        harness.update_relation_data(peer_rel_id, CHARM_KEY, passwords_data)
+    cluster_peer = PeerRelation(PEER, PEER, local_app_data=passwords_data)
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, zk_relation])
 
     with (
+        patch("workload.KafkaWorkload.active", return_value=True),
+        ctx(ctx.on.collect_app_status(), state_in) as manager,
+    ):
+        charm = cast(KafkaCharm, manager.charm)
+        assert charm.broker.healthy
+
+
+def test_start_defers_without_zookeeper(ctx: Context, base_state: State) -> None:
+    """Checks event deferred and not lost without ZK relation on start hook."""
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer])
+
+    # When
+    state_out = ctx.run(ctx.on.start(), state_in)
+
+    # Then
+    assert len(state_out.deferred) == 1
+    assert state_out.deferred[0].name == "start"
+
+
+def test_start_sets_necessary_config(
+    ctx: Context, base_state: State, zk_data: dict[str, str], passwords_data: dict[str, str]
+) -> None:
+    """Checks event writes all needed config to unit on start hook."""
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER, local_app_data=passwords_data)
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, zk_relation])
+
+    # When
+    with (
+        # NOTE: Patching `active` cuts the hook short, as we are only testing properties being set.
+        patch("workload.KafkaWorkload.active", return_value=False),
         patch("managers.auth.AuthManager.add_user"),
         patch("managers.config.ConfigManager.set_zk_jaas_config") as patched_jaas,
         patch("managers.config.ConfigManager.set_server_properties") as patched_server_properties,
         patch("managers.config.ConfigManager.set_client_properties") as patched_client_properties,
         patch("workload.KafkaWorkload.start"),
-        # NOTE: Patching `active` cuts the hook short, as we are only testing properties being set.
-        patch("workload.KafkaWorkload.active", return_value=False),
     ):
-        harness.charm.on.start.emit()
-        patched_jaas.assert_called_once()
-        patched_server_properties.assert_called_once()
-        patched_client_properties.assert_called_once()
+        ctx.run(ctx.on.start(), state_in)
+
+    # Then
+    patched_jaas.assert_called_once()
+    patched_server_properties.assert_called_once()
+    patched_client_properties.assert_called_once()
 
 
 @pytest.mark.skipif(SUBSTRATE == "vm", reason="pebble layer not used on vm")
-def test_start_sets_pebble_layer(harness: Harness[KafkaCharm], zk_data, passwords_data):
+def test_start_sets_pebble_layer(
+    ctx: Context, base_state: State, zk_data: dict[str, str], passwords_data: dict[str, str]
+) -> None:
     """Checks layer is the expected at start."""
-    with harness.hooks_disabled():
-        peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
-        zk_rel_id = harness.add_relation(ZK, ZK)
-        harness.set_leader(True)
-        harness.add_relation_unit(zk_rel_id, "zookeeper/0")
-        harness.update_relation_data(zk_rel_id, ZK, zk_data)
-        harness.update_relation_data(peer_rel_id, CHARM_KEY, passwords_data)
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER, local_app_data=passwords_data)
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, zk_relation])
 
+    # When
     with (
+        # NOTE: Patching `active` cuts the hook short, as we are only testing layer being set.
+        patch("workload.KafkaWorkload.active", return_value=False),
         patch("managers.auth.AuthManager.add_user"),
         patch("managers.config.ConfigManager.set_zk_jaas_config"),
         patch("managers.config.ConfigManager.set_server_properties"),
         patch("managers.config.ConfigManager.set_client_properties"),
-        # NOTE: Patching `active` cuts the hook short, as we are only testing layer being set.
-        patch("workload.KafkaWorkload.active", return_value=False),
+        patch("workload.KafkaWorkload.start"),
+        ctx(ctx.on.start(), state_in) as manager,
     ):
-        harness.charm.on.start.emit()
-        found_plan = harness.get_container_pebble_plan("kafka").to_dict()
+        charm = cast(KafkaCharm, manager.charm)
         extra_opts = [
-            f"-javaagent:{harness.charm.workload.paths.jmx_prometheus_javaagent}={JMX_EXPORTER_PORT}:{harness.charm.workload.paths.jmx_prometheus_config}",
-            f"-Djava.security.auth.login.config={harness.charm.workload.paths.zk_jaas}",
+            f"-javaagent:{charm.workload.paths.jmx_prometheus_javaagent}={JMX_EXPORTER_PORT}:{charm.workload.paths.jmx_prometheus_config}",
+            f"-Djava.security.auth.login.config={charm.workload.paths.zk_jaas}",
         ]
-        command = f"{harness.charm.workload.paths.binaries_path}/bin/kafka-server-start.sh {harness.charm.workload.paths.server_properties}"
+        command = f"{charm.workload.paths.binaries_path}/bin/kafka-server-start.sh {charm.workload.paths.server_properties}"
         expected_plan = {
+            "description": "Pebble config layer for kafka",
             "services": {
                 CONTAINER: {
                     "override": "merge",
@@ -258,35 +336,44 @@ def test_start_sets_pebble_layer(harness: Harness[KafkaCharm], zk_data, password
                     "environment": {
                         "KAFKA_OPTS": " ".join(extra_opts),
                         "JAVA_HOME": "/usr/lib/jvm/java-18-openjdk-amd64",
-                        "LOG_DIR": harness.charm.workload.paths.logs_path,
+                        "LOG_DIR": charm.workload.paths.logs_path,
                     },
-                }
+                },
             },
+            "summary": "kafka layer",
         }
-        assert expected_plan == found_plan
+        found_plan = charm.broker.workload.layer.to_dict()
+
+    # Then
+    assert expected_plan == found_plan
 
 
-def test_start_does_not_start_if_not_ready(harness: Harness[KafkaCharm]):
+def test_start_does_not_start_if_not_ready(ctx: Context, base_state: State) -> None:
     """Checks snap service does not start before ready on start hook."""
-    with harness.hooks_disabled():
-        harness.add_relation(PEER, CHARM_KEY)
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer])
 
+    # When
     with (
         patch("workload.KafkaWorkload.start") as patched_start_snap_service,
         patch("ops.framework.EventBase.defer") as patched_defer,
     ):
-        harness.charm.on.start.emit()
+        _ = ctx.run(ctx.on.start(), state_in)
 
-        patched_start_snap_service.assert_not_called()
-        patched_defer.assert_called()
+    # Then
+    patched_start_snap_service.assert_not_called()
+    patched_defer.assert_called()
 
 
-def test_start_does_not_start_if_not_same_tls_as_zk(harness: Harness[KafkaCharm]):
+def test_start_does_not_start_if_not_same_tls_as_zk(ctx: Context, base_state: State):
     """Checks snap service does not start if mismatch Kafka+ZK TLS on start hook."""
-    harness.add_relation(PEER, CHARM_KEY)
-    zk_rel_id = harness.add_relation(ZK, ZK)
-    harness.add_relation_unit(zk_rel_id, "zookeeper/0")
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER)
+    zk_relation = Relation(ZK, ZK)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, zk_relation])
 
+    # When
     with (
         patch("managers.auth.AuthManager.add_user"),
         patch("workload.KafkaWorkload.start") as patched_start_snap_service,
@@ -294,57 +381,63 @@ def test_start_does_not_start_if_not_same_tls_as_zk(harness: Harness[KafkaCharm]
         patch("core.models.KafkaCluster.internal_user_credentials", return_value="orthanc"),
         patch("core.models.KafkaCluster.tls_enabled", return_value=True),
     ):
-        harness.charm.on.start.emit()
+        state_out = ctx.run(ctx.on.start(), state_in)
 
-        patched_start_snap_service.assert_not_called()
-        assert harness.charm.unit.status == Status.ZK_TLS_MISMATCH.value.status
+    # Then
+    patched_start_snap_service.assert_not_called()
+    assert state_out.unit_status == Status.ZK_TLS_MISMATCH.value.status
 
 
-def test_start_does_not_start_if_leader_has_not_set_creds(harness: Harness[KafkaCharm]):
+def test_start_does_not_start_if_leader_has_not_set_creds(ctx: Context, base_state: State) -> None:
     """Checks snap service does not start without inter-broker creds on start hook."""
-    peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
-    zk_rel_id = harness.add_relation(ZK, ZK)
-    harness.add_relation_unit(zk_rel_id, "zookeeper/0")
-    harness.update_relation_data(peer_rel_id, CHARM_KEY, {"sync-password": "mellon"})
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER, local_app_data={"sync-password": "mellon"})
+    zk_relation = Relation(ZK, ZK)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, zk_relation])
 
+    # When
     with (
         patch("workload.KafkaWorkload.start") as patched_start_snap_service,
         patch("core.cluster.ZooKeeper.zookeeper_connected", return_value=True),
     ):
-        harness.charm.on.start.emit()
+        state_out = ctx.run(ctx.on.start(), state_in)
 
-        patched_start_snap_service.assert_not_called()
-        assert harness.charm.unit.status == Status.NO_BROKER_CREDS.value.status
+    # Then
+    patched_start_snap_service.assert_not_called()
+    assert state_out.unit_status == Status.NO_BROKER_CREDS.value.status
 
 
 def test_update_status_blocks_if_broker_not_active(
-    harness: Harness[KafkaCharm], zk_data, passwords_data
+    ctx: Context, base_state: State, zk_data: dict[str, str], passwords_data: dict[str, str]
 ):
-    with harness.hooks_disabled():
-        peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
-        zk_rel_id = harness.add_relation(ZK, ZK)
-        harness.update_relation_data(zk_rel_id, ZK, zk_data)
-        harness.update_relation_data(peer_rel_id, CHARM_KEY, passwords_data)
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER, local_app_data=passwords_data)
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, zk_relation])
 
+    # When
     with (
         patch("workload.KafkaWorkload.active", return_value=True),
         patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
         patch("core.cluster.ZooKeeper.broker_active", return_value=False) as patched_broker_active,
     ):
-        harness.charm.on.update_status.emit()
-        assert patched_broker_active.call_count == 1
-        assert harness.charm.unit.status == Status.ZK_NOT_CONNECTED.value.status
+        state_out = ctx.run(ctx.on.update_status(), state_in)
+
+    # Then
+    assert patched_broker_active.call_count == 1
+    assert state_out.unit_status == Status.ZK_NOT_CONNECTED.value.status
 
 
 @pytest.mark.skipif(SUBSTRATE == "k8s", reason="machine health checks not used on K8s")
 def test_update_status_blocks_if_machine_not_configured(
-    harness: Harness[KafkaCharm], zk_data, passwords_data
-):
-    with harness.hooks_disabled():
-        peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
-        zk_rel_id = harness.add_relation(ZK, ZK)
-        harness.update_relation_data(zk_rel_id, ZK, zk_data)
-        harness.update_relation_data(peer_rel_id, CHARM_KEY, passwords_data)
+    ctx: Context, base_state: State, zk_data: dict[str, str], passwords_data: dict[str, str]
+) -> None:
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER, local_app_data=passwords_data)
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, zk_relation])
+
+    # When
 
     with (
         patch("health.KafkaHealth.machine_configured", side_effect=SnapError()),
@@ -352,105 +445,121 @@ def test_update_status_blocks_if_machine_not_configured(
         patch("core.cluster.ZooKeeper.broker_active", return_value=True),
         patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
     ):
-        harness.charm.on.update_status.emit()
-        assert harness.charm.unit.status == Status.BROKER_NOT_RUNNING.value.status
+        state_out = ctx.run(ctx.on.update_status(), state_in)
+
+    # Then
+    assert state_out.unit_status == Status.BROKER_NOT_RUNNING.value.status
 
 
 @pytest.mark.skipif(SUBSTRATE == "k8s", reason="sysctl config not used on K8s")
-def test_update_status_sets_sysconf_warning(harness: Harness[KafkaCharm], zk_data, passwords_data):
-    with harness.hooks_disabled():
-        peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
-        zk_rel_id = harness.add_relation(ZK, ZK)
-        harness.update_relation_data(zk_rel_id, ZK, zk_data)
-        harness.update_relation_data(peer_rel_id, CHARM_KEY, passwords_data)
+def test_update_status_sets_sysconf_warning(
+    ctx: Context, base_state: State, zk_data: dict[str, str], passwords_data: dict[str, str]
+) -> None:
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER, local_app_data=passwords_data)
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, zk_relation])
 
+    # When
     with (
         patch("workload.KafkaWorkload.active", return_value=True),
         patch("core.cluster.ZooKeeper.broker_active", return_value=True),
         patch("health.KafkaHealth.machine_configured", return_value=False),
         patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
     ):
-        harness.charm.on.update_status.emit()
-        assert harness.charm.unit.status == Status.SYSCONF_NOT_OPTIMAL.value.status
+        state_out = ctx.run(ctx.on.update_status(), state_in)
+
+    # Then
+    assert state_out.unit_status == Status.SYSCONF_NOT_OPTIMAL.value.status
 
 
 def test_update_status_sets_active(
-    harness: Harness[KafkaCharm], zk_data, passwords_data, patched_health_machine_configured
-):
-    with harness.hooks_disabled():
-        peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
-        zk_rel_id = harness.add_relation(ZK, ZK)
-        harness.update_relation_data(zk_rel_id, ZK, zk_data)
-        harness.update_relation_data(peer_rel_id, CHARM_KEY, passwords_data)
+    ctx: Context,
+    base_state: State,
+    zk_data: dict[str, str],
+    passwords_data: dict[str, str],
+    patched_health_machine_configured,
+) -> None:
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER, local_app_data=passwords_data)
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, zk_relation])
 
+    # When
     with (
         patch("workload.KafkaWorkload.active", return_value=True),
         patch("core.cluster.ZooKeeper.broker_active", return_value=True),
         patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
     ):
-        harness.charm.on.update_status.emit()
-        assert harness.charm.unit.status == Status.ACTIVE.value.status
+        state_out = ctx.run(ctx.on.update_status(), state_in)
+
+    # Then
+    assert state_out.unit_status == Status.ACTIVE.value.status
 
 
 @pytest.mark.skipif(SUBSTRATE == "k8s", reason="multiple storage not supported in K8s")
 def test_storage_add_does_nothing_if_snap_not_active(
-    harness: Harness[KafkaCharm], zk_data, passwords_data
-):
-    with harness.hooks_disabled():
-        peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
-        harness.add_relation_unit(peer_rel_id, f"{CHARM_KEY}/0")
-        harness.set_leader(True)
-        zk_rel_id = harness.add_relation(ZK, ZK)
-        harness.update_relation_data(zk_rel_id, ZK, zk_data)
-        harness.update_relation_data(peer_rel_id, CHARM_KEY, passwords_data)
+    ctx: Context, base_state: State, zk_data: dict[str, str], passwords_data: dict[str, str]
+) -> None:
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER, local_app_data=passwords_data)
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
+    storage = Storage("data")
+    state_in = dataclasses.replace(
+        base_state, relations=[cluster_peer, zk_relation], storages=[storage]
+    )
 
+    # When
     with (
         patch("workload.KafkaWorkload.active", return_value=False),
         patch("charm.KafkaCharm._disable_enable_restart_broker") as patched_restart,
     ):
-        harness.add_storage(storage_name="data", count=2)
-        harness.attach_storage(storage_id="data/1")
+        ctx.run(ctx.on.storage_attached(storage), state_in)
 
-        assert patched_restart.call_count == 0
+    # Then
+    assert patched_restart.call_count == 0
 
 
 @pytest.mark.skipif(SUBSTRATE == "k8s", reason="multiple storage not supported in K8s")
 def test_storage_add_defers_if_service_not_healthy(
-    harness: Harness[KafkaCharm], zk_data, passwords_data
-):
-    with harness.hooks_disabled():
-        peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
-        harness.add_relation_unit(peer_rel_id, f"{CHARM_KEY}/0")
-        harness.set_leader(True)
-        zk_rel_id = harness.add_relation(ZK, ZK)
-        harness.update_relation_data(zk_rel_id, ZK, zk_data)
-        harness.update_relation_data(peer_rel_id, CHARM_KEY, passwords_data)
+    ctx: Context, base_state: State, zk_data: dict[str, str], passwords_data: dict[str, str]
+) -> None:
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER, local_app_data=passwords_data)
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
+    storage = Storage("data")
+    state_in = dataclasses.replace(
+        base_state, relations=[cluster_peer, zk_relation], storages=[storage]
+    )
 
+    # When
     with (
         patch("workload.KafkaWorkload.active", return_value=True),
         patch("events.broker.BrokerOperator.healthy", return_value=False),
         patch("charm.KafkaCharm._disable_enable_restart_broker") as patched_restart,
         patch("ops.framework.EventBase.defer") as patched_defer,
     ):
-        harness.add_storage(storage_name="data", count=2)
-        harness.attach_storage(storage_id="data/1")
+        ctx.run(ctx.on.storage_attached(storage), state_in)
 
-        assert patched_restart.call_count == 0
-        assert patched_defer.call_count == 1
+    # Then
+    assert patched_restart.call_count == 0
+    assert patched_defer.call_count == 1
 
 
 @pytest.mark.skipif(SUBSTRATE == "k8s", reason="multiple storage not supported in K8s")
 def test_storage_add_disableenables_and_starts(
-    harness: Harness[KafkaCharm], zk_data, passwords_data
-):
-    with harness.hooks_disabled():
-        peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
-        harness.add_relation_unit(peer_rel_id, f"{CHARM_KEY}/0")
-        harness.set_leader(True)
-        zk_rel_id = harness.add_relation(ZK, ZK)
-        harness.update_relation_data(zk_rel_id, ZK, zk_data)
-        harness.update_relation_data(peer_rel_id, CHARM_KEY, passwords_data)
+    ctx: Context, base_state: State, zk_data: dict[str, str], passwords_data: dict[str, str]
+) -> None:
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER, local_app_data=passwords_data)
+    restart_peer = PeerRelation("restart", "restart")
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
+    storage = Storage("data")
+    state_in = dataclasses.replace(
+        base_state, relations=[cluster_peer, restart_peer, zk_relation], storages=[storage]
+    )
 
+    # When
     with (
         patch("workload.KafkaWorkload.active", return_value=True),
         patch("events.broker.BrokerOperator.healthy", return_value=True),
@@ -463,24 +572,27 @@ def test_storage_add_disableenables_and_starts(
         patch("workload.KafkaWorkload.start") as patched_start,
         patch("ops.framework.EventBase.defer") as patched_defer,
     ):
-        harness.add_storage(storage_name="data", count=2)
-        harness.attach_storage(storage_id="data/1")
+        ctx.run(ctx.on.storage_attached(storage), state_in)
 
-        assert patched_disable_enable.call_count == 1
-        assert patched_start.call_count == 1
-        assert patched_defer.call_count == 0
+    # Then
+    assert patched_disable_enable.call_count == 1
+    assert patched_start.call_count == 1
+    assert patched_defer.call_count == 0
 
 
 def test_zookeeper_changed_sets_passwords_and_creates_users_with_zk(
-    harness: Harness[KafkaCharm], zk_data
-):
+    ctx: Context, base_state: State, zk_data: dict[str, str]
+) -> None:
     """Checks inter-broker passwords are created on zookeeper-changed hook using zk auth."""
-    with harness.hooks_disabled():
-        peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
-        harness.add_relation_unit(peer_rel_id, f"{CHARM_KEY}/0")
-        harness.set_leader(True)
-        zk_rel_id = harness.add_relation(ZK, ZK)
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER)
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
+    state_in = dataclasses.replace(
+        base_state,
+        relations=[cluster_peer, zk_relation],
+    )
 
+    # When
     with (
         patch("workload.KafkaWorkload.active", return_value=True),
         patch("managers.auth.AuthManager.add_user") as patched_add_user,
@@ -488,58 +600,82 @@ def test_zookeeper_changed_sets_passwords_and_creates_users_with_zk(
         patch(
             "managers.config.ConfigManager.set_server_properties"
         ) as patched_set_server_properties,
+        ctx(ctx.on.relation_changed(zk_relation), state_in) as manager,
     ):
-        harness.update_relation_data(zk_rel_id, ZK, zk_data)
-
+        charm = cast(KafkaCharm, manager.charm)
+        manager.run()
         for user in INTERNAL_USERS:
-            assert harness.charm.state.cluster.relation_data.get(f"{user}-password", None)
+            assert charm.state.cluster.relation_data.get(f"{user}-password", None)
 
-        patched_set_zk_jaas.assert_called()
-        patched_set_server_properties.assert_called()
+    # Then
+    patched_set_zk_jaas.assert_called()
+    patched_set_server_properties.assert_called()
 
-        # checks all users are INTERNAL only
-        for call in patched_add_user.kwargs.get("username", []):
-            assert call in INTERNAL_USERS
+    # checks all users are INTERNAL only
+    for call in patched_add_user.kwargs.get("username", []):
+        assert call in INTERNAL_USERS
 
-        # checks all users added are added with --zookeeper auth
-        for call in patched_add_user.kwargs.get("zk_auth", False):
-            assert True
+    # checks all users added are added with --zookeeper auth
+    for call in patched_add_user.kwargs.get("zk_auth", False):
+        assert True
 
 
-def test_zookeeper_joined_sets_chroot(harness: Harness[KafkaCharm]):
+def test_zookeeper_created_sets_chroot(ctx: Context, base_state: State) -> None:
+    """Checks chroot is added to ZK relation data on ZKrelationcreated hook."""
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER)
+    zk_relation = Relation(ZK, ZK)
+    state_in = dataclasses.replace(
+        base_state,
+        relations=[cluster_peer, zk_relation],
+    )
+
+    # When
+    state_out = ctx.run(ctx.on.relation_created(zk_relation), state_in)
+
+    # Then
+    assert (local_databag := state_out.get_relation(zk_relation.id).local_app_data)
+    assert CHARM_KEY in local_databag.get("database", "")
+
+
+def test_zookeeper_broken_stops_service_and_removes_meta_properties(
+    ctx: Context, base_state: State
+) -> None:
     """Checks chroot is added to ZK relation data on ZKrelationjoined hook."""
-    harness.add_relation(PEER, CHARM_KEY)
-    harness.set_leader(True)
-    zk_rel_id = harness.add_relation(ZK, ZK)
-    harness.add_relation_unit(zk_rel_id, f"{ZK}/0")
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER)
+    zk_relation = Relation(ZK, ZK)
+    state_in = dataclasses.replace(
+        base_state,
+        relations=[cluster_peer, zk_relation],
+    )
 
-    rel = harness.charm.model.relations[ZK][0].data[harness.charm.app]
-    assert CHARM_KEY in rel.get("database", rel.get("chroot", ""))
-
-
-def test_zookeeper_broken_stops_service_and_removes_meta_properties(harness: Harness[KafkaCharm]):
-    """Checks chroot is added to ZK relation data on ZKrelationjoined hook."""
-    harness.add_relation(PEER, CHARM_KEY)
-    zk_rel_id = harness.add_relation(ZK, ZK)
-
+    # When
     with (
         patch("workload.KafkaWorkload.stop") as patched_stop_snap_service,
         patch("workload.KafkaWorkload.exec") as patched_exec,
     ):
-        harness.remove_relation(zk_rel_id)
+        state_out = ctx.run(ctx.on.relation_broken(zk_relation), state_in)
 
-        patched_stop_snap_service.assert_called_once()
-        assert re.match(r"rm .*/meta.properties", " ".join(patched_exec.call_args_list[1].args[0]))
-        assert isinstance(harness.charm.unit.status, BlockedStatus)
+    # Then
+    patched_stop_snap_service.assert_called_once()
+    assert re.findall(r"meta.properties -delete", " ".join(patched_exec.call_args_list[1].args[0]))
+    assert state_out.unit_status == Status.ZK_NOT_RELATED.value.status
 
 
-def test_zookeeper_broken_cleans_internal_user_credentials(harness: Harness[KafkaCharm]):
+def test_zookeeper_broken_cleans_internal_user_credentials(
+    ctx: Context, base_state: State
+) -> None:
     """Checks chroot is added to ZK relation data on ZKrelationjoined hook."""
-    with harness.hooks_disabled():
-        harness.add_relation(PEER, CHARM_KEY)
-        zk_rel_id = harness.add_relation(ZK, ZK)
-        harness.set_leader(True)
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER)
+    zk_relation = Relation(ZK, ZK)
+    state_in = dataclasses.replace(
+        base_state,
+        relations=[cluster_peer, zk_relation],
+    )
 
+    # When
     with (
         patch("workload.KafkaWorkload.stop"),
         patch("workload.KafkaWorkload.exec"),
@@ -550,20 +686,26 @@ def test_zookeeper_broken_cleans_internal_user_credentials(harness: Harness[Kafk
             return_value={"saruman": "orthanc"},
         ),
     ):
-        harness.remove_relation(zk_rel_id)
+        ctx.run(ctx.on.relation_broken(zk_relation), state_in)
 
-        patched_update.assert_called_once_with({"saruman-password": ""})
+    # Then
+    patched_update.assert_called_once_with({"saruman-password": ""})
 
 
-def test_config_changed_updates_server_properties(harness: Harness[KafkaCharm], zk_data):
+def test_config_changed_updates_server_properties(
+    ctx: Context, base_state: State, zk_data: dict[str, str]
+) -> None:
     """Checks that new charm/unit config writes server config to unit on config changed hook."""
-    with harness.hooks_disabled():
-        peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
-        zk_rel_id = harness.add_relation(ZK, ZK)
-        harness.add_relation_unit(zk_rel_id, f"{ZK}/0")
-        harness.add_relation_unit(peer_rel_id, f"{CHARM_KEY}/0")
-        harness.update_relation_data(zk_rel_id, ZK, zk_data)
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER)
+    restart_peer = PeerRelation("restart", "rolling_op")
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
+    state_in = dataclasses.replace(
+        base_state,
+        relations=[cluster_peer, restart_peer, zk_relation],
+    )
 
+    # When
     with (
         patch(
             "managers.config.ConfigManager.server_properties",
@@ -575,17 +717,24 @@ def test_config_changed_updates_server_properties(harness: Harness[KafkaCharm], 
         patch("workload.KafkaWorkload.read", return_value=["gandalf=grey"]),
         patch("managers.config.ConfigManager.set_server_properties") as set_server_properties,
         patch("managers.config.ConfigManager.set_client_properties"),
+        patch(
+            "charms.rolling_ops.v0.rollingops.RollingOpsManager._on_run_with_lock", autospec=True
+        ),
     ):
-        harness.charm.on.config_changed.emit()
+        ctx.run(ctx.on.config_changed(), state_in)
 
-        set_server_properties.assert_called_once()
+    # Then
+    set_server_properties.assert_called_once()
 
 
-def test_config_changed_updates_client_properties(harness: Harness[KafkaCharm]):
+def test_config_changed_updates_client_properties(ctx: Context, base_state: State) -> None:
     """Checks that new charm/unit config writes client config to unit on config changed hook."""
-    peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
-    harness.add_relation_unit(peer_rel_id, f"{CHARM_KEY}/0")
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER)
+    restart_peer = PeerRelation("restart", "rolling_op")
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, restart_peer])
 
+    # When
     with (
         patch(
             "managers.config.ConfigManager.client_properties",
@@ -602,18 +751,25 @@ def test_config_changed_updates_client_properties(harness: Harness[KafkaCharm]):
         patch("workload.KafkaWorkload.read", return_value=["gandalf=grey"]),
         patch("managers.config.ConfigManager.set_server_properties"),
         patch("managers.config.ConfigManager.set_client_properties") as set_client_properties,
+        patch(
+            "charms.rolling_ops.v0.rollingops.RollingOpsManager._on_run_with_lock", autospec=True
+        ),
     ):
-        harness.charm.on.config_changed.emit()
+        ctx.run(ctx.on.config_changed(), state_in)
 
-        set_client_properties.assert_called_once()
+    # Then
+    set_client_properties.assert_called_once()
 
 
-def test_config_changed_updates_client_data(harness: Harness[KafkaCharm]):
+def test_config_changed_updates_client_data(ctx: Context, base_state: State) -> None:
     """Checks that provided relation data updates on config changed hook."""
-    peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
-    harness.add_relation_unit(peer_rel_id, f"{CHARM_KEY}/0")
-    harness.add_relation(REL_NAME, "app")
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER)
+    restart_peer = PeerRelation("restart", "rolling_op")
+    client = Relation(REL_NAME, REL_NAME)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, restart_peer, client])
 
+    # When
     with (
         patch(
             "managers.config.ConfigManager.server_properties",
@@ -628,21 +784,24 @@ def test_config_changed_updates_client_data(harness: Harness[KafkaCharm]):
         patch(
             "managers.config.ConfigManager.set_client_properties"
         ) as patched_set_client_properties,
+        patch(
+            "charms.rolling_ops.v0.rollingops.RollingOpsManager._on_run_with_lock", autospec=True
+        ),
     ):
-        harness.set_leader(True)
-        harness.charm.on.config_changed.emit()
+        ctx.run(ctx.on.config_changed(), state_in)
 
-        patched_set_client_properties.assert_called_once()
-        patched_update_client_data.assert_called_once()
+    # Then
+    patched_set_client_properties.assert_called_once()
+    patched_update_client_data.assert_called_once()
 
 
-def test_config_changed_restarts(harness: Harness[KafkaCharm]):
+def test_config_changed_restarts(ctx: Context, base_state: State) -> None:
     """Checks units rolling-restat on config changed hook."""
-    peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
-    harness.add_relation_unit(peer_rel_id, f"{CHARM_KEY}/0")
-    harness.set_leader(True)
-    zk_rel_id = harness.add_relation(ZK, ZK)
-    harness.add_relation_unit(zk_rel_id, f"{ZK}/0")
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER)
+    restart_peer = PeerRelation("restart", "rolling_op")
+    zk_relation = Relation(ZK, ZK, remote_app_data={"username": "glorfindel"})
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, restart_peer, zk_relation])
 
     with (
         patch(
@@ -653,44 +812,45 @@ def test_config_changed_restarts(harness: Harness[KafkaCharm]):
         patch("events.broker.BrokerOperator.healthy", return_value=True),
         patch("workload.KafkaWorkload.read", return_value=["gandalf=white"]),
         patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
-        patch("workload.KafkaWorkload.restart") as patched_restart_snap_service,
         patch("core.cluster.ZooKeeper.broker_active", return_value=True),
         patch("core.cluster.ZooKeeper.zookeeper_connected", return_value=True),
         patch("managers.auth.AuthManager.add_user"),
         patch("managers.config.ConfigManager.set_zk_jaas_config"),
         patch("managers.config.ConfigManager.set_server_properties"),
+        patch(
+            "charms.rolling_ops.v0.rollingops.RollingOpsManager._on_run_with_lock", autospec=True
+        ) as patched_restart_lib,
     ):
-        harness.update_relation_data(zk_rel_id, ZK, {"username": "glorfindel"})
-        patched_restart_snap_service.reset_mock()
 
-        harness.charm.on.config_changed.emit()
-        patched_restart_snap_service.assert_called_once()
+        ctx.run(ctx.on.config_changed(), state_in)
+        patched_restart_lib.assert_called_once()
+        pass
 
 
 @pytest.mark.skipif(SUBSTRATE == "k8s", reason="sysctl config not used on K8s")
-def test_on_remove_sysctl_is_deleted(harness: Harness[KafkaCharm]):
-    peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
-    harness.add_relation_unit(peer_rel_id, f"{CHARM_KEY}/0")
+def test_on_remove_sysctl_is_deleted(ctx: Context, base_state: State):
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer])
 
+    # When
     with patch("charm.sysctl.Config.remove") as patched_sysctl_remove:
-        harness.charm.on.remove.emit()
+        ctx.run(ctx.on.remove(), state_in)
 
-        patched_sysctl_remove.assert_called_once()
+    # Then
+    patched_sysctl_remove.assert_called_once()
 
 
-def test_workload_version_is_setted(harness: Harness[KafkaCharm], monkeypatch):
-    output_install = "3.6.0-ubuntu0"
-    output_changed = "3.6.1-ubuntu0"
-    monkeypatch.setattr(
-        harness.charm.broker.workload,
-        "run_bin_command",
-        Mock(side_effect=[output_install, output_changed]),
-    )
-    monkeypatch.setattr(harness.charm.broker.workload, "install", Mock(return_value=True))
+def test_workload_version_is_setted(ctx: Context, base_state: State):
+    # Given
+    output_bin_install = "3.6.0-ubuntu0"
+    output_bin_changed = "3.6.1-ubuntu0"
+    expected_version_installed = "3.6.0"
+    expected_version_changed = "3.6.1"
+    restart_peer = PeerRelation("restart", "rolling_op")
+    state_in = dataclasses.replace(base_state, relations=[restart_peer])
 
-    harness.charm.on.install.emit()
-    assert harness.get_workload_version() == "3.6.0"
-
+    # When
     with (
         patch(
             "managers.config.ConfigManager.server_properties",
@@ -699,9 +859,19 @@ def test_workload_version_is_setted(harness: Harness[KafkaCharm], monkeypatch):
         ),
         patch("events.broker.BrokerOperator.healthy", return_value=True),
         patch("workload.KafkaWorkload.read", return_value=["gandalf=white"]),
+        patch("workload.KafkaWorkload.install", return_value=True),
+        patch(
+            "workload.KafkaWorkload.run_bin_command",
+            side_effect=[output_bin_install, output_bin_changed],
+        ),
         patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
+        patch(
+            "charms.rolling_ops.v0.rollingops.RollingOpsManager._on_run_with_lock", autospec=True
+        ),
     ):
+        state_intermediary = ctx.run(ctx.on.install(), state_in)
+        state_out = ctx.run(ctx.on.config_changed(), state_intermediary)
 
-        harness.charm.on.config_changed.emit()
-
-    assert harness.get_workload_version() == "3.6.1"
+    # Then
+    assert ctx.workload_version_history == [expected_version_installed]
+    assert state_out.workload_version == expected_version_changed

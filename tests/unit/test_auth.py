@@ -1,45 +1,18 @@
 #!/usr/bin/env python3
-# Copyright 2024 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 import logging
-from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock
 
 import pytest
-import yaml
-from ops.testing import Harness
 
-from charm import KafkaCharm
-from literals import CHARM_KEY, CONTAINER, SUBSTRATE
 from managers.auth import Acl, AuthManager
+from workload import KafkaWorkload
 
 logger = logging.getLogger(__name__)
 
 pytestmark = pytest.mark.broker
-
-CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
-ACTIONS = str(yaml.safe_load(Path("./actions.yaml").read_text()))
-METADATA = str(yaml.safe_load(Path("./metadata.yaml").read_text()))
-
-
-@pytest.fixture
-def harness():
-    harness = Harness(KafkaCharm, meta=METADATA)
-
-    if SUBSTRATE == "k8s":
-        harness.set_can_connect(CONTAINER, True)
-
-    harness.add_relation("restart", CHARM_KEY)
-    harness._update_config(
-        {
-            "log_retention_ms": "-1",
-            "compression_type": "producer",
-        }
-    )
-
-    harness.begin()
-    return harness
 
 
 def test_acl():
@@ -101,56 +74,22 @@ def test_generate_consumer_acls():
     assert sorted(resource_types) == sorted({"TOPIC", "GROUP"})
 
 
-def test_add_user_adds_zk_tls_flag(harness: Harness[KafkaCharm]):
+def test_add_user_adds_zk_tls_flag(monkeypatch) -> None:
     """Checks zk-tls-config-file flag is called for configs bin command."""
-    with patch("workload.KafkaWorkload.run_bin_command") as patched_exec:
-        harness.charm.broker.auth_manager.add_user("samwise", "gamgee", zk_auth=True)
-        args = patched_exec.call_args_list[0][1]
+    # Given
+    state = Mock()
+    state.zookeeper.connect = "host"
+    workload = KafkaWorkload(container=Mock())
+    patched_exec = Mock()
+    monkeypatch.setattr(workload, "run_bin_command", patched_exec)
+    auth_manager = AuthManager(state, workload, "", "")
 
-        assert (
-            f"--zk-tls-config-file={harness.charm.workload.paths.server_properties}"
-            in args["bin_args"]
-        ), "--zk-tls-config-file flag not found"
-        assert "--zookeeper=" in args["bin_args"], "--zookeeper flag not found"
+    # When
+    auth_manager.add_user("samwise", "gamgee", zk_auth=True)
+    args = patched_exec.call_args_list[0][1]
 
-
-def test_prefixed_acls(harness: Harness[KafkaCharm]):
-    """Checks the requirements for adding and removing PREFIXED ACLs."""
-    with patch("workload.KafkaWorkload.run_bin_command") as patched_run_bin:
-        for func in [
-            harness.charm.broker.auth_manager.add_acl,
-            harness.charm.broker.auth_manager.remove_acl,
-        ]:
-            func(
-                username="bilbo",
-                operation="WRITE",
-                resource_type="TOPIC",
-                resource_name="there-and-back-again",
-            )
-            func(
-                username="bilbo",
-                operation="WRITE",
-                resource_type="TOPIC",
-                resource_name="there-and-back-*",
-            )
-            func(username="bilbo", operation="WRITE", resource_type="TOPIC", resource_name="??*")
-
-            assert (
-                "--resource-pattern-type=LITERAL"
-                in patched_run_bin.call_args_list[0].kwargs["bin_args"]
-            )
-
-            assert (
-                "--resource-pattern-type=PREFIXED"
-                in patched_run_bin.call_args_list[1].kwargs["bin_args"]
-            )
-
-            # checks that the prefixed topic removes the '*' char from the end
-            assert (
-                "--topic=there-and-back-" in patched_run_bin.call_args_list[1].kwargs["bin_args"]
-            )
-
-            assert (
-                "--resource-pattern-type=LITERAL"
-                in patched_run_bin.call_args_list[2].kwargs["bin_args"]
-            )
+    # Then
+    assert (
+        f"--zk-tls-config-file={workload.paths.server_properties}" in args["bin_args"]
+    ), "--zk-tls-config-file flag not found"
+    assert "--zookeeper=host" in args["bin_args"], "--zookeeper flag not found"

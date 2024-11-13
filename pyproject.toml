@@ -31,7 +31,7 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = ">=3.8,<4.0"
-ops = ">=2.4.1"
+ops = ">=2.17.0"
 kazoo = ">=2.8.0"
 
 # The cosl dep could be removed from here once PYDEPS is released:
@@ -88,7 +88,7 @@ optional = true
 pytest = ">=7.2"
 coverage = { extras = ["toml"], version = ">7.0" }
 pytest-mock = "^3.11.1"
-ops-scenario = "^7.0.0"
+ops = { version = ">=2.17.0", extras = ["testing"] }
 
 [tool.poetry.group.integration]
 optional = true

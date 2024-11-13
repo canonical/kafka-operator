@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING
 
 from charms.operator_libs_linux.v1.snap import SnapError
 from ops import (
-    ActiveStatus,
     EventBase,
     InstallEvent,
     Object,
@@ -172,8 +171,9 @@ class BrokerOperator(Object):
             self._init_kraft_mode()
 
         # FIXME ready to start probably needs to account for credentials being created beforehand
-        self.charm._set_status(self.charm.state.ready_to_start)
-        if not isinstance(self.charm.unit.status, ActiveStatus):
+        current_status = self.charm.state.ready_to_start
+        if current_status is not Status.ACTIVE:
+            self.charm._set_status(current_status)
             event.defer()
             return
 
@@ -223,7 +223,7 @@ class BrokerOperator(Object):
         self.charm.on.update_status.emit()
 
         # only log once on successful 'on-start' run
-        if isinstance(self.charm.unit.status, ActiveStatus):
+        if not self.charm.pending_inactive_statuses:
             logger.info(f'Broker {self.charm.unit.name.split("/")[1]} connected')
 
     def _on_config_changed(self, event: EventBase) -> None:
@@ -339,8 +339,6 @@ class BrokerOperator(Object):
             self.charm._set_status(Status.BROKER_NOT_RUNNING)
             return
 
-        self.charm._set_status(Status.ACTIVE)
-
     def _on_secret_changed(self, event: SecretChangedEvent) -> None:
         """Handler for `secret_changed` events."""
         if not event.secret.label or not self.charm.state.cluster.relation:
@@ -408,8 +406,9 @@ class BrokerOperator(Object):
         Returns:
             True if service is alive and active. Otherwise False
         """
-        self.charm._set_status(self.charm.state.ready_to_start)
-        if not isinstance(self.charm.unit.status, ActiveStatus):
+        current_status = self.charm.state.ready_to_start
+        if current_status is not Status.ACTIVE:
+            self.charm._set_status(current_status)
             return False
 
         if not self.workload.active():

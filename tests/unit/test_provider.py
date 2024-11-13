@@ -2,51 +2,66 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import dataclasses
 import logging
 from pathlib import Path
 from unittest.mock import PropertyMock, patch
 
 import pytest
 import yaml
-from ops.testing import Harness
+from ops.testing import Container, Context, PeerRelation, Relation, Secret, State
 
 from charm import KafkaCharm
-from literals import CHARM_KEY, CONTAINER, PEER, REL_NAME, SUBSTRATE
-
-logger = logging.getLogger(__name__)
+from literals import (
+    CONTAINER,
+    PEER,
+    REL_NAME,
+    SUBSTRATE,
+    ZK,
+)
 
 pytestmark = pytest.mark.broker
 
-CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
-ACTIONS = str(yaml.safe_load(Path("./actions.yaml").read_text()))
-METADATA = str(yaml.safe_load(Path("./metadata.yaml").read_text()))
+
+logger = logging.getLogger(__name__)
 
 
-@pytest.fixture
-def harness():
-    harness = Harness(KafkaCharm, meta=METADATA, actions=ACTIONS, config=CONFIG)
+CONFIG = yaml.safe_load(Path("./config.yaml").read_text())
+ACTIONS = yaml.safe_load(Path("./actions.yaml").read_text())
+METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 
+
+@pytest.fixture()
+def base_state():
     if SUBSTRATE == "k8s":
-        harness.set_can_connect(CONTAINER, True)
+        state = State(leader=True, containers=[Container(name=CONTAINER, can_connect=True)])
 
-    harness.add_relation("restart", CHARM_KEY)
-    harness._update_config(
-        {
-            "log_retention_ms": "-1",
-            "compression_type": "producer",
-            "expose-external": "none",
-        }
+    else:
+        state = State(leader=True)
+
+    return state
+
+
+@pytest.fixture()
+def ctx() -> Context:
+    ctx = Context(KafkaCharm, meta=METADATA, config=CONFIG, actions=ACTIONS, unit_id=0)
+    return ctx
+
+
+def test_client_relation_created_defers_if_not_ready(ctx: Context, base_state: State) -> None:
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER)
+    zk_relation = Relation(ZK, ZK)
+    client_relation = Relation(
+        REL_NAME,
+        "app",
+        remote_app_data={"topic": "TOPIC", "extra-user-roles": "consumer,producer"},
+    )
+    state_in = dataclasses.replace(
+        base_state, relations=[cluster_peer, zk_relation, client_relation]
     )
 
-    harness.begin()
-    return harness
-
-
-def test_client_relation_created_defers_if_not_ready(harness: Harness[KafkaCharm]):
-    """Checks event is deferred if not ready on clientrelationcreated hook."""
-    with harness.hooks_disabled():
-        harness.add_relation(PEER, CHARM_KEY)
-
+    # When
     with (
         patch(
             "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=False
@@ -54,26 +69,27 @@ def test_client_relation_created_defers_if_not_ready(harness: Harness[KafkaCharm
         patch("managers.auth.AuthManager.add_user") as patched_add_user,
         patch("ops.framework.EventBase.defer") as patched_defer,
     ):
-        harness.set_leader(True)
-        client_rel_id = harness.add_relation(REL_NAME, "app")
-        # update relation to trigger on_topic_requested event
-        harness.update_relation_data(
-            client_rel_id,
-            "app",
-            {"topic": "TOPIC", "extra-user-roles": "consumer,producer"},
-        )
+        ctx.run(ctx.on.relation_changed(client_relation), state_in)
 
-        patched_add_user.assert_not_called()
-        patched_defer.assert_called()
+    # Then
+    patched_add_user.assert_not_called()
+    patched_defer.assert_called()
 
 
-def test_client_relation_created_adds_user(harness: Harness[KafkaCharm]):
-    """Checks if new users are added on clientrelationcreated hook."""
-    with harness.hooks_disabled():
-        harness.add_relation(PEER, CHARM_KEY)
-        harness.set_leader(True)
-        client_rel_id = harness.add_relation(REL_NAME, "app")
+def test_client_relation_created_adds_user(ctx: Context, base_state: State) -> None:
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER)
+    zk_relation = Relation(ZK, ZK)
+    client_relation = Relation(
+        REL_NAME,
+        "app",
+        remote_app_data={"topic": "TOPIC", "extra-user-roles": "consumer,producer"},
+    )
+    state_in = dataclasses.replace(
+        base_state, relations=[cluster_peer, zk_relation, client_relation]
+    )
 
+    # When
     with (
         patch(
             "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=True
@@ -82,21 +98,33 @@ def test_client_relation_created_adds_user(harness: Harness[KafkaCharm]):
         patch("workload.KafkaWorkload.run_bin_command"),
         patch("core.cluster.ZooKeeper.connect", new_callable=PropertyMock, return_value="yes"),
     ):
-        harness.update_relation_data(
-            client_rel_id,
-            "app",
-            {"topic": "TOPIC", "extra-user-roles": "consumer,producer"},
-        )
+        state_out = ctx.run(ctx.on.relation_changed(client_relation), state_in)
 
-        patched_add_user.assert_called_once()
-        assert harness.charm.state.cluster.relation_data.get(f"relation-{client_rel_id}")
+    # Then
+    patched_add_user.assert_called_once()
+    assert f"relation-{client_relation.id}" in next(iter(state_out.secrets)).tracked_content
 
 
-def test_client_relation_broken_removes_user(harness: Harness[KafkaCharm]):
+def test_client_relation_broken_removes_user(ctx: Context, base_state: State) -> None:
     """Checks if users are removed on clientrelationbroken hook."""
-    with harness.hooks_disabled():
-        harness.add_relation(PEER, CHARM_KEY)
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER)
+    zk_relation = Relation(ZK, ZK)
+    client_relation = Relation(
+        REL_NAME,
+        "app",
+        remote_app_data={"topic": "TOPIC", "extra-user-roles": "consumer,producer"},
+    )
+    secret = Secret(
+        tracked_content={f"relation-{client_relation.id}": "password"},
+        owner="app",
+        label="cluster.kafka-k8s.app" if SUBSTRATE == "k8s" else "cluster.kafka.app",
+    )
+    state_in = dataclasses.replace(
+        base_state, relations=[cluster_peer, zk_relation, client_relation], secrets=[secret]
+    )
 
+    # When
     with (
         patch(
             "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=True
@@ -107,30 +135,32 @@ def test_client_relation_broken_removes_user(harness: Harness[KafkaCharm]):
         patch("workload.KafkaWorkload.run_bin_command"),
         patch("core.cluster.ZooKeeper.connect", new_callable=PropertyMock, return_value="yes"),
     ):
-        harness.set_leader(True)
-        client_rel_id = harness.add_relation(REL_NAME, "app")
-        harness.update_relation_data(
-            client_rel_id,
-            "app",
-            {"topic": "TOPIC", "extra-user-roles": "consumer,producer"},
-        )
+        state_out = ctx.run(ctx.on.relation_broken(client_relation), state_in)
 
-        # validating username got added
-        assert harness.charm.state.cluster.relation_data.get(f"relation-{client_rel_id}")
-
-        harness.remove_relation(client_rel_id)
-
-        # validating username got removed
-        assert not harness.charm.state.cluster.relation_data.get(f"relation-{client_rel_id}")
-        patched_remove_acls.assert_called_once()
-        patched_delete_user.assert_called_once()
+    # Then
+    patched_remove_acls.assert_called_once()
+    patched_delete_user.assert_called_once()
+    # validating username got removed, by removing the full secret
+    assert not state_out.secrets
 
 
-def test_client_relation_joined_sets_necessary_relation_data(harness: Harness[KafkaCharm]):
+def test_client_relation_joined_sets_necessary_relation_data(
+    ctx: Context, base_state: State
+) -> None:
     """Checks if all needed provider relation data is set on clientrelationjoined hook."""
-    with harness.hooks_disabled():
-        harness.add_relation(PEER, CHARM_KEY)
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER)
+    zk_relation = Relation(ZK, ZK)
+    client_relation = Relation(
+        REL_NAME,
+        "app",
+        remote_app_data={"topic": "TOPIC", "extra-user-roles": "consumer,producer"},
+    )
+    state_in = dataclasses.replace(
+        base_state, relations=[cluster_peer, zk_relation, client_relation]
+    )
 
+    # When
     with (
         patch(
             "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=True
@@ -139,35 +169,23 @@ def test_client_relation_joined_sets_necessary_relation_data(harness: Harness[Ka
         patch("workload.KafkaWorkload.run_bin_command"),
         patch("core.models.ZooKeeper.uris", new_callable=PropertyMock, return_value="yes"),
     ):
-        harness.set_leader(True)
-        client_rel_id = harness.add_relation(REL_NAME, "app")
-        client_relation = harness.charm.model.relations[REL_NAME][0]
+        state_out = ctx.run(ctx.on.relation_changed(client_relation), state_in)
 
-        harness.update_relation_data(
-            client_relation.id, "app", {"topic": "TOPIC", "extra-user-roles": "consumer"}
-        )
-        harness.add_relation_unit(client_rel_id, "app/0")
-        assert sorted(
-            [
-                "username",
-                "password",
-                "tls-ca",
-                "endpoints",
-                "data",
-                "zookeeper-uris",
-                "consumer-group-prefix",
-                "tls",
-                "topic",
-            ]
-        ) == sorted(client_relation.data[harness.charm.app].keys())
+    # Then
+    relation_databag = state_out.get_relation(client_relation.id).local_app_data
+    assert not {
+        "username",
+        "password",
+        "tls-ca",
+        "endpoints",
+        "data",
+        "zookeeper-uris",
+        "consumer-group-prefix",
+        "tls",
+        "topic",
+    } - set(relation_databag.keys())
 
-        assert client_relation.data[harness.charm.app].get("tls", None) == "disabled"
-        assert client_relation.data[harness.charm.app].get("zookeeper-uris", None) == "yes"
-        assert (
-            client_relation.data[harness.charm.app].get("username", None)
-            == f"relation-{client_rel_id}"
-        )
-        assert (
-            client_relation.data[harness.charm.app].get("consumer-group-prefix", None)
-            == f"relation-{client_rel_id}-"
-        )
+    assert relation_databag.get("tls", None) == "disabled"
+    assert relation_databag.get("zookeeper-uris", None) == "yes"
+    assert relation_databag.get("username", None) == f"relation-{client_relation.id}"
+    assert relation_databag.get("consumer-group-prefix", None) == f"relation-{client_relation.id}-"

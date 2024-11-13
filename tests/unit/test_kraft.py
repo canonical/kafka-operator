@@ -11,7 +11,7 @@ from unittest.mock import patch
 import pytest
 import yaml
 from ops import ActiveStatus
-from scenario import Container, Context, PeerRelation, Relation, State
+from ops.testing import Container, Context, PeerRelation, Relation, State
 
 from charm import KafkaCharm
 from literals import (

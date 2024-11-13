@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING
 
 from ops import (
     ActionEvent,
-    ActiveStatus,
     EventBase,
     InstallEvent,
     Object,
@@ -61,6 +60,9 @@ class BalancerOperator(Object):
             config=self.charm.config,
         )
 
+        # Before fast exit to avoid silently ignoring the action
+        self.framework.observe(getattr(self.charm.on, "rebalance_action"), self.rebalance)
+
         # Fast exit after workload instantiation, but before any event observer
         if BALANCER.value not in self.charm.config.roles or not self.charm.unit.is_leader():
             return
@@ -82,8 +84,6 @@ class BalancerOperator(Object):
         self.framework.observe(self.charm.on.update_status, self._on_config_changed)
         self.framework.observe(self.charm.on.config_changed, self._on_config_changed)
 
-        self.framework.observe(getattr(self.charm.on, "rebalance_action"), self.rebalance)
-
     def _on_install(self, event: InstallEvent) -> None:
         """Handler for `install` event."""
         if not self.workload.container_can_connect:
@@ -101,8 +101,9 @@ class BalancerOperator(Object):
 
     def _on_start(self, event: StartEvent | PebbleReadyEvent) -> None:
         """Handler for `start` or `pebble-ready` events."""
-        self.charm._set_status(self.charm.state.ready_to_start)
-        if not isinstance(self.charm.unit.status, ActiveStatus):
+        current_status = self.charm.state.ready_to_start
+        if current_status is not Status.ACTIVE:
+            self.charm._set_status(current_status)
             event.defer()
             return
 
@@ -207,33 +208,36 @@ class BalancerOperator(Object):
             available_brokers = [int(broker.split("/")[1]) for broker in brokers]
 
         failure_conditions = [
-            (not self.charm.unit.is_leader(), "Action must be ran on the application leader"),
             (
-                not self.balancer_manager.cruise_control.monitoring,
+                lambda: not self.charm.unit.is_leader(),
+                "Action must be ran on the application leader",
+            ),
+            (
+                lambda: not self.balancer_manager.cruise_control.monitoring,
                 "CruiseControl balancer service is not yet ready",
             ),
             (
-                self.balancer_manager.cruise_control.executing,
+                lambda: self.balancer_manager.cruise_control.executing,
                 "CruiseControl balancer service is currently executing a task, please try again later",
             ),
             (
-                not self.balancer_manager.cruise_control.ready,
+                lambda: not self.balancer_manager.cruise_control.ready,
                 "CruiseControl balancer service has not yet collected enough data to provide a partition reallocation proposal",
             ),
             (
-                event.params["mode"] in (MODE_ADD, MODE_REMOVE)
+                lambda: event.params["mode"] in (MODE_ADD, MODE_REMOVE)
                 and event.params.get("brokerid", None) is None,
                 "'add' and 'remove' rebalance action require passing the 'brokerid' parameter",
             ),
             (
-                event.params["mode"] in (MODE_ADD, MODE_REMOVE)
+                lambda: event.params["mode"] in (MODE_ADD, MODE_REMOVE)
                 and event.params.get("brokerid") not in available_brokers,
                 "invalid brokerid",
             ),
         ]
 
         for check, msg in failure_conditions:
-            if check:
+            if check():
                 logging.error(msg)
                 event.set_results({"error": msg})
                 event.fail(msg)
@@ -261,8 +265,6 @@ class BalancerOperator(Object):
 
         event.set_results(sanitised_response)
 
-        self.charm._set_status(Status.ACTIVE)
-
     @property
     def healthy(self) -> bool:
         """Checks and updates various charm lifecycle states.
@@ -274,8 +276,9 @@ class BalancerOperator(Object):
         if not self.charm.state.runs_balancer:
             return True
 
-        self.charm._set_status(self.charm.state.ready_to_start)
-        if not isinstance(self.charm.unit.status, ActiveStatus):
+        current_status = self.charm.state.ready_to_start
+        if current_status is not Status.ACTIVE:
+            self.charm._set_status(current_status)
             return False
 
         if not self.workload.active() and self.charm.unit.is_leader():
