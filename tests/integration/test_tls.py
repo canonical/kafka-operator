@@ -6,6 +6,7 @@ import asyncio
 import base64
 import json
 import logging
+import os
 import tempfile
 
 import kafka
@@ -297,49 +298,41 @@ async def test_truststore_live_reload(ops_test: OpsTest):
     await create_test_topic(ops_test, bootstrap_server=sasl_bootstrap_server)
 
     # quickly test the producer and consumer side authentication & authorization
-    with (
-        tempfile.NamedTemporaryFile("w", encoding="utf-8") as cert,
-        tempfile.NamedTemporaryFile("w", encoding="utf-8") as private_key,
-        tempfile.NamedTemporaryFile("w", encoding="utf-8") as broker_ca,
-        tempfile.NamedTemporaryFile("w", encoding="utf-8") as ca_cert,
-    ):
-        temp_store = {
-            "cert": cert,
-            "private_key": private_key,
-            "broker_ca": broker_ca,
-            "ca_cert": ca_cert,
-        }
-        for key, content in local_store.items():
-            file_handle = temp_store[key]
-            file_handle.write(content)
+    tmp_dir = tempfile.TemporaryDirectory()
+    tmp_paths = {}
+    for key, content in local_store.items():
+        tmp_paths[key] = os.path.join(tmp_dir.name, key)
+        with open(tmp_paths[key], "w", encoding="utf-8") as f:
+            f.write(content)
 
-        client_config = {
-            "bootstrap_servers": ssl_bootstrap_server,
-            "security_protocol": "SSL",
-            "api_version": (0, 10),
-            "ssl_cafile": broker_ca.name,
-            "ssl_certfile": cert.name,
-            "ssl_keyfile": private_key.name,
-            "ssl_check_hostname": False,
-        }
+    client_config = {
+        "bootstrap_servers": ssl_bootstrap_server,
+        "security_protocol": "SSL",
+        "api_version": (0, 10),
+        "ssl_cafile": tmp_paths["broker_ca"],
+        "ssl_certfile": tmp_paths["cert"],
+        "ssl_keyfile": tmp_paths["private_key"],
+        "ssl_check_hostname": False,
+    }
 
-        producer = kafka.KafkaProducer(
-            **client_config,
-            value_serializer=lambda v: json.dumps(v).encode("utf-8"),
-        )
+    producer = kafka.KafkaProducer(
+        **client_config,
+        value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+    )
 
-        producer.send("test", test_msg)
+    producer.send("test", test_msg)
 
-        consumer = kafka.KafkaConsumer("test", **client_config, auto_offset_reset="earliest")
+    consumer = kafka.KafkaConsumer("test", **client_config, auto_offset_reset="earliest")
 
-        msg = next(consumer)
+    msg = next(consumer)
 
-        assert json.loads(msg.value) == test_msg
+    assert json.loads(msg.value) == test_msg
 
     # cleanup
     await ops_test.model.remove_application("other-ca", block_until_done=True)
     await ops_test.model.remove_application("other-op", block_until_done=True)
     await ops_test.model.remove_application("other-req", block_until_done=True)
+    tmp_dir.cleanup()
 
 
 @pytest.mark.abort_on_fail
