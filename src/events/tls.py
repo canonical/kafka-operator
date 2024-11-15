@@ -140,7 +140,7 @@ class TLSHandler(Object):
         if not self.charm.state.cluster.mtls_enabled:
             # Create a "mtls" flag so a new listener (CLIENT_SSL) is created
             self.charm.state.cluster.update({"mtls": "enabled"})
-            self.charm.on[f"{self.charm.restart.name}"].acquire_lock.emit()
+            self.charm.on.config_changed.emit()
 
         self.charm.app.status = ActiveStatus()
 
