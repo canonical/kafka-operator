@@ -91,7 +91,7 @@ def test_ready_to_start_no_peer_cluster(charm_configuration, base_state: State):
 def test_ready_to_start_missing_data_as_controller(charm_configuration, base_state: State):
     # Given
     charm_configuration["options"]["roles"]["default"] = "controller"
-    charm_configuration["options"]["expose-external"]["default"] = "none"
+    charm_configuration["options"]["expose_external"]["default"] = "none"
     ctx = Context(
         KafkaCharm,
         meta=METADATA,
@@ -112,7 +112,7 @@ def test_ready_to_start_missing_data_as_controller(charm_configuration, base_sta
 def test_ready_to_start_missing_data_as_broker(charm_configuration, base_state: State):
     # Given
     charm_configuration["options"]["roles"]["default"] = "broker"
-    charm_configuration["options"]["expose-external"]["default"] = "none"
+    charm_configuration["options"]["expose_external"]["default"] = "none"
     ctx = Context(
         KafkaCharm,
         meta=METADATA,
@@ -136,7 +136,7 @@ def test_ready_to_start_missing_data_as_broker(charm_configuration, base_state: 
 def test_ready_to_start(charm_configuration, base_state: State):
     # Given
     charm_configuration["options"]["roles"]["default"] = "broker,controller"
-    charm_configuration["options"]["expose-external"]["default"] = "none"
+    charm_configuration["options"]["expose_external"]["default"] = "none"
     ctx = Context(
         KafkaCharm,
         meta=METADATA,
