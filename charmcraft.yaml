@@ -4,14 +4,19 @@
 type: charm
 parts:
   charm:
+    build-snaps:
+      - rustup
     charm-binary-python-packages:
       - setuptools
     build-packages:
       - libffi-dev
       - libssl-dev
-      - rustc
-      - cargo
       - pkg-config
+    override-build:
+      # get latest rust stable toolchain
+      rustup default stable
+
+      craftctl default
 bases:
   - build-on:
       - name: "ubuntu"
