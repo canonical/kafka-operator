@@ -40,7 +40,7 @@ While the following requirements are meant to be for production, the charm can b
 - 12 storage devices
 - 10 GbE card
 
-The charm is meant to be deployed using `juju>=2.9.37`.
+The charm is meant to be deployed using `juju>=3.0`.
 
 ## Usage
 
@@ -54,19 +54,19 @@ $ juju deploy kafka --channel latest/edge -n 3
 
 After this, it is necessary to connect them:
 ```shell
-$ juju relate kafka zookeeper
+$ juju integrate kafka zookeeper
 ```
 
 To watch the process, `juju status` can be used. Once all the units show as `active|idle` the credentials to access a broker can be queried with:
 ```shell
-juju run-action kafka/leader get-admin-credentials --wait
+juju run kafka/leader get-admin-credentials
 ```
 
 Apache Kafka ships with `bin/*.sh` commands to do various administrative tasks, e.g `bin/kafka-config.sh` to update cluster configuration, `bin/kafka-topics.sh` for topic management, and many more! The Kafka Charmed Operator provides these commands to administrators to easily run their desired cluster configurations securely with SASL authentication, either from within the cluster or as an external client.
 
 If you wish to run a command from the cluster, in order to (for example) list the current topics on the Kafka cluster, you can run:
 ```
-BOOTSTRAP_SERVERS=$(juju run-action kafka/leader get-admin-credentials --wait | grep "bootstrap.servers" | cut -d "=" -f 2)
+BOOTSTRAP_SERVERS=$(juju run kafka/leader get-admin-credentials | grep "bootstrap.servers" | cut -d "=" -f 2)
 juju ssh kafka/leader 'charmed-kafka.topics --bootstrap-server $BOOTSTRAP_SERVERS --list --command-config /var/snap/charmed-kafka/common/client.properties'
 ```
 
@@ -102,10 +102,10 @@ Even when scaling multiple units at the same time, the charm uses a rolling rest
 The operator user is used internally by the Charmed Kafka Operator, the `set-password` action can be used to rotate its password.
 ```shell
 # to set a specific password for the operator user
-juju run-action kafka/leader set-password password=<password> --wait
+juju run kafka/leader set-password password=<password>
 
 # to randomly generate a password for the operator user
-juju run-action kafka/leader set-password --wait
+juju run kafka/leader set-password
 ```
 
 ### Storage support
@@ -131,12 +131,12 @@ juju config data-integrator topic-name=test-topic extra-user-roles=producer,cons
 
 Relate the two applications with:
 ```shell
-juju relate data-integrator kafka
+juju integrate data-integrator kafka
 ```
 
 To retrieve information, enter:
 ```shell
-juju run-action data-integrator/leader get-credentials --wait
+juju run data-integrator/leader get-credentials
 ```
 
 This should output something like:
@@ -172,16 +172,16 @@ juju deploy tls-certificates-operator --channel=edge
 # add the necessary configurations for TLS
 juju config tls-certificates-operator generate-self-signed-certificates="true" ca-common-name="Test CA"
 # to enable TLS relate the two applications
-juju relate tls-certificates-operator zookeeper
-juju relate tls-certificates-operator kafka
+juju integrate tls-certificates-operator zookeeper
+juju integrate tls-certificates-operator kafka
 ```
 
 Updates to private keys for certificate signing requests (CSR) can be made via the `set-tls-private-key` action.
 ```shell
 # Updates can be done with auto-generated keys with
-juju run-action kafka/0 set-tls-private-key --wait
-juju run-action kafka/1 set-tls-private-key --wait
-juju run-action kafka/2 set-tls-private-key --wait
+juju run kafka/0 set-tls-private-key
+juju run kafka/1 set-tls-private-key
+juju run kafka/2 set-tls-private-key
 ```
 
 Passing keys to external/internal keys should *only be done with* `base64 -w0` *not* `cat`. With three brokers this schema should be followed:
@@ -189,9 +189,9 @@ Passing keys to external/internal keys should *only be done with* `base64 -w0` *
 # generate shared internal key
 openssl genrsa -out internal-key.pem 3072
 # apply keys on each unit
-juju run-action kafka/0 set-tls-private-key "internal-key=$(base64 -w0 internal-key.pem)"  --wait
-juju run-action kafka/1 set-tls-private-key "internal-key=$(base64 -w0 internal-key.pem)"  --wait
-juju run-action kafka/2 set-tls-private-key "internal-key=$(base64 -w0 internal-key.pem)"  --wait
+juju run kafka/0 set-tls-private-key "internal-key=$(base64 -w0 internal-key.pem)"
+juju run kafka/1 set-tls-private-key "internal-key=$(base64 -w0 internal-key.pem)"
+juju run kafka/2 set-tls-private-key "internal-key=$(base64 -w0 internal-key.pem)"
 ```
 
 To disable TLS remove the relation
@@ -222,7 +222,7 @@ to relate it to the COS Lite offers.
 
 Now, relate kafka with the grafana-agent:
 ```shell
-juju relate kafka grafana-agent
+juju integrate kafka grafana-agent
 ```
 
 After this is complete, Grafana will show two new dashboards: `Kafka Metrics` and `Node Exporter Kafka`
