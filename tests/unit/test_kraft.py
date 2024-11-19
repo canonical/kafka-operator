@@ -91,7 +91,7 @@ def test_ready_to_start_no_peer_cluster(charm_configuration, base_state: State):
 def test_ready_to_start_missing_data_as_controller(charm_configuration, base_state: State):
     # Given
     charm_configuration["options"]["roles"]["default"] = "controller"
-    charm_configuration["options"]["expose_external"]["default"] = "none"
+    charm_configuration["options"]["expose-external"]["default"] = "false"
     ctx = Context(
         KafkaCharm,
         meta=METADATA,
@@ -112,7 +112,7 @@ def test_ready_to_start_missing_data_as_controller(charm_configuration, base_sta
 def test_ready_to_start_missing_data_as_broker(charm_configuration, base_state: State):
     # Given
     charm_configuration["options"]["roles"]["default"] = "broker"
-    charm_configuration["options"]["expose_external"]["default"] = "none"
+    charm_configuration["options"]["expose-external"]["default"] = "false"
     ctx = Context(
         KafkaCharm,
         meta=METADATA,
@@ -136,7 +136,7 @@ def test_ready_to_start_missing_data_as_broker(charm_configuration, base_state: 
 def test_ready_to_start(charm_configuration, base_state: State):
     # Given
     charm_configuration["options"]["roles"]["default"] = "broker,controller"
-    charm_configuration["options"]["expose_external"]["default"] = "none"
+    charm_configuration["options"]["expose-external"]["default"] = "false"
     ctx = Context(
         KafkaCharm,
         meta=METADATA,
@@ -153,6 +153,7 @@ def test_ready_to_start(charm_configuration, base_state: State):
         ) as patched_run_bin_command,
         patch("health.KafkaHealth.machine_configured", return_value=True),
         patch("workload.KafkaWorkload.start"),
+        patch("workload.KafkaWorkload.active", return_value=True),
         patch("charms.operator_libs_linux.v1.snap.SnapCache"),
     ):
         state_out = ctx.run(ctx.on.start(), state_in)
@@ -165,4 +166,4 @@ def test_ready_to_start(charm_configuration, base_state: State):
     # Only the internal users should be created.
     assert "admin-password" in next(iter(state_out.secrets)).latest_content
     assert "sync-password" in next(iter(state_out.secrets)).latest_content
-    assert state_out.unit_status == ActiveStatus()
+    assert state_out.unit_status == ActiveStatus(), logger.error(f"{state_out.unit_status=}")
