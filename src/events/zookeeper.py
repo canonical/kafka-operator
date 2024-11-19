@@ -90,8 +90,12 @@ class ZooKeeperHandler(Object):
 
             try:
                 internal_user_credentials = self._create_internal_credentials()
-            except (KeyError, RuntimeError, subprocess.CalledProcessError, ExecError) as e:
-                logger.warning(str(e))
+            except (KeyError, RuntimeError) as e:
+                logger.warning(e)
+                event.defer()
+                return
+            except (subprocess.CalledProcessError, ExecError) as e:
+                logger.warning(f"{e.stdout}, {e.stderr}")
                 event.defer()
                 return
 

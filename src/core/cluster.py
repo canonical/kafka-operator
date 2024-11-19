@@ -4,6 +4,7 @@
 
 """Objects representing the state of KafkaCharm."""
 
+import logging
 import os
 from functools import cached_property
 from ipaddress import IPv4Address, IPv6Address
@@ -57,6 +58,8 @@ from literals import (
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
+
+logger = logging.getLogger(__name__)
 
 custom_secret_groups = SECRET_GROUPS
 setattr(custom_secret_groups, "BROKER", "broker")
@@ -393,7 +396,12 @@ class ClusterState(Object):
             return ""
 
         if self.config.expose_external:  # implicitly checks for k8s in structured_config
-            return self.bootstrap_servers_external
+            # service might not be created yet by the broker
+            try:
+                return self.bootstrap_servers_external
+            except LightKubeApiError as e:
+                logger.debug(e)
+                return ""
 
         return ",".join(
             sorted(
