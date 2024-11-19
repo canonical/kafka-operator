@@ -438,8 +438,9 @@ class BrokerOperator(Object):
         # cluster-uuid is only created on the broker (`cluster-manager` in large deployments)
         if not self.charm.state.cluster.cluster_uuid and self.charm.state.runs_broker:
             uuid = self.workload.run_bin_command(
-                bin_keyword="storage", bin_args=["random-uuid", "2>", "/dev/null"]
+                bin_keyword="storage", bin_args=["random-uuid"]
             ).strip()
+
             self.charm.state.cluster.update({"cluster-uuid": uuid})
             self.charm.state.peer_cluster.update({"cluster-uuid": uuid})
 
