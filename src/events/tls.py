@@ -152,7 +152,9 @@ class TLSHandler(Object):
             relation_id=event.relation.id,
         )
         subject = (
-            os.uname()[1] if self.charm.substrate == "k8s" else self.charm.state.unit_broker.host
+            os.uname()[1]
+            if self.charm.substrate == "k8s"
+            else self.charm.state.unit_broker.internal_address
         )
         sans = self.charm.broker.tls_manager.build_sans()
         csr = (

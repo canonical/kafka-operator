@@ -142,7 +142,7 @@ class TLSManager:
         if self.substrate == "vm":
             return {
                 "sans_ip": [
-                    self.state.unit_broker.host,
+                    self.state.unit_broker.internal_address,
                 ],
                 "sans_dns": [self.state.unit_broker.unit.name, socket.getfqdn()]
                 + self._build_extra_sans(),

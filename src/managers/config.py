@@ -538,7 +538,7 @@ class ConfigManager(CommonConfigManager):
                 Listener(
                     auth_map=auth,
                     scope="EXTERNAL",
-                    host=self.state.unit_broker.host,
+                    host=self.state.unit_broker.node_ip,
                     # default in case service not created yet during cluster init
                     # will resolve during config-changed
                     node_port=node_port,

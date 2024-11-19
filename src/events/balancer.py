@@ -111,7 +111,7 @@ class BalancerOperator(Object):
             payload = {
                 "balancer-username": BALANCER_WEBSERVER_USER,
                 "balancer-password": self.charm.workload.generate_password(),
-                "balancer-uris": f"{self.charm.state.unit_broker.host}:{BALANCER_WEBSERVER_PORT}",
+                "balancer-uris": f"{self.charm.state.unit_broker.internal_address}:{BALANCER_WEBSERVER_PORT}",
             }
             # Update relation data intra & extra cluster (if it exists)
             self.charm.state.cluster.update(payload)

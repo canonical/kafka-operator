@@ -503,14 +503,6 @@ class KafkaBroker(RelationState):
 
         return addr
 
-    @property
-    def host(self) -> str:
-        """Return the hostname of a unit."""
-        if self.substrate == "vm":
-            return self.internal_address
-        else:
-            return self.node_ip or self.internal_address
-
     # --- TLS ---
 
     @property

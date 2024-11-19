@@ -421,7 +421,7 @@ class ClusterState(Object):
             node_offset = KRAFT_NODE_ID_OFFSET if self.runs_broker else 0
             return ",".join(
                 [
-                    f"{broker.unit_id + node_offset}@{broker.host}:{CONTROLLER_PORT}"
+                    f"{broker.unit_id + node_offset}@{broker.internal_address}:{CONTROLLER_PORT}"
                     for broker in self.brokers
                 ]
             )
