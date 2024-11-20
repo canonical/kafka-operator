@@ -105,12 +105,12 @@ juju add-credentials azure
 
 This will start a script that will help you set up the credentials, where you will be asked:
 
-* `credential-name`: fill it with a sensible name that will help you identify the credential set, say `<CREDENTIAL_NAME>`
-* `region`: select any default region is more convenient for you to deploy your controller and applications. Note that credentials are nevertheless not region specific
-* `auth type`: select `interactive`, which is the recommended way to authenticate to Azure using Juju
-* `subscription_id`: use the value `<subscription_id>` taken in the previous step
-* `application_name`: please generate a random string to avoid collision with other users or applications
-* `role-definition-name`: please generate a random string to avoid collision with other users or applications, and store it as `<AZURE_ROLE>`
+* `credential-name` — a sensible name that will help you identify the credential set, say `<CREDENTIAL_NAME>`
+* `region` — a default region that is most convenient to deploy your controller and applications. Note that credentials are not region-specific
+* `auth type` — authentication type. Select `interactive`, which is the recommended way to authenticate to Azure using Juju
+* `subscription_id` — the value `<subscription_id>` taken in the previous step
+* `application_name` — any unique string to avoid collision with other users or applications
+* `role-definition-name` — any unique string to avoid collision with other users or applications, and store it as `<AZURE_ROLE>`
 
 Next, you will be asked to authenticate the requests via your web browser with the following message:
 
