@@ -251,16 +251,27 @@ class BrokerOperator(Object):
         expected_sans_ip = set(self.tls_manager.build_sans()["sans_ip"]) if current_sans else set()
         sans_ip_changed = current_sans_ip ^ expected_sans_ip
 
+        current_sans_dns = set(current_sans["sans_dns"]) if current_sans else set()
+        expected_sans_dns = set(self.tls_manager.build_sans()["sans_dns"]) if current_sans else set()
+        sans_dns_changed = current_sans_dns ^ expected_sans_dns
+
         # update environment
         self.config_manager.set_environment()
         self.charm.unit.set_workload_version(self.workload.get_version())
 
-        if sans_ip_changed:
+        if sans_ip_changed or sans_dns_changed:
             logger.info(
                 (
                     f'Broker {self.charm.unit.name.split("/")[1]} updating certificate SANs - '
-                    f"OLD SANs = {current_sans_ip - expected_sans_ip}, "
-                    f"NEW SANs = {expected_sans_ip - current_sans_ip}"
+                    f"OLD SANs IP = {current_sans_ip - expected_sans_ip}, "
+                    f"NEW SANs IP = {expected_sans_ip - current_sans_ip}"
+                )
+            )
+            logger.info(
+                (
+                    f'Broker {self.charm.unit.name.split("/")[1]} updating certificate SANs - '
+                    f"OLD SANs DNS = {current_sans_dns - expected_sans_dns}, "
+                    f"NEW SANs DNS = {expected_sans_dns - current_sans_dns}"
                 )
             )
             self.charm.tls.certificates.on.certificate_expiring.emit(
