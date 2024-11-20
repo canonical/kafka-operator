@@ -14,8 +14,6 @@ The Kafka Operator can be found on [Charmhub](https://charmhub.io/kafka) and it 
 - SASL/SCRAM auth for Broker-Broker and Client-Broker authentication enabled by default.
 - Access control management supported with user-provided ACL lists.
 
-The Kafka Operator uses the latest upstream Kafka binaries released by The Apache Software Foundation that comes with Kafka, made available using the [`charmed-kafka` snap ](https://snapcraft.io/charmed-kafka) distributed by Canonical.
-
 As currently Kafka requires a paired ZooKeeper deployment in production, this operator makes use of the [ZooKeeper Operator](https://github.com/canonical/zookeeper-operator) for various essential functions.
 
 ### Checklist
