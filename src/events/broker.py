@@ -264,12 +264,7 @@ class BrokerOperator(Object):
                 (
                     f'Broker {self.charm.unit.name.split("/")[1]} updating certificate SANs - '
                     f"OLD SANs IP = {current_sans_ip - expected_sans_ip}, "
-                    f"NEW SANs IP = {expected_sans_ip - current_sans_ip}"
-                )
-            )
-            logger.info(
-                (
-                    f'Broker {self.charm.unit.name.split("/")[1]} updating certificate SANs - '
+                    f"NEW SANs IP = {expected_sans_ip - current_sans_ip}, "
                     f"OLD SANs DNS = {current_sans_dns - expected_sans_dns}, "
                     f"NEW SANs DNS = {expected_sans_dns - current_sans_dns}"
                 )
