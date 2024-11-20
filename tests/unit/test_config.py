@@ -132,7 +132,7 @@ def test_listeners_in_server_properties(
 ) -> None:
     """Checks that listeners are split into INTERNAL, CLIENT and EXTERNAL."""
     # Given
-    charm_configuration["options"]["expose-external"]["default"] = "nodeport"
+    charm_configuration["options"]["expose_external"]["default"] = "nodeport"
     cluster_peer = PeerRelation(PEER, PEER, local_unit_data={"private-address": "treebeard"})
     zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
     client_relation = Relation(REL_NAME, "app")

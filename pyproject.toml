@@ -46,8 +46,6 @@ pydantic = "<2"
 pyyaml = "^6.0.1"
 requests = "^2.32.3"
 lightkube = "0.15.0"
-# FIXME: Unpin once rustc 1.76 is available at build time
-rpds-py = "<0.19"
 
 [tool.poetry.group.charm-libs.dependencies]
 # data_platform_libs/v0/data_interfaces.py
@@ -78,8 +76,6 @@ black = "^22.3.0"
 ruff = ">=0.1.0"
 codespell = ">=2.2.2"
 pyright = "^1.1.301"
-# FIXME: Unpin once rustc 1.76 is available at build time
-rpds-py = "<0.19"
 
 [tool.poetry.group.unit]
 optional = true
@@ -104,7 +100,7 @@ pure-sasl = ">=0.5"
 kafka-python = ">=2.0"
 requests = ">2.25"
 
-pytest-operator-cache = {git = "https://github.com/canonical/data-platform-workflows", tag = "v22.0.0", subdirectory = "python/pytest_plugins/pytest_operator_cache"}
+pytest-operator-cache = { git = "https://github.com/canonical/data-platform-workflows", tag = "v22.0.0", subdirectory = "python/pytest_plugins/pytest_operator_cache" }
 # To be enabled if we are using groups on integration tests
 
 [tool.poetry.group.format.dependencies]

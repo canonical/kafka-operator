@@ -235,7 +235,7 @@ class CharmConfig(BaseConfigModel):
     @validator("expose_external")
     @classmethod
     def expose_external_validator(cls, value: str) -> str | None:
-        """Check expose-external config option is only used on Kubernetes charm."""
+        """Check expose_external config option is only used on Kubernetes charm."""
         if SUBSTRATE == "vm":
             return
 
