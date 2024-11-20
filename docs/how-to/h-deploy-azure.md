@@ -142,10 +142,12 @@ Create a new Juju model, if needed:
 juju add-model <MODEL_NAME>
 ```
 
-> (Optional) Increase the debug level if you are troubleshooting charms:
-> ```shell
-> juju model-config logging-config='<root>=INFO;unit=DEBUG'
-> ```
+[note type="caution"]
+(Optional) Increase the debug level if you are troubleshooting charms:
+```shell
+juju model-config logging-config='<root>=INFO;unit=DEBUG'
+```
+[/note]
 
 Then, Charmed Kafka can be deployed as usual. However, note that the smallest instance types on Azure may not have enough resources for hosting 
 a Kafka broker. We recommend selecting an instance type that provides at the very least `8` GB of RAM and `4` cores.
