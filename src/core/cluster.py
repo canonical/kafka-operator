@@ -413,6 +413,25 @@ class ClusterState(Object):
         )
 
     @property
+    def bootstrap_server_internal(self) -> str:
+        """Comma-delimited string of `bootstrap-server` command flag for internal access.
+
+        Returns:
+            List of `bootstrap-server` servers
+        """
+        if not self.peer_relation:
+            return ""
+
+        return ",".join(
+            sorted(
+                [
+                    f"{broker.internal_address}:{SECURITY_PROTOCOL_PORTS[self.default_auth].internal}"
+                    for broker in self.brokers
+                ]
+            )
+        )
+
+    @property
     def controller_quorum_uris(self) -> str:
         """The current controller quorum uris when running KRaft mode."""
         # FIXME: when running broker node.id will be unit-id + 100. If unit is only running

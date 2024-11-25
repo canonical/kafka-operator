@@ -4,8 +4,12 @@
 
 import asyncio
 import base64
+import json
 import logging
+import os
+import tempfile
 
+import kafka
 import pytest
 from charms.tls_certificates_interface.v1.tls_certificates import generate_private_key
 from pytest_operator.plugin import OpsTest
@@ -22,11 +26,13 @@ from .helpers import (
     APP_NAME,
     REL_NAME_ADMIN,
     check_tls,
+    create_test_topic,
     extract_ca,
     extract_private_key,
     get_active_brokers,
     get_address,
     get_kafka_zk_relation_data,
+    search_secrets,
     set_mtls_client_acls,
     set_tls_private_key,
 )
@@ -37,6 +43,7 @@ logger = logging.getLogger(__name__)
 TLS_NAME = "self-signed-certificates"
 CERTS_NAME = "tls-certificates-operator"
 MTLS_NAME = "mtls"
+TLS_REQUIRER = "tls-certificates-requirer"
 
 
 @pytest.mark.abort_on_fail
@@ -225,6 +232,107 @@ async def test_mtls(ops_test: OpsTest):
     assert topic_name == "TEST-TOPIC"
     assert min_offset == "0"
     assert max_offset == str(num_messages)
+
+
+@pytest.mark.abort_on_fail
+async def test_truststore_live_reload(ops_test: OpsTest):
+    """Tests truststore live reload functionality using kafka-python client."""
+    requirer = "other-req/0"
+    test_msg = {"test": 123456}
+
+    await ops_test.model.deploy(
+        TLS_NAME, channel="stable", application_name="other-ca", revision=155
+    )
+    await ops_test.model.deploy(
+        TLS_REQUIRER, channel="stable", application_name="other-req", revision=102
+    )
+
+    await ops_test.model.add_relation("other-ca", "other-req")
+
+    await ops_test.model.wait_for_idle(
+        apps=["other-ca", "other-req"], idle_period=60, timeout=2000, status="active"
+    )
+
+    # retrieve required certificates and private key from secrets
+    local_store = {
+        "private_key": search_secrets(ops_test=ops_test, owner=requirer, search_key="private-key"),
+        "cert": search_secrets(ops_test=ops_test, owner=requirer, search_key="certificate"),
+        "ca_cert": search_secrets(ops_test=ops_test, owner=requirer, search_key="ca-certificate"),
+        "broker_ca": search_secrets(
+            ops_test=ops_test, owner=f"{APP_NAME}/0", search_key="ca-cert"
+        ),
+    }
+
+    certs_operator_config = {
+        "generate-self-signed-certificates": "false",
+        "certificate": base64.b64encode(local_store["cert"].encode("utf-8")).decode("utf-8"),
+        "ca-certificate": base64.b64encode(local_store["ca_cert"].encode("utf-8")).decode("utf-8"),
+    }
+
+    await ops_test.model.deploy(
+        CERTS_NAME,
+        channel="stable",
+        series="jammy",
+        application_name="other-op",
+        config=certs_operator_config,
+    )
+
+    await ops_test.model.wait_for_idle(
+        apps=["other-op"], idle_period=60, timeout=2000, status="active"
+    )
+
+    # We don't expect a broker restart here because of truststore live reload
+    await ops_test.model.add_relation(f"{APP_NAME}:{TRUSTED_CERTIFICATE_RELATION}", "other-op")
+
+    await ops_test.model.wait_for_idle(
+        apps=["other-op", APP_NAME], idle_period=60, timeout=2000, status="active"
+    )
+
+    address = await get_address(ops_test, app_name=APP_NAME, unit_num=0)
+    ssl_port = SECURITY_PROTOCOL_PORTS["SSL", "SSL"].client
+    ssl_bootstrap_server = f"{address}:{ssl_port}"
+    sasl_port = SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client
+    sasl_bootstrap_server = f"{address}:{sasl_port}"
+
+    # create `test` topic and set ACLs
+    await create_test_topic(ops_test, bootstrap_server=sasl_bootstrap_server)
+
+    # quickly test the producer and consumer side authentication & authorization
+    tmp_dir = tempfile.TemporaryDirectory()
+    tmp_paths = {}
+    for key, content in local_store.items():
+        tmp_paths[key] = os.path.join(tmp_dir.name, key)
+        with open(tmp_paths[key], "w", encoding="utf-8") as f:
+            f.write(content)
+
+    client_config = {
+        "bootstrap_servers": ssl_bootstrap_server,
+        "security_protocol": "SSL",
+        "api_version": (0, 10),
+        "ssl_cafile": tmp_paths["broker_ca"],
+        "ssl_certfile": tmp_paths["cert"],
+        "ssl_keyfile": tmp_paths["private_key"],
+        "ssl_check_hostname": False,
+    }
+
+    producer = kafka.KafkaProducer(
+        **client_config,
+        value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+    )
+
+    producer.send("test", test_msg)
+
+    consumer = kafka.KafkaConsumer("test", **client_config, auto_offset_reset="earliest")
+
+    msg = next(consumer)
+
+    assert json.loads(msg.value) == test_msg
+
+    # cleanup
+    await ops_test.model.remove_application("other-ca", block_until_done=True)
+    await ops_test.model.remove_application("other-op", block_until_done=True)
+    await ops_test.model.remove_application("other-req", block_until_done=True)
+    tmp_dir.cleanup()
 
 
 @pytest.mark.abort_on_fail

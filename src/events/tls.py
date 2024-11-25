@@ -136,8 +136,10 @@ class TLSHandler(Object):
             event.defer()
             return
 
-        # Create a "mtls" flag so a new listener (CLIENT_SSL) is created
-        self.charm.state.cluster.update({"mtls": "enabled"})
+        if not self.charm.state.cluster.mtls_enabled:
+            # Create a "mtls" flag so a new listener (CLIENT_SSL) is created
+            self.charm.state.cluster.update({"mtls": "enabled"})
+            self.charm.on.config_changed.emit()
 
     def _trusted_relation_joined(self, event: RelationJoinedEvent) -> None:
         """Generate a CSR so the tls-certificates operator works as expected."""
@@ -208,8 +210,8 @@ class TLSHandler(Object):
         )
         self.charm.broker.tls_manager.import_cert(alias=f"{alias}", filename=filename)
 
-        # ensuring new config gets applied
-        self.charm.on[f"{self.charm.restart.name}"].acquire_lock.emit()
+        # Live reload the truststore
+        self.charm.broker.tls_manager.reload_truststore()
 
     def _trusted_relation_broken(self, event: RelationBrokenEvent) -> None:
         """Handle relation broken for a trusted certificate/ca relation."""

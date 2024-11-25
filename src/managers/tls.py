@@ -206,3 +206,20 @@ class TLSManager:
         except (subprocess.CalledProcessError, ExecError) as e:
             logger.error(e.stdout)
             raise e
+
+    def reload_truststore(self) -> None:
+        """Reloads the truststore using `kafka-configs` utility without restarting the broker."""
+        bin_args = [
+            f"--command-config {self.workload.paths.client_properties}",
+            f"--bootstrap-server {self.state.bootstrap_server_internal}",
+            "--entity-type brokers",
+            f"--entity-name {self.state.unit_broker.unit_id}",
+            "--alter",
+            f"--add-config listener.name.CLIENT_SSL_SSL.ssl.truststore.location={self.workload.paths.truststore}",
+        ]
+
+        logger.info("Reloading truststore")
+        self.workload.run_bin_command(
+            bin_keyword="configs",
+            bin_args=bin_args,
+        )
