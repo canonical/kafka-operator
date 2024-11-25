@@ -239,7 +239,10 @@ class CharmConfig(BaseConfigModel):
         if SUBSTRATE == "vm":
             return
 
-        if value == "none":
+        if value not in ["false", "nodeport"]:
+            raise ValueError("Value not one of 'false' or 'nodeport'")
+
+        if value == "false":
             return
 
         return value

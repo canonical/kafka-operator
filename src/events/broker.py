@@ -368,15 +368,19 @@ class BrokerOperator(Object):
             # FIXME re-add this
             self.workload.exec(["chmod", "-R", "750", f"{self.workload.paths.data_path}"])
             self.workload.exec(
-                ["chown", "-R", f"{USER}:{GROUP}", f"{self.workload.paths.data_path}"]
-            )
-            self.workload.exec(
                 [
                     "bash",
                     "-c",
                     f"""find {self.workload.paths.data_path} -type f -name meta.properties -delete || true""",
                 ]
             )
+
+        # all mounted data dirs should have correct ownership
+        self.workload.exec(["chown", "-R", f"{USER}:{GROUP}", f"{self.workload.paths.data_path}"])
+
+        # run this regardless of role, needed for cloud storages + ceph
+        for storage in self.charm.state.log_dirs.split(","):
+            self.workload.exec(["rm", "-rf", f"{storage}/lost+found"])
 
         # checks first whether the broker is active before warning
         if self.workload.active():
@@ -434,8 +438,9 @@ class BrokerOperator(Object):
         # cluster-uuid is only created on the broker (`cluster-manager` in large deployments)
         if not self.charm.state.cluster.cluster_uuid and self.charm.state.runs_broker:
             uuid = self.workload.run_bin_command(
-                bin_keyword="storage", bin_args=["random-uuid", "2>", "/dev/null"]
+                bin_keyword="storage", bin_args=["random-uuid"]
             ).strip()
+
             self.charm.state.cluster.update({"cluster-uuid": uuid})
             self.charm.state.peer_cluster.update({"cluster-uuid": uuid})
 
