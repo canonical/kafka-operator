@@ -241,10 +241,10 @@ async def test_truststore_live_reload(ops_test: OpsTest):
     test_msg = {"test": 123456}
 
     await ops_test.model.deploy(
-        TLS_NAME, channel="stable", series="jammy", application_name="other-ca"
+        TLS_NAME, channel="stable", application_name="other-ca", revision=155
     )
     await ops_test.model.deploy(
-        TLS_REQUIRER, channel="stable", series="jammy", application_name="other-req"
+        TLS_REQUIRER, channel="stable", application_name="other-req", revision=102
     )
 
     await ops_test.model.add_relation("other-ca", "other-req")

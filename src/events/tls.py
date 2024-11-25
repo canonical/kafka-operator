@@ -27,7 +27,6 @@ from ops.charm import (
     RelationJoinedEvent,
 )
 from ops.framework import Object
-from ops.model import ActiveStatus
 
 from literals import TLS_RELATION, TRUSTED_CA_RELATION, TRUSTED_CERTIFICATE_RELATION, Status
 
@@ -141,8 +140,6 @@ class TLSHandler(Object):
             # Create a "mtls" flag so a new listener (CLIENT_SSL) is created
             self.charm.state.cluster.update({"mtls": "enabled"})
             self.charm.on.config_changed.emit()
-
-        self.charm.app.status = ActiveStatus()
 
     def _trusted_relation_joined(self, event: RelationJoinedEvent) -> None:
         """Generate a CSR so the tls-certificates operator works as expected."""
