@@ -1,4 +1,4 @@
-# Charmed Kafka Operator
+# Charmed Apache Kafka Operator
 
 [![CharmHub Badge](https://charmhub.io/kafka/badge.svg)](https://charmhub.io/kafka)
 [![Release](https://github.com/canonical/kafka-operator/actions/workflows/release.yaml/badge.svg)](https://github.com/canonical/kafka-operator/actions/workflows/release.yaml)
@@ -7,18 +7,20 @@
 
 ## Overview
 
-The Charmed Kafka Operator delivers automated operations management [from Day 0 to Day 2](https://codilime.com/blog/day-0-day-1-day-2-the-software-lifecycle-in-the-cloud-age/) on the [Apache Kafka](https://kafka.apache.org) event streaming platform. It is an open source, end-to-end, production ready data platform on top of cloud native technologies. 
+The Charmed Apache Kafka Operator delivers automated operations management [from Day 0 to Day 2](https://codilime.com/blog/day-0-day-1-day-2-the-software-lifecycle-in-the-cloud-age/) on the [Apache Kafka](https://kafka.apache.org) event streaming platform. It is an open source, end-to-end, production ready data platform on top of cloud native technologies. 
 
 The Charmed Operator can be found on [Charmhub](https://charmhub.io/kafka) and it comes with production-ready features such as:
 - Fault-tolerance, replication, scalability and high-availability out-of-the-box.
 - SASL/SCRAM auth for Broker-Broker and Client-Broker authentication enabled by default.
 - Access control management supported with user-provided ACL lists.
 
-The Charmed Kafka Operator uses Kafka binaries released by The Apache Software Foundation, made available using the [`charmed-kafka` snap ](https://snapcraft.io/charmed-kafka) distributed by Canonical.
+The Charmed Apache Kafka Operator uses Kafka binaries released by The Apache Software Foundation, made available using the [`charmed-kafka` snap ](https://snapcraft.io/charmed-kafka) distributed by Canonical.
 
 As currently Kafka requires a paired ZooKeeper deployment in production, this operator makes use of the [ZooKeeper Operator](https://github.com/canonical/zookeeper-operator) for various essential functions.
 
-### Checklist
+### Features checklist
+
+The following are some of the most important planned features and their implementation status:
 
 - [x] Super-user creation
 - [x] Inter-broker auth
@@ -42,12 +44,12 @@ The following requirements are meant to be for production environment:
 - 12 storage devices
 - 10 GbE card
 
-The charm can be deployed in much smaller environments if needed and is meant to be deployed using Juju of version `2.9.37` or higher.
+The charm can be deployed in much smaller environments if needed. For more information on requirements and version compartibility, see the [Requirements](https://discourse.charmhub.io/t/charmed-kafka-documentation-reference-requirements/10563) page.
 
 ## Usage
 
-This section demonstrates basic usage of the Charmed Kafka operator. 
-For more information on how to perform typical tasks, see the How to guides section of the [Charmed Kafka documentation](https://canonical.com/data/docs/kafka/iaas).
+This section demonstrates basic usage of the Charmed Apache Kafka operator. 
+For more information on how to perform typical tasks, see the How to guides section of the [Charmed Apache Kafka documentation](https://canonical.com/data/docs/kafka/iaas).
 
 ### Deployment
 
@@ -79,7 +81,7 @@ BOOTSTRAP_SERVERS=$(juju run-action kafka/leader get-admin-credentials --wait | 
 juju ssh kafka/leader 'charmed-kafka.topics --bootstrap-server $BOOTSTRAP_SERVERS --list --command-config /var/snap/charmed-kafka/common/client.properties'
 ```
 
-Note that Charmed Kafka cluster is secure-by-default: when no other application is related to Kafka, listeners are disabled, thus preventing any incoming connection. However, even for running the commands above, listeners must be enabled. If there are no other applications, you can deploy a `data-integrator` charm and relate it to Kafka to enable listeners.
+Note that Charmed Apache Kafka cluster is secure-by-default: when no other application is related to Kafka, listeners are disabled, thus preventing any incoming connection. However, even for running the commands above, listeners must be enabled. If there are no other applications, you can deploy a `data-integrator` charm and relate it to Kafka to enable listeners.
 
 Available Kafka bin commands can be found with:
 
@@ -105,25 +107,25 @@ Even when scaling multiple units at the same time, the charm uses a rolling rest
 
 ### Password rotation
 
-The operator user is used internally by the Charmed Kafka Operator. 
+The `operator` user is used internally by the Charmed Apache Kafka Operator. 
 The `set-password` action can be used to rotate its password:
 
 ```shell
 juju run-action kafka/leader set-password password=<password> --wait
 ```
 
-Use the same action without a password parameter to randomly generate a password for the operator user.
+Use the same action without a password parameter to randomly generate a password for the `operator` user.
 
 ### Storage support
 
-Currently, the Charmed Kafka Operator supports 1 or more storage volumes. A 10G storage volume will be installed by default for `log.dirs`.
+Currently, the Charmed Apache Kafka Operator supports 1 or more storage volumes. A 10G storage volume will be installed by default for `log.dirs`.
 This is used for logs storage, mounted on `/var/snap/kafka/common`
 
 When storage is added or removed, the Kafka service will restart to ensure it uses the new volumes. Additionally, log + charm status messages will prompt users to manually reassign partitions so that the new storage volumes are populated. By default, Kafka will not assign partitions to new directories/units until existing topic partitions are assigned to it, or a new topic is created.
 
 ## Relations
 
-The Charmed Kafka Operator supports Juju [relations](https://juju.is/docs/olm/relations) for interfaces listed below.
+The Charmed Apache Kafka Operator supports Juju [relations](https://juju.is/docs/olm/relations) for interfaces listed below.
 
 #### The kafka_client interface
 
@@ -210,7 +212,7 @@ openssl genrsa -out internal-key.pem 3072
 
 Passing keys to external/internal keys should *only be done with* `base64 -w0` *not* `cat`.
 
-Apply keys on each Charmed Kafka unit:
+Apply keys on each Charmed Apache Kafka unit:
 
 ```shell
 juju run-action kafka/0 set-tls-private-key "internal-key=$(base64 -w0 internal-key.pem)"  --wait
@@ -229,14 +231,14 @@ juju remove-relation zookeeper tls-certificates-operator
 
 ## Monitoring
 
-The Charmed Kafka Operator comes with the [JMX exporter](https://github.com/prometheus/jmx_exporter/).
+The Charmed Apache Kafka Operator comes with the [JMX exporter](https://github.com/prometheus/jmx_exporter/).
 The metrics can be queried by accessing the `http://<unit-ip>:9101/metrics` endpoints.
 
 Additionally, the charm provides integration with the [Canonical Observability Stack](https://charmhub.io/topics/canonical-observability-stack).
 
 Deploy the `cos-lite` bundle in a Kubernetes environment. This can be done by following the
 [deployment tutorial](https://charmhub.io/topics/canonical-observability-stack/tutorials/install-microk8s).
-Since the Charmed Kafka Operator is deployed on a machine environment, it is needed to offer the endpoints
+Since the Charmed Apache Kafka Operator is deployed on a machine environment, it is needed to offer the endpoints
 of the COS relations. The [offers-overlay](https://github.com/canonical/cos-lite-bundle/blob/main/overlays/offers-overlay.yaml)
 can be used, and this step is shown in the COS tutorial.
 
@@ -254,9 +256,13 @@ After this is complete, Grafana will show two new dashboards: `Kafka Metrics` an
 
 ## Security
 
-For an overview of security features of the Charmed Kafka Operator, see the [Security page](https://canonical.com/data/docs/kafka/iaas/e-security) in the Explanation section of the documentation.
+For an overview of security features of the Charmed Apache Kafka Operator, see the [Security page](https://canonical.com/data/docs/kafka/iaas/e-security) in the Explanation section of the documentation.
 
-Security issues in the Charmed Kafka Operator can be reported through [LaunchPad](https://wiki.ubuntu.com/DebuggingSecurity#How%20to%20File). Please do not file GitHub issues about security issues.
+Security issues in the Charmed Apache Kafka Operator can be reported through [LaunchPad](https://wiki.ubuntu.com/DebuggingSecurity#How%20to%20File). Please do not file GitHub issues about security issues.
+
+## Perfomance tuning
+
+For information on tuning performance of Charmed Apache Kafka, see the [Perfomance tuning reference](https://discourse.charmhub.io/t/charmed-kafka-documentation-reference-performace-tuning/10561) page.
 
 ## Contributing
 
@@ -266,4 +272,4 @@ Also, if you truly enjoy working on open-source projects like this one, check ou
 
 ## License
 
-The Charmed Kafka Operator is free software, distributed under the Apache Software License, version 2.0. See [LICENSE](https://github.com/canonical/kafka-operator/blob/main/LICENSE) for more information.
+The Charmed Apache Kafka Operator is free software, distributed under the Apache Software License, version 2.0. See [LICENSE](https://github.com/canonical/kafka-operator/blob/main/LICENSE) for more information.
