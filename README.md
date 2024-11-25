@@ -258,9 +258,9 @@ For an overview of security features of the Charmed Apache Kafka Operator, see t
 
 Security issues in the Charmed Apache Kafka Operator can be reported through [LaunchPad](https://wiki.ubuntu.com/DebuggingSecurity#How%20to%20File). Please do not file GitHub issues about security issues.
 
-## Perfomance tuning
+## Performance tuning
 
-For information on tuning performance of Charmed Apache Kafka, see the [Perfomance tuning reference](https://discourse.charmhub.io/t/charmed-kafka-documentation-reference-performace-tuning/10561) page.
+For information on tuning performance of Charmed Apache Kafka, see the [Performance tuning reference](https://discourse.charmhub.io/t/charmed-kafka-documentation-reference-performace-tuning/10561) page.
 
 ## Contributing
 
