@@ -14,8 +14,6 @@ The Charmed Operator can be found on [Charmhub](https://charmhub.io/kafka) and i
 - SASL/SCRAM auth for Broker-Broker and Client-Broker authentication enabled by default.
 - Access control management supported with user-provided ACL lists.
 
-The Charmed Apache Kafka Operator uses Kafka binaries released by The Apache Software Foundation, made available using the [`charmed-kafka` snap ](https://snapcraft.io/charmed-kafka) distributed by Canonical.
-
 As currently Kafka requires a paired ZooKeeper deployment in production, this operator makes use of the [ZooKeeper Operator](https://github.com/canonical/zookeeper-operator) for various essential functions.
 
 ### Features checklist

@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import re
+import warnings
 from typing import TYPE_CHECKING
 
 from charms.tls_certificates_interface.v1.tls_certificates import (
@@ -26,7 +27,6 @@ from ops.charm import (
     RelationJoinedEvent,
 )
 from ops.framework import Object
-from ops.model import ActiveStatus
 
 from literals import TLS_RELATION, TRUSTED_CA_RELATION, TRUSTED_CERTIFICATE_RELATION, Status
 
@@ -138,7 +138,6 @@ class TLSHandler(Object):
 
         # Create a "mtls" flag so a new listener (CLIENT_SSL) is created
         self.charm.state.cluster.update({"mtls": "enabled"})
-        self.charm.app.status = ActiveStatus()
 
     def _trusted_relation_joined(self, event: RelationJoinedEvent) -> None:
         """Generate a CSR so the tls-certificates operator works as expected."""
@@ -153,7 +152,9 @@ class TLSHandler(Object):
             relation_id=event.relation.id,
         )
         subject = (
-            os.uname()[1] if self.charm.substrate == "k8s" else self.charm.state.unit_broker.host
+            os.uname()[1]
+            if self.charm.substrate == "k8s"
+            else self.charm.state.unit_broker.internal_address
         )
         sans = self.charm.broker.tls_manager.build_sans()
         csr = (
@@ -295,6 +296,13 @@ class TLSHandler(Object):
             return
 
         sans = self.charm.broker.tls_manager.build_sans()
+
+        # only warn during certificate creation, not every event if in structured_config
+        if self.charm.config.certificate_extra_sans:
+            warnings.warn(
+                "'certificate_extra_sans' config option is deprecated, use 'extra_listeners' instead",
+                DeprecationWarning,
+            )
 
         csr = generate_csr(
             private_key=self.charm.state.unit_broker.private_key.encode("utf-8"),

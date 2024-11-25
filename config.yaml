@@ -5,7 +5,7 @@ options:
   roles:
     description: |
       Comma separated list of the roles assigned to the nodes of this cluster.
-      This configuration accepts the following roles: 'broker' (standard functionality), 'balancer' (cruise control).
+      This configuration accepts the following roles: 'broker' (standard functionality), 'balancer' (cruise control), 'controller' (KRaft mode).
     type: string
     default: broker
   compression_type:
@@ -92,6 +92,10 @@ options:
     description: Config options to add extra-sans to the ones used when requesting server certificates. The extra-sans are specified by comma-separated names to be added when requesting signed certificates. Use "{unit}" as a placeholder to be filled with the unit number, e.g. "worker-{unit}" will be translated as "worker-0" for unit 0 and "worker-1" for unit 1 when requesting the certificate.
     type: string
     default: ""
+  extra_listeners:
+    description: "Config options to add extra SANs to the ones used when requesting server certificates, and to define custom `advertised.listeners` and ports for clients external to the Juju model. These items are comma-separated. Use '{unit}' as a placeholder to be filled with the unit number if necessary. For port allocations, providing the port for a given listener will offset the generated port number by that amount, with an accepted value range of 20001-50000. For example, a provided value of 'worker-{unit}.domain.com:30000' will generate listeners for unit 0 with name 'worker-0.domain.com', and be allocated ports 39092, 39093 etc for each authentication scheme."
+    type: string
+    default: ""
   log_level:
     description: "Level of logging for the different components operated by the charm. Possible values: ERROR, WARNING, INFO, DEBUG"
     type: string
@@ -108,7 +112,7 @@ options:
     description: The maximum percentage of the total cpu, disk and network capacity that is allowed to be used on a broker. For example, a value of `0.8` ensures that no broker should have >80% utilization
     type: float
     default: 0.8
-  expose-external:
+  expose_external:
     description: "String to determine how to expose the Kafka cluster externally from the Kubernetes cluster. Possible values: 'nodeport', 'none'"
     type: string
     default: "nodeport"

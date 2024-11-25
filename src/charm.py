@@ -7,17 +7,16 @@
 import logging
 import time
 
+import ops
 from charms.data_platform_libs.v0.data_models import TypedCharmBase
 from charms.grafana_agent.v0.cos_agent import COSAgentProvider
 from charms.operator_libs_linux.v0 import sysctl
 from charms.rolling_ops.v0.rollingops import RollingOpsManager, RunWithLock
 from ops import (
-    ActiveStatus,
     CollectStatusEvent,
     EventBase,
     StatusBase,
 )
-from ops.main import main
 
 from core.cluster import ClusterState
 from core.models import Substrates
@@ -51,6 +50,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         super().__init__(*args)
         self.name = CHARM_KEY
         self.substrate: Substrates = SUBSTRATE
+        self.pending_inactive_statuses: list[Status] = []
 
         # Common attrs init
         self.state = ClusterState(self, substrate=self.substrate)
@@ -75,6 +75,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.framework.observe(getattr(self.on, "install"), self._on_install)
         self.framework.observe(getattr(self.on, "remove"), self._on_remove)
         self.framework.observe(getattr(self.on, "config_changed"), self._on_roles_changed)
+        self.framework.observe(self.on.collect_unit_status, self._on_collect_status)
         self.framework.observe(self.on.collect_app_status, self._on_collect_status)
 
         # peer-cluster events are shared between all roles, so necessary to init here to avoid instantiating multiple times
@@ -112,7 +113,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         log_level: DebugLevel = key.value.log_level
 
         getattr(logger, log_level.lower())(status.message)
-        self.unit.status = status
+        self.pending_inactive_statuses.append(key)
 
     def _on_roles_changed(self, _):
         """Handler for `config_changed` events.
@@ -120,7 +121,10 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         This handler is in charge of stopping the workloads, since the sub-operators would not
         be instantiated if roles are changed.
         """
-        if not self.state.runs_broker and self.broker.workload.active():
+        if (
+            not (self.state.runs_broker or self.state.runs_controller)
+            and self.broker.workload.active()
+        ):
             self.broker.workload.stop()
 
         if (
@@ -166,22 +170,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             return
 
     def _on_collect_status(self, event: CollectStatusEvent):
-        ready_to_start = self.state.ready_to_start.value.status
-        event.add_status(ready_to_start)
-
-        if not isinstance(ready_to_start, ActiveStatus):
-            return
-
-        if not self.state.runs_broker:
-            # early return, the next checks only concern the broker
-            return
-
-        if not self.broker.workload.active():
-            event.add_status(Status.BROKER_NOT_RUNNING.value.status)
-
-        if not self.state.zookeeper.broker_active():
-            event.add_status(Status.ZK_NOT_CONNECTED.value.status)
+        for status in self.pending_inactive_statuses + [Status.ACTIVE]:
+            event.add_status(status.value.status)
 
 
 if __name__ == "__main__":
-    main(KafkaCharm)
+    ops.main(KafkaCharm)  # pyright: ignore[reportCallIssue]

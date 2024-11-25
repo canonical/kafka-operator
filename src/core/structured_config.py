@@ -10,7 +10,7 @@ from enum import Enum
 from charms.data_platform_libs.v0.data_models import BaseConfigModel
 from pydantic import Field, validator
 
-from literals import BALANCER, BROKER, SUBSTRATE
+from literals import BALANCER, BROKER, CONTROLLER, SUBSTRATE
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +74,7 @@ class CharmConfig(BaseConfigModel):
     zookeeper_ssl_cipher_suites: str | None
     profile: str
     certificate_extra_sans: str | None
+    extra_listeners: list[str]
     log_level: str
     network_bandwidth: int = Field(default=50000, validate_default=False, gt=0)
     cruisecontrol_balance_threshold: float = Field(default=1.1, validate_default=False, ge=1)
@@ -234,11 +235,14 @@ class CharmConfig(BaseConfigModel):
     @validator("expose_external")
     @classmethod
     def expose_external_validator(cls, value: str) -> str | None:
-        """Check expose-external config option is only used on Kubernetes charm."""
+        """Check expose_external config option is only used on Kubernetes charm."""
         if SUBSTRATE == "vm":
             return
 
-        if value == "none":
+        if value not in ["false", "nodeport"]:
+            raise ValueError("Value not one of 'false' or 'nodeport'")
+
+        if value == "false":
             return
 
         return value
@@ -261,7 +265,49 @@ class CharmConfig(BaseConfigModel):
         """Check roles values."""
         roles = set(map(str.strip, value.split(",")))
 
-        if unknown_roles := roles - {BROKER.value, BALANCER.value}:
+        if unknown_roles := roles - {BROKER.value, BALANCER.value, CONTROLLER.value}:
             raise ValueError("Unknown role(s):", unknown_roles)
 
         return ",".join(sorted(roles))  # this has to be a string as it goes in to properties
+
+    @validator("certificate_extra_sans")
+    @classmethod
+    def certificate_extra_sans_values(cls, value: str) -> list[str]:
+        """Formats certificate_extra_sans values to a list."""
+        return value.split(",") if value else []
+
+    @validator("extra_listeners", pre=True)
+    @classmethod
+    def extra_listeners_port_values(cls, value: str) -> list[str]:
+        """Check extra_listeners port values for each listener, and format values to a list."""
+        if not value:
+            return []
+
+        listeners = value.split(",")
+
+        ports = []
+        for listener in listeners:
+            if ":" not in listener or not listener.split(":")[1].isdigit():
+                raise ValueError("Value for listener does not contain a valid port.")
+
+            port = int(listener.split(":")[1])
+            if not 20000 < port < 50000:
+                raise ValueError(
+                    "Value for port out of accepted values. Accepted values for port are greater than 20000 and less than 50000"
+                )
+
+            ports.append(port)
+
+        current_port = 0
+        for port in ports:
+            if not current_port - 100 < int(port) > current_port + 100:
+                raise ValueError(
+                    "Value for port is too close to other value for port. Accepted values must be at least 100 apart from each other"
+                )
+
+            current_port = int(port)
+
+        if len(ports) != len(set(ports)):
+            raise ValueError("Value for port is not unique for each listener.")
+
+        return listeners

@@ -2,7 +2,8 @@
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-"""Event handlers for password-related Juju Actions."""
+"""Event handlers for Juju Actions."""
+
 import logging
 from typing import TYPE_CHECKING
 
@@ -18,11 +19,11 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class PasswordActionEvents(Object):
-    """Event handlers for password-related Juju Actions."""
+class ActionEvents(Object):
+    """Event handlers for Juju Actions."""
 
     def __init__(self, dependent: "BrokerOperator") -> None:
-        super().__init__(dependent, "password_events")
+        super().__init__(dependent, "action_events")
         self.dependent = dependent
         self.charm: "KafkaCharm" = dependent.charm
 
@@ -33,6 +34,31 @@ class PasswordActionEvents(Object):
             getattr(self.charm.on, "get_admin_credentials_action"),
             self._get_admin_credentials_action,
         )
+        self.framework.observe(
+            getattr(self.charm.on, "get_listeners_action"), self._get_listeners_action
+        )
+
+    def _get_listeners_action(self, event: ActionEvent) -> None:
+        """Handler for get-listeners action."""
+        listeners = self.dependent.config_manager.all_listeners
+
+        result = {}
+        for listener in listeners:
+            key = listener.name.replace("_", "-").lower()
+            result.update(
+                {
+                    key: {
+                        "name": listener.name,
+                        "scope": listener.scope,
+                        "port": listener.port,
+                        "protocol": listener.protocol,
+                        "auth-mechanism": listener.mechanism,
+                        "advertised-listener": listener.advertised_listener,
+                    }
+                }
+            )
+
+        event.set_results(result)
 
     def _set_password_action(self, event: ActionEvent) -> None:
         """Handler for set-password action.

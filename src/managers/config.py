@@ -21,8 +21,11 @@ from core.structured_config import CharmConfig, LogLevel
 from core.workload import CharmedKafkaPaths, WorkloadBase
 from literals import (
     ADMIN_USER,
+    BALANCER,
     BALANCER_GOALS_TESTING,
     BROKER,
+    CONTROLLER_LISTENER_NAME,
+    CONTROLLER_PORT,
     DEFAULT_BALANCER_GOALS,
     HARD_BALANCER_GOALS,
     INTER_BROKER_USER,
@@ -30,6 +33,7 @@ from literals import (
     JMX_EXPORTER_PORT,
     JVM_MEM_MAX_GB,
     JVM_MEM_MIN_GB,
+    KRAFT_NODE_ID_OFFSET,
     PROFILE_TESTING,
     SECURITY_PROTOCOL_PORTS,
     AuthMap,
@@ -40,9 +44,10 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_CONFIG_OPTIONS = """
 sasl.mechanism.inter.broker.protocol=SCRAM-SHA-512
-authorizer.class.name=kafka.security.authorizer.AclAuthorizer
 allow.everyone.if.no.acl.found=false
 auto.create.topics.enable=false
+"""
+KAFKA_CRUISE_CONTROL_OPTIONS = """
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
 """
 TESTING_OPTIONS = """
@@ -67,7 +72,14 @@ min.samples.per.partition.metrics.window=1
 num.partition.metrics.windows=3
 num.broker.metrics.windows=10
 """
-SERVER_PROPERTIES_BLACKLIST = ["profile", "log_level", "certificate_extra_sans"]
+SERVER_PROPERTIES_BLACKLIST = [
+    "profile",
+    "log_level",
+    "certificate_extra_sans",
+    "extra_listeners",
+    "roles",
+    "expose_external",
+]
 
 
 class Listener:
@@ -75,19 +87,28 @@ class Listener:
 
     Args:
         auth_map: AuthMap representing the auth.protocol and auth.mechanism for the listener
-        scope: scope of the listener, CLIENT, INTERNAL or EXTERNAL
+        scope: scope of the listener, CLIENT, INTERNAL, EXTERNAL or EXTRA
         host: string with the host that will be announced
+        baseport (optional): integer port to offset CLIENT port numbers for EXTRA listeners
         node_port (optional): the node-port for the listener if scope=EXTERNAL
     """
 
     def __init__(
-        self, auth_map: AuthMap, scope: Scope, host: str = "", node_port: int | None = None
+        self,
+        auth_map: AuthMap,
+        scope: Scope,
+        host: str = "",
+        baseport: int = 30000,
+        extra_count: int = -1,
+        node_port: int | None = None,
     ):
         self.auth_map = auth_map
         self.protocol = auth_map.protocol
         self.mechanism = auth_map.mechanism
         self.host = host
         self.scope = scope
+        self.baseport = baseport
+        self.extra_count = extra_count
         self.node_port = node_port
 
     @property
@@ -98,8 +119,8 @@ class Listener:
     @scope.setter
     def scope(self, value):
         """Internal scope validator."""
-        if value not in ["CLIENT", "INTERNAL", "EXTERNAL"]:
-            raise ValueError("Only CLIENT, INTERNAL and EXTERNAL scopes are accepted")
+        if value not in ["CLIENT", "INTERNAL", "EXTERNAL", "EXTRA"]:
+            raise ValueError("Only CLIENT, INTERNAL, EXTERNAL and EXTRA scopes are accepted")
 
         self._scope = value
 
@@ -110,12 +131,18 @@ class Listener:
         Returns:
             Integer of port number
         """
+        # generates ports 39092, 39192, 39292 etc for listener auth if baseport=30000
+        if self.scope == "EXTRA":
+            return getattr(SECURITY_PROTOCOL_PORTS[self.auth_map], "client") + self.baseport
+
         return getattr(SECURITY_PROTOCOL_PORTS[self.auth_map], self.scope.lower())
 
     @property
     def name(self) -> str:
         """Name of the listener."""
-        return f"{self.scope}_{self.protocol}_{self.mechanism.replace('-', '_')}"
+        return f"{self.scope}_{self.protocol}_{self.mechanism.replace('-', '_')}" + (
+            f"_{self.extra_count}" if self.extra_count >= 0 else ""
+        )
 
     @property
     def protocol_map(self) -> str:
@@ -270,9 +297,11 @@ class ConfigManager(CommonConfigManager):
     @property
     @override
     def kafka_opts(self) -> str:
-        opts = [
-            f"-Djava.security.auth.login.config={self.workload.paths.zk_jaas}",
-        ]
+        opts = []
+        if not self.state.runs_controller:
+            opts = [
+                f"-Djava.security.auth.login.config={self.workload.paths.zk_jaas}",
+            ]
 
         http_proxy = os.environ.get("JUJU_CHARM_HTTP_PROXY")
         https_proxy = os.environ.get("JUJU_CHARM_HTTPS_PROXY")
@@ -314,6 +343,9 @@ class ConfigManager(CommonConfigManager):
         Returns:
             List of properties to be set
         """
+        if self.state.kraft_mode:
+            return []
+
         return [
             f"broker.id={self.state.unit_broker.unit_id}",
             f"zookeeper.connect={self.state.zookeeper.connect}",
@@ -367,7 +399,7 @@ class ConfigManager(CommonConfigManager):
             f'listener.name.{listener_name}.{listener_mechanism}.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";',
             f"listener.name.{listener_name}.sasl.enabled.mechanisms={self.internal_listener.mechanism}",
         ]
-        for auth in self.client_listeners + self.external_listeners:
+        for auth in self.client_listeners + self.external_listeners + self.extra_listeners:
             if not auth.mechanism.startswith("SCRAM"):
                 continue
 
@@ -442,8 +474,39 @@ class ConfigManager(CommonConfigManager):
         )
 
     @property
-    def client_listeners(self) -> list[Listener]:
+    def controller_listener(self) -> None:
+        """Return the controller listener."""
+        pass  # TODO: No good abstraction in place for the controller use case
+
+    @property
+    def extra_listeners(self) -> list[Listener]:
         """Return a list of extra listeners."""
+        extra_host_baseports = [
+            tuple(listener.split(":")) for listener in self.config.extra_listeners
+        ]
+
+        extra_listeners = []
+        extra_count = 0
+        for host, baseport in extra_host_baseports:
+            for auth_map in self.state.enabled_auth:
+                host = host.replace("{unit}", str(self.state.unit_broker.unit_id))
+                extra_listeners.append(
+                    Listener(
+                        host=host,
+                        auth_map=auth_map,
+                        scope="EXTRA",
+                        baseport=int(baseport),
+                        extra_count=extra_count,
+                    )
+                )
+
+            extra_count += 1
+
+        return extra_listeners
+
+    @property
+    def client_listeners(self) -> list[Listener]:
+        """Return a list of client listeners."""
         return [
             Listener(
                 host=self.state.unit_broker.internal_address, auth_map=auth_map, scope="CLIENT"
@@ -475,7 +538,7 @@ class ConfigManager(CommonConfigManager):
                 Listener(
                     auth_map=auth,
                     scope="EXTERNAL",
-                    host=self.state.unit_broker.host,
+                    host=self.state.unit_broker.node_ip,
                     # default in case service not created yet during cluster init
                     # will resolve during config-changed
                     node_port=node_port,
@@ -487,7 +550,12 @@ class ConfigManager(CommonConfigManager):
     @property
     def all_listeners(self) -> list[Listener]:
         """Return a list with all expected listeners."""
-        return [self.internal_listener] + self.client_listeners + self.external_listeners
+        return (
+            [self.internal_listener]
+            + self.client_listeners
+            + self.external_listeners
+            + self.extra_listeners
+        )
 
     @property
     def inter_broker_protocol_version(self) -> str:
@@ -565,6 +633,41 @@ class ConfigManager(CommonConfigManager):
         )
 
     @property
+    def authorizer_class(self) -> list[str]:
+        """Return the authorizer Java class used on Kafka."""
+        if self.state.kraft_mode:
+            # return ["authorizer.class.name=org.apache.kafka.metadata.authorizer.StandardAuthorizer"]
+            return []
+        return ["authorizer.class.name=kafka.security.authorizer.AclAuthorizer"]
+
+    @property
+    def controller_properties(self) -> list[str]:
+        """Builds all properties necessary for starting Kafka controller service.
+
+        Returns:
+            List of properties to be set
+        """
+        if self.state.kraft_mode == False:  # noqa: E712
+            return []
+
+        roles = []
+        node_id = self.state.unit_broker.unit_id
+        if self.state.runs_broker:
+            roles.append("broker")
+            node_id += KRAFT_NODE_ID_OFFSET
+        if self.state.runs_controller:
+            roles.append("controller")
+
+        properties = [
+            f"process.roles={','.join(roles)}",
+            f"node.id={node_id}",
+            f"controller.quorum.voters={self.state.peer_cluster.controller_quorum_uris}",
+            f"controller.listener.names={CONTROLLER_LISTENER_NAME}",
+        ]
+
+        return properties
+
+    @property
     def server_properties(self) -> list[str]:
         """Builds all properties necessary for starting Kafka service.
 
@@ -580,6 +683,24 @@ class ConfigManager(CommonConfigManager):
         listeners_repr = [listener.listener for listener in self.all_listeners]
         advertised_listeners = [listener.advertised_listener for listener in self.all_listeners]
 
+        if self.state.kraft_mode:
+            controller_protocol_map = f"{CONTROLLER_LISTENER_NAME}:PLAINTEXT"
+            controller_listener = f"{CONTROLLER_LISTENER_NAME}://0.0.0.0:{CONTROLLER_PORT}"
+
+            # NOTE: Case where the controller is running standalone. Early return with a
+            # smaller subset of config options
+            if not self.state.runs_broker:
+                properties = (
+                    [f"log.dirs={self.state.log_dirs}", f"listeners={controller_listener}"]
+                    + self.controller_properties
+                    # + self.authorizer_class
+                )
+                return properties
+
+            protocol_map.append(controller_protocol_map)
+            if self.state.runs_controller:
+                listeners_repr.append(controller_listener)
+
         properties = (
             [
                 f"super.users={self.state.super_users}",
@@ -591,17 +712,24 @@ class ConfigManager(CommonConfigManager):
                 f"inter.broker.protocol.version={self.inter_broker_protocol_version}",
             ]
             + self.scram_properties
+            + self.auth_properties
             + self.oauth_properties
             + self.config_properties
             + self.default_replication_properties
-            + self.auth_properties
             + self.rack_properties
-            + self.metrics_reporter_properties
             + DEFAULT_CONFIG_OPTIONS.split("\n")
+            + self.authorizer_class
+            + self.controller_properties
         )
 
         if self.state.cluster.tls_enabled and self.state.unit_broker.certificate:
-            properties += self.tls_properties + self.zookeeper_tls_properties
+            properties += self.tls_properties
+            if self.state.kraft_mode == False:  # noqa: E712
+                properties += self.zookeeper_tls_properties
+
+        if self.state.runs_balancer or BALANCER.value in self.state.peer_cluster.roles:
+            properties += KAFKA_CRUISE_CONTROL_OPTIONS.splitlines()
+            properties += self.metrics_reporter_properties
 
         if self.config.profile == PROFILE_TESTING:
             properties += TESTING_OPTIONS.split("\n")
@@ -732,10 +860,12 @@ class BalancerConfigManager(CommonConfigManager):
         if self.config.profile == PROFILE_TESTING:
             goals = BALANCER_GOALS_TESTING
 
-        if self.state.balancer.racks:
+        if self.state.peer_cluster.racks:
             if (
-                min([3, len(self.state.balancer.broker_capacities.get("brokerCapacities", []))])
-                > self.state.balancer.racks
+                min(
+                    [3, len(self.state.peer_cluster.broker_capacities.get("brokerCapacities", []))]
+                )
+                > self.state.peer_cluster.racks
             ):  # replication-factor > racks is not ideal
                 goals = goals + ["RackAwareDistribution"]
             else:
@@ -789,10 +919,10 @@ class BalancerConfigManager(CommonConfigManager):
         """
         properties = (
             [
-                f"bootstrap.servers={self.state.balancer.broker_uris}",
-                f"zookeeper.connect={self.state.balancer.zk_uris}",
+                f"bootstrap.servers={self.state.peer_cluster.broker_uris}",
+                f"zookeeper.connect={self.state.peer_cluster.zk_uris}",
                 "zookeeper.security.enabled=true",
-                f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{self.state.balancer.broker_username}" password="{self.state.balancer.broker_password}";',
+                f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{self.state.peer_cluster.broker_username}" password="{self.state.peer_cluster.broker_password}";',
                 f"sasl.mechanism={self.state.default_auth.mechanism}",
                 f"security.protocol={self.state.default_auth.protocol}",
                 f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
@@ -818,8 +948,8 @@ class BalancerConfigManager(CommonConfigManager):
             f"""
             Client {{
                 org.apache.zookeeper.server.auth.DigestLoginModule required
-                username="{self.state.balancer.zk_username}"
-                password="{self.state.balancer.zk_password}";
+                username="{self.state.peer_cluster.zk_username}"
+                password="{self.state.peer_cluster.zk_password}";
             }};
         """
         )
@@ -838,7 +968,7 @@ class BalancerConfigManager(CommonConfigManager):
     def set_broker_capacities(self) -> None:
         """Writes all broker storage capacities to `capacityJBOD.json`."""
         self.workload.write(
-            content=json.dumps(self.state.balancer.broker_capacities),
+            content=json.dumps(self.state.peer_cluster.broker_capacities),
             path=self.workload.paths.capacity_jbod_json,
         )
 

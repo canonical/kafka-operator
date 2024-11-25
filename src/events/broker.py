@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING
 
 from charms.operator_libs_linux.v1.snap import SnapError
 from ops import (
-    ActiveStatus,
     EventBase,
     InstallEvent,
     Object,
@@ -24,8 +23,8 @@ from ops import (
     UpdateStatusEvent,
 )
 
+from events.actions import ActionEvents
 from events.oauth import OAuthHandler
-from events.password_actions import PasswordActionEvents
 from events.provider import KafkaProvider
 from events.upgrade import KafkaDependencyModel, KafkaUpgrade
 from events.zookeeper import ZooKeeperHandler
@@ -33,8 +32,10 @@ from health import KafkaHealth
 from literals import (
     BROKER,
     CONTAINER,
+    CONTROLLER,
     DEPENDENCIES,
     GROUP,
+    INTERNAL_USERS,
     PEER,
     PROFILE_TESTING,
     REL_NAME,
@@ -75,7 +76,7 @@ class BrokerOperator(Object):
         )
 
         # Fast exit after workload instantiation, but before any event observer
-        if BROKER.value not in self.charm.config.roles:
+        if not any(role in self.charm.config.roles for role in [BROKER.value, CONTROLLER.value]):
             return
 
         self.health = KafkaHealth(self) if self.charm.substrate == "vm" else None
@@ -86,8 +87,11 @@ class BrokerOperator(Object):
                 **DEPENDENCIES  # pyright: ignore[reportArgumentType]
             ),
         )
-        self.password_action_events = PasswordActionEvents(self)
-        self.zookeeper = ZooKeeperHandler(self)
+        self.action_events = ActionEvents(self)
+
+        if not self.charm.state.runs_controller:
+            self.zookeeper = ZooKeeperHandler(self)
+
         self.provider = KafkaProvider(self)
         self.oauth = OAuthHandler(self)
 
@@ -148,7 +152,7 @@ class BrokerOperator(Object):
                 f"{TESTING_OPTIONS}"
             )
 
-    def _on_start(self, event: StartEvent | PebbleReadyEvent) -> None:
+    def _on_start(self, event: StartEvent | PebbleReadyEvent) -> None:  # noqa: C901
         """Handler for `start` or `pebble-ready` events."""
         if not self.workload.container_can_connect:
             event.defer()
@@ -163,10 +167,19 @@ class BrokerOperator(Object):
         if not self.upgrade.idle:
             return
 
-        self.charm._set_status(self.charm.state.ready_to_start)
-        if not isinstance(self.charm.unit.status, ActiveStatus):
+        if self.charm.state.kraft_mode:
+            self._init_kraft_mode()
+
+        # FIXME ready to start probably needs to account for credentials being created beforehand
+        current_status = self.charm.state.ready_to_start
+        if current_status is not Status.ACTIVE:
+            self.charm._set_status(current_status)
             event.defer()
             return
+
+        if self.charm.state.kraft_mode:
+            self.config_manager.set_server_properties()
+            self._format_storages()
 
         self.update_external_services()
 
@@ -192,11 +205,25 @@ class BrokerOperator(Object):
         self.workload.start()
         logger.info("Kafka service started")
 
+        # TODO: Update users. Not sure if this is the best place, as cluster might be still
+        # stabilizing.
+        # if self.charm.state.kraft_mode and self.charm.state.runs_broker:
+        #     for username, password in self.charm.state.cluster.internal_user_credentials.items():
+        #         try:
+        #             self.auth_manager.add_user(
+        #                username=username, password=password, zk_auth=False, internal=True,
+        #             )
+        #         except subprocess.CalledProcessError:
+        #             logger.warning("Error adding users, cluster might not be ready yet")
+        #             logger.error(f"\n\tOn start:\nAdding user {username} failed. Let the rest of the hook run\n")
+        #             # event.defer()
+        #             continue
+
         # service_start might fail silently, confirm with ZK if kafka is actually connected
         self.charm.on.update_status.emit()
 
         # only log once on successful 'on-start' run
-        if isinstance(self.charm.unit.status, ActiveStatus):
+        if not self.charm.pending_inactive_statuses:
             logger.info(f'Broker {self.charm.unit.name.split("/")[1]} connected')
 
     def _on_config_changed(self, event: EventBase) -> None:
@@ -286,7 +313,7 @@ class BrokerOperator(Object):
         if self.model.relations.get(REL_NAME, None) and self.charm.unit.is_leader():
             self.update_client_data()
 
-        if self.charm.state.peer_cluster_relation and self.charm.unit.is_leader():
+        if self.charm.state.peer_cluster_orchestrator_relation and self.charm.unit.is_leader():
             self.update_peer_cluster_data()
 
     def _on_update_status(self, _: UpdateStatusEvent) -> None:
@@ -294,9 +321,10 @@ class BrokerOperator(Object):
         if not self.upgrade.idle or not self.healthy:
             return
 
-        if not self.charm.state.zookeeper.broker_active():
-            self.charm._set_status(Status.ZK_NOT_CONNECTED)
-            return
+        if not self.charm.state.kraft_mode:
+            if not self.charm.state.zookeeper.broker_active():
+                self.charm._set_status(Status.ZK_NOT_CONNECTED)
+                return
 
         # NOTE for situations like IP change and late integration with rack-awareness charm.
         # If properties have changed, the broker will restart.
@@ -310,8 +338,6 @@ class BrokerOperator(Object):
             logger.debug(f"Error: {e}")
             self.charm._set_status(Status.BROKER_NOT_RUNNING)
             return
-
-        self.charm._set_status(Status.ACTIVE)
 
     def _on_secret_changed(self, event: SecretChangedEvent) -> None:
         """Handler for `secret_changed` events."""
@@ -334,14 +360,13 @@ class BrokerOperator(Object):
 
         self.charm.state.unit_broker.update({"storages": self.balancer_manager.storages})
 
-        if self.charm.substrate == "vm":
+        # FIXME: if KRaft, don't execute
+        if self.charm.substrate == "vm" and not self.charm.state.kraft_mode:
             # new dirs won't be used until topic partitions are assigned to it
             # either automatically for new topics, or manually for existing
             # set status only for running services, not on startup
+            # FIXME re-add this
             self.workload.exec(["chmod", "-R", "750", f"{self.workload.paths.data_path}"])
-            self.workload.exec(
-                ["chown", "-R", f"{USER}:{GROUP}", f"{self.workload.paths.data_path}"]
-            )
             self.workload.exec(
                 [
                     "bash",
@@ -349,6 +374,13 @@ class BrokerOperator(Object):
                     f"""find {self.workload.paths.data_path} -type f -name meta.properties -delete || true""",
                 ]
             )
+
+        # all mounted data dirs should have correct ownership
+        self.workload.exec(["chown", "-R", f"{USER}:{GROUP}", f"{self.workload.paths.data_path}"])
+
+        # run this regardless of role, needed for cloud storages + ceph
+        for storage in self.charm.state.log_dirs.split(","):
+            self.workload.exec(["rm", "-rf", f"{storage}/lost+found"])
 
         # checks first whether the broker is active before warning
         if self.workload.active():
@@ -378,8 +410,9 @@ class BrokerOperator(Object):
         Returns:
             True if service is alive and active. Otherwise False
         """
-        self.charm._set_status(self.charm.state.ready_to_start)
-        if not isinstance(self.charm.unit.status, ActiveStatus):
+        current_status = self.charm.state.ready_to_start
+        if current_status is not Status.ACTIVE:
+            self.charm._set_status(current_status)
             return False
 
         if not self.workload.active():
@@ -387,6 +420,51 @@ class BrokerOperator(Object):
             return False
 
         return True
+
+    def _init_kraft_mode(self) -> None:
+        """Initialize the server when running controller mode."""
+        # NOTE: checks for `runs_broker` in this method should be `is_cluster_manager` in
+        # the large deployment feature.
+        if not self.model.unit.is_leader():
+            return
+
+        if not self.charm.state.cluster.internal_user_credentials and self.charm.state.runs_broker:
+            credentials = [
+                (username, self.charm.workload.generate_password()) for username in INTERNAL_USERS
+            ]
+            for username, password in credentials:
+                self.charm.state.cluster.update({f"{username}-password": password})
+
+        # cluster-uuid is only created on the broker (`cluster-manager` in large deployments)
+        if not self.charm.state.cluster.cluster_uuid and self.charm.state.runs_broker:
+            uuid = self.workload.run_bin_command(
+                bin_keyword="storage", bin_args=["random-uuid"]
+            ).strip()
+
+            self.charm.state.cluster.update({"cluster-uuid": uuid})
+            self.charm.state.peer_cluster.update({"cluster-uuid": uuid})
+
+        # Controller is tasked with populating quorum uris
+        if self.charm.state.runs_controller:
+            quorum_uris = {"controller-quorum-uris": self.charm.state.controller_quorum_uris}
+            self.charm.state.cluster.update(quorum_uris)
+
+            if self.charm.state.peer_cluster_orchestrator:
+                self.charm.state.peer_cluster_orchestrator.update(quorum_uris)
+
+    def _format_storages(self) -> None:
+        """Format storages provided relevant keys exist."""
+        if self.charm.state.runs_broker:
+            credentials = self.charm.state.cluster.internal_user_credentials
+        elif self.charm.state.runs_controller:
+            credentials = {
+                self.charm.state.peer_cluster.broker_username: self.charm.state.peer_cluster.broker_password
+            }
+
+        self.workload.format_storages(
+            uuid=self.charm.state.peer_cluster.cluster_uuid,
+            internal_user_credentials=credentials,
+        )
 
     def update_external_services(self) -> None:
         """Attempts to update any external Kubernetes services."""
@@ -433,17 +511,18 @@ class BrokerOperator(Object):
         if not self.charm.unit.is_leader() or not self.healthy:
             return
 
-        self.charm.state.balancer.update(
+        self.charm.state.peer_cluster.update(
             {
                 "roles": self.charm.state.roles,
-                "broker-username": self.charm.state.balancer.broker_username,
-                "broker-password": self.charm.state.balancer.broker_password,
-                "broker-uris": self.charm.state.balancer.broker_uris,
-                "racks": str(self.charm.state.balancer.racks),
-                "broker-capacities": json.dumps(self.charm.state.balancer.broker_capacities),
-                "zk-uris": self.charm.state.balancer.zk_uris,
-                "zk-username": self.charm.state.balancer.zk_username,
-                "zk-password": self.charm.state.balancer.zk_password,
+                "broker-username": self.charm.state.peer_cluster.broker_username,
+                "broker-password": self.charm.state.peer_cluster.broker_password,
+                "broker-uris": self.charm.state.peer_cluster.broker_uris,
+                "cluster-uuid": self.charm.state.peer_cluster.cluster_uuid,
+                "racks": str(self.charm.state.peer_cluster.racks),
+                "broker-capacities": json.dumps(self.charm.state.peer_cluster.broker_capacities),
+                "zk-uris": self.charm.state.peer_cluster.zk_uris,
+                "zk-username": self.charm.state.peer_cluster.zk_username,
+                "zk-password": self.charm.state.peer_cluster.zk_password,
             }
         )
 

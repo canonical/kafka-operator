@@ -12,7 +12,7 @@ show_missing = true
 minversion = "6.0"
 log_cli_level = "INFO"
 asyncio_mode = "auto"
-markers = ["unstable", "broker", "balancer"]
+markers = ["unstable", "broker", "balancer", "kraft"]
 
 # Formatting tools configuration
 [tool.black]
@@ -27,10 +27,11 @@ name = "kafka-operator"
 version = "1.0"
 description = "kafka-operator"
 authors = []
+package-mode = false
 
 [tool.poetry.dependencies]
 python = ">=3.8,<4.0"
-ops = ">=2.4.1"
+ops = ">=2.17.0"
 kazoo = ">=2.8.0"
 
 # The cosl dep could be removed from here once PYDEPS is released:
@@ -41,12 +42,23 @@ tenacity = ">=8.0.1"
 pure-sasl = ">=0.6.2"
 jsonschema = ">=4.10"
 cryptography = ">42.0.0"
-pydantic ="<2"
+pydantic = "<2"
 pyyaml = "^6.0.1"
 requests = "^2.32.3"
 lightkube = "0.15.0"
-# FIXME: Unpin once rustc 1.76 is available at build time
-rpds-py = "<0.19"
+
+[tool.poetry.group.charm-libs.dependencies]
+# data_platform_libs/v0/data_interfaces.py
+ops = ">=2.0.0"
+# data_platform_libs/v0/upgrade.py
+# grafana_agent/v0/cos_agent.py requires pydantic <2
+poetry-core = "*"
+pydantic = "^1.10, <2"
+# tls_certificates_interface/v1/tls_certificates.py
+# tls_certificates lib uses a feature only available in cryptography >=42.0.5
+cryptography = ">=42.0.5"
+# hydra/v0/oauth.py
+jsonschema = "*"
 
 [tool.poetry.group.fmt]
 optional = true
@@ -64,18 +76,15 @@ black = "^22.3.0"
 ruff = ">=0.1.0"
 codespell = ">=2.2.2"
 pyright = "^1.1.301"
-lightkube = "0.15.0"
-# FIXME: Unpin once rustc 1.76 is available at build time
-rpds-py = "<0.19"
 
 [tool.poetry.group.unit]
 optional = true
 
 [tool.poetry.group.unit.dependencies]
 pytest = ">=7.2"
-coverage = {extras = ["toml"], version = ">7.0"}
+coverage = { extras = ["toml"], version = ">7.0" }
 pytest-mock = "^3.11.1"
-ops-scenario = "^6.0.0"
+ops = { version = ">=2.17.0", extras = ["testing"] }
 
 [tool.poetry.group.integration]
 optional = true
@@ -83,7 +92,7 @@ optional = true
 [tool.poetry.group.integration.dependencies]
 pytest = ">=7.2"
 juju = "3.5.0.0"
-coverage = {extras = ["toml"], version = ">7.0"}
+coverage = { extras = ["toml"], version = ">7.0" }
 pytest-operator = ">0.20"
 kazoo = ">=2.8"
 tenacity = ">=7.0"
@@ -91,10 +100,8 @@ pure-sasl = ">=0.5"
 kafka-python = ">=2.0"
 requests = ">2.25"
 
-pytest-operator-cache = {git = "https://github.com/canonical/data-platform-workflows", tag = "v7", subdirectory = "python/pytest_plugins/pytest_operator_cache"}
+pytest-operator-cache = { git = "https://github.com/canonical/data-platform-workflows", tag = "v22.0.0", subdirectory = "python/pytest_plugins/pytest_operator_cache" }
 # To be enabled if we are using groups on integration tests
-# pytest-operator-groups = {git = "https://github.com/canonical/data-platform-workflows", tag = "v7", subdirectory = "python/pytest_plugins/pytest_operator_groups"}
-
 
 [tool.poetry.group.format.dependencies]
 pyright = "^1.1.301"
@@ -103,23 +110,23 @@ pyright = "^1.1.301"
 line-length = 99
 lint.select = ["E", "W", "F", "C", "N", "D", "I001"]
 lint.extend-ignore = [
-    "D203",
-    "D204",
-    "D213",
-    "D215",
-    "D400",
-    "D401",
-    "D404",
-    "D406",
-    "D407",
-    "D408",
-    "D409",
-    "D413",
+  "D203",
+  "D204",
+  "D213",
+  "D215",
+  "D400",
+  "D401",
+  "D404",
+  "D406",
+  "D407",
+  "D408",
+  "D409",
+  "D413",
 ]
 lint.ignore = ["E501", "D107"]
 extend-exclude = ["__pycache__", "*.egg_info", "tests/integration/app-charm/lib"]
-lint.per-file-ignores = {"tests/*" = ["D100","D101","D102","D103","D104", "E999"], "src/literals.py" = ["D101"]}
-target-version="py310"
+lint.per-file-ignores = { "tests/*" = ["D100", "D101", "D102", "D103", "D104", "E999"], "src/literals.py" = ["D101"] }
+target-version = "py310"
 src = ["src", "tests"]
 
 [tool.ruff.lint.mccabe]

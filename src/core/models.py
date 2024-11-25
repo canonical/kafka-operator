@@ -16,7 +16,8 @@ from charms.data_platform_libs.v0.data_interfaces import (
     DataPeerUnitData,
 )
 from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManager
-from kazoo.client import AuthFailedError, NoNodeError
+from kazoo.client import AuthFailedError, ConnectionLoss, NoNodeError
+from kazoo.exceptions import NoAuthError
 from lightkube.resources.core_v1 import Node, Pod
 from ops.model import Application, Relation, Unit
 from tenacity import retry, retry_if_result, stop_after_attempt, wait_fixed
@@ -92,6 +93,8 @@ class PeerCluster(RelationState):
         broker_username: str = "",
         broker_password: str = "",
         broker_uris: str = "",
+        cluster_uuid: str = "",
+        controller_quorum_uris: str = "",
         racks: int = 0,
         broker_capacities: BrokerCapacities = {},
         zk_username: str = "",
@@ -105,6 +108,8 @@ class PeerCluster(RelationState):
         self._broker_username = broker_username
         self._broker_password = broker_password
         self._broker_uris = broker_uris
+        self._cluster_uuid = cluster_uuid
+        self._controller_quorum_uris = controller_quorum_uris
         self._racks = racks
         self._broker_capacities = broker_capacities
         self._zk_username = zk_username
@@ -172,6 +177,38 @@ class PeerCluster(RelationState):
             relation=self.relation,
             fields=BALANCER.requested_secrets,
         ).get("broker-uris", "")
+
+    @property
+    def controller_quorum_uris(self) -> str:
+        """The quorum voters in KRaft mode."""
+        if self._controller_quorum_uris:
+            return self._controller_quorum_uris
+
+        if not self.relation or not self.relation.app:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="controller-quorum-uris"
+            )
+            or ""
+        )
+
+    @property
+    def cluster_uuid(self) -> str:
+        """The cluster uuid used to format storages in KRaft mode."""
+        if self._cluster_uuid:
+            return self._cluster_uuid
+
+        if not self.relation or not self.relation.app:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="cluster-uuid"
+            )
+            or ""
+        )
 
     @property
     def racks(self) -> int:
@@ -302,6 +339,7 @@ class PeerCluster(RelationState):
     @property
     def broker_connected(self) -> bool:
         """Checks if there is an active broker relation with all necessary data."""
+        # FIXME rename to specify balancer-broker connection
         if not all(
             [
                 self.broker_username,
@@ -314,6 +352,14 @@ class PeerCluster(RelationState):
                 # rack is optional, empty if not rack-aware
             ]
         ):
+            return False
+
+        return True
+
+    @property
+    def broker_connected_kraft_mode(self) -> bool:
+        """Checks for necessary data required by a controller."""
+        if not all([self.broker_username, self.broker_password, self.cluster_uuid]):
             return False
 
         return True
@@ -406,6 +452,16 @@ class KafkaCluster(RelationState):
         """Persisted balancer uris."""
         return self.relation_data.get("balancer-uris", "")
 
+    @property
+    def controller_quorum_uris(self) -> str:
+        """Persisted controller quorum voters."""
+        return self.relation_data.get("controller-quorum-uris", "")
+
+    @property
+    def cluster_uuid(self) -> str:
+        """Cluster uuid used for initializing storages."""
+        return self.relation_data.get("cluster-uuid", "")
+
 
 class KafkaBroker(RelationState):
     """State collection metadata for a unit."""
@@ -446,14 +502,6 @@ class KafkaBroker(RelationState):
             addr = f"{self.unit.name.split('/')[0]}-{self.unit_id}.{self.unit.name.split('/')[0]}-endpoints"
 
         return addr
-
-    @property
-    def host(self) -> str:
-        """Return the hostname of a unit."""
-        if self.substrate == "vm":
-            return self.internal_address
-        else:
-            return self.node_ip or self.internal_address
 
     # --- TLS ---
 
@@ -547,7 +595,7 @@ class KafkaBroker(RelationState):
 
         K8s-only.
         """
-        return self.k8s.get_pod(pod_name=self.pod_name)
+        return self.k8s.get_pod(self.pod_name)
 
     @cached_property
     def node(self) -> Node:
@@ -555,7 +603,7 @@ class KafkaBroker(RelationState):
 
         K8s-only.
         """
-        return self.k8s.get_node(pod=self.pod)
+        return self.k8s.get_node(self.pod_name)
 
     @cached_property
     def node_ip(self) -> str:
@@ -563,7 +611,7 @@ class KafkaBroker(RelationState):
 
         K8s-only.
         """
-        return self.k8s.get_node_ip(node=self.node)
+        return self.k8s.get_node_ip(self.pod_name)
 
 
 class ZooKeeper(RelationState):
@@ -713,7 +761,13 @@ class ZooKeeper(RelationState):
         zk = ZooKeeperManager(hosts=hosts, username=self.username, password=self.password)
         try:
             brokers = zk.leader_znodes(path=path)
-        except (NoNodeError, AuthFailedError, QuorumLeaderNotFoundError) as e:
+        except (
+            NoNodeError,
+            AuthFailedError,
+            QuorumLeaderNotFoundError,
+            ConnectionLoss,
+            NoAuthError,
+        ) as e:
             logger.debug(str(e))
             brokers = set()
 

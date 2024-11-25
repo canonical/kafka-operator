@@ -2,143 +2,167 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import dataclasses
+import json
+import logging
 import socket
 from pathlib import Path
+from typing import cast
 from unittest.mock import PropertyMock, patch
 
 import pytest
 import yaml
-from ops.model import ActiveStatus
-from ops.testing import Harness
+from ops.testing import Container, Context, PeerRelation, Relation, State
 
 from charm import KafkaCharm
-from literals import CHARM_KEY, CONTAINER, PEER, SUBSTRATE, ZK
+from literals import (
+    CHARM_KEY,
+    CONTAINER,
+    PEER,
+    SUBSTRATE,
+)
 
 pytestmark = pytest.mark.broker
 
-CONFIG = str(yaml.safe_load(Path("./config.yaml").read_text()))
-ACTIONS = str(yaml.safe_load(Path("./actions.yaml").read_text()))
-METADATA = str(yaml.safe_load(Path("./metadata.yaml").read_text()))
+
+logger = logging.getLogger(__name__)
 
 
-@pytest.fixture
-def harness():
-    harness = Harness(KafkaCharm, meta=METADATA, actions=ACTIONS, config=CONFIG)
+CONFIG = yaml.safe_load(Path("./config.yaml").read_text())
+ACTIONS = yaml.safe_load(Path("./actions.yaml").read_text())
+METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 
+
+@pytest.fixture()
+def base_state():
     if SUBSTRATE == "k8s":
-        harness.set_can_connect(CONTAINER, True)
+        state = State(leader=True, containers=[Container(name=CONTAINER, can_connect=True)])
 
-    harness.add_relation("restart", CHARM_KEY)
-    harness._update_config(
-        {
-            "log_retention_ms": "-1",
-            "compression_type": "producer",
-            "expose-external": "none",
-        }
-    )
-    harness.begin()
+    else:
+        state = State(leader=True)
 
-    # Relate to ZK with tls enabled
-    zk_relation_id = harness.add_relation(ZK, CHARM_KEY)
-    harness.update_relation_data(
-        zk_relation_id,
-        harness.charm.app.name,
-        {
-            "database": "/kafka",
-            "chroot": "/kafka",
-            "username": "moria",
-            "password": "mellon",
-            "endpoints": "1.1.1.1,2.2.2.2",
-            "uris": "1.1.1.1:2181/kafka,2.2.2.2:2181/kafka",
-            "tls": "enabled",
-        },
-    )
+    return state
 
-    # Simulate data-integrator relation
-    client_relation_id = harness.add_relation("kafka-client", "app")
-    harness.update_relation_data(client_relation_id, "app", {"extra-user-roles": "admin,producer"})
-    client_relation_id = harness.add_relation("kafka-client", "appii")
-    harness.update_relation_data(
-        client_relation_id, "appii", {"extra-user-roles": "admin,consumer"}
-    )
 
-    return harness
+@pytest.fixture()
+def charm_configuration():
+    """Enable direct mutation on configuration dict."""
+    return json.loads(json.dumps(CONFIG))
+
+
+@pytest.fixture()
+def ctx() -> Context:
+    ctx = Context(KafkaCharm, meta=METADATA, config=CONFIG, actions=ACTIONS, unit_id=0)
+    return ctx
 
 
 def test_mtls_not_enabled_if_trusted_certificate_added_before_tls_relation(
-    harness: Harness[KafkaCharm],
-):
-    # Create peer relation
-    peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
-    harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/1")
-    harness.update_relation_data(
-        peer_relation_id, f"{CHARM_KEY}/0", {"private-address": "treebeard"}
+    ctx: Context, base_state: State
+) -> None:
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER)
+    cert_relation = Relation("trusted-certificate", "tls-one")
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, cert_relation])
+
+    # When
+    state_out = ctx.run(ctx.on.relation_created(cert_relation), state_in)
+
+    # Then
+    assert (
+        state_out.get_relation(cluster_peer.id).local_app_data.get("mtls", "disabled") != "enabled"
     )
 
-    harness.set_leader(True)
-    harness.add_relation("trusted-certificate", "tls-one")
 
-    assert not harness.charm.state.cluster.mtls_enabled
-
-
-def test_mtls_flag_added(harness: Harness[KafkaCharm]):
-    # Create peer relation
-    peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
-    harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/1")
-    harness.update_relation_data(
-        peer_relation_id, f"{CHARM_KEY}/0", {"private-address": "treebeard"}
+def test_mtls_added(ctx: Context, base_state: State) -> None:
+    # Given
+    cluster_peer = PeerRelation(
+        PEER,
+        PEER,
+        local_app_data={"tls": "enabled"},
+        local_unit_data={"private-address": "treebeard"},
     )
-    harness.update_relation_data(peer_relation_id, CHARM_KEY, {"tls": "enabled"})
+    cert_relation = Relation("trusted-certificate", "tls-one")
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, cert_relation])
 
-    harness.set_leader(True)
-    harness.add_relation("trusted-certificate", "tls-one")
+    # Given
+    state_out = ctx.run(ctx.on.relation_created(cert_relation), state_in)
 
-    assert harness.charm.state.cluster.mtls_enabled
-    assert isinstance(harness.charm.app.status, ActiveStatus)
-
-
-def test_extra_sans_config(harness: Harness[KafkaCharm]):
-    # Create peer relation
-    peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
-    harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/0")
-    harness.update_relation_data(
-        peer_relation_id, f"{CHARM_KEY}/0", {"private-address": "treebeard"}
+    # Then
+    assert (
+        state_out.get_relation(cluster_peer.id).local_app_data.get("mtls", "disabled") == "enabled"
     )
 
-    manager = harness.charm.broker.tls_manager
 
-    harness._update_config({"certificate_extra_sans": ""})
-    manager.config = harness.charm.config
-    assert manager._build_extra_sans() == []
-
-    harness._update_config({"certificate_extra_sans": "worker{unit}.com"})
-    manager.config = harness.charm.config
-    assert "worker0.com" in "".join(manager._build_extra_sans())
-
-    harness._update_config({"certificate_extra_sans": "worker{unit}.com,{unit}.example"})
-    manager.config = harness.charm.config
-    assert "worker0.com" in "".join(manager._build_extra_sans())
-    assert "0.example" in "".join(manager._build_extra_sans())
-
-
-def test_sans(harness: Harness[KafkaCharm], patched_node_ip):
-    # Create peer relation
-    peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
-    harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/0")
-    harness.update_relation_data(
-        peer_relation_id, f"{CHARM_KEY}/0", {"private-address": "treebeard"}
+@pytest.mark.parametrize(
+    ["config_option", "extra_sans", "expected"],
+    [
+        ("certificate_extra_sans", "", []),
+        ("certificate_extra_sans", "worker{unit}.com", ["worker0.com"]),
+        (
+            "certificate_extra_sans",
+            "worker{unit}.com,{unit}.example",
+            ["worker0.com", "0.example"],
+        ),
+        (
+            "extra_listeners",
+            "worker{unit}.com:30000,{unit}.example:40000,nonunit.domain.com:45000",
+            ["worker0.com", "0.example", "nonunit.domain.com"],
+        ),
+    ],
+)
+def test_extra_sans_config(
+    charm_configuration: dict,
+    base_state: State,
+    config_option: str,
+    extra_sans: str,
+    expected: list[str],
+) -> None:
+    # Given
+    charm_configuration["options"][config_option]["default"] = extra_sans
+    cluster_peer = PeerRelation(
+        PEER,
+        PEER,
+        local_unit_data={"private-address": "treebeard"},
+    )
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer])
+    ctx = Context(
+        KafkaCharm, meta=METADATA, config=charm_configuration, actions=ACTIONS, unit_id=0
     )
 
-    manager = harness.charm.broker.tls_manager
-    harness.update_config({"certificate_extra_sans": "worker{unit}.com"})
-    manager.config = harness.charm.config
+    # When
+    with ctx(ctx.on.config_changed(), state_in) as manager:
+        charm = cast(KafkaCharm, manager.charm)
 
+        # Then
+        assert charm.broker.tls_manager._build_extra_sans() == expected
+
+
+def test_sans(charm_configuration: dict, base_state: State, patched_node_ip) -> None:
+    # Given
+    charm_configuration["options"]["certificate_extra_sans"]["default"] = "worker{unit}.com"
+    cluster_peer = PeerRelation(
+        PEER,
+        PEER,
+        local_unit_data={"private-address": "treebeard"},
+    )
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer])
+    ctx = Context(
+        KafkaCharm, meta=METADATA, config=charm_configuration, actions=ACTIONS, unit_id=0
+    )
     sock_dns = socket.getfqdn()
+
+    # When
     if SUBSTRATE == "vm":
-        assert manager.build_sans() == {
+        with ctx(ctx.on.config_changed(), state_in) as manager:
+            charm = cast(KafkaCharm, manager.charm)
+            built_sans = charm.broker.tls_manager.build_sans()
+
+        # Then
+        assert built_sans == {
             "sans_ip": ["treebeard"],
             "sans_dns": [f"{CHARM_KEY}/0", sock_dns, "worker0.com"],
         }
+
     elif SUBSTRATE == "k8s":
         # NOTE previous k8s sans_ip like kafka-k8s-0.kafka-k8s-endpoints or binding pod address
         with (
@@ -148,13 +172,18 @@ def test_sans(harness: Harness[KafkaCharm], patched_node_ip):
                 new_callable=PropertyMock,
                 return_value="palantir",
             ),
+            ctx(ctx.on.config_changed(), state_in) as manager,
         ):
-            assert sorted(manager.build_sans()["sans_dns"]) == sorted(
-                [
-                    "kafka-k8s-0",
-                    "kafka-k8s-0.kafka-k8s-endpoints",
-                    sock_dns,
-                    "worker0.com",
-                ]
-            )
-            assert "palantir" in "".join(manager.build_sans()["sans_ip"])
+            charm = cast(KafkaCharm, manager.charm)
+            built_sans = charm.broker.tls_manager.build_sans()
+
+        # Then
+        assert sorted(built_sans["sans_dns"]) == sorted(
+            [
+                "kafka-k8s-0",
+                "kafka-k8s-0.kafka-k8s-endpoints",
+                sock_dns,
+                "worker0.com",
+            ]
+        )
+        assert "palantir" in "".join(built_sans["sans_ip"])

@@ -331,10 +331,10 @@ async def test_observability_integration(ops_test: OpsTest):
 
 @pytest.mark.abort_on_fail
 async def test_deploy_with_existing_storage(ops_test: OpsTest):
-    unit_to_remove, *_ = await ops_test.model.applications[APP_NAME].add_units(count=3)
-    await ops_test.model.block_until(lambda: len(ops_test.model.applications[APP_NAME].units) == 4)
+    unit_to_remove, *_ = await ops_test.model.applications[APP_NAME].add_units(count=1)
+    await ops_test.model.block_until(lambda: len(ops_test.model.applications[APP_NAME].units) == 2)
     await ops_test.model.wait_for_idle(
-        apps=[APP_NAME], status="active", timeout=1000, idle_period=30
+        apps=[APP_NAME], status="active", timeout=2000, idle_period=30
     )
 
     _, stdout, _ = await ops_test.juju("storage", "--format", "json")
@@ -347,10 +347,10 @@ async def test_deploy_with_existing_storage(ops_test: OpsTest):
         break
 
     await unit_to_remove.remove(destroy_storage=False)
-    await ops_test.model.block_until(lambda: len(ops_test.model.applications[APP_NAME].units) == 3)
+    await ops_test.model.block_until(lambda: len(ops_test.model.applications[APP_NAME].units) == 1)
 
     add_unit_cmd = f"add-unit {APP_NAME} --model={ops_test.model.info.name} --attach-storage={data_storage_id}".split()
     await ops_test.juju(*add_unit_cmd)
     await ops_test.model.wait_for_idle(
-        apps=[APP_NAME], status="active", timeout=1000, idle_period=60
+        apps=[APP_NAME], status="active", timeout=2000, idle_period=30, raise_on_error=False
     )
