@@ -17,7 +17,7 @@
 Install Juju via snap:
 
 ```shell
-sudo snap install juju
+sudo snap install juju --channel 3.5/stable
 ```
 
 Follow the [AWS documentation](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) for guidance on how to install the Amazon Web Services CLI.
@@ -46,25 +46,6 @@ credentials:
       secret-key: SECRET_ACCESS_KEY_VALUE
 EOF
 ```
-
-<!--- TODO, teach Juju to use `aws configure` format:
-```shell
-~$ aws configure
-AWS Access Key ID [None]: SECRET_ACCESS_KEY_ID
-AWS Secret Access Key [None]: SECRET_ACCESS_KEY_VALUE
-Default region name [None]: eu-west-3
-Default output format [None]:
-```
-Check AWS credentials:
-```shell
-~$ aws sts get-caller-identity
-{
-    "UserId": "1234567890",
-    "Account": "1234567890",
-    "Arn": "arn:aws:iam::1234567890:root"
-}
-```
---->
 
 ## Bootstrap Juju controller on AWS EC2
 
@@ -121,19 +102,19 @@ juju model-config logging-config='<root>=INFO;unit=DEBUG'
 ```
 [/note]
 
-Then, Charmed Kafka can be deployed as usual. However, note that the smallest instance types on AWS may not have enough resources for hosting 
-a Kafka broker. We recommend selecting an instance type that provides at the very least 8 GB of RAM and 4 cores.
-For more guidance on production environment sizing, see the [Requirements page](/t/charmed-kafka-reference-requirements/10563).
-You can find more information about the available instance types in the [AWS documentation](https://us-east-1.console.aws.amazon.com/ec2/home?region=us-east-1#Instances:instanceState=running), 
-ensuring that you select the correct AWS.
-
-Deploy and integrate Kafka and ZooKeeper, for example:
+Deploy and integrate Kafka and ZooKeeper:
 
 ```shell
-juju deploy zookeeper -n3 --channel 3/stable
-juju deploy kafka -n3 --constraints "instance-type=m7i.xlarge" --channel 3/stable
+juju deploy zookeeper -n3 --channel 3/stable [--constraints "instance-type=<INSTANCE_TYPE>"] 
+juju deploy kafka -n3 --channel 3/stable [--constraints "instance-type=<INSTANCE_TYPE>"]
 juju integrate kafka zookeeper
 ```
+
+[note type="caution"]
+The smallest AWS instance types may not provide sufficient resources to host a Kafka broker. We recommend choosing an instance type with a minimum of `8` GB of RAM and `4` CPU cores, such as `m7i.xlarge`.
+
+For more guidance on sizing production environments, see the [Requirements page](/t/charmed-kafka-reference-requirements/10563). Additional information about AWS instance types is available in the [AWS documentation](https://us-east-1.console.aws.amazon.com/ec2/home?region=us-east-1#Instances:instanceState=running).
+[/note]
 
 We also recommend to deploy a [Data Integrator](https://charmhub.io/data-integrator) for creating an admin user to manage the content of the Kafka cluster:
 
@@ -165,7 +146,11 @@ To destroy the Juju controller and remove AWS instance (**Warning**: all your da
 juju destroy-controller <CONTROLLER_NAME> --destroy-all-models --destroy-storage --force
 ```
 
-Use `juju list-controllers` to list the available controllers the client has registered to. 
+> Use `juju list-controllers` to retrieve the names of the controllers that have been registered to your local client. 
+
+Should the destroying process take long time or being seemingly stuck, proceed to delete EC2 resources also manually 
+via the AWS portal. See [Amazon AWS documentation](https://repost.aws/knowledge-center/terminate-resources-account-closure) for more information 
+on how to remove active resources no longer needed.
 
 After destroying the controller, check and manually delete all unnecessary AWS EC2 instances, to show the list of all your EC2 instances run the following command (make sure to use the correct region):
  

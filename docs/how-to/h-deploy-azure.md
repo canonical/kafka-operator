@@ -14,11 +14,14 @@
 
 ## Install Client Environment
 
-> **WARNING**: The current limitations:
-> * Only supported starting Juju 3.6 (currently edge)
-> * Juju cli should be on Azure VM for it to be able to reach cloud metadata endpoint.
-> * Managed Identity and the Juju resources should be on the same Azure subscription
-> * The current setup has been tested on Ubuntu 22.04+
+
+[note type="caution"]
+**WARNING**: The current limitations:
+* Only supported starting Juju 3.6 (currently edge)
+* Juju cli should be on Azure VM for it to be able to reach cloud metadata endpoint.
+* Managed Identity and the Juju resources should be on the same Azure subscription
+* The current setup has been tested on Ubuntu 22.04+
+[/note]
 
 ### Juju 
 
@@ -83,7 +86,7 @@ First of all, retrieve your subscription-id
 az login
 ```
 
-After providing the authentication via web browser, you will be shown a list of information and a table with the subscriptions connected to your user, e.g.:
+After authenticating via the web browser, you will be shown a list of information and a table with the subscriptions connected to your user, e.g.:
 
 ```shell
 No     Subscription name                     Subscription ID                       Tenant
@@ -149,18 +152,20 @@ juju model-config logging-config='<root>=INFO;unit=DEBUG'
 ```
 [/note]
 
-Then, Charmed Kafka can be deployed as usual. However, note that the smallest instance types on Azure may not have enough resources for hosting 
-a Kafka broker. We recommend selecting an instance type that provides at the very least `8` GB of RAM and `4` cores.
-For more guidance on production environment sizing, see the [Requirements page](/t/charmed-kafka-reference-requirements/10563).
-You can find more information about the available instance types in the [Azure documentation](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/overview).
-
-Deploy and integrate Kafka and ZooKeeper, for example:
+Deploy and integrate Kafka and ZooKeeper:
 
 ```shell
-juju deploy zookeeper -n3 --channel 3/stable
-juju deploy kafka -n3 --constraints "instance-type=Standard_A4_v2" --channel 3/stable
+juju deploy zookeeper -n3 --channel 3/stable [--constraints "instance-type=<INSTANCE_TYPE>"]
+juju deploy kafka -n3 --channel 3/stable [--constraints "instance-type=<INSTANCE_TYPE>"]
 juju integrate kafka zookeeper
 ```
+
+[note type="caution"]
+Note that the smallest instance types on Azure may not have enough resources for hosting 
+a Kafka broker. We recommend selecting an instance type that provides at the very least `8` GB of RAM and `4` cores, e.g. `Standard_A4_v2`.
+For more guidance on production environment sizing, see the [Requirements page](/t/charmed-kafka-reference-requirements/10563).
+You can find more information about the available instance types in the [Azure documentation](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/overview).
+[/note]
 
 We also recommend to deploy a [Data Integrator](https://charmhub.io/data-integrator) for creating an admin user to manage the content of the Kafka cluster:
 
@@ -191,6 +196,10 @@ juju destroy-controller <CONTROLLER_NAME> --destroy-all-models --destroy-storage
 ```
 
 > Use `juju list-controllers` to retrieve the names of the controllers that have been registered to your local client. 
+
+Should the destroying process take long time or being seemingly stuck, proceed to delete VM resources also manually 
+via the Azure portal. See [Azure documentation](https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/manage-resources-portal) for more information 
+on how to remove active resources no longer needed. 
 
 Next, check and manually delete all unnecessary Azure VM instances, to show the list of all your Azure VMs run the following command (make sure to use the correct region): 
 ```shell
