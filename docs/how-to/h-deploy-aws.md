@@ -111,11 +111,9 @@ juju integrate kafka zookeeper
 ```
 
 [note type="caution"]
-Note that the smallest instance types on AWS may not have enough resources for hosting 
-a Kafka broker. We recommend selecting an instance type that provides at the very least 8 GB of RAM and 4 cores, e.g. `m7i.xlarge`.
-For more guidance on production environment sizing, see the [Requirements page](/t/charmed-kafka-reference-requirements/10563).
-You can find more information about the available instance types in the [AWS documentation](https://us-east-1.console.aws.amazon.com/ec2/home?region=us-east-1#Instances:instanceState=running), 
-ensuring that you select the correct AWS.
+The smallest AWS instance types may not provide sufficient resources to host a Kafka broker. We recommend choosing an instance type with a minimum of `8` GB of RAM and `4` CPU cores, such as `m7i.xlarge`.
+
+For more guidance on sizing production environments, see the [Requirements page](/t/charmed-kafka-reference-requirements/10563). Additional information about AWS instance types is available in the [AWS documentation](https://us-east-1.console.aws.amazon.com/ec2/home?region=us-east-1#Instances:instanceState=running).
 [/note]
 
 We also recommend to deploy a [Data Integrator](https://charmhub.io/data-integrator) for creating an admin user to manage the content of the Kafka cluster:
