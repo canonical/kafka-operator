@@ -189,9 +189,9 @@ class TLSManager:
         for item in line.split(", "):
             san_type, san_value = item.split(":")
 
-            if san_type == "DNS":
+            if san_type.strip() == "DNS":
                 sans_dns.append(san_value)
-            if san_type == "IP Address":
+            if san_type.strip() == "IP Address":
                 sans_ip.append(san_value)
 
         return {"sans_ip": sorted(sans_ip), "sans_dns": sorted(sans_dns)}
