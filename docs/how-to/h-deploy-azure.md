@@ -14,11 +14,14 @@
 
 ## Install Client Environment
 
-> **WARNING**: The current limitations:
-> * Only supported starting Juju 3.6 (currently edge)
-> * Juju cli should be on Azure VM for it to be able to reach cloud metadata endpoint.
-> * Managed Identity and the Juju resources should be on the same Azure subscription
-> * The current setup has been tested on Ubuntu 22.04+
+
+[note type="caution"]
+**WARNING**: The current limitations:
+* Only supported starting Juju 3.6 (currently edge)
+* Juju cli should be on Azure VM for it to be able to reach cloud metadata endpoint.
+* Managed Identity and the Juju resources should be on the same Azure subscription
+* The current setup has been tested on Ubuntu 22.04+
+[/note]
 
 ### Juju 
 
