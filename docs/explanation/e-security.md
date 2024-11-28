@@ -1,17 +1,17 @@
 # Cryptography
 
-This document describes cryptography used by Charmed Kafka.
+This document describes cryptography used by Charmed Apache Kafka.
 
 ## Resource checksums
-Every version of the Charmed Kafka and Charmed ZooKeeper operators install a pinned revision of the Charmed Kafka snap
+Every version of the Charmed Apache Kafka and Charmed ZooKeeper operators install a pinned revision of the Charmed Apache Kafka snap
 and Charmed ZooKeeper, respectively, in order to 
-provide reproducible and secure environments. The [Charmed Kafka snap](https://snapstore.io/charmed-kafka) and [Charmed ZooKeeper snap](https://snapstore.io/charmed-zookeeper) package the 
+provide reproducible and secure environments. The [Charmed Apache Kafka snap](https://snapstore.io/charmed-kafka) and [Charmed ZooKeeper snap](https://snapstore.io/charmed-zookeeper) package the 
 Kafka and ZooKeeper workload together with 
-a set of dependencies and utilities required by the lifecycle of the operators (see [Charmed Kafka snap contents](https://github.com/canonical/charmed-kafka-snap/blob/3/edge/snap/snapcraft.yaml) and [Charmed ZooKeeper snap contents](https://github.com/canonical/charmed-zookeeper-snap/blob/3/edge/snap/snapcraft.yaml)).
-Every artifact bundled into the Charmed Kafka snap and Charmed ZooKeeper snap is verified against their SHA256 or SHA512 checksum after download. 
+a set of dependencies and utilities required by the lifecycle of the operators (see [Charmed Apache Kafka snap contents](https://github.com/canonical/charmed-kafka-snap/blob/3/edge/snap/snapcraft.yaml) and [Charmed ZooKeeper snap contents](https://github.com/canonical/charmed-zookeeper-snap/blob/3/edge/snap/snapcraft.yaml)).
+Every artifact bundled into the Charmed Apache Kafka snap and Charmed ZooKeeper snap is verified against their SHA256 or SHA512 checksum after download. 
 
 ## Sources verification
-Charmed Kafka sources are stored in:
+Charmed Apache Kafka sources are stored in:
 
 * GitHub repositories for snaps, rocks and charms
 * LaunchPad repositories for the Kafka and ZooKeeper upstream fork used for building their respective distributions
@@ -23,7 +23,7 @@ Branches associated with releases are mirrored to a public repository, hosted in
 to also provide the community with the patched source code. 
 
 ### GitHub
-All Charmed Kafka and Charmed ZooKeeper artifacts are published and released 
+All Charmed Apache Kafka and Charmed ZooKeeper artifacts are published and released 
 programmatically using release pipelines implemented via GitHub Actions. 
 Distributions are published as both GitHub and LaunchPad releases via the [central-uploader repository](https://github.com/canonical/central-uploader), while 
 charms, snaps and rocks are published using the workflows of their respective repositories. 
@@ -35,7 +35,7 @@ All repositories in GitHub are set up with branch protection rules, requiring:
 * developers to sign the [Canonical Contributor License Agreement (CLA)](https://ubuntu.com/legal/contributors)
 
 ## Encryption
-The Charmed Kafka operator can be used to deploy a secure Kafka cluster that provides encryption-in-transit capabilities out of the box 
+The Charmed Apache Kafka operator can be used to deploy a secure Kafka cluster that provides encryption-in-transit capabilities out of the box 
 for:
 
 * Interbroker communications
@@ -56,7 +56,7 @@ for more information.
 Encryption at rest is currently not supported, although it can be provided by the substrate (cloud or on-premises).
 
 ## Authentication
-In the Charmed Kafka solution, authentication layers can be enabled for
+In the Charmed Apache Kafka solution, authentication layers can be enabled for
 
 1. ZooKeeper connections
 2. Kafka inter broker communication 
@@ -73,7 +73,7 @@ Permission on the file is restricted to the root user.
 
 ### Kafka Inter-broker authentication
 Authentication among brokers is based on SCRAM-SHA-512 protocol. Username and passwords are exchanged 
-via peer relations, using Juju secrets from revision 168 on Charmed Kafka.
+via peer relations, using Juju secrets from revision 168 on Charmed Apache Kafka.
 
 Kafka username and password used by brokers to authenticate one another are stored 
 both in a ZooKeeper zNode and in a JAAS configuration file in the Kafka server in plain format. 

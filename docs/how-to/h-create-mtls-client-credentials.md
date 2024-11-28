@@ -1,7 +1,7 @@
 # Create mTLS client credentials
 
 Requirements:
-- Charmed Kafka cluster up and running
+- Charmed Apache Kafka cluster up and running
 - [Admin credentials](./h-manage-app.md)
 - [Encryption enabled](./h-enable-encryption.md)
 - [Java JRE](https://ubuntu.com/tutorials/install-jre#1-overview) installed

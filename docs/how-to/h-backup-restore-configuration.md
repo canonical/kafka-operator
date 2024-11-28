@@ -1,6 +1,6 @@
 # Configuration backup and restore
 
-Charmed Kafka's configuration is distributed using [Charmed ZooKeeper](https://charmhub.io/zookeeper?channel=3/stable).
+Charmed Apache Kafka's configuration is distributed using [Charmed ZooKeeper](https://charmhub.io/zookeeper?channel=3/stable).
 A Charmed ZooKeeper backup can be stored on any S3-compatible storage.
 S3 access and configurations are managed with the [`s3-integrator` charm](https://charmhub.io/s3-integrator).
 
@@ -53,7 +53,7 @@ Check that Charmed ZooKeeper deployment with configurations set for S3 storage i
 juju run zookeeper/leader create-backup
 ```
 
-Charmed ZooKeeper backups created with the command above will always be **full** backups: a copy of *all* the Charmed Kafka configuration will be stored in S3.
+Charmed ZooKeeper backups created with the command above will always be **full** backups: a copy of *all* the Charmed Apache Kafka configuration will be stored in S3.
 
 The command will output the ID of the newly created backup:
 

@@ -1,14 +1,14 @@
-# How to deploy Charmed Kafka
+# How to deploy Charmed Apache Kafka
 
-To deploy a Charmed Kafka cluster on a bare environment, it is necessary to:
+To deploy a Charmed Apache Kafka cluster on a bare environment, it is necessary to:
 
 1. Set up a Juju Controller
 2. Set up a Juju Model
-3. Deploy Charmed Kafka and Charmed ZooKeeper
+3. Deploy Charmed Apache Kafka and Charmed ZooKeeper
 4. (Optionally) Create an external admin user
 
 In the next subsections, we will cover these steps separately by referring to 
-relevant Juju documentation and providing details on the Charmed Kafka specifics.
+relevant Juju documentation and providing details on the Charmed Apache Kafka specifics.
 If you already have a Juju controller and/or a Juju model, you can skip the associated steps.
 
 ## Juju controller setup
@@ -24,7 +24,7 @@ The cloud information can be retrieved with the following command
 juju show-controller | yq '.[].details.cloud'
 ```
 
-> **IMPORTANT** If the cloud is `k8s`, please refer to the [Charmed Kafka K8s documentation](/t/charmed-kafka-k8s-documentation/10296) instead.
+> **IMPORTANT** If the cloud is `k8s`, please refer to the [Charmed Apache Kafka K8s documentation](/t/charmed-kafka-k8s-documentation/10296) instead.
 
 You can find more information on how to bootstrap and configure a controller for different 
 clouds [here](https://juju.is/docs/juju/manage-controllers#heading--bootstrap-a-controller). 
@@ -51,9 +51,9 @@ can be obtained by
 juju show-model | yq '.[].type'
 ```
 
-> **IMPORTANT** If the model is `k8s`, please refer to the [Charmed Kafka K8s documentation](https://discourse.charmhub.io/t/charmed-kafka-k8s-documentation/10296) instead.
+> **IMPORTANT** If the model is `k8s`, please refer to the [Charmed Apache Kafka K8s documentation](https://discourse.charmhub.io/t/charmed-kafka-k8s-documentation/10296) instead.
 
-## Deploy Charmed Kafka and Charmed ZooKeeper
+## Deploy Charmed Apache Kafka and Charmed ZooKeeper
 
 The Kafka and ZooKeeper charms can both be deployed as follows:
 
@@ -77,7 +77,7 @@ should be ready to be used.
 
 ## (Optional) Create an external admin users
 
-Charmed Kafka aims to follow the _secure by default_ paradigm. As a consequence, after being deployed the Kafka cluster 
+Charmed Apache Kafka aims to follow the _secure by default_ paradigm. As a consequence, after being deployed the Kafka cluster 
 won't expose any external listener. 
 In fact, ports are only opened when client applications are related, also 
 depending on the protocols to be used. Please refer to [this table](/t/charmed-kafka-documentation-reference-listeners/13264) for 

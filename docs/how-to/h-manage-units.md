@@ -5,7 +5,7 @@ Unit management guide for scaling and running admin utility scripts.
 ## Replication and Scaling
 
 Increasing the number of Kafka brokers can be achieved by adding more units
-to the Charmed Kafka application, for example:
+to the Charmed Apache Kafka application, for example:
 
 ```shell
 juju add-unit kafka -n <num_brokers_to_add>
@@ -39,7 +39,7 @@ for a full list of the bash commands available in Kafka distributions. Also, you
 use `--help` argument for printing a short summary of the argument for a given 
 bash command. 
 
-The most important commands are also exposed via the [Charmed Kafka snap](https://snapcraft.io/charmed-kafka), 
+The most important commands are also exposed via the [Charmed Apache Kafka snap](https://snapcraft.io/charmed-kafka), 
 accessible via `charmed-kafka.<command>`. Please refer to [this table](/t/charmed-kafka-documentation-reference-snap-entrypoints/13263) for 
 more information about the mapping between the Kafka bin commands and the snap entrypoints.
 
@@ -77,7 +77,7 @@ e.g. truststore and keystore for TLS-enabled connections). Those
 files also need to be accessible and correctly specified. 
 
 Commands can also be run within a Kafka broker, since both the authentication 
-file (along with the truststore if needed) and the Charmed Kafka snap are 
+file (along with the truststore if needed) and the Charmed Apache Kafka snap are 
 already present. 
 
 #### Example (listing topics)

@@ -1,17 +1,17 @@
-This is part of the [Charmed Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571). Please refer to this page for more information and the overview of the content. 
+This is part of the [Charmed Apache Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571). Please refer to this page for more information and the overview of the content. 
 
 ## Transport Layer Security (TLS)
 
-[TLS](https://en.wikipedia.org/wiki/Transport_Layer_Security) is used to encrypt data exchanged between two applications; it secures data transmitted over the network. Typically, enabling TLS within a highly available database, and between a highly available database and client/server applications, requires domain-specific knowledge and a high level of expertise. Fortunately, the domain-specific knowledge has been encoded into Charmed Kafka. This means (re-)configuring TLS on Charmed Kafka is readily available and requires minimal effort on your end.
+[TLS](https://en.wikipedia.org/wiki/Transport_Layer_Security) is used to encrypt data exchanged between two applications; it secures data transmitted over the network. Typically, enabling TLS within a highly available database, and between a highly available database and client/server applications, requires domain-specific knowledge and a high level of expertise. Fortunately, the domain-specific knowledge has been encoded into Charmed Apache Kafka. This means (re-)configuring TLS on Charmed Apache Kafka is readily available and requires minimal effort on your end.
 
-Again, relations come in handy here as TLS is enabled via relations; i.e. by relating Charmed Kafka to the [Self-signed Certificates Charm](https://charmhub.io/self-signed-certificates) via the [`tls-certificates`](https://github.com/canonical/charm-relation-interfaces/blob/main/interfaces/tls_certificates/v1/README.md) charm relations. The `tls-certificates` relation centralises TLS certificate management in a consistent manner and handles providing, requesting, and renewing TLS certificates, making it possible to use different providers, like the self-signed certificates but also other services, e.g. Let's Encrypt. 
+Again, relations come in handy here as TLS is enabled via relations; i.e. by relating Charmed Apache Kafka to the [Self-signed Certificates Charm](https://charmhub.io/self-signed-certificates) via the [`tls-certificates`](https://github.com/canonical/charm-relation-interfaces/blob/main/interfaces/tls_certificates/v1/README.md) charm relations. The `tls-certificates` relation centralises TLS certificate management in a consistent manner and handles providing, requesting, and renewing TLS certificates, making it possible to use different providers, like the self-signed certificates but also other services, e.g. Let's Encrypt. 
 
 > *Note: In this tutorial, we will distribute [self-signed certificates](https://en.wikipedia.org/wiki/Self-signed_certificate) to all charms (Kafka, ZooKeeper and client applications) that are signed using a root self-signed CA
 that is also trusted by all applications. This setup is only for show-casing purposes and self-signed certificates should **never** be used in a production cluster. For more information about which charm may better suit your use-case, please refer to [this post](https://charmhub.io/topics/security-with-x-509-certificates).* 
 
 ### Configure TLS
 
-Before enabling TLS on Charmed Kafka we must first deploy the `self-signed-certificates` charm:
+Before enabling TLS on Charmed Apache Kafka we must first deploy the `self-signed-certificates` charm:
 
 ```shell
 juju deploy self-signed-certificates --config ca-common-name="Tutorial CA"
@@ -34,7 +34,7 @@ self-signed-certificates/0*   active    idle   10.1.36.91
 ...
 ```
 
-To enable TLS on Charmed Kafka, relate the both the `kafka` and `zookeeper` charms with the
+To enable TLS on Charmed Apache Kafka, relate the both the `kafka` and `zookeeper` charms with the
 `self-signed-certificates` charm:
 
 ```shell
@@ -99,4 +99,4 @@ juju remove-relation kafka self-signed-certificates
 juju remove-relation zookeeper self-signed-certificates
 ```
 
-The Charmed Kafka application is not using TLS anymore.
+The Charmed Apache Kafka application is not using TLS anymore.

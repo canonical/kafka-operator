@@ -1,6 +1,6 @@
 # Cluster migration using MirrorMaker2.0
 
-This How-To guide covers executing a cluster migration to a Charmed Kafka deployment using MirrorMaker2.0, running as a process on each of the Juju units in an active/passive setup, where MirrorMaker will act as a consumer from an existing cluster, and a producer to the Charmed Kafka cluster. In parallel (one process on each unit), data and consumer offsets for all existing topics will be synced one-way until both clusters are in-sync, with all data replicated across both in real-time.
+This How-To guide covers executing a cluster migration to a Charmed Apache Kafka deployment using MirrorMaker2.0, running as a process on each of the Juju units in an active/passive setup, where MirrorMaker will act as a consumer from an existing cluster, and a producer to the Charmed Apache Kafka cluster. In parallel (one process on each unit), data and consumer offsets for all existing topics will be synced one-way until both clusters are in-sync, with all data replicated across both in real-time.
 
 ## MirrorMaker2 overview
 
@@ -16,12 +16,12 @@ In short, MirrorMaker runs as a distributed service on the new cluster, and cons
 ## Pre-requisites
 
 - An existing Kafka cluster to migrate from
-- A bootstrapped Juju VM machine cloud running Charmed Kafka to migrate to
-    - A tutorial on how to set-up a Charmed Kafka deployment can be found as part of the [Charmed Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571)
+- A bootstrapped Juju VM machine cloud running Charmed Apache Kafka to migrate to
+    - A tutorial on how to set-up a Charmed Apache Kafka deployment can be found as part of the [Charmed Apache Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571)
     - The CLI tool `yq` - https://github.com/mikefarah/yq
     - `snap install yq --channel=v3/stable`
 
-## Getting Charmed Kafka cluster details and admin credentials
+## Getting Charmed Apache Kafka cluster details and admin credentials
 
 By design, the `kafka` charm will not expose any available connections until related to by a client. In this case, we deploy `data-integrator` charms and relating them to each `kafka` application, requesting `admin` level privileges:
 
@@ -34,7 +34,7 @@ When the `data-integrator` charm relates to a `kafka` application on the `kafka-
 As we will need full access to both clusters, we must grab these newly-generated authorisation credentials from the `data-integrator`:
 
 ```bash
-# SASL credentials to connect to the Charmed Kafka cluster
+# SASL credentials to connect to the Charmed Apache Kafka cluster
 export NEW_USERNAME=$(juju show-unit data-integrator/0 | yq -r '.. | .username? // empty')
 export NEW_PASSWORD=$(juju show-unit data-integrator/0 | yq -r '.. | .password? // empty')
 
@@ -59,9 +59,9 @@ OLD_SASL_JAAS_CONFIG
 
 > **NOTE** - If using `SSL` or `SASL_SSL` authentication, review the configuration options supported by Kafka Connect in the [Apache Kafka documentation](https://kafka.apache.org/documentation/#connectconfigs)
 
-## Generating `mm2.properties` file on the Charmed Kafka cluster
+## Generating `mm2.properties` file on the Charmed Apache Kafka cluster
 
-MirrorMaker takes a `.properties` file for its configuration to fine-tune behaviour. See below an example `mm2.properties` file that can be placed on each of the Charmed Kafka units using the above credentials:
+MirrorMaker takes a `.properties` file for its configuration to fine-tune behaviour. See below an example `mm2.properties` file that can be placed on each of the Charmed Apache Kafka units using the above credentials:
 
 ```bash
 # Aliases for each cluster, can be set to any unique alias
@@ -75,11 +75,11 @@ new->old.enabled = false
 old.bootstrap.servers=$OLD_SERVERS
 new.bootstrap.servers=$NEW_SERVERS
 
-# sasl authentication config for each cluster, in this case using the 'admin' users created by the integrator charm for Charmed Kafka
+# sasl authentication config for each cluster, in this case using the 'admin' users created by the integrator charm for Charmed Apache Kafka
 old.sasl.jaas.config=$OLD_SASL_JAAS_CONFIG
 new.sasl.jaas.config=$NEW_SASL_JAAS_CONFIG
 
-# if not deployed with TLS, Charmed Kafka uses SCRAM-SHA-512 for SASL auth, with a SASL_PLAINTEXT listener
+# if not deployed with TLS, Charmed Apache Kafka uses SCRAM-SHA-512 for SASL auth, with a SASL_PLAINTEXT listener
 sasl.mechanism=SCRAM-SHA-512
 security.protocol=SASL_PLAINTEXT
 
@@ -119,7 +119,7 @@ new.producer.acks=all
 # new.exactly.once.support = enabled
 ```
 
-Once these properties have been generated (in this example, saved to `/tmp/mm2.properties`), it is needed to place them on every Charmed Kafka unit:
+Once these properties have been generated (in this example, saved to `/tmp/mm2.properties`), it is needed to place them on every Charmed Apache Kafka unit:
 
 ```bash
 cat /tmp/mm2.properties | juju ssh kafka/<id> sudo -i 'sudo tee -a /var/snap/charmed-kafka/current/etc/kafka/mm2.properties'
@@ -139,7 +139,7 @@ juju ssh kafka/<id> sudo -i 'cd /snap/charmed-kafka/current/opt/kafka/bin && KAF
 
 ## Monitoring and validating data replication
 
-The migration process can be monitored using built-in Kafka bin-commands on the original cluster. In the Charmed Kafka cluster, these bin-commands are also mapped to snap commands on the units (e.g `charmed-kafka.get-offsets` or `charmed-kafka.topics`).
+The migration process can be monitored using built-in Kafka bin-commands on the original cluster. In the Charmed Apache Kafka cluster, these bin-commands are also mapped to snap commands on the units (e.g `charmed-kafka.get-offsets` or `charmed-kafka.topics`).
 
 To monitor the current consumer offsets, run the following on the original cluster being migrated from:
 
@@ -164,11 +164,11 @@ There is also a [range of different metrics](https://github.com/apache/kafka/blo
 curl 10.248.204.198:9099/metrics | grep records_count
 ```
 
-## Switching client traffic from original cluster to Charmed Kafka cluster
+## Switching client traffic from original cluster to Charmed Apache Kafka cluster
 
-Once happy that all the necessary data has been successfully migrated, stop all active consumer applications on the original cluster, and redirect them to the Charmed Kafka cluster, making sure to use the Charmed Kafka cluster server addresses and authentication. After doing so, they will re-join their original consumer groups at the last committed offset it had originally, and continue consuming as normal.
-Finally, the producer client applications can be stopped, updated with the Charmed Kafka cluster server addresses and authentication, and restarted, with any newly produced messages being received by the migrated consumer client applications, completing the migration of both the data, and the client applications.
+Once happy that all the necessary data has been successfully migrated, stop all active consumer applications on the original cluster, and redirect them to the Charmed Apache Kafka cluster, making sure to use the Charmed Apache Kafka cluster server addresses and authentication. After doing so, they will re-join their original consumer groups at the last committed offset it had originally, and continue consuming as normal.
+Finally, the producer client applications can be stopped, updated with the Charmed Apache Kafka cluster server addresses and authentication, and restarted, with any newly produced messages being received by the migrated consumer client applications, completing the migration of both the data, and the client applications.
 
 ## Stopping MirrorMaker replication
 
-Once confident in the successful completion of the data client migration, the running processes on each of the charm units can be killed, stopping the MirrorMaker processes active on the Charmed Kafka cluster.
+Once confident in the successful completion of the data client migration, the running processes on each of the charm units can be killed, stopping the MirrorMaker processes active on the Charmed Apache Kafka cluster.

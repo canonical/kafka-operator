@@ -8,7 +8,7 @@ description: |
 
   Apache Kafka is a free, open source software project by the Apache Software Foundation. 
   Users can find out more at the [Kafka project page](https://kafka.apache.org/).
-summary: Charmed Kafka Operator
+summary: Charmed Apache Kafka Operator
 docs: https://discourse.charmhub.io/t/charmed-kafka-documentation/10288
 source: https://github.com/canonical/kafka-operator
 issues: https://github.com/canonical/kafka-operator/issues

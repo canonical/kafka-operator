@@ -1,6 +1,6 @@
 # Kafka listeners
 
-Charmed Kafka comes with a set of listeners that can be enabled for
+Charmed Apache Kafka comes with a set of listeners that can be enabled for
 inter- and intra-cluster communication. 
 
 *Internal listeners* are used for internal traffic and exchange of information 

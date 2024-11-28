@@ -1,7 +1,7 @@
 # Security Hardening Guide
 
 This document provides guidance and instructions to achieve 
-a secure deployment of [Charmed Kafka](https://github.com/canonical/kafka-bundle), including setting up and managing a secure environment.
+a secure deployment of [Charmed Apache Kafka](https://github.com/canonical/kafka-bundle), including setting up and managing a secure environment.
 The document is divided into the following sections:
 
 1. Environment, outlining the recommendation for deploying a secure environment
@@ -17,7 +17,7 @@ The environment where applications operate can be divided in two components:
 
 ### Cloud
 
-Charmed Kafka can be deployed on top of several clouds and virtualization layers: 
+Charmed Apache Kafka can be deployed on top of several clouds and virtualization layers: 
 
 | Cloud     | Security guide                                                                                                                                                                                                                                                         |
 |-----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -65,20 +65,20 @@ In the following we provide guidance on how to harden your deployment using:
 
 ### Operating System
 
-Charmed Kafka and Charmed ZooKeeper currently run on top of Ubuntu 22.04. Deploy a [Landscape Client Charm](https://charmhub.io/landscape-client?) in order to 
+Charmed Apache Kafka and Charmed ZooKeeper currently run on top of Ubuntu 22.04. Deploy a [Landscape Client Charm](https://charmhub.io/landscape-client?) in order to 
 connect the underlying VM to a Landscape User Account to manage security upgrades and integrate Ubuntu Pro subscriptions. 
 
 ### Kafka and ZooKeeper Security Upgrades
 
-Charmed Kafka and Charmed ZooKeeper operators install a pinned revision of the [Charmed Kafka snap](https://snapcraft.io/charmed-kafka)
+Charmed Apache Kafka and Charmed ZooKeeper operators install a pinned revision of the [Charmed Apache Kafka snap](https://snapcraft.io/charmed-kafka)
 and [Charmed ZooKeeper snap](https://snapcraft.io/charmed-zookeeper), respectively, in order to provide reproducible and secure environments. 
-New versions of Charmed Kafka and Charmed ZooKeeper may be released to provide patching of vulnerabilities (CVEs). 
+New versions of Charmed Apache Kafka and Charmed ZooKeeper may be released to provide patching of vulnerabilities (CVEs). 
 It is important to refresh the charm regularly to make sure the workload is as secure as possible. 
 For more information on how to refresh the charm, see the [how-to upgrade](https://charmhub.io/kafka/docs/h-upgrade) guide.
 
 ### Encryption
 
-Charmed Kafka must be deployed with encryption enabled. 
+Charmed Apache Kafka must be deployed with encryption enabled. 
 To do that, you need to relate Kafka and ZooKeeper charms to one of the TLS certificate operator charms. 
 Please refer to the [Charming Security page](https://charmhub.io/topics/security-with-x-509-certificates) for more information on how to select the right certificate
 provider for your use-case. 
@@ -87,7 +87,7 @@ For more information on encryption setup, see the [How to enable encryption](htt
 
 ### Authentication
 
-Charmed Kafka supports the following authentication layers:
+Charmed Apache Kafka supports the following authentication layers:
 
 1. [SCRAM-based SASL Authentication](/t/charmed-kafka-how-to-manage-app/10285)
 2. [certificate-base Authentication (mTLS)](/t/create-mtls-client-credentials/11079)
@@ -98,13 +98,13 @@ Please refer to the [listener reference documentation](/t/charmed-kafka-document
 
 ### Monitoring and Auditing
 
-Charmed Kafka provides native integration with the [Canonical Observability Stack (COS)](https://charmhub.io/topics/canonical-observability-stack).
+Charmed Apache Kafka provides native integration with the [Canonical Observability Stack (COS)](https://charmhub.io/topics/canonical-observability-stack).
 To reduce the blast radius of infrastructure disruptions, the general recommendation is to deploy COS and the observed application into 
 separate environments, isolated one another. Refer to the [COS production deployments best practices](https://charmhub.io/topics/canonical-observability-stack/reference/best-practices)
 for more information. 
 
 Refer to How-To user guide for more information on:
-* [how to integrate the Charmed Kafka deployment with COS](/t/charmed-kafka-how-to-enable-monitoring/10283)
+* [how to integrate the Charmed Apache Kafka deployment with COS](/t/charmed-kafka-how-to-enable-monitoring/10283)
 * [how to customise the alerting rules and dashboards](/t/charmed-kafka-documentation-how-to-integrate-custom-alerting-rules-and-dashboards/13431)
 
 External user access to Kafka is logged to the `kafka-authorizer.log` that is pushes to [Loki endpoint](https://charmhub.io/loki-k8s) and exposed via [Grafana](https://charmhub.io/grafana), both components being part of the COS stack.
@@ -115,4 +115,4 @@ the [file system paths](/t/charmed-kafka-documentation-reference-file-system-pat
 
 ## Additional Resources
 
-For further information and details on the security and cryptographic specifications used by Charmed Kafka, please refer to the [Security Explanation page](/t/charmed-kafka-documentation-explanation-security/15714).
+For further information and details on the security and cryptographic specifications used by Charmed Apache Kafka, please refer to the [Security Explanation page](/t/charmed-kafka-documentation-explanation-security/15714).

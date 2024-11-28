@@ -1,4 +1,4 @@
-This is part of the [Charmed Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571). Please refer to this page for more information and the overview of the content. 
+This is part of the [Charmed Apache Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571). Please refer to this page for more information and the overview of the content. 
 
 ## Setup the environment
 
@@ -8,7 +8,7 @@ For this tutorial, we will need to setup the environment with two main component
 
 ### Prepare LXD
 
-The fastest, simplest way to get started with Charmed Kafka is to set up a local LXD cloud. LXD is a system container and virtual machine manager; Charmed Kafka will be run in one of these containers and managed by Juju. While this tutorial covers the basics of LXD, you can [explore more LXD here](https://linuxcontainers.org/lxd/getting-started-cli/). LXD comes pre-installed on Ubuntu 20.04 LTS. Verify that LXD is installed by entering the command `which lxd` into the command line, this will output:
+The fastest, simplest way to get started with Charmed Apache Kafka is to set up a local LXD cloud. LXD is a system container and virtual machine manager; Charmed Apache Kafka will be run in one of these containers and managed by Juju. While this tutorial covers the basics of LXD, you can [explore more LXD here](https://linuxcontainers.org/lxd/getting-started-cli/). LXD comes pre-installed on Ubuntu 20.04 LTS. Verify that LXD is installed by entering the command `which lxd` into the command line, this will output:
 
 ```
 /snap/bin/lxd
@@ -31,13 +31,13 @@ You can list all LXD containers by entering the command `lxc list` in to the com
 
 ### Install and prepare Juju
 
-[Juju](https://juju.is/) is an Operator Lifecycle Manager (OLM) for clouds, bare metal, LXD or Kubernetes. We will be using it to deploy and manage Charmed Kafka. As with LXD, Juju is installed from a snap package:
+[Juju](https://juju.is/) is an Operator Lifecycle Manager (OLM) for clouds, bare metal, LXD or Kubernetes. We will be using it to deploy and manage Charmed Apache Kafka. As with LXD, Juju is installed from a snap package:
 
 ```shell
 sudo snap install juju --channel 3.1/stable
 ```
 
-Juju already has a built-in knowledge of LXD and how it works, so there is no additional setup or configuration needed. A controller will be used to deploy and control Charmed Kafka. All we need to do is run the following command to bootstrap a Juju controller named ‘overlord’ to LXD. This bootstrapping processes can take several minutes depending on how provisioned (RAM, CPU, etc.) your machine is:
+Juju already has a built-in knowledge of LXD and how it works, so there is no additional setup or configuration needed. A controller will be used to deploy and control Charmed Apache Kafka. All we need to do is run the following command to bootstrap a Juju controller named ‘overlord’ to LXD. This bootstrapping processes can take several minutes depending on how provisioned (RAM, CPU, etc.) your machine is:
 
 ```shell
 juju bootstrap localhost overlord --agent-version 3.1.6
@@ -55,7 +55,7 @@ The Juju controller should exist within an LXD container. You can verify this by
 
 where `<id>` is a unique combination of numbers and letters such as `9d7e4e-0`
 
-The controller can work with different models; models host applications such as Charmed Kafka. Set up a specific model for Charmed Kafka named ‘tutorial’:
+The controller can work with different models; models host applications such as Charmed Apache Kafka. Set up a specific model for Charmed Apache Kafka named ‘tutorial’:
 
 ```shell
 juju add-model tutorial

@@ -1,6 +1,6 @@
 # How to upgrade between minor versions
 
-> **Note** This feature is available on Charmed Kafka and Charmed ZooKeeper from revisions 134 and 103, respectively. Upgrade from previous versions is **not supported**, although possible (see e.g. [here](https://github.com/deusebio/kafka-pre-upgrade-patch) for a custom example).
+> **Note** This feature is available on Charmed Apache Kafka and Charmed ZooKeeper from revisions 134 and 103, respectively. Upgrade from previous versions is **not supported**, although possible (see e.g. [here](https://github.com/deusebio/kafka-pre-upgrade-patch) for a custom example).
 
 Charm upgrades can include both upgrades of operator code (e.g. the revision used by the charm) and/or the workload version. Note that since the charm code pins a particular version of the workload, a charm upgrade may or may not involve also a workload version upgrade. In general, the following guide only applies for in-place upgrades that involve (at most) minor version upgrade of Kafka workload, e.g. between Kafka 3.4.x to 3.5.x. Major workload upgrades are generally **NOT SUPPORTED**, and they should be carried out using full cluster-to-cluster migrations. Please refer to the how-to guide about cluster migration [how-to guide about cluster migration](/t/charmed-kafka-how-to-cluster-migration/10951) for more information on how this can be achieved.
 
@@ -44,7 +44,7 @@ juju run kafka/leader pre-upgrade-check
 
 Make sure that the output of the action is successful.
 
-> **Note**: This action must be run before Charmed Kafka upgrades.
+> **Note**: This action must be run before Charmed Apache Kafka upgrades.
 
 The action will also configure the charm to minimize high-availability reduction and ensure a safe upgrade process. After successful execution, the charm is ready to be upgraded.
 

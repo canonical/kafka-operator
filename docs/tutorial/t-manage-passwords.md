@@ -1,4 +1,4 @@
-This is part of the [Charmed Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571). Please refer to this page for more information and the overview of the content.
+This is part of the [Charmed Apache Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571). Please refer to this page for more information and the overview of the content.
 
 ## Manage passwords
 
@@ -10,7 +10,7 @@ The admin user password management is handled directing by the charm, by using J
 
 #### Retrieve the admin password
 
-As previously mentioned, the admin password can be retrieved by running the `get-admin-credentials` action on the Charmed Kafka application:
+As previously mentioned, the admin password can be retrieved by running the `get-admin-credentials` action on the Charmed Apache Kafka application:
 
 ```shell
 juju run kafka/leader get-admin-credentials
