@@ -3,12 +3,12 @@
 This document describes cryptography used by Charmed Apache Kafka.
 
 ## Resource checksums
-Every version of the Charmed Apache Kafka and Charmed ZooKeeper operators install a pinned revision of the Charmed Apache Kafka snap
-and Charmed ZooKeeper, respectively, in order to 
-provide reproducible and secure environments. The [Charmed Apache Kafka snap](https://snapstore.io/charmed-kafka) and [Charmed ZooKeeper snap](https://snapstore.io/charmed-zookeeper) package the 
+Every version of the Charmed Apache Kafka and Charmed Apache ZooKeeper operators install a pinned revision of the Charmed Apache Kafka snap
+and Charmed Apache ZooKeeper, respectively, in order to 
+provide reproducible and secure environments. The [Charmed Apache Kafka snap](https://snapstore.io/charmed-kafka) and [Charmed Apache ZooKeeper snap](https://snapstore.io/charmed-zookeeper) package the 
 Kafka and ZooKeeper workload together with 
-a set of dependencies and utilities required by the lifecycle of the operators (see [Charmed Apache Kafka snap contents](https://github.com/canonical/charmed-kafka-snap/blob/3/edge/snap/snapcraft.yaml) and [Charmed ZooKeeper snap contents](https://github.com/canonical/charmed-zookeeper-snap/blob/3/edge/snap/snapcraft.yaml)).
-Every artifact bundled into the Charmed Apache Kafka snap and Charmed ZooKeeper snap is verified against their SHA256 or SHA512 checksum after download. 
+a set of dependencies and utilities required by the lifecycle of the operators (see [Charmed Apache Kafka snap contents](https://github.com/canonical/charmed-kafka-snap/blob/3/edge/snap/snapcraft.yaml) and [Charmed Apache ZooKeeper snap contents](https://github.com/canonical/charmed-zookeeper-snap/blob/3/edge/snap/snapcraft.yaml)).
+Every artifact bundled into the Charmed Apache Kafka snap and Charmed Apache ZooKeeper snap is verified against their SHA256 or SHA512 checksum after download. 
 
 ## Sources verification
 Charmed Apache Kafka sources are stored in:
@@ -23,7 +23,7 @@ Branches associated with releases are mirrored to a public repository, hosted in
 to also provide the community with the patched source code. 
 
 ### GitHub
-All Charmed Apache Kafka and Charmed ZooKeeper artifacts are published and released 
+All Charmed Apache Kafka and Charmed Apache ZooKeeper artifacts are published and released 
 programmatically using release pipelines implemented via GitHub Actions. 
 Distributions are published as both GitHub and LaunchPad releases via the [central-uploader repository](https://github.com/canonical/central-uploader), while 
 charms, snaps and rocks are published using the workflows of their respective repositories. 

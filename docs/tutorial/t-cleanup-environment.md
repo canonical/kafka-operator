@@ -2,7 +2,7 @@ This is part of the [Charmed Apache Kafka Tutorial](/t/charmed-kafka-tutorial-ov
 
 ## Clean up your environment 
 
-If you're done using Charmed Apache Kafka and Juju and would like to free up resources on your machine, you can remove Charmed Apache Kafka, Charmed Zookeeper and Juju. 
+If you're done using Charmed Apache Kafka and Juju and would like to free up resources on your machine, you can remove Charmed Apache Kafka, Charmed Apache ZooKeeper and Juju. 
 
 > **Warning**: when you remove Charmed Apache Kafka as shown below you will lose all the data in Kafka. Further, when you remove Juju as shown below you will lose access to any other applications you have hosted on Juju.
 

@@ -1,6 +1,6 @@
 # Enable monitoring
 
-Both Charmed Apache Kafka and Charmed ZooKeeper come with the [JMX exporter](https://github.com/prometheus/jmx_exporter/).
+Both Charmed Apache Kafka and Charmed Apache ZooKeeper come with the [JMX exporter](https://github.com/prometheus/jmx_exporter/).
 The metrics can be queried by accessing the `http://<kafka-unit-ip>:9101/metrics` and `http://<zookeeper-unit-ip>:9998/metrics` endpoints, respectively.
 
 Additionally, the charm provides integration with the [Canonical Observability Stack](https://charmhub.io/topics/canonical-observability-stack).
@@ -49,7 +49,7 @@ juju consume <k8s_controller>:admin/<cos_model_name>.loki-logging
 juju consume <k8s_controller>:admin/<cos_model_name>.grafana-dashboards
 ```
 
-Now, deploy `grafana-agent` (subordinate charm) and relate it with Charmed Apache Kafka and Charmed ZooKeeper:
+Now, deploy `grafana-agent` (subordinate charm) and relate it with Charmed Apache Kafka and Charmed Apache ZooKeeper:
 
 ```shell
 juju deploy grafana-agent

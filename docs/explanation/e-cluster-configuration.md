@@ -13,7 +13,7 @@ Here are some of the responsibilities of ZooKeeper in a Kafka cluster:
 The values for the configuration parameters mentioned above are stored in znodes, the hierarchical unit data structure in ZooKeeper.
 A znode is represented by its path and can both have data associated with it and children nodes.
 ZooKeeper clients interact with its data structure similarly to a remote file system that would be sync-ed between the ZooKeeper units for high availability.
-For a Charmed Apache Kafka related to a Charmed ZooKeeper:
+For a Charmed Apache Kafka related to a Charmed Apache ZooKeeper:
 - the list of the broker ids of the cluster can be found in `/kafka/brokers/ids`
 - the endpoint used to access the broker with id `0` can be found in `/kafka/brokers/ids/0`
 - the credentials for the Charmed Apache Kafka users can be found in `/kafka/config/users`

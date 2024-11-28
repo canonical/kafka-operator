@@ -1,6 +1,6 @@
 This is part of the [Charmed Apache Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571). Please refer to this page for more information and the overview of the content. 
 
-## Deploy Charmed Apache Kafka (and Charmed ZooKeeper)
+## Deploy Charmed Apache Kafka (and Charmed Apache ZooKeeper)
 
 To deploy Charmed Apache Kafka, all you need to do is run the following commands, which will automatically fetch [Kafka](https://charmhub.io/kafka?channel=3/stable) and [ZooKeeper](https://charmhub.io/zookeeper?channel=3/stable) charms from [Charmhub](https://charmhub.io/) and deploy them to your model. For example, to deploy a five ZooKeeper unit and three Kafka unit cluster, you can simply run:
 
@@ -21,7 +21,7 @@ Juju will now fetch Charmed Apache Kafka and Zookeeper and begin deploying it to
 juju status --watch 1s
 ```
 
-This command is useful for checking the status of Charmed ZooKeeper and Charmed Apache Kafka and gathering information about the machines hosting the two applications. Some of the helpful information it displays includes IP addresses, ports, state, etc. 
+This command is useful for checking the status of Charmed Apache ZooKeeper and Charmed Apache Kafka and gathering information about the machines hosting the two applications. Some of the helpful information it displays includes IP addresses, ports, state, etc. 
 The command updates the status of the cluster every second and as the application starts you can watch the status and messages of Charmed Apache Kafka and ZooKeeper change. 
 
 Wait until the application is ready - when it is ready, `juju status --watch 1s` will show:

@@ -65,14 +65,14 @@ In the following we provide guidance on how to harden your deployment using:
 
 ### Operating System
 
-Charmed Apache Kafka and Charmed ZooKeeper currently run on top of Ubuntu 22.04. Deploy a [Landscape Client Charm](https://charmhub.io/landscape-client?) in order to 
+Charmed Apache Kafka and Charmed Apache ZooKeeper currently run on top of Ubuntu 22.04. Deploy a [Landscape Client Charm](https://charmhub.io/landscape-client?) in order to 
 connect the underlying VM to a Landscape User Account to manage security upgrades and integrate Ubuntu Pro subscriptions. 
 
 ### Kafka and ZooKeeper Security Upgrades
 
-Charmed Apache Kafka and Charmed ZooKeeper operators install a pinned revision of the [Charmed Apache Kafka snap](https://snapcraft.io/charmed-kafka)
-and [Charmed ZooKeeper snap](https://snapcraft.io/charmed-zookeeper), respectively, in order to provide reproducible and secure environments. 
-New versions of Charmed Apache Kafka and Charmed ZooKeeper may be released to provide patching of vulnerabilities (CVEs). 
+Charmed Apache Kafka and Charmed Apache ZooKeeper operators install a pinned revision of the [Charmed Apache Kafka snap](https://snapcraft.io/charmed-kafka)
+and [Charmed Apache ZooKeeper snap](https://snapcraft.io/charmed-zookeeper), respectively, in order to provide reproducible and secure environments. 
+New versions of Charmed Apache Kafka and Charmed Apache ZooKeeper may be released to provide patching of vulnerabilities (CVEs). 
 It is important to refresh the charm regularly to make sure the workload is as secure as possible. 
 For more information on how to refresh the charm, see the [how-to upgrade](https://charmhub.io/kafka/docs/h-upgrade) guide.
 
