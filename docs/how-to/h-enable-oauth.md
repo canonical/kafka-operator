@@ -2,7 +2,7 @@ Versions used for this integration example:
 
 - LXD (v5.21.1)
 - MicroK8s (v1.28.10)
-- Kafka charm: built from [this feature PR](https://github.com/canonical/kafka-operator/pull/168), which adds Hydra integration
+- Apache Kafka charm: built from [this feature PR](https://github.com/canonical/kafka-operator/pull/168), which adds Hydra integration
 
 ## Initial deployment
 
@@ -35,7 +35,7 @@ $ juju offer admin/iam.hydra:oauth
 $ juju offer admin/iam.self-signed-certificates:certificates
 ```
 
-Kafka setup:
+Apache Kafka setup:
 
 ```bash
 # On the lxd controller
@@ -52,7 +52,7 @@ $ juju integrate kafka:certificates self-signed-certificates
 $ juju integrate zookeeper self-signed-certificates
 ```
 
-Once everything is settled, integrate Kafka and Hydra:
+Once everything is settled, integrate Apache Kafka and Hydra:
 
 ```bash
 # On the lxd model
@@ -83,4 +83,4 @@ $ curl https://10.64.140.44/iam-hydra/oauth2/token -k -u eeec2a88-52bf-46e6-85bf
 {"access_token":"ory_at_b2pcwnwTpCVHPbxoU7L45isbRJhNdBbn91y4Ex0YNrA.easwGEfsTJ7VnNfER2svIMHwen5ZzNXaVZm8i7QdLLg","expires_in":3599,"scope":"profile","token_type":"bearer"}
 ```
 
-With this token, a client can now authenticate on Kafka using oAuth listeners.
+With this token, a client can now authenticate on Apache Kafka using oAuth listeners.

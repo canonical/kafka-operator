@@ -10,8 +10,8 @@ Security issues should be reported through [Launchpad](https://wiki.ubuntu.com/D
 
 # Useful links
 * [Canonical Data Fabric](https://ubuntu.com/data/)
-* [Charmed Kafka](https://charmhub.io/kafka)
-* [Git sources for Charmed Kafka](https://github.com/canonical/kafka-operator)
+* [Charmed Apache Kafka](https://charmhub.io/kafka)
+* [Git sources for Charmed Apache Kafka](https://github.com/canonical/kafka-operator)
 * [Canonical Data on Launchpad](https://launchpad.net/~data-platform)
 * [Canonical Data on Matrix](https://matrix.to/#/#charmhub-data-platform:ubuntu.com) 
 * [Mailing list on Launchpad](https://lists.launchpad.net/data-platform/)
