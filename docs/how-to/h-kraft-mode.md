@@ -1,6 +1,8 @@
 # How to set up KRaft mode
 
-> **IMPORTANT** This feature is experimental and not production-ready. UX can change significantly in the upcoming months.
+[note type="caution"]
+This feature is experimental and not production-ready. UX can change significantly in the upcoming months.
+[/note]
 
 Apache Kafka Raft (KRaft) is a consensus protocol introduced to remove ZooKeeper dependency from a Kafka deployment.
 This guide provides step-by-step instructions to configure Kafka in [KRaft mode](https://kafka.apache.org/documentation/#kraft) introduced in [KIP-500](https://cwiki.apache.org/confluence/display/KAFKA/KIP-500%3A+Replace+ZooKeeper+with+a+Self-Managed+Metadata+Quorum).
@@ -43,7 +45,9 @@ The deployment is complete when all the units are shown as `active|idle` in the 
 
 ## (Optional) Create an external admin user
 
-> NOTE: This step is normally done using `data-integrator`. However, the current ACL implementation has a bug where internal operations will fail on the integration step with the data integrator.
+[note]
+This step is normally done using `data-integrator`. However, the current ACL implementation has a bug where internal operations will fail on the integration step with the data integrator.
+[/note]
 
 To create external users, use `juju ssh` to connect to a broker unit and use the `charmed-kafka.configs` bin command to create a new user:
 

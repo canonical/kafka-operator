@@ -24,13 +24,19 @@ Follow the [AWS documentation](https://docs.aws.amazon.com/cli/latest/userguide/
 
 To check whether both Juju and AWS CLI are correctly installed, run commands to display their versions:
 
-```console
-~$ juju version
+```shell
+juju version
+
+aws --version
+```
+
+[details="Output example"]
+```shell
 3.5.4-genericlinux-amd64
 
-~$ aws --version
 aws-cli/2.13.25 Python/3.11.5 Linux/6.2.0-33-generic exe/x86_64.ubuntu.23 prompt/off
 ```
+[/details]
 
 ### Authenticate
 
@@ -63,7 +69,6 @@ juju bootstrap aws <CONTROLLER_NAME>
 
 [details="Output example"]
 ```shell
-> juju bootstrap aws
 Creating Juju controller "aws-us-east-1" on aws/us-east-1
 Looking for packaged Juju agent version 3.5.4 for amd64
 Located Juju agent version 3.5.4-ubuntu-amd64 at https://juju-dist-aws.s3.amazonaws.com/agents/agent/3.5.4/juju-3.5.4-linux-amd64.tgz
@@ -138,7 +143,7 @@ For more information on Data Integrator and how to use it, please refer to the [
 Always clean AWS resources that are no longer necessary! Abandoned resources are tricky to detect and they can become expensive over time.
 [/note]
 
-To list all controllers use the `juju controllers` command.
+To list all controllers that have been registered to your local client, use the `juju controllers` command.
 
 To destroy the Juju controller and remove AWS instance (**Warning**: all your data will be permanently deleted):
 
@@ -146,9 +151,7 @@ To destroy the Juju controller and remove AWS instance (**Warning**: all your da
 juju destroy-controller <CONTROLLER_NAME> --destroy-all-models --destroy-storage --force
 ```
 
-> Use `juju list-controllers` to retrieve the names of the controllers that have been registered to your local client. 
-
-Should the destroying process take long time or being seemingly stuck, proceed to delete EC2 resources also manually 
+Should the destroying process take a long time or be seemingly stuck, proceed to delete EC2 resources also manually 
 via the AWS portal. See [Amazon AWS documentation](https://repost.aws/knowledge-center/terminate-resources-account-closure) for more information 
 on how to remove active resources no longer needed.
 
@@ -182,6 +185,7 @@ Cloud        Credentials
 aws          NAME_OF_YOUR_CREDENTIAL
 ...
 ```
+
 Remove AWS EC2 CLI credentials from Juju:
 
 ```shell

@@ -14,7 +14,6 @@
 
 ## Install Client Environment
 
-
 [note type="caution"]
 **WARNING**: The current limitations:
 * Only supported starting Juju 3.6 (currently edge)
@@ -37,11 +36,11 @@ Check that the Juju version is correctly installed:
 juju version
 ```
 
-which should show:
-
+[details="Output example"]
 ```shell
 3.6-rc1-genericlinux-amd64
 ```
+[/details]
 
 ### Azure CLI
 
@@ -53,8 +52,7 @@ Verify that it is correctly installed:
 az --version
 ```
 
-The above command should produce output similar to the following:
-
+[details="Output example"]
 ```shell
 azure-cli                         2.65.0
 
@@ -72,15 +70,17 @@ Python (Linux) 3.11.8 (main, Sep 25 2024, 11:33:44) [GCC 11.4.0]
 
 Legal docs and information: aka.ms/AzureCliLegal
 
-
 Your CLI is up-to-date.
 ```
+[/details]
 
 ### Authenticate
 
-> For more information on how to authenticate, refer to the [Juju documentation](/t/the-microsoft-azure-cloud-and-juju/1086) and [a dedicated user guide on how to register Azure on Juju](/t/how-to-use-juju-with-microsoft-azure/15219).
+[note]
+For more information on how to authenticate, refer to the [Juju documentation](/t/the-microsoft-azure-cloud-and-juju/1086) and [a dedicated user guide on how to register Azure on Juju](/t/how-to-use-juju-with-microsoft-azure/15219).
+[/note]
 
-First of all, retrieve your subscription-id
+First of all, retrieve your subscription id:
 
 ```shell
 az login
@@ -189,30 +189,33 @@ For more information on Data Integrator and how to use it, please refer to the [
 Always clean Azure resources that are no longer necessary! Abandoned resources are tricky to detect and they can become expensive over time.
 [/note]
 
+To list all controllers that have been registered to your local client, use the `juju controllers` command.
+
 To destroy the Juju controller and remove the Azure instance (Warning: all your data will be permanently removed):
 
 ```shell
 juju destroy-controller <CONTROLLER_NAME> --destroy-all-models --destroy-storage --force
 ```
 
-> Use `juju list-controllers` to retrieve the names of the controllers that have been registered to your local client. 
-
-Should the destroying process take long time or being seemingly stuck, proceed to delete VM resources also manually 
+Should the destroying process take a long time or be seemingly stuck, proceed to delete VM resources also manually 
 via the Azure portal. See [Azure documentation](https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/manage-resources-portal) for more information 
 on how to remove active resources no longer needed. 
 
 Next, check and manually delete all unnecessary Azure VM instances, to show the list of all your Azure VMs run the following command (make sure to use the correct region): 
+
 ```shell
 az resource list
 ```
 
-List your Juju credentials with the `juju credentials` command:
+List your Juju credentials with the `juju credentials` command.
 
+[details="Output example"]
 ```shell
 Client Credentials:
 Cloud        Credentials
 azure        NAME_OF_YOUR_CREDENTIAL
 ```
+[/details]
 
 Remove Azure CLI credentials from Juju:
 
@@ -243,7 +246,7 @@ az role assignment delete --role <AZURE_ROLE>
 az role definition delete --name <AZURE_ROLE>
 ```
 
-Finally, logout Azure CLI user credentials to prevent any credential leakage:
+Finally, log out from Azure CLI:
 
 ```shell
 az logout 
