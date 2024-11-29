@@ -66,4 +66,4 @@ As for the dashboards, they should be available in the Grafana interface.
 
 ## Conclusion
 
-In this guide, we enabled monitoring on a Kafka deployment and integrated alert rules and dashboards by syncing a git repository to the COS stack.
+In this guide, we enabled monitoring on a Charmed Apache Kafka deployment and integrated alert rules and dashboards by syncing a git repository to the COS stack.

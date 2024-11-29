@@ -4,7 +4,7 @@ This is part of the [Charmed Apache Kafka Tutorial](/t/charmed-kafka-tutorial-ov
 
 For this tutorial, we will need to setup the environment with two main components:
 * LXD that is a simple and lightweight virtual machine provisioner
-* Juju that will help us to deploy and manage Kafka and related applications
+* Juju that will help us to deploy and manage Apache Kafka and related applications
 
 ### Prepare LXD
 

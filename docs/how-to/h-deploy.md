@@ -13,7 +13,7 @@ If you already have a Juju controller and/or a Juju model, you can skip the asso
 
 ## Juju controller setup
 
-Before deploying Kafka, make sure you have a Juju controller accessible from 
+Before deploying Charmed Apache Kafka, make sure you have a Juju controller accessible from 
 your local environment using the [Juju client snap](https://snapcraft.io/juju). 
 
 The properties of your current controller can be listed using `juju show-controller`. 
@@ -24,7 +24,9 @@ The cloud information can be retrieved with the following command
 juju show-controller | yq '.[].details.cloud'
 ```
 
-> **IMPORTANT** If the cloud is `k8s`, please refer to the [Charmed Apache Kafka K8s documentation](/t/charmed-kafka-k8s-documentation/10296) instead.
+[note]
+**IMPORTANT** If the cloud is `k8s`, please refer to the [Charmed Apache Kafka K8s documentation](/t/charmed-kafka-k8s-documentation/10296) instead.
+[/note]
 
 You can find more information on how to bootstrap and configure a controller for different 
 clouds [here](https://juju.is/docs/juju/manage-controllers#heading--bootstrap-a-controller). 
@@ -51,20 +53,24 @@ can be obtained by
 juju show-model | yq '.[].type'
 ```
 
-> **IMPORTANT** If the model is `k8s`, please refer to the [Charmed Apache Kafka K8s documentation](https://discourse.charmhub.io/t/charmed-kafka-k8s-documentation/10296) instead.
+[note]
+**IMPORTANT** If the model is `k8s`, please refer to the [Charmed Apache Kafka K8s documentation](https://discourse.charmhub.io/t/charmed-kafka-k8s-documentation/10296) instead.
+[/note]
 
 ## Deploy Charmed Apache Kafka and Charmed Apache ZooKeeper
 
-The Kafka and ZooKeeper charms can both be deployed as follows:
+The Charmed Apache Kafka and Charmed Apache ZooKeeper charms can both be deployed as follows:
 
 ```shell
 $ juju deploy kafka --channel 3/stable -n <kafka-units> --trust
 $ juju deploy zookeeper --channel 3/stable -n <zookeeper-units>
 ```
 
-where `<kafka-units>` and `<zookeeper-units>` – the number of units to deploy for Kafka and ZooKeeper. We recommend values of at least `3` and `5` respectively.
+where `<kafka-units>` and `<zookeeper-units>` – the number of units to deploy for Apache Kafka and Apache ZooKeeper. We recommend values of at least `3` and `5` respectively.
 
-> **NOTE** The `--trust` option is needed for the Kafka application if NodePort is used. For more information about the trust options usage, see the [Juju documentation](/t/5476#heading--trust-an-application-with-a-credential). 
+[note]
+ The `--trust` option is needed for the Apache Kafka application if NodePort is used. For more information about the trust options usage, see the [Juju documentation](/t/5476#heading--trust-an-application-with-a-credential). 
+[/note]
 
 After this, it is necessary to connect them:
 
@@ -77,14 +83,14 @@ should be ready to be used.
 
 ## (Optional) Create an external admin users
 
-Charmed Apache Kafka aims to follow the _secure by default_ paradigm. As a consequence, after being deployed the Kafka cluster 
+Charmed Apache Kafka aims to follow the _secure by default_ paradigm. As a consequence, after being deployed the Apache Kafka cluster 
 won't expose any external listener. 
 In fact, ports are only opened when client applications are related, also 
 depending on the protocols to be used. Please refer to [this table](/t/charmed-kafka-documentation-reference-listeners/13264) for 
 more information about the available listeners and protocols. 
 
 It is however generally useful for most of the use-cases to create a first admin user
-to be used to manage the Kafka cluster (either internally or externally). 
+to be used to manage the Apache Kafka cluster (either internally or externally). 
 
 To create an admin user, deploy the [Data Integrator Charm](https://charmhub.io/data-integrator) with 
 `extra-user-roles` set to `admin`
@@ -93,7 +99,7 @@ To create an admin user, deploy the [Data Integrator Charm](https://charmhub.io/
 juju deploy data-integrator --channel stable --config topic-name=test-topic --config extra-user-roles=admin
 ```
 
-and relate to the Kafka charm
+and relate to the Apache Kafka charm
 
 ```shell
 juju relate data-integrator kafka

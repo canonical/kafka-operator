@@ -1,10 +1,10 @@
-# Kafka listeners
+# Apache Kafka listeners
 
 Charmed Apache Kafka comes with a set of listeners that can be enabled for
 inter- and intra-cluster communication. 
 
 *Internal listeners* are used for internal traffic and exchange of information 
-between Kafka brokers, whereas *external listeners* are used for external clients
+between Apache Kafka brokers, whereas *external listeners* are used for external clients
 to be optionally enabled based the relations created on particular
 charm endpoints. Each listener is characterized by a specific port, scope and protocol. 
 
@@ -22,4 +22,6 @@ opened.
 | SSL_EXTERNAL  | `trusted-certificate` + `certificates` | SSL            | `9094`  | external |
 | SSL_EXTERNAL  | `trusted-ca` + `certificates`          | SSL            | `9094`  | external |
 
-> **Note** Since `cluster` is a peer-relation, the `SASL_INTERNAL` listener is always enabled.
+[note]
+Since `cluster` is a peer-relation, the `SASL_INTERNAL` listener is always enabled.
+[/note]

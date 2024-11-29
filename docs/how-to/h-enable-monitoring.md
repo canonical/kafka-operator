@@ -80,9 +80,9 @@ juju run grafana/leader get-admin-password --model <k8s_cos_controller>:<cos_mod
 
 ## Tune server logging level
 
-To tune the level of the server logs for Kafka and ZooKeeper, configure the `log-level` and `log_level` properties accordingly.
+To tune the level of the server logs for Apache Kafka and Apache ZooKeeper, configure the `log-level` and `log_level` properties accordingly.
 
-### Kafka 
+### Apache Kafka 
 
 ```
 juju config kafka log_level=<LOG_LEVEL>
@@ -90,7 +90,7 @@ juju config kafka log_level=<LOG_LEVEL>
 
 Possible values are `ERROR`, `WARNING`, `INFO`, `DEBUG`.
 
-### ZooKeeper
+### Apache ZooKeeper
 
 ```
 juju config kafka log-level=<LOG_LEVEL>

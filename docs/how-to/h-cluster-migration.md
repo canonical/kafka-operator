@@ -1,21 +1,24 @@
 # Cluster migration using MirrorMaker2.0
 
-This How-To guide covers executing a cluster migration to a Charmed Apache Kafka deployment using MirrorMaker2.0, running as a process on each of the Juju units in an active/passive setup, where MirrorMaker will act as a consumer from an existing cluster, and a producer to the Charmed Apache Kafka cluster. In parallel (one process on each unit), data and consumer offsets for all existing topics will be synced one-way until both clusters are in-sync, with all data replicated across both in real-time.
+This How-To guide covers executing a cluster migration to a Charmed Apache Kafka deployment using MirrorMaker2.0. 
+
+The MirrorMaker runs on the new (destination) cluster as a process on each Juju unit in an active/passive setup. It acts as a consumer from an existing cluster, and a producer to the Charmed Apache Kafka cluster. Data and consumer offsets for all existing topics will be synced **one-way** in parallel (one process on each unit) until both clusters are in-sync, with all data replicated across both in real-time.
 
 ## MirrorMaker2 overview
 
 Under the hood, MirrorMaker uses Kafka Connect source connectors to replicate data, those being the following:
+
 - **MirrorSourceConnector** - replicates topics from an original cluster to a new cluster. It also replicates ACLs and is necessary for the MirrorCheckpointConnector to run
 - **MirrorCheckpointConnector** - periodically tracks offsets. If enabled, it also synchronizes consumer group offsets between the original and new clusters
 - **MirrorHeartbeatConnector** - periodically checks connectivity between the original and new clusters
 
-Together, they are used for cluster->cluster replication of topics, consumer groups, topic configuration and ACLs, preserving partitioning and consumer offsets. For more detail on MirrorMaker internals, consult the [MirrorMaker README.md](https://github.com/apache/kafka/blob/trunk/connect/mirror/README.md) and the [MirrorMaker 2.0 KIP](https://cwiki.apache.org/confluence/display/KAFKA/KIP-382%3A+MirrorMaker+2.0). In practice, it lets sync data one-way between two live Kafka clusters with minimal impact on the ongoing production service.
+Together, they are used for cluster->cluster replication of topics, consumer groups, topic configuration and ACLs, preserving partitioning and consumer offsets. For more detail on MirrorMaker internals, consult the [MirrorMaker README.md](https://github.com/apache/kafka/blob/trunk/connect/mirror/README.md) and the [MirrorMaker 2.0 KIP](https://cwiki.apache.org/confluence/display/KAFKA/KIP-382%3A+MirrorMaker+2.0). In practice, it lets sync data one-way between two live Apache Kafka clusters with minimal impact on the ongoing production service.
 
 In short, MirrorMaker runs as a distributed service on the new cluster, and consumes all topics, groups and offsets from the still-active original cluster in production, before producing them one-way to the new cluster that may not yet be serving traffic to external clients. The original, in-production cluster is referred to as an ‘active’ cluster, and the new cluster still waiting to serve external clients is ‘passive’. The MirrorMaker service can be configured using much the same configuration as available for Kafka Connect.
 
 ## Pre-requisites
 
-- An existing Kafka cluster to migrate from
+- An existing Apache Kafka cluster to migrate from
 - A bootstrapped Juju VM machine cloud running Charmed Apache Kafka to migrate to
     - A tutorial on how to set-up a Charmed Apache Kafka deployment can be found as part of the [Charmed Apache Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571)
     - The CLI tool `yq` - https://github.com/mikefarah/yq
@@ -57,7 +60,9 @@ OLD_SERVERS
 OLD_SASL_JAAS_CONFIG
 ```
 
-> **NOTE** - If using `SSL` or `SASL_SSL` authentication, review the configuration options supported by Kafka Connect in the [Apache Kafka documentation](https://kafka.apache.org/documentation/#connectconfigs)
+[note]
+If using `SSL` or `SASL_SSL` authentication, review the configuration options supported by Kafka Connect in the [Apache Kafka documentation](https://kafka.apache.org/documentation/#connectconfigs)
+[/note]
 
 ## Generating `mm2.properties` file on the Charmed Apache Kafka cluster
 
@@ -110,7 +115,7 @@ old.consumer.isolation.level=read_committed
 new.consumer.isolation.level=read_committed
 
 # Specific Connector configuration for ensuring Exactly-Once-Delivery (EOD)
-# NOTE - EOD support guarantees released with Kafka 3.5.0 so some of these options may not work as expected
+# NOTE - EOD support guarantees released with Apache Kafka 3.5.0 so some of these options may not work as expected
 old.producer.enable.idempotence=true
 new.producer.enable.idempotence=true
 old.producer.acks=all
@@ -139,7 +144,7 @@ juju ssh kafka/<id> sudo -i 'cd /snap/charmed-kafka/current/opt/kafka/bin && KAF
 
 ## Monitoring and validating data replication
 
-The migration process can be monitored using built-in Kafka bin-commands on the original cluster. In the Charmed Apache Kafka cluster, these bin-commands are also mapped to snap commands on the units (e.g `charmed-kafka.get-offsets` or `charmed-kafka.topics`).
+The migration process can be monitored using built-in Apache Kafka bin-commands on the original cluster. In the Charmed Apache Kafka cluster, these bin-commands are also mapped to snap commands on the units (e.g `charmed-kafka.get-offsets` or `charmed-kafka.topics`).
 
 To monitor the current consumer offsets, run the following on the original cluster being migrated from:
 

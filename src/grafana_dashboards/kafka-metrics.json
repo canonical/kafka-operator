@@ -58,7 +58,7 @@
       }
     ]
   },
-  "description": "Dashboard for Kafka metrics based on jmx_exporter prometheus",
+  "description": "Dashboard for Apache Kafka metrics based on jmx_exporter prometheus",
   "editable": true,
   "gnetId": 11962,
   "graphTooltip": 0,
@@ -2635,7 +2635,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "ZooKeeper Disconnects Per Sec",
+      "title": "Apache ZooKeeper Disconnects Per Sec",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -2739,7 +2739,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "ZooKeeper Expires Per Sec",
+      "title": "Apache ZooKeeper Expires Per Sec",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -2845,7 +2845,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "ZooKeeper Request Latency Ms",
+      "title": "Apache ZooKeeper Request Latency Ms",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -4511,7 +4511,7 @@
     ]
   },
   "timezone": "",
-  "title": "Kafka Metrics",
+  "title": "Apache Kafka Metrics",
   "uid": "5nhADrDWk",
   "version": 10
 }

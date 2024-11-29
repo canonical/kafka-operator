@@ -11,7 +11,7 @@ groups:
       severity: critical
     annotations:
       summary: Prometheus target missing (instance {{ $labels.instance }})
-      description: "Kafka target has disappeared. An exporter might be crashed.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+      description: "Apache Kafka target has disappeared. An exporter might be crashed.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
 
   - alert: JvmMemory Filling Up
     expr: (sum by (instance)(jvm_memory_bytes_used{area="heap",juju_charm!=".*"}) / sum by (instance)(jvm_memory_bytes_max{area="heap",juju_charm!=".*"})) * 100 > 80
@@ -63,7 +63,7 @@ groups:
       severity: warning
     annotations:
       summary: 'Broker {{ $labels.instance }} :: Broker State :: The ZooKeeper session has expired.'
-      description: 'When a session expires, we can have leader changes and even a new controller. It is important to keep an eye on the number of such events across a Kafka cluster and if the overall number is high.'
+      description: 'When a session expires, we can have leader changes and even a new controller. It is important to keep an eye on the number of such events across an Apache Kafka cluster and if the overall number is high.'
 
   # =========================
   # Controller and Partitions

@@ -9,7 +9,7 @@ run-mtls-producer:
   params:
     bootstrap-server:
       type: string
-      description: The address for mtls Kafka
+      description: The address for mtls Apache Kafka
     broker-ca:
       type: string
       description: The CA used for broker identity from certificates relation
@@ -22,11 +22,11 @@ get-offsets:
   params:
     bootstrap-server:
       type: string
-      description: The address for mtls Kafka
+      description: The address for mtls Apache Kafka
 
 create-topic:
   description: Attempts the configured topic
   params:
     bootstrap-server:
       type: string
-      description: The address for SASL_PLAINTEXT Kafka
+      description: The address for SASL_PLAINTEXT Apache Kafka

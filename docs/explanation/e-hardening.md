@@ -5,7 +5,7 @@ a secure deployment of [Charmed Apache Kafka](https://github.com/canonical/kafka
 The document is divided into the following sections:
 
 1. Environment, outlining the recommendation for deploying a secure environment
-2. Applications, outlining the product features that enable a secure deployment of a Kafka cluster
+2. Applications, outlining the product features that enable a secure deployment of an Apache Kafka cluster
 3. Additional resources, providing any further information about security and compliance
 
 ## Environment
@@ -58,7 +58,7 @@ Juju user credentials must be stored securely and rotated regularly to limit the
 In the following we provide guidance on how to harden your deployment using:
 
 1. Operating System
-2. Kafka and ZooKeeper Security Upgrades
+2. Apache Kafka and Apache ZooKeeper Security Upgrades
 3. Encryption 
 4. Authentication
 5. Monitoring and Auditing
@@ -68,7 +68,7 @@ In the following we provide guidance on how to harden your deployment using:
 Charmed Apache Kafka and Charmed Apache ZooKeeper currently run on top of Ubuntu 22.04. Deploy a [Landscape Client Charm](https://charmhub.io/landscape-client?) in order to 
 connect the underlying VM to a Landscape User Account to manage security upgrades and integrate Ubuntu Pro subscriptions. 
 
-### Kafka and ZooKeeper Security Upgrades
+### Apache Kafka and Apache ZooKeeper Security Upgrades
 
 Charmed Apache Kafka and Charmed Apache ZooKeeper operators install a pinned revision of the [Charmed Apache Kafka snap](https://snapcraft.io/charmed-kafka)
 and [Charmed Apache ZooKeeper snap](https://snapcraft.io/charmed-zookeeper), respectively, in order to provide reproducible and secure environments. 
@@ -79,7 +79,7 @@ For more information on how to refresh the charm, see the [how-to upgrade](https
 ### Encryption
 
 Charmed Apache Kafka must be deployed with encryption enabled. 
-To do that, you need to relate Kafka and ZooKeeper charms to one of the TLS certificate operator charms. 
+To do that, you need to relate Apache Kafka and Apache ZooKeeper charms to one of the TLS certificate operator charms. 
 Please refer to the [Charming Security page](https://charmhub.io/topics/security-with-x-509-certificates) for more information on how to select the right certificate
 provider for your use-case. 
 
@@ -107,7 +107,7 @@ Refer to How-To user guide for more information on:
 * [how to integrate the Charmed Apache Kafka deployment with COS](/t/charmed-kafka-how-to-enable-monitoring/10283)
 * [how to customise the alerting rules and dashboards](/t/charmed-kafka-documentation-how-to-integrate-custom-alerting-rules-and-dashboards/13431)
 
-External user access to Kafka is logged to the `kafka-authorizer.log` that is pushes to [Loki endpoint](https://charmhub.io/loki-k8s) and exposed via [Grafana](https://charmhub.io/grafana), both components being part of the COS stack.
+External user access to Apache Kafka is logged to the `kafka-authorizer.log` that is pushes to [Loki endpoint](https://charmhub.io/loki-k8s) and exposed via [Grafana](https://charmhub.io/grafana), both components being part of the COS stack.
 Access denials are logged at INFO level, whereas allowed accesses are logged at DEBUG level. Depending on the auditing needs, 
 customize the logging level either for all logs via the [`log_level`](https://charmhub.io/kafka/configurations?channel=3/stable#log_level) config option or 
 only tune the logging level of the `authorizerAppender` in the `log4j.properties` file. Refer to the Reference documentation, for more information about 
