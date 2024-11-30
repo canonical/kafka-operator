@@ -1,14 +1,16 @@
-This is part of the [Charmed Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571). Please refer to this page for more information and the overview of the content. 
+This is part of the [Charmed Apache Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571). Please refer to this page for more information and an overview of the content. 
 
 ## Integrate with client applications
 
 As mentioned in the previous section of the Tutorial, the recommended way to create and manage users is by means of another charm: the [Data Integrator Charm](https://charmhub.io/data-integrator). This lets us to encode users directly in the Juju model, and - as shown in the following - rotate user credentials with and without application downtime using Relations.
 
-> Relations, or what Juju documentation describes also as [Integrations](https://juju.is/docs/sdk/integration), let two charms to exchange information and interact with one another. Creating a relation between Kafka and the Data Integrator will automatically generate a username, password, and assign read/write permissions on a given topic. This is the simplest method to create and manage users in Charmed Kafka.
+[note]
+Relations, or what Juju documentation describes also as [Integrations](https://juju.is/docs/sdk/integration), let two charms to exchange information and interact with one another. Creating a relation between Apache Kafka and the Data Integrator will automatically generate a username, password, and assign read/write permissions on a given topic. This is the simplest method to create and manage users in Charmed Apache Kafka.
+[/note]
 
 ### Data Integrator charm
 
-The [Data Integrator charm](https://charmhub.io/data-integrator) is a bare-bones charm for central management of database users, providing support for different kinds of data platforms (e.g. MongoDB, MySQL, PostgreSQL, Kafka, OpenSearch, etc.) with a consistent, opinionated and robust user experience. To deploy the Data Integrator charm we can use the command `juju deploy` we have learned above:
+The [Data Integrator charm](https://charmhub.io/data-integrator) is a bare-bones charm for central management of database users, providing support for different kinds of data platforms (e.g. MongoDB, MySQL, PostgreSQL, Apache Kafka, OpenSearch, etc.) with a consistent, opinionated and robust user experience. To deploy the Data Integrator charm we can use the command `juju deploy` we have learned above:
 
 ```shell
 juju deploy data-integrator --channel stable --config topic-name=test-topic --config extra-user-roles=producer,consumer
@@ -21,9 +23,9 @@ Located charm "data-integrator" in charm-hub, revision 11
 Deploying "data-integrator" from charm-hub charm "data-integrator", revision 11 in channel stable on jammy
 ```
 
-### Relate to Kafka
+### Relate to Apache Kafka
 
-Now that the Database Integrator Charm has been set up, we can relate it to Kafka. This will automatically create a username, password, and database for the Database Integrator Charm. Relate the two applications with:
+Now that the Database Integrator Charm has been set up, we can relate it to Apache Kafka. This will automatically create a username, password, and database for the Database Integrator Charm. Relate the two applications with:
 
 ```shell
 juju relate data-integrator kafka
@@ -87,7 +89,7 @@ Save the value listed under `bootstrap-server`, `username` and `password`. *(Not
 
 ### Produce/consume messages
 
-We will now use the username and password to produce some messages to Kafka. To do so, we will first deploy the Kafka Test App (available [here](https://charmhub.io/kafka-test-app)): a test charm that also bundles some python scripts to push data to Kafka, e.g.
+We will now use the username and password to produce some messages to Apache Kafka. To do so, we will first deploy the [Apache Kafka Test App](https://charmhub.io/kafka-test-app): a test charm that also bundles some python scripts to push data to Apache Kafka, e.g.:
 
 ```shell
 juju deploy kafka-test-app -n1 --channel edge
@@ -105,7 +107,7 @@ and make sure that the Python virtual environment libraries are visible:
 export PYTHONPATH="/var/lib/juju/agents/unit-kafka-test-app-0/charm/venv:/var/lib/juju/agents/unit-kafka-test-app-0/charm/lib"
 ```
 
-Once this is setup, you should be able to use the `client.py` script that exposes some functionality to produce and consume messages. 
+Once this is set up, you should be able to use the `client.py` script that exposes some functionality to produce and consume messages. 
 You can explore the usage of the script
 
 ```shell
@@ -114,7 +116,7 @@ python3 -m charms.kafka.v0.client --help
 usage: client.py [-h] [-t TOPIC] [-u USERNAME] [-p PASSWORD] [-c CONSUMER_GROUP_PREFIX] [-s SERVERS] [-x SECURITY_PROTOCOL] [-n NUM_MESSAGES] [-r REPLICATION_FACTOR] [--num-partitions NUM_PARTITIONS]
                  [--producer] [--consumer] [--cafile-path CAFILE_PATH] [--certfile-path CERTFILE_PATH] [--keyfile-path KEYFILE_PATH] [--mongo-uri MONGO_URI] [--origin ORIGIN]
 
-Handler for running a Kafka client
+Handler for running an Apache Kafka client
 
 options:
   -h, --help            show this help message and exit
@@ -169,25 +171,27 @@ python3 -m charms.kafka.v0.client \
 
 ### Charm client applications
 
-Actually, the Data Integrator is only a very special client charm, that implements the `kafka_client` relation for exchanging data with the Kafka charm and user management via relations. 
+Actually, the Data Integrator is only a very special client charm, that implements the `kafka_client` relation for exchanging data with the Apache Kafka charm and user management via relations. 
 
-For example, the steps above for producing and consuming messages to Kafka have also been implemented in the `kafka-test-app` charm (that also implement the `kafka_client` relation) providing a fully integrated charmed user-experience, where producing/consuming messages can simply be achieved using relations.  
+For example, the steps above for producing and consuming messages to Apache Kafka have also been implemented in the `kafka-test-app` charm (that also implements the `kafka_client` relation) providing a fully integrated charmed user experience, where producing/consuming messages can simply be achieved using relations.  
 
 #### Producing messages
 
-To produce messages to Kafka, we need to configure the `kafka-test-app` to act as a producer, publishing messages to a specific topic:
+To produce messages to Apache Kafka, we need to configure the `kafka-test-app` to act as a producer, publishing messages to a specific topic:
 
 ```shell
 juju config kafka-test-app topic_name=test_kafka_app_topic role=producer num_messages=20
 ```
 
-To start producing messages to Kafka, we **JUST** simply relate the Kafka Test App with Kafka
+To start producing messages to Apache Kafka, we **JUST** simply relate the Apache Kafka Test App with Apache Kafka
 
 ```shell
 juju relate kafka-test-app kafka
 ```
 
-> **Note**: This will both take care of creating a dedicated user (as much as done for the data-integrator) as well as start a producer process publishing messages to the `test_kafka_app_topic` topic, basically automating what was done before by hands. 
+[note]
+This will both take care of creating a dedicated user (as much as done for the data-integrator) as well as start a producer process publishing messages to the `test_kafka_app_topic` topic, basically automating what was done before by hand. 
+[/note]
 
 After some time, the `juju status` output should show
 
@@ -226,8 +230,8 @@ Note that the `kafka-test-app` charm can also similarly be used to consume messa
 juju config kafka-test-app topic_name=test_kafka_app_topic role=consumer consumer_group_prefix=cg
 ```
 
-After configuring the Kafka Test App, just relate it again with the Kafka charm. This will again create a new user and start the consumer process. 
+After configuring the Apache Kafka Test App, just relate it again with the Apache Kafka charm. This will again create a new user and start the consumer process. 
 
 ## What's next?
 
-In the next section, we will learn how to rotate and manage the passwords for the Kafka users, both the admin one and the ones managed by the Data Integrator.
+In the next section, we will learn how to rotate and manage the passwords for the Apache Kafka users, both the admin one and the ones managed by the Data Integrator.

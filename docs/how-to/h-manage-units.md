@@ -4,8 +4,8 @@ Unit management guide for scaling and running admin utility scripts.
 
 ## Replication and Scaling
 
-Increasing the number of Kafka brokers can be achieved by adding more units
-to the Charmed Kafka application, for example:
+Increasing the number of Apache Kafka brokers can be achieved by adding more units
+to the Charmed Apache Kafka application, for example:
 
 ```shell
 juju add-unit kafka -n <num_brokers_to_add>
@@ -13,76 +13,80 @@ juju add-unit kafka -n <num_brokers_to_add>
 
 For more information on how to manage units, please refer to the [Juju documentation](https://juju.is/docs/juju/manage-units)
 
-It is important to note that when adding more units, the Kafka cluster will not 
+It is important to note that when adding more units, the Apache Kafka cluster will not 
 *automatically* rebalance existing topics and partitions. New storage and new brokers
 will be used only when new topics and new partitions are created. 
 
 Partition reassignment can still be done manually by the admin user by using the 
-`charmed-kafka.reassign-partitions` Kafka bin utility script. Please refer to 
+`charmed-kafka.reassign-partitions` Apache Kafka bin utility script. Please refer to 
 its documentation for more information. 
 
-> **IMPORTANT** Scaling down is currently not supported in the charm automation.  
-> If partition reassignment is not manually performed before scaling down in order 
-> to make sure the decommissioned units do not hold any data, **your cluster may 
-> suffer to data loss**. 
+[note type="caution"]
+Scaling down is currently not supported in the charm automation.  
+If partition reassignment is not manually performed before scaling down in order 
+to make sure the decommissioned units do not hold any data, **your cluster may 
+suffer to data loss**. 
+[/note]
 
-## Running Kafka admin utility scripts
+## Running Apache Kafka admin utility scripts
 
 Apache Kafka ships with `bin/*.sh` commands to do various administrative tasks such as:
 
 * `bin/kafka-config.sh` to update cluster configuration
 * `bin/kafka-topics.sh` for topic management
-* `bin/kafka-acls.sh` for management of ACLs of Kafka users
+* `bin/kafka-acls.sh` for management of ACLs of Apache Kafka users
 
-Please refer to the upstream [Kafka project](https://github.com/apache/kafka/tree/trunk/bin), 
-for a full list of the bash commands available in Kafka distributions. Also, you can 
+Please refer to the upstream [Apache Kafka project](https://github.com/apache/kafka/tree/trunk/bin), 
+for a full list of the bash commands available in Apache Kafka distributions. Also, you can 
 use `--help` argument for printing a short summary of the argument for a given 
 bash command. 
 
-The most important commands are also exposed via the [Charmed Kafka snap](https://snapcraft.io/charmed-kafka), 
+The most important commands are also exposed via the [Charmed Apache Kafka snap](https://snapcraft.io/charmed-kafka), 
 accessible via `charmed-kafka.<command>`. Please refer to [this table](/t/charmed-kafka-documentation-reference-snap-entrypoints/13263) for 
-more information about the mapping between the Kafka bin commands and the snap entrypoints.
+more information about the mapping between the Apache Kafka bin commands and the snap entrypoints.
 
-> **IMPORTANT** Before running bash scripts, make sure that some listeners have been correctly 
-> opened by creating appropriate integrations. Please refer to [this table](/t/charmed-kafka-documentation-reference-listeners/13264) for more 
-> information about how listeners are opened based on relations. To simply open a 
-> SASL/SCRAM listener, just integrate a client application using the data-integrator, 
-> as described [here](/t/charmed-kafka-how-to-manage-app/10285).
+[note typer="caution"]
+Before running bash scripts, make sure that some listeners have been correctly 
+opened by creating appropriate integrations. Please refer to [this table](/t/charmed-kafka-documentation-reference-listeners/13264) for more 
+information about how listeners are opened based on relations. To simply open a 
+SASL/SCRAM listener, just integrate a client application using the data integrator, 
+as described in the [How to manage app guide](/t/charmed-kafka-how-to-manage-app/10285).
+[/note]
 
 To run most of the scripts, you need to provide:
 
-1. the Kafka service endpoints, generally referred to as *bootstrap servers* 
+1. the Apache Kafka service endpoints, generally referred to as *bootstrap servers* 
 2. authentication information 
 
-### Juju admins of the Kafka deployment
+### Juju admins of the Apache Kafka deployment
 
-For Juju admins of the Kafka deployment, the bootstrap servers information can 
-be obtained using
+For Juju admins of the Apache Kafka deployment, the bootstrap servers information can 
+be obtained using:
 
 ```
 BOOTSTRAP_SERVERS=$(juju run kafka/leader get-admin-credentials | grep "bootstrap.servers" | cut -d "=" -f 2)
 ```
 
 Admin client authentication information is stored in the 
-`/var/snap/charmed-kafka/common/etc/kafka/client.properties` file present on every Kafka
-broker. The content of the file can be accessed using 
+`/var/snap/charmed-kafka/common/etc/kafka/client.properties` file is present on every Apache Kafka
+broker. The content of the file can be accessed using:
 
 ```
 juju ssh kafka/leader `cat /etc/kafka/client.properties`
 ```
 
-This file can be provided to the Kafka bin commands via the `--command-config`
+This file can be provided to the Apache Kafka bin commands via the `--command-config`
 argument. Note that `client.properties` may also refer to other files (
 e.g. truststore and keystore for TLS-enabled connections). Those
 files also need to be accessible and correctly specified. 
 
-Commands can also be run within a Kafka broker, since both the authentication 
-file (along with the truststore if needed) and the Charmed Kafka snap are 
+Commands can also be run within a Apache Kafka broker, since both the authentication 
+file (along with the truststore if needed) and the Charmed Apache Kafka snap are 
 already present. 
 
 #### Example (listing topics)
 
-For instance, in order to list the current topics on the Kafka cluster, you can run:
+For instance, to list the current topics on the Apache Kafka cluster, you can run:
 
 ```
 juju ssh kafka/leader 'charmed-kafka.topics --bootstrap-server $BOOTSTRAP_SERVERS --list --command-config /var/snap/charmed-kafka/common/etc/kafka/client.properties'

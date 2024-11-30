@@ -1,17 +1,17 @@
 # Enable monitoring
 
-Both Charmed Kafka and Charmed ZooKeeper come with the [JMX exporter](https://github.com/prometheus/jmx_exporter/).
+Both Charmed Apache Kafka and Charmed Apache ZooKeeper come with the [JMX exporter](https://github.com/prometheus/jmx_exporter/).
 The metrics can be queried by accessing the `http://<kafka-unit-ip>:9101/metrics` and `http://<zookeeper-unit-ip>:9998/metrics` endpoints, respectively.
 
 Additionally, the charm provides integration with the [Canonical Observability Stack](https://charmhub.io/topics/canonical-observability-stack).
 
 Deploy the `cos-lite` bundle in a Kubernetes environment. This can be done by following the
 [deployment tutorial](https://charmhub.io/topics/canonical-observability-stack/tutorials/install-microk8s).
-Since the Charmed Kafka Operator is deployed directly on a cloud infrastructure environment, it is 
+Since the Charmed Apache Kafka Operator is deployed directly on a cloud infrastructure environment, it is 
 needed to offer the endpoints of the COS relations. The [offers-overlay](https://github.com/canonical/cos-lite-bundle/blob/main/overlays/offers-overlay.yaml)
 can be used, and this step is shown in the COS tutorial.
 
-Switch to COS K8s environment and offer COS interfaces to be cross-model related with Charmed Kafka VM model:
+Switch to COS K8s environment and offer COS interfaces to be cross-model related with Charmed Apache Kafka VM model:
 
 ```shell
 # Switch to Kubernetes controller, for the cos model.
@@ -22,7 +22,7 @@ juju offer loki:logging loki-logging
 juju offer prometheus:receive-remote-write prometheus-receive-remote-write
 ```
 
-Switch to Charmed Kafka VM model, find offers and relate with them:
+Switch to Charmed Apache Kafka VM model, find offers and relate with them:
 
 ```shell
 # We are on the Kubernetes controller, for the cos model. Switch to kafka model
@@ -49,7 +49,7 @@ juju consume <k8s_controller>:admin/<cos_model_name>.loki-logging
 juju consume <k8s_controller>:admin/<cos_model_name>.grafana-dashboards
 ```
 
-Now, deploy `grafana-agent` (subordinate charm) and relate it with Charmed Kafka and Charmed ZooKeeper:
+Now, deploy `grafana-agent` (subordinate charm) and relate it with Charmed Apache Kafka and Charmed Apache ZooKeeper:
 
 ```shell
 juju deploy grafana-agent
@@ -80,9 +80,9 @@ juju run grafana/leader get-admin-password --model <k8s_cos_controller>:<cos_mod
 
 ## Tune server logging level
 
-To tune the level of the server logs for Kafka and ZooKeeper, configure the `log-level` and `log_level` properties accordingly.
+To tune the level of the server logs for Apache Kafka and Apache ZooKeeper, configure the `log-level` and `log_level` properties accordingly.
 
-### Kafka 
+### Apache Kafka 
 
 ```
 juju config kafka log_level=<LOG_LEVEL>
@@ -90,7 +90,7 @@ juju config kafka log_level=<LOG_LEVEL>
 
 Possible values are `ERROR`, `WARNING`, `INFO`, `DEBUG`.
 
-### ZooKeeper
+### Apache ZooKeeper
 
 ```
 juju config kafka log-level=<LOG_LEVEL>

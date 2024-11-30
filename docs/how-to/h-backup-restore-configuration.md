@@ -1,10 +1,10 @@
 # Configuration backup and restore
 
-Charmed Kafka's configuration is distributed using [Charmed ZooKeeper](https://charmhub.io/zookeeper?channel=3/stable).
-A Charmed ZooKeeper backup can be stored on any S3-compatible storage.
+Charmed Apache Kafka's configuration is distributed using [Charmed Apache ZooKeeper](https://charmhub.io/zookeeper?channel=3/stable).
+A Charmed Apache ZooKeeper backup can be stored on any S3-compatible storage.
 S3 access and configurations are managed with the [`s3-integrator` charm](https://charmhub.io/s3-integrator).
 
-This guide contains step-by-step instructions on how to deploy and configure the `s3-integrator` charm for [AWS S3](https://aws.amazon.com/s3/), send the configurations to the Charmed ZooKeeper application, and finally manage your Charmed ZooKeeper backups.
+This guide contains step-by-step instructions on how to deploy and configure the `s3-integrator` charm for [AWS S3](https://aws.amazon.com/s3/), send the configurations to the Charmed Apache ZooKeeper application, and finally manage your Charmed Apache ZooKeeper backups.
 
 ## Configure `s3-integrator`
 
@@ -29,9 +29,9 @@ juju config s3-integrator \
 The only mandatory configuration parameter in the command above is the `bucket`.
 [/note]
 
-### Integrate with Charmed ZooKeeper
+### Integrate with Charmed Apache ZooKeeper
 
-To pass these configurations to Charmed ZooKeeper, integrate the two applications:
+To pass these configurations to Charmed Apache ZooKeeper, integrate the two applications:
 
 ```shell
 juju integrate s3-integrator zookeeper
@@ -47,13 +47,13 @@ juju run zookeeper/leader restore backup-id=<backup-id-here>
 
 ## Create a backup
 
-Check that Charmed ZooKeeper deployment with configurations set for S3 storage is `active` and `idle` with the `juju status` command. Once it's active, create a backup with the `create-backup` command:
+Check that Charmed Apache ZooKeeper deployment with configurations set for S3 storage is `active` and `idle` with the `juju status` command. Once it's active, create a backup with the `create-backup` command:
 
 ```shell
 juju run zookeeper/leader create-backup
 ```
 
-Charmed ZooKeeper backups created with the command above will always be **full** backups: a copy of *all* the Charmed Kafka configuration will be stored in S3.
+Charmed Apache ZooKeeper backups created with the command above will always be **full** backups: a copy of *all* the Charmed Apache Kafka configuration will be stored in S3.
 
 The command will output the ID of the newly created backup:
 
