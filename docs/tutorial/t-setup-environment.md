@@ -56,7 +56,7 @@ The Juju controller should exist within an LXD container. You can verify this by
 
 where `<id>` is a unique combination of numbers and letters such as `9d7e4e-0`
 
-The controller can work with different models; models host applications such as Charmed Apache Kafka. Set up a specific model for Charmed Apache Kafka named ‘tutorial’:
+The controller can work with different models; models host applications such as Charmed Apache Kafka. Set up a specific model for Charmed Apache Kafka named `tutorial`:
 
 ```shell
 juju add-model tutorial

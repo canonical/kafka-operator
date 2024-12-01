@@ -23,5 +23,5 @@ opened.
 | SSL_EXTERNAL  | `trusted-ca` + `certificates`          | SSL            | `9094`  | external |
 
 [note]
-Since `cluster` is a peer-relation, the `SASL_INTERNAL` listener is always enabled.
+Since `cluster` is a peer relation, the `SASL_INTERNAL` listener is always enabled.
 [/note]

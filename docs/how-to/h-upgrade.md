@@ -8,7 +8,7 @@ Charm upgrades can include both upgrades of operator code (e.g. the revision use
 
 In general, the following guide only applies for in-place upgrades that involve (at most) minor version upgrade of Apache Kafka workload, e.g. between Apache Kafka 3.4.x to 3.5.x. Major workload upgrades are generally **NOT SUPPORTED**, and they should be carried out using [full cluster-to-cluster migrations](/t/charmed-kafka-how-to-cluster-migration/10951).
 
-While upgrading an Apache Kafka cluster, do not perform any other major operations, including, but no limited to, the following:
+While upgrading an Apache Kafka cluster, do not perform any other major operations, including, but not limited to, the following:
 
 1. Adding or removing units
 2. Creating or destroying new relations
@@ -19,11 +19,11 @@ The concurrency with other operations is not supported, and it can lead the clus
 
 ## Minor upgrade process
 
-When performing an in-place upgrade process, the full process is composed by the following high-level steps:
+When performing an in-place upgrade process, the full process is composed of the following high-level steps:
 
 1. **Collect** all necessary pre-upgrade information, necessary for a rollback (if ever needed)
 2. **Prepare** the charm for the in-place upgrade, by running some preparatory tasks 
-3. **Upgrade** the charm and/or the workload. Once started, all units in a cluster will refresh the charm code and undergo a workload restart/update. The upgrade will be aborted if the unit upgrade has failed, requiring the admin user to rollback.
+3. **Upgrade** the charm and/or the workload. Once started, all units in a cluster will refresh the charm code and undergo a workload restart/update. The upgrade will be aborted if the unit upgrade has failed, requiring the admin user to roll back.
 4. **Post-upgrade checks** to make sure all units are in the proper state and the cluster is healthy.
 
 ### Step 1: Collect
