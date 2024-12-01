@@ -18,15 +18,19 @@ In short, MirrorMaker runs as a distributed service on the new cluster, and cons
 
 ## Pre-requisites
 
-- An existing Apache Kafka cluster to migrate from
-- A bootstrapped Juju VM machine cloud running Charmed Apache Kafka to migrate to
-    - A tutorial on how to set up a Charmed Apache Kafka deployment can be found as part of the [Charmed Apache Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571)
+To migrate a cluster we need:
+
+- An "old" existing Apache Kafka cluster to migrate from.
+  - The cluster needs to be reachable from/to the new Apache Kafka cluster. 
+- A bootstrapped Juju VM cloud running Charmed Apache Kafka to migrate to. For guidance on how to deploy a new Charmed Kafka, see:
+  - The [Charmed Apache Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571)
+  - The [How to deploy guide](/t/charmed-apache-kafka-documentation-how-to-deploy/13261) for Charmed Apache Kafka K8s
 - The CLI tool `yq` - https://github.com/mikefarah/yq
     - `snap install yq --channel=v3/stable`
 
-## Getting Charmed Apache Kafka cluster details and admin credentials
+## Getting cluster details and admin credentials
 
-By design, the `kafka` charm will not expose any available connections until related to by a client. In this case, we deploy `data-integrator` charms and relating them to each `kafka` application, requesting `admin` level privileges:
+By design, the `kafka` charm will not expose any available connections until related by a client. In this case, we deploy `data-integrator` charms and relate them to each `kafka` application, requesting `admin` level privileges:
 
 ```bash
 juju deploy data-integrator --channel=edge -n 1 --config extra-user-roles="admin" --config topic-name="default"
@@ -172,6 +176,7 @@ curl 10.248.204.198:9099/metrics | grep records_count
 ## Switching client traffic
 
 Once happy with data migration, stop all active consumer applications on the original cluster and redirect them to the new Charmed Apache Kafka cluster, making sure to use the Charmed Apache Kafka cluster server addresses and authentication. After doing so, they will re-join their original consumer groups at the last committed offset it had originally, and continue consuming as normal.
+
 Finally, the producer client applications can be stopped, updated with the Charmed Apache Kafka cluster server addresses and authentication, and restarted, with any newly produced messages being received by the migrated consumer client applications, completing the migration of both the data, and the client applications.
 
 ## Stopping MirrorMaker replication

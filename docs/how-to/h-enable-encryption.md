@@ -29,7 +29,7 @@ juju relate <tls-certificates> kafka:certificates
 where `<tls-certificates>` is the name of the TLS certificate provider charm deployed.
 
 [note]
-If Apache Kafka and Apache ZooKeeper are already related, they will start renegotiating the relation to provide each other certificates and enable/open to correct ports/connections. Otherwise, relate them after the both relations with the `<tls-certificates>`.
+If Apache Kafka and Apache ZooKeeper are already related, they will start renegotiating the relation to provide each other certificates and enable/open the correct ports/connections. Otherwise, relate them after the both relations with the `<tls-certificates>`.
 [/note]
 
 ## Manage keys

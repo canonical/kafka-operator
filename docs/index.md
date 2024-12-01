@@ -80,4 +80,4 @@ The Charmed Apache Kafka Operator is free software, distributed under the Apache
 1. [Explanation](explanation)
   1. [Security](explanation/e-security.md)
   1. [Hardening Guide](explanation/e-hardening.md)
-  1. [Overview of Cluster Configuration](explanation/e-cluster-configuration.md)
+  1. [Cluster configuration](explanation/e-cluster-configuration.md)

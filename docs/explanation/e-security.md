@@ -34,7 +34,7 @@ charms, snaps and rocks are published using the workflows of their respective re
 
 All repositories in GitHub are set up with branch protection rules, requiring:
 
-* new commits to be merged to main branches via Pull-Request with at least 2 approvals from repository maintainers
+* new commits to be merged to main branches via pull request with at least 2 approvals from repository maintainers
 * new commits to be signed (e.g. using GPG keys)
 * developers to sign the [Canonical Contributor License Agreement (CLA)](https://ubuntu.com/legal/contributors)
 
@@ -62,7 +62,7 @@ Encryption at rest is currently not supported, although it can be provided by th
 
 ## Authentication
 
-In the Charmed Apache Kafka solution, authentication layers can be enabled for
+In the Charmed Apache Kafka solution, authentication layers can be enabled for:
 
 1. Apache ZooKeeper connections
 2. Apache Kafka inter-broker communication 
