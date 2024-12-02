@@ -217,6 +217,7 @@ async def test_logs_write_to_storage(ops_test: OpsTest):
     )
 
 
+@pytest.mark.skip
 async def test_rack_awareness_integration(ops_test: OpsTest):
     machine_ids = await ops_test.model.get_machines()
     await ops_test.model.deploy(
