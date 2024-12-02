@@ -19,7 +19,7 @@ from literals import (
 from .helpers import (
     APP_NAME,
     check_socket,
-    get_address,
+    get_unit_ipv4_address,
 )
 
 logger = logging.getLogger(__name__)
@@ -115,7 +115,7 @@ class TestKRaft:
 
     @pytest.mark.abort_on_fail
     async def test_listeners(self, ops_test: OpsTest):
-        address = await get_address(ops_test=ops_test)
+        address = await get_unit_ipv4_address(ops_test=ops_test)
         assert check_socket(
             address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].internal
         )  # Internal listener
@@ -127,6 +127,5 @@ class TestKRaft:
 
         # Check controller socket
         if self.controller_app != APP_NAME:
-            address = await get_address(ops_test=ops_test, app_name=self.controller_app)
-
+            address = await get_unit_ipv4_address(ops_test=ops_test, app_name=self.controller_app)
         assert check_socket(address, CONTROLLER_PORT)

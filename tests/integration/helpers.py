@@ -3,6 +3,7 @@
 # See LICENSE file for licensing details.
 import json
 import logging
+import re
 import socket
 import subprocess
 from contextlib import closing
@@ -495,6 +496,19 @@ async def get_address(ops_test: OpsTest, app_name=APP_NAME, unit_num=0) -> str:
     status = await ops_test.model.get_status()  # noqa: F821
     address = status["applications"][app_name]["units"][f"{app_name}/{unit_num}"]["public-address"]
     return address
+
+
+async def get_unit_ipv4_address(ops_test: OpsTest, app_name=APP_NAME, unit_num=0) -> str | None:
+    """A safer alternative for `juju.unit.get_public_address()` which is robust to network changes."""
+    return_code, stdout, stderr = await ops_test.juju(
+        "ssh", f"{app_name}/{unit_num}", "hostname -i"
+    )
+    ipv4_matches = re.findall(r"[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}", stdout)
+
+    if ipv4_matches:
+        return ipv4_matches[0]
+
+    return None
 
 
 def balancer_exporter_is_up(model_full_name: str | None, app_name: str) -> bool:
