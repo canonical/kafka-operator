@@ -292,6 +292,6 @@ DEPENDENCIES = {
         "dependencies": {"zookeeper": ">3.6"},
         "name": "kafka",
         "upgrade_supported": "^3",  # zk support removed in 4.0
-        "version": "3.6.1",
+        "version": "3.9.0",
     },
 }
