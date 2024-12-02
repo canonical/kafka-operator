@@ -685,7 +685,7 @@ class ConfigManager(CommonConfigManager):
 
         if self.state.kraft_mode:
             controller_protocol_map = f"{CONTROLLER_LISTENER_NAME}:PLAINTEXT"
-            controller_listener = f"{CONTROLLER_LISTENER_NAME}://0.0.0.0:{CONTROLLER_PORT}"
+            controller_listener = f"{CONTROLLER_LISTENER_NAME}://{self.state.unit_broker.internal_address}:{CONTROLLER_PORT}"
 
             # NOTE: Case where the controller is running standalone. Early return with a
             # smaller subset of config options
