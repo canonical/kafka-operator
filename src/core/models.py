@@ -741,9 +741,15 @@ class ZooKeeper(RelationState):
     def zookeeper_version(self) -> str:
         """Get running zookeeper version."""
         hosts = [host.split(":")[0] for host in self.endpoints.split(",")]
-        port = next(
-            iter([int(host.split(":")[1]) for host in reversed(self.endpoints.split(","))]), 2181
-        )
+        try:
+            port = next(
+                iter([int(host.split(":")[1]) for host in reversed(self.endpoints.split(","))]),
+                2181,
+            )
+        except IndexError:
+            # compatibility with older zk versions
+            port = 2181
+
         zk = ZooKeeperManager(
             hosts=hosts,
             client_port=port,
@@ -766,9 +772,15 @@ class ZooKeeper(RelationState):
         broker_id = self.data_interface.local_unit.name.split("/")[1]
         path = f"{self.database}/brokers/ids/"
         hosts = [host.split(":")[0] for host in self.endpoints.split(",")]
-        port = next(
-            iter([int(host.split(":")[1]) for host in reversed(self.endpoints.split(","))]), 2181
-        )
+        try:
+            port = next(
+                iter([int(host.split(":")[1]) for host in reversed(self.endpoints.split(","))]),
+                2181,
+            )
+        except IndexError:
+            # compatibility with older zk versions
+            port = 2181
+
         zk = ZooKeeperManager(
             hosts=hosts,
             client_port=port,
