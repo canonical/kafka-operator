@@ -5,24 +5,36 @@
 """Manager for handling Kafka TLS configuration."""
 
 import logging
-import subprocess  # nosec B404
+import socket
+import subprocess
+from typing import TypedDict  # nosec B404
 
 from ops.pebble import ExecError
 
 from core.cluster import ClusterState
+from core.structured_config import CharmConfig
 from core.workload import WorkloadBase
 from literals import GROUP, USER, Substrates
 
 logger = logging.getLogger(__name__)
 
+Sans = TypedDict("Sans", {"sans_ip": list[str], "sans_dns": list[str]})
+
 
 class TLSManager:
     """Manager for building necessary files for Java TLS auth."""
 
-    def __init__(self, state: ClusterState, workload: WorkloadBase, substrate: Substrates):
+    def __init__(
+        self,
+        state: ClusterState,
+        workload: WorkloadBase,
+        substrate: Substrates,
+        config: CharmConfig,
+    ):
         self.state = state
         self.workload = workload
         self.substrate = substrate
+        self.config = config
 
         self.keytool = "charmed-kafka.keytool" if self.substrate == "vm" else "keytool"
 
@@ -112,6 +124,74 @@ class TLSManager:
                 return
             logger.error(e.stdout)
             raise e
+
+    def _build_extra_sans(self) -> list[str]:
+        """Parse the certificate_extra_sans config option."""
+        extra_sans = self.config.extra_listeners or self.config.certificate_extra_sans or []
+        clean_sans = [san.split(":")[0] for san in extra_sans]
+        parsed_sans = [
+            san.replace("{unit}", str(self.state.unit_broker.unit_id)) for san in clean_sans
+        ]
+
+        return parsed_sans
+
+    def build_sans(self) -> Sans:
+        """Builds a SAN dict of DNS names and IPs for the unit."""
+        if self.substrate == "vm":
+            return {
+                "sans_ip": [
+                    self.state.unit_broker.host,
+                ],
+                "sans_dns": [self.state.unit_broker.unit.name, socket.getfqdn()]
+                + self._build_extra_sans(),
+            }
+        else:
+            return {
+                "sans_ip": sorted(
+                    [
+                        str(self.state.bind_address),
+                    ]
+                ),
+                "sans_dns": sorted(
+                    [
+                        self.state.unit_broker.host.split(".")[0],
+                        self.state.unit_broker.host,
+                        socket.getfqdn(),
+                    ]
+                    + self._build_extra_sans()
+                ),
+            }
+
+    def get_current_sans(self) -> Sans | None:
+        """Gets the current SANs for the unit cert."""
+        if not self.state.unit_broker.certificate:
+            return
+
+        command = ["openssl", "x509", "-noout", "-ext", "subjectAltName", "-in", "server.pem"]
+
+        try:
+            sans_lines = self.workload.exec(
+                command=" ".join(command), working_dir=self.workload.paths.conf_path
+            ).splitlines()
+        except (subprocess.CalledProcessError, ExecError) as e:
+            logger.error(e.stdout)
+            raise e
+
+        for line in sans_lines:
+            if "DNS" in line and "IP" in line:
+                break
+
+        sans_ip = []
+        sans_dns = []
+        for item in line.split(","):
+            san_type, san_value = item.split(":")
+
+            if san_type.strip() == "DNS":
+                sans_dns.append(san_value)
+            if san_type.strip() == "IP Address":
+                sans_ip.append(san_value)
+
+        return {"sans_ip": sorted(sans_ip), "sans_dns": sorted(sans_dns)}
 
     def remove_stores(self) -> None:
         """Cleans up all keys/certs/stores on a unit."""

@@ -9,7 +9,6 @@ import json
 import logging
 import os
 import re
-import socket
 import warnings
 from typing import TYPE_CHECKING
 
@@ -156,13 +155,14 @@ class TLSHandler(Object):
         subject = (
             os.uname()[1] if self.charm.substrate == "k8s" else self.charm.state.unit_broker.host
         )
+        sans = self.charm.tls_manager.build_sans()
         csr = (
             generate_csr(
                 add_unique_id_to_subject_name=bool(alias),
                 private_key=self.charm.state.unit_broker.private_key.encode("utf-8"),
                 subject=subject,
-                sans_ip=self._sans["sans_ip"],
-                sans_dns=self._sans["sans_dns"],
+                sans_ip=sans["sans_ip"],
+                sans_dns=sans["sans_dns"],
             )
             .decode()
             .strip()
@@ -281,11 +281,12 @@ class TLSHandler(Object):
             logger.error("Missing unit private key and/or old csr")
             return
 
+        sans = self.charm.tls_manager.build_sans()
         new_csr = generate_csr(
             private_key=self.charm.state.unit_broker.private_key.encode("utf-8"),
             subject=self.charm.state.unit_broker.relation_data.get("private-address", ""),
-            sans_ip=self._sans["sans_ip"],
-            sans_dns=self._sans["sans_dns"],
+            sans_ip=sans["sans_ip"],
+            sans_dns=sans["sans_dns"],
         )
 
         self.certificates.request_certificate_renewal(
@@ -313,6 +314,8 @@ class TLSHandler(Object):
             logger.error("Can't request certificate, missing private key")
             return
 
+        sans = self.charm.tls_manager.build_sans()
+
         # only warn during certificate creation, not every event if in structured_config
         if self.charm.config.certificate_extra_sans:
             warnings.warn(
@@ -323,45 +326,9 @@ class TLSHandler(Object):
         csr = generate_csr(
             private_key=self.charm.state.unit_broker.private_key.encode("utf-8"),
             subject=self.charm.state.unit_broker.relation_data.get("private-address", ""),
-            sans_ip=self._sans["sans_ip"],
-            sans_dns=self._sans["sans_dns"],
+            sans_ip=sans["sans_ip"],
+            sans_dns=sans["sans_dns"],
         )
         self.charm.state.unit_broker.update({"csr": csr.decode("utf-8").strip()})
 
         self.certificates.request_certificate_creation(certificate_signing_request=csr)
-
-    @property
-    def _sans(self) -> dict[str, list[str] | None]:
-        """Builds a SAN dict of DNS names and IPs for the unit."""
-        if self.charm.substrate == "vm":
-            return {
-                "sans_ip": [self.charm.state.unit_broker.host],
-                "sans_dns": [self.model.unit.name, socket.getfqdn()] + self._extra_sans,
-            }
-        else:
-            bind_address = ""
-            if self.charm.state.peer_relation:
-                if binding := self.charm.model.get_binding(self.charm.state.peer_relation):
-                    bind_address = binding.network.bind_address
-            return {
-                "sans_ip": [str(bind_address)],
-                "sans_dns": [
-                    self.charm.state.unit_broker.host.split(".")[0],
-                    self.charm.state.unit_broker.host,
-                    socket.getfqdn(),
-                ]
-                + self._extra_sans,
-            }
-
-    @property
-    def _extra_sans(self) -> list[str]:
-        """Parse the certificate_extra_sans config option."""
-        extra_sans = (
-            self.charm.config.extra_listeners or self.charm.config.certificate_extra_sans or []
-        )
-        clean_sans = [san.split(":")[0] for san in extra_sans]
-        parsed_sans = [
-            san.replace("{unit}", str(self.charm.state.unit_broker.unit_id)) for san in clean_sans
-        ]
-
-        return parsed_sans

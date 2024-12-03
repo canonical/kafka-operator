@@ -437,6 +437,9 @@ class ConfigManager:
         extra_listeners = []
         extra_count = 0
         for host, baseport in extra_host_baseports:
+            if "{unit}" not in host:
+                continue
+
             for protocol, mechanism in protocol_mechanism_dict:
                 host = host.replace("{unit}", str(self.state.unit_broker.unit_id))
                 extra_listeners.append(

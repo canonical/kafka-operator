@@ -93,7 +93,7 @@ def test_mtls_flag_added(harness: Harness):
     assert isinstance(harness.charm.app.status, ActiveStatus)
 
 
-def test_extra_sans_config(harness: Harness):
+def test_extra_sans_config(harness: Harness[KafkaCharm]):
     # Create peer relation
     peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
     harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/0")
@@ -101,14 +101,20 @@ def test_extra_sans_config(harness: Harness):
         peer_relation_id, f"{CHARM_KEY}/0", {"private-address": "treebeard"}
     )
 
-    harness.update_config({"certificate_extra_sans": ""})
-    assert harness.charm.tls._extra_sans == []
+    manager = harness.charm.tls_manager
 
-    harness.update_config({"certificate_extra_sans": "worker{unit}.com"})
-    assert harness.charm.tls._extra_sans == ["worker0.com"]
+    harness._update_config({"certificate_extra_sans": ""})
+    manager.config = harness.charm.config
+    assert manager._build_extra_sans() == []
 
-    harness.update_config({"certificate_extra_sans": "worker{unit}.com,{unit}.example"})
-    assert harness.charm.tls._extra_sans == ["worker0.com", "0.example"]
+    harness._update_config({"certificate_extra_sans": "worker{unit}.com"})
+    manager.config = harness.charm.config
+    assert "worker0.com" in "".join(manager._build_extra_sans())
+
+    harness._update_config({"certificate_extra_sans": "worker{unit}.com,{unit}.example"})
+    manager.config = harness.charm.config
+    assert "worker0.com" in "".join(manager._build_extra_sans())
+    assert "0.example" in "".join(manager._build_extra_sans())
 
     # verifying that sans can be built with both certificate_extra_sans and extra_listeners
     harness._update_config(
@@ -117,33 +123,40 @@ def test_extra_sans_config(harness: Harness):
             "extra_listeners": "worker{unit}.com:30000,{unit}.example:40000,nonunit.domain.com:45000",
         }
     )
-    assert harness.charm.tls._extra_sans
-    assert "worker0.com" in "".join(harness.charm.tls._extra_sans)
-    assert "0.example" in "".join(harness.charm.tls._extra_sans)
-    assert "nonunit.domain.com" in "".join(harness.charm.tls._extra_sans)
+    manager.config = harness.charm.config
+    assert manager._build_extra_sans
+    assert "worker0.com" in "".join(manager._build_extra_sans())
+    assert "0.example" in "".join(manager._build_extra_sans())
+    assert "nonunit.domain.com" in "".join(manager._build_extra_sans())
 
 
-def test_sans(harness: Harness):
+def test_sans(harness: Harness[KafkaCharm]):
     # Create peer relation
     peer_relation_id = harness.add_relation(PEER, CHARM_KEY)
     harness.add_relation_unit(peer_relation_id, f"{CHARM_KEY}/0")
     harness.update_relation_data(
         peer_relation_id, f"{CHARM_KEY}/0", {"private-address": "treebeard"}
     )
+
+    manager = harness.charm.tls_manager
     harness.update_config({"certificate_extra_sans": "worker{unit}.com"})
+    manager.config = harness.charm.config
 
     sock_dns = socket.getfqdn()
     if SUBSTRATE == "vm":
-        assert harness.charm.tls._sans == {
+        assert manager.build_sans() == {
             "sans_ip": ["treebeard"],
             "sans_dns": [f"{CHARM_KEY}/0", sock_dns, "worker0.com"],
         }
     elif SUBSTRATE == "k8s":
         # NOTE previous k8s sans_ip like kafka-k8s-0.kafka-k8s-endpoints or binding pod address
-        with patch("ops.model.Model.get_binding"):
-            assert harness.charm.tls._sans["sans_dns"] == [
-                "kafka-k8s-0",
-                "kafka-k8s-0.kafka-k8s-endpoints",
-                sock_dns,
-                "worker0.com",
-            ]
+        with (patch("ops.model.Model.get_binding")):
+            assert sorted(manager.build_sans()["sans_dns"]) == sorted(
+                [
+                    "kafka-k8s-0",
+                    "kafka-k8s-0.kafka-k8s-endpoints",
+                    sock_dns,
+                    "worker0.com",
+                ]
+            )
+            assert "palantir" in "".join(manager.build_sans()["sans_ip"])

@@ -6,6 +6,7 @@
 
 import logging
 import time
+from datetime import datetime
 
 import ops
 from charms.data_platform_libs.v0.data_models import TypedCharmBase
@@ -95,7 +96,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             current_version=self.upgrade.current_version,
         )
         self.tls_manager = TLSManager(
-            state=self.state, workload=self.workload, substrate=self.substrate
+            state=self.state, workload=self.workload, substrate=self.substrate, config=self.config
         )
         self.auth_manager = AuthManager(
             state=self.state,
@@ -183,10 +184,47 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         zk_jaas = self.workload.read(self.workload.paths.zk_jaas)
         zk_jaas_changed = set(zk_jaas) ^ set(self.config_manager.zk_jaas_config.splitlines())
 
+        current_sans = self.tls_manager.get_current_sans()
+        logger.info(f"{current_sans=}")
+        logger.info(f"{self.tls_manager.build_sans()=}")
+
         if not properties or not zk_jaas:
             # Event fired before charm has properly started
             event.defer()
             return
+
+        current_sans_ip = set(current_sans["sans_ip"]) if current_sans else set()
+        expected_sans_ip = set(self.tls_manager.build_sans()["sans_ip"]) if current_sans else set()
+        sans_ip_changed = current_sans_ip ^ expected_sans_ip
+
+        current_sans_dns = set(current_sans["sans_dns"]) if current_sans else set()
+        expected_sans_dns = (
+            set(self.tls_manager.build_sans()["sans_dns"]) if current_sans else set()
+        )
+        sans_dns_changed = current_sans_dns ^ expected_sans_dns
+
+        # update environment
+        self.config_manager.set_environment()
+
+        if sans_ip_changed or sans_dns_changed:
+            logger.info(
+                (
+                    f'Broker {self.unit.name.split("/")[1]} updating certificate SANs - '
+                    f"OLD SANs IP = {current_sans_ip - expected_sans_ip}, "
+                    f"NEW SANs IP = {expected_sans_ip - current_sans_ip}, "
+                    f"OLD SANs DNS = {current_sans_dns - expected_sans_dns}, "
+                    f"NEW SANs DNS = {expected_sans_dns - current_sans_dns}"
+                )
+            )
+            self.tls.certificates.on.certificate_expiring.emit(
+                certificate=self.state.unit_broker.certificate,
+                expiry=datetime.now().isoformat(),
+            )  # new cert will eventually be dynamically loaded by the broker
+            self.state.unit_broker.update(
+                {"certificate": ""}
+            )  # ensures only single requested new certs, will be replaced on new certificate-available event
+
+            return  # early return here to ensure new node cert arrives before updating advertised.listeners
 
         # update environment
         self.config_manager.set_environment()
