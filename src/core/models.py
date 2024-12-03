@@ -740,8 +740,17 @@ class ZooKeeper(RelationState):
     @property
     def zookeeper_version(self) -> str:
         """Get running zookeeper version."""
-        hosts = self.endpoints.split(",")
-        zk = ZooKeeperManager(hosts=hosts, username=self.username, password=self.password)
+        hosts = [host.split(":")[0] for host in self.endpoints.split(",")]
+        port = next(
+            iter([int(host.split(":")[1]) for host in reversed(self.endpoints.split(","))]), 2181
+        )
+        zk = ZooKeeperManager(
+            hosts=hosts,
+            client_port=port,
+            username=self.username,
+            password=self.password,
+            use_ssl=self.tls,
+        )
 
         return zk.get_version()
 
@@ -755,10 +764,18 @@ class ZooKeeper(RelationState):
     def broker_active(self) -> bool:
         """Checks if broker id is recognised as active by ZooKeeper."""
         broker_id = self.data_interface.local_unit.name.split("/")[1]
-        hosts = self.endpoints.split(",")
         path = f"{self.database}/brokers/ids/"
-
-        zk = ZooKeeperManager(hosts=hosts, username=self.username, password=self.password)
+        hosts = [host.split(":")[0] for host in self.endpoints.split(",")]
+        port = next(
+            iter([int(host.split(":")[1]) for host in reversed(self.endpoints.split(","))]), 2181
+        )
+        zk = ZooKeeperManager(
+            hosts=hosts,
+            client_port=port,
+            username=self.username,
+            password=self.password,
+            use_ssl=self.tls,
+        )
         try:
             brokers = zk.leader_znodes(path=path)
         except (
