@@ -15,7 +15,11 @@ from charms.data_platform_libs.v0.data_interfaces import (
     DataPeerData,
     DataPeerUnitData,
 )
-from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManager
+from charms.zookeeper.v0.client import (
+    NoUnitFoundError,
+    QuorumLeaderNotFoundError,
+    ZooKeeperManager,
+)
 from kazoo.client import AuthFailedError, ConnectionLoss, NoNodeError
 from kazoo.exceptions import NoAuthError
 from lightkube.resources.core_v1 import Node, Pod
@@ -794,6 +798,7 @@ class ZooKeeper(RelationState):
             NoNodeError,
             AuthFailedError,
             QuorumLeaderNotFoundError,
+            NoUnitFoundError,
             ConnectionLoss,
             NoAuthError,
         ) as e:
