@@ -15,7 +15,11 @@ from charms.data_platform_libs.v0.data_interfaces import (
     DataPeerData,
     DataPeerUnitData,
 )
-from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManager
+from charms.zookeeper.v0.client import (
+    NoUnitFoundError,
+    QuorumLeaderNotFoundError,
+    ZooKeeperManager,
+)
 from kazoo.client import AuthFailedError, ConnectionLoss, NoNodeError
 from kazoo.exceptions import NoAuthError
 from lightkube.resources.core_v1 import Node, Pod
@@ -740,8 +744,23 @@ class ZooKeeper(RelationState):
     @property
     def zookeeper_version(self) -> str:
         """Get running zookeeper version."""
-        hosts = self.endpoints.split(",")
-        zk = ZooKeeperManager(hosts=hosts, username=self.username, password=self.password)
+        hosts = [host.split(":")[0] for host in self.endpoints.split(",")]
+        try:
+            port = next(
+                iter([int(host.split(":")[1]) for host in reversed(self.endpoints.split(","))]),
+                2181,
+            )
+        except IndexError:
+            # compatibility with older zk versions
+            port = 2181
+
+        zk = ZooKeeperManager(
+            hosts=hosts,
+            client_port=port,
+            username=self.username,
+            password=self.password,
+            use_ssl=self.tls,
+        )
 
         return zk.get_version()
 
@@ -755,16 +774,31 @@ class ZooKeeper(RelationState):
     def broker_active(self) -> bool:
         """Checks if broker id is recognised as active by ZooKeeper."""
         broker_id = self.data_interface.local_unit.name.split("/")[1]
-        hosts = self.endpoints.split(",")
         path = f"{self.database}/brokers/ids/"
-
-        zk = ZooKeeperManager(hosts=hosts, username=self.username, password=self.password)
+        hosts = [host.split(":")[0] for host in self.endpoints.split(",")]
         try:
+            port = next(
+                iter([int(host.split(":")[1]) for host in reversed(self.endpoints.split(","))]),
+                2181,
+            )
+        except IndexError:
+            # compatibility with older zk versions
+            port = 2181
+
+        try:
+            zk = ZooKeeperManager(
+                hosts=hosts,
+                client_port=port,
+                username=self.username,
+                password=self.password,
+                use_ssl=self.tls,
+            )
             brokers = zk.leader_znodes(path=path)
         except (
             NoNodeError,
             AuthFailedError,
             QuorumLeaderNotFoundError,
+            NoUnitFoundError,
             ConnectionLoss,
             NoAuthError,
         ) as e:
