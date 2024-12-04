@@ -22,7 +22,7 @@ In short, MirrorMaker runs as a distributed service on the new cluster, and cons
 - An existing Kafka cluster to migrate from
 - A bootstrapped Juju VM machine cloud running Charmed Kafka to migrate to
     - A tutorial on how to set-up a Charmed Kafka deployment can be found as part of the [Charmed Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571)
-- `yq` - https://github.com/mikefarah/yq
+    - The CLI tool `yq` - https://github.com/mikefarah/yq
     - `snap install yq --channel=v3/stable`
 
 ### Getting Charmed Kafka cluster details and admin credentials
@@ -126,9 +126,7 @@ new.producer.acks=all
 Once these properties have been generated (in this example, saved to `/tmp/mm2.properties`), it is needed to place them on every Charmed Kafka unit:
 
 ```bash
-cat /tmp/mm2.properties | juju ssh kafka/0 sudo -i 'sudo tee -a /var/snap/charmed-kafka/current/etc/kafka/mm2.properties'
-cat /tmp/mm2.properties | juju ssh kafka/1 sudo -i 'sudo tee -a /var/snap/charmed-kafka/current/etc/kafka/mm2.properties'
-cat /tmp/mm2.properties | juju ssh kafka/2 sudo -i 'sudo tee -a /var/snap/charmed-kafka/current/etc/kafka/mm2.properties'
+cat /tmp/mm2.properties | juju ssh kafka/<id> sudo -i 'sudo tee -a /var/snap/charmed-kafka/current/etc/kafka/mm2.properties'
 ```
 
 ### Starting a dedicated MirrorMaker cluster
@@ -136,16 +134,10 @@ It is strongly advised to run MirrorMaker services on the downstream cluster to 
 
 ```bash
 # building KAFKA_OPTS env-var for running with an exporter
-export KAFKA_OPTS = "-Djava.security.auth.login.config=/var/snap/charmed-kafka/current/etc/kafka/zookeeper-jaas.cfg -javaagent:/var/snap/charmed-kafka/current/etc/kafka/jmx_prometheus_javaagent.jar=9099:/var/snap/charmed-kafka/current/etc/kafka/jmx_kafka_connect.yaml"
+export KAFKA_OPTS = "-Djava.security.auth.login.config=/var/snap/charmed-kafka/current/etc/kafka/zookeeper-jaas.cfg -javaagent:/var/snap/charmed-kafka/current/opt/kafka/libs/jmx_prometheus_javaagent.jar=9099:/var/snap/charmed-kafka/current/etc/kafka/jmx_kafka_connect.yaml"
 
-# shell 1
-juju ssh kafka/0 sudo -i 'cd /snap/charmed-kafka/current/opt/kafka/bin && KAFKA_OPTS=$KAFKA_OPTS ./connect-mirror-maker.sh /var/snap/charmed-kafka/current/etc/kafka/mm2.properties'
-
-# shell 2
-juju ssh kafka/1 sudo -i 'cd /snap/charmed-kafka/current/opt/kafka/bin && KAFKA_OPTS=$KAFKA_OPTS ./connect-mirror-maker.sh /var/snap/charmed-kafka/current/etc/kafka/mm2.properties'
-
-# shell 3
-juju ssh kafka/2 sudo -i 'cd /snap/charmed-kafka/current/opt/kafka/bin && KAFKA_OPTS=$KAFKA_OPTS ./connect-mirror-maker.sh /var/snap/charmed-kafka/current/etc/kafka/mm2.properties'
+# To start MM on kafka/<id> unit
+juju ssh kafka/<id> sudo -i 'cd /snap/charmed-kafka/current/opt/kafka/bin && KAFKA_OPTS=$KAFKA_OPTS ./connect-mirror-maker.sh /var/snap/charmed-kafka/current/etc/kafka/mm2.properties'
 ```
 
 ### Monitoring and validating data replication

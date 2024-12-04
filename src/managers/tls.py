@@ -5,24 +5,36 @@
 """Manager for handling Kafka TLS configuration."""
 
 import logging
+import socket
 import subprocess
+from typing import TypedDict  # nosec B404
 
 from ops.pebble import ExecError
 
 from core.cluster import ClusterState
+from core.structured_config import CharmConfig
 from core.workload import WorkloadBase
-from literals import GROUP, USER, Substrate
+from literals import GROUP, USER, Substrates
 
 logger = logging.getLogger(__name__)
+
+Sans = TypedDict("Sans", {"sans_ip": list[str], "sans_dns": list[str]})
 
 
 class TLSManager:
     """Manager for building necessary files for Java TLS auth."""
 
-    def __init__(self, state: ClusterState, workload: WorkloadBase, substrate: Substrate):
+    def __init__(
+        self,
+        state: ClusterState,
+        workload: WorkloadBase,
+        substrate: Substrates,
+        config: CharmConfig,
+    ):
         self.state = state
         self.workload = workload
         self.substrate = substrate
+        self.config = config
 
         self.keytool = "charmed-kafka.keytool" if self.substrate == "vm" else "keytool"
 
@@ -32,39 +44,39 @@ class TLSManager:
 
     def set_server_key(self) -> None:
         """Sets the unit private-key."""
-        if not self.state.broker.private_key:
+        if not self.state.unit_broker.private_key:
             logger.error("Can't set private-key to unit, missing private-key in relation data")
             return
 
         self.workload.write(
-            content=self.state.broker.private_key,
+            content=self.state.unit_broker.private_key,
             path=f"{self.workload.paths.conf_path}/server.key",
         )
 
     def set_ca(self) -> None:
         """Sets the unit ca."""
-        if not self.state.broker.ca:
+        if not self.state.unit_broker.ca:
             logger.error("Can't set CA to unit, missing CA in relation data")
             return
 
         self.workload.write(
-            content=self.state.broker.ca, path=f"{self.workload.paths.conf_path}/ca.pem"
+            content=self.state.unit_broker.ca, path=f"{self.workload.paths.conf_path}/ca.pem"
         )
 
     def set_certificate(self) -> None:
         """Sets the unit certificate."""
-        if not self.state.broker.certificate:
+        if not self.state.unit_broker.certificate:
             logger.error("Can't set certificate to unit, missing certificate in relation data")
             return
 
         self.workload.write(
-            content=self.state.broker.certificate,
+            content=self.state.unit_broker.certificate,
             path=f"{self.workload.paths.conf_path}/server.pem",
         )
 
     def set_truststore(self) -> None:
         """Adds CA to JKS truststore."""
-        command = f"{self.keytool} -import -v -alias ca -file ca.pem -keystore truststore.jks -storepass {self.state.broker.truststore_password} -noprompt"
+        command = f"{self.keytool} -import -v -alias ca -file ca.pem -keystore truststore.jks -storepass {self.state.unit_broker.truststore_password} -noprompt"
         try:
             self.workload.exec(command=command, working_dir=self.workload.paths.conf_path)
             self.workload.exec(f"chown {USER}:{GROUP} {self.workload.paths.truststore}")
@@ -78,7 +90,7 @@ class TLSManager:
 
     def set_keystore(self) -> None:
         """Creates and adds unit cert and private-key to the keystore."""
-        command = f"openssl pkcs12 -export -in server.pem -inkey server.key -passin pass:{self.state.broker.keystore_password} -certfile server.pem -out keystore.p12 -password pass:{self.state.broker.keystore_password}"
+        command = f"openssl pkcs12 -export -in server.pem -inkey server.key -passin pass:{self.state.unit_broker.keystore_password} -certfile server.pem -out keystore.p12 -password pass:{self.state.unit_broker.keystore_password}"
         try:
             self.workload.exec(command=command, working_dir=self.workload.paths.conf_path)
             self.workload.exec(f"chown {USER}:{GROUP} {self.workload.paths.keystore}")
@@ -89,7 +101,7 @@ class TLSManager:
 
     def import_cert(self, alias: str, filename: str) -> None:
         """Add a certificate to the truststore."""
-        command = f"{self.keytool} -import -v -alias {alias} -file {filename} -keystore truststore.jks -storepass {self.state.broker.truststore_password} -noprompt"
+        command = f"{self.keytool} -import -v -alias {alias} -file {filename} -keystore truststore.jks -storepass {self.state.unit_broker.truststore_password} -noprompt"
         try:
             self.workload.exec(command=command, working_dir=self.workload.paths.conf_path)
         except (subprocess.CalledProcessError, ExecError) as e:
@@ -103,7 +115,7 @@ class TLSManager:
     def remove_cert(self, alias: str) -> None:
         """Remove a cert from the truststore."""
         try:
-            command = f"{self.keytool} -delete -v -alias {alias} -keystore truststore.jks -storepass {self.state.broker.truststore_password} -noprompt"
+            command = f"{self.keytool} -delete -v -alias {alias} -keystore truststore.jks -storepass {self.state.unit_broker.truststore_password} -noprompt"
             self.workload.exec(command=command, working_dir=self.workload.paths.conf_path)
             self.workload.exec(f"rm -f {alias}.pem", working_dir=self.workload.paths.conf_path)
         except (subprocess.CalledProcessError, ExecError) as e:
@@ -112,6 +124,74 @@ class TLSManager:
                 return
             logger.error(e.stdout)
             raise e
+
+    def _build_extra_sans(self) -> list[str]:
+        """Parse the certificate_extra_sans config option."""
+        extra_sans = self.config.extra_listeners or self.config.certificate_extra_sans or []
+        clean_sans = [san.split(":")[0] for san in extra_sans]
+        parsed_sans = [
+            san.replace("{unit}", str(self.state.unit_broker.unit_id)) for san in clean_sans
+        ]
+
+        return parsed_sans
+
+    def build_sans(self) -> Sans:
+        """Builds a SAN dict of DNS names and IPs for the unit."""
+        if self.substrate == "vm":
+            return {
+                "sans_ip": [
+                    self.state.unit_broker.host,
+                ],
+                "sans_dns": [self.state.unit_broker.unit.name, socket.getfqdn()]
+                + self._build_extra_sans(),
+            }
+        else:
+            return {
+                "sans_ip": sorted(
+                    [
+                        str(self.state.bind_address),
+                    ]
+                ),
+                "sans_dns": sorted(
+                    [
+                        self.state.unit_broker.host.split(".")[0],
+                        self.state.unit_broker.host,
+                        socket.getfqdn(),
+                    ]
+                    + self._build_extra_sans()
+                ),
+            }
+
+    def get_current_sans(self) -> Sans | None:
+        """Gets the current SANs for the unit cert."""
+        if not self.state.unit_broker.certificate:
+            return
+
+        command = ["openssl", "x509", "-noout", "-ext", "subjectAltName", "-in", "server.pem"]
+
+        try:
+            sans_lines = self.workload.exec(
+                command=" ".join(command), working_dir=self.workload.paths.conf_path
+            ).splitlines()
+        except (subprocess.CalledProcessError, ExecError) as e:
+            logger.error(e.stdout)
+            raise e
+
+        for line in sans_lines:
+            if "DNS" in line and "IP" in line:
+                break
+
+        sans_ip = []
+        sans_dns = []
+        for item in line.split(","):
+            san_type, san_value = item.split(":")
+
+            if san_type.strip() == "DNS":
+                sans_dns.append(san_value)
+            if san_type.strip() == "IP Address":
+                sans_ip.append(san_value)
+
+        return {"sans_ip": sorted(sans_ip), "sans_dns": sorted(sans_dns)}
 
     def remove_stores(self) -> None:
         """Cleans up all keys/certs/stores on a unit."""

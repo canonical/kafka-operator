@@ -4,8 +4,11 @@
 
 """Manager for handling Kafka configuration."""
 
+import inspect
 import logging
-from typing import cast
+import os
+import re
+import textwrap
 
 from core.cluster import ClusterState
 from core.structured_config import CharmConfig, LogLevel
@@ -18,20 +21,20 @@ from literals import (
     JVM_MEM_MIN_GB,
     SECURITY_PROTOCOL_PORTS,
     AuthMechanism,
+    AuthProtocol,
     Scope,
 )
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_CONFIG_OPTIONS = """
-sasl.enabled.mechanisms=SCRAM-SHA-512
 sasl.mechanism.inter.broker.protocol=SCRAM-SHA-512
 authorizer.class.name=kafka.security.authorizer.AclAuthorizer
 allow.everyone.if.no.acl.found=false
 auto.create.topics.enable=false
 """
 
-SERVER_PROPERTIES_BLACKLIST = ["profile", "log_level", "certificate_extra_sans"]
+SERVER_PROPERTIES_BLACKLIST = ["profile", "log_level", "certificate_extra_sans", "extra_listeners"]
 
 
 class Listener:
@@ -40,13 +43,24 @@ class Listener:
     Args:
         host: string with the host that will be announced
         protocol: auth protocol to be used
-        scope: scope of the listener, CLIENT or INTERNAL
+        scope: scope of the listener, CLIENT, INTERNAL or EXTRA
     """
 
-    def __init__(self, host: str, protocol: AuthMechanism, scope: Scope):
-        self.protocol: AuthMechanism = protocol
+    def __init__(
+        self,
+        host: str,
+        protocol: AuthProtocol,
+        mechanism: AuthMechanism,
+        scope: Scope,
+        baseport: int = 30000,
+        extra_count: int = -1,
+    ):
+        self.protocol: AuthProtocol = protocol
+        self.mechanism: AuthMechanism = mechanism
         self.host = host
         self.scope = scope
+        self.baseport = baseport
+        self.extra_count = extra_count
 
     @property
     def scope(self) -> Scope:
@@ -56,8 +70,8 @@ class Listener:
     @scope.setter
     def scope(self, value):
         """Internal scope validator."""
-        if value not in ["CLIENT", "INTERNAL"]:
-            raise ValueError("Only CLIENT and INTERNAL scopes are accepted")
+        if value not in ["CLIENT", "INTERNAL", "EXTRA"]:
+            raise ValueError("Only CLIENT, INTERNAL and EXTRA scopes are accepted")
 
         self._scope = value
 
@@ -70,15 +84,24 @@ class Listener:
         Returns:
             Integer of port number
         """
-        if self.scope == "CLIENT":
-            return SECURITY_PROTOCOL_PORTS[self.protocol].client
+        # generates ports 39092, 39192, 39292 etc for listener auth if baseport=30000
+        if self.scope == "EXTRA":
+            return (
+                getattr(SECURITY_PROTOCOL_PORTS[self.protocol, self.mechanism], "client")
+                + self.baseport
+            )
 
-        return SECURITY_PROTOCOL_PORTS[self.protocol].internal
+        port = SECURITY_PROTOCOL_PORTS[self.protocol, self.mechanism]
+        if self.scope == "CLIENT":
+            return port.client
+        return port.internal
 
     @property
     def name(self) -> str:
         """Name of the listener."""
-        return f"{self.scope}_{self.protocol}"
+        return f"{self.scope}_{self.protocol}_{self.mechanism.replace('-', '_')}" + (
+            f"_{self.extra_count}" if self.extra_count >= 0 else ""
+        )
 
     @property
     def protocol_map(self) -> str:
@@ -96,7 +119,7 @@ class Listener:
         return f"{self.name}://{self.host}:{self.port}"
 
 
-class KafkaConfigManager:
+class ConfigManager:
     """Manager for handling Kafka configuration."""
 
     def __init__(
@@ -120,8 +143,9 @@ class KafkaConfigManager:
         """
         # Remapping to WARN that is generally used in Java applications based on log4j and logback.
         if self.config.log_level == LogLevel.WARNING.value:
-            return "WARN"
-        return self.config.log_level
+            return "KAFKA_CFG_LOGLEVEL=WARN"
+
+        return f"KAFKA_CFG_LOGLEVEL={self.config.log_level}"
 
     @property
     def jmx_opts(self) -> str:
@@ -136,6 +160,19 @@ class KafkaConfigManager:
         ]
 
         return f"KAFKA_JMX_OPTS='{' '.join(opts)}'"
+
+    @property
+    def tools_log4j_opts(self) -> str:
+        """The Log4j options for configuring the tooling logging.
+
+        Returns:
+            String of Log4j options
+        """
+        opts = [
+            '-Dlog4j.configuration=file:{self.workload.paths.tools_log4j_properties} -Dcharmed.kafka.log.level={self.log_level.split("=")[1]}'
+        ]
+
+        return f"KAFKA_LOG4J_OPTS='{' '.join(opts)}'"
 
     @property
     def jvm_performance_opts(self) -> str:
@@ -180,8 +217,19 @@ class KafkaConfigManager:
         """
         opts = [
             f"-Djava.security.auth.login.config={self.workload.paths.zk_jaas}",
-            f"-Dcharmed.kafka.log.level={self.log_level}",
         ]
+
+        http_proxy = os.environ.get("JUJU_CHARM_HTTP_PROXY")
+        https_proxy = os.environ.get("JUJU_CHARM_HTTPS_PROXY")
+        no_proxy = os.environ.get("JUJU_CHARM_NO_PROXY")
+
+        for prot, proxy in {"http": http_proxy, "https": https_proxy}.items():
+            if proxy:
+                proxy = re.sub(r"^https?://", "", proxy)
+                [host, port] = proxy.split(":") if ":" in proxy else [proxy, "8080"]
+                opts.append(f"-D{prot}.proxyHost={host} -D{prot}.proxyPort={port}")
+        if no_proxy:
+            opts.append(f"-Dhttp.nonProxyHosts={no_proxy}")
 
         return f"KAFKA_OPTS='{' '.join(opts)}'"
 
@@ -212,7 +260,7 @@ class KafkaConfigManager:
             List of properties to be set
         """
         return [
-            f"broker.id={self.state.broker.unit_id}",
+            f"broker.id={self.state.unit_broker.unit_id}",
             f"zookeeper.connect={self.state.zookeeper.connect}",
         ]
 
@@ -226,7 +274,7 @@ class KafkaConfigManager:
         return [
             "zookeeper.ssl.client.enable=true",
             f"zookeeper.ssl.truststore.location={self.workload.paths.truststore}",
-            f"zookeeper.ssl.truststore.password={self.state.broker.truststore_password}",
+            f"zookeeper.ssl.truststore.password={self.state.unit_broker.truststore_password}",
             "zookeeper.clientCnxnSocket=org.apache.zookeeper.ClientCnxnSocketNetty",
         ]
 
@@ -240,9 +288,9 @@ class KafkaConfigManager:
         mtls = "required" if self.state.cluster.mtls_enabled else "none"
         return [
             f"ssl.truststore.location={self.workload.paths.truststore}",
-            f"ssl.truststore.password={self.state.broker.truststore_password}",
+            f"ssl.truststore.password={self.state.unit_broker.truststore_password}",
             f"ssl.keystore.location={self.workload.paths.keystore}",
-            f"ssl.keystore.password={self.state.broker.keystore_password}",
+            f"ssl.keystore.password={self.state.unit_broker.keystore_password}",
             f"ssl.client.auth={mtls}",
         ]
 
@@ -256,62 +304,163 @@ class KafkaConfigManager:
         username = INTER_BROKER_USER
         password = self.state.cluster.internal_user_credentials.get(INTER_BROKER_USER, "")
 
+        listener_name = self.internal_listener.name.lower()
+        listener_mechanism = self.internal_listener.mechanism.lower()
+
         scram_properties = [
-            f'listener.name.{self.internal_listener.name.lower()}.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";'
+            f'listener.name.{listener_name}.{listener_mechanism}.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";',
+            f"listener.name.{listener_name}.sasl.enabled.mechanisms={self.internal_listener.mechanism}",
         ]
-        client_scram = [
-            auth.name for auth in self.client_listeners if auth.protocol.startswith("SASL_")
-        ]
-        for name in client_scram:
+
+        for auth in self.client_listeners + self.extra_listeners:
+            if not auth.mechanism.startswith("SCRAM"):
+                continue
+
             scram_properties.append(
-                f'listener.name.{name.lower()}.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";'
+                f'listener.name.{auth.name.lower()}.{auth.mechanism.lower()}.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";'
+            )
+            scram_properties.append(
+                f"listener.name.{auth.name.lower()}.sasl.enabled.mechanisms={auth.mechanism}"
             )
 
         return scram_properties
 
     @property
-    def security_protocol(self) -> AuthMechanism:
-        """Infers current charm security.protocol based on current relations."""
-        # FIXME: When we have multiple auth_mechanims/listeners, remove this method
-        return (
-            "SASL_SSL"
-            if (self.state.cluster.tls_enabled and self.state.broker.certificate)
-            else "SASL_PLAINTEXT"
+    def oauth_properties(self) -> list[str]:
+        """Builds the properties for the oauth listener.
+
+        Returns:
+            list of oauth properties to be set.
+        """
+        if not self.state.oauth_relation:
+            return []
+
+        listener = [
+            listener
+            for listener in self.client_listeners
+            if listener.mechanism.startswith("OAUTH")
+        ][0]
+
+        username_claim = "email"
+        username_fallback_claim = "client_id"
+
+        # use jwks validation if jwt token, otherwise use introspection validation
+        validation_cfg = (
+            f'oauth.jwks.endpoint.uri="{self.state.oauth.jwks_endpoint}"'
+            if self.state.oauth.jwt_access_token
+            else f'oauth.introspection.endpoint.uri="{self.state.oauth.introspection_endpoint}"'
         )
 
-    @property
-    def auth_mechanisms(self) -> list[AuthMechanism]:
-        """Return a list of enabled auth mechanisms."""
-        # TODO: At the moment only one mechanism for extra listeners. Will need to be
-        # extended with more depending on configuration settings.
-        protocol = [self.security_protocol]
-        if self.state.cluster.mtls_enabled:
-            protocol += ["SSL"]
+        truststore_cfg = ""
+        if not self.state.oauth.uses_trusted_ca:
+            truststore_cfg = f'oauth.ssl.truststore.location="{self.workload.paths.truststore}" oauth.ssl.truststore.password="{self.state.unit_broker.truststore_password}" oauth.ssl.truststore.type="JKS"'
 
-        return cast(list[AuthMechanism], protocol)
+        scram_properties = [
+            textwrap.dedent(
+                f"""\
+                listener.name.{listener.name.lower()}.{listener.mechanism.lower()}.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \\
+                    oauth.client.id="kafka" \\
+                    oauth.valid.issuer.uri="{self.state.oauth.issuer_url}" \\
+                    {validation_cfg} \\
+                    oauth.username.claim="{username_claim}" \\
+                    oauth.fallback.username.claim="{username_fallback_claim}" \\
+                    oauth.check.audience="true" \\
+                    oauth.check.access.token.type="false" \\
+                    oauth.config.id="{listener.name}" \\
+                    unsecuredLoginStringClaim_sub="unused" \\
+                    {truststore_cfg};"""
+            ),
+            f"listener.name.{listener.name.lower()}.{listener.mechanism.lower()}.sasl.server.callback.handler.class=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler",
+            f"listener.name.{listener.name.lower()}.sasl.enabled.mechanisms={listener.mechanism}",
+            "principal.builder.class=io.strimzi.kafka.oauth.server.OAuthKafkaPrincipalBuilder",
+        ]
+
+        return scram_properties
+
+    @property
+    def security_protocol(self) -> AuthProtocol:
+        """Infers current charm security.protocol based on current relations."""
+        return (
+            "SASL_SSL"
+            if (self.state.cluster.tls_enabled and self.state.unit_broker.certificate)
+            else "SASL_PLAINTEXT"
+        )
 
     @property
     def internal_listener(self) -> Listener:
         """Return the internal listener."""
         protocol = self.security_protocol
-        return Listener(host=self.state.broker.host, protocol=protocol, scope="INTERNAL")
+        mechanism: AuthMechanism = "SCRAM-SHA-512"
+        return Listener(
+            host=self.state.unit_broker.host,
+            protocol=protocol,
+            mechanism=mechanism,
+            scope="INTERNAL",
+        )
 
     @property
     def client_listeners(self) -> list[Listener]:
         """Return a list of extra listeners."""
-        # if there is a relation with kafka then add extra listener
-        if not self.state.client_relations:
-            return []
+        protocol_mechanism_dict: list[tuple[AuthProtocol, AuthMechanism]] = []
+        if self.state.client_relations:
+            protocol_mechanism_dict.append((self.security_protocol, "SCRAM-SHA-512"))
+        if self.state.oauth_relation:
+            protocol_mechanism_dict.append((self.security_protocol, "OAUTHBEARER"))
+        if self.state.cluster.mtls_enabled:
+            protocol_mechanism_dict.append(("SSL", "SSL"))
 
         return [
-            Listener(host=self.state.broker.host, protocol=auth, scope="CLIENT")
-            for auth in self.auth_mechanisms
+            Listener(
+                host=self.state.unit_broker.host,
+                protocol=protocol,
+                mechanism=mechanism,
+                scope="CLIENT",
+            )
+            for protocol, mechanism in protocol_mechanism_dict
         ]
+
+    @property
+    def extra_listeners(self) -> list[Listener]:
+        """Return a list of extra listeners."""
+        protocol_mechanism_dict: list[tuple[AuthProtocol, AuthMechanism]] = []
+        if self.state.client_relations:
+            protocol_mechanism_dict.append((self.security_protocol, "SCRAM-SHA-512"))
+        if self.state.oauth_relation:
+            protocol_mechanism_dict.append((self.security_protocol, "OAUTHBEARER"))
+        if self.state.cluster.mtls_enabled:
+            protocol_mechanism_dict.append(("SSL", "SSL"))
+
+        extra_host_baseports = [
+            tuple(listener.split(":")) for listener in self.config.extra_listeners
+        ]
+
+        extra_listeners = []
+        extra_count = 0
+        for host, baseport in extra_host_baseports:
+            if "{unit}" not in host:
+                continue
+
+            for protocol, mechanism in protocol_mechanism_dict:
+                host = host.replace("{unit}", str(self.state.unit_broker.unit_id))
+                extra_listeners.append(
+                    Listener(
+                        host=host,
+                        protocol=protocol,
+                        mechanism=mechanism,
+                        scope="EXTRA",
+                        baseport=int(baseport),
+                        extra_count=extra_count,
+                    )
+                )
+
+            extra_count += 1
+
+        return extra_listeners
 
     @property
     def all_listeners(self) -> list[Listener]:
         """Return a list with all expected listeners."""
-        return [self.internal_listener] + self.client_listeners
+        return [self.internal_listener] + self.client_listeners + self.extra_listeners
 
     @property
     def inter_broker_protocol_version(self) -> str:
@@ -320,7 +469,7 @@ class KafkaConfigManager:
         Returns:
             String with the `major.minor` version
         """
-        # Remove patch number from full vervion.
+        # Remove patch number from full version.
         major_minor = self.current_version.split(".", maxsplit=2)
         return ".".join(major_minor[:2])
 
@@ -352,10 +501,10 @@ class KafkaConfigManager:
             "sasl.mechanism=SCRAM-SHA-512",
             f"security.protocol={self.security_protocol}",
             # FIXME: security.protocol will need changing once multiple listener auth schemes
-            f"bootstrap.servers={','.join(self.state.bootstrap_server)}",
+            f"bootstrap.servers={self.state.bootstrap_server}",
         ]
 
-        if self.state.cluster.tls_enabled and self.state.broker.certificate:
+        if self.state.cluster.tls_enabled and self.state.unit_broker.certificate:
             client_properties += self.tls_properties
 
         return client_properties
@@ -386,15 +535,16 @@ class KafkaConfigManager:
                 f"inter.broker.listener.name={self.internal_listener.name}",
                 f"inter.broker.protocol.version={self.inter_broker_protocol_version}",
             ]
-            + self.config_properties
             + self.scram_properties
+            + self.oauth_properties
+            + self.config_properties
             + self.default_replication_properties
             + self.auth_properties
             + self.rack_properties
             + DEFAULT_CONFIG_OPTIONS.split("\n")
         )
 
-        if self.state.cluster.tls_enabled and self.state.broker.certificate:
+        if self.state.cluster.tls_enabled and self.state.unit_broker.certificate:
             properties += self.tls_properties + self.zookeeper_tls_properties
 
         return properties
@@ -415,14 +565,15 @@ class KafkaConfigManager:
         Returns:
             String of Jaas config for ZooKeeper auth
         """
-        return f"""
-Client {{
-    org.apache.zookeeper.server.auth.DigestLoginModule required
-    username="{self.state.zookeeper.username}"
-    password="{self.state.zookeeper.password}";
-}};
-
+        return inspect.cleandoc(
+            f"""
+            Client {{
+                org.apache.zookeeper.server.auth.DigestLoginModule required
+                username="{self.state.zookeeper.username}"
+                password="{self.state.zookeeper.password}";
+            }};
         """
+        )
 
     def set_zk_jaas_config(self) -> None:
         """Writes the ZooKeeper JAAS config using ZooKeeper relation data."""
@@ -447,6 +598,7 @@ Client {{
             self.jmx_opts,
             self.jvm_performance_opts,
             self.heap_opts,
+            self.log_level,
         ]
 
         def map_env(env: list[str]) -> dict[str, str]:

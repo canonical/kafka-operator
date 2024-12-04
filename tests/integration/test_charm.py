@@ -3,6 +3,7 @@
 # See LICENSE file for licensing details.
 
 import asyncio
+import json
 import logging
 import time
 from subprocess import PIPE, check_output
@@ -11,7 +12,7 @@ import pytest
 import requests
 from pytest_operator.plugin import OpsTest
 
-from literals import JMX_EXPORTER_PORT, REL_NAME, SECURITY_PROTOCOL_PORTS
+from literals import DEPENDENCIES, JMX_EXPORTER_PORT, REL_NAME, SECURITY_PROTOCOL_PORTS
 
 from .helpers import (
     APP_NAME,
@@ -46,6 +47,7 @@ async def test_build_and_deploy_same_machine(ops_test: OpsTest, kafka_charm):
             channel="edge",
             application_name=SAME_ZK,
             num_units=1,
+            revision=137,
             series="jammy",
             to=machine_ids[0],
         ),
@@ -81,13 +83,24 @@ async def test_build_and_deploy_same_machine(ops_test: OpsTest, kafka_charm):
 async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
     await ops_test.model.add_machine(series="jammy")
     machine_ids = await ops_test.model.get_machines()
+    await ops_test.model.create_storage_pool("test_pool", "lxd")
 
     await asyncio.gather(
         ops_test.model.deploy(
-            kafka_charm, application_name=APP_NAME, num_units=1, series="jammy", to=machine_ids[0]
+            kafka_charm,
+            application_name=APP_NAME,
+            num_units=1,
+            series="jammy",
+            to=machine_ids[0],
+            storage={"data": {"pool": "test_pool", "size": 10240}},
         ),
         ops_test.model.deploy(
-            ZK_NAME, channel="edge", application_name=ZK_NAME, num_units=1, series="jammy"
+            ZK_NAME,
+            channel="edge",
+            application_name=ZK_NAME,
+            num_units=1,
+            series="jammy",
+            revision=137,
         ),
     )
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], idle_period=30, timeout=3600)
@@ -95,11 +108,16 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
     assert ops_test.model.applications[ZK_NAME].status == "active"
 
     await ops_test.model.add_relation(APP_NAME, ZK_NAME)
-    async with ops_test.fast_forward():
-        await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME])
+    async with ops_test.fast_forward(fast_interval="60s"):
+        await ops_test.model.wait_for_idle(
+            apps=[APP_NAME, ZK_NAME], idle_period=30, status="active"
+        )
 
-    assert ops_test.model.applications[APP_NAME].status == "active"
-    assert ops_test.model.applications[ZK_NAME].status == "active"
+
+@pytest.mark.abort_on_fail
+async def test_consistency_between_workload_and_metadata(ops_test: OpsTest):
+    application = ops_test.model.applications[APP_NAME]
+    assert application.data.get("workload-version", "") == DEPENDENCIES["kafka_service"]["version"]
 
 
 @pytest.mark.abort_on_fail
@@ -112,7 +130,7 @@ async def test_remove_zk_relation_relate(ops_test: OpsTest):
     assert ops_test.model.applications[ZK_NAME].status == "active"
 
     await ops_test.model.add_relation(APP_NAME, ZK_NAME)
-    async with ops_test.fast_forward():
+    async with ops_test.fast_forward(fast_interval="60s"):
         await ops_test.model.wait_for_idle(
             apps=[APP_NAME, ZK_NAME], status="active", idle_period=30, timeout=1000
         )
@@ -122,27 +140,38 @@ async def test_remove_zk_relation_relate(ops_test: OpsTest):
 async def test_listeners(ops_test: OpsTest, app_charm):
     address = await get_address(ops_test=ops_test)
     assert check_socket(
-        address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].internal
+        address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].internal
     )  # Internal listener
+
     # Client listener should not be enabled if there is no relations
-    assert not check_socket(address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].client)
+    assert not check_socket(
+        address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
+    )
+
     # Add relation with dummy app
     await asyncio.gather(
         ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series="jammy"),
     )
     await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME, ZK_NAME])
+
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
+
     assert ops_test.model.applications[APP_NAME].status == "active"
     assert ops_test.model.applications[DUMMY_NAME].status == "active"
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME, DUMMY_NAME])
+
     # check that client listener is active
-    assert check_socket(address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].client)
+    assert check_socket(address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client)
+
     # remove relation and check that client listener is not active
     await ops_test.model.applications[APP_NAME].remove_relation(
         f"{APP_NAME}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_ADMIN}"
     )
     await ops_test.model.wait_for_idle(apps=[APP_NAME])
-    assert not check_socket(address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT"].client)
+
+    assert not check_socket(
+        address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
+    )
 
 
 @pytest.mark.abort_on_fail
@@ -173,9 +202,10 @@ async def test_logs_write_to_storage(ops_test: OpsTest):
     time.sleep(10)
     assert ops_test.model.applications[APP_NAME].status == "active"
     assert ops_test.model.applications[DUMMY_NAME].status == "active"
-    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME, DUMMY_NAME])
+    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME, DUMMY_NAME], idle_period=30)
+
     produce_and_check_logs(
-        model_full_name=ops_test.model_full_name,
+        ops_test=ops_test,
         kafka_unit_name=f"{APP_NAME}/0",
         provider_unit_name=f"{DUMMY_NAME}/0",
         topic="hot-topic",
@@ -253,7 +283,7 @@ async def test_logs_write_to_new_storage(ops_test: OpsTest):
     time.sleep(5)  # to give time for storage to complete
 
     produce_and_check_logs(
-        model_full_name=ops_test.model_full_name,
+        ops_test=ops_test,
         kafka_unit_name=f"{APP_NAME}/0",
         provider_unit_name=f"{DUMMY_NAME}/0",
         topic="cold-topic",
@@ -292,3 +322,30 @@ async def test_observability_integration(ops_test: OpsTest):
     for targets in machine_targets.values():
         assert '"state":"up"' in targets
         assert '"state":"down"' not in targets
+
+
+@pytest.mark.abort_on_fail
+async def test_deploy_with_existing_storage(ops_test: OpsTest):
+    unit_to_remove, *_ = await ops_test.model.applications[APP_NAME].add_units(count=3)
+    await ops_test.model.block_until(lambda: len(ops_test.model.applications[APP_NAME].units) == 4)
+    await ops_test.model.wait_for_idle(
+        apps=[APP_NAME], status="active", timeout=1000, idle_period=30
+    )
+
+    _, stdout, _ = await ops_test.juju("storage", "--format", "json")
+    storages = json.loads(stdout)["storage"]
+
+    for data_storage_id, content in storages.items():
+        units = content["attachments"]["units"].keys()
+        if unit_to_remove.name not in units:
+            continue
+        break
+
+    await unit_to_remove.remove(destroy_storage=False)
+    await ops_test.model.block_until(lambda: len(ops_test.model.applications[APP_NAME].units) == 3)
+
+    add_unit_cmd = f"add-unit {APP_NAME} --model={ops_test.model.info.name} --attach-storage={data_storage_id}".split()
+    await ops_test.juju(*add_unit_cmd)
+    await ops_test.model.wait_for_idle(
+        apps=[APP_NAME], status="active", timeout=1000, idle_period=60
+    )
