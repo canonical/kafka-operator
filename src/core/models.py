@@ -785,14 +785,14 @@ class ZooKeeper(RelationState):
             # compatibility with older zk versions
             port = 2181
 
-        zk = ZooKeeperManager(
-            hosts=hosts,
-            client_port=port,
-            username=self.username,
-            password=self.password,
-            use_ssl=self.tls,
-        )
         try:
+            zk = ZooKeeperManager(
+                hosts=hosts,
+                client_port=port,
+                username=self.username,
+                password=self.password,
+                use_ssl=self.tls,
+            )
             brokers = zk.leader_znodes(path=path)
         except (
             NoNodeError,
