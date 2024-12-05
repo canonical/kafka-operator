@@ -103,6 +103,7 @@ class PeerCluster(RelationState):
         balancer_username: str = "",
         balancer_password: str = "",
         balancer_uris: str = "",
+        controller_password: str = "",
     ):
         super().__init__(relation, data_interface, None, None)
         self._broker_username = broker_username
@@ -118,6 +119,7 @@ class PeerCluster(RelationState):
         self._balancer_username = balancer_username
         self._balancer_password = balancer_password
         self._balancer_uris = balancer_uris
+        self._controller_password = controller_password
 
     @property
     def roles(self) -> str:
@@ -193,6 +195,22 @@ class PeerCluster(RelationState):
             )
             or ""
         )
+
+    @property
+    def controller_password(self) -> str:
+        """The controller user password in KRaft mode."""
+        if self._controller_password:
+            return self._controller_password
+
+        if not self.relation or not self.relation.app:
+            return ""
+
+        return self.data_interface._fetch_relation_data_with_secrets(
+            component=self.relation.app,
+            req_secret_fields=["controller-password"],
+            relation=self.relation,
+            fields=["controller-password"],
+        ).get("controller-password", "")
 
     @property
     def cluster_uuid(self) -> str:
@@ -411,6 +429,11 @@ class KafkaCluster(RelationState):
             return {}
 
         return credentials
+
+    @property
+    def controller_password(self) -> str:
+        """The controller user password in KRaft mode."""
+        return self.relation_data.get("controller-password", "")
 
     @property
     def client_passwords(self) -> dict[str, str]:

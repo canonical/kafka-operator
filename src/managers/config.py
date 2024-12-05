@@ -26,6 +26,7 @@ from literals import (
     BROKER,
     CONTROLLER_LISTENER_NAME,
     CONTROLLER_PORT,
+    CONTROLLER_USER,
     DEFAULT_BALANCER_GOALS,
     HARD_BALANCER_GOALS,
     INTER_BROKER_USER,
@@ -413,6 +414,24 @@ class ConfigManager(CommonConfigManager):
         return scram_properties
 
     @property
+    def controller_scram_properties(self) -> list[str]:
+        """Builds the SCRAM properties for controller listener.
+
+        Returns:
+            list of scram properties to be set
+        """
+        password = self.state.peer_cluster.controller_password
+        listener_mechanism = self.internal_listener.mechanism.lower()
+        listener_name = CONTROLLER_LISTENER_NAME.lower()
+
+        return [
+            "sasl.enabled.mechanisms=SCRAM-SHA-512",
+            f"sasl.mechanism.controller.protocol={self.internal_listener.mechanism}",
+            f'listener.name.{listener_name}.{listener_mechanism}.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{CONTROLLER_USER}" password="{password}" user_{CONTROLLER_USER}="{password}";',
+            f"listener.name.{listener_name}.sasl.enabled.mechanisms={self.internal_listener.mechanism}",
+        ]
+
+    @property
     def oauth_properties(self) -> list[str]:
         """Builds the properties for the oauth listener.
 
@@ -636,8 +655,9 @@ class ConfigManager(CommonConfigManager):
     def authorizer_class(self) -> list[str]:
         """Return the authorizer Java class used on Kafka."""
         if self.state.kraft_mode:
-            # return ["authorizer.class.name=org.apache.kafka.metadata.authorizer.StandardAuthorizer"]
-            return []
+            return [
+                "authorizer.class.name=org.apache.kafka.metadata.authorizer.StandardAuthorizer"
+            ]
         return ["authorizer.class.name=kafka.security.authorizer.AclAuthorizer"]
 
     @property
@@ -663,6 +683,7 @@ class ConfigManager(CommonConfigManager):
             f"node.id={node_id}",
             f"controller.quorum.voters={self.state.peer_cluster.controller_quorum_uris}",
             f"controller.listener.names={CONTROLLER_LISTENER_NAME}",
+            *self.controller_scram_properties,
         ]
 
         return properties
@@ -684,16 +705,21 @@ class ConfigManager(CommonConfigManager):
         advertised_listeners = [listener.advertised_listener for listener in self.all_listeners]
 
         if self.state.kraft_mode:
-            controller_protocol_map = f"{CONTROLLER_LISTENER_NAME}:PLAINTEXT"
+            controller_protocol_map = f"{CONTROLLER_LISTENER_NAME}:SASL_PLAINTEXT"
             controller_listener = f"{CONTROLLER_LISTENER_NAME}://0.0.0.0:{CONTROLLER_PORT}"
 
             # NOTE: Case where the controller is running standalone. Early return with a
             # smaller subset of config options
             if not self.state.runs_broker:
                 properties = (
-                    [f"log.dirs={self.state.log_dirs}", f"listeners={controller_listener}"]
+                    [
+                        f"super.users={self.state.super_users}",
+                        f"log.dirs={self.state.log_dirs}",
+                        f"listeners={controller_listener}",
+                        f"listener.security.protocol.map={controller_protocol_map}",
+                    ]
                     + self.controller_properties
-                    # + self.authorizer_class
+                    + self.authorizer_class
                 )
                 return properties
 
