@@ -46,10 +46,13 @@ MIN_REPLICAS = 3
 
 INTER_BROKER_USER = "sync"
 ADMIN_USER = "admin"
+CONTROLLER_USER = "controller"
 INTERNAL_USERS = [INTER_BROKER_USER, ADMIN_USER]
 BALANCER_WEBSERVER_USER = "balancer"
 BALANCER_WEBSERVER_PORT = 9090
-SECRETS_APP = [f"{user}-password" for user in INTERNAL_USERS + [BALANCER_WEBSERVER_USER]]
+SECRETS_APP = [
+    f"{user}-password" for user in INTERNAL_USERS + [BALANCER_WEBSERVER_USER, CONTROLLER_USER]
+]
 SECRETS_UNIT = [
     "ca-cert",
     "csr",
@@ -147,6 +150,7 @@ BROKER = Role(
         "balancer-username",
         "balancer-password",
         "balancer-uris",
+        "controller-password",
     ],
 )
 CONTROLLER = Role(
@@ -157,6 +161,7 @@ CONTROLLER = Role(
     requested_secrets=[
         "broker-username",
         "broker-password",
+        "controller-password",
     ],
 )
 BALANCER = Role(
@@ -168,6 +173,7 @@ BALANCER = Role(
         "broker-username",
         "broker-password",
         "broker-uris",
+        "controller-passwrod",
         "zk-username",
         "zk-password",
         "zk-uris",
@@ -232,6 +238,9 @@ class Status(Enum):
     MISSING_MODE = StatusLevel(BlockedStatus("Application needs ZooKeeper or KRaft mode"), "DEBUG")
     NO_CLUSTER_UUID = StatusLevel(WaitingStatus("Waiting for cluster uuid"), "DEBUG")
     NO_QUORUM_URIS = StatusLevel(WaitingStatus("Waiting for quorum uris"), "DEBUG")
+    MISSING_CONTROLLER_PASSWORD = StatusLevel(
+        WaitingStatus("Waiting for controller user credentials"), "DEBUG"
+    )
     ZK_NOT_RELATED = StatusLevel(BlockedStatus("missing required zookeeper relation"), "DEBUG")
     ZK_NOT_CONNECTED = StatusLevel(BlockedStatus("unit not connected to zookeeper"), "ERROR")
     ZK_TLS_MISMATCH = StatusLevel(
