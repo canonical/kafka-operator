@@ -16,11 +16,7 @@ from literals import (
     SECURITY_PROTOCOL_PORTS,
 )
 
-from .helpers import (
-    APP_NAME,
-    check_socket,
-    get_address,
-)
+from .helpers import APP_NAME, check_socket, create_test_topic, get_address
 
 logger = logging.getLogger(__name__)
 
@@ -107,8 +103,8 @@ class TestKRaft:
             apps=list({APP_NAME, self.controller_app}), idle_period=30
         )
 
-        async with ops_test.fast_forward(fast_interval="40s"):
-            await asyncio.sleep(120)
+        async with ops_test.fast_forward(fast_interval="20s"):
+            await asyncio.sleep(240)
 
         assert ops_test.model.applications[APP_NAME].status == "active"
         assert ops_test.model.applications[self.controller_app].status == "active"
@@ -130,3 +126,11 @@ class TestKRaft:
             address = await get_address(ops_test=ops_test, app_name=self.controller_app)
 
         assert check_socket(address, CONTROLLER_PORT)
+
+    @pytest.mark.abort_on_fail
+    async def test_authorizer(self, ops_test: OpsTest):
+
+        address = await get_address(ops_test=ops_test)
+        port = SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].internal
+
+        await create_test_topic(ops_test, f"{address}:{port}")
