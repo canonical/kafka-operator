@@ -13,7 +13,7 @@ While upgrading an Apache Kafka cluster, do not perform any other major operatio
 1. Adding or removing units
 2. Creating or destroying new relations
 3. Changes in workload configuration
-4. Upgrading other connected applications (e.g. Apache ZooKeeper)
+4. Upgrading other connected applications (e.g. Charmed Apache ZooKeeper)
 
 The concurrency with other operations is not supported, and it can lead the cluster into inconsistent states.
 
@@ -28,7 +28,7 @@ When performing an in-place upgrade process, the full process is composed of the
 
 ### Step 1: Collect
 
-The first step is to record the revisions of the running application, as a safety measure for a rollback action if needed. To accomplish this, simply run the `juju status` command and look for the revisions of the deployed Apache Kafka and Apache ZooKeeper applications. You can also retrieve this with the following command (that requires [yq](https://snapcraft.io/install/yq/ubuntu) to be installed):
+The first step is to record the revisions of the running application, as a safety measure for a rollback action if needed. To accomplish this, simply run the `juju status` command and look for the revisions of the deployed Charmed Apache Kafka and Charmed Apache ZooKeeper applications. You can also retrieve this with the following command (that requires [yq](https://snapcraft.io/install/yq/ubuntu) to be installed):
 
 ```shell
 KAFKA_CHARM_REVISION=$(juju status --format json | yq .applications.<KAFKA_APP_NAME>.charm-rev)
@@ -121,7 +121,7 @@ We strongly recommend to also retrieve the full set of logs with `juju debug-log
 
 ## Apache ZooKeeper upgrade
 
-Although the previous steps focused on upgrading Apache Kafka, the same process can also be applied to Apache ZooKeeper. However, for revisions prior to XXX, a patch needs to be applied before running the aforementioned process. The Apache ZooKeeper process, as part of its operations, overwrites the `zoo.cfg` pinning the snap revision for the `dynamicConfigFile`. This may create problems in the upgrade if `snapd` removes the previous revision once the snap is refreshed. To prevent this, it is sufficient to replace the `<SNAP_REVISION>` with `current`. 
+Although the previous steps focused on upgrading Charmed Apache Kafka, the same process can also be applied to Apache ZooKeeper. However, for revisions prior to XXX, a patch needs to be applied before running the aforementioned process. The Apache ZooKeeper process, as part of its operations, overwrites the `zoo.cfg` pinning the snap revision for the `dynamicConfigFile`. This may create problems in the upgrade if `snapd` removes the previous revision once the snap is refreshed. To prevent this, it is sufficient to replace the `<SNAP_REVISION>` with `current`. 
 
 To do so, on each unit, first apply the patch:
 
@@ -139,6 +139,6 @@ Check that the server has started correctly, and then apply the patch to the nex
 
 Once all the units have been patched, proceed with the upgrade process, as outlined above. 
 
-## Apache Kafka and Apache ZooKeeper combined upgrades
+## Combined upgrades
 
-If Apache Kafka and Apache ZooKeeper charms need both to be upgraded, we recommend starting the upgrade from the Apache ZooKeeper cluster. As outlined above, the two upgrades should **NEVER** be done concurrently.
+If Charmed Apache Kafka and Charmed Apache ZooKeeper both need to be upgraded, we recommend starting the upgrade from the Charmed Apache ZooKeeper. As outlined above, the two upgrades should **NEVER** be done concurrently.

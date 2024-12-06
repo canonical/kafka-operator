@@ -57,18 +57,18 @@ Juju user credentials must be stored securely and rotated regularly to limit the
 
 In the following, we provide guidance on how to harden your deployment using:
 
-1. Base images
-2. Charmed operator security upgrades
+1. Operating systems
+2. Security upgrades
 3. Encryption 
 4. Authentication
 5. Monitoring and auditing
 
-### Base images
+### Operating systems
 
 Charmed Apache Kafka and Charmed Apache ZooKeeper currently run on top of Ubuntu 22.04. Deploy a [Landscape Client Charm](https://charmhub.io/landscape-client?) in order to 
 connect the underlying VM to a Landscape User Account to manage security upgrades and integrate Ubuntu Pro subscriptions. 
 
-### Charmed operator security upgrades
+### Security upgrades
 
 Charmed Apache Kafka and Charmed Apache ZooKeeper operators install a pinned revision of the [Charmed Apache Kafka snap](https://snapcraft.io/charmed-kafka)
 and [Charmed ZooKeeper snap](https://snapcraft.io/charmed-zookeeper), respectively, to provide reproducible and secure environments. 
@@ -79,7 +79,7 @@ For more information on how to refresh the charm, see the [how-to upgrade](https
 ### Encryption
 
 Charmed Apache Kafka must be deployed with encryption enabled. 
-To do that, you need to relate Apache Kafka and Apache ZooKeeper charms to one of the TLS certificate operator charms. 
+To do that, you need to relate Charmed Apache Kafka and Charmed Apache ZooKeeper to one of the TLS certificate operator charms. 
 Please refer to the [Charming Security page](https://charmhub.io/topics/security-with-x-509-certificates) for more information on how to select the right certificate
 provider for your use case. 
 
