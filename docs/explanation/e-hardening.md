@@ -57,13 +57,13 @@ Juju user credentials must be stored securely and rotated regularly to limit the
 
 In the following, we provide guidance on how to harden your deployment using:
 
-1. Operating systems
+1. Operating system
 2. Security upgrades
 3. Encryption 
 4. Authentication
 5. Monitoring and auditing
 
-### Operating systems
+### Operating system
 
 Charmed Apache Kafka and Charmed Apache ZooKeeper currently run on top of Ubuntu 22.04. Deploy a [Landscape Client Charm](https://charmhub.io/landscape-client?) in order to 
 connect the underlying VM to a Landscape User Account to manage security upgrades and integrate Ubuntu Pro subscriptions. 
