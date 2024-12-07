@@ -1,8 +1,8 @@
-This is part of the [Charmed Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571). Please refer to this page for more information and the overview of the content. 
+This is part of the [Charmed Apache Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571). Please refer to this page for more information and an overview of the content. 
 
-## Deploy Charmed Kafka (and Charmed ZooKeeper)
+## Deploy Charmed Apache Kafka (and Charmed ZooKeeper)
 
-To deploy Charmed Kafka, all you need to do is run the following commands, which will automatically fetch [Kafka](https://charmhub.io/kafka?channel=3/stable) and [ZooKeeper](https://charmhub.io/zookeeper?channel=3/stable) charms from [Charmhub](https://charmhub.io/) and deploy them to your model. For example, to deploy a five ZooKeeper unit and three Kafka unit cluster, you can simply run:
+To deploy Charmed Apache Kafka, all you need to do is run the following commands, which will automatically fetch [Apache Kafka](https://charmhub.io/kafka?channel=3/stable) and [Apache ZooKeeper](https://charmhub.io/zookeeper?channel=3/stable) charms from [Charmhub](https://charmhub.io/) and deploy them to your model. For example, to deploy a cluster of five Apache ZooKeeper units and three Apache Kafka units, you can simply run:
 
 ```shell
 $ juju deploy zookeeper -n 5
@@ -15,14 +15,14 @@ After this, it is necessary to connect them:
 $ juju relate kafka zookeeper
 ```
 
-Juju will now fetch Charmed Kafka and Zookeeper and begin deploying it to the LXD cloud. This process can take several minutes depending on how provisioned (RAM, CPU, etc) your machine is. You can track the progress by running:
+Juju will now fetch Charmed Apache Kafka and Apache Zookeeper and begin deploying them to the LXD cloud. This process can take several minutes depending on how provisioned (RAM, CPU, etc) your machine is. You can track the progress by running:
 
 ```shell
 juju status --watch 1s
 ```
 
-This command is useful for checking the status of Charmed ZooKeeper and Charmed Kafka and gathering information about the machines hosting the two applications. Some of the helpful information it displays includes IP addresses, ports, state, etc. 
-The command updates the status of the cluster every second and as the application starts you can watch the status and messages of Charmed Kafka and ZooKeeper change. 
+This command is useful for checking the status of Charmed Apache ZooKeeper and Charmed Apache Kafka and gathering information about the machines hosting the two applications. Some of the helpful information it displays includes IP addresses, ports, state, etc. 
+The command updates the status of the cluster every second and as the application starts you can watch the status and messages of Charmed Apache Kafka and Apache ZooKeeper change. 
 
 Wait until the application is ready - when it is ready, `juju status --watch 1s` will show:
 
@@ -57,7 +57,7 @@ Machine  State    Address        Inst id        Series  AZ  Message
 
 To exit the screen with `juju status --watch 1s`, enter `Ctrl+c`.
 
-## Access Kafka cluster
+## Access Apache Kafka cluster
 
 To watch the process, `juju status` can be used. Once all the units show as `active|idle` the credentials to access a broker can be queried with:
 
@@ -77,11 +77,13 @@ password: e2sMfYLQg7sbbBMFTx1qlaZQKTUxr09x
 username: admin
 ```
 
-Providing you the `username` and `password` of the Kafka cluster admin user. 
+Providing you the `username` and `password` of the Apache Kafka cluster admin user. 
 
-> **IMPORTANT** Note that when no other application is related to Kafka, the cluster is secured-by-default and external listeners (bound to port `9092`) are disabled, thus preventing any external incoming connection. 
+[note type="caution"]
+When no other application is related to Apache Kafka, the cluster is secured-by-default and external listeners (bound to port `9092`) are disabled, thus preventing any external incoming connection. 
+[/note]
 
-Nevertheless, it is still possible to run a command from within the Kafka cluster using the internal listeners in place of the external ones. 
+Nevertheless, it is still possible to run a command from within the Apache Kafka cluster using the internal listeners in place of the external ones. 
 The internal endpoints can be constructed by replacing the `19092` port in the `bootstrap.servers` returned in the output above, for example:
 
 ```shell
@@ -94,8 +96,8 @@ Once you have fetched the `INTERNAL_LISTENERS`, log in to one of the Kafka conta
 juju ssh kafka/leader sudo -i
 ```
 
-When the unit is started, the Charmed Kafka Operator installs the [`charmed-kafka`](https://snapcraft.io/charmed-kafka) Snap in the unit that provides a number of entrypoints (that corresponds to the bin commands in the Kafka distribution) for performing various administrative tasks, e.g `charmed-kafka.config` to update cluster configuration, `charmed-kafka.topics` for topic management, and many more! 
-Within the machine, the Charmed Kafka Operator also creates a `client.properties` file that already provides the relevant settings to connect to the cluster using the CLI
+When the unit is started, the Charmed Apache Kafka Operator installs the [`charmed-kafka`](https://snapcraft.io/charmed-kafka) Snap in the unit that provides a number of entrypoints (that corresponds to the bin commands in the Apache Kafka distribution) for performing various administrative tasks, e.g `charmed-kafka.config` to update cluster configuration, `charmed-kafka.topics` for topic management, and many more! 
+Within the machine, the Charmed Apache Kafka Operator also creates a `client.properties` file that already provides the relevant settings to connect to the cluster using the CLI
 
 ```shell
 CLIENT_PROPERTIES=/var/snap/charmed-kafka/current/etc/kafka/client.properties
@@ -130,7 +132,7 @@ charmed-kafka.topics \
     --command-config $CLIENT_PROPERTIES
 ```
 
-Other available Kafka bin commands can also be found with:
+Other available Apache Kafka bin commands can also be found with:
 
 ```shell
 snap info charmed-kafka
@@ -140,4 +142,4 @@ snap info charmed-kafka
 
 However, although the commands above can run within the cluster, it is generally recommended during operations
 to enable external listeners and use these for running the admin commands from outside the cluster. 
-To do so, as we will see in the next section, we will deploy a [data-integrator](https://charmhub.io/data-integrator) charm and relate it to Kafka.
+To do so, as we will see in the next section, we will deploy a [data-integrator](https://charmhub.io/data-integrator) charm and relate it to Apache Kafka.

@@ -1,14 +1,15 @@
 # Create mTLS client credentials
 
 Requirements:
-- Charmed Kafka cluster up and running
+
+- Charmed Apache Kafka cluster up and running
 - [Admin credentials](./h-manage-app.md)
 - [Encryption enabled](./h-enable-encryption.md)
 - [Java JRE](https://ubuntu.com/tutorials/install-jre#1-overview) installed
 - [`charmed-kafka` snap](https://snapcraft.io/charmed-kafka) installed
 - [jq](https://snapcraft.io/jq) installed
 
-Goal: Create mTLS credentials for a client application to be able to connect to the Kafka cluster.
+This guide includes step-by-step instructions on how to create mTLS credentials for a client application to be able to connect to a Charmed Apache Kafka cluster.
 
 ## Authentication
 
@@ -16,11 +17,11 @@ Goal: Create mTLS credentials for a client application to be able to connect to 
 # ---------- Environment
 SNAP_KAFKA_PATH=/var/snap/charmed-kafka/current/etc/kafka
 
-# Kafka ports
+# Apache Kafka ports
 KAFKA_SASL_PORT=9093
 KAFKA_MTLS_PORT=9094
 
-# Kafka servers
+# Apache Kafka servers
 KAFKA_SERVERS_SASL=<broker-ip>$KAFKA_SASL_PORT
 KAFKA_SERVERS_MTLS=<broker-ip>$KAFKA_MTLS_PORT
 
