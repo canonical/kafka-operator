@@ -4,7 +4,7 @@ This section contains some suggested values to get a better performance from Cha
 
 ## Virtual memory handling (recommended)
 
-Apache Kafka brokers make heavy use of the OS page cache to maintain performance. They never normally explicitly issue a command to ensure messages have been persisted to disk (`sync`), relying instead on the underlying OS to ensure that larger chunks (pages) of data are persisted from the page cache to the disk when the OS deems it efficient and/or necessary to do so. As such, there is a range of runtime kernel parameter tuning that is recommended to be set on machines running Apache Kafka to improve performance.
+Apache Kafka Brokers make heavy use of the OS page cache to maintain performance. They never normally explicitly issue a command to ensure messages have been persisted to disk (`sync`), relying instead on the underlying OS to ensure that larger chunks (pages) of data are persisted from the page cache to the disk when the OS deems it efficient and/or necessary to do so. As such, there is a range of runtime kernel parameter tuning that is recommended to be set on machines running Apache Kafka to improve performance.
 
 To configure these settings, one can write them to `/etc/sysctl.conf` using `sudo echo $SETTING >> /etc/sysctl.conf`. Note that the settings shown below are simply sensible defaults that may not apply to every workload:
 ```bash

@@ -4,7 +4,7 @@ Unit management guide for scaling and running admin utility scripts.
 
 ## Replication and Scaling
 
-Increasing the number of Apache Kafka brokers can be achieved by adding more units
+Increasing the number of Apache Kafka Brokers can be achieved by adding more units
 to the Charmed Apache Kafka application, for example:
 
 ```shell
@@ -80,7 +80,7 @@ argument. Note that `client.properties` may also refer to other files (
 e.g. truststore and keystore for TLS-enabled connections). Those
 files also need to be accessible and correctly specified. 
 
-Commands can also be run within a Apache Kafka broker, since both the authentication 
+Commands can also be run within a Apache Kafka Broker, since both the authentication 
 file (along with the truststore if needed) and the Charmed Apache Kafka snap are 
 already present. 
 

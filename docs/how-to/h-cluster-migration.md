@@ -22,7 +22,7 @@ To migrate a cluster we need:
 
 - An "old" existing Apache Kafka cluster to migrate from.
   - The cluster needs to be reachable from/to the new Apache Kafka cluster. 
-- A bootstrapped Juju VM cloud running Charmed Apache Kafka to migrate to. For guidance on how to deploy a new Charmed Kafka, see:
+- A bootstrapped Juju VM cloud running Charmed Apache Kafka to migrate to. For guidance on how to deploy a new Charmed Apache Kafka, see:
   - The [Charmed Apache Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571)
   - The [How to deploy guide](/t/charmed-apache-kafka-documentation-how-to-deploy/13261) for Charmed Apache Kafka K8s
 - The CLI tool `yq` - https://github.com/mikefarah/yq

@@ -116,7 +116,7 @@ juju integrate kafka zookeeper
 ```
 
 [note type="caution"]
-The smallest AWS instance types may not provide sufficient resources to host a Kafka broker. We recommend choosing an instance type with a minimum of `8` GB of RAM and `4` CPU cores, such as `m7i.xlarge`.
+The smallest AWS instance types may not provide sufficient resources to host a Kafka Broker. We recommend choosing an instance type with a minimum of `8` GB of RAM and `4` CPU cores, such as `m7i.xlarge`.
 
 For more guidance on sizing production environments, see the [Requirements page](/t/charmed-kafka-reference-requirements/10563). Additional information about AWS instance types is available in the [AWS documentation](https://us-east-1.console.aws.amazon.com/ec2/home?region=us-east-1#Instances:instanceState=running).
 [/note]
