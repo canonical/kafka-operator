@@ -694,23 +694,6 @@ class ZooKeeper(RelationState):
         )
 
     @property
-    def uris(self) -> str:
-        """Comma separated connection string, containing endpoints + chroot."""
-        if not self.relation:
-            return ""
-
-        return ",".join(
-            sorted(  # sorting as they may be disordered
-                (
-                    self.data_interface.fetch_relation_field(
-                        relation_id=self.relation.id, field="uris"
-                    )
-                    or ""
-                ).split(",")
-            )
-        )
-
-    @property
     def tls(self) -> bool:
         """Check if TLS is enabled on ZooKeeper."""
         if not self.relation:
@@ -742,9 +725,23 @@ class ZooKeeper(RelationState):
         return True
 
     @property
-    def zookeeper_version(self) -> str:
-        """Get running zookeeper version."""
-        hosts = [host.split(":")[0] for host in self.endpoints.split(",")]
+    def hosts(self) -> list[str]:
+        """Get the hosts from the databag."""
+        return [host.split(":")[0] for host in self.endpoints.split(",")]
+
+    @property
+    def uris(self):
+        """Comma separated connection string, containing endpoints + chroot."""
+        return f"{self.endpoints.removesuffix('/')}/{self.database.removeprefix('/')}"
+
+    @property
+    def port(self) -> int:
+        """Get the port in use from the databag.
+
+        We can extract from:
+        - host1:port,host2:port
+        - host1,host2:port
+        """
         try:
             port = next(
                 iter([int(host.split(":")[1]) for host in reversed(self.endpoints.split(","))]),
@@ -754,9 +751,14 @@ class ZooKeeper(RelationState):
             # compatibility with older zk versions
             port = 2181
 
+        return port
+
+    @property
+    def zookeeper_version(self) -> str:
+        """Get running zookeeper version."""
         zk = ZooKeeperManager(
-            hosts=hosts,
-            client_port=port,
+            hosts=self.hosts,
+            client_port=self.port,
             username=self.username,
             password=self.password,
             use_ssl=self.tls,
@@ -766,8 +768,8 @@ class ZooKeeper(RelationState):
 
     # retry to give ZK time to update its broker zNodes before failing
     @retry(
-        wait=wait_fixed(5),
-        stop=stop_after_attempt(10),
+        wait=wait_fixed(3),
+        stop=stop_after_attempt(3),
         retry=retry_if_result(lambda result: result is False),
         retry_error_callback=lambda _: False,
     )
@@ -775,20 +777,10 @@ class ZooKeeper(RelationState):
         """Checks if broker id is recognised as active by ZooKeeper."""
         broker_id = self.data_interface.local_unit.name.split("/")[1]
         path = f"{self.database}/brokers/ids/"
-        hosts = [host.split(":")[0] for host in self.endpoints.split(",")]
-        try:
-            port = next(
-                iter([int(host.split(":")[1]) for host in reversed(self.endpoints.split(","))]),
-                2181,
-            )
-        except IndexError:
-            # compatibility with older zk versions
-            port = 2181
-
         try:
             zk = ZooKeeperManager(
-                hosts=hosts,
-                client_port=port,
+                hosts=self.hosts,
+                client_port=self.port,
                 username=self.username,
                 password=self.password,
                 use_ssl=self.tls,
