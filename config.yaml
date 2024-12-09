@@ -37,7 +37,7 @@ options:
     type: int
     default: 1073741824
   message_max_bytes:
-    description: The largest record batch size allowed by Kafka (after compression if compression is enabled). If this is increased and there are consumers older than 0.10.2, the consumers' fetch size must also be increased so that they can fetch record batches this large. In the latest message format version, records are always grouped into batches for efficiency. In previous message format versions, uncompressed records are not grouped into batches and this limit only applies to a single record in that case.This can be set per topic with the topic level max.message.bytes config.
+    description: The largest record batch size allowed by Apache Kafka (after compression if compression is enabled). If this is increased and there are consumers older than 0.10.2, the consumers' fetch size must also be increased so that they can fetch record batches this large. In the latest message format version, records are always grouped into batches for efficiency. In previous message format versions, uncompressed records are not grouped into batches and this limit only applies to a single record in that case.This can be set per topic with the topic level max.message.bytes config.
     type: int
     default: 1048588
   offsets_topic_num_partitions:
@@ -113,6 +113,6 @@ options:
     type: float
     default: 0.8
   expose_external:
-    description: "String to determine how to expose the Kafka cluster externally from the Kubernetes cluster. Possible values: 'nodeport', 'none'"
+    description: "String to determine how to expose the Apache Kafka cluster externally from the Kubernetes cluster. Possible values: 'nodeport', 'none'"
     type: string
     default: "nodeport"
