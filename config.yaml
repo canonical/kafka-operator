@@ -81,7 +81,7 @@ options:
     type: int
     default: 11
   zookeeper_ssl_cipher_suites:
-    description: Specifies the enabled cipher suites to be used in ZooKeeper TLS negotiation (csv). Overrides any explicit value set via the zookeeper.ssl.ciphersuites system property (note the single word "ciphersuites"). The default value of null means the list of enabled cipher suites is determined by the Java runtime being used.
+    description: Specifies the enabled cipher suites to be used in Apache ZooKeeper TLS negotiation (csv). Overrides any explicit value set via the zookeeper.ssl.ciphersuites system property (note the single word "ciphersuites"). The default value of null means the list of enabled cipher suites is determined by the Java runtime being used.
     type: string
     default: ""
   profile:

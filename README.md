@@ -14,7 +14,7 @@ The Charmed Operator can be found on [Charmhub](https://charmhub.io/kafka) and i
 - SASL/SCRAM auth for Broker-Broker and Client-Broker authentication enabled by default.
 - Access control management supported with user-provided ACL lists.
 
-As currently Apache Kafka requires a paired Apache ZooKeeper deployment in production, this operator makes use of the [ZooKeeper Operator](https://github.com/canonical/zookeeper-operator) for various essential functions.
+As currently Apache Kafka requires a paired Apache ZooKeeper deployment in production, this operator makes use of the [Apache ZooKeeper Operator](https://github.com/canonical/zookeeper-operator) for various essential functions.
 
 ### Features checklist
 
@@ -51,7 +51,7 @@ For more information on how to perform typical tasks, see the How to guides sect
 
 ### Deployment
 
-The Apache Kafka and ZooKeeper operators can both be deployed as follows:
+The Apache Kafka and Apache ZooKeeper operators can both be deployed as follows:
 
 ```shell
 $ juju deploy zookeeper -n 5
