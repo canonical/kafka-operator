@@ -91,7 +91,6 @@ For documentation in this repository the following conventions are applied (see 
 | -------- | ------- | ------- |
 | Apache Kafka | | Kafka |
 | Charmed Apache Kafka | | Charmed Kafka |
-| Spark History Server | Apache Spark History Server | |
 | Kafka Connect | | Kafka connect |
 | Kafka Brokers | | Kafka brokers|
 | Apache Kafka cluster | | Charmed Apache Kafka cluster |
