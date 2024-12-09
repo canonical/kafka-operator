@@ -14,7 +14,7 @@ The Charmed Operator can be found on [Charmhub](https://charmhub.io/kafka) and i
 - SASL/SCRAM auth for Broker-Broker and Client-Broker authentication enabled by default.
 - Access control management supported with user-provided ACL lists.
 
-As currently Apache Kafka requires a paired Apache ZooKeeper deployment in production, this operator makes use of the [ZooKeeper Operator](https://github.com/canonical/zookeeper-operator) for various essential functions.
+As currently Kafka requires a paired ZooKeeper deployment in production, this operator makes use of the [ZooKeeper Operator](https://github.com/canonical/zookeeper-operator) for various essential functions.
 
 ### Features checklist
 
@@ -33,7 +33,7 @@ The following are some of the most important planned features and their implemen
 
 ## Requirements
 
-For production environments, it is recommended to deploy at least 5 nodes for Apache Zookeeper and 3 for Apache Kafka.
+For production environments, it is recommended to deploy at least 5 nodes for Zookeeper and 3 for Kafka.
 
 The following requirements are meant to be for production environment:
 
@@ -51,7 +51,7 @@ For more information on how to perform typical tasks, see the How to guides sect
 
 ### Deployment
 
-The Apache Kafka and ZooKeeper operators can both be deployed as follows:
+The Kafka and ZooKeeper operators can both be deployed as follows:
 
 ```shell
 $ juju deploy zookeeper -n 5
@@ -70,18 +70,18 @@ To watch the process, the `juju status` command can be used. Once all the units 
 juju run-action kafka/leader get-admin-credentials --wait
 ```
 
-Apache Kafka ships with `bin/*.sh` commands to do various administrative tasks, e.g `bin/kafka-config.sh` to update cluster configuration, `bin/kafka-topics.sh` for topic management, and many more! The Apache Kafka Charmed Operator provides these commands for administrators to run their desired cluster configurations securely with SASL authentication, either from within the cluster or as an external client.
+Apache Kafka ships with `bin/*.sh` commands to do various administrative tasks, e.g `bin/kafka-config.sh` to update cluster configuration, `bin/kafka-topics.sh` for topic management, and many more! The Kafka Charmed Operator provides these commands for administrators to run their desired cluster configurations securely with SASL authentication, either from within the cluster or as an external client.
 
-For example, to list the current topics on the Apache Kafka cluster, run the following command:
+For example, to list the current topics on the Kafka cluster, run the following command:
 
 ```shell
 BOOTSTRAP_SERVERS=$(juju run-action kafka/leader get-admin-credentials --wait | grep "bootstrap.servers" | cut -d "=" -f 2)
 juju ssh kafka/leader 'charmed-kafka.topics --bootstrap-server $BOOTSTRAP_SERVERS --list --command-config /var/snap/charmed-kafka/common/client.properties'
 ```
 
-Note that Charmed Apache Kafka cluster is secure-by-default: when no other application is related to Apache Kafka, listeners are disabled, thus preventing any incoming connection. However, even for running the commands above, listeners must be enabled. If there are no other applications, you can deploy a `data-integrator` charm and relate it to Charmed Apache Kafka to enable listeners.
+Note that Charmed Apache Kafka cluster is secure-by-default: when no other application is related to Kafka, listeners are disabled, thus preventing any incoming connection. However, even for running the commands above, listeners must be enabled. If there are no other applications, you can deploy a `data-integrator` charm and relate it to Kafka to enable listeners.
 
-Available Apache Kafka bin commands can be found with:
+Available Kafka bin commands can be found with:
 
 ```
 snap info charmed-kafka
@@ -119,7 +119,7 @@ Use the same action without a password parameter to randomly generate a password
 Currently, the Charmed Apache Kafka Operator supports 1 or more storage volumes. A 10G storage volume will be installed by default for `log.dirs`.
 This is used for logs storage, mounted on `/var/snap/kafka/common`
 
-When storage is added or removed, the Apache Kafka service will restart to ensure it uses the new volumes. Additionally, log + charm status messages will prompt users to manually reassign partitions so that the new storage volumes are populated. By default, Apache Kafka will not assign partitions to new directories/units until existing topic partitions are assigned to it, or a new topic is created.
+When storage is added or removed, the Kafka service will restart to ensure it uses the new volumes. Additionally, log + charm status messages will prompt users to manually reassign partitions so that the new storage volumes are populated. By default, Kafka will not assign partitions to new directories/units until existing topic partitions are assigned to it, or a new topic is created.
 
 ## Relations
 

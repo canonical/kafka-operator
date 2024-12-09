@@ -71,4 +71,4 @@ tox                      # runs 'lint' and 'unit' environments
 
 ## Canonical Contributor Agreement
 
-Canonical welcomes contributions to the Charmed Apache Kafka Operator. Please check out our [contributor agreement](https://ubuntu.com/legal/contributors) if you're interested in contributing to the solution.
+Canonical welcomes contributions to the Charmed Kafka Operator. Please check out our [contributor agreement](https://ubuntu.com/legal/contributors) if you're interested in contributing to the solution.
