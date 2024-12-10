@@ -15,14 +15,14 @@ After this, it is necessary to connect them:
 $ juju relate kafka zookeeper
 ```
 
-Juju will now fetch Charmed Apache Kafka and Apache Zookeeper and begin deploying them to the LXD cloud. This process can take several minutes depending on how provisioned (RAM, CPU, etc) your machine is. You can track the progress by running:
+Juju will now fetch Charmed Apache Kafka and Charmed Apache Zookeeper and begin deploying them to the LXD cloud. This process can take several minutes depending on how provisioned (RAM, CPU, etc) your machine is. You can track the progress by running:
 
 ```shell
 juju status --watch 1s
 ```
 
 This command is useful for checking the status of Charmed Apache ZooKeeper and Charmed Apache Kafka and gathering information about the machines hosting the two applications. Some of the helpful information it displays includes IP addresses, ports, state, etc. 
-The command updates the status of the cluster every second and as the application starts you can watch the status and messages of Charmed Apache Kafka and Apache ZooKeeper change. 
+The command updates the status of the cluster every second and as the application starts you can watch the status and messages of Charmed Apache Kafka and Charmed Apache ZooKeeper change. 
 
 Wait until the application is ready - when it is ready, `juju status --watch 1s` will show:
 
@@ -142,4 +142,4 @@ snap info charmed-kafka
 
 However, although the commands above can run within the cluster, it is generally recommended during operations
 to enable external listeners and use these for running the admin commands from outside the cluster. 
-To do so, as we will see in the next section, we will deploy a [data-integrator](https://charmhub.io/data-integrator) charm and relate it to Apache Kafka.
+To do so, as we will see in the next section, we will deploy a [data-integrator](https://charmhub.io/data-integrator) charm and relate it to Charmed Apache Kafka.

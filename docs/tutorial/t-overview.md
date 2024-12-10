@@ -8,7 +8,7 @@ Through this tutorial, you will learn a variety of operations, everything from a
 In this tutorial, we will walk through how to:
 
 - Set up your environment using LXD and Juju.
-- Deploy Apache Kafka using a couple of commands.
+- Deploy Charmed Apache Kafka using a couple of commands.
 - Get the admin credentials directly.
 - Add high availability with replication.
 - Change the admin password.
@@ -32,7 +32,7 @@ Before we start, make sure your machine meets the following requirements:
 
 Here’s an overview of the steps required with links to our separate tutorials that deal with each individual step:
 * [Set up the environment](/t/charmed-kafka-tutorial-setup-environment/10575)
-* [Deploy Apache Kafka](/t/charmed-kafka-tutorial-deploy-kafka/10567)
+* [Deploy Charmed Apache Kafka](/t/charmed-kafka-tutorial-deploy-kafka/10567)
 * [Integrate with client applications](/t/charmed-kafka-tutorial-relate-kafka/10573)
 * [Manage passwords](/t/charmed-kafka-tutorial-manage-passwords/10569)
 * [Enable encryption](/t/charmed-kafka-documentation-tutorial-enable-security/12043)

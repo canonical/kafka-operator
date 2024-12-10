@@ -23,9 +23,9 @@ Located charm "data-integrator" in charm-hub, revision 11
 Deploying "data-integrator" from charm-hub charm "data-integrator", revision 11 in channel stable on jammy
 ```
 
-### Relate to Apache Kafka
+### Relate to Charmed Apache Kafka
 
-Now that the Database Integrator Charm has been set up, we can relate it to Apache Kafka. This will automatically create a username, password, and database for the Database Integrator Charm. Relate the two applications with:
+Now that the Database Integrator charm has been set up, we can relate it to Charmed Apache Kafka. This will automatically create a username, password, and database for the Database Integrator charm. Relate the two applications with:
 
 ```shell
 juju relate data-integrator kafka
@@ -171,7 +171,7 @@ python3 -m charms.kafka.v0.client \
 
 ### Charm client applications
 
-Actually, the Data Integrator is only a very special client charm, that implements the `kafka_client` relation for exchanging data with the Apache Kafka charm and user management via relations. 
+Actually, the Data Integrator is only a very special client charm, that implements the `kafka_client` relation for exchanging data with Charmed Apache Kafka and user management via relations. 
 
 For example, the steps above for producing and consuming messages to Apache Kafka have also been implemented in the `kafka-test-app` charm (that also implements the `kafka_client` relation) providing a fully integrated charmed user experience, where producing/consuming messages can simply be achieved using relations.  
 
@@ -230,7 +230,7 @@ Note that the `kafka-test-app` charm can also similarly be used to consume messa
 juju config kafka-test-app topic_name=test_kafka_app_topic role=consumer consumer_group_prefix=cg
 ```
 
-After configuring the Apache Kafka Test App, just relate it again with the Apache Kafka charm. This will again create a new user and start the consumer process. 
+After configuring the Apache Kafka Test App, just relate it again with the Charmed Apache Kafka. This will again create a new user and start the consumer process. 
 
 ## What's next?
 

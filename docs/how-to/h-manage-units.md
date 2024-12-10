@@ -18,7 +18,7 @@ It is important to note that when adding more units, the Apache Kafka cluster wi
 will be used only when new topics and new partitions are created. 
 
 Partition reassignment can still be done manually by the admin user by using the 
-`charmed-kafka.reassign-partitions` Apache Kafka bin utility script. Please refer to 
+`charmed-kafka.reassign-partitions` Charmed Apache Kafka bin utility script. Please refer to 
 its documentation for more information. 
 
 [note type="caution"]

@@ -2,7 +2,7 @@ Versions used for this integration example:
 
 - LXD (v5.21.1)
 - MicroK8s (v1.28.10)
-- Apache Kafka charm: built from [this feature PR](https://github.com/canonical/kafka-operator/pull/168), which adds Hydra integration
+- Charmed Apache Kafka: built from [this feature PR](https://github.com/canonical/kafka-operator/pull/168), which adds Hydra integration
 
 ## Initial deployment
 
@@ -35,7 +35,7 @@ $ juju offer admin/iam.hydra:oauth
 $ juju offer admin/iam.self-signed-certificates:certificates
 ```
 
-Apache Kafka setup:
+Charmed Apache Kafka setup:
 
 ```bash
 # On the lxd controller
@@ -52,7 +52,7 @@ $ juju integrate kafka:certificates self-signed-certificates
 $ juju integrate zookeeper self-signed-certificates
 ```
 
-Once everything is settled, integrate Apache Kafka and Hydra:
+Once everything is settled, integrate Charmed Apache Kafka and Hydra:
 
 ```bash
 # On the lxd model

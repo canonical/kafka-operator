@@ -7,7 +7,7 @@ Additionally, the charm provides integration with the [Canonical Observability S
 
 Deploy the `cos-lite` bundle in a Kubernetes environment. This can be done by following the
 [deployment tutorial](https://charmhub.io/topics/canonical-observability-stack/tutorials/install-microk8s).
-Since the Charmed Apache Kafka Operator is deployed directly on a cloud infrastructure environment, it is 
+Since the Charmed Apache Kafka is deployed directly on a cloud infrastructure environment, it is 
 needed to offer the endpoints of the COS relations. The [offers-overlay](https://github.com/canonical/cos-lite-bundle/blob/main/overlays/offers-overlay.yaml)
 can be used, and this step is shown in the COS tutorial.
 

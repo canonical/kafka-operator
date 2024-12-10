@@ -121,7 +121,7 @@ We strongly recommend to also retrieve the full set of logs with `juju debug-log
 
 ## Apache ZooKeeper upgrade
 
-Although the previous steps focused on upgrading Charmed Apache Kafka, the same process can also be applied to Apache ZooKeeper. However, for revisions prior to XXX, a patch needs to be applied before running the aforementioned process. The Apache ZooKeeper process, as part of its operations, overwrites the `zoo.cfg` pinning the snap revision for the `dynamicConfigFile`. This may create problems in the upgrade if `snapd` removes the previous revision once the snap is refreshed. To prevent this, it is sufficient to replace the `<SNAP_REVISION>` with `current`. 
+Although the previous steps focused on upgrading Charmed Apache Kafka, the same process can also be applied to Apache ZooKeeper. However, for revisions prior to 130, a patch needs to be applied before running the aforementioned process. The Apache ZooKeeper process, as part of its operations, overwrites the `zoo.cfg` pinning the snap revision for the `dynamicConfigFile`. This may create problems in the upgrade if `snapd` removes the previous revision once the snap is refreshed. To prevent this, it is sufficient to replace the `<SNAP_REVISION>` with `current`. 
 
 To do so, on each unit, first apply the patch:
 
