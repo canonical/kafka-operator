@@ -1,55 +1,114 @@
-# How to deploy and manage units
+# How to manage units
 
-## Basic usage
+## Replication and Scaling
 
-The Kafka and ZooKeeper operators can both be deployed as follows:
-```shell
-$ juju deploy zookeeper --channel 3/edge -n 5
-$ juju deploy kafka --channel 3/edge -n 3
-```
+Increasing the number of Kafka brokers can be achieved by adding more units
+to the Charmed Kafka application, e.g. 
 
-After this, it is necessary to connect them:
-```shell
-$ juju relate kafka zookeeper
-```
-
-To watch the process, `juju status` can be used. Once all the units show as `active|idle` the credentials to access a broker can be queried with:
-```shell
-juju run kafka/leader get-admin-credentials
-```
-
-Apache Kafka ships with `bin/*.sh` commands to do various administrative tasks, e.g `bin/kafka-config.sh` to update cluster configuration, `bin/kafka-topics.sh` for topic management, and many more! The Kafka Charmed Operator provides these commands to administrators to easily run their desired cluster configurations securely with SASL authentication, either from within the cluster or as an external client.
-
-If you wish to run a command from the cluster, in order to (for example) list the current topics on the Kafka cluster, you can run:
-```
-BOOTSTRAP_SERVERS=$(juju run kafka/leader get-admin-credentials | grep "bootstrap.servers" | cut -d "=" -f 2)
-juju ssh kafka/leader 'charmed-kafka.topics --bootstrap-server $BOOTSTRAP_SERVERS --list --command-config /var/snap/charmed-kafka/common/client.properties'
-```
-
-Note that when no other application is related to Kafka, the cluster is secured-by-default and listeners are disabled, thus preventing any incoming connection. However, even for running the commands above, listeners must be enable. If there is no other application, deploy a `data-integrator` charm and relate it to Kafka, as outlined in the Relation section to enable listeners.
-
-Available Kafka bin commands can be found with:
-```
-snap info charmed-kafka --channel 3/edge
-```
-
-## Replication
-
-### Scaling up
-The charm can be scaled up using `juju add-unit` command.
-```shell
-juju add-unit kafka
-```
-
-To add a specific number of brokers, an extra argument is needed:
 ```shell
 juju add-unit kafka -n <num_brokers_to_add>
 ```
 
-### Scaling down
-To scale down the charm, use `juju remove-unit` command.
-```shell
-juju remove-unit <unit_name>
+For more information on how to manage units, please refer to the [Juju documentation](https://juju.is/docs/juju/manage-units)
+
+It is important to note that when adding more units, the Kafka cluster will not 
+*automatically* rebalance existing topics and partitions. New storage and new brokers
+will be used only when new topics and new partitions are created. 
+
+Partition reassigment can still be done manually by the admin user by using the 
+`charmed-kafka.reassign-partitions` Kafka bin utility script. Please refer to 
+its documentation for more information. 
+
+> **IMPORTANT** Scaling down is currently not supported in the charm automation.  
+> If partition reassignment is not manually performed before scaling down in order 
+> to makes sure the decommisioned units does not hold any data, **your cluster may 
+> suffer to data loss**. 
+
+
+## Running Kafka Admin utility scripts
+
+Apache Kafka ships with `bin/*.sh` commands to do various administrative tasks such as:
+* `bin/kafka-config.sh` to update cluster configuration
+* `bin/kafka-topics.sh` for topic management
+* `bin/kafka-acls.sh` for management of ACLs of Kafka users
+
+Please refer to the upstream [Kafka project](https://github.com/apache/kafka/tree/trunk/bin), 
+for a full list of the bash commands available in Kafka distributions. Also, you can 
+use `--help` argument for printing a short summary of the argument for a given 
+bash command. 
+
+The most important commands are also exposed via the [Charmed Kafka snap](https://snapcraft.io/charmed-kafka), 
+accessible via `charmed-kafka.<command>`. Please refer to [this table](/t/charmed-kafka-documentation-reference-snap-entrypoints/13263) for 
+more information about the mapping between the Kafka bin commands and the snap entrypoints.
+
+> **IMPORTANT** Before running bash scripts, make sure that some listeners have been correctly 
+> opened by creating appropriate integrations. Please refer to [this table](/t/charmed-kafka-documentation-reference-listeners/13264) for more 
+> information about how listeners are opened based on relations. To simply open a 
+> SASL/SCRAM listener, just integrate a client application using the data-integrator, 
+> as described [here](/t/charmed-kafka-how-to-manage-app/10285).
+
+To run most of the scripts, you need to provide:
+1. the Kafka service endpoints, generally referred to as *bootstrap servers* 
+2. authentication information 
+
+### Juju admins of the Kafka deployment
+
+For Juju admins of the Kafka deployment, the bootstrap servers information can 
+be obtained using
+
+```
+BOOTSTRAP_SERVERS=$(juju run kafka/leader get-admin-credentials | grep "bootstrap.servers" | cut -d "=" -f 2)
 ```
 
-Even when scaling multiple units at the same time, the charm uses a rolling restart sequence to make sure the cluster stays available and healthy during the operation.
+Admin client authentication information is stored in the 
+`/var/snap/charmed-kafka/common/etc/kafka/client.properties` file present on every Kafka
+broker. The content of the file can be accessed using 
+
+```
+juju ssh kafka/leader `cat /etc/kafka/client.properties`
+```
+
+This file can be provided to the Kafka bin commands via the `--command-config`
+argument. Note that `client.properties` may also refer to other files (
+e.g. truststore and keystore for TLS-enabled connections). Those
+files also need to be accessible and correctly specified. 
+
+Commands can also be run within a Kafka broker, since both the authentication 
+file (along with the truststore if needed) and the Charmed Kafka snap are 
+already present. 
+
+#### Example (Listing topics)
+
+For instance, in order to list the current topics on the Kafka cluster, you can run:
+```
+juju ssh kafka/leader 'charmed-kafka.topics --bootstrap-server $BOOTSTRAP_SERVERS --list --command-config /var/snap/charmed-kafka/common/etc/kafka/client.properties'
+```
+
+### Juju External users
+
+For external users managed by the  [Data Integrator Charm](https://charmhub.io/data-integrator), 
+the endpoints and credentials can be fetched using the dedicated action
+
+```shell
+juju run data-integrator/leader get-credentials --format yaml
+```
+
+The `client.properties` file can be generated by substituting the relevant information in the 
+file available on the brokers at `/var/snap/charmed-kafka/current/etc/kafka/client.properties`
+
+To do so, fetch the information using `juju` commands:
+
+```
+BOOTSTRAP_SERVERS=$(juju run data-integrator/leader get-credentials --format yaml | yq .kafka.endpoints )
+USERNAME=$(juju run data-integrator/leader get-credentials --format yaml | yq .kafka.username )
+PASSWORD=$(juju run data-integrator/leader get-credentials --format yaml | yq .kafka.password )
+```
+
+Then copy the `/var/snap/charmed-kafka/current/etc/kafka/client.properties` and substitute the following lines:
+
+```
+...
+sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="<USERNAME>" password="<PASSWORD>";
+...
+bootstrap.servers=<BOOTSTRAP_SERVERS>
+```

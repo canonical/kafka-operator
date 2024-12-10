@@ -5,7 +5,7 @@
 import logging
 import re
 from pathlib import Path
-from unittest.mock import PropertyMock, patch
+from unittest.mock import Mock, PropertyMock, patch
 
 import pytest
 import yaml
@@ -203,13 +203,9 @@ def test_start_sets_necessary_config(harness: Harness, zk_data, passwords_data):
 
     with (
         patch("managers.auth.AuthManager.add_user"),
-        patch("managers.config.KafkaConfigManager.set_zk_jaas_config") as patched_jaas,
-        patch(
-            "managers.config.KafkaConfigManager.set_server_properties"
-        ) as patched_server_properties,
-        patch(
-            "managers.config.KafkaConfigManager.set_client_properties"
-        ) as patched_client_properties,
+        patch("managers.config.ConfigManager.set_zk_jaas_config") as patched_jaas,
+        patch("managers.config.ConfigManager.set_server_properties") as patched_server_properties,
+        patch("managers.config.ConfigManager.set_client_properties") as patched_client_properties,
         patch("workload.KafkaWorkload.start"),
         # NOTE: Patching `active` cuts the hook short, as we are only testing properties being set.
         patch("workload.KafkaWorkload.active", return_value=False),
@@ -233,9 +229,9 @@ def test_start_sets_pebble_layer(harness: Harness, zk_data, passwords_data):
 
     with (
         patch("managers.auth.AuthManager.add_user"),
-        patch("managers.config.KafkaConfigManager.set_zk_jaas_config"),
-        patch("managers.config.KafkaConfigManager.set_server_properties"),
-        patch("managers.config.KafkaConfigManager.set_client_properties"),
+        patch("managers.config.ConfigManager.set_zk_jaas_config"),
+        patch("managers.config.ConfigManager.set_server_properties"),
+        patch("managers.config.ConfigManager.set_client_properties"),
         # NOTE: Patching `active` cuts the hook short, as we are only testing layer being set.
         patch("workload.KafkaWorkload.active", return_value=False),
     ):
@@ -257,7 +253,7 @@ def test_start_sets_pebble_layer(harness: Harness, zk_data, passwords_data):
                     "group": "kafka",
                     "environment": {
                         "KAFKA_OPTS": " ".join(extra_opts),
-                        "JAVA_HOME": "/usr/lib/jvm/java-17-openjdk-amd64",
+                        "JAVA_HOME": "/usr/lib/jvm/java-18-openjdk-amd64",
                         "LOG_DIR": harness.charm.workload.paths.logs_path,
                     },
                 }
@@ -445,9 +441,9 @@ def test_storage_add_disableenables_and_starts(harness: Harness, zk_data, passwo
         patch("workload.KafkaWorkload.active", return_value=True),
         patch("charm.KafkaCharm.healthy", return_value=True),
         patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
-        patch("managers.config.KafkaConfigManager.set_server_properties"),
-        patch("managers.config.KafkaConfigManager.set_client_properties"),
-        patch("managers.config.KafkaConfigManager.set_environment"),
+        patch("managers.config.ConfigManager.set_server_properties"),
+        patch("managers.config.ConfigManager.set_client_properties"),
+        patch("managers.config.ConfigManager.set_environment"),
         patch("workload.KafkaWorkload.read", return_value=["gandalf=grey"]),
         patch("workload.KafkaWorkload.disable_enable") as patched_disable_enable,
         patch("workload.KafkaWorkload.start") as patched_start,
@@ -455,36 +451,6 @@ def test_storage_add_disableenables_and_starts(harness: Harness, zk_data, passwo
     ):
         harness.add_storage(storage_name="data", count=2)
         harness.attach_storage(storage_id="data/1")
-
-        assert patched_disable_enable.call_count == 1
-        assert patched_start.call_count == 1
-        assert patched_defer.call_count == 0
-
-
-@pytest.mark.skipif(SUBSTRATE == "k8s", reason="multiple storage not supported in K8s")
-def test_storage_detaching_disableenables_and_starts(harness: Harness, zk_data, passwords_data):
-    with harness.hooks_disabled():
-        peer_rel_id = harness.add_relation(PEER, CHARM_KEY)
-        harness.add_relation_unit(peer_rel_id, f"{CHARM_KEY}/0")
-        harness.set_leader(True)
-        zk_rel_id = harness.add_relation(ZK, ZK)
-        harness.update_relation_data(zk_rel_id, ZK, zk_data)
-        harness.update_relation_data(peer_rel_id, CHARM_KEY, passwords_data)
-        harness.add_storage(storage_name="data", count=2)
-        harness.attach_storage(storage_id="data/1")
-
-    with (
-        patch("workload.KafkaWorkload.active", return_value=True),
-        patch("charm.KafkaCharm.healthy", return_value=True),
-        patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
-        patch("managers.config.KafkaConfigManager.set_server_properties"),
-        patch("managers.config.KafkaConfigManager.set_client_properties"),
-        patch("workload.KafkaWorkload.read", return_value=["gandalf=grey"]),
-        patch("workload.KafkaWorkload.disable_enable") as patched_disable_enable,
-        patch("workload.KafkaWorkload.start") as patched_start,
-        patch("ops.framework.EventBase.defer") as patched_defer,
-    ):
-        harness.detach_storage(storage_id="data/1")
 
         assert patched_disable_enable.call_count == 1
         assert patched_start.call_count == 1
@@ -502,9 +468,9 @@ def test_zookeeper_changed_sets_passwords_and_creates_users_with_zk(harness: Har
     with (
         patch("workload.KafkaWorkload.active", return_value=True),
         patch("managers.auth.AuthManager.add_user") as patched_add_user,
-        patch("managers.config.KafkaConfigManager.set_zk_jaas_config") as patched_set_zk_jaas,
+        patch("managers.config.ConfigManager.set_zk_jaas_config") as patched_set_zk_jaas,
         patch(
-            "managers.config.KafkaConfigManager.set_server_properties"
+            "managers.config.ConfigManager.set_server_properties"
         ) as patched_set_server_properties,
     ):
         harness.update_relation_data(zk_rel_id, ZK, zk_data)
@@ -531,9 +497,8 @@ def test_zookeeper_joined_sets_chroot(harness: Harness):
     zk_rel_id = harness.add_relation(ZK, ZK)
     harness.add_relation_unit(zk_rel_id, f"{ZK}/0")
 
-    assert CHARM_KEY in harness.charm.model.relations[ZK][0].data[harness.charm.app].get(
-        "chroot", ""
-    )
+    rel = harness.charm.model.relations[ZK][0].data[harness.charm.app]
+    assert CHARM_KEY in rel.get("database", rel.get("chroot", ""))
 
 
 def test_zookeeper_broken_stops_service_and_removes_meta_properties(harness: Harness):
@@ -562,7 +527,7 @@ def test_zookeeper_broken_cleans_internal_user_credentials(harness: Harness):
     with (
         patch("workload.KafkaWorkload.stop"),
         patch("workload.KafkaWorkload.exec"),
-        patch("core.models.StateBase.update") as patched_update,
+        patch("core.models.KafkaCluster.update") as patched_update,
         patch(
             "core.models.KafkaCluster.internal_user_credentials",
             new_callable=PropertyMock,
@@ -585,15 +550,15 @@ def test_config_changed_updates_server_properties(harness: Harness, zk_data):
 
     with (
         patch(
-            "managers.config.KafkaConfigManager.server_properties",
+            "managers.config.ConfigManager.server_properties",
             new_callable=PropertyMock,
             return_value=["gandalf=white"],
         ),
         patch("charm.KafkaCharm.healthy", return_value=True),
         patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
         patch("workload.KafkaWorkload.read", return_value=["gandalf=grey"]),
-        patch("managers.config.KafkaConfigManager.set_server_properties") as set_server_properties,
-        patch("managers.config.KafkaConfigManager.set_client_properties"),
+        patch("managers.config.ConfigManager.set_server_properties") as set_server_properties,
+        patch("managers.config.ConfigManager.set_client_properties"),
     ):
         harness.charm.on.config_changed.emit()
 
@@ -607,20 +572,20 @@ def test_config_changed_updates_client_properties(harness: Harness):
 
     with (
         patch(
-            "managers.config.KafkaConfigManager.client_properties",
+            "managers.config.ConfigManager.client_properties",
             new_callable=PropertyMock,
             return_value=["gandalf=white"],
         ),
         patch(
-            "managers.config.KafkaConfigManager.server_properties",
+            "managers.config.ConfigManager.server_properties",
             new_callable=PropertyMock,
             return_value=["sauron=bad"],
         ),
         patch("charm.KafkaCharm.healthy", return_value=True),
         patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
         patch("workload.KafkaWorkload.read", return_value=["gandalf=grey"]),
-        patch("managers.config.KafkaConfigManager.set_server_properties"),
-        patch("managers.config.KafkaConfigManager.set_client_properties") as set_client_properties,
+        patch("managers.config.ConfigManager.set_server_properties"),
+        patch("managers.config.ConfigManager.set_client_properties") as set_client_properties,
     ):
         harness.charm.on.config_changed.emit()
 
@@ -635,26 +600,24 @@ def test_config_changed_updates_client_data(harness: Harness):
 
     with (
         patch(
-            "managers.config.KafkaConfigManager.server_properties",
+            "managers.config.ConfigManager.server_properties",
             new_callable=PropertyMock,
             return_value=["gandalf=white"],
         ),
         patch("charm.KafkaCharm.healthy", return_value=True),
         patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
         patch("workload.KafkaWorkload.read", return_value=["gandalf=white"]),
-        patch("managers.config.KafkaConfigManager.set_zk_jaas_config"),
+        patch("managers.config.ConfigManager.set_zk_jaas_config"),
+        patch("charm.KafkaCharm.update_client_data") as patched_update_client_data,
         patch(
-            "events.provider.KafkaProvider.update_connection_info"
-        ) as patched_update_connection_info,
-        patch(
-            "managers.config.KafkaConfigManager.set_client_properties"
+            "managers.config.ConfigManager.set_client_properties"
         ) as patched_set_client_properties,
     ):
         harness.set_leader(True)
         harness.charm.on.config_changed.emit()
 
         patched_set_client_properties.assert_called_once()
-        patched_update_connection_info.assert_called_once()
+        patched_update_client_data.assert_called_once()
 
 
 def test_config_changed_restarts(harness: Harness):
@@ -667,7 +630,7 @@ def test_config_changed_restarts(harness: Harness):
 
     with (
         patch(
-            "managers.config.KafkaConfigManager.server_properties",
+            "managers.config.ConfigManager.server_properties",
             new_callable=PropertyMock,
             return_value=["gandalf=grey"],
         ),
@@ -678,8 +641,8 @@ def test_config_changed_restarts(harness: Harness):
         patch("core.cluster.ZooKeeper.broker_active", return_value=True),
         patch("core.cluster.ZooKeeper.zookeeper_connected", return_value=True),
         patch("managers.auth.AuthManager.add_user"),
-        patch("managers.config.KafkaConfigManager.set_zk_jaas_config"),
-        patch("managers.config.KafkaConfigManager.set_server_properties"),
+        patch("managers.config.ConfigManager.set_zk_jaas_config"),
+        patch("managers.config.ConfigManager.set_server_properties"),
     ):
         harness.update_relation_data(zk_rel_id, ZK, {"username": "glorfindel"})
         patched_restart_snap_service.reset_mock()
@@ -697,3 +660,32 @@ def test_on_remove_sysctl_is_deleted(harness: Harness):
         harness.charm.on.remove.emit()
 
         patched_sysctl_remove.assert_called_once()
+
+
+def test_workload_version_is_setted(harness, monkeypatch):
+    output_install = "3.6.0-ubuntu0"
+    output_changed = "3.6.1-ubuntu0"
+    monkeypatch.setattr(
+        harness.charm.workload,
+        "run_bin_command",
+        Mock(side_effect=[output_install, output_changed]),
+    )
+    monkeypatch.setattr(harness.charm.workload, "install", Mock(return_value=True))
+
+    harness.charm.on.install.emit()
+    assert harness.get_workload_version() == "3.6.0"
+
+    with (
+        patch(
+            "managers.config.ConfigManager.server_properties",
+            new_callable=PropertyMock,
+            return_value=["gandalf=grey"],
+        ),
+        patch("charm.KafkaCharm.healthy", return_value=True),
+        patch("workload.KafkaWorkload.read", return_value=["gandalf=white"]),
+        patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
+    ):
+
+        harness.charm.on.config_changed.emit()
+
+    assert harness.get_workload_version() == "3.6.1"

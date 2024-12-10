@@ -20,8 +20,7 @@ from .helpers import (
 
 logger = logging.getLogger(__name__)
 
-# FIXME: update this to 'stable' when `pre-upgrade-check` is released to 'stable'
-CHANNEL = "edge"
+CHANNEL = "3/stable"
 
 
 @pytest.mark.abort_on_fail
@@ -29,17 +28,16 @@ async def test_in_place_upgrade(ops_test: OpsTest, kafka_charm, app_charm):
     await asyncio.gather(
         ops_test.model.deploy(
             ZK_NAME,
-            channel="edge",
+            channel="3/edge",
+            revision=137,
             application_name=ZK_NAME,
             num_units=1,
-            series="jammy",
         ),
         ops_test.model.deploy(
             APP_NAME,
             application_name=APP_NAME,
             num_units=1,
             channel=CHANNEL,
-            series="jammy",
         ),
         ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series="jammy"),
     )
@@ -63,7 +61,7 @@ async def test_in_place_upgrade(ops_test: OpsTest, kafka_charm, app_charm):
 
     logger.info("Producing messages before upgrading")
     produce_and_check_logs(
-        model_full_name=ops_test.model_full_name,
+        ops_test=ops_test,
         kafka_unit_name=f"{APP_NAME}/0",
         provider_unit_name=f"{DUMMY_NAME}/0",
         topic="hot-topic",
@@ -92,7 +90,7 @@ async def test_in_place_upgrade(ops_test: OpsTest, kafka_charm, app_charm):
 
     logger.info("Check that produced messages can be consumed afterwards")
     consume_and_check(
-        model_full_name=ops_test.model_full_name,
+        ops_test=ops_test,
         provider_unit_name=f"{DUMMY_NAME}/0",
         topic="hot-topic",
     )

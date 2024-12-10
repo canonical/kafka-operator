@@ -16,7 +16,6 @@ import subprocess
 from socket import getfqdn
 
 from charms.data_platform_libs.v0.data_interfaces import KafkaRequires, TopicCreatedEvent
-from charms.operator_libs_linux.v0 import apt
 from charms.operator_libs_linux.v1 import snap
 from ops.charm import ActionEvent, CharmBase, RelationEvent
 from ops.main import main
@@ -95,8 +94,6 @@ class ApplicationCharm(CharmBase):
 
     def _install_packages(self):
         logger.info("INSTALLING PACKAGES")
-        apt.update()
-        apt.add_package(["snapd"])
         cache = snap.SnapCache()
         kafka = cache["charmed-kafka"]
 

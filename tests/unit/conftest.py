@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
-from unittest.mock import patch
+from unittest.mock import PropertyMock, patch
 
 import pytest
+from ops import JujuVersion
 from src.literals import INTERNAL_USERS, SUBSTRATE
 
 
@@ -13,6 +14,7 @@ def zk_data() -> dict[str, str]:
         "username": "glorfindel",
         "password": "mellon",
         "endpoints": "10.10.10.10",
+        "database": "/kafka",
         "chroot": "/kafka",
         "uris": "10.10.10.10:2181",
         "tls": "disabled",
@@ -31,7 +33,7 @@ def patched_pebble_restart(mocker):
 
 @pytest.fixture(autouse=True)
 def patched_etc_environment():
-    with patch("managers.config.KafkaConfigManager.set_environment") as etc_env:
+    with patch("managers.config.ConfigManager.set_environment") as etc_env:
         yield etc_env
 
 
@@ -65,3 +67,9 @@ def patched_health_machine_configured():
             yield machine_configured
     else:
         yield
+
+
+@pytest.fixture(autouse=True)
+def juju_has_secrets(mocker):
+    """Using Juju3 we should always have secrets available."""
+    mocker.patch.object(JujuVersion, "has_secrets", new_callable=PropertyMock).return_value = True
