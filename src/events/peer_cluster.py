@@ -114,6 +114,7 @@ class PeerClusterEventsHandler(Object):
                 "balancer-password": self.charm.state.peer_cluster.balancer_password,
                 "balancer-uris": self.charm.state.peer_cluster.balancer_uris,
                 "controller-quorum-uris": self.charm.state.peer_cluster.controller_quorum_uris,
+                "controller-password": self.charm.state.peer_cluster.controller_password,
             }
         )
 

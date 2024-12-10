@@ -452,13 +452,23 @@ class BrokerOperator(Object):
             self.charm.state.cluster.update({"cluster-uuid": uuid})
             self.charm.state.peer_cluster.update({"cluster-uuid": uuid})
 
-        # Controller is tasked with populating quorum uris
+        # Controller is tasked with populating quorum uris and the `controller` user password
         if self.charm.state.runs_controller:
             quorum_uris = {"controller-quorum-uris": self.charm.state.controller_quorum_uris}
             self.charm.state.cluster.update(quorum_uris)
 
+            generated_password = self.charm.workload.generate_password()
+
             if self.charm.state.peer_cluster_orchestrator:
                 self.charm.state.peer_cluster_orchestrator.update(quorum_uris)
+
+                if not self.charm.state.peer_cluster_orchestrator.controller_password:
+                    self.charm.state.peer_cluster_orchestrator.update(
+                        {"controller-password": generated_password}
+                    )
+            elif not self.charm.state.peer_cluster.controller_password:
+                # single mode, controller & leader
+                self.charm.state.cluster.update({"controller-password": generated_password})
 
     def _format_storages(self) -> None:
         """Format storages provided relevant keys exist."""
