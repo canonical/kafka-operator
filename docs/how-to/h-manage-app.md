@@ -102,7 +102,7 @@ juju remove-application data-integrator
 
 ## Internal password rotation
 
-The operator user is used internally by the Charmed Kafka Operator, the `set-password` action can be used to rotate its password.
+The operator user is used internally by the Charmed Apache Kafka Operator, the `set-password` action can be used to rotate its password.
 
 ```shell
 # to set a specific password for the operator user
