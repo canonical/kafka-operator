@@ -768,8 +768,8 @@ class ZooKeeper(RelationState):
 
     # retry to give ZK time to update its broker zNodes before failing
     @retry(
-        wait=wait_fixed(3),
-        stop=stop_after_attempt(3),
+        wait=wait_fixed(5),
+        stop=stop_after_attempt(10),
         retry=retry_if_result(lambda result: result is False),
         retry_error_callback=lambda _: False,
     )
