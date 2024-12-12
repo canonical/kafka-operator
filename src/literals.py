@@ -42,6 +42,7 @@ BALANCER_TOPICS = [
     "__KafkaCruiseControlBrokerMetricSamples",
 ]
 MIN_REPLICAS = 3
+KRAFT_VERSION = 1
 
 
 INTER_BROKER_USER = "sync"
@@ -285,6 +286,12 @@ class Status(Enum):
     WAITING_FOR_REBALANCE = StatusLevel(
         WaitingStatus("awaiting completion of rebalance task"), "DEBUG"
     )
+
+
+class KRaftUnitStatus(Enum):
+    LEADER = "Leader"
+    FOLLOWER = "Follower"
+    OBSERVER = "Observer"
 
 
 DEPENDENCIES = {

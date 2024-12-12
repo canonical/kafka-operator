@@ -23,7 +23,14 @@ from tenacity.stop import stop_after_attempt
 from tenacity.wait import wait_fixed
 
 from core.models import JSON
-from literals import BALANCER_WEBSERVER_USER, JMX_CC_PORT, PATHS, PEER, SECURITY_PROTOCOL_PORTS
+from literals import (
+    BALANCER_WEBSERVER_USER,
+    JMX_CC_PORT,
+    PATHS,
+    PEER,
+    SECURITY_PROTOCOL_PORTS,
+    KRaftUnitStatus,
+)
 from managers.auth import Acl, AuthManager
 
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
@@ -605,3 +612,31 @@ def get_kafka_broker_state(ops_test: OpsTest, app_name: str) -> JSON:
 def get_replica_count_by_broker_id(ops_test: OpsTest, app_name: str) -> dict[str, Any]:
     broker_state_json = get_kafka_broker_state(ops_test, app_name)
     return broker_state_json.get("ReplicaCountByBrokerId", {})
+
+
+@retry(
+    wait=wait_fixed(20),
+    stop=stop_after_attempt(6),
+    reraise=True,
+)
+def kraft_quorum_status(
+    ops_test: OpsTest, unit_name: str, bootstrap_controller: str
+) -> dict[int, KRaftUnitStatus]:
+    """Returns a dict mapping of unit ID to KRaft unit status based on `kafka-metadata-quorum.sh` utility's output."""
+    result = check_output(
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.metadata-quorum --bootstrap-controller {bootstrap_controller} describe --replication'",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+    # parse `kafka-metadata-quorum.sh` output
+    # NodeId  DirectoryId  LogEndOffset  Lag  LastFetchTimestamp  LastCaughtUpTimestamp  Status
+    unit_status: dict[int, str] = {}
+    for line in result.split("\n"):
+        fields = [c.strip() for c in line.split("\t")]
+        try:
+            unit_status[int(fields[0])] = KRaftUnitStatus(fields[6])
+        except (ValueError, IndexError):
+            continue
+
+    return unit_status
