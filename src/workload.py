@@ -15,13 +15,7 @@ from tenacity import retry, retry_if_result, stop_after_attempt, wait_fixed
 from typing_extensions import override
 
 from core.workload import CharmedKafkaPaths, WorkloadBase
-from literals import (
-    BALANCER,
-    BROKER,
-    GROUP,
-    SNAP_NAME,
-    USER,
-)
+from literals import BALANCER, BROKER, GROUP, KRAFT_VERSION, SNAP_NAME, USER
 
 logger = logging.getLogger(__name__)
 PATCHED_SNAP = (
@@ -132,7 +126,7 @@ class Workload(WorkloadBase):
             import os
 
             os.system(f"wget {PATCHED_SNAP}")
-            os.system("sudo snap install --dangerous charmed-kafka_3.9.0_amd64.snap")
+            os.system("sudo snap install --dangerous ./charmed-kafka_3.9.0_amd64.snap")
             # self.kafka.ensure(snap.SnapState.Present, revision=CHARMED_KAFKA_SNAP_REVISION)
             # self.kafka.connect(plug="removable-media")
             # self.kafka.hold()
@@ -191,7 +185,11 @@ class Workload(WorkloadBase):
         return self.exec(command)
 
     def format_storages(
-        self, uuid: str, internal_user_credentials: dict[str, str] | None = None
+        self,
+        uuid: str,
+        internal_user_credentials: dict[str, str] | None = None,
+        kraft_version: int = KRAFT_VERSION,
+        initial_controllers: str | None = None,
     ) -> None:
         """Use a passed uuid to format storages."""
         # NOTE data dirs have changed permissions by storage_attached hook. For some reason
@@ -207,6 +205,17 @@ class Workload(WorkloadBase):
             "-c",
             self.paths.server_properties,
         ]
+
+        if kraft_version > 0:
+            command.append("--feature")
+            command.append(f"kraft.version={kraft_version}")
+
+            if initial_controllers:
+                command.append("--initial-controllers")
+                command.append(initial_controllers)
+            else:
+                command.append("--standalone")
+
         if internal_user_credentials:
             for user, password in internal_user_credentials.items():
                 command += ["--add-scram", f"'SCRAM-SHA-512=[name={user},password={password}]'"]
@@ -215,6 +224,20 @@ class Workload(WorkloadBase):
         # Drop permissions again for the main process
         self.exec(["chmod", "-R", "750", f"{self.paths.data_path}"])
         self.exec(["chown", "-R", f"{USER}:{GROUP}", f"{self.paths.data_path}"])
+
+    def generate_uuid(self) -> str:
+        """Generate UUID using `kafka-storage.sh` utility."""
+        uuid = self.run_bin_command(bin_keyword="storage", bin_args=["random-uuid"]).strip()
+        return uuid
+
+    def get_directory_id(self, log_dirs: str) -> str:
+        """Read directory.id from meta.properties file in the logs dir."""
+        raw = self.read(os.path.join(log_dirs, "meta.properties"))
+        for line in raw:
+            if line.startswith("directory.id"):
+                return line.strip().replace("directory.id=", "")
+
+        return ""
 
 
 class KafkaWorkload(Workload):

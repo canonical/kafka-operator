@@ -11,6 +11,7 @@ from typing import MutableMapping, TypeAlias, TypedDict
 
 import requests
 from charms.data_platform_libs.v0.data_interfaces import (
+    PROV_SECRET_PREFIX,
     Data,
     DataPeerData,
     DataPeerUnitData,
@@ -99,6 +100,9 @@ class PeerCluster(RelationState):
         broker_uris: str = "",
         cluster_uuid: str = "",
         controller_quorum_uris: str = "",
+        bootstrap_controller: str = "",
+        bootstrap_unit_id: str = "",
+        bootstrap_replica_id: str = "",
         racks: int = 0,
         broker_capacities: BrokerCapacities = {},
         zk_username: str = "",
@@ -115,6 +119,9 @@ class PeerCluster(RelationState):
         self._broker_uris = broker_uris
         self._cluster_uuid = cluster_uuid
         self._controller_quorum_uris = controller_quorum_uris
+        self._bootstrap_controller = bootstrap_controller
+        self._bootstrap_unit_id = bootstrap_unit_id
+        self._bootstrap_replica_id = bootstrap_replica_id
         self._racks = racks
         self._broker_capacities = broker_capacities
         self._zk_username = zk_username
@@ -124,6 +131,18 @@ class PeerCluster(RelationState):
         self._balancer_password = balancer_password
         self._balancer_uris = balancer_uris
         self._controller_password = controller_password
+
+    def _fetch_from_secrets(self, group, field):
+        if not self.relation:
+            return ""
+
+        if secrets_uri := self.relation.data[self.relation.app].get(
+            f"{PROV_SECRET_PREFIX}{group}"
+        ):
+            if secret := self.data_interface._model.get_secret(id=secrets_uri):
+                return secret.get_content().get(field, "")
+
+        return ""
 
     @property
     def roles(self) -> str:
@@ -145,6 +164,8 @@ class PeerCluster(RelationState):
         if not self.relation or not self.relation.app:
             return ""
 
+        return self._fetch_from_secrets("broker", "broker-username")
+
         return self.data_interface._fetch_relation_data_with_secrets(
             component=self.relation.app,
             req_secret_fields=BALANCER.requested_secrets,
@@ -160,6 +181,8 @@ class PeerCluster(RelationState):
 
         if not self.relation or not self.relation.app:
             return ""
+
+        return self._fetch_from_secrets("broker", "broker-password")
 
         return self.data_interface._fetch_relation_data_with_secrets(
             component=self.relation.app,
@@ -228,6 +251,54 @@ class PeerCluster(RelationState):
         return (
             self.data_interface.fetch_relation_field(
                 relation_id=self.relation.id, field="cluster-uuid"
+            )
+            or ""
+        )
+
+    @property
+    def bootstrap_controller(self) -> str:
+        """Bootstrap controller in KRaft mode."""
+        if self._bootstrap_controller:
+            return self._bootstrap_controller
+
+        if not self.relation or not self.relation.app:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="bootstrap-controller"
+            )
+            or ""
+        )
+
+    @property
+    def bootstrap_unit_id(self) -> str:
+        """Bootstrap unit ID in KRaft mode."""
+        if self._bootstrap_unit_id:
+            return self._bootstrap_unit_id
+
+        if not self.relation or not self.relation.app:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="bootstrap-unit-id"
+            )
+            or ""
+        )
+
+    @property
+    def bootstrap_replica_id(self) -> str:
+        """Directory ID of the bootstrap node in KRaft mode."""
+        if self._bootstrap_replica_id:
+            return self._bootstrap_replica_id
+
+        if not self.relation or not self.relation.app:
+            return ""
+
+        return (
+            self.data_interface.fetch_relation_field(
+                relation_id=self.relation.id, field="bootstrap-replica-id"
             )
             or ""
         )
@@ -489,6 +560,21 @@ class KafkaCluster(RelationState):
         """Cluster uuid used for initializing storages."""
         return self.relation_data.get("cluster-uuid", "")
 
+    @property
+    def bootstrap_replica_id(self) -> str:
+        """Directory ID of the bootstrap controller."""
+        return self.relation_data.get("bootstrap-replica-id", "")
+
+    @property
+    def bootstrap_controller(self) -> str:
+        """HOST:PORT address of the bootstrap controller."""
+        return self.relation_data.get("bootstrap-controller", "")
+
+    @property
+    def bootstrap_unit_id(self) -> str:
+        """Unit ID of the bootstrap controller."""
+        return self.relation_data.get("bootstrap-unit-id", "")
+
 
 class KafkaBroker(RelationState):
     """State collection metadata for a unit."""
@@ -639,6 +725,16 @@ class KafkaBroker(RelationState):
         K8s-only.
         """
         return self.k8s.get_node_ip(self.pod_name)
+
+    @property
+    def directory_id(self) -> str:
+        """Directory ID of the node as saved in `meta.properties`."""
+        return self.relation_data.get("directory-id", "")
+
+    @property
+    def added_to_quorum(self) -> bool:
+        """Whether or not this node is added to dynamic quorum in KRaft mode."""
+        return bool(self.relation_data.get("added-to-quorum", False))
 
 
 class ZooKeeper(RelationState):

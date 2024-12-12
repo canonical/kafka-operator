@@ -113,7 +113,7 @@ class Listener:
         self.node_port = node_port
 
     @property
-    def scope(self) -> Scope:
+    def scope(self) -> str:
         """Internal scope validator."""
         return self._scope
 
@@ -681,7 +681,8 @@ class ConfigManager(CommonConfigManager):
         properties = [
             f"process.roles={','.join(roles)}",
             f"node.id={node_id}",
-            f"controller.quorum.voters={self.state.peer_cluster.controller_quorum_uris}",
+            # f"controller.quorum.voters={self.state.peer_cluster.controller_quorum_uris}",
+            f"controller.quorum.bootstrap.servers={self.state.peer_cluster.bootstrap_controller}",
             f"controller.listener.names={CONTROLLER_LISTENER_NAME}",
             *self.controller_scram_properties,
         ]
@@ -705,13 +706,8 @@ class ConfigManager(CommonConfigManager):
         advertised_listeners = [listener.advertised_listener for listener in self.all_listeners]
 
         if self.state.kraft_mode:
-<<<<<<< HEAD
-            controller_protocol_map = f"{CONTROLLER_LISTENER_NAME}:SASL_PLAINTEXT"
-            controller_listener = f"{CONTROLLER_LISTENER_NAME}://0.0.0.0:{CONTROLLER_PORT}"
-=======
             controller_protocol_map = f"{CONTROLLER_LISTENER_NAME}:PLAINTEXT"
             controller_listener = f"{CONTROLLER_LISTENER_NAME}://{self.state.unit_broker.internal_address}:{CONTROLLER_PORT}"
->>>>>>> 40bf7bf (fix: use internal address instead of 0.0.0.0 for controller listener)
 
             # NOTE: Case where the controller is running standalone. Early return with a
             # smaller subset of config options
