@@ -157,6 +157,9 @@ class ClusterState(Object):
             extra_kwargs.update(
                 {
                     "controller_quorum_uris": self.cluster.controller_quorum_uris,
+                    "bootstrap_controller": self.cluster.bootstrap_controller,
+                    "bootstrap_unit_id": self.cluster.bootstrap_unit_id,
+                    "bootstrap_replica_id": self.cluster.bootstrap_replica_id,
                 }
             )
 
@@ -178,6 +181,9 @@ class ClusterState(Object):
                     "balancer_password": self.cluster.balancer_password,
                     "balancer_uris": self.cluster.balancer_uris,
                     "controller_quorum_uris": self.cluster.controller_quorum_uris,
+                    "bootstrap_controller": self.cluster.bootstrap_controller,
+                    "bootstrap_unit_id": self.cluster.bootstrap_unit_id,
+                    "bootstrap_replica_id": self.cluster.bootstrap_replica_id,
                 }
             )
 
@@ -220,6 +226,13 @@ class ClusterState(Object):
             component=self.model.unit,
             substrate=self.substrate,
         )
+
+    @property
+    def kraft_unit_id(self) -> int:
+        """Returns current unit ID in KRaft Quorum Manager."""
+        if self.runs_broker and self.runs_controller:
+            return KRAFT_NODE_ID_OFFSET + self.unit_broker.unit_id
+        return self.unit_broker.unit_id
 
     @cached_property
     def peer_units_data_interfaces(self) -> dict[Unit, DataPeerOtherUnitData]:
@@ -444,6 +457,13 @@ class ClusterState(Object):
                     for broker in self.brokers
                 ]
             )
+        return ""
+
+    @property
+    def bootstrap_controller(self) -> str:
+        """Returns the controller listener in the format HOST:PORT."""
+        if self.runs_controller:
+            return f"{self.unit_broker.internal_address}:{CONTROLLER_PORT}"
         return ""
 
     @property

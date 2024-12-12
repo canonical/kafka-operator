@@ -114,6 +114,9 @@ class PeerClusterEventsHandler(Object):
                 "balancer-password": self.charm.state.peer_cluster.balancer_password,
                 "balancer-uris": self.charm.state.peer_cluster.balancer_uris,
                 "controller-quorum-uris": self.charm.state.peer_cluster.controller_quorum_uris,
+                "bootstrap-controller": self.charm.state.peer_cluster.bootstrap_controller,
+                "bootstrap-unit-id": self.charm.state.peer_cluster.bootstrap_unit_id,
+                "bootstrap-replica-id": self.charm.state.peer_cluster.bootstrap_replica_id,
             }
         )
 
