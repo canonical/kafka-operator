@@ -16,6 +16,7 @@ from ops import (
     LeaderElectedEvent,
     Object,
     PebbleReadyEvent,
+    RelationDepartedEvent,
     SecretChangedEvent,
     StartEvent,
     StorageAttachedEvent,
@@ -119,7 +120,6 @@ class BrokerOperator(Object):
         self.framework.observe(getattr(self.charm.on, "install"), self._on_install)
         self.framework.observe(getattr(self.charm.on, "start"), self._on_start)
         self.framework.observe(getattr(self.charm.on, "leader_elected"), self._leader_elected)
-        self.framework.observe(getattr(self.charm.on, "remove"), self._on_remove)
 
         if self.charm.substrate == "k8s":
             self.framework.observe(getattr(self.charm.on, "kafka_pebble_ready"), self._on_start)
@@ -129,6 +129,9 @@ class BrokerOperator(Object):
         self.framework.observe(getattr(self.charm.on, "secret_changed"), self._on_secret_changed)
 
         self.framework.observe(self.charm.on[PEER].relation_changed, self._on_config_changed)
+        self.framework.observe(
+            self.charm.on[PEER].relation_departed, self._on_peer_relation_departed
+        )
 
         self.framework.observe(
             getattr(self.charm.on, "data_storage_attached"), self._on_storage_attached
@@ -540,8 +543,8 @@ class BrokerOperator(Object):
             )
 
     @retry(
-        wait=wait_fixed(15),
-        stop=stop_after_attempt(4),
+        wait=wait_fixed(10),
+        stop=stop_after_attempt(3),
         reraise=True,
     )
     def _remove_controller(
@@ -550,20 +553,26 @@ class BrokerOperator(Object):
         if not bootstrap_node:
             bootstrap_node = self.charm.state.cluster.bootstrap_controller
 
-        self.workload.run_bin_command(
-            bin_keyword="metadata-quorum",
-            bin_args=[
-                "--bootstrap-controller",
-                bootstrap_node,
-                "--command-config",
-                self.workload.paths.server_properties,
-                "remove-controller",
-                "--controller-id",
-                str(controller_id),
-                "--controller-directory-id",
-                controller_directory_id,
-            ],
-        )
+        try:
+            self.workload.run_bin_command(
+                bin_keyword="metadata-quorum",
+                bin_args=[
+                    "--bootstrap-controller",
+                    bootstrap_node,
+                    "--command-config",
+                    self.workload.paths.server_properties,
+                    "remove-controller",
+                    "--controller-id",
+                    str(controller_id),
+                    "--controller-directory-id",
+                    controller_directory_id,
+                ],
+            )
+        except Exception as e:
+            if "VoterNotFoundException" in getattr(e, "stderr"):
+                # successful
+                return
+            raise e
 
     def remove_from_quorum(self) -> None:
         """Removes current unit from the dynamic quorum in KRaft mode."""
@@ -643,6 +652,6 @@ class BrokerOperator(Object):
 
         # self.charm.on.config_changed.emit()  # ensure both broker+balancer get a changed event
 
-    def _on_remove(self, _) -> None:
-        """Handler for stop."""
-        self.remove_from_quorum()
+    def _on_peer_relation_departed(self, event: RelationDepartedEvent) -> None:
+        if event.departing_unit == self.charm.unit:
+            self.remove_from_quorum()
