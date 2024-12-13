@@ -158,7 +158,6 @@ class TestKRaft:
         unit_status = kraft_quorum_status(
             ops_test, f"{self.controller_app}/0", bootstrap_controller
         )
-        print(unit_status)
 
         offset = KRAFT_NODE_ID_OFFSET if self.controller_app == APP_NAME else 0
 
@@ -229,6 +228,9 @@ class TestKRaft:
             timeout=600,
             idle_period=20,
         )
+
+        async with ops_test.fast_forward(fast_interval="20s"):
+            await asyncio.sleep(60)
 
         address = await get_address(ops_test=ops_test, app_name=self.controller_app, unit_num=3)
         bootstrap_controller = f"{address}:{CONTROLLER_PORT}"

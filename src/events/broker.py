@@ -497,14 +497,6 @@ class BrokerOperator(Object):
 
     def _leader_elected(self, event: LeaderElectedEvent) -> None:
         if self.charm.state.runs_controller and self.charm.state.cluster.bootstrap_controller:
-            # remove previous leader from dynamic quorum, if the unit is still available, it would eventually re-join during update_status
-            # prev_leader_id = self.charm.state.peer_cluster_orchestrator.bootstrap_unit_id
-            # prev_replica_id = self.charm.state.peer_cluster_orchestrator.bootstrap_replica_id
-            # self._remove_controller(
-            #     int(prev_leader_id),
-            #     prev_replica_id,
-            #     bootstrap_node=self.charm.state.bootstrap_controller,
-            # )
 
             updated_bootstrap_data = {
                 "bootstrap-controller": self.charm.state.bootstrap_controller,
@@ -583,7 +575,11 @@ class BrokerOperator(Object):
                 if not self.charm.unit.is_leader()
                 else self.charm.state.cluster.bootstrap_replica_id
             )
-            self._remove_controller(self.charm.state.kraft_unit_id, directory_id)
+            self._remove_controller(
+                self.charm.state.kraft_unit_id,
+                directory_id,
+                bootstrap_node=self.charm.state.bootstrap_controller,
+            )
 
     def update_external_services(self) -> None:
         """Attempts to update any external Kubernetes services."""
