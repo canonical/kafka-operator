@@ -18,7 +18,7 @@ from literals import (
     KRaftUnitStatus,
 )
 
-from .helpers import APP_NAME, check_socket, get_address, kraft_quorum_status, create_test_topic
+from .helpers import APP_NAME, check_socket, create_test_topic, get_address, kraft_quorum_status
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +32,25 @@ class TestKRaft:
 
     deployment_strat: str = os.environ.get("DEPLOYMENT", "multi")
     controller_app: str = {"single": APP_NAME, "multi": CONTROLLER_APP}[deployment_strat]
+
+    async def _assert_listeners_accessible(self, ops_test: OpsTest, unit_num=0):
+        address = await get_address(ops_test=ops_test, app_name=APP_NAME, unit_num=0)
+        assert check_socket(
+            address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].internal
+        )  # Internal listener
+
+        # Client listener should not be enabled if there is no relations
+        assert not check_socket(
+            address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
+        )
+
+        # Check controller socket
+        if self.controller_app != APP_NAME:
+            address = await get_address(
+                ops_test=ops_test, app_name=self.controller_app, unit_num=unit_num
+            )
+
+        assert check_socket(address, CONTROLLER_PORT)
 
     @pytest.mark.abort_on_fail
     async def test_build_and_deploy(self, ops_test: OpsTest, kafka_charm):
@@ -113,21 +132,7 @@ class TestKRaft:
 
     @pytest.mark.abort_on_fail
     async def test_listeners(self, ops_test: OpsTest):
-        address = await get_address(ops_test=ops_test)
-        assert check_socket(
-            address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].internal
-        )  # Internal listener
-
-        # Client listener should not be enabled if there is no relations
-        assert not check_socket(
-            address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
-        )
-
-        # Check controller socket
-        if self.controller_app != APP_NAME:
-            address = await get_address(ops_test=ops_test, app_name=self.controller_app)
-
-        assert check_socket(address, CONTROLLER_PORT)
+        await self._assert_listeners_accessible(ops_test, unit_num=0)
 
     @pytest.mark.abort_on_fail
     async def test_authorizer(self, ops_test: OpsTest):
@@ -136,9 +141,9 @@ class TestKRaft:
         port = SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].internal
 
         await create_test_topic(ops_test, f"{address}:{port}")
-    
+
     @pytest.mark.abort_on_fail
-    async def test_scaling(self, ops_test: OpsTest):
+    async def test_scale_out(self, ops_test: OpsTest):
         await ops_test.model.applications[self.controller_app].add_units(count=2)
         await ops_test.model.wait_for_idle(
             apps=list({APP_NAME, self.controller_app}),
@@ -212,3 +217,26 @@ class TestKRaft:
         )
         assert (offset + 3) in unit_status
         assert unit_status[offset + 3] == KRaftUnitStatus.FOLLOWER
+
+    @pytest.mark.abort_on_fail
+    async def test_scale_in(self, ops_test: OpsTest):
+        await ops_test.model.applications[self.controller_app].destroy_units(
+            *(f"{self.controller_app}/{unit_id}" for unit_id in (1, 2))
+        )
+        await ops_test.model.wait_for_idle(
+            apps=list({APP_NAME, self.controller_app}),
+            status="active",
+            timeout=600,
+            idle_period=20,
+        )
+
+        address = await get_address(ops_test=ops_test, app_name=self.controller_app, unit_num=3)
+        bootstrap_controller = f"{address}:{CONTROLLER_PORT}"
+        offset = KRAFT_NODE_ID_OFFSET if self.controller_app == APP_NAME else 0
+
+        unit_status = kraft_quorum_status(
+            ops_test, f"{self.controller_app}/3", bootstrap_controller
+        )
+
+        assert unit_status[offset + 3] == KRaftUnitStatus.LEADER
+        await self._assert_listeners_accessible(ops_test, unit_num=3)
