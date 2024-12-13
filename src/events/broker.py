@@ -472,7 +472,7 @@ class BrokerOperator(Object):
             elif not self.charm.state.peer_cluster.controller_password:
                 # single mode, controller & leader
                 self.charm.state.cluster.update({"controller-password": generated_password})
-                
+
             bootstrap_data = {
                 "bootstrap-controller": self.charm.state.bootstrap_controller,
                 "bootstrap-unit-id": str(self.charm.state.kraft_unit_id),
@@ -498,13 +498,13 @@ class BrokerOperator(Object):
     def _leader_elected(self, event: LeaderElectedEvent) -> None:
         if self.charm.state.runs_controller and self.charm.state.cluster.bootstrap_controller:
             # remove previous leader from dynamic quorum, if the unit is still available, it would eventually re-join during update_status
-            prev_leader_id = self.charm.state.peer_cluster_orchestrator.bootstrap_unit_id
-            prev_replica_id = self.charm.state.peer_cluster_orchestrator.bootstrap_replica_id
-            self._remove_controller(
-                int(prev_leader_id),
-                prev_replica_id,
-                bootstrap_node=self.charm.state.bootstrap_controller,
-            )
+            # prev_leader_id = self.charm.state.peer_cluster_orchestrator.bootstrap_unit_id
+            # prev_replica_id = self.charm.state.peer_cluster_orchestrator.bootstrap_replica_id
+            # self._remove_controller(
+            #     int(prev_leader_id),
+            #     prev_replica_id,
+            #     bootstrap_node=self.charm.state.bootstrap_controller,
+            # )
 
             updated_bootstrap_data = {
                 "bootstrap-controller": self.charm.state.bootstrap_controller,
@@ -563,6 +563,8 @@ class BrokerOperator(Object):
             bin_args=[
                 "--bootstrap-controller",
                 bootstrap_node,
+                "--command-config",
+                self.workload.paths.server_properties,
                 "remove-controller",
                 "--controller-id",
                 str(controller_id),
@@ -571,16 +573,17 @@ class BrokerOperator(Object):
             ],
         )
 
-    def remove_follower_unit(self) -> None:
-        """Removes current unit from the dynamic quorum in KRaft mode if this is a follower unit."""
-        if (
-            self.charm.state.runs_controller
-            and not self.charm.unit.is_leader()
-            and self.charm.state.unit_broker.added_to_quorum
+    def remove_from_quorum(self) -> None:
+        """Removes current unit from the dynamic quorum in KRaft mode."""
+        if self.charm.state.runs_controller and (
+            self.charm.state.unit_broker.added_to_quorum or self.charm.unit.is_leader()
         ):
-            self._remove_controller(
-                self.charm.state.kraft_unit_id, self.charm.state.unit_broker.directory_id
+            directory_id = (
+                self.charm.state.unit_broker.directory_id
+                if not self.charm.unit.is_leader()
+                else self.charm.state.cluster.bootstrap_replica_id
             )
+            self._remove_controller(self.charm.state.kraft_unit_id, directory_id)
 
     def update_external_services(self) -> None:
         """Attempts to update any external Kubernetes services."""
@@ -646,4 +649,4 @@ class BrokerOperator(Object):
 
     def _on_remove(self, _) -> None:
         """Handler for stop."""
-        self.remove_follower_unit()
+        self.remove_from_quorum()
