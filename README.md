@@ -270,4 +270,4 @@ Also, if you truly enjoy working on open-source projects like this one, check ou
 
 ## License
 
-The Charmed Apache Kafka Operator is free software, distributed under the Apache Software License, version 2.0. See [LICENSE](https://github.com/canonical/kafka-operator/blob/main/LICENSE) for more information.
+Charmed Apache Kafka is a free software, distributed under the Apache Software License, version 2.0. See [LICENSE](https://github.com/canonical/kafka-operator/blob/main/LICENSE) for more information.
