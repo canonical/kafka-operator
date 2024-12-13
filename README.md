@@ -14,7 +14,7 @@ The Charmed Operator can be found on [Charmhub](https://charmhub.io/kafka) and i
 - SASL/SCRAM auth for Broker-Broker and Client-Broker authentication enabled by default.
 - Access control management supported with user-provided ACL lists.
 
-As currently Apache Kafka requires a paired Apache ZooKeeper deployment in production, this operator makes use of the [Apache ZooKeeper Operator](https://github.com/canonical/zookeeper-operator) for various essential functions.
+As currently Apache Kafka requires a paired Apache ZooKeeper deployment in production, this operator makes use of [Charmed Apache ZooKeeper](https://github.com/canonical/zookeeper-operator) for various essential functions.
 
 ### Features checklist
 
@@ -51,7 +51,7 @@ For more information on how to perform typical tasks, see the How to guides sect
 
 ### Deployment
 
-The Apache Kafka and Apache ZooKeeper operators can both be deployed as follows:
+Charmed Apache Kafka and Charmed Apache ZooKeeper can both be deployed as follows:
 
 ```shell
 $ juju deploy zookeeper -n 5
@@ -70,7 +70,7 @@ To watch the process, the `juju status` command can be used. Once all the units 
 juju run-action kafka/leader get-admin-credentials --wait
 ```
 
-Apache Kafka ships with `bin/*.sh` commands to do various administrative tasks, e.g `bin/kafka-config.sh` to update cluster configuration, `bin/kafka-topics.sh` for topic management, and many more! The Apache Kafka Charmed Operator provides these commands for administrators to run their desired cluster configurations securely with SASL authentication, either from within the cluster or as an external client.
+Apache Kafka ships with `bin/*.sh` commands to do various administrative tasks, e.g `bin/kafka-config.sh` to update cluster configuration, `bin/kafka-topics.sh` for topic management, and many more! Charmed Apache Kafka provides these commands for administrators to run their desired cluster configurations securely with SASL authentication, either from within the cluster or as an external client.
 
 For example, to list the current topics on the Apache Kafka cluster, run the following command:
 
@@ -79,9 +79,9 @@ BOOTSTRAP_SERVERS=$(juju run-action kafka/leader get-admin-credentials --wait | 
 juju ssh kafka/leader 'charmed-kafka.topics --bootstrap-server $BOOTSTRAP_SERVERS --list --command-config /var/snap/charmed-kafka/common/client.properties'
 ```
 
-Note that Charmed Apache Kafka cluster is secure-by-default: when no other application is related to Apache Kafka, listeners are disabled, thus preventing any incoming connection. However, even for running the commands above, listeners must be enabled. If there are no other applications, you can deploy a `data-integrator` charm and relate it to Charmed Apache Kafka to enable listeners.
+Note that Charmed Apache Kafka cluster is secure-by-default: when no other application is related to Charmed Apache Kafka, listeners are disabled, thus preventing any incoming connection. However, even for running the commands above, listeners must be enabled. If there are no other applications, you can deploy a `data-integrator` charm and relate it to Charmed Apache Kafka to enable listeners.
 
-Available Apache Kafka bin commands can be found with:
+Available Charmed Apache Kafka bin commands can be found with:
 
 ```
 snap info charmed-kafka
