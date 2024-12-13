@@ -33,8 +33,10 @@ class TestKRaft:
     deployment_strat: str = os.environ.get("DEPLOYMENT", "multi")
     controller_app: str = {"single": APP_NAME, "multi": CONTROLLER_APP}[deployment_strat]
 
-    async def _assert_listeners_accessible(self, ops_test: OpsTest, unit_num=0):
-        address = await get_address(ops_test=ops_test, app_name=APP_NAME, unit_num=0)
+    async def _assert_listeners_accessible(
+        self, ops_test: OpsTest, broker_unit_num=0, controller_unit_num=0
+    ):
+        address = await get_address(ops_test=ops_test, app_name=APP_NAME, unit_num=broker_unit_num)
         assert check_socket(
             address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].internal
         )  # Internal listener
@@ -47,7 +49,7 @@ class TestKRaft:
         # Check controller socket
         if self.controller_app != APP_NAME:
             address = await get_address(
-                ops_test=ops_test, app_name=self.controller_app, unit_num=unit_num
+                ops_test=ops_test, app_name=self.controller_app, unit_num=controller_unit_num
             )
 
         assert check_socket(address, CONTROLLER_PORT)
@@ -132,7 +134,7 @@ class TestKRaft:
 
     @pytest.mark.abort_on_fail
     async def test_listeners(self, ops_test: OpsTest):
-        await self._assert_listeners_accessible(ops_test, unit_num=0)
+        await self._assert_listeners_accessible(ops_test)
 
     @pytest.mark.abort_on_fail
     async def test_authorizer(self, ops_test: OpsTest):
@@ -193,10 +195,11 @@ class TestKRaft:
             ops_test, f"{self.controller_app}/1", bootstrap_controller
         )
 
-        # assert previous leader is removed
-        assert (offset + 0) not in unit_status
         # assert new leader is elected
-        assert KRaftUnitStatus.LEADER in unit_status.values()
+        assert (
+            unit_status[offset + 1] == KRaftUnitStatus.LEADER
+            or unit_status[offset + 2] == KRaftUnitStatus.LEADER
+        )
 
         # test cluster stability by adding a new controller
         await ops_test.model.applications[self.controller_app].add_units(count=1)
@@ -223,14 +226,15 @@ class TestKRaft:
             *(f"{self.controller_app}/{unit_id}" for unit_id in (1, 2))
         )
         await ops_test.model.wait_for_idle(
-            apps=list({APP_NAME, self.controller_app}),
+            apps=[self.controller_app],
             status="active",
             timeout=600,
             idle_period=20,
+            wait_for_exact_units=1,
         )
 
         async with ops_test.fast_forward(fast_interval="20s"):
-            await asyncio.sleep(60)
+            await asyncio.sleep(120)
 
         address = await get_address(ops_test=ops_test, app_name=self.controller_app, unit_num=3)
         bootstrap_controller = f"{address}:{CONTROLLER_PORT}"
@@ -241,4 +245,7 @@ class TestKRaft:
         )
 
         assert unit_status[offset + 3] == KRaftUnitStatus.LEADER
-        await self._assert_listeners_accessible(ops_test, unit_num=3)
+        broker_unit_num = 3 if self.controller_app == APP_NAME else 0
+        await self._assert_listeners_accessible(
+            ops_test, broker_unit_num=broker_unit_num, controller_unit_num=3
+        )

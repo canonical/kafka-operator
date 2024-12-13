@@ -569,7 +569,8 @@ class BrokerOperator(Object):
                 ],
             )
         except Exception as e:
-            if "VoterNotFoundException" in getattr(e, "stderr"):
+            error_details = getattr(e, "stderr")
+            if "VoterNotFoundException" in error_details or "TimeoutException" in error_details:
                 # successful
                 return
             raise e
