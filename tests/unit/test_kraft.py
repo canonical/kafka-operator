@@ -182,16 +182,16 @@ def test_remove_controller(charm_configuration, base_state: State):
         actions=ACTIONS,
     )
     cluster_peer = PeerRelation(
-        PEER, PEER, local_unit_data={"added-to-quorum": "true", "directory-id": "random-uuid"}
+        PEER,
+        PEER,
+        local_unit_data={"added-to-quorum": "true", "directory-id": "random-uuid"},
+        peers_data={1: {"added-to-quorum": "true", "directory-id": "other-uuid"}},
     )
     state_in = dataclasses.replace(base_state, relations=[cluster_peer], leader=False)
 
     # When
-    with (
-        patch("workload.KafkaWorkload.run_bin_command") as patched_run_bin_command,
-        patch("charms.operator_libs_linux.v0.sysctl.Config.remove"),
-    ):
-        _ = ctx.run(ctx.on.remove(), state_in)
+    with (patch("workload.KafkaWorkload.run_bin_command") as patched_run_bin_command,):
+        _ = ctx.run(ctx.on.relation_departed(cluster_peer, remote_unit=0), state_in)
 
     # Then
     patched_run_bin_command.assert_called_once()
