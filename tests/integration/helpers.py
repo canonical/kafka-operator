@@ -620,7 +620,7 @@ def get_replica_count_by_broker_id(ops_test: OpsTest, app_name: str) -> dict[str
     reraise=True,
 )
 def kraft_quorum_status(
-    ops_test: OpsTest, unit_name: str, bootstrap_controller: str
+    ops_test: OpsTest, unit_name: str, bootstrap_controller: str, verbose: bool = True
 ) -> dict[int, KRaftUnitStatus]:
     """Returns a dict mapping of unit ID to KRaft unit status based on `kafka-metadata-quorum.sh` utility's output."""
     result = check_output(
@@ -638,5 +638,8 @@ def kraft_quorum_status(
             unit_status[int(fields[0])] = KRaftUnitStatus(fields[6])
         except (ValueError, IndexError):
             continue
+
+    if verbose:
+        print(unit_status)
 
     return unit_status
