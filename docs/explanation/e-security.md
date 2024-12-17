@@ -5,7 +5,7 @@ This document describes cryptography used by Charmed Apache Kafka.
 ## Resource checksums
 
 Every version of the Charmed Apache Kafka and Charmed Apache ZooKeeper operators install a pinned revision of the Charmed Apache Kafka snap
-and Charmed Apache ZooKeeper, respectively, in order to 
+and Charmed Apache ZooKeeper, respectively, to 
 provide reproducible and secure environments. The [Charmed Apache Kafka snap](https://snapstore.io/charmed-kafka) and [Charmed Apache ZooKeeper snap](https://snapstore.io/charmed-zookeeper) package the 
 Apache Kafka and Apache ZooKeeper workload together with 
 a set of dependencies and utilities required by the lifecycle of the operators (see [Charmed Apache Kafka snap contents](https://github.com/canonical/charmed-kafka-snap/blob/3/edge/snap/snapcraft.yaml) and [Charmed Apache ZooKeeper snap contents](https://github.com/canonical/charmed-zookeeper-snap/blob/3/edge/snap/snapcraft.yaml)).
@@ -66,7 +66,7 @@ In Charmed Apache Kafka, authentication layers can be enabled for:
 
 1. Apache ZooKeeper connections
 2. Apache Kafka inter-broker communication 
-3. Apache Kafka Clients
+3. Apache Kafka clients
 
 ### Apache Kafka authentication to Apache ZooKeeper
 

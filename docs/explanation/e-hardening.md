@@ -47,7 +47,7 @@ virtual machines, networks, storages, etc. Please refer to the references below 
 
 #### Juju users
 
-It is very important that the different juju users are set up with minimal permission depending on the scope of their operations. 
+It is very important that the different Juju users are set up with minimal permissions depending on the scope of their operations. 
 Please refer to the [User access levels](https://juju.is/docs/juju/user-permissions) documentation for more information on the access level and corresponding abilities 
 that the different users can be granted. 
 
