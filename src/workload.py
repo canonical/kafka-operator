@@ -15,12 +15,17 @@ from tenacity import retry, retry_if_result, stop_after_attempt, wait_fixed
 from typing_extensions import override
 
 from core.workload import CharmedKafkaPaths, WorkloadBase
-from literals import BALANCER, BROKER, GROUP, KRAFT_VERSION, SNAP_NAME, USER
+from literals import (
+    BALANCER,
+    BROKER,
+    CHARMED_KAFKA_SNAP_REVISION,
+    GROUP,
+    KRAFT_VERSION,
+    SNAP_NAME,
+    USER,
+)
 
 logger = logging.getLogger(__name__)
-PATCHED_SNAP = (
-    "https://custom-built-snaps.s3.eu-north-1.amazonaws.com/charmed-kafka_3.9.0_amd64.snap"
-)
 
 
 class Workload(WorkloadBase):
@@ -123,13 +128,9 @@ class Workload(WorkloadBase):
             True if successfully installed. False otherwise.
         """
         try:
-            import os
-
-            os.system(f"wget {PATCHED_SNAP}")
-            os.system("sudo snap install --dangerous ./charmed-kafka_3.9.0_amd64.snap")
-            # self.kafka.ensure(snap.SnapState.Present, revision=CHARMED_KAFKA_SNAP_REVISION)
-            # self.kafka.connect(plug="removable-media")
-            # self.kafka.hold()
+            self.kafka.ensure(snap.SnapState.Present, revision=CHARMED_KAFKA_SNAP_REVISION)
+            self.kafka.connect(plug="removable-media")
+            self.kafka.hold()
 
             return True
         except snap.SnapError as e:
