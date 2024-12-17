@@ -103,13 +103,6 @@ def _cache_init(func):
 JSONType = Union[Dict[str, Any], List[Any], str, int, float]
 
 
-def try_int(x):
-    try:
-        return int(x)
-    except ValueError:
-        return 777
-
-
 class SnapService:
     """Data wrapper for snap services."""
 
@@ -835,7 +828,7 @@ class SnapCache(Mapping):
                 name=i["name"],
                 state=SnapState.Latest,
                 channel=i["channel"],
-                revision=try_int(i["revision"]),
+                revision=int(i["revision"]),
                 confinement=i["confinement"],
                 apps=i.get("apps", None),
             )
@@ -853,7 +846,7 @@ class SnapCache(Mapping):
             name=info["name"],
             state=SnapState.Available,
             channel=info["channel"],
-            revision=try_int(info["revision"]),
+            revision=int(info["revision"]),
             confinement=info["confinement"],
             apps=None,
         )
