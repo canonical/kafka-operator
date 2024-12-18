@@ -15,7 +15,11 @@ from charms.data_platform_libs.v0.data_interfaces import (
     DataPeerData,
     DataPeerUnitData,
 )
-from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManager
+from charms.zookeeper.v0.client import (
+    NoUnitFoundError,
+    QuorumLeaderNotFoundError,
+    ZooKeeperManager,
+)
 from kazoo.client import AuthFailedError, ConnectionLoss, NoNodeError
 from kazoo.exceptions import NoAuthError
 from lightkube.resources.core_v1 import Node, Pod
@@ -103,6 +107,7 @@ class PeerCluster(RelationState):
         balancer_username: str = "",
         balancer_password: str = "",
         balancer_uris: str = "",
+        controller_password: str = "",
     ):
         super().__init__(relation, data_interface, None, None)
         self._broker_username = broker_username
@@ -118,6 +123,7 @@ class PeerCluster(RelationState):
         self._balancer_username = balancer_username
         self._balancer_password = balancer_password
         self._balancer_uris = balancer_uris
+        self._controller_password = controller_password
 
     @property
     def roles(self) -> str:
@@ -193,6 +199,22 @@ class PeerCluster(RelationState):
             )
             or ""
         )
+
+    @property
+    def controller_password(self) -> str:
+        """The controller user password in KRaft mode."""
+        if self._controller_password:
+            return self._controller_password
+
+        if not self.relation or not self.relation.app:
+            return ""
+
+        return self.data_interface._fetch_relation_data_with_secrets(
+            component=self.relation.app,
+            req_secret_fields=["controller-password"],
+            relation=self.relation,
+            fields=["controller-password"],
+        ).get("controller-password", "")
 
     @property
     def cluster_uuid(self) -> str:
@@ -411,6 +433,11 @@ class KafkaCluster(RelationState):
             return {}
 
         return credentials
+
+    @property
+    def controller_password(self) -> str:
+        """The controller user password in KRaft mode."""
+        return self.relation_data.get("controller-password", "")
 
     @property
     def client_passwords(self) -> dict[str, str]:
@@ -690,23 +717,6 @@ class ZooKeeper(RelationState):
         )
 
     @property
-    def uris(self) -> str:
-        """Comma separated connection string, containing endpoints + chroot."""
-        if not self.relation:
-            return ""
-
-        return ",".join(
-            sorted(  # sorting as they may be disordered
-                (
-                    self.data_interface.fetch_relation_field(
-                        relation_id=self.relation.id, field="uris"
-                    )
-                    or ""
-                ).split(",")
-            )
-        )
-
-    @property
     def tls(self) -> bool:
         """Check if TLS is enabled on ZooKeeper."""
         if not self.relation:
@@ -738,10 +748,44 @@ class ZooKeeper(RelationState):
         return True
 
     @property
+    def hosts(self) -> list[str]:
+        """Get the hosts from the databag."""
+        return [host.split(":")[0] for host in self.endpoints.split(",")]
+
+    @property
+    def uris(self):
+        """Comma separated connection string, containing endpoints + chroot."""
+        return f"{self.endpoints.removesuffix('/')}/{self.database.removeprefix('/')}"
+
+    @property
+    def port(self) -> int:
+        """Get the port in use from the databag.
+
+        We can extract from:
+        - host1:port,host2:port
+        - host1,host2:port
+        """
+        try:
+            port = next(
+                iter([int(host.split(":")[1]) for host in reversed(self.endpoints.split(","))]),
+                2181,
+            )
+        except IndexError:
+            # compatibility with older zk versions
+            port = 2181
+
+        return port
+
+    @property
     def zookeeper_version(self) -> str:
         """Get running zookeeper version."""
-        hosts = self.endpoints.split(",")
-        zk = ZooKeeperManager(hosts=hosts, username=self.username, password=self.password)
+        zk = ZooKeeperManager(
+            hosts=self.hosts,
+            client_port=self.port,
+            username=self.username,
+            password=self.password,
+            use_ssl=self.tls,
+        )
 
         return zk.get_version()
 
@@ -755,16 +799,21 @@ class ZooKeeper(RelationState):
     def broker_active(self) -> bool:
         """Checks if broker id is recognised as active by ZooKeeper."""
         broker_id = self.data_interface.local_unit.name.split("/")[1]
-        hosts = self.endpoints.split(",")
         path = f"{self.database}/brokers/ids/"
-
-        zk = ZooKeeperManager(hosts=hosts, username=self.username, password=self.password)
         try:
+            zk = ZooKeeperManager(
+                hosts=self.hosts,
+                client_port=self.port,
+                username=self.username,
+                password=self.password,
+                use_ssl=self.tls,
+            )
             brokers = zk.leader_znodes(path=path)
         except (
             NoNodeError,
             AuthFailedError,
             QuorumLeaderNotFoundError,
+            NoUnitFoundError,
             ConnectionLoss,
             NoAuthError,
         ) as e:

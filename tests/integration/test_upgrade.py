@@ -30,7 +30,7 @@ async def test_in_place_upgrade(ops_test: OpsTest, kafka_charm, app_charm):
     await asyncio.gather(
         ops_test.model.deploy(
             ZK_NAME,
-            channel="3/edge",
+            channel=CHANNEL,
             application_name=ZK_NAME,
             num_units=1,
         ),

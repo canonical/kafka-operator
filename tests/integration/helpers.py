@@ -9,7 +9,7 @@ from contextlib import closing
 from json.decoder import JSONDecodeError
 from pathlib import Path
 from subprocess import PIPE, CalledProcessError, check_output
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, List, Optional, Set
 
 import yaml
 from charms.kafka.v0.client import KafkaClient
@@ -463,7 +463,7 @@ def get_provider_data(
     return provider_relation_data | user_secret | tls_secret
 
 
-def get_active_brokers(config: Dict) -> Set[str]:
+def get_active_brokers(config: dict[str, str]) -> set[str]:
     """Gets all brokers currently connected to ZooKeeper.
 
     Args:
@@ -473,9 +473,9 @@ def get_active_brokers(config: Dict) -> Set[str]:
         Set of active broker ids
     """
     chroot = config.get("database", config.get("chroot", ""))
-    hosts = config.get("endpoints", "").split(",")
     username = config.get("username", "")
     password = config.get("password", "")
+    hosts = [host.split(":")[0] for host in config.get("endpoints", "").split(",")]
 
     zk = ZooKeeperManager(hosts=hosts, username=username, password=password)
     path = f"{chroot}/brokers/ids/"
