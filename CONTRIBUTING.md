@@ -92,7 +92,7 @@ For documentation in this repository the following conventions are applied (see 
 | Apache Kafka | | Kafka |
 | Charmed Apache Kafka | | Charmed Kafka |
 | Kafka Connect | | Kafka connect |
-| Kafka Brokers | | Kafka brokers|
+| Apache Kafka brokers | | Kafka brokers, Apache Kafka Brokers |
 | Apache Kafka cluster | | Charmed Apache Kafka cluster |
 
 The full form must be used at least once per page.
