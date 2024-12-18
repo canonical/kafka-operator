@@ -162,7 +162,7 @@ juju integrate kafka zookeeper
 
 [note type="caution"]
 Note that the smallest instance types on Azure may not have enough resources for hosting 
-a Kafka Broker. We recommend selecting an instance type that provides at the very least `8` GB of RAM and `4` cores, e.g. `Standard_A4_v2`.
+an Apache Kafka broker. We recommend selecting an instance type that provides at the very least `8` GB of RAM and `4` cores, e.g. `Standard_A4_v2`.
 For more guidance on production environment sizing, see the [Requirements page](/t/charmed-kafka-reference-requirements/10563).
 You can find more information about the available instance types in the [Azure documentation](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/overview).
 [/note]
