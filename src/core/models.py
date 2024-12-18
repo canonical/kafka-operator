@@ -132,7 +132,7 @@ class PeerCluster(RelationState):
         self._balancer_uris = balancer_uris
         self._controller_password = controller_password
 
-    def _fetch_from_secrets(self, group, field):
+    def _fetch_from_secrets(self, group, field) -> str:
         if not self.relation:
             return ""
 
@@ -166,13 +166,6 @@ class PeerCluster(RelationState):
 
         return self._fetch_from_secrets("broker", "broker-username")
 
-        return self.data_interface._fetch_relation_data_with_secrets(
-            component=self.relation.app,
-            req_secret_fields=BALANCER.requested_secrets,
-            relation=self.relation,
-            fields=BALANCER.requested_secrets,
-        ).get("broker-username", "")
-
     @property
     def broker_password(self) -> str:
         """The provided password for the broker application."""
@@ -183,13 +176,6 @@ class PeerCluster(RelationState):
             return ""
 
         return self._fetch_from_secrets("broker", "broker-password")
-
-        return self.data_interface._fetch_relation_data_with_secrets(
-            component=self.relation.app,
-            req_secret_fields=BALANCER.requested_secrets,
-            relation=self.relation,
-            fields=BALANCER.requested_secrets,
-        ).get("broker-password", "")
 
     @property
     def broker_uris(self) -> str:

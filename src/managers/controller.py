@@ -6,6 +6,7 @@
 
 import logging
 import os
+from subprocess import CalledProcessError
 from typing import TYPE_CHECKING
 
 from tenacity import retry, stop_after_attempt, wait_fixed
@@ -134,8 +135,8 @@ class ControllerManager:
                     controller_directory_id,
                 ],
             )
-        except Exception as e:
-            error_details = getattr(e, "stderr")
+        except CalledProcessError as e:
+            error_details = e.stderr
             if "VoterNotFoundException" in error_details or "TimeoutException" in error_details:
                 # successful
                 return
