@@ -54,8 +54,8 @@ telnet <IP> 9093
 
 ### Enable TLS encrypted connection
 
-Once the Apache Kafka cluster is enabled to use encrypted connection, client applications should be configured as well to connect to
-the correct port as well as trust the self-signed CA provided by the `self-signed-certificates` charm. 
+Once TLS is configured on the cluster side, client applications should be configured as well to connect to
+the correct port and trust the self-signed CA provided by the `self-signed-certificates` charm. 
 
 Make sure that the `kafka-test-app` is not connected to the Charmed Apache Kafka, by removing the relation if it exists
 
