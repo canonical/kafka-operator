@@ -117,9 +117,9 @@ class Listener:
         self.node_port = node_port
 
     @property
-    def scope(self) -> str:
+    def scope(self) -> Scope:
         """Internal scope validator."""
-        return self._scope
+        return cast(Scope, self._scope)
 
     @scope.setter
     def scope(self, value):
