@@ -70,6 +70,7 @@ The Charmed Apache Kafka Operator is free software, distributed under the Apache
   1. [Release Notes](reference/r-releases)
     1. [Revision 156/126](reference/r-releases/r-rev156_126.md)
     1. [Revision 156/136](reference/r-releases/r-rev156_136.md)
+    1. [Revision 195/149](reference/r-releases/r-rev195_149.md)
   1. [File System Paths](reference/r-file-system-paths.md)
   1. [Snap Entrypoints](reference/r-snap-entrypoints.md)
   1. [Apache Kafka Listeners](reference/r-listeners.md)

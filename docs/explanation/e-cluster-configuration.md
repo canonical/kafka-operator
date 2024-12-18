@@ -6,7 +6,7 @@ One of such solutions is [Apache ZooKeeper](https://zookeeper.apache.org).
 Here are some of the responsibilities of Apache ZooKeeper in an Apache Kafka cluster:
 
 - **Cluster membership**: through regular heartbeats, it keeps track of the brokers entering and leaving the cluster, providing an up-to-date list of brokers.
-- **Controller election**: one of the Kafka Brokers is responsible for managing the leader/follower status for all the partitions. Apache ZooKeeper is used to elect a controller and to make sure there is only one of it.
+- **Controller election**: one of the Apache Kafka brokers is responsible for managing the leader/follower status for all the partitions. Apache ZooKeeper is used to elect a controller and to make sure there is only one of it.
 - **Topic configuration**: each topic can be replicated on multiple partitions. Apache ZooKeeper keeps track of the locations of the partitions and replicas so that high availability is still attained when a broker shuts down. Topic-specific configuration overrides (e.g. message retention and size) are also stored in Apache ZooKeeper.
 - **Access control and authentication**: Apache ZooKeeper stores access control lists (ACL) for Apache Kafka resources, to ensure only the proper, authorized, users or groups can read or write on each topic.
 
