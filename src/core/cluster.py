@@ -40,6 +40,7 @@ from literals import (
     BROKER,
     CONTROLLER,
     CONTROLLER_PORT,
+    CONTROLLER_USER,
     INTERNAL_USERS,
     KRAFT_NODE_ID_OFFSET,
     MIN_REPLICAS,
@@ -65,10 +66,12 @@ custom_secret_groups = SECRET_GROUPS
 setattr(custom_secret_groups, "BROKER", "broker")
 setattr(custom_secret_groups, "BALANCER", "balancer")
 setattr(custom_secret_groups, "ZOOKEEPER", "zookeeper")
+setattr(custom_secret_groups, "CONTROLLER", "controller")
 
 SECRET_LABEL_MAP = {
     "broker-username": getattr(custom_secret_groups, "BROKER"),
     "broker-password": getattr(custom_secret_groups, "BROKER"),
+    "controller-password": getattr(custom_secret_groups, "CONTROLLER"),
     "broker-uris": getattr(custom_secret_groups, "BROKER"),
     "zk-username": getattr(custom_secret_groups, "ZOOKEEPER"),
     "zk-password": getattr(custom_secret_groups, "ZOOKEEPER"),
@@ -157,6 +160,7 @@ class ClusterState(Object):
             extra_kwargs.update(
                 {
                     "controller_quorum_uris": self.cluster.controller_quorum_uris,
+                    "controller_password": self.cluster.controller_password,
                 }
             )
 
@@ -178,6 +182,7 @@ class ClusterState(Object):
                     "balancer_password": self.cluster.balancer_password,
                     "balancer_uris": self.cluster.balancer_uris,
                     "controller_quorum_uris": self.cluster.controller_quorum_uris,
+                    "controller_password": self.cluster.controller_password,
                 }
             )
 
@@ -323,6 +328,10 @@ class ClusterState(Object):
             Semicolon delimited string of current super users
         """
         super_users = set(INTERNAL_USERS)
+
+        if self.kraft_mode:
+            super_users.add(CONTROLLER_USER)
+
         for relation in self.client_relations:
             if not relation or not relation.app:
                 continue
