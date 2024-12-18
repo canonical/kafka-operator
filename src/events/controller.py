@@ -173,8 +173,8 @@ class KRaftHandler(Object):
         if self.charm.state.peer_cluster_orchestrator:
             self.charm.state.peer_cluster_orchestrator.update(updated_bootstrap_data)
 
-        # A rolling restart is required to apply the new leader config
-        self.charm.on[f"{self.charm.restart.name}"].acquire_lock.emit()
+        # change bootstrap controller config on followers and brokers
+        self.charm.on.config_changed.emit()
 
     def _add_controller(self) -> None:
         """Adds current unit to the dynamic quorum in KRaft mode if this is a follower unit."""
