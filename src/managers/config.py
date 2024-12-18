@@ -700,7 +700,6 @@ class ConfigManager(CommonConfigManager):
         properties = [
             f"process.roles={','.join(roles)}",
             f"node.id={node_id}",
-            # f"controller.quorum.voters={self.state.peer_cluster.controller_quorum_uris}",
             f"controller.quorum.bootstrap.servers={self.state.peer_cluster.bootstrap_controller}",
             f"controller.listener.names={CONTROLLER_LISTENER_NAME}",
             *self.controller_scram_properties,

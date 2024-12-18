@@ -80,7 +80,6 @@ class KRaftHandler(Object):
             event.defer()
             return
 
-        self.broker.config_manager.set_server_properties()
         self._format_storages()
 
         # update status to add controller
@@ -97,7 +96,7 @@ class KRaftHandler(Object):
         """Initialize the server when running controller mode."""
         # NOTE: checks for `runs_broker` in this method should be `is_cluster_manager` in
         # the large deployment feature.
-        if not self.model.unit.is_leader():
+        if not self.model.unit.is_leader() or not self.charm.state.kraft_mode:
             return
 
         if not self.charm.state.cluster.internal_user_credentials and self.charm.state.runs_broker:
@@ -143,6 +142,7 @@ class KRaftHandler(Object):
         if not self.charm.state.kraft_mode:
             return
 
+        self.broker.config_manager.set_server_properties()
         if self.charm.state.runs_broker:
             credentials = self.charm.state.cluster.internal_user_credentials
         elif self.charm.state.runs_controller:
