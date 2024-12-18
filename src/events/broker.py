@@ -13,10 +13,8 @@ from charms.operator_libs_linux.v1.snap import SnapError
 from ops import (
     EventBase,
     InstallEvent,
-    LeaderElectedEvent,
     Object,
     PebbleReadyEvent,
-    RelationDepartedEvent,
     SecretChangedEvent,
     StartEvent,
     StorageAttachedEvent,
@@ -24,9 +22,9 @@ from ops import (
     StorageEvent,
     UpdateStatusEvent,
 )
-from tenacity import retry, stop_after_attempt, wait_fixed
 
 from events.actions import ActionEvents
+from events.controller import KRaftHandler
 from events.oauth import OAuthHandler
 from events.provider import KafkaProvider
 from events.upgrade import KafkaDependencyModel, KafkaUpgrade
@@ -38,7 +36,6 @@ from literals import (
     CONTROLLER,
     DEPENDENCIES,
     GROUP,
-    INTERNAL_USERS,
     PEER,
     PROFILE_TESTING,
     REL_NAME,
@@ -97,6 +94,7 @@ class BrokerOperator(Object):
 
         self.provider = KafkaProvider(self)
         self.oauth = OAuthHandler(self)
+        self.kraft = KRaftHandler(self)
 
         # MANAGERS
 
@@ -119,7 +117,6 @@ class BrokerOperator(Object):
 
         self.framework.observe(getattr(self.charm.on, "install"), self._on_install)
         self.framework.observe(getattr(self.charm.on, "start"), self._on_start)
-        self.framework.observe(getattr(self.charm.on, "leader_elected"), self._leader_elected)
 
         if self.charm.substrate == "k8s":
             self.framework.observe(getattr(self.charm.on, "kafka_pebble_ready"), self._on_start)
@@ -129,9 +126,6 @@ class BrokerOperator(Object):
         self.framework.observe(getattr(self.charm.on, "secret_changed"), self._on_secret_changed)
 
         self.framework.observe(self.charm.on[PEER].relation_changed, self._on_config_changed)
-        self.framework.observe(
-            self.charm.on[PEER].relation_departed, self._on_peer_relation_departed
-        )
 
         self.framework.observe(
             getattr(self.charm.on, "data_storage_attached"), self._on_storage_attached
@@ -174,19 +168,12 @@ class BrokerOperator(Object):
         if not self.upgrade.idle:
             return
 
-        if self.charm.state.kraft_mode:
-            self._init_kraft_mode()
-
         # FIXME ready to start probably needs to account for credentials being created beforehand
         current_status = self.charm.state.ready_to_start
         if current_status is not Status.ACTIVE:
             self.charm._set_status(current_status)
             event.defer()
             return
-
-        if self.charm.state.kraft_mode:
-            self.config_manager.set_server_properties()
-            self._format_storages()
 
         self.update_external_services()
 
@@ -210,7 +197,6 @@ class BrokerOperator(Object):
 
         # start kafka service
         self.workload.start()
-        self._add_controller()
         logger.info("Kafka service started")
 
         # TODO: Update users. Not sure if this is the best place, as cluster might be still
@@ -345,7 +331,6 @@ class BrokerOperator(Object):
         # NOTE for situations like IP change and late integration with rack-awareness charm.
         # If properties have changed, the broker will restart.
         self.charm.on.config_changed.emit()
-        self._add_controller()
 
         try:
             if self.health and not self.health.machine_configured():
@@ -438,159 +423,6 @@ class BrokerOperator(Object):
 
         return True
 
-    def _init_kraft_mode(self) -> None:
-        """Initialize the server when running controller mode."""
-        # NOTE: checks for `runs_broker` in this method should be `is_cluster_manager` in
-        # the large deployment feature.
-        if not self.model.unit.is_leader():
-            return
-
-        if not self.charm.state.cluster.internal_user_credentials and self.charm.state.runs_broker:
-            credentials = [
-                (username, self.charm.workload.generate_password()) for username in INTERNAL_USERS
-            ]
-            for username, password in credentials:
-                self.charm.state.cluster.update({f"{username}-password": password})
-
-        # cluster-uuid is only created on the broker (`cluster-manager` in large deployments)
-        if not self.charm.state.cluster.cluster_uuid and self.charm.state.runs_broker:
-            uuid = self.workload.generate_uuid()
-            self.charm.state.cluster.update({"cluster-uuid": uuid})
-            self.charm.state.peer_cluster.update({"cluster-uuid": uuid})
-
-        # Controller is tasked with populating quorum bootstrap config
-        if self.charm.state.runs_controller and not self.charm.state.cluster.bootstrap_controller:
-            quorum_uris = {"controller-quorum-uris": self.charm.state.controller_quorum_uris}
-            self.charm.state.cluster.update(quorum_uris)
-
-            generated_password = self.charm.workload.generate_password()
-
-            if self.charm.state.peer_cluster_orchestrator:
-                self.charm.state.peer_cluster_orchestrator.update(quorum_uris)
-
-                if not self.charm.state.peer_cluster_orchestrator.controller_password:
-                    self.charm.state.peer_cluster_orchestrator.update(
-                        {"controller-password": generated_password}
-                    )
-            elif not self.charm.state.peer_cluster.controller_password:
-                # single mode, controller & leader
-                self.charm.state.cluster.update({"controller-password": generated_password})
-
-            bootstrap_data = {
-                "bootstrap-controller": self.charm.state.bootstrap_controller,
-                "bootstrap-unit-id": str(self.charm.state.kraft_unit_id),
-                "bootstrap-replica-id": self.workload.generate_uuid(),
-            }
-            self.charm.state.cluster.update(bootstrap_data)
-
-    def _format_storages(self) -> None:
-        """Format storages provided relevant keys exist."""
-        if self.charm.state.runs_broker:
-            credentials = self.charm.state.cluster.internal_user_credentials
-        elif self.charm.state.runs_controller:
-            credentials = {
-                self.charm.state.peer_cluster.broker_username: self.charm.state.peer_cluster.broker_password
-            }
-
-        self.workload.format_storages(
-            uuid=self.charm.state.peer_cluster.cluster_uuid,
-            internal_user_credentials=credentials,
-            initial_controllers=f"{self.charm.state.peer_cluster.bootstrap_unit_id}@{self.charm.state.peer_cluster.bootstrap_controller}:{self.charm.state.peer_cluster.bootstrap_replica_id}",
-        )
-
-    def _leader_elected(self, event: LeaderElectedEvent) -> None:
-        if self.charm.state.runs_controller and self.charm.state.cluster.bootstrap_controller:
-
-            updated_bootstrap_data = {
-                "bootstrap-controller": self.charm.state.bootstrap_controller,
-                "bootstrap-unit-id": str(self.charm.state.kraft_unit_id),
-                "bootstrap-replica-id": self.charm.state.unit_broker.directory_id,
-            }
-            self.charm.state.cluster.update(updated_bootstrap_data)
-
-            if self.charm.state.peer_cluster_orchestrator:
-                self.charm.state.peer_cluster_orchestrator.update(updated_bootstrap_data)
-
-            # A rolling restart is required to apply the new leader config
-            self.charm.on[f"{self.charm.restart.name}"].acquire_lock.emit()
-
-    @retry(
-        wait=wait_fixed(15),
-        stop=stop_after_attempt(4),
-        reraise=True,
-    )
-    def _add_controller(self) -> None:
-        """Adds current unit to the dynamic quorum in KRaft mode if this is a follower unit."""
-        if (
-            self.charm.state.runs_controller
-            and not self.charm.unit.is_leader()
-            and not self.charm.state.unit_broker.added_to_quorum
-        ):
-            result = self.workload.run_bin_command(
-                bin_keyword="metadata-quorum",
-                bin_args=[
-                    "--bootstrap-controller",
-                    self.charm.state.cluster.bootstrap_controller,
-                    "--command-config",
-                    self.workload.paths.server_properties,
-                    "add-controller",
-                ],
-            )
-            logger.debug(result)
-            directory_id = self.workload.get_directory_id(self.charm.state.log_dirs)
-            self.charm.state.unit_broker.update(
-                {"directory-id": directory_id, "added-to-quorum": "true"}
-            )
-
-    @retry(
-        wait=wait_fixed(10),
-        stop=stop_after_attempt(3),
-        reraise=True,
-    )
-    def _remove_controller(
-        self, controller_id: int, controller_directory_id: str, bootstrap_node: str | None = None
-    ):
-        if not bootstrap_node:
-            bootstrap_node = self.charm.state.cluster.bootstrap_controller
-
-        try:
-            self.workload.run_bin_command(
-                bin_keyword="metadata-quorum",
-                bin_args=[
-                    "--bootstrap-controller",
-                    bootstrap_node,
-                    "--command-config",
-                    self.workload.paths.server_properties,
-                    "remove-controller",
-                    "--controller-id",
-                    str(controller_id),
-                    "--controller-directory-id",
-                    controller_directory_id,
-                ],
-            )
-        except Exception as e:
-            error_details = getattr(e, "stderr")
-            if "VoterNotFoundException" in error_details or "TimeoutException" in error_details:
-                # successful
-                return
-            raise e
-
-    def remove_from_quorum(self) -> None:
-        """Removes current unit from the dynamic quorum in KRaft mode."""
-        if self.charm.state.runs_controller and (
-            self.charm.state.unit_broker.added_to_quorum or self.charm.unit.is_leader()
-        ):
-            directory_id = (
-                self.charm.state.unit_broker.directory_id
-                if not self.charm.unit.is_leader()
-                else self.charm.state.cluster.bootstrap_replica_id
-            )
-            self._remove_controller(
-                self.charm.state.kraft_unit_id,
-                directory_id,
-                bootstrap_node=self.charm.state.bootstrap_controller,
-            )
-
     def update_external_services(self) -> None:
         """Attempts to update any external Kubernetes services."""
         if not self.charm.substrate == "k8s":
@@ -652,7 +484,3 @@ class BrokerOperator(Object):
         )
 
         # self.charm.on.config_changed.emit()  # ensure both broker+balancer get a changed event
-
-    def _on_peer_relation_departed(self, event: RelationDepartedEvent) -> None:
-        if event.departing_unit == self.charm.unit:
-            self.remove_from_quorum()

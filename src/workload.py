@@ -20,7 +20,6 @@ from literals import (
     BROKER,
     CHARMED_KAFKA_SNAP_REVISION,
     GROUP,
-    KRAFT_VERSION,
     SNAP_NAME,
     USER,
 )
@@ -184,61 +183,6 @@ class Workload(WorkloadBase):
         bin_str = " ".join(bin_args)
         command = f"{opts_str} {SNAP_NAME}.{bin_keyword} {bin_str}"
         return self.exec(command)
-
-    def format_storages(
-        self,
-        uuid: str,
-        internal_user_credentials: dict[str, str] | None = None,
-        kraft_version: int = KRAFT_VERSION,
-        initial_controllers: str | None = None,
-    ) -> None:
-        """Use a passed uuid to format storages."""
-        # NOTE data dirs have changed permissions by storage_attached hook. For some reason
-        # storage command bin needs these locations to be root owned. Momentarily raise permissions
-        # during the format phase.
-        self.exec(["chown", "-R", "root:root", f"{self.paths.data_path}"])
-
-        command = [
-            "format",
-            "--ignore-formatted",
-            "--cluster-id",
-            uuid,
-            "-c",
-            self.paths.server_properties,
-        ]
-
-        if kraft_version > 0:
-            command.append("--feature")
-            command.append(f"kraft.version={kraft_version}")
-
-            if initial_controllers:
-                command.append("--initial-controllers")
-                command.append(initial_controllers)
-            else:
-                command.append("--standalone")
-
-        if internal_user_credentials:
-            for user, password in internal_user_credentials.items():
-                command += ["--add-scram", f"'SCRAM-SHA-512=[name={user},password={password}]'"]
-        self.run_bin_command(bin_keyword="storage", bin_args=command)
-
-        # Drop permissions again for the main process
-        self.exec(["chmod", "-R", "750", f"{self.paths.data_path}"])
-        self.exec(["chown", "-R", f"{USER}:{GROUP}", f"{self.paths.data_path}"])
-
-    def generate_uuid(self) -> str:
-        """Generate UUID using `kafka-storage.sh` utility."""
-        uuid = self.run_bin_command(bin_keyword="storage", bin_args=["random-uuid"]).strip()
-        return uuid
-
-    def get_directory_id(self, log_dirs: str) -> str:
-        """Read directory.id from meta.properties file in the logs dir."""
-        raw = self.read(os.path.join(log_dirs, "meta.properties"))
-        for line in raw:
-            if line.startswith("directory.id"):
-                return line.strip().replace("directory.id=", "")
-
-        return ""
 
 
 class KafkaWorkload(Workload):
