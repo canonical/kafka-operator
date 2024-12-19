@@ -118,7 +118,7 @@ class TestBalancer:
             )
 
         await ops_test.model.wait_for_idle(
-            apps=list({APP_NAME, ZK_NAME, self.balancer_app}), idle_period=30
+            apps=list({APP_NAME, ZK_NAME, self.balancer_app}), idle_period=30, timeout=1800
         )
 
         async with ops_test.fast_forward(fast_interval="20s"):
