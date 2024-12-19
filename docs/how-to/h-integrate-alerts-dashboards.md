@@ -1,16 +1,16 @@
 # Integrate custom alerting rules and dashboards
 
-This guide shows you how to integrate an existing set of rules and/or dashboards to your Charmed Kafka and Charmed ZooKeeper deployment to be consumed with the [Canonical Observability Stack (COS)](https://charmhub.io/topics/canonical-observability-stack).
+This guide shows you how to integrate an existing set of rules and/or dashboards to your Charmed Apache Kafka and Charmed Apache ZooKeeper deployment to be consumed with the [Canonical Observability Stack (COS)](https://charmhub.io/topics/canonical-observability-stack).
 To do so, we will sync resources stored in a git repository to COS Lite.
 
 ## Prerequisites
 
-Deploy the `cos-lite` bundle in a Kubernetes environment and integrate Charmed Kafka and Charmed ZooKeeper to the COS offers, as shown in the [How to Enable Monitoring](/t/charmed-kafka-documentation-how-to-enable-monitoring/10283) guide.
+Deploy the `cos-lite` bundle in a Kubernetes environment and integrate Charmed Apache Kafka and Charmed Apache ZooKeeper to the COS offers, as shown in the [How to Enable Monitoring](/t/charmed-kafka-documentation-how-to-enable-monitoring/10283) guide.
 This guide will refer to the models that charms are deployed into as:
 
 * `<cos-model>` for the model containing observability charms (and deployed on K8s)
 
-* `<apps-model>` for the model containing Charmed Kafka and Charmed ZooKeeper
+* `<apps-model>` for the model containing Charmed Apache Kafka and Charmed Apache ZooKeeper
 
 * `<apps-model>` for other optional charms (e.g. TLS-certificates operators, `grafana-agent`, `data-integrator`, etc.).
 
@@ -37,10 +37,9 @@ The COS configuration charm keeps the monitoring stack in sync with our reposito
 Refer to the [documentation](https://charmhub.io/cos-configuration-k8s/configure) for all configuration options, including how to access a private repository.  
 Adding, updating or deleting an alert rule or a dashboard in the repository will be reflected in the monitoring stack.
 
-[Note]
+[note]
 You need to manually refresh `cos-config`'s local repository with the *sync-now* action if you do not want to wait for the next [update-status event](/t/event-update-status/6484) to pull the latest changes.
-[/Note]
-
+[/note]
 
 ## Forward the rules and dashboards
 
@@ -66,4 +65,4 @@ As for the dashboards, they should be available in the Grafana interface.
 
 ## Conclusion
 
-In this guide, we enabled monitoring on a Kafka deployment and integrated alert rules and dashboards by syncing a git repository to the COS stack.
+In this guide, we enabled monitoring on a Charmed Apache Kafka deployment and integrated alert rules and dashboards by syncing a git repository to the COS stack.
