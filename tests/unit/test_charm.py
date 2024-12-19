@@ -265,7 +265,7 @@ def test_start_defers_without_zookeeper(ctx: Context, base_state: State) -> None
     state_out = ctx.run(ctx.on.start(), state_in)
 
     # Then
-    assert len(state_out.deferred) == 1
+    assert len(state_out.deferred) == 2
     assert state_out.deferred[0].name == "start"
 
 

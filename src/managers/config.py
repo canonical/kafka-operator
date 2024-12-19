@@ -11,7 +11,7 @@ import os
 import re
 import textwrap
 from abc import abstractmethod
-from typing import Iterable
+from typing import Iterable, cast
 
 from lightkube.core.exceptions import ApiError
 from typing_extensions import override
@@ -115,7 +115,7 @@ class Listener:
     @property
     def scope(self) -> Scope:
         """Internal scope validator."""
-        return self._scope
+        return cast(Scope, self._scope)
 
     @scope.setter
     def scope(self, value):
@@ -432,6 +432,21 @@ class ConfigManager(CommonConfigManager):
         ]
 
     @property
+    def controller_kraft_client_properties(self) -> list[str]:
+        """Builds the SCRAM properties for controller' KRaft client to be able to communicate with quorum manager.
+
+        Returns:
+            list of KRaft client properties to be set
+        """
+        password = self.state.peer_cluster.controller_password
+
+        return [
+            f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{CONTROLLER_USER}" password="{password}";',
+            f"sasl.mechanism={self.internal_listener.mechanism}",
+            "security.protocol=SASL_PLAINTEXT",
+        ]
+
+    @property
     def oauth_properties(self) -> list[str]:
         """Builds the properties for the oauth listener.
 
@@ -681,9 +696,10 @@ class ConfigManager(CommonConfigManager):
         properties = [
             f"process.roles={','.join(roles)}",
             f"node.id={node_id}",
-            f"controller.quorum.voters={self.state.peer_cluster.controller_quorum_uris}",
+            f"controller.quorum.bootstrap.servers={self.state.peer_cluster.bootstrap_controller}",
             f"controller.listener.names={CONTROLLER_LISTENER_NAME}",
             *self.controller_scram_properties,
+            *self.controller_kraft_client_properties,
         ]
 
         return properties
@@ -706,7 +722,7 @@ class ConfigManager(CommonConfigManager):
 
         if self.state.kraft_mode:
             controller_protocol_map = f"{CONTROLLER_LISTENER_NAME}:SASL_PLAINTEXT"
-            controller_listener = f"{CONTROLLER_LISTENER_NAME}://0.0.0.0:{CONTROLLER_PORT}"
+            controller_listener = f"{CONTROLLER_LISTENER_NAME}://{self.state.unit_broker.internal_address}:{CONTROLLER_PORT}"
 
             # NOTE: Case where the controller is running standalone. Early return with a
             # smaller subset of config options
