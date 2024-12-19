@@ -6,6 +6,7 @@ import logging
 import socket
 import subprocess
 from contextlib import closing
+from enum import Enum
 from json.decoder import JSONDecodeError
 from pathlib import Path
 from subprocess import PIPE, CalledProcessError, check_output
@@ -23,14 +24,7 @@ from tenacity.stop import stop_after_attempt
 from tenacity.wait import wait_fixed
 
 from core.models import JSON
-from literals import (
-    BALANCER_WEBSERVER_USER,
-    JMX_CC_PORT,
-    PATHS,
-    PEER,
-    SECURITY_PROTOCOL_PORTS,
-    KRaftUnitStatus,
-)
+from literals import BALANCER_WEBSERVER_USER, JMX_CC_PORT, PATHS, PEER, SECURITY_PROTOCOL_PORTS
 from managers.auth import Acl, AuthManager
 
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
@@ -39,6 +33,13 @@ ZK_NAME = "zookeeper"
 DUMMY_NAME = "app"
 REL_NAME_ADMIN = "kafka-client-admin"
 TEST_DEFAULT_MESSAGES = 15
+
+
+class KRaftUnitStatus(Enum):
+    LEADER = "Leader"
+    FOLLOWER = "Follower"
+    OBSERVER = "Observer"
+
 
 logger = logging.getLogger(__name__)
 

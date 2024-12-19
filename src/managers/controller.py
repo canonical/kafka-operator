@@ -7,17 +7,12 @@
 import logging
 import os
 from subprocess import CalledProcessError
-from typing import TYPE_CHECKING
 
 from tenacity import retry, stop_after_attempt, wait_fixed
 
 from core.cluster import ClusterState
 from core.workload import WorkloadBase
 from literals import GROUP, KRAFT_VERSION, USER
-
-if TYPE_CHECKING:
-    pass
-
 
 logger = logging.getLogger(__name__)
 

@@ -15,10 +15,16 @@ from literals import (
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
     PEER_CLUSTER_RELATION,
     SECURITY_PROTOCOL_PORTS,
-    KRaftUnitStatus,
 )
 
-from .helpers import APP_NAME, check_socket, create_test_topic, get_address, kraft_quorum_status
+from .helpers import (
+    APP_NAME,
+    KRaftUnitStatus,
+    check_socket,
+    create_test_topic,
+    get_address,
+    kraft_quorum_status,
+)
 
 logger = logging.getLogger(__name__)
 
