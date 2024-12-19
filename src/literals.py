@@ -288,12 +288,6 @@ class Status(Enum):
     )
 
 
-class KRaftUnitStatus(Enum):
-    LEADER = "Leader"
-    FOLLOWER = "Follower"
-    OBSERVER = "Observer"
-
-
 DEPENDENCIES = {
     "kafka_service": {
         "dependencies": {"zookeeper": ">3.6"},
