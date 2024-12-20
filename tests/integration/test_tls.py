@@ -11,7 +11,7 @@ import tempfile
 
 import kafka
 import pytest
-from charms.tls_certificates_interface.v1.tls_certificates import generate_private_key
+from charms.tls_certificates_interface.v3.tls_certificates import generate_private_key
 from pytest_operator.plugin import OpsTest
 
 from literals import (
