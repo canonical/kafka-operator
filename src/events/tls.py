@@ -185,7 +185,7 @@ class TLSHandler(Object):
             event.defer()
             return
 
-        relation_data = _load_relation_data(dict(event.relation.data[event.relation.app]))
+        relation_data = _load_relation_data(event.relation.data[event.relation.app])
         provider_certificates = relation_data.get("certificates", [])
 
         if not provider_certificates:
