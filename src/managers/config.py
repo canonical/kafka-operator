@@ -11,7 +11,7 @@ import os
 import re
 import textwrap
 from abc import abstractmethod
-from typing import Iterable
+from typing import Iterable, cast
 
 from lightkube.core.exceptions import ApiError
 from typing_extensions import override
@@ -107,7 +107,7 @@ class Listener:
         self.protocol = auth_map.protocol
         self.mechanism = auth_map.mechanism
         self.host = host
-        self.scope = scope
+        self._scope: Scope = scope
         self.baseport = baseport
         self.extra_count = extra_count
         self.node_port = node_port
@@ -123,7 +123,7 @@ class Listener:
         if value not in ["CLIENT", "INTERNAL", "EXTERNAL", "EXTRA"]:
             raise ValueError("Only CLIENT, INTERNAL, EXTERNAL and EXTRA scopes are accepted")
 
-        self._scope = value
+        self._scope = cast(Scope, value)
 
     @property
     def port(self) -> int:
