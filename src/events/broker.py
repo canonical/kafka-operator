@@ -168,7 +168,6 @@ class BrokerOperator(Object):
         if not self.upgrade.idle:
             return
 
-        # FIXME ready to start probably needs to account for credentials being created beforehand
         current_status = self.charm.state.ready_to_start
         if current_status is not Status.ACTIVE:
             self.charm._set_status(current_status)

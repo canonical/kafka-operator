@@ -90,7 +90,7 @@ class KRaftHandler(Object):
         if not self.upgrade.idle or not self.broker.healthy:
             return
 
-        self._add_controller()
+        self.add_to_quorum()
 
     def _init_kraft_mode(self) -> None:
         """Initialize the server when running controller mode."""
@@ -114,13 +114,10 @@ class KRaftHandler(Object):
 
         # Controller is tasked with populating quorum bootstrap config
         if self.charm.state.runs_controller and not self.charm.state.cluster.bootstrap_controller:
-            quorum_uris = {"controller-quorum-uris": self.charm.state.controller_quorum_uris}
-            self.charm.state.cluster.update(quorum_uris)
 
             generated_password = self.charm.workload.generate_password()
 
             if self.charm.state.peer_cluster_orchestrator:
-                self.charm.state.peer_cluster_orchestrator.update(quorum_uris)
 
                 if not self.charm.state.peer_cluster_orchestrator.controller_password:
                     self.charm.state.peer_cluster_orchestrator.update(
@@ -176,7 +173,7 @@ class KRaftHandler(Object):
         # change bootstrap controller config on followers and brokers
         self.charm.on.config_changed.emit()
 
-    def _add_controller(self) -> None:
+    def add_to_quorum(self) -> None:
         """Adds current unit to the dynamic quorum in KRaft mode if this is a follower unit."""
         if (
             self.charm.unit.is_leader()
@@ -204,6 +201,7 @@ class KRaftHandler(Object):
                 if not self.charm.unit.is_leader()
                 else self.charm.state.cluster.bootstrap_replica_id
             )
+            self.charm.state.unit_broker.update({"added-to-quorum": ""})
             self.controller_manager.remove_controller(
                 self.charm.state.kraft_unit_id,
                 directory_id,

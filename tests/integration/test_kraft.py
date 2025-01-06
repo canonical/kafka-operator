@@ -62,8 +62,6 @@ class TestKRaft:
 
     @pytest.mark.abort_on_fail
     async def test_build_and_deploy(self, ops_test: OpsTest, kafka_charm):
-        await ops_test.model.add_machine(series="jammy")
-        machine_ids = await ops_test.model.get_machines()
 
         await asyncio.gather(
             ops_test.model.deploy(
@@ -71,7 +69,6 @@ class TestKRaft:
                 application_name=APP_NAME,
                 num_units=1,
                 series="jammy",
-                to=machine_ids[0],
                 config={
                     "roles": "broker,controller" if self.controller_app == APP_NAME else "broker",
                     "profile": "testing",

@@ -99,7 +99,6 @@ class PeerCluster(RelationState):
         broker_password: str = "",
         broker_uris: str = "",
         cluster_uuid: str = "",
-        controller_quorum_uris: str = "",
         bootstrap_controller: str = "",
         bootstrap_unit_id: str = "",
         bootstrap_replica_id: str = "",
@@ -118,7 +117,6 @@ class PeerCluster(RelationState):
         self._broker_password = broker_password
         self._broker_uris = broker_uris
         self._cluster_uuid = cluster_uuid
-        self._controller_quorum_uris = controller_quorum_uris
         self._bootstrap_controller = bootstrap_controller
         self._bootstrap_unit_id = bootstrap_unit_id
         self._bootstrap_replica_id = bootstrap_replica_id
@@ -192,22 +190,6 @@ class PeerCluster(RelationState):
             relation=self.relation,
             fields=BALANCER.requested_secrets,
         ).get("broker-uris", "")
-
-    @property
-    def controller_quorum_uris(self) -> str:
-        """The quorum voters in KRaft mode."""
-        if self._controller_quorum_uris:
-            return self._controller_quorum_uris
-
-        if not self.relation or not self.relation.app:
-            return ""
-
-        return (
-            self.data_interface.fetch_relation_field(
-                relation_id=self.relation.id, field="controller-quorum-uris"
-            )
-            or ""
-        )
 
     @property
     def controller_password(self) -> str:
@@ -535,11 +517,6 @@ class KafkaCluster(RelationState):
     def balancer_uris(self) -> str:
         """Persisted balancer uris."""
         return self.relation_data.get("balancer-uris", "")
-
-    @property
-    def controller_quorum_uris(self) -> str:
-        """Persisted controller quorum voters."""
-        return self.relation_data.get("controller-quorum-uris", "")
 
     @property
     def cluster_uuid(self) -> str:

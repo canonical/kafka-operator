@@ -130,7 +130,7 @@ def test_ready_to_start_missing_data_as_broker(charm_configuration, base_state: 
         state_out = ctx.run(ctx.on.start(), state_in)
 
     # Then
-    assert state_out.unit_status == Status.NO_QUORUM_URIS.value.status
+    assert state_out.unit_status == Status.NO_BOOTSTRAP_CONTROLLER.value.status
 
 
 def test_ready_to_start(charm_configuration, base_state: State):
@@ -162,7 +162,6 @@ def test_ready_to_start(charm_configuration, base_state: State):
     assert patched_run_bin_command.call_count == 3
     assert "cluster-uuid-number" in patched_run_bin_command.call_args_list[2][1]["bin_args"]
     assert "cluster-uuid" in state_out.get_relations(PEER)[0].local_app_data
-    assert "controller-quorum-uris" in state_out.get_relations(PEER)[0].local_app_data
     assert "bootstrap-controller" in state_out.get_relations(PEER)[0].local_app_data
     assert "bootstrap-unit-id" in state_out.get_relations(PEER)[0].local_app_data
     assert "bootstrap-replica-id" in state_out.get_relations(PEER)[0].local_app_data

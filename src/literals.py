@@ -238,7 +238,9 @@ class Status(Enum):
     CC_NOT_RUNNING = StatusLevel(BlockedStatus("Cruise Control not running"), "WARNING")
     MISSING_MODE = StatusLevel(BlockedStatus("Application needs ZooKeeper or KRaft mode"), "DEBUG")
     NO_CLUSTER_UUID = StatusLevel(WaitingStatus("Waiting for cluster uuid"), "DEBUG")
-    NO_QUORUM_URIS = StatusLevel(WaitingStatus("Waiting for quorum uris"), "DEBUG")
+    NO_BOOTSTRAP_CONTROLLER = StatusLevel(
+        WaitingStatus("Waiting for bootstrap controller"), "DEBUG"
+    )
     MISSING_CONTROLLER_PASSWORD = StatusLevel(
         WaitingStatus("Waiting for controller user credentials"), "DEBUG"
     )
