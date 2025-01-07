@@ -97,7 +97,7 @@ pytest-operator = ">0.20"
 kazoo = ">=2.8"
 tenacity = ">=7.0"
 pure-sasl = ">=0.5"
-kafka-python = ">=2.0"
+kafka-python-ng = ">=2.0"
 requests = ">2.25"
 
 pytest-operator-cache = { git = "https://github.com/canonical/data-platform-workflows", tag = "v24.0.5", subdirectory = "python/pytest_plugins/pytest_operator_cache" }
