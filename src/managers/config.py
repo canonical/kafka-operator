@@ -60,6 +60,8 @@ sample.store.class=com.linkedin.kafka.cruisecontrol.monitor.sampling.KafkaSample
 partition.metric.sample.store.topic=__KafkaCruiseControlPartitionMetricSamples
 broker.metric.sample.store.topic=__KafkaCruiseControlModelTrainingSamples
 max.active.user.tasks=10
+default.api.timeout.ms=20000
+request.timeout.ms=10000
 """
 # Divided periods by 10
 CRUISE_CONTROL_TESTING_OPTIONS = """
@@ -72,6 +74,8 @@ min.samples.per.broker.metrics.window=1
 min.samples.per.partition.metrics.window=1
 num.partition.metrics.windows=3
 num.broker.metrics.windows=10
+default.api.timeout.ms=10000
+request.timeout.ms=5000
 """
 SERVER_PROPERTIES_BLACKLIST = [
     "profile",
