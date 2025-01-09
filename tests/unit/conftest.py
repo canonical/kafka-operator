@@ -2,11 +2,12 @@
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 import json
-from unittest.mock import PropertyMock, patch
+from collections import defaultdict
+from unittest.mock import Mock, PropertyMock, patch
 
 import pytest
 from ops import JujuVersion
-from src.literals import INTERNAL_USERS, SUBSTRATE
+from src.literals import INTERNAL_USERS, SNAP_NAME, SUBSTRATE
 
 from managers.balancer import CruiseControlClient
 
@@ -135,4 +136,15 @@ def patched_node_port():
         ) as patched_node_port:
             yield patched_node_port
     else:
+        yield
+
+
+@pytest.fixture(autouse=True)
+def patched_snap(monkeypatch):
+    cache = Mock()
+    snap_mock = Mock()
+    snap_mock.services = defaultdict(default_factory=lambda _: {"active": True})
+    cache.return_value = {SNAP_NAME: snap_mock}
+    with monkeypatch.context() as m:
+        m.setattr("charms.operator_libs_linux.v1.snap.SnapCache", cache)
         yield

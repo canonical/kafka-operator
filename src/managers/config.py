@@ -11,7 +11,7 @@ import os
 import re
 import textwrap
 from abc import abstractmethod
-from typing import Iterable
+from typing import Iterable, cast
 
 from lightkube.core.exceptions import ApiError
 from typing_extensions import override
@@ -60,6 +60,8 @@ sample.store.class=com.linkedin.kafka.cruisecontrol.monitor.sampling.KafkaSample
 partition.metric.sample.store.topic=__KafkaCruiseControlPartitionMetricSamples
 broker.metric.sample.store.topic=__KafkaCruiseControlModelTrainingSamples
 max.active.user.tasks=10
+default.api.timeout.ms=20000
+request.timeout.ms=10000
 """
 # Divided periods by 10
 CRUISE_CONTROL_TESTING_OPTIONS = """
@@ -72,6 +74,8 @@ min.samples.per.broker.metrics.window=1
 min.samples.per.partition.metrics.window=1
 num.partition.metrics.windows=3
 num.broker.metrics.windows=10
+default.api.timeout.ms=10000
+request.timeout.ms=5000
 """
 SERVER_PROPERTIES_BLACKLIST = [
     "profile",
@@ -107,7 +111,7 @@ class Listener:
         self.protocol = auth_map.protocol
         self.mechanism = auth_map.mechanism
         self.host = host
-        self.scope = scope
+        self._scope: Scope = scope
         self.baseport = baseport
         self.extra_count = extra_count
         self.node_port = node_port
@@ -123,7 +127,7 @@ class Listener:
         if value not in ["CLIENT", "INTERNAL", "EXTERNAL", "EXTRA"]:
             raise ValueError("Only CLIENT, INTERNAL, EXTERNAL and EXTRA scopes are accepted")
 
-        self._scope = value
+        self._scope = cast(Scope, value)
 
     @property
     def port(self) -> int:

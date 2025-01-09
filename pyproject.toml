@@ -30,7 +30,7 @@ authors = []
 package-mode = false
 
 [tool.poetry.dependencies]
-python = ">=3.8,<4.0"
+python = ">=3.10,<4.0"
 ops = ">=2.17.0"
 kazoo = ">=2.8.0"
 
@@ -91,16 +91,16 @@ optional = true
 
 [tool.poetry.group.integration.dependencies]
 pytest = ">=7.2"
-juju = "3.5.0.0"
+juju = "^3.6.0"
 coverage = { extras = ["toml"], version = ">7.0" }
 pytest-operator = ">0.20"
 kazoo = ">=2.8"
 tenacity = ">=7.0"
 pure-sasl = ">=0.5"
-kafka-python = ">=2.0"
+kafka-python-ng = ">=2.0"
 requests = ">2.25"
 
-pytest-operator-cache = { git = "https://github.com/canonical/data-platform-workflows", tag = "v22.0.0", subdirectory = "python/pytest_plugins/pytest_operator_cache" }
+pytest-operator-cache = { git = "https://github.com/canonical/data-platform-workflows", tag = "v24.0.5", subdirectory = "python/pytest_plugins/pytest_operator_cache" }
 # To be enabled if we are using groups on integration tests
 
 [tool.poetry.group.format.dependencies]
