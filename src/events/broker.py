@@ -24,6 +24,7 @@ from ops import (
 )
 
 from events.actions import ActionEvents
+from events.controller import KRaftHandler
 from events.oauth import OAuthHandler
 from events.provider import KafkaProvider
 from events.upgrade import KafkaDependencyModel, KafkaUpgrade
@@ -35,7 +36,6 @@ from literals import (
     CONTROLLER,
     DEPENDENCIES,
     GROUP,
-    INTERNAL_USERS,
     PEER,
     PROFILE_TESTING,
     REL_NAME,
@@ -94,6 +94,7 @@ class BrokerOperator(Object):
 
         self.provider = KafkaProvider(self)
         self.oauth = OAuthHandler(self)
+        self.kraft = KRaftHandler(self)
 
         # MANAGERS
 
@@ -167,19 +168,11 @@ class BrokerOperator(Object):
         if not self.upgrade.idle:
             return
 
-        if self.charm.state.kraft_mode:
-            self._init_kraft_mode()
-
-        # FIXME ready to start probably needs to account for credentials being created beforehand
         current_status = self.charm.state.ready_to_start
         if current_status is not Status.ACTIVE:
             self.charm._set_status(current_status)
             event.defer()
             return
-
-        if self.charm.state.kraft_mode:
-            self.config_manager.set_server_properties()
-            self._format_storages()
 
         self.update_external_services()
 
@@ -428,61 +421,6 @@ class BrokerOperator(Object):
             return False
 
         return True
-
-    def _init_kraft_mode(self) -> None:
-        """Initialize the server when running controller mode."""
-        # NOTE: checks for `runs_broker` in this method should be `is_cluster_manager` in
-        # the large deployment feature.
-        if not self.model.unit.is_leader():
-            return
-
-        if not self.charm.state.cluster.internal_user_credentials and self.charm.state.runs_broker:
-            credentials = [
-                (username, self.charm.workload.generate_password()) for username in INTERNAL_USERS
-            ]
-            for username, password in credentials:
-                self.charm.state.cluster.update({f"{username}-password": password})
-
-        # cluster-uuid is only created on the broker (`cluster-manager` in large deployments)
-        if not self.charm.state.cluster.cluster_uuid and self.charm.state.runs_broker:
-            uuid = self.workload.run_bin_command(
-                bin_keyword="storage", bin_args=["random-uuid"]
-            ).strip()
-
-            self.charm.state.cluster.update({"cluster-uuid": uuid})
-            self.charm.state.peer_cluster.update({"cluster-uuid": uuid})
-
-        # Controller is tasked with populating quorum uris and the `controller` user password
-        if self.charm.state.runs_controller:
-            quorum_uris = {"controller-quorum-uris": self.charm.state.controller_quorum_uris}
-            self.charm.state.cluster.update(quorum_uris)
-
-            generated_password = self.charm.workload.generate_password()
-
-            if self.charm.state.peer_cluster_orchestrator:
-                self.charm.state.peer_cluster_orchestrator.update(quorum_uris)
-
-                if not self.charm.state.peer_cluster_orchestrator.controller_password:
-                    self.charm.state.peer_cluster_orchestrator.update(
-                        {"controller-password": generated_password}
-                    )
-            elif not self.charm.state.peer_cluster.controller_password:
-                # single mode, controller & leader
-                self.charm.state.cluster.update({"controller-password": generated_password})
-
-    def _format_storages(self) -> None:
-        """Format storages provided relevant keys exist."""
-        if self.charm.state.runs_broker:
-            credentials = self.charm.state.cluster.internal_user_credentials
-        elif self.charm.state.runs_controller:
-            credentials = {
-                self.charm.state.peer_cluster.broker_username: self.charm.state.peer_cluster.broker_password
-            }
-
-        self.workload.format_storages(
-            uuid=self.charm.state.peer_cluster.cluster_uuid,
-            internal_user_credentials=credentials,
-        )
 
     def update_external_services(self) -> None:
         """Attempts to update any external Kubernetes services."""

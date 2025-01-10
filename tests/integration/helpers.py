@@ -6,6 +6,7 @@ import logging
 import socket
 import subprocess
 from contextlib import closing
+from enum import Enum
 from json.decoder import JSONDecodeError
 from pathlib import Path
 from subprocess import PIPE, CalledProcessError, check_output
@@ -32,6 +33,13 @@ ZK_NAME = "zookeeper"
 DUMMY_NAME = "app"
 REL_NAME_ADMIN = "kafka-client-admin"
 TEST_DEFAULT_MESSAGES = 15
+
+
+class KRaftUnitStatus(Enum):
+    LEADER = "Leader"
+    FOLLOWER = "Follower"
+    OBSERVER = "Observer"
+
 
 logger = logging.getLogger(__name__)
 
@@ -605,3 +613,34 @@ def get_kafka_broker_state(ops_test: OpsTest, app_name: str) -> JSON:
 def get_replica_count_by_broker_id(ops_test: OpsTest, app_name: str) -> dict[str, Any]:
     broker_state_json = get_kafka_broker_state(ops_test, app_name)
     return broker_state_json.get("ReplicaCountByBrokerId", {})
+
+
+@retry(
+    wait=wait_fixed(20),
+    stop=stop_after_attempt(6),
+    reraise=True,
+)
+def kraft_quorum_status(
+    ops_test: OpsTest, unit_name: str, bootstrap_controller: str, verbose: bool = True
+) -> dict[int, KRaftUnitStatus]:
+    """Returns a dict mapping of unit ID to KRaft unit status based on `kafka-metadata-quorum.sh` utility's output."""
+    result = check_output(
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.metadata-quorum  --command-config {PATHS['kafka']['CONF']}/server.properties --bootstrap-controller {bootstrap_controller} describe --replication'",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+    # parse `kafka-metadata-quorum.sh` output
+    # NodeId  DirectoryId  LogEndOffset  Lag  LastFetchTimestamp  LastCaughtUpTimestamp  Status
+    unit_status: dict[int, str] = {}
+    for line in result.split("\n"):
+        fields = [c.strip() for c in line.split("\t")]
+        try:
+            unit_status[int(fields[0])] = KRaftUnitStatus(fields[6])
+        except (ValueError, IndexError):
+            continue
+
+    if verbose:
+        print(unit_status)
+
+    return unit_status

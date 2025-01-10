@@ -12,7 +12,7 @@ from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, StatusBase
 
 CHARM_KEY = "kafka"
 SNAP_NAME = "charmed-kafka"
-CHARMED_KAFKA_SNAP_REVISION = 45
+CHARMED_KAFKA_SNAP_REVISION = 48
 CONTAINER = "kafka"
 SUBSTRATE = "vm"
 STORAGE = "data"
@@ -42,6 +42,7 @@ BALANCER_TOPICS = [
     "__KafkaCruiseControlBrokerMetricSamples",
 ]
 MIN_REPLICAS = 3
+KRAFT_VERSION = 1
 
 
 INTER_BROKER_USER = "sync"
@@ -237,7 +238,9 @@ class Status(Enum):
     CC_NOT_RUNNING = StatusLevel(BlockedStatus("Cruise Control not running"), "WARNING")
     MISSING_MODE = StatusLevel(BlockedStatus("Application needs ZooKeeper or KRaft mode"), "DEBUG")
     NO_CLUSTER_UUID = StatusLevel(WaitingStatus("Waiting for cluster uuid"), "DEBUG")
-    NO_QUORUM_URIS = StatusLevel(WaitingStatus("Waiting for quorum uris"), "DEBUG")
+    NO_BOOTSTRAP_CONTROLLER = StatusLevel(
+        WaitingStatus("Waiting for bootstrap controller"), "DEBUG"
+    )
     MISSING_CONTROLLER_PASSWORD = StatusLevel(
         WaitingStatus("Waiting for controller user credentials"), "DEBUG"
     )
@@ -292,6 +295,6 @@ DEPENDENCIES = {
         "dependencies": {"zookeeper": ">3.6"},
         "name": "kafka",
         "upgrade_supported": "^3",  # zk support removed in 4.0
-        "version": "3.6.1",
+        "version": "3.9.0",
     },
 }

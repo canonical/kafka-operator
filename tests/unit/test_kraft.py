@@ -82,7 +82,8 @@ def test_ready_to_start_no_peer_cluster(charm_configuration, base_state: State):
     state_in = dataclasses.replace(base_state, relations=[cluster_peer])
 
     # When
-    state_out = ctx.run(ctx.on.start(), state_in)
+    with patch("workload.KafkaWorkload.run_bin_command", return_value="cluster-uuid-number"):
+        state_out = ctx.run(ctx.on.start(), state_in)
 
     # Then
     assert state_out.unit_status == Status.NO_PEER_CLUSTER_RELATION.value.status
@@ -102,7 +103,8 @@ def test_ready_to_start_missing_data_as_controller(charm_configuration, base_sta
     state_in = dataclasses.replace(base_state, relations=[cluster_peer, peer_cluster])
 
     # When
-    state_out = ctx.run(ctx.on.start(), state_in)
+    with patch("workload.KafkaWorkload.run_bin_command", return_value="cluster-uuid-number"):
+        state_out = ctx.run(ctx.on.start(), state_in)
 
     # Then
     assert state_out.unit_status == Status.NO_BROKER_DATA.value.status
@@ -128,7 +130,7 @@ def test_ready_to_start_missing_data_as_broker(charm_configuration, base_state: 
         state_out = ctx.run(ctx.on.start(), state_in)
 
     # Then
-    assert state_out.unit_status == Status.NO_QUORUM_URIS.value.status
+    assert state_out.unit_status == Status.NO_BOOTSTRAP_CONTROLLER.value.status
 
 
 def test_ready_to_start(charm_configuration, base_state: State):
@@ -156,11 +158,80 @@ def test_ready_to_start(charm_configuration, base_state: State):
         state_out = ctx.run(ctx.on.start(), state_in)
 
     # Then
-    # Second call of format will have to pass "cluster-uuid-number" as set above
-    assert "cluster-uuid-number" in patched_run_bin_command.call_args_list[1][1]["bin_args"]
+    # Third call of format will have to pass "cluster-uuid-number" as set above
+    assert patched_run_bin_command.call_count == 3
+    assert "cluster-uuid-number" in patched_run_bin_command.call_args_list[2][1]["bin_args"]
     assert "cluster-uuid" in state_out.get_relations(PEER)[0].local_app_data
-    assert "controller-quorum-uris" in state_out.get_relations(PEER)[0].local_app_data
+    assert "bootstrap-controller" in state_out.get_relations(PEER)[0].local_app_data
+    assert "bootstrap-unit-id" in state_out.get_relations(PEER)[0].local_app_data
+    assert "bootstrap-replica-id" in state_out.get_relations(PEER)[0].local_app_data
     # Only the internal users should be created.
     assert "admin-password" in next(iter(state_out.secrets)).latest_content
     assert "sync-password" in next(iter(state_out.secrets)).latest_content
     assert state_out.unit_status == ActiveStatus()
+
+
+def test_remove_controller(charm_configuration, base_state: State):
+    # Given
+    charm_configuration["options"]["roles"]["default"] = "controller"
+    ctx = Context(
+        KafkaCharm,
+        meta=METADATA,
+        config=charm_configuration,
+        actions=ACTIONS,
+    )
+    cluster_peer = PeerRelation(
+        PEER,
+        PEER,
+        local_unit_data={"added-to-quorum": "true", "directory-id": "random-uuid"},
+        peers_data={1: {"added-to-quorum": "true", "directory-id": "other-uuid"}},
+    )
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer], leader=False)
+
+    # When
+    with (patch("workload.KafkaWorkload.run_bin_command") as patched_run_bin_command,):
+        _ = ctx.run(ctx.on.relation_departed(cluster_peer, remote_unit=0), state_in)
+
+    # Then
+    patched_run_bin_command.assert_called_once()
+    assert "random-uuid" in patched_run_bin_command.call_args_list[0][1]["bin_args"]
+
+
+def test_leader_change(charm_configuration, base_state: State):
+    previous_controller = "10.10.10.10:9097"
+    charm_configuration["options"]["roles"]["default"] = "controller"
+    ctx = Context(
+        KafkaCharm,
+        meta=METADATA,
+        config=charm_configuration,
+        actions=ACTIONS,
+    )
+    cluster_peer = PeerRelation(
+        PEER,
+        PEER,
+        local_unit_data={"added-to-quorum": "true", "directory-id": "new-uuid"},
+        local_app_data={
+            "bootstrap-controller": previous_controller,
+            "bootstrap-replica-id": "old-uuid",
+            "bootstrap-unit-id": "1",
+        },
+    )
+    restart_peer = PeerRelation("restart", "rolling_op")
+
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, restart_peer])
+
+    # When
+    with (
+        patch(
+            "charms.rolling_ops.v0.rollingops.RollingOpsManager._on_run_with_lock", autospec=True
+        )
+    ):
+        state_out = ctx.run(ctx.on.leader_elected(), state_in)
+
+    # Then
+    assert state_out.get_relations(PEER)[0].local_app_data["bootstrap-replica-id"] == "new-uuid"
+    assert state_out.get_relations(PEER)[0].local_app_data["bootstrap-unit-id"] == "0"
+    assert (
+        state_out.get_relations(PEER)[0].local_app_data["bootstrap-controller"]
+        != previous_controller
+    )
