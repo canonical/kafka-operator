@@ -23,11 +23,8 @@ target-version = ["py310"]
 profile = "black"
 
 [tool.poetry]
-name = "kafka-operator"
-version = "1.0"
-description = "kafka-operator"
-authors = []
 package-mode = false
+requires-poetry = ">=2.0.0"
 
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
