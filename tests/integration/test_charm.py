@@ -84,6 +84,7 @@ async def test_build_and_deploy_same_machine(ops_test: OpsTest, kafka_charm):
 async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
     await ops_test.model.add_machine(series="jammy")
     machine_ids = await ops_test.model.get_machines()
+    logger.info(f"{machine_ids=}")
     await ops_test.model.create_storage_pool("test_pool", "lxd")
 
     await asyncio.gather(
