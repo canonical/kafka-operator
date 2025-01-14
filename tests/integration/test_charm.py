@@ -22,6 +22,7 @@ from .helpers import (
     check_socket,
     count_lines_with,
     get_address,
+    get_machine,
     produce_and_check_logs,
     run_client_properties,
 )
@@ -215,11 +216,14 @@ async def test_logs_write_to_storage(ops_test: OpsTest):
 
 
 async def test_rack_awareness_integration(ops_test: OpsTest):
+    kafka_machine_id = await get_machine(ops_test)
+
     await ops_test.model.deploy(
         "kafka-broker-rack-awareness",
         channel="edge",
         application_name="rack",
         base="ubuntu@22.04",
+        to=kafka_machine_id,
         config={"broker-rack": "integration-zone"},
     )
     await ops_test.model.wait_for_idle(apps=["rack"], idle_period=30, timeout=3600)
