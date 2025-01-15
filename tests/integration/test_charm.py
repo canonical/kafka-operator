@@ -22,6 +22,7 @@ from .helpers import (
     check_socket,
     count_lines_with,
     get_address,
+    get_machine,
     produce_and_check_logs,
     run_client_properties,
 )
@@ -82,8 +83,6 @@ async def test_build_and_deploy_same_machine(ops_test: OpsTest, kafka_charm):
 
 @pytest.mark.abort_on_fail
 async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
-    await ops_test.model.add_machine(series="jammy")
-    machine_ids = await ops_test.model.get_machines()
     await ops_test.model.create_storage_pool("test_pool", "lxd")
 
     await asyncio.gather(
@@ -91,8 +90,7 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
             kafka_charm,
             application_name=APP_NAME,
             num_units=1,
-            series="jammy",
-            to=machine_ids[0],
+            base="ubuntu@22.04",
             storage={"data": {"pool": "test_pool", "size": 1024}},
         ),
         ops_test.model.deploy(
@@ -218,13 +216,14 @@ async def test_logs_write_to_storage(ops_test: OpsTest):
 
 
 async def test_rack_awareness_integration(ops_test: OpsTest):
-    machine_ids = await ops_test.model.get_machines()
+    kafka_machine_id = await get_machine(ops_test)
+
     await ops_test.model.deploy(
         "kafka-broker-rack-awareness",
         channel="edge",
         application_name="rack",
-        to=machine_ids[0],
-        series="jammy",
+        base="ubuntu@22.04",
+        to=kafka_machine_id,
         config={"broker-rack": "integration-zone"},
     )
     await ops_test.model.wait_for_idle(apps=["rack"], idle_period=30, timeout=3600)

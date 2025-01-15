@@ -11,8 +11,10 @@ from typing import cast
 from unittest.mock import PropertyMock, patch
 
 import pytest
+import trustme
 import yaml
 from ops.testing import Container, Context, PeerRelation, Relation, State
+from trustme import CA
 
 from charm import KafkaCharm
 from literals import (
@@ -31,6 +33,11 @@ logger = logging.getLogger(__name__)
 CONFIG = yaml.safe_load(Path("./config.yaml").read_text())
 ACTIONS = yaml.safe_load(Path("./actions.yaml").read_text())
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
+
+
+@pytest.fixture()
+def ca() -> CA:
+    return trustme.CA()
 
 
 @pytest.fixture()

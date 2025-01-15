@@ -505,6 +505,13 @@ async def get_address(ops_test: OpsTest, app_name=APP_NAME, unit_num=0) -> str:
     return address
 
 
+async def get_machine(ops_test: OpsTest, app_name=APP_NAME, unit_num=0) -> str:
+    """Get the machine_id for a unit."""
+    status = await ops_test.model.get_status()
+    machine_id = status["applications"][app_name]["units"][f"{app_name}/{unit_num}"]["machine"]
+    return machine_id
+
+
 def balancer_exporter_is_up(model_full_name: str | None, app_name: str) -> bool:
     check_output(
         f"JUJU_MODEL={model_full_name} juju ssh {app_name}/leader sudo -i 'curl http://localhost:{JMX_CC_PORT}/metrics'",
