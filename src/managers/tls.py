@@ -198,6 +198,9 @@ class TLSManager:
             logger.error(e.stdout)
             raise e
 
+        if not sans_lines:
+            return
+
         for line in sans_lines:
             if "DNS" in line and "IP" in line:
                 break
