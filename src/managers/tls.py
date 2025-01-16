@@ -74,6 +74,17 @@ class TLSManager:
             path=f"{self.workload.paths.conf_path}/server.pem",
         )
 
+    def set_chain(self) -> None:
+        """Sets the unit chain."""
+        if not self.state.unit_broker.chain:
+            logger.error("Can't set chain to unit, missing chain in relation data")
+            return
+
+        for i, chain_cert in enumerate(self.state.unit_broker.chain):
+            self.workload.write(
+                content=chain_cert, path=f"{self.workload.paths.conf_path}/chain{i}.pem"
+            )
+
     def set_truststore(self) -> None:
         """Adds CA to JKS truststore."""
         command = f"{self.keytool} -import -v -alias ca -file ca.pem -keystore truststore.jks -storepass {self.state.unit_broker.truststore_password} -noprompt"

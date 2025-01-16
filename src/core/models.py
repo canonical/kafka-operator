@@ -587,7 +587,7 @@ class KafkaBroker(RelationState):
 
         Returns:
             String of key contents
-            None if key not yet generated
+            Empty if key not yet generated
         """
         return self.relation_data.get("private-key", "")
 
@@ -597,7 +597,7 @@ class KafkaBroker(RelationState):
 
         Returns:
             String of csr contents
-            None if csr not yet generated
+            Empty if csr not yet generated
         """
         return self.relation_data.get("csr", "")
 
@@ -607,7 +607,7 @@ class KafkaBroker(RelationState):
 
         Returns:
             String of cert contents in PEM format
-            None if cert not yet generated/signed
+            Empty if cert not yet generated/signed
         """
         return self.relation_data.get("certificate", "")
 
@@ -617,10 +617,24 @@ class KafkaBroker(RelationState):
 
         Returns:
             String of ca contents in PEM format
-            None if cert not yet generated/signed
+            Empty if cert not yet generated/signed
         """
         # defaults to ca for backwards compatibility after field change introduced with secrets
         return self.relation_data.get("ca-cert") or self.relation_data.get("ca", "")
+
+    @property
+    def chain(self) -> list[str]:
+        """The chain used to sign unit cert.
+
+        Returns:
+            List of string chain contents in PEM format
+            Empty if cert not yet generated/signed
+        """
+        full_chain = json.loads(self.relation_data.get("chain", "null")) or []
+        # to avoid adding certificate to truststore if self-signed
+        clean_chain: set[str] = set(full_chain) - {self.certificate, self.ca}
+
+        return list(clean_chain)
 
     @property
     def keystore_password(self) -> str:

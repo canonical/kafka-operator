@@ -56,6 +56,7 @@ SECRETS_APP = [
 ]
 SECRETS_UNIT = [
     "ca-cert",
+    "chain",
     "csr",
     "certificate",
     "truststore-password",
