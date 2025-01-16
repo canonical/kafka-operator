@@ -87,17 +87,24 @@ class TLSManager:
 
     def set_truststore(self) -> None:
         """Adds CA to JKS truststore."""
-        command = f"{self.keytool} -import -v -alias ca -file ca.pem -keystore truststore.jks -storepass {self.state.unit_broker.truststore_password} -noprompt"
-        try:
-            self.workload.exec(command=command.split(), working_dir=self.workload.paths.conf_path)
-            self.workload.exec(f"chown {USER}:{GROUP} {self.workload.paths.truststore}".split())
-            self.workload.exec(f"chmod 770 {self.workload.paths.truststore}".split())
-        except (subprocess.CalledProcessError, ExecError) as e:
-            # in case this reruns and fails
-            if e.stdout and "already exists" in e.stdout:
-                return
-            logger.error(e.stdout)
-            raise e
+        trust_aliases = [f"chain{i}" for i in range(len(self.state.unit_broker.chain))] + ["ca"]
+        for alias in trust_aliases:
+            command = f"{self.keytool} -import -v -alias {alias} -file {alias}.pem -keystore truststore.jks -storepass {self.state.unit_broker.truststore_password} -noprompt"
+            try:
+
+                self.workload.exec(
+                    command=command.split(), working_dir=self.workload.paths.conf_path
+                )
+                self.workload.exec(
+                    f"chown {USER}:{GROUP} {self.workload.paths.truststore}".split()
+                )
+                self.workload.exec(f"chmod 770 {self.workload.paths.truststore}".split())
+            except (subprocess.CalledProcessError, ExecError) as e:
+                # in case this reruns and fails
+                if e.stdout and "already exists" in e.stdout:
+                    return
+                logger.error(e.stdout)
+                raise e
 
     def set_keystore(self) -> None:
         """Creates and adds unit cert and private-key to the keystore."""
