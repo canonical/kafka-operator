@@ -248,7 +248,14 @@ class BrokerOperator(Object):
         expected_sans_dns = (
             set(self.tls_manager.build_sans()["sans_dns"]) if current_sans else set()
         )
-        sans_dns_changed = current_sans_dns ^ expected_sans_dns
+
+        sans_dns_changed = (current_sans_dns ^ expected_sans_dns) - {
+            # we omit 'kafka/{unit_id}' and 'kafka' here to avoid a bug with Digicert not supporting '/' characters in SANs
+            # Digicert truncates the 'kafka/{unit_id}' to just 'kafka'
+            # i.e don't assume we need new certs if 'diff' includes those value, as these SANs aren't typically used anyway
+            self.charm.state.unit_broker.unit.name,
+            self.charm.state.cluster.app.name,
+        }
 
         # update environment
         self.config_manager.set_environment()

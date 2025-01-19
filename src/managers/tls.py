@@ -74,19 +74,37 @@ class TLSManager:
             path=f"{self.workload.paths.conf_path}/server.pem",
         )
 
+    def set_chain(self) -> None:
+        """Sets the unit chain."""
+        if not self.state.unit_broker.chain:
+            logger.error("Can't set chain to unit, missing chain in relation data")
+            return
+
+        for i, chain_cert in enumerate(self.state.unit_broker.chain):
+            self.workload.write(
+                content=chain_cert, path=f"{self.workload.paths.conf_path}/chain{i}.pem"
+            )
+
     def set_truststore(self) -> None:
         """Adds CA to JKS truststore."""
-        command = f"{self.keytool} -import -v -alias ca -file ca.pem -keystore truststore.jks -storepass {self.state.unit_broker.truststore_password} -noprompt"
-        try:
-            self.workload.exec(command=command.split(), working_dir=self.workload.paths.conf_path)
-            self.workload.exec(f"chown {USER}:{GROUP} {self.workload.paths.truststore}".split())
-            self.workload.exec(f"chmod 770 {self.workload.paths.truststore}".split())
-        except (subprocess.CalledProcessError, ExecError) as e:
-            # in case this reruns and fails
-            if e.stdout and "already exists" in e.stdout:
-                return
-            logger.error(e.stdout)
-            raise e
+        trust_aliases = [f"chain{i}" for i in range(len(self.state.unit_broker.chain))] + ["ca"]
+        for alias in trust_aliases:
+            command = f"{self.keytool} -import -v -alias {alias} -file {alias}.pem -keystore truststore.jks -storepass {self.state.unit_broker.truststore_password} -noprompt"
+            try:
+
+                self.workload.exec(
+                    command=command.split(), working_dir=self.workload.paths.conf_path
+                )
+                self.workload.exec(
+                    f"chown {USER}:{GROUP} {self.workload.paths.truststore}".split()
+                )
+                self.workload.exec(f"chmod 770 {self.workload.paths.truststore}".split())
+            except (subprocess.CalledProcessError, ExecError) as e:
+                # in case this reruns and fails
+                if e.stdout and "already exists" in e.stdout:
+                    return
+                logger.error(e.stdout)
+                raise e
 
     def set_keystore(self) -> None:
         """Creates and adds unit cert and private-key to the keystore."""
@@ -179,6 +197,9 @@ class TLSManager:
         except (subprocess.CalledProcessError, ExecError) as e:
             logger.error(e.stdout)
             raise e
+
+        if not sans_lines:
+            return
 
         for line in sans_lines:
             if "DNS" in line and "IP" in line:

@@ -727,6 +727,92 @@ def test_config_changed_updates_server_properties(
     set_server_properties.assert_called_once()
 
 
+def test_config_changed_requests_new_certificate(
+    ctx: Context, base_state: State, zk_data: dict[str, str]
+) -> None:
+    """Checks that if there is a diff in SANs, that a new certificate is requested."""
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER)
+    restart_peer = PeerRelation("restart", "rolling_op")
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
+    state_in = dataclasses.replace(
+        base_state,
+        relations=[cluster_peer, restart_peer, zk_relation],
+    )
+
+    # When
+    with (
+        patch(
+            "managers.config.ConfigManager.server_properties",
+            new_callable=PropertyMock,
+            return_value=["gandalf=white"],
+        ),
+        patch("events.broker.BrokerOperator.healthy", return_value=True),
+        patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
+        patch("workload.KafkaWorkload.read", return_value=["gandalf=grey"]),
+        patch("managers.config.ConfigManager.set_client_properties"),
+        patch("events.tls.TLSHandler._request_certificate_renewal") as request_certificate_renewal,
+        patch(
+            "managers.tls.TLSManager.get_current_sans",
+            return_value={"sans_ip": ["earendil"], "sans_dns": ["denethor"]},
+        ),
+        patch(
+            "managers.tls.TLSManager.build_sans",
+            return_value={"sans_ip": ["earendil"], "sans_dns": ["aragorn"]},
+        ),
+        patch(
+            "charms.rolling_ops.v0.rollingops.RollingOpsManager._on_run_with_lock", autospec=True
+        ),
+    ):
+        ctx.run(ctx.on.config_changed(), state_in)
+
+    # Then
+    assert request_certificate_renewal.call_count
+
+
+def test_config_changed_does_not_request_new_certificate_for_slashes(
+    ctx: Context, base_state: State, zk_data: dict[str, str]
+) -> None:
+    """Checks that if there is a diff in SANs, that a new certificate is not requested if the SAN was the unit|app name."""
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER)
+    restart_peer = PeerRelation("restart", "rolling_op")
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
+    state_in = dataclasses.replace(
+        base_state,
+        relations=[cluster_peer, restart_peer, zk_relation],
+    )
+
+    # When
+    with (
+        patch(
+            "managers.config.ConfigManager.server_properties",
+            new_callable=PropertyMock,
+            return_value=["gandalf=white"],
+        ),
+        patch("events.broker.BrokerOperator.healthy", return_value=True),
+        patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
+        patch("workload.KafkaWorkload.read", return_value=["gandalf=grey"]),
+        patch("managers.config.ConfigManager.set_client_properties"),
+        patch("events.tls.TLSHandler._request_certificate_renewal") as request_certificate_renewal,
+        patch(
+            "managers.tls.TLSManager.get_current_sans",
+            return_value={"sans_ip": ["earendil"], "sans_dns": [CHARM_KEY]},
+        ),
+        patch(
+            "managers.tls.TLSManager.build_sans",
+            return_value={"sans_ip": ["earendil"], "sans_dns": [f"{CHARM_KEY}/0"]},
+        ),
+        patch(
+            "charms.rolling_ops.v0.rollingops.RollingOpsManager._on_run_with_lock", autospec=True
+        ),
+    ):
+        ctx.run(ctx.on.config_changed(), state_in)
+
+    # Then
+    assert not request_certificate_renewal.call_count
+
+
 def test_config_changed_updates_client_properties(ctx: Context, base_state: State) -> None:
     """Checks that new charm/unit config writes client config to unit on config changed hook."""
     # Given
