@@ -405,7 +405,7 @@ async def test_manual_tls_chain(ops_test: OpsTest):
     await ops_test.model.deploy(MANUAL_TLS_NAME)
 
     await asyncio.gather(
-        ops_test.model.add_relation(APP_NAME, MANUAL_TLS_NAME),
+        ops_test.model.add_relation(f"{APP_NAME}:{TLS_RELATION}", MANUAL_TLS_NAME),
         ops_test.model.add_relation(ZK, MANUAL_TLS_NAME),
     )
 
