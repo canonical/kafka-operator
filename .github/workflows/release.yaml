@@ -20,7 +20,6 @@ jobs:
       - name: Check libs
         uses: canonical/charming-actions/check-libraries@2.2.3
         with:
-          charmcraft-channel: latest/beta/data-platform  # TODO: remove after charmcraft 3.3 stable release
           credentials: "${{ secrets.CHARMHUB_TOKEN }}" # FIXME: current token will expire in 2023-07-04
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
@@ -35,16 +34,15 @@ jobs:
       actions: write
 
   release:
-    name: Release to Charmhub
+    name: Release charm
     needs:
       - lib-check
       - ci-tests
     uses: canonical/data-platform-workflows/.github/workflows/release_charm.yaml@v29.0.0
     with:
-      charmcraft-snap-channel: latest/candidate  # TODO: remove after charmcraft 3.3 stable release
       channel: 3/edge
       artifact-prefix: ${{ needs.ci-tests.outputs.artifact-prefix }}
     secrets:
       charmhub-token: ${{ secrets.CHARMHUB_TOKEN }}
     permissions:
-      contents: write # Needed to create GitHub release
+      contents: write  # Needed to create git tags
