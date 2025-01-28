@@ -51,16 +51,15 @@ jobs:
       pull-requests: write # Need to create PR
 
   build:
-    name: Build charms
-    uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v29.0.0
-    with:
-      charmcraft-snap-channel: latest/candidate  # TODO: remove after charmcraft 3.3 stable release
-      path-to-charm-directory: ${{ matrix.path }}
     strategy:
       matrix:
         path:
           - .
           - tests/integration/app-charm
+    name: Build charm | ${{ matrix.path }}
+    uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v29.0.0
+    with:
+      path-to-charm-directory: ${{ matrix.path }}
 
   integration-test:
     strategy:
