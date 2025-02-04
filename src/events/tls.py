@@ -275,6 +275,7 @@ class TLSHandler(Object):
             getattr(self.charm, dependent).tls_manager.set_ca()
             getattr(self.charm, dependent).tls_manager.set_chain()
             getattr(self.charm, dependent).tls_manager.set_certificate()
+            getattr(self.charm, dependent).tls_manager.set_bundle()
             getattr(self.charm, dependent).tls_manager.set_truststore()
             getattr(self.charm, dependent).tls_manager.set_keystore()
 

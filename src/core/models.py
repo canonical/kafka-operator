@@ -624,17 +624,21 @@ class KafkaBroker(RelationState):
 
     @property
     def chain(self) -> list[str]:
-        """The chain used to sign unit cert.
+        """The chain used to sign unit cert."""
+        return json.loads(self.relation_data.get("chain", "null")) or []
 
-        Returns:
-            List of string chain contents in PEM format
-            Empty if cert not yet generated/signed
-        """
-        full_chain = json.loads(self.relation_data.get("chain", "null")) or []
-        # to avoid adding certificate to truststore if self-signed
-        clean_chain: set[str] = set(full_chain) - {self.certificate, self.ca}
+    @property
+    def bundle(self) -> list[str]:
+        """The cert bundle used for TLS identity."""
+        if not all([self.certificate, self.ca, self.chain]):
+            return []
 
-        return list(clean_chain)
+        # manual-tls-certificates is loaded with the signed cert, the intermediate CA that signed it
+        # and then the missing chain for that CA
+        # ZK needs to present the full bundle - aka Keystore
+        # ZK needs to trust each item in the bundle - aka Truststore
+        bundle = [self.certificate, self.ca] + self.chain
+        return sorted(set(bundle), key=bundle.index)  # ordering might matter
 
     @property
     def keystore_password(self) -> str:
@@ -864,8 +868,8 @@ class ZooKeeper(RelationState):
 
     # retry to give ZK time to update its broker zNodes before failing
     @retry(
-        wait=wait_fixed(5),
-        stop=stop_after_attempt(10),
+        wait=wait_fixed(3),
+        stop=stop_after_attempt(3),
         retry=retry_if_result(lambda result: result is False),
         retry_error_callback=lambda _: False,
     )

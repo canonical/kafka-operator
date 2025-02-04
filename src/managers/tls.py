@@ -74,20 +74,34 @@ class TLSManager:
             path=f"{self.workload.paths.conf_path}/server.pem",
         )
 
+    def set_bundle(self) -> None:
+        """Sets the unit cert bundle."""
+        if not self.state.unit_broker.certificate or not self.state.unit_broker.ca:
+            logger.error(
+                "Can't set cert bundle to unit, missing certificate or CA in relation data"
+            )
+            return
+
+        self.workload.write(
+            content="\n".join(self.state.unit_broker.bundle),
+            path=f"{self.workload.paths.conf_path}/bundle.pem",
+        )
+
     def set_chain(self) -> None:
         """Sets the unit chain."""
         if not self.state.unit_broker.chain:
             logger.error("Can't set chain to unit, missing chain in relation data")
             return
 
-        for i, chain_cert in enumerate(self.state.unit_broker.chain):
+        # setting each individual cert in the chain for trusting
+        for i, chain_cert in enumerate(self.state.unit_broker.bundle):
             self.workload.write(
-                content=chain_cert, path=f"{self.workload.paths.conf_path}/chain{i}.pem"
+                content=chain_cert, path=f"{self.workload.paths.conf_path}/bundle{i}.pem"
             )
 
     def set_truststore(self) -> None:
         """Adds CA to JKS truststore."""
-        trust_aliases = [f"chain{i}" for i in range(len(self.state.unit_broker.chain))] + ["ca"]
+        trust_aliases = [f"bundle{i}" for i in range(len(self.state.unit_broker.bundle))]
         for alias in trust_aliases:
             command = f"{self.keytool} -import -v -alias {alias} -file {alias}.pem -keystore truststore.jks -storepass {self.state.unit_broker.truststore_password} -noprompt"
             try:
@@ -102,13 +116,14 @@ class TLSManager:
             except (subprocess.CalledProcessError, ExecError) as e:
                 # in case this reruns and fails
                 if e.stdout and "already exists" in e.stdout:
-                    return
+                    continue
                 logger.error(e.stdout)
                 raise e
 
     def set_keystore(self) -> None:
         """Creates and adds unit cert and private-key to the keystore."""
-        command = f"openssl pkcs12 -export -in server.pem -inkey server.key -passin pass:{self.state.unit_broker.keystore_password} -certfile server.pem -out keystore.p12 -password pass:{self.state.unit_broker.keystore_password}"
+        command = f"openssl pkcs12 -export -in bundle.pem -inkey server.key -passin pass:{self.state.unit_broker.keystore_password} -certfile server.pem -out keystore.p12 -password pass:{self.state.unit_broker.keystore_password}"
+
         try:
             self.workload.exec(command=command.split(), working_dir=self.workload.paths.conf_path)
             self.workload.exec(f"chown {USER}:{GROUP} {self.workload.paths.keystore}".split())
