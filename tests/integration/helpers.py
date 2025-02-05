@@ -165,11 +165,8 @@ def check_tls(ip: str, port: int) -> bool:
             shell=True,
             universal_newlines=True,
         )
+        return bool(result)
 
-        # FIXME: The server cannot be validated, we would need to try to connect using the CA
-        # from self-signed certificates. This is indication enough that the server is sending a
-        # self-signed key.
-        return "CN = kafka" in result or "CN=kafka" in result
     except subprocess.CalledProcessError as e:
         logger.error(f"command '{e.cmd}' return with error (code {e.returncode}): {e.output}")
         return False
@@ -680,14 +677,17 @@ def sign_manual_certs(ops_test: OpsTest, manual_app: str = "manual-tls-certifica
             csr_file = tmp_dir / f"csr{i}"
             csr_file.write_text(delim + csr)
 
-            cert_file = tmp_dir / f"{i}.crt"
+            cert_file = tmp_dir / f"{i}.pem"
 
             try:
-                sign_cmd = f"openssl x509 -req -in {csr_file} -CAkey tests/integration/data/inter.key -CA tests/integration/data/inter.crt -days 100 -CAcreateserial -out {cert_file} -copy_extensions copyall --passin pass:password"
-                provide_cmd = f'JUJU_MODEL={ops_test.model_full_name} juju run {manual_app}/0 provide-certificate ca-certificate="$(base64 -w0 tests/integration/data/inter.crt)" ca-chain="$(base64 -w0 tests/integration/data/chain)" certificate="$(base64 -w0 {cert_file})" certificate-signing-request="$(base64 -w0 {csr_file})"'
+                sign_cmd = f"openssl x509 -req -in {csr_file} -CAkey tests/integration/data/int.key -CA tests/integration/data/int.pem -days 100 -CAcreateserial -out {cert_file} -copy_extensions copyall --passin pass:password"
+                provide_cmd = f'JUJU_MODEL={ops_test.model_full_name} juju run {manual_app}/0 provide-certificate ca-certificate="$(base64 -w0 tests/integration/data/int.pem)" ca-chain="$(base64 -w0 tests/integration/data/root.pem)" certificate="$(base64 -w0 {cert_file})" certificate-signing-request="$(base64 -w0 {csr_file})"'
 
                 check_output(sign_cmd, stderr=PIPE, universal_newlines=True, shell=True)
-                check_output(provide_cmd, stderr=PIPE, universal_newlines=True, shell=True)
+                response = check_output(
+                    provide_cmd, stderr=PIPE, universal_newlines=True, shell=True
+                )
+                logger.info(f"{response=}")
             except CalledProcessError as e:
                 logger.error(f"{e.stdout=}, {e.stderr=}, {e.output=}")
                 raise e
@@ -696,12 +696,16 @@ def sign_manual_certs(ops_test: OpsTest, manual_app: str = "manual-tls-certifica
 async def list_truststore_aliases(ops_test: OpsTest, unit: str = f"{APP_NAME}/0") -> list[str]:
     truststore_password = extract_truststore_password(ops_test=ops_test, unit_name=unit)
 
-    result = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit} sudo -i 'charmed-kafka.keytool -list -keystore /var/snap/charmed-kafka/current/etc/kafka/truststore.jks -storepass {truststore_password}'",
-        stderr=PIPE,
-        shell=True,
-        universal_newlines=True,
-    )
+    try:
+        result = check_output(
+            f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit} sudo -i 'charmed-kafka.keytool -list -keystore /var/snap/charmed-kafka/current/etc/kafka/truststore.jks -storepass {truststore_password}'",
+            stderr=PIPE,
+            shell=True,
+            universal_newlines=True,
+        )
+    except CalledProcessError as e:
+        logger.error(f"{e.output=}, {e.stdout=}, {e.stderr=}")
+        raise e
 
     trusted_aliases = []
     for line in result.splitlines():

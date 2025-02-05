@@ -410,8 +410,8 @@ async def test_manual_tls_chain(ops_test: OpsTest):
     )
 
     # ensuring enough time for multiple rolling-restart with update-status
-    async with ops_test.fast_forward(fast_interval="20s"):
-        await asyncio.sleep(90)
+    async with ops_test.fast_forward(fast_interval="30s"):
+        await asyncio.sleep(180)
 
     async with ops_test.fast_forward(fast_interval="60s"):
         await ops_test.model.wait_for_idle(
@@ -428,10 +428,10 @@ async def test_manual_tls_chain(ops_test: OpsTest):
     # verifying the chain is in there
     trusted_aliases = await list_truststore_aliases(ops_test)
 
-    assert len(trusted_aliases) == 3  # CA, intermediate, rootca
+    assert len(trusted_aliases) == 3  # cert, intermediate, rootca
 
     # verifying TLS is enabled and working
     kafka_address = await get_address(ops_test=ops_test, app_name=APP_NAME)
     assert check_tls(
-        ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client
+        ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].internal
     )
