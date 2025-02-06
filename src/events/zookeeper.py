@@ -34,11 +34,7 @@ class ZooKeeperHandler(Object):
         )
 
         self.framework.observe(self.charm.on[ZK].relation_created, self._on_zookeeper_created)
-        self.framework.observe(self.charm.on[ZK].relation_joined, self._on_zookeeper_changed)
         self.framework.observe(self.charm.on[ZK].relation_changed, self._on_zookeeper_changed)
-        self.framework.observe(
-            getattr(self.zookeeper_requires.on, "database_created"), self._on_zookeeper_changed
-        )
         self.framework.observe(self.charm.on[ZK].relation_broken, self._on_zookeeper_broken)
 
     def _on_zookeeper_created(self, _) -> None:
@@ -83,7 +79,7 @@ class ZooKeeperHandler(Object):
             event.defer()
             return
 
-        if self.model.unit.is_leader():
+        if self.model.unit.is_leader() and not self.charm.state.cluster.internal_user_credentials:
             # loading the minimum config needed to authenticate to zookeeper
             self.dependent.config_manager.set_zk_jaas_config()
             self.dependent.config_manager.set_server_properties()
@@ -105,8 +101,9 @@ class ZooKeeperHandler(Object):
 
         # attempt re-start of Kafka for all units on zookeeper-changed
         # avoids relying on deferred events elsewhere that may not exist after cluster init
-        if not self.dependent.healthy:
+        if not self.dependent.healthy and self.charm.state.cluster.internal_user_credentials:
             self.charm.on.start.emit()
+            return
 
         self.charm.on.config_changed.emit()
 

@@ -36,8 +36,9 @@ class OAuthHandler(Object):
             self.charm.on[OAUTH_REL_NAME].relation_broken, self._on_oauth_relation_changed
         )
 
-    def _on_oauth_relation_changed(self, event: EventBase) -> None:
+    def _on_oauth_relation_changed(self, _: EventBase) -> None:
         """Handler for `_on_oauth_relation_changed` event."""
         if not self.charm.unit.is_leader() or not self.charm.state.brokers:
             return
-        self.dependent._on_config_changed(event)
+
+        self.charm.on.config_changed.emit()

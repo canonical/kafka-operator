@@ -51,6 +51,10 @@ class KRaftHandler(Object):
 
         self.upgrade = self.broker.upgrade
 
+        # Fast exit after workload instantiation, but before any event observer
+        if CONTROLLER.value not in self.charm.config.roles:
+            return
+
         self.framework.observe(getattr(self.charm.on, "start"), self._on_start)
         self.framework.observe(getattr(self.charm.on, "leader_elected"), self._leader_elected)
 

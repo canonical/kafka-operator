@@ -223,7 +223,6 @@ class BrokerOperator(Object):
         """Generic handler for most `config_changed` events across relations."""
         # only overwrite properties if service is already active
         if not self.upgrade.idle or not self.healthy:
-            event.defer()
             return
 
         # Load current properties set in the charm workload
@@ -388,7 +387,9 @@ class BrokerOperator(Object):
             # new dirs won't be used until topic partitions are assigned to it
             # either automatically for new topics, or manually for existing
             self.charm._set_status(Status.ADDED_STORAGE)
+
             # We need the event handler to know about the original event
+            # as opposed to just emitting it
             self._on_config_changed(event)
 
     def _on_storage_detaching(self, _: StorageDetachingEvent) -> None:
