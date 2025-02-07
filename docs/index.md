@@ -1,3 +1,5 @@
+> This is a **IAAS/VM** operator. To deploy on Kubernetes, see [Charmed Apache Kafka K8s operator](https://charmhub.io/kafka-k8s).
+
 # Charmed Apache Kafka documentation
 
 Charmed Apache Kafka is an open-source operator that makes it easier to manage Apache Kafka, with built-in support for enterprise features. 
@@ -10,10 +12,6 @@ Charmed Apache Kafka operates Apache Kafka on physical systems, Virtual Machines
 Charmed Apache Kafka is a solution designed and developed to help ops teams and 
 administrators automate Apache Kafka operations from [Day 0 to Day 2](https://codilime.com/blog/day-0-day-1-day-2-the-software-lifecycle-in-the-cloud-age/), across multiple cloud environments and platforms.
 
-[note]
-Canonical has also developed the [Charmed Apache Kafka K8s operator](/t/charmed-kafka-k8s-documentation/10296) to support Apache Kafka in Kubernetes environments.
-[/note]
-
 Charmed Apache Kafka is developed and supported by [Canonical](https://canonical.com/), as part of its commitment to 
 provide open-source, self-driving solutions, seamlessly integrated using the Operator Framework Juju. Please 
 refer to [Charmhub](https://charmhub.io/), for more charmed operators that can be integrated by [Juju](https://juju.is/).
@@ -23,7 +21,7 @@ refer to [Charmhub](https://charmhub.io/), for more charmed operators that can b
 | | |
 |--|--|
 |  [Tutorials](/t/charmed-kafka-tutorial-overview/10571)</br>  Get started - a hands-on introduction to using Charmed Apache Kafka operator for new users </br> |  [How-to guides](/t/charmed-kafka-how-to-manage-units/10287) </br> Step-by-step guides covering key operations and common tasks |
-| [Reference](https://charmhub.io/kafka/actions?channel=3/stable) </br> Technical information - specifications, APIs, architecture | [Explanation]() </br> Concepts - discussion and clarification of key topics  |
+| [Reference](/t/charmed-apache-kafka-documentation-reference-file-system-paths/13262) </br> Technical information - specifications, APIs, architecture | [Explanation](/t/charmed-apache-kafka-documentation-explanation-security-hardening-guide/15830) </br> Concepts - discussion and clarification of key topics  |
 
 ## Project and community
 
@@ -79,6 +77,6 @@ The Charmed Apache Kafka Operator is free software, distributed under the Apache
   1. [Performance Tuning](reference/r-performance-tuning.md)
   1. [Contact](reference/r-contacts.md)
 1. [Explanation](explanation)
-  1. [Security](explanation/e-security.md)
-  1. [Hardening Guide](explanation/e-hardening.md)
+  1. [Security Hardening Guide](explanation/e-hardening.md)
+  1. [Cryptography](explanation/e-cryptography.md)
   1. [Cluster configuration](explanation/e-cluster-configuration.md)
