@@ -667,6 +667,32 @@ def test_rack_properties(ctx: Context, base_state: State, zk_data: dict[str, str
         assert "broker.rack=gondor-west" in charm.broker.config_manager.server_properties
 
 
+def test_socket_buffer_and_thread_count_properties(
+    ctx: Context, base_state: State, zk_data: dict[str, str]
+) -> None:
+    """Checks that rack properties are added to server properties."""
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER)
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, zk_relation])
+
+    # When
+    with (
+        patch(
+            "os.cpu_count",
+            return_value=8,
+        ),
+        ctx(ctx.on.config_changed(), state_in) as manager,
+    ):
+        charm = cast(KafkaCharm, manager.charm)
+        charm.broker.config_manager.config.profile = "production"
+
+        # Then
+        assert "num.network.threads=8" in charm.broker.config_manager.server_properties
+        assert "num.io.threads=8" in charm.broker.config_manager.server_properties
+        assert "socket.send.buffer.bytes=1024000" in charm.broker.config_manager.server_properties
+
+
 def test_inter_broker_protocol_version(ctx: Context, base_state: State, zk_data) -> None:
     """Checks that rack properties are added to server properties."""
     # Given
