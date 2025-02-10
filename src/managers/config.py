@@ -35,6 +35,7 @@ from literals import (
     JVM_MEM_MAX_GB,
     JVM_MEM_MIN_GB,
     KRAFT_NODE_ID_OFFSET,
+    PROFILE_PRODUCTION,
     PROFILE_TESTING,
     SECURITY_PROTOCOL_PORTS,
     AuthMap,
@@ -47,16 +48,14 @@ DEFAULT_CONFIG_OPTIONS = """
 sasl.mechanism.inter.broker.protocol=SCRAM-SHA-512
 allow.everyone.if.no.acl.found=false
 auto.create.topics.enable=false
-num.network.threads=8
-num.io.threads=8
-num.recovery.threads.per.data.dir=4
-background.threads=25
-replica.socket.receive.buffer.bytes=1024000
-socket.receive.buffer.bytes=1024000
-socket.send.buffer.bytes=1024000
 """
 KAFKA_CRUISE_CONTROL_OPTIONS = """
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
+"""
+PRODUCTION_OPTIONS = """
+replica.socket.receive.buffer.bytes=1024000
+socket.receive.buffer.bytes=1024000
+socket.send.buffer.bytes=1024000
 """
 TESTING_OPTIONS = """
 cruise.control.metrics.reporter.metrics.reporting.interval.ms=6000
@@ -786,6 +785,13 @@ class ConfigManager(CommonConfigManager):
 
         if self.config.profile == PROFILE_TESTING:
             properties += TESTING_OPTIONS.split("\n")
+        elif self.config.profile == PROFILE_PRODUCTION:
+            cores = os.cpu_count() or 1
+            properties += ["num.network.threads=" + str(max(cores, 3))]
+            properties += ["num.io.threads=" + str(max(cores, 8))]
+            properties += ["num.recovery.threads.per.data.dir=" + str(max(cores // 2, 1))]
+            properties += ["background.threads=" + str(max(cores * 3, 10))]
+            properties += PRODUCTION_OPTIONS.split("\n")
 
         return properties
 
