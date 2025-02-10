@@ -58,7 +58,7 @@ class ControllerManager:
 
         if internal_user_credentials:
             for user, password in internal_user_credentials.items():
-                command += ["--add-scram", f"'SCRAM-SHA-512=[name={user},password={password}]'"]
+                command += ["--add-scram", f"SCRAM-SHA-512=[name={user},password={password}]"]
         self.workload.run_bin_command(bin_keyword="storage", bin_args=command)
 
         # Drop permissions again for the main process
