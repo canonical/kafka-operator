@@ -47,6 +47,13 @@ DEFAULT_CONFIG_OPTIONS = """
 sasl.mechanism.inter.broker.protocol=SCRAM-SHA-512
 allow.everyone.if.no.acl.found=false
 auto.create.topics.enable=false
+num.network.threads=8
+num.io.threads=8
+num.recovery.threads.per.data.dir=4
+background.threads=25
+replica.socket.receive.buffer.bytes=1024000
+socket.receive.buffer.bytes=1024000
+socket.send.buffer.bytes=1024000
 """
 KAFKA_CRUISE_CONTROL_OPTIONS = """
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
