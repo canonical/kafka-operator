@@ -201,12 +201,6 @@ class BrokerOperator(Object):
         self.workload.start()
         logger.info("Kafka service started")
 
-        for port in [listener.port for listener in self.config_manager.all_listeners]:
-            try:
-                self.charm.state.unit_broker.unit.open_port("tcp", port)
-            except ModelError:
-                logger.exception("failed to open port")
-
         # TODO: Update users. Not sure if this is the best place, as cluster might be still
         # stabilizing.
         # if self.charm.state.kraft_mode and self.charm.state.runs_broker:
@@ -325,6 +319,11 @@ class BrokerOperator(Object):
         # update these whenever possible
         self.config_manager.set_client_properties()
         self.update_external_services()
+        for port in [listener.port for listener in self.config_manager.all_listeners]:
+            try:
+                self.charm.state.unit_broker.unit.open_port("tcp", port)
+            except ModelError:
+                logger.exception("failed to open port")
 
         # If Kafka is related to client charms, update their information.
         if self.model.relations.get(REL_NAME, None) and self.charm.unit.is_leader():
