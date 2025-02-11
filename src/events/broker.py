@@ -13,6 +13,7 @@ from charms.operator_libs_linux.v1.snap import SnapError
 from ops import (
     EventBase,
     InstallEvent,
+    ModelError,
     Object,
     PebbleReadyEvent,
     SecretChangedEvent,
@@ -199,6 +200,12 @@ class BrokerOperator(Object):
         # start kafka service
         self.workload.start()
         logger.info("Kafka service started")
+
+        for port in [listener.port for listener in self.config_manager.all_listeners]:
+            try:
+                self.charm.state.unit_broker.unit.open_port("tcp", port)
+            except ModelError:
+                logger.exception("failed to open port")
 
         # TODO: Update users. Not sure if this is the best place, as cluster might be still
         # stabilizing.
