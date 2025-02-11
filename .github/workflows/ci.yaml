@@ -42,6 +42,13 @@ jobs:
       - name: Run tests
         run: tox run -e unit
 
+  check-libs:
+    if: ${{ github.event_name == 'schedule' }}
+    uses: canonical/charming-actions/check-libraries@2.2.3
+    with:
+      credentials: "${{ secrets.CHARMHUB_TOKEN }}" # FIXME: current token will expire in 2023-07-04
+      github-token: "${{ secrets.GITHUB_TOKEN }}"
+
   sync-docs:
     if: ${{ github.event_name != 'pull_request' || startsWith(github.event.pull_request.head.repo.full_name, 'canonical/') }}
     uses: ./.github/workflows/sync_docs.yaml
