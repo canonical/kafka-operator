@@ -316,8 +316,11 @@ class BrokerOperator(Object):
                 self.charm.on[f"{self.charm.restart.name}"].acquire_lock.emit()
 
         # update these whenever possible
-        self.config_manager.set_client_properties()
-        self.update_external_services()
+        self.config_manager.set_client_properties()  # to ensure clients have fresh data
+        self.update_external_services()  # in case of IP changes or pod reschedules
+        self.charm.state.unit_broker.unit.set_ports(  # in case of listeners changes
+            *[listener.port for listener in self.config_manager.all_listeners]
+        )
 
         # If Kafka is related to client charms, update their information.
         if self.model.relations.get(REL_NAME, None) and self.charm.unit.is_leader():
@@ -490,5 +493,3 @@ class BrokerOperator(Object):
                 "zk-password": self.charm.state.peer_cluster.zk_password,
             }
         )
-
-        # self.charm.on.config_changed.emit()  # ensure both broker+balancer get a changed event
