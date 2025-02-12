@@ -1,22 +1,22 @@
-This is part of the Charmed Kafka Tutorial. Please refer to the [overview page](/t/charmed-kafka-documentation-tutorial-overview/10571) for more information and the overview of the content.
+This is part of the Charmed Apache Kafka Tutorial. Please refer to the [overview page](/t/charmed-apache-kafka-documentation-tutorial-overview/10571) for more information and the overview of the content.
 
 ## Partition rebalancing and reassignment
 
-By default, when scaling-out a Kafka cluster, partitions allocated to the original brokers are not reallocated to make use of any new storage volumes and brokers, which can result in over-provisioning of resources. The inverse is also true when scaling-in, which can result in under-replicated partitions at best, and permanent data loss at worst.
+By default, when scaling-out a Apache Kafka cluster, partitions allocated to the original brokers are not reallocated to make use of any new storage volumes and brokers, which can result in over-provisioning of resources. The inverse is also true when scaling-in, which can result in under-replicated partitions at best, and permanent data loss at worst.
 
-To address this, we can make use of [LinkedIn's Cruise Control](https://github.com/linkedin/cruise-control), which is bundled as part of the Charmed Kafka [Snap](https://github.com/canonical/charmed-kafka-snap) and [rock](https://github.com/canonical/charmed-kafka-rock).
+To address this, we can make use of [LinkedIn's Cruise Control](https://github.com/linkedin/cruise-control), which is bundled as part of the Charmed Apache Kafka [Snap](https://github.com/canonical/charmed-kafka-snap) and [rock](https://github.com/canonical/charmed-kafka-rock).
 
 At a high level, Cruise Control is made up of the following five components:
 
-- **Workload Monitor** - responsible for the metrics collection from Kafka
+- **Workload Monitor** - responsible for the metrics collection from Apache Kafka
 - **Analyzer** - generates allocation proposals based on configured [Goals](https://github.com/linkedin/cruise-control?tab=readme-ov-file#goals)
 - **Anomaly Detector** - detects failures in brokers, disks, metrics or goals and (optionally) self-heals
 - **Webserver** - a REST API for user operations
-- **Executor** - issues re-allocation commands to Kafka
+- **Executor** - issues re-allocation commands to Apache Kafka
 
 ### Deploying partition balancer
 
-The Charmed Kafka charms have a configuration option `roles`, which takes a list of possible values.
+The Charmed Apache Kafka charm has a configuration option `roles`, which takes a list of possible values.
 Different roles can be configured to run on the same machine, or as separate Juju applications.
 
 The two necessary roles for cluster rebalancing are:
@@ -25,7 +25,7 @@ The two necessary roles for cluster rebalancing are:
 
 > **Note**: It is recommended to deploy a separate Juju application for running Cruise Control in production environments.
 
-For the purposes of this tutorial, we will be deploying a single Charmed Kafka unit to serve as the `balancer`:
+For the purposes of this tutorial, we will be deploying a single Charmed Apache Kafka unit to serve as the `balancer`:
 
 ```shell
 juju deploy kafka --config roles=balancer -n 1 cruise-control
@@ -37,7 +37,7 @@ Earlier in the tutorial, we covered enabling TLS encryption, so we will repeat t
 juju relate cruise-control:certificates self-signed-certificates
 ```
 
-Now, to make the new `cruise-control` application aware of the existing Kafka cluster, we will relate the two applications using the `peer_cluster` relation interface, ensuring that the `broker` cluster is using the `peer-cluster` relation-endpoint, and the `balancer` cluster is using the `peer-cluster-orchestrator` relation-endpoint:
+Now, to make the new `cruise-control` application aware of the existing Apache Kafka cluster, we will relate the two applications using the `peer_cluster` relation interface, ensuring that the `broker` cluster is using the `peer-cluster` relation-endpoint, and the `balancer` cluster is using the `peer-cluster-orchestrator` relation-endpoint:
 
 ```shell
 juju relate kafka:peer-cluster-orchestrator cruise-control:peer-cluster
@@ -45,7 +45,7 @@ juju relate kafka:peer-cluster-orchestrator cruise-control:peer-cluster
 
 ### Adding new brokers
 
-Let's assume that we have three `kafka` units already, and have an active client application writing messages to an existing topic (as per the [Relate applications tutorial page](/t/charmed-kafka-tutorial-relate-apache-kafka/10573) earlier). Let's scale the `kafka` application out to four units:
+Let's assume that we have three `kafka` units already, and have an active client application writing messages to an existing topic (as per the [Relate applications tutorial page](/t/charmed-apache-kafka-tutorial-relate-apache-kafka/10573) earlier). Let's scale the `kafka` application out to four units:
 
 ```shell
 juju add-unit kafka 4
@@ -83,7 +83,7 @@ Now, to rebalance some existing partitions from brokers `0`, `1` and `2`, let's 
 juju run cruise-control/0 rebalance mode=add brokerid=3 --wait=2m
 ```
 
-> **NOTE** - If this action fails with a message similar to `Cruise Control balancer service has not yet collected enough data to provide a partition reallocation proposal`, wait 20 minutes or so and try again. Cruise Control takes a while to collect sufficient metrics from the Kafka cluster during a cold deployment
+> **NOTE** - If this action fails with a message similar to `Cruise Control balancer service has not yet collected enough data to provide a partition reallocation proposal`, wait 20 minutes or so and try again. Cruise Control takes a while to collect sufficient metrics from the Apache Kafka cluster during a cold deployment
 
 By default, the `rebalance` action runs as a 'dryrun', where the returned result is what **would** happen were the partition rebalance actually executed. In the action result, one can find some rich information on the proposed allocation. 
 
@@ -157,7 +157,7 @@ Following on from the previous example of `Adding new brokers`, let's proceed to
 
 In practice, this means running a `rebalance` Juju action as seen above, **BEFORE** scaling down the application. This ensures that data is moved, prior to the unit becoming unreachable and permanently losing the data on it.
 
-> **NOTE**: As partition data is replicated across a finite number of units based on the value of the Kafka cluster's `replication.factor` property (default value is `3`), it is imperative to remove only one broker at a time, so as to avoid losing all available replicas for a given partition.
+> **NOTE**: As partition data is replicated across a finite number of units based on the value of the Apache Kafka cluster's `replication.factor` property (default value is `3`), it is imperative to remove only one broker at a time, so as to avoid losing all available replicas for a given partition.
 
 To remove the most recent broker unit `3` from the previous example, re-run the action with a new parameter value of `mode=remove`:
 
