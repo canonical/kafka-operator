@@ -75,7 +75,7 @@ juju run kafka-benchmark/leader run
 
 The units will pick-up the command and start executing the benchmark.
 
-### Stop Action
+### Stop
 
 To stop the benchmark, execute:
 
@@ -85,8 +85,11 @@ juju run kafka-benchmark/leader stop
 
 Optionally, it is possible to clean the current benchmark data using:
 
+### Clean-up
+
+To return the cluster to its original state, run:
+
 ```
 juju run kafka-benchmark/leader cleanup
 ```
 
-That will return the Apache Kafka benchmark charm to its original condition.
