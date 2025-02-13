@@ -34,13 +34,13 @@ juju deploy kafka --config roles=balancer -n 1 cruise-control
 Earlier in the tutorial, we covered enabling TLS encryption, so we will repeat that step here for the new `cruise-control` application:
 
 ```shell
-juju relate cruise-control:certificates self-signed-certificates
+juju integrate cruise-control:certificates self-signed-certificates
 ```
 
-Now, to make the new `cruise-control` application aware of the existing Apache Kafka cluster, we will relate the two applications using the `peer_cluster` relation interface, ensuring that the `broker` cluster is using the `peer-cluster` relation-endpoint, and the `balancer` cluster is using the `peer-cluster-orchestrator` relation-endpoint:
+Now, to make the new `cruise-control` application aware of the existing Apache Kafka cluster, we will integrate the two applications using the `peer_cluster` relation interface, ensuring that the `broker` cluster is using the `peer-cluster` relation-endpoint, and the `balancer` cluster is using the `peer-cluster-orchestrator` relation-endpoint:
 
 ```shell
-juju relate kafka:peer-cluster-orchestrator cruise-control:peer-cluster
+juju integrate kafka:peer-cluster-orchestrator cruise-control:peer-cluster
 ```
 
 ### Adding new brokers
