@@ -30,7 +30,7 @@ juju relate kafka kafka-benchmark
 
 ### Integrate with COS
 
-The benchmark charm needs COS to collect metrics during the test. Relate the Apache Kafka benchmark with a [grafana-agent operator](https://charmhub.io/grafana-agent).
+The benchmark charm needs a [COS](https://charmhub.io/topics/canonical-observability-stack) deployment running on a separate Juju model in Kubernetes to collect metrics during the test. Relate the Apache Kafka benchmark with a [grafana-agent operator](https://charmhub.io/grafana-agent).
 
 For more details on how to deploy and configure COS and its agents, check [the upstream documentation](https://canonical.com/data/docs/kafka/iaas/h-enable-monitoring).
 
