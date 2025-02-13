@@ -19,7 +19,6 @@ jobs:
   release:
     name: Release charm
     needs:
-      - lib-check
       - ci-tests
     uses: canonical/data-platform-workflows/.github/workflows/release_charm.yaml@v29.0.0
     with:
