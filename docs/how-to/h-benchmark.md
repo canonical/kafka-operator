@@ -1,4 +1,5 @@
 # How to benchmark Charmed Apache Kafka
+
 The Apache Kafka benchmark charm uses the OpenMessaging tool to test both producer and consumer performance in the cluster.
 
 The OpenMessaging allows for a distributed deployment, where the charm leader will run the main "manager" process and gather the metrics, whilst other units will act as followers and act as producer/consumers of the cluster.
