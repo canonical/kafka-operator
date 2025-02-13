@@ -23,6 +23,7 @@ The Apache Kafka cluster must be configured to expose its client endpoints via N
 ### Benchmark Deployment
 
 Add the Apache Kafka benchmark charm using:
+
 ```
 juju deploy kafka-benchmark --channel=latest/edge
 juju relate kafka kafka-benchmark
@@ -35,9 +36,11 @@ The benchmark charm needs a [COS](https://charmhub.io/topics/canonical-observabi
 For instructions on how to deploy and configure COS and its agents, see the [How to enable monitoring](https://canonical.com/data/docs/kafka/iaas/h-enable-monitoring) guide.
 
 Once the grafana-agent is deployed, relate it with:
+
 ```
 juju relate grafana-agent kafka-benchmark
 ```
+
 The benchmark data will be collected every 10s and sent to prometheus.
 
 ### Integrate with TLS
@@ -47,6 +50,7 @@ Optionally, the entire deployment can use TLS.
 Charmed Apache Kafka supports TLS integration and described for both [baremetal / virtual machines](https://canonical.com/data/docs/kafka/k8s/t-enable-encryption) or [k8s](https://canonical.com/data/docs/kafka/iaas/h-enable-encryption) operators.
 
 The Apache Kafka Benchmark can be then related to a TLS operator, such as [self-signed-certificates](https://charmhub.io/self-signed-certificates), for example:
+
 ```
 juju integrate kafka-benchmark self-signed-certificates
 ```
@@ -56,6 +60,7 @@ juju integrate kafka-benchmark self-signed-certificates
 ### Prepare
 
 The first step is to prepare the benchmark fleet with:
+
 ```
 juju run kafka-benchmark/leader prepare
 ```
@@ -73,11 +78,15 @@ The units will pick-up the command and start executing the benchmark.
 ### Stop Action
 
 To stop the benchmark, execute:
+
 ```
 juju run kafka-benchmark/leader stop
 ```
+
 Optionally, it is possible to clean the current benchmark data using:
+
 ```
 juju run kafka-benchmark/leader cleanup
 ```
+
 That will return the Apache Kafka benchmark charm to its original condition.
