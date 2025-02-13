@@ -42,12 +42,23 @@ jobs:
       - name: Run tests
         run: tox run -e unit
 
-  check-libs:
-    if: github.event_name == 'schedule'
-    uses: canonical/charming-actions/check-libraries@2.2.3
-    with:
-      credentials: "${{ secrets.CHARMHUB_TOKEN }}" # FIXME: current token will expire in 2023-07-04
-      github-token: "${{ secrets.GITHUB_TOKEN }}"
+  lib-check:
+    if: $ {{ github.event_name == 'schedule' }}
+    name: Check libraries
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check libs
+        uses: canonical/charming-actions/check-libraries@2.7.0
+        with:
+          credentials: ${{ secrets.CHARMHUB_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      pull-requests: write
 
   sync-docs:
     if: ${{ github.event_name != 'pull_request' || startsWith(github.event.pull_request.head.repo.full_name, 'canonical/') }}
