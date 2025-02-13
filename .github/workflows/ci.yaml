@@ -43,7 +43,7 @@ jobs:
         run: tox run -e unit
 
   lib-check:
-    if: $ {{ github.event_name == 'schedule' }}
+    if: ${{ github.event_name == 'schedule' }}
     name: Check libraries
     runs-on: ubuntu-latest
     timeout-minutes: 5
