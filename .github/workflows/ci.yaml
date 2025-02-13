@@ -43,7 +43,7 @@ jobs:
         run: tox run -e unit
 
   check-libs:
-    if: ${{ github.event_name == 'schedule' }}
+    if: github.event_name == 'schedule'
     uses: canonical/charming-actions/check-libraries@2.2.3
     with:
       credentials: "${{ secrets.CHARMHUB_TOKEN }}" # FIXME: current token will expire in 2023-07-04
