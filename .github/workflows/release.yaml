@@ -8,19 +8,7 @@ on:
       - main
 
 jobs:
-  lib-check:
-    name: Check libraries
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
   ci-tests:
-    needs:
-      - lib-check
     uses: ./.github/workflows/ci.yaml
     secrets: inherit
     permissions:
@@ -31,7 +19,6 @@ jobs:
   release:
     name: Release charm
     needs:
-      - lib-check
       - ci-tests
     uses: canonical/data-platform-workflows/.github/workflows/release_charm.yaml@v29.0.0
     with:
