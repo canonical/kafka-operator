@@ -10,15 +10,10 @@ Apache Kafka benchmark charm can be connected with either the [Charmed Apacke Ka
 
 ### Apache Kafka setup
 
-#### Baremetal or Virtual Machines
+Deploy the apropriate charmed operator for the [type of your Juju cloud environment](https://canonical-juju.readthedocs-hosted.com/en/latest/user/reference/cloud/#machine-clouds-vs-kubernetes-clouds):
 
-Deploy Charmed Apache Kafka following the instructions in its [deployment guide](https://canonical.com/data/docs/kafka/iaas/h-deploy)
-
-#### Kubernetes
-
-Deploy Charmed Apache Kafka following the instructions in its [deployment guide](https://canonical.com/data/docs/kafka/k8s/t-deploy).
-
-The Apache Kafka cluster must be configured to expose its client endpoints via NodePort, [æs described here](https://canonical.com/data/docs/kafka/k8s/h-external-k8s-connection).
+* For Machine clouds, see the [How to deploy guide for Charmed Apache Kafka](https://canonical.com/data/docs/kafka/iaas/h-deploy).
+* For Kubernetes clouds, see the [How to deploy guide for Charmed Apache Kafka K8s](https://canonical.com/data/docs/kafka/k8s/t-deploy). Since the benchmark charm is for machine clouds only, the Apache Kafka cluster must be deployed on a different (Kubernetes) environment. Hence, it must be configured to [expose its client endpoints via NodePort](https://canonical.com/data/docs/kafka/k8s/h-external-k8s-connection).
 
 ### Benchmark Deployment
 
