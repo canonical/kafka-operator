@@ -61,7 +61,7 @@ The first step is to prepare the benchmark fleet with:
 juju run kafka-benchmark/leader prepare
 ```
 
-### Run
+### Start
 
 Use the `run` action, to start benchmarking (to produce and consume data):
 
