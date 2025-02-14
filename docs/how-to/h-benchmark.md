@@ -47,6 +47,7 @@ Charmed Apache Kafka supports TLS provider integration as described for both [ma
 The Apache Kafka Benchmark can be then related to a TLS operator, such as [self-signed-certificates](https://charmhub.io/self-signed-certificates), for example:
 
 ```
+juju deploy self-signed-certificates
 juju integrate kafka-benchmark self-signed-certificates
 ```
 
