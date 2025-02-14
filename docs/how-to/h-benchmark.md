@@ -15,7 +15,7 @@ Deploy the apropriate charmed operator for the [type of your Juju cloud environm
 * For Machine clouds, see the [How to deploy guide for Charmed Apache Kafka](https://canonical.com/data/docs/kafka/iaas/h-deploy).
 * For Kubernetes clouds, see the [How to deploy guide for Charmed Apache Kafka K8s](https://canonical.com/data/docs/kafka/k8s/t-deploy). Since the benchmark charm is for machine clouds only, the Apache Kafka cluster must be deployed on a different (Kubernetes) environment. Hence, it must be configured to [expose its client endpoints via NodePort](https://canonical.com/data/docs/kafka/k8s/h-external-k8s-connection).
 
-### Benchmark Deployment
+### Benchmark deployment
 
 Add the Apache Kafka benchmark charm using:
 
