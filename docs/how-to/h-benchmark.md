@@ -17,11 +17,18 @@ Deploy the apropriate charmed operator for the [type of your Juju cloud environm
 
 ### Benchmark deployment
 
-Add the Apache Kafka benchmark charm using:
+The kafka benchmark executes a number of producers and consumers for the same topic. At starting time, the benchmark will configure the topic with the right number of partitions to enable that parallelism.
+The number of parallel workers is defined by: *number of units* * *value of `parallel_processes`. This number will be divided equally between producers and consumers.
 
+The kafka benchmark needs at least 2x processes to be running. That is configurable either by setting the number of processes in each unit, or by setting 2x units. The options can be set as follows:
+1) Single unit, at least 2x processes: `juju deploy kafka-benchmark --channel=latest/edge --config parallel_processes=2`
+2) At least two units: `juju deploy kafka-benchmark --channel=latest/edge -n2 --config parallel_processes=1`
+
+Each unit must have 4G of RAM available per process being executed.
+
+Once the basic setup is done, integrate the kafka-benchmark with the cluster:
 ```
-juju deploy kafka-benchmark --channel=latest/edge
-juju relate kafka kafka-benchmark
+juju integrate kafka kafka-benchmark
 ```
 
 ### Integrate with COS
@@ -42,9 +49,7 @@ The benchmark data will be collected every 10s and sent to prometheus.
 
 Optionally, the entire deployment can use TLS.
 
-Charmed Apache Kafka supports TLS provider integration as described for both [machine](https://canonical.com/data/docs/kafka/iaas/h-enable-encryption) and [k8s](https://canonical.com/data/docs/kafka/k8s/h-enable-encryption) charmed operators.
-
-The Apache Kafka Benchmark can be then related to a TLS operator, such as [self-signed-certificates](https://charmhub.io/self-signed-certificates), for example:
+Charmed Apache Kafka supports TLS provider integration as described for both [machine](https://canonical.com/data/docs/kafka/iaas/h-enable-encryption) and [k8s](https://canonical.com/data/docs/kafka/k8s/h-enable-encryption) charmed operators, such as [self-signed-certificates](https://charmhub.io/self-signed-certificates), for example:
 
 ```
 juju deploy self-signed-certificates
@@ -52,6 +57,12 @@ juju integrate kafka-benchmark self-signed-certificates
 ```
 
 ## Run the benchmark
+
+There are a few tunables that can be selected before running the benchmark:
+* `threads`: this configuration allows to define how many requests will be inflight at a time
+* `duration`: sets the overall duration of the test
+* `run_count`: sets the number of times the same workload will be rerun before the test is deemed finished
+* `workload_name`: the name of the workload to be used, currently supports `testing`: single messages of 1KB, used only to validate the setup; or `default`: will generate as many parallel messages of 1KB as possible.
 
 ### Prepare
 
