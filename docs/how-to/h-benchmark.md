@@ -63,7 +63,7 @@ juju run kafka-benchmark/leader prepare
 
 ### Run
 
-The next command is `run`, to start the benchmark charms to produce and consume data.
+Use the `run` action, to start benchmarking (to produce and consume data):
 
 ```
 juju run kafka-benchmark/leader run
