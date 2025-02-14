@@ -17,16 +17,21 @@ Deploy the apropriate charmed operator for the [type of your Juju cloud environm
 
 ### Benchmark deployment
 
-The kafka benchmark executes a number of producers and consumers for the same topic. At starting time, the benchmark will configure the topic with the right number of partitions to enable that parallelism.
-The number of parallel workers is defined by: *number of units* * *value of `parallel_processes`. This number will be divided equally between producers and consumers.
+The Apache Kafka benchmark runs several producers and consumers for the same topic with the right number of partitions to enable parallelism. The total number of parallel workers is equal to the **number of [units](https://canonical-juju.readthedocs-hosted.com/en/latest/user/reference/unit/)** for the benchmark application multiplied by the **number of workers on each unit**. The number of workers per unit is set by the `parallel_processes` parameter. 
 
-The kafka benchmark needs at least 2x processes to be running. That is configurable either by setting the number of processes in each unit, or by setting 2x units. The options can be set as follows:
-1) Single unit, at least 2x processes: `juju deploy kafka-benchmark --channel=latest/edge --config parallel_processes=2`
-2) At least two units: `juju deploy kafka-benchmark --channel=latest/edge -n2 --config parallel_processes=1`
+The workers are distributed equally between producers and consumers. Hence, the Apache Kafka benchmark needs at least two workers in total. That minimal configuration can be achieved by having two workers on the same single unit or two units with one worker on each. 
 
-Each unit must have 4G of RAM available per process being executed.
+Deploy the benchmark charm with the desired number of units and workers per unit.
+For example, to deploy two units with one worker (either a consumer or a producer) on each, run:
 
-Once the basic setup is done, integrate the kafka-benchmark with the cluster:
+```
+juju deploy kafka-benchmark --channel=latest/edge -n2 --config parallel_processes=1
+```
+
+Each unit must have at least 4 GB of RAM available for each running worker.
+
+Once the benchmark charm is deployed and ready, integrate it with the Apache Kafka cluster:
+
 ```
 juju integrate kafka kafka-benchmark
 ```
