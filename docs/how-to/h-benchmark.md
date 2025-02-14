@@ -51,7 +51,7 @@ juju deploy self-signed-certificates
 juju integrate kafka-benchmark self-signed-certificates
 ```
 
-## Start the Benchmark
+## Run the benchmark
 
 ### Prepare
 
