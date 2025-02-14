@@ -42,7 +42,7 @@ The benchmark data will be collected every 10s and sent to prometheus.
 
 Optionally, the entire deployment can use TLS.
 
-Charmed Apache Kafka supports TLS integration and described for both [baremetal / virtual machines](https://canonical.com/data/docs/kafka/k8s/t-enable-encryption) or [k8s](https://canonical.com/data/docs/kafka/iaas/h-enable-encryption) operators.
+Charmed Apache Kafka supports TLS provider integration as described for both [machine](https://canonical.com/data/docs/kafka/iaas/h-enable-encryption) and [k8s](https://canonical.com/data/docs/kafka/k8s/h-enable-encryption) charmed operators.
 
 The Apache Kafka Benchmark can be then related to a TLS operator, such as [self-signed-certificates](https://charmhub.io/self-signed-certificates), for example:
 
