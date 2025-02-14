@@ -63,11 +63,15 @@ juju integrate kafka-benchmark self-signed-certificates
 
 ## Run the benchmark
 
-There are a few tunables that can be selected before running the benchmark:
-* `threads`: this configuration allows to define how many requests will be inflight at a time
-* `duration`: sets the overall duration of the test
-* `run_count`: sets the number of times the same workload will be rerun before the test is deemed finished
-* `workload_name`: the name of the workload to be used, currently supports `testing`: single messages of 1KB, used only to validate the setup; or `default`: will generate as many parallel messages of 1KB as possible.
+Now that the benchmark charm is deployed to all intended units, we can adjust benchmarking parameters and control the whole cluster by using the charm's actions on the leader unit.
+
+You can adjust benchmarking parameters with the `juju config` command:
+
+```
+juju config kafka-benchmark run_count=3
+```
+
+For all configuration options, see the [Configurations](https://charmhub.io/kafka-benchmark/configurations).
 
 ### Prepare
 
