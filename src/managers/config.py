@@ -52,11 +52,6 @@ auto.create.topics.enable=false
 KAFKA_CRUISE_CONTROL_OPTIONS = """
 metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter
 """
-PRODUCTION_OPTIONS = """
-replica.socket.receive.buffer.bytes=1024000
-socket.receive.buffer.bytes=1024000
-socket.send.buffer.bytes=1024000
-"""
 TESTING_OPTIONS = """
 cruise.control.metrics.reporter.metrics.reporting.interval.ms=6000
 """
@@ -787,11 +782,16 @@ class ConfigManager(CommonConfigManager):
             properties += TESTING_OPTIONS.split("\n")
         elif self.config.profile == PROFILE_PRODUCTION:
             cores = os.cpu_count() or 1
-            properties += ["num.network.threads=" + str(max(cores, 3))]
-            properties += ["num.io.threads=" + str(max(cores, 8))]
-            properties += ["num.recovery.threads.per.data.dir=" + str(max(cores // 2, 1))]
-            properties += ["background.threads=" + str(max(cores * 3, 10))]
-            properties += PRODUCTION_OPTIONS.split("\n")
+            properties += [
+                "num.network.threads=" + str(max(cores, 3)),
+                "num.io.threads=" + str(max(cores, 8)),
+                "num.recovery.threads.per.data.dir=" + str(max(cores // 2, 1)),
+                "background.threads=" + str(max(cores * 3, 10)),
+                "replica.socket.receive.buffer.bytes=" + str(max(self.config.buffer_size, 65536)),
+                "socket.receive.buffer.bytes=" + str(max(self.config.buffer_size, 102400)),
+                "socket.send.buffer.bytes=" + str(max(self.config.buffer_size, 102400)),
+                "socket.request.max.bytes=" + str(max(self.config.buffer_size * 1024, 104857600)),
+            ]
 
         return properties
 

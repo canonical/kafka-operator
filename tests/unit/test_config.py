@@ -686,6 +686,7 @@ def test_socket_buffer_and_thread_count_properties(
     ):
         charm = cast(KafkaCharm, manager.charm)
         charm.broker.config_manager.config.profile = "production"
+        charm.broker.config_manager.config.buffer_size = 1024000
 
         # Then
         assert "num.network.threads=8" in charm.broker.config_manager.server_properties
