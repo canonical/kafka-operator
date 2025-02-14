@@ -93,3 +93,8 @@ To return the cluster to its original state, run:
 juju run kafka-benchmark/leader cleanup
 ```
 
+## Get the Results
+
+Kafka benchmark charm updates its metrics to COS and can be found under `openmessaging_` metric on prometheus:
+
+![Screenshot from 2025-02-14 11-02-47](https://github.com/user-attachments/assets/b9da658c-1d76-4f2b-9cbc-f4243123cb34)
