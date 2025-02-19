@@ -59,7 +59,8 @@ juju ssh kafka/leader sudo -i \
     '--describe' \
     '--bootstrap-server localhost:9093' \
     '--command-config /var/snap/charmed-kafka/current/etc/kafka/client.properties' \
-    | tail -n +3 | jq -c '.brokers[] | select(.broker == 3)' | jq
+    '2> /dev/null' \
+    | tail -n +1 | jq -c '.brokers[] | select(.broker == 3)' | jq
 ```
 
 This should produce output similar to the result seen below, with no partitions allocated by default:
@@ -131,7 +132,8 @@ juju ssh kafka/leader sudo -i \
     '--describe' \
     '--bootstrap-server localhost:9093' \
     '--command-config /var/snap/charmed-kafka/current/etc/kafka/client.properties' \
-    | tail -n +3 | jq -c '.brokers[] | select(.broker == 3)' | jq
+    '2> /dev/null' \
+    | tail -n +1 | jq -c '.brokers[] | select(.broker == 3)' | jq
 ```
 
 This should produce an output similar to the result seen below, with broker `3` now having assigned partitions present, completing the adding of a new broker to the cluster:
@@ -175,7 +177,8 @@ juju ssh kafka/leader sudo -i \
     '--describe' \
     '--bootstrap-server localhost:9093' \
     '--command-config /var/snap/charmed-kafka/current/etc/kafka/client.properties' \
-    | tail -n +3 | jq -c '.brokers[] | select(.broker == 3)' | jq
+    '2> /dev/null' \
+    | tail -n +1 | jq -c '.brokers[] | select(.broker == 3)' | jq
 ```
 
 Make sure that broker `3` now has no partitions assigned, for example:
