@@ -81,6 +81,7 @@ jobs:
 
   integration-test:
     strategy:
+      max-parallel: 5
       fail-fast: false
       matrix:
         tox-environments:
