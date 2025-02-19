@@ -1,10 +1,10 @@
-# Managing schemas
+# Manage message schemas
 
 Follow the first steps of the [How to deploy Charmed Apache Kafka](https://discourse.charmhub.io/t/charmed-kafka-documentation-how-to-deploy/13261) guide to set up the environment. Stop before deploying Charmed Apache Kafka and continue with the instructions below.
 
 ## Setting up Karapace
 
-Karapace is a drop-in replacement, open-source implementation of Confluent's Schema Registry, and supports the storing of schemas in a central repository, which clients can access to serialize and deserialize messages written to Apache Kafka. 
+Karapace is a drop-in replacement, open-source implementation of Confluent's Schema Registry, and supports the storing of schemas in a central repository, which clients can access to serialize and deserialize messages written to Apache Kafka.
 
 To deploy Karapace and integrate it with Apache Kafka, use the following commands:
 
