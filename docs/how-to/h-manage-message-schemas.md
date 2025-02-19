@@ -1,6 +1,6 @@
 # Manage message schemas
 
-Follow the first steps of the [How to deploy Charmed Apache Kafka](https://discourse.charmhub.io/t/charmed-kafka-documentation-how-to-deploy/13261) guide to set up the environment. Stop before deploying Charmed Apache Kafka and continue with the instructions below.
+Follow the first steps of the [How to deploy Charmed Apache Kafka](https://discourse.charmhub.io/t/charmed-kafka-documentation-how-to-deploy/13261) guide to set up the environment.
 
 ## Setting up Karapace
 
