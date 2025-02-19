@@ -209,6 +209,10 @@ class BalancerOperator(Object):
 
         failure_conditions = [
             (
+                lambda: not self.charm.state.runs_balancer,
+                "Action must be ran on an application with balancer role",
+            ),
+            (
                 lambda: not self.charm.unit.is_leader(),
                 "Action must be ran on the application leader",
             ),
