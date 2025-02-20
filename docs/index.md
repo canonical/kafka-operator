@@ -1,4 +1,6 @@
-> This is a **IAAS/VM** operator. To deploy on Kubernetes, see [Charmed Apache Kafka K8s operator](https://charmhub.io/kafka-k8s).
+[note]
+This is a **IAAS/VM** operator. To deploy on Kubernetes, see [Charmed Apache Kafka K8s operator](https://charmhub.io/kafka-k8s).
+[/note]
 
 # Charmed Apache Kafka documentation
 
@@ -77,6 +79,6 @@ The Charmed Apache Kafka Operator is free software, distributed under the Apache
   1. [Performance Tuning](reference/r-performance-tuning.md)
   1. [Contact](reference/r-contacts.md)
 1. [Explanation](explanation)
-  1. [Security Hardening Guide](explanation/e-hardening.md)
+  1. [Security](explanation/e-security.md)
   1. [Cryptography](explanation/e-cryptography.md)
   1. [Cluster configuration](explanation/e-cluster-configuration.md)
