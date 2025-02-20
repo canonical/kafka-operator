@@ -391,6 +391,7 @@ def test_balancer_manager_create_internal_topics(
     assert list_counter == len(BALANCER_TOPICS)  # checked for existence of all balancer topics
 
 
+@pytest.mark.parametrize("balancer", [True, False])
 @pytest.mark.parametrize("leader", [False, True])
 @pytest.mark.parametrize("monitoring", [True, False])
 @pytest.mark.parametrize("executing", [True, False])
@@ -400,6 +401,7 @@ def test_balancer_manager_rebalance_full(
     ctx_broker_and_balancer: Context,
     base_state: State,
     proposal: dict,
+    balancer: bool,
     leader: bool,
     monitoring: bool,
     executing: bool,
@@ -413,6 +415,11 @@ def test_balancer_manager_rebalance_full(
 
     # When
     with (
+        patch(
+            "core.cluster.ClusterState.runs_balancer",
+            new_callable=PropertyMock,
+            return_value=balancer,
+        ),
         patch(
             "managers.balancer.CruiseControlClient.monitoring",
             new_callable=PropertyMock,
@@ -439,7 +446,7 @@ def test_balancer_manager_rebalance_full(
         ) as patched_wait_for_task,
     ):
 
-        if not all([leader, monitoring, executing, ready, status == 200]):
+        if not all([balancer, leader, monitoring, executing, ready, status == 200]):
             with pytest.raises(ActionFailed):
                 ctx.run(ctx.on.action("rebalance", params=payload), state_in)
         else:
