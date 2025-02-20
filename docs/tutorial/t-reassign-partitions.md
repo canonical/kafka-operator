@@ -57,7 +57,7 @@ By default, no partitions are allocated for the new unit `3`. You can see that b
 juju ssh kafka/leader sudo -i \
     'charmed-kafka.log-dirs' \
     '--describe' \
-    '--bootstrap-server localhost:9093' \
+    '--bootstrap-server <unit-ip>:9093' \
     '--command-config /var/snap/charmed-kafka/current/etc/kafka/client.properties' \
     '2> /dev/null' \
     | tail -n +1 | jq -c '.brokers[] | select(.broker == 3)' | jq
@@ -130,7 +130,7 @@ Once the action is complete, verify the partitions using the same commands as be
 juju ssh kafka/leader sudo -i \
     'charmed-kafka.log-dirs' \
     '--describe' \
-    '--bootstrap-server localhost:9093' \
+    '--bootstrap-server <unit-ip>:9093' \
     '--command-config /var/snap/charmed-kafka/current/etc/kafka/client.properties' \
     '2> /dev/null' \
     | tail -n +1 | jq -c '.brokers[] | select(.broker == 3)' | jq
@@ -175,7 +175,7 @@ Once the action has been completed, verify that broker `3` no longer has any ass
 juju ssh kafka/leader sudo -i \
     'charmed-kafka.log-dirs' \
     '--describe' \
-    '--bootstrap-server localhost:9093' \
+    '--bootstrap-server <unit-ip>:9093' \
     '--command-config /var/snap/charmed-kafka/current/etc/kafka/client.properties' \
     '2> /dev/null' \
     | tail -n +1 | jq -c '.brokers[] | select(.broker == 3)' | jq
