@@ -1,4 +1,6 @@
-> This is a **IAAS/VM** operator. To deploy on Kubernetes, see [Charmed Apache Kafka K8s operator](https://charmhub.io/kafka-k8s).
+[note]
+This is a **IAAS/VM** operator. To deploy on Kubernetes, see [Charmed Apache Kafka K8s operator](https://charmhub.io/kafka-k8s).
+[/note]
 
 # Charmed Apache Kafka documentation
 
