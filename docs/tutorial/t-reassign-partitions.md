@@ -23,7 +23,9 @@ The two necessary roles for cluster rebalancing are:
 - `broker` - running Apache Kafka
 - `balancer` - running Cruise Control
 
-> **Note**: It is recommended to deploy a separate Juju application for running Cruise Control in production environments.
+[note]
+It is recommended to deploy a separate Juju application for running Cruise Control in production environments.
+[/note]
 
 For the purposes of this tutorial, we will be deploying a single Charmed Apache Kafka unit to serve as the `balancer`:
 
@@ -84,7 +86,9 @@ Now, let's run the `rebalance` action to allocate some existing partitions from 
 juju run cruise-control/0 rebalance mode=add brokerid=3 --wait=2m
 ```
 
-> **Note**: If this action fails with a message similar to `Cruise Control balancer service has not yet collected enough data to provide a partition reallocation proposal`, wait 20 minutes or so and try again. Cruise Control takes a while to collect sufficient metrics from an Apache Kafka cluster during a cold deployment.
+[note]
+If this action fails with a message similar to `Cruise Control balancer service has not yet collected enough data to provide a partition reallocation proposal`, wait 20 minutes or so and try again. Cruise Control takes a while to collect sufficient metrics from an Apache Kafka cluster during a cold deployment.
+[/note]
 
 By default, the `rebalance` action runs as a "dryrun", where the returned result is what **would** happen were the partition rebalance actually executed. The action output has detailed information on the proposed allocation.
 
@@ -159,7 +163,9 @@ To safely scale-in an Apache Kafka cluster, we must make sure to carefully move 
 
 In practice, this means running a `rebalance` Juju action as seen above, **BEFORE** scaling down the application. This ensures that data is moved, prior to the unit becoming unreachable and permanently losing the data on it.
 
-> **Note**: As partition data is replicated across a finite number of units based on the value of the Apache Kafka cluster's `replication.factor` property (default value is `3`), it is imperative to remove only one broker at a time, to avoid losing all available replicas for a given partition.
+[note]
+As partition data is replicated across a finite number of units based on the value of the Apache Kafka cluster's `replication.factor` property (default value is `3`), it is imperative to remove only one broker at a time, to avoid losing all available replicas for a given partition.
+[/note]
 
 To remove the most recent broker unit `3` from the previous example, re-run the `rebalance` action with `mode=remove`:
 
