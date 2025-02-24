@@ -97,7 +97,7 @@ Possible values are `ERROR`, `WARNING`, `INFO`, `DEBUG`.
 ### Apache ZooKeeper
 
 ```
-juju config kafka log-level=<LOG_LEVEL>
+juju config zookeeper log-level=<LOG_LEVEL>
 ```
 
 Possible values are `ERROR`, `WARNING`, `INFO`, `DEBUG`.
