@@ -203,7 +203,7 @@ def test_extra_listeners_in_server_properties(
     # Given
     charm_configuration["options"]["extra_listeners"][
         "default"
-    ] = "worker-{unit}.foo.com:30000,worker-{unit}.bar.com:40000"
+    ] = "run{unit}.shadowfax:30000,{unit}.proudfoot:40000,fool.ofa.took:45000,no.port.{unit}.com"
     cluster_peer = PeerRelation(PEER, PEER, local_unit_data={"private-address": "treebeard"})
     zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
     client_relation = Relation(
@@ -230,8 +230,8 @@ def test_extra_listeners_in_server_properties(
         charm = cast(KafkaCharm, manager.charm)
 
         # Then
-        # 2 extra, 1 internal, 1 client
-        assert len(charm.broker.config_manager.all_listeners) == 4
+        # 3 extra, 1 internal, 1 client
+        assert len(charm.broker.config_manager.all_listeners) == 5
 
     # Adding SSL
     cluster_peer = dataclasses.replace(cluster_peer, local_app_data={"tls": "enabled"})
@@ -242,8 +242,8 @@ def test_extra_listeners_in_server_properties(
         charm = cast(KafkaCharm, manager.charm)
 
         # Then
-        # 2 extra, 1 internal, 1 client
-        assert len(charm.broker.config_manager.all_listeners) == 4
+        # 3 extra, 1 internal, 1 client
+        assert len(charm.broker.config_manager.all_listeners) == 5
 
     # Adding SSL
     cluster_peer = dataclasses.replace(
@@ -256,8 +256,8 @@ def test_extra_listeners_in_server_properties(
         charm = cast(KafkaCharm, manager.charm)
 
         # Then
-        # 2 extra sasl_ssl, 2 extra ssl, 1 internal, 2 client
-        assert len(charm.broker.config_manager.all_listeners) == 7
+        # 3 extra sasl_ssl, 3 extra ssl, 1 internal, 2 client
+        assert len(charm.broker.config_manager.all_listeners) == 9
 
         advertised_listeners_prop = ""
         for prop in charm.broker.config_manager.server_properties:
@@ -271,20 +271,27 @@ def test_extra_listeners_in_server_properties(
         # validating their allocated ports are expected
         ports = []
         for listener in advertised_listeners_prop.split("=")[1].split(","):
-            name, _, port = listener.split(":")
+            name, host, port = listener.split(":")
 
-            if name.endswith("_0") or name.endswith("_1"):
+            if "EXTRA" in name:
                 # verifying allocation uses the baseport
                 digit = 10**4
-                assert int(port) // digit * digit in (30000, 40000)
+                assert int(port) // digit * digit in (30000, 40000, 45000, 50000)
 
                 # verifying allocation is in steps of 100
                 digit = 10**2
-                assert int(port) // digit * digit in (39000, 39100, 49000, 49100)
+                assert int(port) // digit * digit in (39000, 39100, 49000, 49100, 54000, 54100)
 
                 # verifying all ports are unique
                 assert port not in ports
                 ports.append(port)
+
+                # verifying listener hosts
+                assert host.replace(r"//", "") in (
+                    "run0.shadowfax",
+                    "0.proudfoot",
+                    "fool.ofa.took",
+                )
 
 
 def test_oauth_client_listeners_in_server_properties(ctx: Context, base_state: State) -> None:
