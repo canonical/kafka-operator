@@ -1,10 +1,12 @@
 # Manage message schemas
 
-Follow the first steps of the [How to deploy Charmed Apache Kafka](https://discourse.charmhub.io/t/charmed-kafka-documentation-how-to-deploy/13261) guide to set up the environment.
+Message schemas in Apache Kafka define the structure and format of data exchanged between producers and consumers. This guide provides instructions on managing schemas in Charmed Apache Kafka using Karapace. Karapace is a drop-in replacement, open-source implementation of Confluent's Schema Registry, and supports the storing of schemas in a central repository, which clients can access to serialize and deserialize messages written to Apache Kafka.
 
-## Setting up Karapace
+## Prerequisites
 
-Karapace is a drop-in replacement, open-source implementation of Confluent's Schema Registry, and supports the storing of schemas in a central repository, which clients can access to serialize and deserialize messages written to Apache Kafka.
+Follow the steps of the [How to deploy Charmed Apache Kafka](https://discourse.charmhub.io/t/charmed-kafka-documentation-how-to-deploy/13261) guide to set up the environment. For this guide, we will need an active Charmed Apache Kafka application, related to an active Charmed Apache ZooKeeper application.
+
+## Deploy and set up Karapace
 
 To deploy Karapace and integrate it with Apache Kafka, use the following commands:
 
@@ -19,7 +21,7 @@ Once deployed, the password to access the Karapace REST API can be obtained:
 juju run karapace/leader get-password username="operator"
 ```
 
-With this password, list all registered schemas using:
+To check that Karapace works correctly, list all registered schemas using the password from the previous command's output:
 
 ```bash
 curl -u operator:<password> -X GET http://<karapace-unit-ip>:8081/subjects
@@ -54,7 +56,7 @@ If successful, this should result in output:
 {"id":2}
 ```
 
-## Adding new schema versions
+## Add new schema version
 
 To test the compatibility of a schema with the latest schema version, for example `<schema-name>` schema with `<field2>` removed, run:
 
@@ -70,7 +72,7 @@ If compatible, this will result in output:
 {"is_compatible":true}
 ```
 
-To register a new schema version, for example the above compatible schema, run:
+To register a new schema version, run:
 
 ```bash
 curl -u operator:<password> -X POST -H "Content-Type: application/vnd.schemaregistry.v1+json" \
@@ -78,15 +80,15 @@ curl -u operator:<password> -X POST -H "Content-Type: application/vnd.schemaregi
     --data '{"schema": "{\"type\": \"record\", \"name\": \"Obj\", \"fields\":[{\"name\": \"<field1>\", \"type\": \"string\"}]}"}'
 ```
 
-## Deleting schema versions
+## Delete schema version
 
-In order to delete a specific schema version, for example version 1 of the `<schema-name>` schema, run:
+To delete a specific schema version:
 
 ```bash
-curl -u operator:<password> -X DELETE http://<karapace-unit-ip>:8081/subjects/<schema-name>/versions/1
+curl -u operator:<password> -X DELETE http://<karapace-unit-ip>:8081/subjects/<schema-name>/versions/<schema-version>
 ```
 
-To delete all versions of the schema, for example `<schema-name-json>`, run:
+To delete all versions of a schema:
 
 ```bash
 curl -u operator:<password> -X DELETE http://<karapace-unit-ip>:8081/subjects/<schema-name-json>
