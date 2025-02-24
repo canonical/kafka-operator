@@ -27,7 +27,7 @@ To check that Karapace works correctly, list all registered schemas using the pa
 curl -u operator:<password> -X GET http://<karapace-unit-ip>:8081/subjects
 ```
 
-## Registering new schemas
+## Registering a new schema
 
 To register the first version of a schema `<schema-name>` with fields `<field1>` which is a string, and `<field2>` which is an integer using Avro schema, run:
 
