@@ -30,7 +30,7 @@ refer to [Charmhub](https://charmhub.io/), for more charmed operators that can b
 Charmed Apache Kafka is a distribution of Apache Kafka. It’s an open-source project that welcomes community contributions, suggestions, fixes and constructive feedback.
 
 - [Read our Code of Conduct](https://ubuntu.com/community/code-of-conduct)
-- [Join the Discourse forum](/tag/kafka)
+- [Join the Discourse forum](https://discourse.charmhub.io/tag/kafka)
 - [Contribute](https://github.com/canonical/kafka-operator/blob/main/CONTRIBUTING.md) and report [issues](https://github.com/canonical/kafka-operator/issues/new)
 - Explore [Canonical Data Fabric solutions](https://canonical.com/data)
 - [Contact us]([/t/13107) for all further questions
