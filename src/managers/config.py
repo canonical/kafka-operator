@@ -35,6 +35,7 @@ from literals import (
     JVM_MEM_MAX_GB,
     JVM_MEM_MIN_GB,
     KRAFT_NODE_ID_OFFSET,
+    PROFILE_PRODUCTION,
     PROFILE_TESTING,
     SECURITY_PROTOCOL_PORTS,
     AuthMap,
@@ -779,6 +780,18 @@ class ConfigManager(CommonConfigManager):
 
         if self.config.profile == PROFILE_TESTING:
             properties += TESTING_OPTIONS.split("\n")
+        elif self.config.profile == PROFILE_PRODUCTION:
+            cores = os.cpu_count() or 1
+            properties += [
+                "num.network.threads=" + str(max(cores, 3)),
+                "num.io.threads=" + str(max(cores, 8)),
+                "num.recovery.threads.per.data.dir=" + str(max(cores // 2, 1)),
+                "background.threads=" + str(max(cores * 3, 10)),
+                "replica.socket.receive.buffer.bytes=" + str(max(self.config.buffer_size, 65536)),
+                "socket.receive.buffer.bytes=" + str(max(self.config.buffer_size, 102400)),
+                "socket.send.buffer.bytes=" + str(max(self.config.buffer_size, 102400)),
+                "socket.request.max.bytes=" + str(max(self.config.buffer_size * 1024, 104857600)),
+            ]
 
         return properties
 
