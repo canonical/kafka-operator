@@ -112,8 +112,8 @@ def test_mtls_added(ctx: Context, base_state: State) -> None:
         ),
         (
             "extra_listeners",
-            "worker{unit}.com:30000,{unit}.example:40000,nonunit.domain.com:45000",
-            ["worker0.com", "0.example", "nonunit.domain.com"],
+            "run{unit}.shadowfax:30000,{unit}.proudfoot:40000,fool.ofa.took:45000,no.port.{unit}.com",
+            ["run0.shadowfax", "0.proudfoot", "fool.ofa.took", "no.port.0.com"],
         ),
     ],
 )
