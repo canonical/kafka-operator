@@ -520,7 +520,9 @@ class ConfigManager(CommonConfigManager):
     def extra_listeners(self) -> list[Listener]:
         """Return a list of extra listeners."""
         extra_host_baseports = [
-            tuple(listener.split(":")) for listener in self.config.extra_listeners
+            tuple(listener.split(":"))
+            for listener in self.config.extra_listeners
+            if ":" in listener
         ]
 
         extra_listeners = []

@@ -287,7 +287,10 @@ class CharmConfig(BaseConfigModel):
 
         ports = []
         for listener in listeners:
-            if ":" not in listener or not listener.split(":")[1].isdigit():
+            if ":" not in listener:
+                continue
+
+            if not listener.split(":")[1].isdigit():
                 raise ValueError("Value for listener does not contain a valid port.")
 
             port = int(listener.split(":")[1])

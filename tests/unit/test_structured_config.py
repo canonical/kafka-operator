@@ -178,7 +178,6 @@ def test_incorrect_roles():
 
 def test_incorrect_extra_listeners():
     erroneus_values = [
-        "missing.port",
         "low.port:15000",
         "high.port:60000",
         "non.unique:30000,other.non.unique:30000",
