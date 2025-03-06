@@ -1,4 +1,6 @@
-> This is a **IAAS/VM** operator. To deploy on Kubernetes, see [Charmed Apache Kafka K8s operator](https://charmhub.io/kafka-k8s).
+[note]
+This is a **IAAS/VM** operator. To deploy on Kubernetes, see [Charmed Apache Kafka K8s operator](https://charmhub.io/kafka-k8s).
+[/note]
 
 # Charmed Apache Kafka documentation
 
@@ -28,7 +30,7 @@ refer to [Charmhub](https://charmhub.io/), for more charmed operators that can b
 Charmed Apache Kafka is a distribution of Apache Kafka. It’s an open-source project that welcomes community contributions, suggestions, fixes and constructive feedback.
 
 - [Read our Code of Conduct](https://ubuntu.com/community/code-of-conduct)
-- [Join the Discourse forum](/tag/kafka)
+- [Join the Discourse forum](https://discourse.charmhub.io/tag/kafka)
 - [Contribute](https://github.com/canonical/kafka-operator/blob/main/CONTRIBUTING.md) and report [issues](https://github.com/canonical/kafka-operator/issues/new)
 - Explore [Canonical Data Fabric solutions](https://canonical.com/data)
 - [Contact us]([/t/13107) for all further questions
@@ -48,7 +50,8 @@ The Charmed Apache Kafka Operator is free software, distributed under the Apache
   1. [4. Integrate with client applications](tutorial/t-relate-kafka.md)
   1. [5. Manage passwords](tutorial/t-manage-passwords.md)
   1. [6. Enable Encryption](tutorial/t-enable-encryption.md)
-  1. [7. Cleanup your environment](tutorial/t-cleanup-environment.md)
+  1. [7. Rebalance and Reassign Partitions](tutorial/t-reassign-partitions.md)
+  1. [8. Cleanup your environment](tutorial/t-cleanup-environment.md)
 1. [How To](how-to)
   1. [Deploy](how-to/h-deploy.md)
   1. [Deploy on AWS](how-to/h-deploy-aws.md)
@@ -64,6 +67,7 @@ The Charmed Apache Kafka Operator is free software, distributed under the Apache
   1. [Enable Oauth through Hydra](how-to/h-enable-oauth.md)
   1. [Backup and restore configuration](how-to/h-backup-restore-configuration.md)
   1. [Set up KRaft mode](how-to/h-kraft-mode.md)
+  1. [Manage message schemas](how-to/h-manage-message-schemas.md)
 1. [Reference](reference)
   1. [Release Notes](reference/r-releases)
     1. [Revision 156/126](reference/r-releases/r-rev156_126.md)
@@ -77,6 +81,7 @@ The Charmed Apache Kafka Operator is free software, distributed under the Apache
   1. [Performance Tuning](reference/r-performance-tuning.md)
   1. [Contact](reference/r-contacts.md)
 1. [Explanation](explanation)
-  1. [Security Hardening Guide](explanation/e-hardening.md)
+  1. [Security](explanation/e-security.md)
   1. [Cryptography](explanation/e-cryptography.md)
   1. [Cluster configuration](explanation/e-cluster-configuration.md)
+  1. [Trademarks](explanation/e-trademarks.md)
