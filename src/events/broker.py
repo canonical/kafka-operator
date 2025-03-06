@@ -190,7 +190,9 @@ class BrokerOperator(Object):
         ):  # TLS is probably completed
             self.tls_manager.set_server_key()
             self.tls_manager.set_ca()
+            self.tls_manager.set_chain()
             self.tls_manager.set_certificate()
+            self.tls_manager.set_bundle()
             self.tls_manager.set_truststore()
             self.tls_manager.set_keystore()
 
@@ -248,7 +250,14 @@ class BrokerOperator(Object):
         expected_sans_dns = (
             set(self.tls_manager.build_sans()["sans_dns"]) if current_sans else set()
         )
-        sans_dns_changed = current_sans_dns ^ expected_sans_dns
+
+        sans_dns_changed = (current_sans_dns ^ expected_sans_dns) - {
+            # we omit 'kafka/{unit_id}' and 'kafka' here to avoid a bug with Digicert not supporting '/' characters in SANs
+            # Digicert truncates the 'kafka/{unit_id}' to just 'kafka'
+            # i.e don't assume we need new certs if 'diff' includes those value, as these SANs aren't typically used anyway
+            self.charm.state.unit_broker.unit.name,
+            self.charm.state.cluster.app.name,
+        }
 
         # update environment
         self.config_manager.set_environment()
@@ -307,8 +316,11 @@ class BrokerOperator(Object):
                 self.charm.on[f"{self.charm.restart.name}"].acquire_lock.emit()
 
         # update these whenever possible
-        self.config_manager.set_client_properties()
-        self.update_external_services()
+        self.config_manager.set_client_properties()  # to ensure clients have fresh data
+        self.update_external_services()  # in case of IP changes or pod reschedules
+        self.charm.state.unit_broker.unit.set_ports(  # in case of listeners changes
+            *[listener.port for listener in self.config_manager.all_listeners]
+        )
 
         # If Kafka is related to client charms, update their information.
         if self.model.relations.get(REL_NAME, None) and self.charm.unit.is_leader():
@@ -481,5 +493,3 @@ class BrokerOperator(Object):
                 "zk-password": self.charm.state.peer_cluster.zk_password,
             }
         )
-
-        # self.charm.on.config_changed.emit()  # ensure both broker+balancer get a changed event

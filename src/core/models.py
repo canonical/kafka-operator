@@ -587,7 +587,7 @@ class KafkaBroker(RelationState):
 
         Returns:
             String of key contents
-            None if key not yet generated
+            Empty if key not yet generated
         """
         return self.relation_data.get("private-key", "")
 
@@ -597,7 +597,7 @@ class KafkaBroker(RelationState):
 
         Returns:
             String of csr contents
-            None if csr not yet generated
+            Empty if csr not yet generated
         """
         return self.relation_data.get("csr", "")
 
@@ -607,7 +607,7 @@ class KafkaBroker(RelationState):
 
         Returns:
             String of cert contents in PEM format
-            None if cert not yet generated/signed
+            Empty if cert not yet generated/signed
         """
         return self.relation_data.get("certificate", "")
 
@@ -617,10 +617,28 @@ class KafkaBroker(RelationState):
 
         Returns:
             String of ca contents in PEM format
-            None if cert not yet generated/signed
+            Empty if cert not yet generated/signed
         """
         # defaults to ca for backwards compatibility after field change introduced with secrets
         return self.relation_data.get("ca-cert") or self.relation_data.get("ca", "")
+
+    @property
+    def chain(self) -> list[str]:
+        """The chain used to sign unit cert."""
+        return json.loads(self.relation_data.get("chain", "null")) or []
+
+    @property
+    def bundle(self) -> list[str]:
+        """The cert bundle used for TLS identity."""
+        if not all([self.certificate, self.ca, self.chain]):
+            return []
+
+        # manual-tls-certificates is loaded with the signed cert, the intermediate CA that signed it
+        # and then the missing chain for that CA
+        # ZK needs to present the full bundle - aka Keystore
+        # ZK needs to trust each item in the bundle - aka Truststore
+        bundle = [self.certificate, self.ca] + self.chain
+        return sorted(set(bundle), key=bundle.index)  # ordering might matter
 
     @property
     def keystore_password(self) -> str:
@@ -850,8 +868,8 @@ class ZooKeeper(RelationState):
 
     # retry to give ZK time to update its broker zNodes before failing
     @retry(
-        wait=wait_fixed(5),
-        stop=stop_after_attempt(10),
+        wait=wait_fixed(3),
+        stop=stop_after_attempt(3),
         retry=retry_if_result(lambda result: result is False),
         retry_error_callback=lambda _: False,
     )
