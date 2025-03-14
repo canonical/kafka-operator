@@ -42,6 +42,7 @@ class TestKRaft:
     async def _assert_listeners_accessible(
         self, ops_test: OpsTest, broker_unit_num=0, controller_unit_num=0
     ):
+        logger.info(f"Asserting broker listeners are up: {APP_NAME}/{broker_unit_num}")
         address = await get_address(ops_test=ops_test, app_name=APP_NAME, unit_num=broker_unit_num)
         assert check_socket(
             address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].internal
@@ -52,6 +53,9 @@ class TestKRaft:
             address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
         )
 
+        logger.info(
+            f"Asserting controller listeners are up: {self.controller_app}/{controller_unit_num}"
+        )
         # Check controller socket
         if self.controller_app != APP_NAME:
             address = await get_address(
@@ -150,11 +154,16 @@ class TestKRaft:
     @pytest.mark.abort_on_fail
     async def test_scale_out(self, ops_test: OpsTest):
         await ops_test.model.applications[self.controller_app].add_units(count=2)
+
+        if self.deployment_strat == "multi":
+            await ops_test.model.applications[APP_NAME].add_units(count=2)
+
         await ops_test.model.wait_for_idle(
             apps=list({APP_NAME, self.controller_app}),
             status="active",
             timeout=1200,
             idle_period=20,
+            wait_for_exact_units=3,
         )
 
         address = await get_address(ops_test=ops_test, app_name=self.controller_app)
@@ -164,7 +173,7 @@ class TestKRaft:
             ops_test, f"{self.controller_app}/0", bootstrap_controller
         )
 
-        offset = KRAFT_NODE_ID_OFFSET if self.controller_app == APP_NAME else 0
+        offset = KRAFT_NODE_ID_OFFSET if self.deployment_strat == "single" else 0
 
         for unit_id, status in unit_status.items():
             if unit_id == offset + 0:
@@ -173,6 +182,11 @@ class TestKRaft:
                 assert status == KRaftUnitStatus.FOLLOWER
             else:
                 assert status == KRaftUnitStatus.OBSERVER
+
+        for unit_num in range(3):
+            await self._assert_listeners_accessible(
+                ops_test, broker_unit_num=unit_num, controller_unit_num=unit_num
+            )
 
     @pytest.mark.abort_on_fail
     async def test_leader_change(self, ops_test: OpsTest):
@@ -241,14 +255,14 @@ class TestKRaft:
 
         address = await get_address(ops_test=ops_test, app_name=self.controller_app, unit_num=3)
         bootstrap_controller = f"{address}:{CONTROLLER_PORT}"
-        offset = KRAFT_NODE_ID_OFFSET if self.controller_app == APP_NAME else 0
+        offset = KRAFT_NODE_ID_OFFSET if self.deployment_strat == "single" else 0
 
         unit_status = kraft_quorum_status(
             ops_test, f"{self.controller_app}/3", bootstrap_controller
         )
 
         assert unit_status[offset + 3] == KRaftUnitStatus.LEADER
-        broker_unit_num = 3 if self.controller_app == APP_NAME else 0
+        broker_unit_num = 3 if self.deployment_strat == "single" else 0
         await self._assert_listeners_accessible(
             ops_test, broker_unit_num=broker_unit_num, controller_unit_num=3
         )
