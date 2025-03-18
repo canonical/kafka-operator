@@ -1,6 +1,6 @@
 This is part of the Charmed Apache Kafka Tutorial. Please refer to the [overview page](/t/charmed-apache-kafka-documentation-tutorial-overview/10571) for more information and the overview of the content.
 
-# Partition rebalancing and reassignment
+## Partition rebalancing and reassignment
 
 By default, when adding more brokers to an Apache Kafka cluster, the current allocated partitions on the original brokers are not automatically redistributed across the new brokers. This can lead to inefficient resource usage and over-provisioning. On the other hand, when removing brokers to reduce capacity, partitions assigned to the removed brokers are also not redistributed, which can result in under-replicated data at best and permanent data loss at worst.
 
