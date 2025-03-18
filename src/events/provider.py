@@ -51,7 +51,7 @@ class KafkaProvider(Object):
             return
 
         # on all unit update the server properties to enable client listener if needed
-        self.dependent._on_config_changed(event)
+        self.charm.on.config_changed.emit()
 
         if not self.charm.unit.is_leader() or not self.charm.state.peer_relation:
             return
@@ -94,9 +94,9 @@ class KafkaProvider(Object):
 
         self.dependent.update_client_data()
 
-    def _on_relation_created(self, event: RelationCreatedEvent) -> None:
+    def _on_relation_created(self, _: RelationCreatedEvent) -> None:
         """Handler for `kafka-client-relation-created` event."""
-        self.dependent._on_config_changed(event)
+        self.charm.on.config_changed.emit()
 
     def _on_relation_broken(self, event: RelationBrokenEvent) -> None:
         """Handler for `kafka-client-relation-broken` event.
