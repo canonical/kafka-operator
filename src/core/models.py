@@ -200,12 +200,7 @@ class PeerCluster(RelationState):
         if not self.relation or not self.relation.app:
             return ""
 
-        return self.data_interface._fetch_relation_data_with_secrets(
-            component=self.relation.app,
-            req_secret_fields=["controller-password"],
-            relation=self.relation,
-            fields=["controller-password"],
-        ).get("controller-password", "")
+        return self._fetch_from_secrets("controller", "controller-password")
 
     @property
     def cluster_uuid(self) -> str:
