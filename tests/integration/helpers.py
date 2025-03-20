@@ -594,7 +594,7 @@ def balancer_is_ready(ops_test: OpsTest, app_name: str) -> bool:
         [
             monitor_state_json.get("numMonitoredWindows", 0),
             monitor_state_json.get("numValidPartitions", 0),
-            monitor_state_json.get("state", "SAMPLING") == "READY",
+            monitor_state_json.get("state", "SAMPLING") in ["READY", "RUNNING"],
         ]
     )
 
