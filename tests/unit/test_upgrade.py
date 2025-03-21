@@ -234,6 +234,7 @@ def test_upgrade_sets_failed_if_failed_upgrade_check(
         patch("managers.config.ConfigManager.set_server_properties"),
         patch("managers.config.ConfigManager.set_zk_jaas_config"),
         patch("managers.config.ConfigManager.set_client_properties"),
+        patch("events.upgrade.KafkaUpgrade.apply_backwards_compatibility_fixes"),
         patch("workload.KafkaWorkload.restart") as patched_restart,
         patch("workload.KafkaWorkload.start") as patched_start,
         patch("workload.KafkaWorkload.stop"),
@@ -282,6 +283,9 @@ def test_upgrade_succeeds(ctx: Context, base_state: State, upgrade_func: str) ->
         patch("managers.config.ConfigManager.set_server_properties"),
         patch("managers.config.ConfigManager.set_zk_jaas_config"),
         patch("managers.config.ConfigManager.set_client_properties"),
+        patch(
+            "events.upgrade.KafkaUpgrade.apply_backwards_compatibility_fixes"
+        ) as patched_bw_compat,
         patch("workload.KafkaWorkload.restart") as patched_restart,
         patch("workload.KafkaWorkload.start") as patched_start,
         patch("workload.KafkaWorkload.stop"),
@@ -315,6 +319,7 @@ def test_upgrade_succeeds(ctx: Context, base_state: State, upgrade_func: str) ->
         getattr(charm.broker.upgrade, upgrade_func)(mock_event)
 
     assert patched_restart.call_count or patched_start.call_count
+    assert patched_bw_compat.call_count
     assert patch_set_completed.call_count
 
 
@@ -335,6 +340,7 @@ def test_upgrade_granted_recurses_upgrade_changed_on_leader(
         patch("time.sleep"),
         patch("workload.KafkaWorkload.stop"),
         patch("workload.KafkaWorkload.restart"),
+        patch("events.upgrade.KafkaUpgrade.apply_backwards_compatibility_fixes"),
         patch("workload.KafkaWorkload.install", return_value=True),
         patch(
             "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=True
