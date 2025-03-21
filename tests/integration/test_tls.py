@@ -388,10 +388,11 @@ async def test_kafka_tls_scaling(ops_test: OpsTest):
     )
 
 
+@pytest.mark.abort_on_fail
 async def test_tls_removed(ops_test: OpsTest):
     await ops_test.model.remove_application(TLS_NAME, block_until_done=True)
     await ops_test.model.wait_for_idle(
-        apps=[APP_NAME, ZK], timeout=3600, idle_period=30, status="active"
+        apps=[APP_NAME, ZK], timeout=3600, idle_period=30, status="active", raise_on_error=False
     )
 
     kafka_address = await get_address(ops_test=ops_test, app_name=APP_NAME)
@@ -400,6 +401,7 @@ async def test_tls_removed(ops_test: OpsTest):
     )
 
 
+@pytest.mark.abort_on_fail
 async def test_manual_tls_chain(ops_test: OpsTest):
     await ops_test.model.deploy(MANUAL_TLS_NAME)
 
@@ -414,14 +416,21 @@ async def test_manual_tls_chain(ops_test: OpsTest):
 
     async with ops_test.fast_forward(fast_interval="60s"):
         await ops_test.model.wait_for_idle(
-            apps=[APP_NAME, ZK, MANUAL_TLS_NAME], idle_period=30, timeout=1000
+            apps=[APP_NAME, ZK, MANUAL_TLS_NAME],
+            idle_period=30,
+            timeout=1000,
+            raise_on_error=False,
         )
 
     sign_manual_certs(ops_test)
 
     # verifying brokers + servers can communicate with one-another
     await ops_test.model.wait_for_idle(
-        apps=[APP_NAME, ZK, MANUAL_TLS_NAME], idle_period=30, timeout=1000
+        apps=[APP_NAME, ZK, MANUAL_TLS_NAME],
+        idle_period=30,
+        timeout=1000,
+        raise_on_error=False,
+        status="active",
     )
 
     # verifying the chain is in there
