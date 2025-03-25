@@ -111,7 +111,7 @@ Deploy and integrate Kafka and ZooKeeper:
 
 ```shell
 juju deploy zookeeper -n3 --channel 3/stable [--constraints "instance-type=<INSTANCE_TYPE>"] 
-juju deploy kafka -n3 --channel 3/stable [--constraints "instance-type=<INSTANCE_TYPE>"]
+juju deploy kafka -n3 --trust --channel 3/stable [--constraints "instance-type=<INSTANCE_TYPE>"]
 juju integrate kafka zookeeper
 ```
 
