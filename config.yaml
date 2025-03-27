@@ -116,3 +116,7 @@ options:
     description: "String to determine how to expose the Apache Kafka cluster externally from the Kubernetes cluster. Possible values: 'nodeport', 'none'"
     type: string
     default: "nodeport"
+  buffer_size:
+    description: "Sets socket send, receive and replica socket buffers. Value in bytes. socket.request.max.bytes is set to 1024x this value."
+    type: int
+    default: 102400
