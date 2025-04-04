@@ -12,7 +12,7 @@ The main concepts to understand before starting to work with Kafka Connect are:
 
 When a connector is first submitted to the Kafka Connect cluster, the workers rebalance work across the current connectors in the cluster. The workers can be configured to run in standalone or distributed mode, which utilize Apache Kafka topics to sync tasks across workers.
 
-The **Charmed Kafka Connect Operator** delivers automated operations management from day 0 to day 2 on *Kafka Connect*, which hugely simplifies the deployment and adminisitrative tasks on Kafka Connect clusters
+The Kafka Connect charm delivers automated operations management from day 0 to day 2 on *Kafka Connect*, which hugely simplifies the deployment and adminisitrative tasks on Kafka Connect clusters.
 
 This operator can be found on [Charmhub](https://charmhub.io/kafka-connect) and it comes with production-ready features such as:
 
@@ -23,13 +23,13 @@ This operator can be found on [Charmhub](https://charmhub.io/kafka-connect) and 
 - Seamless integration with Charmed Apache Kafka set of operators
 - Seamless integration with an ecosystem of of Integrator charms supporting common ETL tasks on different database technologies offered by [Canonical Data Platform](https://canonical.com/data).
 
-This how-to will address the process of deploying Kafka Connect, its integration with an Apache Kafka cluster and necessary steps to run a connector, either manually or by the means of an integrator charm.
+This How-to guide covers deploying Kafka Connect, integrating it with Charmed Apache Kafka, and running a connector—either manually or using an integrator charm.
 
 ## Prerequisites
 
-Follow the steps of the [How to deploy Charmed Apache Kafka](https://discourse.charmhub.io/t/charmed-kafka-documentation-how-to-deploy/13261) guide to set up the environment. For this guide, we will need an active Charmed Apache Kafka application, either using Zookeeper or in KRaft mode.
+For this guide, we will need an active Charmed Apache Kafka application, either using Apache Zookeeper or in KRaft mode. Follow the [How to deploy Charmed Apache Kafka](https://discourse.charmhub.io/t/charmed-kafka-documentation-how-to-deploy/13261) guide to set up the environment. 
 
-## Deploy and set up Kafka Connect
+## Deploy and set up
 
 To deploy Charmed Kafka Connect and integrate it with Charmed Apache Kafka, use the following commands:
 
@@ -38,17 +38,17 @@ juju deploy kafka-connect --channel latest/edge
 juju integrate kafka-connect kafka
 ```
 
-## Using Kafka Connect REST API 
+## Use REST API 
 
-Kafka Connect uses a RESTful interface to support common administrative tasks. Charmed Kafka Connect activates authentication by default on the Kafka Connect REST API. You should configure the password of the built-in `admin` user, using Juju secrets. The process is as follows:
+Kafka Connect uses a RESTful API for common administrative tasks. By default, Charmed Kafka Connect enforces authentication on the Kafka Connect REST API. 
 
-First, create a secret in Juju containing your password:
+To configure the password of the built-in `admin` user via Juju secrets, first, create a secret in Juju containing your password:
 
 ```bash
-juju add-secret mysecret admin=securepassword
+juju add-secret mysecret admin=<secure-password>
 ```
 
-You will get the secret-id as response. Make note of this, as you will need to configure it to the Kafka Connect charm soon:
+You will receive a secret-id in response. Make sure to note it down, as you will need to configure it for the Kafka Connect charm shortly. It looks like this:
 
 ```
 secret:cvh7kruupa1s46bqvuig
@@ -60,16 +60,16 @@ Now, grant the secret to the Kafka Connect charm using `juju grant-secret` comma
 juju grant-secret mysecret kafka-connect
 ```
 
-As final step, Kafka Connect charm should be configured to use the provided secret. This could be done by issuing the `juju config` command, using the secret-id obtained above:
+Finally, Kafka Connect charm should be configured to use the newly provided secret. This can be done by issuing `juju config` command to specify the secret-id obtained above:
 
 ```bash
 juju config kafka-connect admin_secret=secret:cvh7kruupa1s46bqvuig
 ```
 
-To check that Kafka Connect is configured and works properly, make a request to the REST interface to list all registered connectors, using the password configured:
+To verify that Kafka Connect is properly configured and functioning, send a request to the REST interface to list all registered connectors using the password set in Juju secret:
 
 ```bash
-curl -u admin:securepassword -X GET http://<kafka-connect-unit-ip>:8083/connector-plugins
+curl -u admin:<secure-password> -X GET http://<kafka-connect-unit-ip>:8083/connector-plugins
 ```
 
 You should get a response like below:
@@ -78,13 +78,13 @@ You should get a response like below:
 [{"class":"org.apache.kafka.connect.mirror.MirrorCheckpointConnector","type":"source","version":"3.9.0-ubuntu1"},{"class":"org.apache.kafka.connect.mirror.MirrorHeartbeatConnector","type":"source","version":"3.9.0-ubuntu1"},{"class":"org.apache.kafka.connect.mirror.MirrorSourceConnector","type":"source","version":"3.9.0-ubuntu1"}]
 ```
 
-## Adding a Connector Plugin
+## Add a plugin
 
 Kafka Connect uses a pluggable architecture model, meaning that the user could add desired functionalities by means of **Plugins**, also known as **Connectors**. Simply put, plugins are bundles of JAR files adhering to Kafka Connect Connector Interface. These connectors could be an implementation of a data source connector, data sink connector, a transformer or a converter. Kafka Connect automatically discovers added plugins, and the user could use the exposed REST interface to define desired ETL tasks based on available plugins.
 
-In order to add a custom plugin to the Charmed Kafka Connect, you could use `juju attach-resource` command. As an example, let's add the Aiven's open source S3 source connector to Charmed Kafka Connect.
+To add a custom plugin to the Charmed Kafka Connect, you can use `juju attach-resource` command. For example, let's add the Aiven's open source S3 source connector to Charmed Kafka Connect.
 
-First, we should download the connector from the [respective repository](https://github.com/Aiven-Open/cloud-storage-connectors-for-apache-kafka). We will be using the `v3.2.0` release:
+First, download the connector plugin `v3.2.0` from the [respective repository](https://github.com/Aiven-Open/cloud-storage-connectors-for-apache-kafka):
 
 ```bash
 wget https://github.com/Aiven-Open/cloud-storage-connectors-for-apache-kafka/releases/download/v3.2.0/s3-source-connector-for-apache-kafka-3.2.0.tar
@@ -96,22 +96,22 @@ Once downloaded, attach the connector to the charm using `juju attach-resource` 
 juju attach-resource kafka-connect connect-plugin=./s3-source-connector-for-apache-kafka-3.2.0.tar
 ```
 
-This would trigger a restart of Charmed Kafka Connect, once all units show as `active|idle`, your desired plugin is ready to use. This could be verified using the Connect REST API:
+This triggers a restart of Charmed Kafka Connect application. Once all units show `active|idle` status, the plugin is ready to use. To verify using the Kafka Connect REST API:
 
 ```bash
-curl -u admin:securepassword -X GET http://<kafka-connect-unit-ip>:8083/connector-plugins
+curl -u admin:<secure-password> -X GET http://<kafka-connect-unit-ip>:8083/connector-plugins
 ```
 
-Which now should have `{"class":"io.aiven.kafka.connect.s3.source.S3SourceConnector","type":"source","version":"3.2.0"}` in its output.
+The output will have  `{"class":"io.aiven.kafka.connect.s3.source.S3SourceConnector","type":"source","version":"3.2.0"}`.
 
-## Manually Starting a Connector/Task
+## Start connector/task
 
-Once our desired plugin is available, we could use the Kafka Connect REST API to manually start a task. This would be achieved by POSTing a JSON containing task configuration to the `/connectors` endpoint. 
+Once our desired plugin is available, use the Kafka Connect REST API to manually start a task. This can be achieved by sending a POST request with a JSON containing task configuration to the `/connectors` endpoint. 
 
-For example, in order to load data from `JSONL` files on an AWS S3 bucket named `testbucket` into a Apache Kafka topic named `s3topic`, the following request could be sent to the Kafka Connect REST endpoint (please refer to [Aiven's S3 source connector docs](https://github.com/Aiven-Open/cloud-storage-connectors-for-apache-kafka/tree/main/s3-source-connector#readme) for more details on connector configuration):
+For example, in order to load data from `JSONL` files on an AWS S3 bucket named `testbucket` into a Apache Kafka topic named `s3topic`, the following request can be sent to the Kafka Connect REST endpoint (please refer to [Aiven's S3 source connector docs](https://github.com/Aiven-Open/cloud-storage-connectors-for-apache-kafka/tree/main/s3-source-connector#readme) for more details on the connector configuration):
 
 ```bash
-curl -u admin:securepassword \
+curl -u admin:<secure-password> \
      -H "Content-Type: application/json" \
      -d '{
           "name": "test-s3-source",
@@ -129,41 +129,43 @@ curl -u admin:securepassword \
      }' -X POST http://<kafka-connect-unit-ip>:8083/connectors
 ```
 
-> Please note that each connector comes with its own specific configuration options, and covering the specifics of each connector is beyond the scope of this document. Please consult the connector's documentation for more information on your use-case and whether or not the connector will support it.
+[note]
+Each connector has its own specific configuration options covering the specifics of each connector. Please refer to the connector's documentation for more information on available options and supported use cases.
+[/note]
 
-## Manually Checking Connector/Task Status
+## Check connector/task status
 
-Once the task has been submitted, we could query the `/connectors` REST endpoint to find out the status of our submitted connector/task:
+Once the task is submitted, we can query the `/connectors` REST endpoint to find out the status of our submitted connector/task:
 
 ```bash
-curl -u admin:securepassword -X GET http://<kafka-connect-unit-ip>:8083/connectors?expand=status
+curl -u admin:<secure-password> -X GET http://<kafka-connect-unit-ip>:8083/connectors?expand=status
 ```
 
-The return value is a JSON showing status of each connector and its associated tasks:
+The returned value is a JSON showing status of each connector and its associated tasks:
 
 ```bash
 {"test-s3-source":{"status":{"name":"test-s3-source","connector":{"state":"RUNNING","worker_id":"10.150.221.240:8083"},"tasks":[{"id":0,"state":"RUNNING","worker_id":"10.150.221.240:8083"}],"type":"source"}}}
 ```
 
-## Stopping Connectors
+## Stop connector
 
-The connector will be continuously running and moving data from the S3 source to Apache Kafka as long as the clusters are up. In order to stop the connector, we could use the `/connectors/<connector-name>/stop` endpoint:
+A connector is continuously running as long as the cluster is up. To stop a connector, use the `/connectors/<connector-name>/stop` endpoint:
 
 ```bash
-curl -u admin:securepassword -X PUT http://<kafka-connect-unit-ip>:8083/connectors/test-s3-source/stop
+curl -u admin:<secure-password> -X PUT http://<kafka-connect-unit-ip>:8083/connectors/test-s3-source/stop
 ```
 
-If we check the connector status, it should now be in `STOPPED` state:
+The connector is now in the `STOPPED` state:
 
 ```bash
 {"test-s3-source":{"status":{"name":"test-s3-source","connector":{"state":"STOPPED","worker_id":"10.150.221.240:8083"},"tasks":[],"type":"source"}}}
 ```
 
-## Using Kafka Connect Integrator Charms
+## Use Kafka Connect integrator charms
 
-While connectors lifecycle management could be done manually using the Kafka Connect REST endpoint, for common use-cases such as moving data from/to popular databases/storage services, the recommended way is to use the Kafka Connect Integrator family of charms. 
+While connectors lifecycle management can be done manually using the Kafka Connect REST endpoint, for common use-cases such as moving data from/to popular databases/storage services, the recommended way is to use the Kafka Connect integrator family of charms. 
 
-Each integrator charm is designed for a generic ETL use-case, and aims to facilitate the end-to-end process of loading connector plugins, configuring the connector, starting and stopping the tasks, and reporting their status, thereby greatly simplifying the required administrative operations.
+Each integrator charm is designed for a general ETL use case and streamlines the entire process—from loading connector plugins to configuring connectors, managing task execution, and reporting status—significantly reducing administrative overhead.
 
 A curated set of integrators for common ETL use cases on [Canonical Data Platform line of products](https://canonical.com/data) are provided in the [Template Connect Integrator](https://github.com/canonical/template-connect-integrator) repository. These charmed operators support use cases such as loading data to and from MySQL, PostgreSQL, OpenSearch, S3-compatible storage services, and active/passive replication of Apache Kafka topics using MirrorMaker. To learn more about integrator charms, please refer to the tutorial which covers a practical use-case of moving data from MySQL to Opensearch using integrator charms.
 
