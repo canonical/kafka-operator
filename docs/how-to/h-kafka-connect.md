@@ -2,32 +2,15 @@
 
 [Kafka Connect](https://kafka.apache.org/documentation/#connect) is a framework for easy deployment of Apache Kafka clients for common ETL tasks on different data sources and sinks, managed through multiple jobs running on a distributed cluster of workers.
 
-The main concepts to understand before starting to work with Kafka Connect are:
-
-- **Connectors**: The high level abstraction that coordinates data streaming by managing tasks.
-- **Tasks**: The implementation of how data is copied to or from Apache Kafka.
-- **Workers**: The running processes that execute connectors and tasks. Workers could be run either in `standalone` or `distributed` mode.
-- **Converters**: The code used to translate data between Kafka Connect and the system sending or receiving data.
-- **Transforms**: Simple logic to alter each message produced by or sent to a connector.
-
-When a connector is first submitted to the Kafka Connect cluster, the workers rebalance work across the current connectors in the cluster. The workers can be configured to run in standalone or distributed mode, which utilize Apache Kafka topics to sync tasks across workers.
-
 The Kafka Connect charm delivers automated operations management from day 0 to day 2 on *Kafka Connect*, which hugely simplifies the deployment and adminisitrative tasks on Kafka Connect clusters.
 
-This operator can be found on [Charmhub](https://charmhub.io/kafka-connect) and it comes with production-ready features such as:
-
-- Automated or manual connector plugins management.
-- Fault-tolerance, replication and scalability out of the box.
-- Authenticaon on REST API enabled by default.
-- TLS support both on the REST API and Apache Kafka cluster relations.
-- Seamless integration with Charmed Apache Kafka set of operators
-- Seamless integration with an ecosystem of of Integrator charms supporting common ETL tasks on different database technologies offered by [Canonical Data Platform](https://canonical.com/data).
+This operator can be found on [Charmhub](https://charmhub.io/kafka-connect) and it comes with production-ready features such as automated and manual plugin management, replication and scalability, authentication, TLS support, and seamless integration with Charmed Apache Kafka set of operators.
 
 This How-to guide covers deploying Kafka Connect, integrating it with Charmed Apache Kafka, and running a connector—either manually or using an integrator charm.
 
 ## Prerequisites
 
-For this guide, we will need an active Charmed Apache Kafka application, either using Apache Zookeeper or in KRaft mode. Follow the [How to deploy Charmed Apache Kafka](https://discourse.charmhub.io/t/charmed-kafka-documentation-how-to-deploy/13261) guide to set up the environment. 
+For this guide, we will need an active Charmed Apache Kafka application, either using Apache Zookeeper or in KRaft mode. Follow the [How to deploy Charmed Apache Kafka](https://discourse.charmhub.io/t/charmed-kafka-documentation-how-to-deploy/13261) guide to set up the environment.
 
 ## Deploy and set up
 
@@ -38,9 +21,9 @@ juju deploy kafka-connect --channel latest/edge
 juju integrate kafka-connect kafka
 ```
 
-## Use REST API 
+## Use REST API
 
-Kafka Connect uses a RESTful API for common administrative tasks. By default, Charmed Kafka Connect enforces authentication on the Kafka Connect REST API. 
+Kafka Connect uses a RESTful API for common administrative tasks. By default, Charmed Kafka Connect enforces authentication on the Kafka Connect REST API.
 
 To configure the password of the built-in `admin` user via Juju secrets, first, create a secret in Juju containing your password:
 
@@ -80,7 +63,6 @@ You should get a response like below:
 
 ## Add a plugin
 
-Kafka Connect uses a pluggable architecture model, meaning that the user could add desired functionalities by means of **Plugins**, also known as **Connectors**. Simply put, plugins are bundles of JAR files adhering to Kafka Connect Connector Interface. These connectors could be an implementation of a data source connector, data sink connector, a transformer or a converter. Kafka Connect automatically discovers added plugins, and the user could use the exposed REST interface to define desired ETL tasks based on available plugins.
 
 To add a custom plugin to the Charmed Kafka Connect, you can use `juju attach-resource` command. For example, let's add the Aiven's open source S3 source connector to Charmed Kafka Connect.
 
@@ -106,7 +88,7 @@ The output will have  `{"class":"io.aiven.kafka.connect.s3.source.S3SourceConnec
 
 ## Start connector/task
 
-Once our desired plugin is available, use the Kafka Connect REST API to manually start a task. This can be achieved by sending a POST request with a JSON containing task configuration to the `/connectors` endpoint. 
+Once our desired plugin is available, use the Kafka Connect REST API to manually start a task. This can be achieved by sending a POST request with a JSON containing task configuration to the `/connectors` endpoint.
 
 For example, in order to load data from `JSONL` files on an AWS S3 bucket named `testbucket` into a Apache Kafka topic named `s3topic`, the following request can be sent to the Kafka Connect REST endpoint (please refer to [Aiven's S3 source connector docs](https://github.com/Aiven-Open/cloud-storage-connectors-for-apache-kafka/tree/main/s3-source-connector#readme) for more details on the connector configuration):
 
@@ -163,7 +145,7 @@ The connector is now in the `STOPPED` state:
 
 ## Use Kafka Connect integrator charms
 
-While connectors lifecycle management can be done manually using the Kafka Connect REST endpoint, for common use-cases such as moving data from/to popular databases/storage services, the recommended way is to use the Kafka Connect integrator family of charms. 
+While connectors lifecycle management can be done manually using the Kafka Connect REST endpoint, for common use-cases such as moving data from/to popular databases/storage services, the recommended way is to use the Kafka Connect integrator family of charms.
 
 Each integrator charm is designed for a general ETL use case and streamlines the entire process—from loading connector plugins to configuring connectors, managing task execution, and reporting status—significantly reducing administrative overhead.
 
