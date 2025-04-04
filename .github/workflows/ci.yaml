@@ -8,6 +8,11 @@ concurrency:
 
 on:
   pull_request:
+    paths-ignore:
+      - '.gitignore'
+      - '.jujuignore'
+      - 'LICENSE'
+      - '**.md'
   schedule:
     - cron: '53 0 * * *'  # Daily at 00:53 UTC
   # Triggered on push to branch "main" by .github/workflows/release.yaml
