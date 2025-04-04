@@ -14,7 +14,7 @@ For this guide, we will need an active Charmed Apache Kafka application, either 
 
 ## Deploy and set up
 
-To deploy Charmed Kafka Connect and integrate it with Charmed Apache Kafka, use the following commands:
+To deploy [Kafka Connect charm](https://charmhub.io/kafka-connect) and integrate it with Charmed Apache Kafka, use the following commands:
 
 ```bash
 juju deploy kafka-connect --channel latest/edge
