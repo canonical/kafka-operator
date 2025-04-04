@@ -46,7 +46,7 @@ juju grant-secret mysecret kafka-connect
 Finally, Kafka Connect charm should be configured to use the newly provided secret. This can be done by issuing `juju config` command to specify the secret-id obtained above:
 
 ```bash
-juju config kafka-connect admin_secret=secret:cvh7kruupa1s46bqvuig
+juju config kafka-connect system-users=secret:cvh7kruupa1s46bqvuig
 ```
 
 To verify that Kafka Connect is properly configured and functioning, send a request to the REST interface to list all registered connectors using the password set in Juju secret:
@@ -62,7 +62,6 @@ You should get a response like below:
 ```
 
 ## Add a plugin
-
 
 To add a custom plugin to the Charmed Kafka Connect, you can use `juju attach-resource` command. For example, let's add the Aiven's open source S3 source connector to Charmed Kafka Connect.
 
@@ -150,4 +149,3 @@ While connectors lifecycle management can be done manually using the Kafka Conne
 Each integrator charm is designed for a general ETL use case and streamlines the entire process—from loading connector plugins to configuring connectors, managing task execution, and reporting status—significantly reducing administrative overhead.
 
 A curated set of integrators for common ETL use cases on [Canonical Data Platform line of products](https://canonical.com/data) are provided in the [Template Connect Integrator](https://github.com/canonical/template-connect-integrator) repository. These charmed operators support use cases such as loading data to and from MySQL, PostgreSQL, OpenSearch, S3-compatible storage services, and active/passive replication of Apache Kafka topics using MirrorMaker. To learn more about integrator charms, please refer to the tutorial which covers a practical use-case of moving data from MySQL to Opensearch using integrator charms.
-
