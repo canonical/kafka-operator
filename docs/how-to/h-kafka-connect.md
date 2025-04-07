@@ -58,7 +58,23 @@ curl -u admin:<secure-password> -X GET http://<kafka-connect-unit-ip>:8083/conne
 You should get a response like below:
 
 ```bash
-[{"class":"org.apache.kafka.connect.mirror.MirrorCheckpointConnector","type":"source","version":"3.9.0-ubuntu1"},{"class":"org.apache.kafka.connect.mirror.MirrorHeartbeatConnector","type":"source","version":"3.9.0-ubuntu1"},{"class":"org.apache.kafka.connect.mirror.MirrorSourceConnector","type":"source","version":"3.9.0-ubuntu1"}]
+[
+  {
+    "class": "org.apache.kafka.connect.mirror.MirrorCheckpointConnector",
+    "type": "source",
+    "version": "3.9.0-ubuntu1"
+  },
+  {
+    "class": "org.apache.kafka.connect.mirror.MirrorHeartbeatConnector",
+    "type": "source",
+    "version": "3.9.0-ubuntu1"
+  },
+  {
+    "class": "org.apache.kafka.connect.mirror.MirrorSourceConnector",
+    "type": "source",
+    "version": "3.9.0-ubuntu1"
+  }
+]
 ```
 
 ## Add a connector plugin
@@ -125,7 +141,25 @@ curl -u admin:<secure-password> -X GET http://<kafka-connect-unit-ip>:8083/conne
 The returned value is a JSON showing status of each connector and its associated tasks:
 
 ```bash
-{"test-s3-source":{"status":{"name":"test-s3-source","connector":{"state":"RUNNING","worker_id":"10.150.221.240:8083"},"tasks":[{"id":0,"state":"RUNNING","worker_id":"10.150.221.240:8083"}],"type":"source"}}}
+{
+  "test-s3-source": {
+    "status": {
+      "name": "test-s3-source",
+      "connector": {
+        "state": "RUNNING",
+        "worker_id": "10.150.221.240:8083"
+      },
+      "tasks": [
+        {
+          "id": 0,
+          "state": "RUNNING",
+          "worker_id": "10.150.221.240:8083"
+        }
+      ],
+      "type": "source"
+    }
+  }
+}
 ```
 
 ## Stop connector
@@ -139,7 +173,19 @@ curl -u admin:<secure-password> -X PUT http://<kafka-connect-unit-ip>:8083/conne
 The connector is now in the `STOPPED` state:
 
 ```bash
-{"test-s3-source":{"status":{"name":"test-s3-source","connector":{"state":"STOPPED","worker_id":"10.150.221.240:8083"},"tasks":[],"type":"source"}}}
+{
+  "test-s3-source": {
+    "status": {
+      "name": "test-s3-source",
+      "connector": {
+        "state": "STOPPED",
+        "worker_id": "10.150.221.240:8083"
+      },
+      "tasks": [],
+      "type": "source"
+    }
+  }
+}
 ```
 
 ## Use Kafka Connect integrator charms
