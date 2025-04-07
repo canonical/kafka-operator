@@ -43,7 +43,7 @@ Now, grant the secret to the Kafka Connect charm using `juju grant-secret` comma
 juju grant-secret mysecret kafka-connect
 ```
 
-Finally, Kafka Connect charm should be configured to use the newly provided secret. This can be done by issuing `juju config` command to specify the secret-id obtained above:
+Finally, the Kafka Connect charm should be configured to use the newly provided secret. This can be done by running the `juju config` command to specify the secret-id obtained above:
 
 ```bash
 juju config kafka-connect system-users=secret:cvh7kruupa1s46bqvuig
@@ -61,9 +61,9 @@ You should get a response like below:
 [{"class":"org.apache.kafka.connect.mirror.MirrorCheckpointConnector","type":"source","version":"3.9.0-ubuntu1"},{"class":"org.apache.kafka.connect.mirror.MirrorHeartbeatConnector","type":"source","version":"3.9.0-ubuntu1"},{"class":"org.apache.kafka.connect.mirror.MirrorSourceConnector","type":"source","version":"3.9.0-ubuntu1"}]
 ```
 
-## Add a plugin
+## Add a connector plugin
 
-To add a custom plugin to the Charmed Kafka Connect, you can use `juju attach-resource` command. For example, let's add the Aiven's open source S3 source connector to Charmed Kafka Connect.
+To add a custom connector plugin to the Charmed Kafka Connect, you can use the `juju attach-resource` command. For example, let's add the Aiven's open source S3 source connector to Charmed Kafka Connect.
 
 First, download the connector plugin `v3.2.0` from the [respective repository](https://github.com/Aiven-Open/cloud-storage-connectors-for-apache-kafka):
 
@@ -71,7 +71,7 @@ First, download the connector plugin `v3.2.0` from the [respective repository](h
 wget https://github.com/Aiven-Open/cloud-storage-connectors-for-apache-kafka/releases/download/v3.2.0/s3-source-connector-for-apache-kafka-3.2.0.tar
 ```
 
-Once downloaded, attach the connector to the charm using `juju attach-resource` command.
+Once downloaded, attach the connector to the charm using the `juju attach-resource` command.
 
 ```bash
 juju attach-resource kafka-connect connect-plugin=./s3-source-connector-for-apache-kafka-3.2.0.tar
