@@ -566,7 +566,7 @@ def balancer_is_secure(ops_test: OpsTest, app_name: str) -> bool:
 
 @retry(
     wait=wait_fixed(20),  # long enough to not overwhelm the API
-    stop=stop_after_attempt(270),  # give it 90 minutes to load
+    stop=stop_after_attempt(360),  # give it 120 minutes to load
     retry=retry_if_result(lambda result: result is False),
     retry_error_callback=lambda _: False,
 )
@@ -594,6 +594,7 @@ def balancer_is_ready(ops_test: OpsTest, app_name: str) -> bool:
         [
             monitor_state_json.get("numMonitoredWindows", 0),
             monitor_state_json.get("numValidPartitions", 0),
+            monitor_state_json.get("state", "SAMPLING") in ["READY", "RUNNING"],
         ]
     )
 
