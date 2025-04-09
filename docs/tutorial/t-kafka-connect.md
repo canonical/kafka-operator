@@ -144,7 +144,7 @@ For more information on how to access a PostgreSQL database using the PostgreSQL
 First, download the SQL script from the GitHub gist:
 
 ```shell
-wget https://gist.github.com/imanenami/bc5900ed2b58e0cc980b498d04677095/raw/599599f1f2181e662b7101c5d27db19f423c38f2/populate.sql -O ./populate.sql
+wget https://gist.github.com/imanenami/bc5900ed2b58e0cc980b498d04677095/raw/4169eb100bd65de9264847c822202cd204516aac/populate.sql -O ./populate.sql
 ```
 
 Next, copy the `populate.sql` script to the PostgreSQL unit using the `juju scp` command:
@@ -214,7 +214,7 @@ Now that you have some data loaded into PostgreSQL, it is time to deploy the `po
 juju deploy postgresql-connect-integrator \
     --channel edge \
     --config mode=source \
-    --config db_name=tutorial
+    --config db_name=tutorial \
     --config topic_prefix=etl_
 ```
 
