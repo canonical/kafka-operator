@@ -69,15 +69,11 @@ juju show-model | yq '.[].type'
 Charmed Apache Kafka and Charmed Apache ZooKeeper can both be deployed as follows:
 
 ```commandline
-$ juju deploy kafka --channel 3/stable -n <kafka-units> --trust
+$ juju deploy kafka --channel 3/stable -n <kafka-units>
 $ juju deploy zookeeper --channel 3/stable -n <zookeeper-units>
 ```
 
 where `<kafka-units>` and `<zookeeper-units>` – the number of units to deploy for Charmed Apache Kafka and Charmed Apache ZooKeeper. We recommend values of at least `3` and `5` respectively.
-
-[note]
-The `--trust` option is needed for the Apache Kafka application if NodePort is used. For more information about the trust options usage, see the [Juju documentation](/t/5476#heading--trust-an-application-with-a-credential). 
-[/note]
 
 Connect Charmed Apache ZooKeeper and Charmed Apache Kafka by relating/integrating them:
 
