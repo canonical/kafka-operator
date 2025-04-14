@@ -238,7 +238,7 @@ Log out from the PostgreSQL unit using `exit` command or the `Ctrl+D` keyboard s
 
 ## 5. Deploy and integrate the `postgresql-connect-integrator` charm
 
-Now that you have some data loaded into PostgreSQL, it is time to deploy the `postgresql-connect-integrator` charm to enable integration of PostgreSQL and Kafka Connect applications. First, deploy the charm using `juju deploy` command and provide the minimum necessary configurations:
+Now that you have some data loaded into PostgreSQL, it is time to deploy the `postgresql-connect-integrator` charm to enable integration of PostgreSQL and Kafka Connect applications. First, deploy the charm in `source` mode using the `juju deploy` command and provide the minimum necessary configurations:
 
 ```bash
 juju deploy postgresql-connect-integrator \
