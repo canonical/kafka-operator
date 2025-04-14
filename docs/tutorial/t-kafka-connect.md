@@ -17,7 +17,7 @@ We will be deploying different charmed data solutions including PostgreSQL and O
 
 Up to this point, we should have a 3-unit Apache Kafka application, related to a 5-unit ZooKeeper application. That means the `juju status` command should show an output similar to the following:
 
-```shell
+```bash
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
 tutorial  overlord    localhost/localhost  3.6.4    unsupported  17:06:15+08:00
 
@@ -42,7 +42,7 @@ zookeeper/4                  active    idle   4        10.38.169.215
 
 Since we will be deploying the Opensearch charm, we need to make necessary kernel configurations required for Opensearch charm to function properly, [described in detail here](https://charmhub.io/opensearch/docs/t-set-up#p-24545-set-kernel-parameters). This basically means running the following commands:
 
-```shell
+```bash
 sudo tee -a /etc/sysctl.conf > /dev/null <<EOT
 vm.max_map_count=262144
 vm.swappiness=0
@@ -55,7 +55,7 @@ sudo sysctl -p
 
 Next, we should set the required model parameters using the `juju model-config` command:
 
-```shell
+```bash
 cat <<EOF > cloudinit-userdata.yaml
 cloudinit-userdata: |
   postruncmd:
@@ -73,7 +73,7 @@ juju model-config --file=./cloudinit-userdata.yaml
 
 Deploy the PostgreSQL, Opensearch, and Kafka Connect charms using the following commands. Since the Opensearch charm requires a TLS relation to become active, we will also need to deploy a TLS operator. We will be using the [`self-signed-certificates` charm](https://charmhub.io/self-signed-certificates) in this tutorial:
 
-```shell
+```bash
 juju deploy kafka-connect --channel edge
 juju deploy postgresql --channel 14/stable
 juju deploy opensearch --channel 2/edge --config profile=testing
@@ -86,25 +86,25 @@ Using the `juju status` command, you should see that the Kafka Connect and Opens
 
 First, activate the Opensearch application by integrating it with the TLS operator:
 
-```shell
+```bash
 juju integrate opensearch self-signed-certificates
 ```
 
 Then, activate the Kafka Connect application by integrating it with the Apache Kafka application:
 
-```shell
+```bash
 juju integrate kafka kafka-connect
 ```
 
 Finally, since we will be using TLS on the Kafka Connect interface, integrate the Kafka Connect application with the TLS operator:
 
-```shell
+```bash
 juju integrate kafka-connect self-signed-certificates
 ```
 
 Use the `juju status --watch 2s` command to continuously probe your model's status. After a couple of minutes, all the applications should be in `active|idle` state, and you should see an output like the following, with 7 applications and 13 units:
 
-```shell
+```text
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
 tutorial  overlord    localhost/localhost  3.6.4    unsupported  17:09:25+08:00
 
@@ -143,19 +143,19 @@ For more information on how to access a PostgreSQL database using the PostgreSQL
 
 First, download the SQL script from the GitHub gist:
 
-```shell
+```bash
 wget https://gist.github.com/imanenami/bc5900ed2b58e0cc980b498d04677095/raw/4169eb100bd65de9264847c822202cd204516aac/populate.sql -O ./populate.sql
 ```
 
 Next, copy the `populate.sql` script to the PostgreSQL unit using the `juju scp` command:
 
-```shell
+```bash
 juju scp populate.sql postgresql/0:/home/ubuntu/populate.sql
 ```
 
 Then, following the [Access PostgreSQL](https://charmhub.io/postgresql/docs/t-access) tutorial, grab the `operator` user's password on PostgreSQL database using the `get-password` action:
 
-```shell
+```bash
 juju run postgresql/leader get-password
 ```
 
@@ -174,7 +174,7 @@ juju ssh postgresql/leader
 
 Once inside the virtual machine, you can use the `psql` command line interface using `operator` user credentials, to create the `tutorial` database:
 
-```shell
+```bash
 psql --host <postgresql-unit-ip> --username operator --password --dbname postgres \
     -c "CREATE DATABASE tutorial"
 ```
@@ -183,14 +183,14 @@ You will be prompted to type the password, which you have obtained previously.
 
 Now, we could use the `populate.sql` script copied earlier into the PostgreSQL unit, to create a table named `posts` with some test data:
 
-```shell
+```bash
 cat /home/ubuntu/populate.sql | \
     psql --host <postgresql-unit-ip> --username operator --password --dbname tutorial
 ```
 
 To ensure that the test data is loaded successfully into the `posts` table, use the following command:
 
-```shell
+```bash
 psql --host <postgresql-unit-ip> --username operator --password --dbname tutorial \
     -c 'SELECT COUNT(*) FROM posts'
 ```
@@ -210,7 +210,7 @@ Log out from the PostgreSQL unit using `exit` command or the `Ctrl+D` keyboard s
 
 Now that you have some data loaded into PostgreSQL, it is time to deploy the `postgresql-connect-integrator` charm to enable integration of PostgreSQL and Kafka Connect applications. First, deploy the charm using `juju deploy` command and provide the minimum necessary configurations:
 
-```shell
+```bash
 juju deploy postgresql-connect-integrator \
     --channel edge \
     --config mode=source \
@@ -222,7 +222,7 @@ Each Kafka Connect integrator application needs at least two relations to activa
 
 Therefore, in order to activate this particular integrator charm, use the `juju integrate` command to integrate it with the Kafka Connect and PostgreSQL applications:
 
-```shell
+```bash
 juju integrate postgresql-connect-integrator postgresql
 juju integrate postgresql-connect-integrator kafka-connect
 ```
@@ -241,7 +241,7 @@ This means that the integrator application is actively copying data from the sou
 
 You are almost done with the ETL task, the only remaining part is to move data from Apache Kafka to Opensearch. To achieve that, you need to deploy another Kafka Connect integrator named `opensearch-connect-integrator` in `sink` mode:
 
-```shell
+```bash
 juju deploy opensearch-connect-integrator \
     --channel edge \
     --config mode=sink \
@@ -252,7 +252,7 @@ The above command would deploy an integrator application to move messages publis
 
 To activate the `opensearch-connect-integrator`, make the necessary integrations:
 
-```shell
+```bash
 juju integrate opensearch-connect-integrator opensearch
 juju integrate opensearch-connect-integrator kafka-connect
 ```
@@ -272,7 +272,7 @@ Now it's time to verify that the data is being copied from the PostgreSQL databa
 
 First, retrieve the admin user credentials for Opensearch using `get-password` action:
 
-```shell
+```bash
 juju run opensearch/leader get-password
 ```
 
@@ -285,7 +285,7 @@ username: admin
 
 Now, using the password obtained above, send a request to the topic's `_search` endpoint, either using your browser or `curl`:
 
-```shell
+```bash
 curl -u admin:<admin-password> -k -X GET https://<opensearch-unit-ip>:9200/etl_posts/_search
 ```
 
@@ -317,13 +317,13 @@ You will get a JSON response containing the search results, which should have 5 
 
 Now let's insert a new post into the PostgreSQL database. First SSH in to the PostgreSQL leader unit:
 
-```shell
+```bash
 juju ssh postgresql/leader
 ```
 
 Then, insert a new post using following command and the password you obtained in step 4:
 
-```shell
+```bash
 psql --host <postgresql-unit-ip> --username operator --password --dbname tutorial -c \ 
     "INSERT INTO posts (content, likes) VALUES ('my new post', 1)"
 ```
@@ -332,7 +332,7 @@ Log out from the PostgreSQL unit using `exit` command or the `Ctrl+D` keyboard s
 
 Then, check that the data is automatically copied to the Opensearch index:
 
-```shell
+```bash
 curl -u admin:<admin-password> -k -X GET https://<opensearch-unit-ip>:9200/etl_posts/_search
 ```
 
