@@ -161,14 +161,14 @@ juju run postgresql/leader get-password
 
 Sample output:
 
-```
+```text
 ...
 password: bQOUgw8ZZgUyPA6n
 ```
 
 Make note of the password, and ssh into the PostgreSQL unit:
 
-```
+```bash
 juju ssh postgresql/leader
 ```
 
@@ -197,7 +197,7 @@ psql --host <postgresql-unit-ip> --username operator --password --dbname tutoria
 
 Which should have an output like the following, indicating that 5 rows have been added to the `posts` table: 
 
-```shell
+```text
  count 
 -------
      5
@@ -229,7 +229,7 @@ juju integrate postgresql-connect-integrator kafka-connect
 
 After a couple of minutes, `juju status` command should show the `postgresql-connect-integrator` in `active|idle` state, with a message indicating that the ETL task is running:
 
-```
+```text
 ...
 postgresql-connect-integrator/0*  active    idle   13       10.38.169.83    8080/tcp  Task Status: RUNNING
 ...
@@ -259,10 +259,9 @@ juju integrate opensearch-connect-integrator kafka-connect
 
 Wait a couple of minutes and run `juju status`, now both `opensearch-connect-integrator` and `postgresql-connect-integrator` applications should be in `active|idle` state, showing a message indicating that the ETL task is running:
 
-```
+```text
 ...
 opensearch-connect-integrator/0*  active    idle   14       10.38.169.108   8080/tcp  Task Status: RUNNING
-...
 postgresql-connect-integrator/0*  active    idle   13       10.38.169.83    8080/tcp  Task Status: RUNNING
 ...
 ```
@@ -278,7 +277,7 @@ juju run opensearch/leader get-password
 ```
 
 Sample output:
-```
+```text
 ...
 password: GoCNE5KdFywT4nF1GSrwpAGyqRLecSXC
 username: admin
@@ -292,7 +291,7 @@ curl -u admin:<admin-password> -k -X GET https://<opensearch-unit-ip>:9200/etl_p
 
 You will get a JSON response containing the search results, which should have 5 documents. A truncated sample output is shown below (Note the `hits.total` value which should be 5):
 
-```
+```text
 {
   "took": 15,
   "timed_out": false, 
@@ -339,7 +338,7 @@ curl -u admin:<admin-password> -k -X GET https://<opensearch-unit-ip>:9200/etl_p
 
 Which now should have 6 hits (output is truncated):
 
-```
+```text
 {
 ...
   "hits": {
