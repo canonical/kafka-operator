@@ -211,7 +211,7 @@ psql --host <postgresql-unit-ip> --username operator --password --dbname postgre
 
 You will be prompted to type the password, which you have obtained previously.
 
-Now, we could use the `populate.sql` script copied earlier into the PostgreSQL unit, to create a table named `posts` with some test data:
+Now, we can use the `populate.sql` script copied earlier into the PostgreSQL unit, to create a table named `posts` with some test data:
 
 ```bash
 cat /home/ubuntu/populate.sql | \
@@ -298,7 +298,7 @@ postgresql-connect-integrator/0*  active    idle   13       10.38.169.83    8080
 
 ## 7. Verify the data is being copied
 
-Now it's time to verify that the data is being copied from the PostgreSQL database to the Opensearch index. We could use the Opensearch REST API for that purpose.
+Now it's time to verify that the data is being copied from the PostgreSQL database to the Opensearch index. We can use the Opensearch REST API for that purpose.
 
 First, retrieve the admin user credentials for Opensearch using `get-password` action:
 
