@@ -315,7 +315,7 @@ You will get a JSON response containing the search results, which should have 5 
 
 ```
 
-Now let's insert a new post into the PostgreSQL database. First ssh into the PostgreSQL leader unit:
+Now let's insert a new post into the PostgreSQL database. First SSH in to the PostgreSQL leader unit:
 
 ```shell
 juju ssh postgresql/leader
