@@ -30,7 +30,8 @@ Unit                         Workload  Agent  Machine  Public address  Ports    
 data-integrator/0*           active    idle   8        10.38.169.159             
 kafka/0                      active    idle   5        10.38.169.139             
 kafka/1*                     active    idle   6        10.38.169.92              
-kafka/2                      active    idle   7        10.38.169.70              
+kafka/2                      active    idle   7        10.38.169.70
+self-signed-certificates/0*  active    idle   9        10.38.169.82                            
 zookeeper/0*                 active    idle   0        10.38.169.164             
 zookeeper/1                  active    idle   1        10.38.169.81              
 zookeeper/2                  active    idle   2        10.38.169.72              
@@ -71,13 +72,12 @@ juju model-config --file=./cloudinit-userdata.yaml
 
 ## 2. Deploy the databases and Kafka Connect charms
 
-Deploy the PostgreSQL, Opensearch, and Kafka Connect charms using the following commands. Since the Opensearch charm requires a TLS relation to become active, we will also need to deploy a TLS operator. We will be using the [`self-signed-certificates` charm](https://charmhub.io/self-signed-certificates) in this tutorial:
+Deploy the PostgreSQL, Opensearch, and Kafka Connect charms using the following commands. Since the Opensearch charm requires a TLS relation to become active, we will also need a TLS operator, for which We will be using the [`self-signed-certificates` charm](https://charmhub.io/self-signed-certificates) that was deployed in the [Enable Encryption](https://charmhub.io/kafka/docs/t-enable-encryption) part of the Charmed Kafka's Tutorial.
 
 ```bash
 juju deploy kafka-connect --channel edge
 juju deploy postgresql --channel 14/stable
 juju deploy opensearch --channel 2/edge --config profile=testing
-juju deploy self-signed-certificates
 ```
 
 ## 3. Make necessary integrations to activate the applications
@@ -119,13 +119,13 @@ zookeeper                 3.8.4    active      5  zookeeper                 3/st
 
 Unit                         Workload  Agent  Machine  Public address  Ports     Message
 data-integrator/0*           active    idle   8        10.38.169.159             
-kafka-connect/0*             active    idle   9        10.38.169.23    8083/tcp  
+kafka-connect/0*             active    idle   10        10.38.169.23    8083/tcp  
 kafka/0                      active    idle   5        10.38.169.139             
 kafka/1*                     active    idle   6        10.38.169.92              
 kafka/2                      active    idle   7        10.38.169.70              
-opensearch/0*                active    idle   10       10.38.169.172   9200/tcp  
+opensearch/0*                active    idle   11       10.38.169.172   9200/tcp  
 postgresql/0*                active    idle   12       10.38.169.121   5432/tcp  Primary
-self-signed-certificates/0*  active    idle   11       10.38.169.82              
+self-signed-certificates/0*  active    idle   9       10.38.169.82              
 zookeeper/0*                 active    idle   0        10.38.169.164             
 zookeeper/1                  active    idle   1        10.38.169.81              
 zookeeper/2                  active    idle   2        10.38.169.72              
