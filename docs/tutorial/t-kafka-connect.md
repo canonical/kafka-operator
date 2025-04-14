@@ -135,22 +135,52 @@ zookeeper/4                  active    idle   4        10.38.169.215
 
 ## 4. Load some test data into the PostgreSQL database
 
-In a real-world scenario, you will have some application writing data in PostgreSQL database(s). However, for the sake of this tutorial, we will be generating some test data using the SQL script provided in [this GitHub gist](https://gist.github.com/imanenami/bc5900ed2b58e0cc980b498d04677095) and load it into a PostgreSQL database using the `psql` bin command shipped with the PostgreSQL charm.
+In a real-world scenario, you will have some application writing data in PostgreSQL database(s). However, for the sake of this tutorial, we will be generating some test data using a simple SQL script and load it into a PostgreSQL database using the `psql` bin command shipped with the PostgreSQL charm.
 
 [Note]
 For more information on how to access a PostgreSQL database using the PostgreSQL charm, refer to [Access PostgreSQL](https://charmhub.io/postgresql/docs/t-access) section of the Charmed PostgreSQL tutorial.
 [/Note]
 
-First, download the SQL script from the GitHub gist:
+First, create the SQL script in the `/tmp/populate.sql` path, using the following command:
 
 ```bash
-wget https://gist.github.com/imanenami/bc5900ed2b58e0cc980b498d04677095/raw/4169eb100bd65de9264847c822202cd204516aac/populate.sql -O ./populate.sql
+cat <<EOF > /tmp/populate.sql
+CREATE TABLE posts (
+  id serial not null primary key,
+  content text not null,
+  likes int default null,
+  created_at timestamp with time zone not null default now()
+);
+
+INSERT INTO posts (content, likes) 
+VALUES 
+  (
+    'Charmed Apache Kafka is an open-source operator that makes it easier to manage Apache Kafka, with built-in support for enterprise features.', 
+    150
+  ), 
+  (
+    'Apache Kafka is a free, open-source software project by the Apache Software Foundation. Users can find out more at the Apache Kafka project page.', 
+    200
+  ), 
+  (
+    'Charmed Apache Kafka is built on top of Juju and reliably simplifies the deployment, scaling, design, and management of Apache Kafka in production', 
+    100
+  ), 
+  (
+    'Charmed Apache Kafka is a solution designed and developed to help ops teams and administrators automate Apache Kafka operations from Day 0 to Day 2, across multiple cloud environments and platforms.', 
+    1000
+  ), 
+  (
+    'Charmed Apache Kafka is developed and supported by Canonical, as part of its commitment to provide open-source, self-driving solutions, seamlessly integrated using the Operator Framework Juju. Please refer to Charmhub, for more charmed operators that can be integrated by Juju.', 
+    60
+  );
+EOF
 ```
 
 Next, copy the `populate.sql` script to the PostgreSQL unit using the `juju scp` command:
 
 ```bash
-juju scp populate.sql postgresql/0:/home/ubuntu/populate.sql
+juju scp /tmp/populate.sql postgresql/0:/home/ubuntu/populate.sql
 ```
 
 Then, following the [Access PostgreSQL](https://charmhub.io/postgresql/docs/t-access) tutorial, grab the `operator` user's password on PostgreSQL database using the `get-password` action:
