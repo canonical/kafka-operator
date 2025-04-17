@@ -113,7 +113,7 @@
         "y": 1
       },
       "id": 647,
-      "interval": "30s",
+      "interval": null,
       "links": [],
       "mappingType": 1,
       "mappingTypes": [
@@ -206,7 +206,7 @@
         "y": 1
       },
       "id": 233,
-      "interval": "30s",
+      "interval": null,
       "links": [],
       "mappingType": 1,
       "mappingTypes": [

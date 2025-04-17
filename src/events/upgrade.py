@@ -162,12 +162,3 @@ class KafkaUpgrade(DataUpgrade):
             # only set to relation data when all set
             for username, password in internal_user_credentials:
                 self.charm.state.cluster.update({f"{username}-password": password})
-
-        # Rev.179 - broker_capacities needs setting if not already set
-        if self.charm.state.runs_broker:
-            self.charm.state.unit_broker.update(
-                {
-                    "cores": str(self.charm.broker.balancer_manager.cores),
-                    "rack": self.charm.broker.config_manager.rack,
-                }
-            )

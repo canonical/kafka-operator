@@ -69,7 +69,7 @@ groups:
   # Controller and Partitions
   # =========================
   - alert: Active Controllers
-    expr: sum(kafka_controller_kafkacontroller_activecontrollercount{juju_charm!=".*"}) == 0
+    expr: sum(kafka_controller_kafkacontroller_activecontrollercount{juju_charm!=".*"}) != 1
     for: 1m
     labels:
       severity: critical
