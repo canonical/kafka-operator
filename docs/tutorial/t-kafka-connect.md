@@ -2,7 +2,7 @@
 
 In this part of the tutorial, we are going to use [Kafka Connect](https://kafka.apache.org/documentation/#connect) - an ETL framework on top of Apache Kafka - to seamlessly move data between different charmed database technologies.
 
-We will follow a step-by-step process for moving data between [Canonical Data Platform charms](https://canonical.com/data) using Kafka Connect. Specifically, we will showcase a particular use-case of loading data from a relational database, i.e. PostgreSQL, to a document store and search engine, i.e. Opensearch, entirely using charmed solutions.
+We will follow a step-by-step process for moving data between [Canonical Data Platform charms](https://canonical.com/data) using Kafka Connect. Specifically, we will showcase a particular use-case of loading data from a relational database, i.e. PostgreSQL, to a document store and search engine, i.e. OpenSearch, entirely using charmed solutions.
 
 By the end, you should be able to use Kafka Connect integrator and Kafka Connect charms to streamline data ETL tasks on Canonical Data Platform charmed solutions.
 
@@ -278,7 +278,8 @@ juju deploy opensearch-connect-integrator \
     --config topics="etl_posts"
 ```
 
-The above command would deploy an integrator application to move messages published into the `etl_posts` topic to an index in Opensearch named `etl_posts`. We know that the `etl_posts` topic is being filled by the `postgresql-connect-integrator` charm we deployed in step 5.
+The above command deploys an integrator application to move messages from the `etl_posts` topic to the index in OpenSearch named `etl_posts`. 
+And the `etl_posts` topic is filled by the `postgresql-connect-integrator` charm we deployed earlier.
 
 To activate the `opensearch-connect-integrator`, make the necessary integrations:
 
@@ -298,9 +299,10 @@ postgresql-connect-integrator/0*  active    idle   13       10.38.169.83    8080
 
 ## 7. Verify the data is being copied
 
-Now it's time to verify that the data is being copied from the PostgreSQL database to the Opensearch index. We can use the Opensearch REST API for that purpose.
+Now it's time to verify that the data is being copied from the PostgreSQL database to the OpenSearch index. 
+We can use the OpenSearch REST API for that purpose.
 
-First, retrieve the admin user credentials for Opensearch using `get-password` action:
+First, retrieve the admin user credentials for OpenSearch using `get-password` action:
 
 ```bash
 juju run opensearch/leader get-password
@@ -360,7 +362,7 @@ psql --host <postgresql-unit-ip> --username operator --password --dbname tutoria
 
 Log out from the PostgreSQL unit using `exit` command or the `Ctrl+D` keyboard shortcut.
 
-Then, check that the data is automatically copied to the Opensearch index:
+Then, check that the data is automatically copied to the OpenSearch index:
 
 ```bash
 curl -u admin:<admin-password> -k -X GET https://<opensearch-unit-ip>:9200/etl_posts/_search
@@ -380,4 +382,4 @@ Which now should have 6 hits (output is truncated):
 }
 ```
 
-Congratualtions! You have successfully deployed an ETL job to move data continuously from PostgreSQL to Opensearch, entirely using charmed solutions.
+Congratulations! You have successfully completed an ETL job that continuously moves data from PostgreSQL to OpenSearch, using entirely charmed solutions.
