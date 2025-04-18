@@ -8,10 +8,10 @@ By the end, you should be able to use Kafka Connect integrator and Kafka Connect
 
 ## Prerequisites
 
-We will be deploying different charmed data solutions including PostgreSQL and Opensearch. If you require more information or face issues deploying any of the mentioned products, you should consult the respective documentations:
+We will be deploying different charmed data solutions including PostgreSQL and OpenSearch. If you require more information or face issues deploying any of the mentioned products, you should consult the respective documentations:
 
 - For PostgreSQL, refer to [Charmed PostgreSQL tutorial](https://charmhub.io/postgresql/docs/t-overview).
-- For Opensearch, refer to [Charmed Opensearch tutorial](https://charmhub.io/opensearch/docs/tutorial).
+- For OpenSearch, refer to [Charmed OpenSearch tutorial](https://charmhub.io/opensearch/docs/tutorial).
 
 ## Check current deployment
 
@@ -39,9 +39,9 @@ zookeeper/3                  active    idle   3        10.38.169.119
 zookeeper/4                  active    idle   4        10.38.169.215             
 ```
 
-## Set the necessary kernel properties for Opensearch
+## Set the necessary kernel properties for OpenSearch
 
-Since we will be deploying the Opensearch charm, we need to make necessary kernel configurations required for Opensearch charm to function properly, [described in detail here](https://charmhub.io/opensearch/docs/t-set-up#p-24545-set-kernel-parameters). This basically means running the following commands:
+Since we will be deploying the OpenSearch charm, we need to make necessary kernel configurations required for OpenSearch charm to function properly, [described in detail here](https://charmhub.io/opensearch/docs/t-set-up#p-24545-set-kernel-parameters). This basically means running the following commands:
 
 ```bash
 sudo tee -a /etc/sysctl.conf > /dev/null <<EOT
@@ -72,7 +72,7 @@ juju model-config --file=./cloudinit-userdata.yaml
 
 ## Deploy the databases and Kafka Connect charms
 
-Deploy the PostgreSQL, Opensearch, and Kafka Connect charms:
+Deploy the PostgreSQL, OpenSearch, and Kafka Connect charms:
 
 ```bash
 juju deploy kafka-connect --channel edge
@@ -80,12 +80,12 @@ juju deploy postgresql --channel 14/stable
 juju deploy opensearch --channel 2/stable --config profile=testing
 ```
 
-Opensearch charm requires a TLS relation to become active. We will use the [`self-signed-certificates` charm](https://charmhub.io/self-signed-certificates) that was deployed earlier in the [Enable Encryption](https://charmhub.io/kafka/docs/t-enable-encryption) part of this Tutorial.
+OpenSearch charm requires a TLS relation to become active. We will use the [`self-signed-certificates` charm](https://charmhub.io/self-signed-certificates) that was deployed earlier in the [Enable Encryption](https://charmhub.io/kafka/docs/t-enable-encryption) part of this Tutorial.
 ## Enable TLS
 
-Using the `juju status` command, you should see that the Kafka Connect and Opensearch applications are in `blocked` state. In order to activate them, we need to make necessary integrations using the `juju integrate` command.
+Using the `juju status` command, you should see that the Kafka Connect and OpenSearch applications are in `blocked` state. In order to activate them, we need to make necessary integrations using the `juju integrate` command.
 
-First, activate the Opensearch application by integrating it with the TLS operator:
+First, activate the OpenSearch application by integrating it with the TLS operator:
 
 ```bash
 juju integrate opensearch self-signed-certificates
@@ -275,7 +275,7 @@ For example, rows in the `posts` table will be published into the Apache Kafka t
 
 ## Deploy and integrate the `opensearch-connect-integrator` charm
 
-You are almost done with the ETL task, the only remaining part is to move data from Apache Kafka to Opensearch. 
+You are almost done with the ETL task, the only remaining part is to move data from Apache Kafka to OpenSearch. 
 To do that, deploy another Kafka Connect integrator named `opensearch-connect-integrator` in the `sink` mode:
 
 ```bash
