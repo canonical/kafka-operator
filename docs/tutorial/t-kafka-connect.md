@@ -70,7 +70,7 @@ EOF
 juju model-config --file=./cloudinit-userdata.yaml
 ```
 
-## 2. Deploy the databases and Kafka Connect charms
+## Deploy the databases and Kafka Connect charms
 
 Deploy the PostgreSQL, Opensearch, and Kafka Connect charms using the following commands. Since the Opensearch charm requires a TLS relation to become active, we will also need a TLS operator, for which We will be using the [`self-signed-certificates` charm](https://charmhub.io/self-signed-certificates) that was deployed in the [Enable Encryption](https://charmhub.io/kafka/docs/t-enable-encryption) part of the Charmed Kafka's Tutorial.
 
@@ -80,7 +80,7 @@ juju deploy postgresql --channel 14/stable
 juju deploy opensearch --channel 2/edge --config profile=testing
 ```
 
-## 3. Make necessary integrations to activate the applications
+## Enable TLS
 
 Using the `juju status` command, you should see that the Kafka Connect and Opensearch applications are in `blocked` state. In order to activate them, we need to make necessary integrations using the `juju integrate` command.
 
@@ -133,7 +133,7 @@ zookeeper/3                  active    idle   3        10.38.169.119
 zookeeper/4                  active    idle   4        10.38.169.215             
 ```
 
-## 4. Load some test data into the PostgreSQL database
+## Load test data
 
 In a real-world scenario, you will have some application writing data in PostgreSQL database(s). However, for the sake of this tutorial, we will be generating some test data using a simple SQL script and load it into a PostgreSQL database using the `psql` bin command shipped with the PostgreSQL charm.
 
@@ -236,7 +236,7 @@ Which should have an output like the following, indicating that 5 rows have been
 
 Log out from the PostgreSQL unit using `exit` command or the `Ctrl+D` keyboard shortcut.
 
-## 5. Deploy and integrate the `postgresql-connect-integrator` charm
+## Deploy and integrate the `postgresql-connect-integrator` charm
 
 Now that you have some data loaded into PostgreSQL, it is time to deploy the `postgresql-connect-integrator` charm to enable integration of PostgreSQL and Kafka Connect applications. First, deploy the charm in `source` mode using the `juju deploy` command and provide the minimum necessary configurations:
 
@@ -297,7 +297,7 @@ postgresql-connect-integrator/0*  active    idle   13       10.38.169.83    8080
 ...
 ```
 
-## 7. Verify the data is being copied
+## Verify data transfer
 
 Now it's time to verify that the data is being copied from the PostgreSQL database to the OpenSearch index. 
 We can use the OpenSearch REST API for that purpose.
