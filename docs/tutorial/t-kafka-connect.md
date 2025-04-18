@@ -206,7 +206,7 @@ juju ssh postgresql/leader
 Once connected to the unit, use the `psql` command line tool with the `operator` user credentials, to create the database named `tutorial`:
 
 ```bash
-psql --host <postgresql-unit-ip> --username operator --password --dbname postgres \
+psql --host $(hostname -i) --username operator --password --dbname postgres \
     -c "CREATE DATABASE tutorial"
 ```
 
@@ -216,13 +216,13 @@ Now, we can use the `populate.sql` script copied earlier into the PostgreSQL uni
 
 ```bash
 cat populate.sql | \
-    psql --host <postgresql-unit-ip> --username operator --password --dbname tutorial
+    psql --host $(hostname -i) --username operator --password --dbname tutorial
 ```
 
 To ensure that the test data is loaded successfully into the `posts` table, use the following command:
 
 ```bash
-psql --host <postgresql-unit-ip> --username operator --password --dbname tutorial \
+psql --host $(hostname -i) --username operator --password --dbname tutorial \
     -c 'SELECT COUNT(*) FROM posts'
 ```
 
@@ -365,7 +365,7 @@ juju ssh postgresql/leader
 Then, insert a new post using following command and the password for the `operator` user on the PostgreSQL:
 
 ```bash
-psql --host <postgresql-unit-ip> --username operator --password --dbname tutorial -c \ 
+psql --host $(hostname -i) --username operator --password --dbname tutorial -c \ 
     "INSERT INTO posts (content, likes) VALUES ('my new post', 1)"
 ```
 
