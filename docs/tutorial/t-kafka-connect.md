@@ -13,7 +13,7 @@ We will be deploying different charmed data solutions including PostgreSQL and O
 - For PostgreSQL, refer to [Charmed PostgreSQL tutorial](https://charmhub.io/postgresql/docs/t-overview).
 - For Opensearch, refer to [Charmed Opensearch tutorial](https://charmhub.io/opensearch/docs/tutorial).
 
-## 0. Check current deployment
+## Check current deployment
 
 Up to this point, we should have a 3-unit Apache Kafka application, related to a 5-unit ZooKeeper application. That means the `juju status` command should show an output similar to the following:
 
@@ -39,7 +39,7 @@ zookeeper/3                  active    idle   3        10.38.169.119
 zookeeper/4                  active    idle   4        10.38.169.215             
 ```
 
-## 1. Set the necessary kernel properties for Opensearch
+## Set the necessary kernel properties for Opensearch
 
 Since we will be deploying the Opensearch charm, we need to make necessary kernel configurations required for Opensearch charm to function properly, [described in detail here](https://charmhub.io/opensearch/docs/t-set-up#p-24545-set-kernel-parameters). This basically means running the following commands:
 
@@ -273,7 +273,7 @@ postgresql-connect-integrator/0*  active    idle   13       10.38.169.83    8080
 This means that the integrator application is actively copying data from the source database (named `tutorial`) into Apache Kafka topics prefixed with `etl_`. 
 For example, rows in the `posts` table will be published into the Apache Kafka topic named `etl_posts`.
 
-## 6. Deploy and integrate the `opensearch-connect-integrator` charm
+## Deploy and integrate the `opensearch-connect-integrator` charm
 
 You are almost done with the ETL task, the only remaining part is to move data from Apache Kafka to Opensearch. 
 To do that, deploy another Kafka Connect integrator named `opensearch-connect-integrator` in the `sink` mode:
