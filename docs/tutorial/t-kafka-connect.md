@@ -1,4 +1,4 @@
-# Move Data Between Data Platform Charms using Kafka Connect
+# Using Kafka Connect for ETL
 
 In this part of the tutorial, we are going to use [Kafka Connect](https://kafka.apache.org/documentation/#connect) - an ETL framework on top of Apache Kafka - to seamlessly move data between different charmed database technologies.
 
