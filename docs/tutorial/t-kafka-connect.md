@@ -142,7 +142,7 @@ In a real-world scenario, an application would typically write data to a Postgre
 For more information on how to access a PostgreSQL database in the PostgreSQL charm, refer to [Access PostgreSQL](https://charmhub.io/postgresql/docs/t-access) page of the Charmed PostgreSQL tutorial.
 [/note]
 
-First, create the SQL script in the `/tmp/populate.sql` path, using the following command:
+First, create a SQL script by running the following command:
 
 ```bash
 cat <<EOF > /tmp/populate.sql
