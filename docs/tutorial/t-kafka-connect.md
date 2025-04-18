@@ -323,10 +323,16 @@ password: GoCNE5KdFywT4nF1GSrwpAGyqRLecSXC
 username: admin
 ```
 
+Then, retrieve the OpenSearch unit IP and save it into an environment variable:
+
+```bash
+OPENSEARCH_IP=$(juju ssh opensearch/0 'hostname -i')
+```
+
 Now, using the password obtained above, send a request to the topic's `_search` endpoint, either using your browser or `curl`:
 
 ```bash
-curl -u admin:<admin-password> -k -X GET https://<opensearch-unit-ip>:9200/etl_posts/_search
+curl -u admin:<admin-password> -k -X GET https://$OPENSEARCH_IP:9200/etl_posts/_search
 ```
 
 As a result you get a JSON response containing the search results, which should have five documents. 
@@ -374,7 +380,7 @@ Log out from the PostgreSQL unit using `exit` command or the `Ctrl+D` keyboard s
 Then, check that the data is automatically copied to the OpenSearch index:
 
 ```bash
-curl -u admin:<admin-password> -k -X GET https://<opensearch-unit-ip>:9200/etl_posts/_search
+curl -u admin:<admin-password> -k -X GET https://$OPENSEARCH_IP:9200/etl_posts/_search
 ```
 
 Which now should have six hits (output is truncated):
