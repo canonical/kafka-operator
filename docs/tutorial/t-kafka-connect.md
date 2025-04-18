@@ -77,7 +77,7 @@ Deploy the PostgreSQL, Opensearch, and Kafka Connect charms:
 ```bash
 juju deploy kafka-connect --channel edge
 juju deploy postgresql --channel 14/stable
-juju deploy opensearch --channel 2/edge --config profile=testing
+juju deploy opensearch --channel 2/stable --config profile=testing
 ```
 
 Opensearch charm requires a TLS relation to become active. We will use the [`self-signed-certificates` charm](https://charmhub.io/self-signed-certificates) that was deployed earlier in the [Enable Encryption](https://charmhub.io/kafka/docs/t-enable-encryption) part of this Tutorial.
