@@ -2,9 +2,11 @@
 
 For general Juju unit management process, see the [Juju documentation](https://juju.is/docs/juju/manage-units).
 
-## Scale the cluster
+## Scaling
 
-Scaling the cluster (adding or removing units) does not lead automatically to rebalancing existing topics and partitions. The rebalancing needs to be done manually, before removing units or after adding them.
+[note]
+Scaling a Charmed Apache Kafka cluster does not automatically rebalance existing topics and partitions. Rebalancing must be performed manually—before scaling in or after scaling out.
+[/note]
 
 ### Add units
 
@@ -16,7 +18,7 @@ juju add-unit kafka -n <num_brokers_to_add>
 
 See the `juju add-unit` [command reference](https://documentation.ubuntu.com/juju/latest/reference/juju-cli/list-of-juju-cli-commands/add-unit/).
 
-Make sure to reassign partitions and topics to use newly added units for existing topics and partitions. See below for guidance.
+Make sure to reassign partitions and topics to use newly added units. See below for guidance.
 
 ### Remove units
 
@@ -34,7 +36,7 @@ See the `juju remove-unit` [command reference](https://documentation.ubuntu.com/
 
 ### Partition reassignment
 
-When brokers are added or removed, the Apache Kafka cluster does not *automatically* rebalance existing topics and partitions.
+When brokers are added or removed, Apache Kafka does not automatically rebalance existing topics and partitions across the new set of brokers.
 
 Without reassignment or rebalancing:
 
@@ -99,11 +101,11 @@ Those files also need to be accessible and correctly specified.
 
 Commands can also be run within an Apache Kafka broker, since both the authentication 
 file (along with the truststore if needed) and the Charmed Apache Kafka snap are 
-already present. 
+already present. For example, see below.
 
-#### Listing topics example
+#### List topics
 
-For instance, to list the current topics on the Apache Kafka cluster, run:
+To list the current topics on the Apache Kafka cluster, using credentials from inside the cluster, run:
 
 ```
 juju ssh kafka/leader 'charmed-kafka.topics --bootstrap-server $BOOTSTRAP_SERVERS --list --command-config /var/snap/charmed-kafka/common/etc/kafka/client.properties'
