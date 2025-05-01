@@ -236,7 +236,7 @@ class TLSManager:
         """Cleans up all keys/certs/stores on a unit."""
         for pattern in ["*.pem", "*.key", "*.p12", "*.jks"]:
             for path in (self.workload.root / self.workload.paths.conf_path).glob(pattern):
-                self.workload.exec(command=["rm", "-f", f"{path}"])
+                path.unlink()
 
     def reload_truststore(self) -> None:
         """Reloads the truststore using `kafka-configs` utility without restarting the broker."""
