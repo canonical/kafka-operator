@@ -22,7 +22,8 @@ STORAGE = "data"
 # FIXME (24.04): From snapd 2.61 onwards, snap_daemon is being deprecated and replaced with _daemon_,
 # which now possesses a UID of 584792.
 # See https://snapcraft.io/docs/system-usernames.
-USER = 584788
+USER_ID = 584788
+USER_NAME = "snap_daemon"
 GROUP = "root"
 
 # FIXME: these need better names

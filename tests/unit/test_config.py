@@ -345,10 +345,11 @@ def test_oauth_client_listeners_in_server_properties(ctx: Context, base_state: S
 
 
 def test_ssl_listeners_in_server_properties(
-    ctx: Context, base_state: State, zk_data: dict[str, str]
+    ctx: Context, base_state: State, zk_data: dict[str, str], patched_exec
 ) -> None:
     """Checks that listeners are added after TLS relation are created."""
     # Given
+    patched_exec.return_value = ""
     cluster_peer = PeerRelation(
         PEER,
         PEER,

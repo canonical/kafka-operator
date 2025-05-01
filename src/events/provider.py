@@ -108,7 +108,7 @@ class KafkaProvider(Object):
         """
         if (
             # don't remove anything if app is going down
-            self.charm.app.planned_units == 0
+            self.charm.app.planned_units() == 0
             or not self.charm.unit.is_leader()
             or not self.charm.state.cluster
         ):
