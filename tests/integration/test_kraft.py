@@ -109,17 +109,14 @@ class TestKRaft:
                 trust=True,
             )
 
+        status = "active" if self.controller_app == APP_NAME else "blocked"
         await ops_test.model.wait_for_idle(
             apps=list({APP_NAME, self.controller_app}),
             idle_period=30,
             timeout=1800,
             raise_on_error=False,
+            status=status,
         )
-        if self.controller_app != APP_NAME:
-            assert ops_test.model.applications[APP_NAME].status == "blocked"
-            assert ops_test.model.applications[self.controller_app].status == "blocked"
-        else:
-            assert ops_test.model.applications[APP_NAME].status == "active"
 
     @pytest.mark.abort_on_fail
     async def test_integrate(self, ops_test: OpsTest):
