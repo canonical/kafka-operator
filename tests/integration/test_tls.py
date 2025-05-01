@@ -410,6 +410,10 @@ async def test_tls_removed(ops_test: OpsTest):
         assert not {"pem", "key", "p12", "jks"} & file_extensions
 
 
+# TODO: this test tends to be really flaky and needs treatment.
+@pytest.mark.skipif(
+    os.environ.get("CI") is not None, reason="Flaky on CI, passes 1 out of 3 times on average."
+)
 @pytest.mark.abort_on_fail
 async def test_manual_tls_chain(ops_test: OpsTest):
     await ops_test.model.deploy(MANUAL_TLS_NAME)
