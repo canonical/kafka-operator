@@ -88,7 +88,7 @@ BOOTSTRAP_SERVERS=$(juju run kafka/leader get-admin-credentials | grep "bootstra
 ```
 
 Admin client authentication information is stored in the 
-`/var/snap/charmed-kafka/common/etc/kafka/client.properties` file that is present on every Apache Kafka container. 
+`/var/snap/charmed-kafka/common/etc/kafka/client.properties` file that is present on every Apache Kafka broker. 
 The content of the file can be accessed using `juju ssh` command:
 
 ```
