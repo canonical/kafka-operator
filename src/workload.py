@@ -11,7 +11,7 @@ from typing import Mapping
 
 from charms.operator_libs_linux.v1 import snap
 from ops import Container, pebble
-from tenacity import retry, retry_if_result, stop_after_attempt, wait_fixed
+from tenacity import RetryError, Retrying, stop_after_attempt, wait_fixed
 from typing_extensions import override
 
 from core.workload import CharmedKafkaPaths, WorkloadBase
@@ -40,6 +40,7 @@ class Workload(WorkloadBase):
     def __init__(self, container: Container | None = None) -> None:
         self.container = container
         self.kafka = snap.SnapCache()[SNAP_NAME]
+        self.attempted_start = False
 
     @property
     @override
@@ -50,6 +51,10 @@ class Workload(WorkloadBase):
     def start(self) -> None:
         try:
             self.kafka.start(services=[self.service])
+            # during current hook execution, store state that we've tried to start
+            # state is persisted across deferred events
+            # as such, can check active without slowing down init with workload.active retries
+            self.attempted_start = True
         except snap.SnapError as e:
             logger.exception(str(e))
 
@@ -108,17 +113,21 @@ class Workload(WorkloadBase):
             raise e
 
     @override
-    @retry(
-        wait=wait_fixed(1),
-        stop=stop_after_attempt(5),
-        retry=retry_if_result(lambda result: result is False),
-        retry_error_callback=lambda _: False,
-    )
     def active(self) -> bool:
         try:
-            return bool(self.kafka.services[self.service]["active"])
-        except KeyError:
+            # only attempt retries during 'start' hook executions
+            # when ZK sends relation data, it may be restarting or not have registered the broker yet
+            # so retries only valuable during 'start'
+            if not self.attempted_start:
+                return bool(self.kafka.services[self.service]["active"])
+
+            for attempt in Retrying(stop=stop_after_attempt(5), wait=wait_fixed(3)):
+                with attempt:
+                    return bool(self.kafka.services[self.service]["active"])
+        except (KeyError, RetryError):
             return False
+
+        return False
 
     def install(self) -> bool:
         """Loads the Kafka snap from LP.
