@@ -28,7 +28,7 @@ from literals import (
 
 if SUBSTRATE == "vm":
     from charms.operator_libs_linux.v0.sysctl import ApplyError
-    from charms.operator_libs_linux.v1.snap import SnapError
+    from charms.operator_libs_linux.v2.snap import SnapError
 
     from literals import OS_REQUIREMENTS
 

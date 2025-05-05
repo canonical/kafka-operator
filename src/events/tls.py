@@ -91,9 +91,13 @@ class TLSHandler(Object):
 
         self.charm.state.cluster.update({"tls": "enabled"})
 
-    def _tls_relation_joined(self, _) -> None:
+    def _tls_relation_joined(self, event: RelationJoinedEvent) -> None:
         """Handler for `certificates_relation_joined` event."""
         # generate unit private key if not already created by action
+        if not self.charm.broker.tls_manager.ready:
+            event.defer()
+            return
+
         if not self.charm.state.unit_broker.private_key:
             self.charm.state.unit_broker.update(
                 {"private-key": generate_private_key().decode("utf-8")}
@@ -144,6 +148,10 @@ class TLSHandler(Object):
     def _trusted_relation_joined(self, event: RelationJoinedEvent) -> None:
         """Generate a CSR so the tls-certificates operator works as expected."""
         # Once the certificates have been added, TLS setup has finished
+        if not self.charm.broker.tls_manager.ready:
+            event.defer()
+            return
+
         if not self.charm.state.unit_broker.certificate:
             self.charm._set_status(Status.NO_CERT)
             event.defer()
@@ -177,6 +185,10 @@ class TLSHandler(Object):
     def _trusted_relation_changed(self, event: RelationChangedEvent) -> None:
         """Overrides the requirer logic of TLSInterface."""
         if not event.relation or not event.relation.app:
+            return
+
+        if not self.charm.broker.tls_manager.ready:
+            event.defer()
             return
 
         # Once the certificates have been added, TLS setup has finished
@@ -251,6 +263,10 @@ class TLSHandler(Object):
 
     def _on_certificate_available(self, event: CertificateAvailableEvent) -> None:
         """Handler for `certificates_available` event after provider updates signed certs."""
+        if not self.charm.broker.tls_manager.ready:
+            event.defer()
+            return
+
         if not self.charm.state.peer_relation:
             logger.warning("No peer relation on certificate available")
             event.defer()

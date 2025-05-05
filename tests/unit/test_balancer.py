@@ -282,7 +282,7 @@ def test_ready_to_start_ok(
             return_value="",
         ),
         patch("health.KafkaHealth.machine_configured", return_value=True),
-        patch("charms.operator_libs_linux.v1.snap.SnapCache"),  # specific VM, works fine on k8s
+        patch("charms.operator_libs_linux.v2.snap.SnapCache"),  # specific VM, works fine on k8s
     ):
         state_out = ctx.run(ctx.on.start(), state_in)
 

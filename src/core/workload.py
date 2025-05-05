@@ -205,6 +205,12 @@ class WorkloadBase(ABC):
 
     @property
     @abstractmethod
+    def installed(self) -> bool:
+        """Checks whether the workload service is installed."""
+        ...
+
+    @property
+    @abstractmethod
     def layer(self) -> Layer:
         """Gets the Pebble Layer definition for the current workload."""
         ...
