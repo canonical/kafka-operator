@@ -94,7 +94,7 @@ class TLSHandler(Object):
     def _tls_relation_joined(self, event: RelationJoinedEvent) -> None:
         """Handler for `certificates_relation_joined` event."""
         # generate unit private key if not already created by action
-        if not self.charm.broker.tls_manager.ready:
+        if not self.charm.workload.installed:
             event.defer()
             return
 
@@ -148,7 +148,7 @@ class TLSHandler(Object):
     def _trusted_relation_joined(self, event: RelationJoinedEvent) -> None:
         """Generate a CSR so the tls-certificates operator works as expected."""
         # Once the certificates have been added, TLS setup has finished
-        if not self.charm.broker.tls_manager.ready:
+        if not self.charm.workload.installed:
             event.defer()
             return
 
@@ -187,7 +187,7 @@ class TLSHandler(Object):
         if not event.relation or not event.relation.app:
             return
 
-        if not self.charm.broker.tls_manager.ready:
+        if not self.charm.workload.installed:
             event.defer()
             return
 
@@ -263,7 +263,7 @@ class TLSHandler(Object):
 
     def _on_certificate_available(self, event: CertificateAvailableEvent) -> None:
         """Handler for `certificates_available` event after provider updates signed certs."""
-        if not self.charm.broker.tls_manager.ready:
+        if not self.charm.workload.installed:
             event.defer()
             return
 

@@ -38,11 +38,6 @@ class TLSManager:
 
         self.keytool = "charmed-kafka.keytool" if self.substrate == "vm" else "keytool"
 
-    @property
-    def ready(self) -> bool:
-        """Returns whether the TLS Manager is ready based on workload status."""
-        return self.workload.installed
-
     def generate_alias(self, app_name: str, relation_id: int) -> str:
         """Generate an alias from a relation. Used to identify ca certs."""
         return f"{app_name}-{relation_id}"
