@@ -9,6 +9,7 @@ import os
 import subprocess
 from typing import Mapping
 
+from charmlibs import pathops
 from charms.operator_libs_linux.v1 import snap
 from ops import Container, pebble
 from tenacity import retry, retry_if_result, stop_after_attempt, wait_fixed
@@ -21,7 +22,7 @@ from literals import (
     CHARMED_KAFKA_SNAP_REVISION,
     GROUP,
     SNAP_NAME,
-    USER,
+    USER_NAME,
 )
 
 logger = logging.getLogger(__name__)
@@ -40,6 +41,7 @@ class Workload(WorkloadBase):
     def __init__(self, container: Container | None = None) -> None:
         self.container = container
         self.kafka = snap.SnapCache()[SNAP_NAME]
+        self.root = pathops.LocalPath("/")
 
     @property
     @override
@@ -69,21 +71,14 @@ class Workload(WorkloadBase):
 
     @override
     def read(self, path: str) -> list[str]:
-        if not os.path.exists(path):
-            return []
-        else:
-            with open(path) as f:
-                content = f.read().split("\n")
-
-        return content
+        return (
+            [] if not (self.root / path).exists() else (self.root / path).read_text().split("\n")
+        )
 
     @override
     def write(self, content: str, path: str, mode: str = "w") -> None:
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, mode) as f:
-            f.write(content)
-
-        self.exec(["chown", "-R", f"{USER}:{GROUP}", f"{path}"])
+        (self.root / path).write_text(content, user=USER_NAME, group=GROUP)
 
     @override
     def exec(

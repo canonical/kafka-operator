@@ -14,7 +14,7 @@ from ops.pebble import ExecError
 from core.cluster import ClusterState
 from core.structured_config import CharmConfig
 from core.workload import WorkloadBase
-from literals import GROUP, USER, Substrates
+from literals import GROUP, USER_NAME, Substrates
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +110,7 @@ class TLSManager:
                     command=command.split(), working_dir=self.workload.paths.conf_path
                 )
                 self.workload.exec(
-                    f"chown {USER}:{GROUP} {self.workload.paths.truststore}".split()
+                    f"chown {USER_NAME}:{GROUP} {self.workload.paths.truststore}".split()
                 )
                 self.workload.exec(f"chmod 770 {self.workload.paths.truststore}".split())
             except (subprocess.CalledProcessError, ExecError) as e:
@@ -126,7 +126,7 @@ class TLSManager:
 
         try:
             self.workload.exec(command=command.split(), working_dir=self.workload.paths.conf_path)
-            self.workload.exec(f"chown {USER}:{GROUP} {self.workload.paths.keystore}".split())
+            self.workload.exec(f"chown {USER_NAME}:{GROUP} {self.workload.paths.keystore}".split())
             self.workload.exec(f"chmod 770 {self.workload.paths.keystore}".split())
         except (subprocess.CalledProcessError, ExecError) as e:
             logger.error(e.stdout)
@@ -234,14 +234,9 @@ class TLSManager:
 
     def remove_stores(self) -> None:
         """Cleans up all keys/certs/stores on a unit."""
-        try:
-            self.workload.exec(
-                command=["rm", "-rf", "*.pem", "*.key", "*.p12", "*.jks"],
-                working_dir=self.workload.paths.conf_path,
-            )
-        except (subprocess.CalledProcessError, ExecError) as e:
-            logger.error(e.stdout)
-            raise e
+        for pattern in ["*.pem", "*.key", "*.p12", "*.jks"]:
+            for path in (self.workload.root / self.workload.paths.conf_path).glob(pattern):
+                path.unlink()
 
     def reload_truststore(self) -> None:
         """Reloads the truststore using `kafka-configs` utility without restarting the broker."""

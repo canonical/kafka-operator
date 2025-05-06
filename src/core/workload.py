@@ -9,6 +9,7 @@ import secrets
 import string
 from abc import ABC, abstractmethod
 
+from charmlibs import pathops
 from ops.pebble import Layer
 
 from literals import BALANCER, BROKER, Role
@@ -117,6 +118,7 @@ class WorkloadBase(ABC):
     """Base interface for common workload operations."""
 
     paths: CharmedKafkaPaths
+    root: pathops.PathProtocol
 
     @abstractmethod
     def start(self) -> None:

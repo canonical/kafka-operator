@@ -12,7 +12,7 @@ from tenacity import retry, stop_after_attempt, wait_fixed
 
 from core.cluster import ClusterState
 from core.workload import WorkloadBase
-from literals import GROUP, KRAFT_VERSION, USER
+from literals import GROUP, KRAFT_VERSION, USER_ID
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +63,9 @@ class ControllerManager:
 
         # Drop permissions again for the main process
         self.workload.exec(["chmod", "-R", "750", f"{self.workload.paths.data_path}"])
-        self.workload.exec(["chown", "-R", f"{USER}:{GROUP}", f"{self.workload.paths.data_path}"])
+        self.workload.exec(
+            ["chown", "-R", f"{USER_ID}:{GROUP}", f"{self.workload.paths.data_path}"]
+        )
 
     def generate_uuid(self) -> str:
         """Generate UUID using `kafka-storage.sh` utility."""

@@ -39,7 +39,7 @@ from literals import (
     PEER,
     PROFILE_TESTING,
     REL_NAME,
-    USER,
+    USER_ID,
     Status,
 )
 from managers.auth import AuthManager
@@ -389,7 +389,9 @@ class BrokerOperator(Object):
             )
 
         # all mounted data dirs should have correct ownership
-        self.workload.exec(["chown", "-R", f"{USER}:{GROUP}", f"{self.workload.paths.data_path}"])
+        self.workload.exec(
+            ["chown", "-R", f"{USER_ID}:{GROUP}", f"{self.workload.paths.data_path}"]
+        )
 
         # run this regardless of role, needed for cloud storages + ceph
         for storage in self.charm.state.log_dirs.split(","):

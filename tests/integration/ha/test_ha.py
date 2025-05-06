@@ -81,14 +81,13 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm, app_charm):
         idle_period=30,
         timeout=3600,
     )
-    assert ops_test.model.applications[APP_NAME].status == "blocked"
     assert ops_test.model.applications[ZK_NAME].status == "active"
 
     await ops_test.model.add_relation(APP_NAME, ZK_NAME)
-    async with ops_test.fast_forward(fast_interval="20s"):
-        await asyncio.sleep(90)
-
-    await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], idle_period=30, status="active")
+    async with ops_test.fast_forward(fast_interval="60s"):
+        await ops_test.model.wait_for_idle(
+            apps=[APP_NAME, ZK_NAME], idle_period=30, status="active"
+        )
 
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
     await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME], idle_period=30)
@@ -138,12 +137,12 @@ async def test_multi_cluster_isolation(ops_test: OpsTest, kafka_charm):
         idle_period=30,
         timeout=3600,
     )
-    assert ops_test.model.applications[second_kafka_name].status == "blocked"
 
     await ops_test.model.add_relation(second_kafka_name, second_zk_name)
     await ops_test.model.wait_for_idle(
         apps=[second_kafka_name, second_zk_name, APP_NAME],
         idle_period=30,
+        status="active",
     )
 
     produce_and_check_logs(

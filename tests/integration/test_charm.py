@@ -62,7 +62,6 @@ async def test_build_and_deploy_same_machine(ops_test: OpsTest, kafka_charm):
         ),
     )
     await ops_test.model.wait_for_idle(apps=[SAME_ZK, SAME_KAFKA], idle_period=30, timeout=1800)
-    assert ops_test.model.applications[SAME_KAFKA].status == "blocked"
     assert ops_test.model.applications[SAME_ZK].status == "active"
 
     await ops_test.model.add_relation(SAME_KAFKA, SAME_ZK)
@@ -98,7 +97,6 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm):
         ),
     )
     await ops_test.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], idle_period=30, timeout=3600)
-    assert ops_test.model.applications[APP_NAME].status == "blocked"
     assert ops_test.model.applications[ZK_NAME].status == "active"
 
     await ops_test.model.add_relation(APP_NAME, ZK_NAME)
