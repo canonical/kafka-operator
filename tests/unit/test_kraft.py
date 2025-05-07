@@ -153,7 +153,7 @@ def test_ready_to_start(charm_configuration, base_state: State):
         patch("health.KafkaHealth.machine_configured", return_value=True),
         patch("workload.KafkaWorkload.start"),
         patch("workload.KafkaWorkload.active", return_value=True),
-        patch("charms.operator_libs_linux.v1.snap.SnapCache"),
+        patch("charms.operator_libs_linux.v2.snap.SnapCache"),
     ):
         state_out = ctx.run(ctx.on.start(), state_in)
 

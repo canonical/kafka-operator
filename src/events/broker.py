@@ -9,7 +9,7 @@ import logging
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from charms.operator_libs_linux.v1.snap import SnapError
+from charms.operator_libs_linux.v2.snap import SnapError
 from ops import (
     EventBase,
     InstallEvent,

@@ -10,7 +10,7 @@ import subprocess
 from typing import Mapping
 
 from charmlibs import pathops
-from charms.operator_libs_linux.v1 import snap
+from charms.operator_libs_linux.v2 import snap
 from ops import Container, pebble
 from tenacity import retry, retry_if_result, stop_after_attempt, wait_fixed
 from typing_extensions import override
@@ -114,6 +114,11 @@ class Workload(WorkloadBase):
             return bool(self.kafka.services[self.service]["active"])
         except KeyError:
             return False
+
+    @property
+    @override
+    def installed(self) -> bool:
+        return self.kafka.present
 
     def install(self) -> bool:
         """Loads the Kafka snap from LP.

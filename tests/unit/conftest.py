@@ -43,7 +43,6 @@ def patched_etc_environment():
 
 @pytest.fixture(autouse=True)
 def patched_workload(monkeypatch: pytest.MonkeyPatch):
-
     monkeypatch.setattr("time.sleep", lambda _: None)
     monkeypatch.setattr("workload.Workload.active", lambda _: True)
     monkeypatch.setattr("workload.Workload.write", lambda _, content, path: None)
@@ -149,5 +148,5 @@ def patched_snap(monkeypatch):
     snap_mock.services = defaultdict(default_factory=lambda _: {"active": True})
     cache.return_value = {SNAP_NAME: snap_mock}
     with monkeypatch.context() as m:
-        m.setattr("charms.operator_libs_linux.v1.snap.SnapCache", cache)
+        m.setattr("charms.operator_libs_linux.v2.snap.SnapCache", cache)
         yield

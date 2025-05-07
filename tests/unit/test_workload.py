@@ -10,7 +10,7 @@ from literals import SUBSTRATE
 from workload import KafkaWorkload
 
 if SUBSTRATE == "vm":
-    from charms.operator_libs_linux.v1.snap import SnapError
+    from charms.operator_libs_linux.v2.snap import SnapError
 
 pytestmark = [
     pytest.mark.broker,
