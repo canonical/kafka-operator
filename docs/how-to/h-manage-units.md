@@ -26,10 +26,10 @@ Make sure to reassign partitions and topics to use newly added units. See below 
 Reassign partitions **before** scaling in to ensure that decommissioned units do not hold any data. Failing to do so may lead to data loss.
 [/note]
 
-To decrease the number of Apache Kafka brokers, remove some existing units from the Charmed Apache Kafka K8s application:
+To decrease the number of Apache Kafka brokers, remove some existing units from the Charmed Apache Kafka application:
 
 ```shell
-juju remove-unit kafka-k8s/1 kafka-k8s/2
+juju remove-unit kafka/1 kafka/2
 ```
 
 See the `juju remove-unit` [command reference](https://documentation.ubuntu.com/juju/latest/reference/juju-cli/list-of-juju-cli-commands/remove-unit/).
@@ -47,7 +47,7 @@ Partition reassignment can still be done manually by the admin user by using the
 `charmed-kafka.reassign-partitions` Charmed Apache Kafka bin utility script. 
 For more information on the script usage, refer to [Apache Kafka documentation](https://kafka.apache.org/documentation/#basic_ops_partitionassignment). 
 
-[LinkedIn’s Cruise Control](https://github.com/linkedin/cruise-control) can be used for semi-automatic rebalancing. For guidance on how to use it with Charmed Apache Kafka K8s, see our [Tutorial](/t/15402).
+[LinkedIn’s Cruise Control](https://github.com/linkedin/cruise-control) can be used for semi-automatic rebalancing. For guidance on how to use it with Charmed Apache Kafka, see our [Tutorial](/t/17018).
 
 ## Admin utility scripts
 
