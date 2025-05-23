@@ -71,6 +71,7 @@ The Charmed Apache Kafka Operator is free software, distributed under the Apache
   1. [Enable Oauth through Hydra](how-to/h-enable-oauth.md)
   1. [Back up and restore](how-to/h-backup.md)
   1. [Manage message schemas](how-to/h-manage-message-schemas.md)
+  1. [Use Kafka Connect for ETL workloads](how-to/h-kafka-connect.md)
 1. [Reference](reference)
   1. [Release Notes](reference/r-releases)
     1. [Revision 156/126](reference/r-releases/r-rev156_126.md)
