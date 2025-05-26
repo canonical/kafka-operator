@@ -17,6 +17,7 @@ from charms.data_platform_libs.v0.data_interfaces import (
     DataPeerOtherUnitData,
     DataPeerUnitData,
     KafkaProviderData,
+    ProviderData,
     RequirerData,
 )
 from lightkube.core.exceptions import ApiError as LightKubeApiError
@@ -82,18 +83,28 @@ SECRET_LABEL_MAP = {
 }
 
 
-class PeerClusterOrchestratorData(RequirerData):
+class PeerClusterOrchestratorData(RequirerData, ProviderData):
     """Broker provider data model."""
 
     SECRET_LABEL_MAP = SECRET_LABEL_MAP
     SECRET_FIELDS = BROKER.requested_secrets
 
+    # This is to bypass the PrematureDataAccessError, which is irrelevant in this case.
+    def _update_relation_data(self, relation: Relation, data: dict[str, str]) -> None:
+        """Set values for fields not caring whether it's a secret or not."""
+        super(ProviderData, self)._update_relation_data(relation, data)
 
-class PeerClusterData(RequirerData):
+
+class PeerClusterData(RequirerData, ProviderData):
     """Broker provider data model."""
 
     SECRET_LABEL_MAP = SECRET_LABEL_MAP
     SECRET_FIELDS = list(set(BALANCER.requested_secrets) | set(CONTROLLER.requested_secrets))
+
+    # This is to bypass the PrematureDataAccessError, which is irrelevant in this case.
+    def _update_relation_data(self, relation: Relation, data: dict[str, str]) -> None:
+        """Set values for fields not caring whether it's a secret or not."""
+        super(ProviderData, self)._update_relation_data(relation, data)
 
 
 class ClusterState(Object):

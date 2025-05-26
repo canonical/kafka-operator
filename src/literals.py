@@ -163,7 +163,6 @@ CONTROLLER = Role(
     requested_secrets=[
         "broker-username",
         "broker-password",
-        "controller-password",
     ],
 )
 BALANCER = Role(
