@@ -273,6 +273,13 @@ class TLSManager:
 
     def reload_truststore(self) -> None:
         """Reloads the truststore using `kafka-configs` utility without restarting the broker."""
+        if (
+            not (self.workload.root / self.workload.paths.client_properties).exists()
+            or not (self.workload.root / self.workload.paths.truststore).exists()
+        ):
+            # Too soon, return
+            return
+
         bin_args = [
             f"--command-config {self.workload.paths.client_properties}",
             f"--bootstrap-server {self.state.bootstrap_server_internal}",
@@ -341,7 +348,7 @@ class TLSManager:
     @property
     def trusted_certificates(self) -> dict[str, bytes]:
         """Returns a mapping of alias to certificate fingerprint (hash) for all the certificates loaded in the truststore."""
-        if not (self.workload.root / self.workload.paths.conf_path / "truststore.jks").exists():
+        if not (self.workload.root / self.workload.paths.truststore).exists():
             return {}
 
         command = f"{self.keytool} -list -keystore truststore.jks -storepass {self.state.unit_broker.truststore_password} -noprompt"

@@ -27,7 +27,7 @@ from charms.tls_certificates_interface.v3.tls_certificates import (
 from src.core.models import KafkaBroker
 from src.core.structured_config import CharmConfig
 from src.core.workload import CharmedKafkaPaths, WorkloadBase
-from src.literals import SUBSTRATE
+from src.literals import BROKER, SUBSTRATE
 from src.managers.tls import Sans, TLSManager
 
 logger = logging.getLogger(__name__)
@@ -113,7 +113,7 @@ def tls_manager(tmp_path_factory):
     mock_workload.write = lambda content, path: open(path, "w").write(content)
     mock_workload.exec = _exec
     mock_workload.root = pathops.LocalPath("/")
-    mock_workload.paths = MagicMock(spec=CharmedKafkaPaths)
+    mock_workload.paths = CharmedKafkaPaths(BROKER)
     mock_workload.paths.conf_path = tmp_path_factory.mktemp("workload")
 
     ca_key = generate_private_key()
