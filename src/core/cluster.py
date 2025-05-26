@@ -17,7 +17,6 @@ from charms.data_platform_libs.v0.data_interfaces import (
     DataPeerOtherUnitData,
     DataPeerUnitData,
     KafkaProviderData,
-    ProviderData,
     RequirerData,
 )
 from lightkube.core.exceptions import ApiError as LightKubeApiError
@@ -38,6 +37,7 @@ from literals import (
     ADMIN_USER,
     BALANCER,
     BROKER,
+    CERTIFICATE_TRANSFER_RELATION,
     CONTROLLER,
     CONTROLLER_PORT,
     CONTROLLER_USER,
@@ -82,14 +82,14 @@ SECRET_LABEL_MAP = {
 }
 
 
-class PeerClusterOrchestratorData(ProviderData, RequirerData):
+class PeerClusterOrchestratorData(RequirerData):
     """Broker provider data model."""
 
     SECRET_LABEL_MAP = SECRET_LABEL_MAP
     SECRET_FIELDS = BROKER.requested_secrets
 
 
-class PeerClusterData(ProviderData, RequirerData):
+class PeerClusterData(RequirerData):
     """Broker provider data model."""
 
     SECRET_LABEL_MAP = SECRET_LABEL_MAP
@@ -217,6 +217,19 @@ class ClusterState(Object):
     def oauth_relation(self) -> Relation | None:
         """The OAuth relation."""
         return self.model.get_relation(OAUTH_REL_NAME)
+
+    @property
+    def has_mtls_clients(self) -> bool:
+        """Returns True if there exists any mTLS client either in `kafka_client` or `certificate_transfer` interfaces, False otherwise."""
+        for client in self.clients:
+            if client.mtls_cert:
+                return True
+
+        cert_transfer_relations = set(self.model.relations[CERTIFICATE_TRANSFER_RELATION])
+        if cert_transfer_relations:
+            return True
+
+        return False
 
     # --- CORE COMPONENTS ---
 
@@ -582,7 +595,7 @@ class ClusterState(Object):
 
         return Status.ACTIVE
 
-    @property
+    @cached_property
     def kraft_mode(self) -> bool | None:
         """Is the deployment running in KRaft mode?
 
