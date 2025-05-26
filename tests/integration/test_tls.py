@@ -43,7 +43,6 @@ logger = logging.getLogger(__name__)
 
 TLS_NAME = "self-signed-certificates"
 CERTS_NAME = "tls-certificates-operator"
-MTLS_NAME = "mtls"
 TLS_REQUIRER = "tls-certificates-requirer"
 MANUAL_TLS_NAME = "manual-tls-certificates"
 

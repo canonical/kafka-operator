@@ -298,7 +298,6 @@ class TLSHandler(Object):
             self.charm.broker.tls_manager.update_cert(alias=alias, cert=cert)
             should_reload = True
 
-        logger.info(live_aliases)
-
+        logger.debug(f"Following aliases should be in the truststore: {live_aliases}")
         if should_reload:
             self.charm.broker.tls_manager.reload_truststore()

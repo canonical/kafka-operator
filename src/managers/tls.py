@@ -310,7 +310,7 @@ class TLSManager:
                 x509.BasicConstraints
             ).value
         except x509.ExtensionNotFound:
-            return False
+            return True
         # check if the certificate can sign other certificates
         try:
             key_usage = certificate.extensions.get_extension_for_class(x509.KeyUsage).value
