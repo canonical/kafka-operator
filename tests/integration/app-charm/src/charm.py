@@ -48,6 +48,7 @@ class ApplicationCharm(CharmBase):
             self.topic_name = DEFAULT_TOPIC_NAME
 
         self.framework.observe(getattr(self.on, "start"), self._on_start)
+        self.framework.observe(self.on.update_status, self._on_update_status)
         self.kafka_requirer_consumer = KafkaRequires(
             self,
             relation_name=REL_NAME_CONSUMER,
@@ -85,6 +86,9 @@ class ApplicationCharm(CharmBase):
 
     def _on_start(self, _) -> None:
         self.unit.status = ActiveStatus()
+
+    def _on_update_status(self, _) -> None:
+        logger.info("Update Status")
 
     def _log(self, _: RelationEvent):
         return
@@ -276,7 +280,7 @@ class ApplicationCharm(CharmBase):
         logger.info("Creating topic")
         try:
             subprocess.check_output(
-                f"charmed-kafka.topics --bootstrap-server {bootstrap_servers} --topic=TEST-TOPIC --create --command-config client.properties",
+                f"charmed-kafka.topics --bootstrap-server {bootstrap_servers} --topic={self.topic_name} --create --command-config client.properties",
                 stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
@@ -289,7 +293,7 @@ class ApplicationCharm(CharmBase):
         logger.info("running producer application")
         try:
             subprocess.check_output(
-                f"cat data | charmed-kafka.console-producer --bootstrap-server {bootstrap_servers} --topic=TEST-TOPIC --producer.config client.properties -",
+                f"cat data | charmed-kafka.console-producer --bootstrap-server {bootstrap_servers} --topic={self.topic_name} --producer.config client.properties -",
                 stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
@@ -316,6 +320,10 @@ class ApplicationCharm(CharmBase):
             {"client-certificate": response["certificate"], "client-ca": response["ca"]}
         )
 
+        # Activate MTLS by setting the mtls-cert field on relation
+        producer_relation = self.model.get_relation(REL_NAME_PRODUCER)
+        self.kafka_requirer_producer.set_mtls_cert(producer_relation.id, response["certificate"])
+
     def run_mtls_producer(self, event: ActionEvent):
         broker_ca = event.params["broker-ca"]
         bootstrap_server = event.params["bootstrap-server"]
@@ -341,7 +349,7 @@ class ApplicationCharm(CharmBase):
         logger.info("fetching offsets")
         try:
             output = subprocess.check_output(
-                f"charmed-kafka.get-offsets --bootstrap-server {bootstrap_server} --topic=TEST-TOPIC --command-config client.properties",
+                f"charmed-kafka.get-offsets --bootstrap-server {bootstrap_server} --topic={self.topic_name} --command-config client.properties",
                 stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,

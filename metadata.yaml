@@ -48,11 +48,8 @@ requires:
     interface: tls-certificates
     limit: 1
     optional: true
-  trusted-ca:
-    interface: tls-certificates
-    optional: true
-  trusted-certificate:
-    interface: tls-certificates
+  client-cas:
+    interface: certificate_transfer
     optional: true
   peer-cluster:
     interface: peer_cluster

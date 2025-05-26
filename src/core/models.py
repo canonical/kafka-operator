@@ -625,7 +625,7 @@ class KafkaBroker(RelationState):
     @property
     def bundle(self) -> list[str]:
         """The cert bundle used for TLS identity."""
-        if not all([self.certificate, self.ca, self.chain]):
+        if not all([self.certificate, self.ca]):
             return []
 
         # manual-tls-certificates is loaded with the signed cert, the intermediate CA that signed it
@@ -967,6 +967,11 @@ class KafkaClient(RelationState):
         When `admin` is set, the Kafka charm interprets this as a new super.user.
         """
         return self.relation_data.get("extra-user-roles", "")
+
+    @property
+    def mtls_cert(self) -> str:
+        """Returns TLS cert of the client."""
+        return self.relation_data.get("mtls-cert", "")
 
 
 class OAuth:

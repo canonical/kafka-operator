@@ -73,7 +73,7 @@ class CharmConfig(BaseConfigModel):
     replication_quota_window_num: int
     zookeeper_ssl_cipher_suites: str | None
     profile: str
-    certificate_extra_sans: str | None
+    certificate_extra_sans: list[str]
     extra_listeners: list[str]
     log_level: str
     network_bandwidth: int = Field(default=50000, validate_default=False, gt=0)
@@ -270,7 +270,7 @@ class CharmConfig(BaseConfigModel):
 
         return ",".join(sorted(roles))  # this has to be a string as it goes in to properties
 
-    @validator("certificate_extra_sans")
+    @validator("certificate_extra_sans", pre=True)
     @classmethod
     def certificate_extra_sans_values(cls, value: str) -> list[str]:
         """Formats certificate_extra_sans values to a list."""
