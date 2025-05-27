@@ -90,17 +90,22 @@ class ControllerManager:
     )
     def add_controller(self, bootstrap_node: str) -> str:
         """Adds current unit to the dynamic quorum in KRaft mode, returns the added unit's directory_id if successful."""
-        result = self.workload.run_bin_command(
-            bin_keyword="metadata-quorum",
-            bin_args=[
-                "--bootstrap-controller",
-                bootstrap_node,
-                "--command-config",
-                self.workload.paths.server_properties,
-                "add-controller",
-            ],
-        )
-        logger.debug(result)
+        try:
+            result = self.workload.run_bin_command(
+                bin_keyword="metadata-quorum",
+                bin_args=[
+                    "--bootstrap-controller",
+                    bootstrap_node,
+                    "--command-config",
+                    self.workload.paths.server_properties,
+                    "add-controller",
+                ],
+            )
+            logger.debug(result)
+        except CalledProcessError as e:
+            error_details = e.stderr
+            if "DuplicateVoterException" not in error_details:
+                raise e
 
         directory_id = self.get_directory_id(self.state.log_dirs)
         return directory_id

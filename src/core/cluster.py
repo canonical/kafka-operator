@@ -554,6 +554,9 @@ class ClusterState(Object):
         if len(self.peer_cluster.broker_capacities.get("brokerCapacities", [])) < MIN_REPLICAS:
             return Status.NOT_ENOUGH_BROKERS
 
+        if not self.peer_cluster.controller_password:
+            return Status.MISSING_CONTROLLER_PASSWORD
+
         return Status.ACTIVE
 
     @property
