@@ -128,9 +128,9 @@ async def deploy_cluster(
     )
 
 
-def load_acls(model_full_name: str | None, zk_uris: str) -> Set[Acl]:
+def load_acls(model_full_name: str | None, bootstrap_server: str) -> Set[Acl]:
     result = check_output(
-        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.acls --authorizer-properties zookeeper.connect={zk_uris} --list'",
+        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.acls --command-config {PATHS['kafka']['CONF']}/client.properties --bootstrap-server {bootstrap_server} --list'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
