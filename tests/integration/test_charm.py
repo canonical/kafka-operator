@@ -61,7 +61,6 @@ async def test_consistency_between_workload_and_metadata(ops_test: OpsTest):
 
 
 @pytest.mark.abort_on_fail
-@pytest.mark.skip
 async def test_remove_controller_relation_relate(ops_test: OpsTest, kraft_mode, controller_app):
     if kraft_mode == "single":
         logger.info(f"Skipping because we're using {kraft_mode} mode.")
