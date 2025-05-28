@@ -478,4 +478,4 @@ class BrokerOperator(Object):
             if not client.password:
                 continue
 
-            self.auth_manager.add_user(client.username, client.password)
+            self.auth_manager.add_user(client.username, client.password, internal=True)

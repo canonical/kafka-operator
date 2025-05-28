@@ -8,7 +8,7 @@ import logging
 import pytest
 from pytest_operator.plugin import OpsTest
 
-from literals import INTERNAL_USERS, SECURITY_PROTOCOL_PORTS
+from literals import CONTROLLER_USER, INTERNAL_USERS, SECURITY_PROTOCOL_PORTS
 
 from .helpers import (
     check_user,
@@ -34,6 +34,8 @@ REL_NAME_CONSUMER = "kafka-client-consumer"
 REL_NAME_PRODUCER = "kafka-client-producer"
 REL_NAME_ADMIN = "kafka-client-admin"
 REL_NAME_CERTIFICATES = "certificates"
+
+NON_REL_USERS = set(INTERNAL_USERS + [CONTROLLER_USER])
 
 
 @pytest.mark.abort_on_fail
@@ -66,7 +68,7 @@ async def test_deploy_charms_relate_active(
 
     usernames.update(get_client_usernames(ops_test))
 
-    for username in set(usernames) - set(INTERNAL_USERS):
+    for username in set(usernames) - NON_REL_USERS:
         check_user(
             username=username,
             model_full_name=ops_test.model_full_name,
@@ -102,7 +104,7 @@ async def test_deploy_multiple_charms_same_topic_relate_active(
         )
 
     usernames.update(get_client_usernames(ops_test))
-    for username in set(usernames) - set(INTERNAL_USERS):
+    for username in set(usernames) - NON_REL_USERS:
         check_user(
             username=username,
             model_full_name=ops_test.model_full_name,
