@@ -87,7 +87,7 @@ jobs:
           - integration-charm
           #- integration-provider
           #- integration-scaling
-          #- integration-password-rotation
+          - integration-password-rotation
           #- integration-tls
           #- integration-upgrade
           #- integration-balancer-single

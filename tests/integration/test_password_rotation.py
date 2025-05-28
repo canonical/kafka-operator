@@ -21,12 +21,6 @@ REL_NAME_ADMIN = "kafka-client-admin"
 @pytest.mark.abort_on_fail
 @pytest.mark.skip_if_deployed
 async def test_build_and_deploy(ops_test: OpsTest, kraft_mode, kafka_charm, app_charm, kafka_apps):
-    await deploy_cluster(
-        ops_test=ops_test,
-        charm=kafka_charm,
-        kraft_mode=kraft_mode,
-    )
-
     await asyncio.gather(
         deploy_cluster(
             ops_test=ops_test,
@@ -51,7 +45,7 @@ async def test_build_and_deploy(ops_test: OpsTest, kraft_mode, kafka_charm, app_
 
 
 async def test_password_rotation(ops_test: OpsTest, kafka_apps):
-    """Check that password stored on ZK has changed after a password rotation."""
+    """Check that password stored on cluster has changed after a password rotation."""
     initial_sync_user = get_user(
         username="sync",
         model_full_name=ops_test.model_full_name,
