@@ -9,7 +9,9 @@ import pytest
 from pytest_operator.plugin import OpsTest
 
 from .helpers import (
+    ZK,
     check_user,
+    deploy_cluster,
     get_client_usernames,
     get_kafka_zk_relation_data,
     get_provider_data,
@@ -22,7 +24,6 @@ logger = logging.getLogger(__name__)
 pytestmark = pytest.mark.broker
 
 APP_NAME = "kafka"
-ZK = "zookeeper"
 DUMMY_NAME_1 = "app"
 DUMMY_NAME_2 = "appii"
 DUMMY_NAME_3 = "prefix-app"
@@ -36,25 +37,25 @@ REL_NAME_CERTIFICATES = "certificates"
 
 @pytest.mark.abort_on_fail
 async def test_deploy_charms_relate_active(
-    ops_test: OpsTest, kafka_charm, app_charm, usernames: set[str]
+    ops_test: OpsTest, kraft_mode, kafka_charm, app_charm, kafka_apps, usernames: set[str]
 ):
     """Test deploy and relate operations."""
     await asyncio.gather(
-        ops_test.model.deploy(
-            "zookeeper", channel="edge", application_name=ZK, num_units=3, series="jammy"
+        deploy_cluster(
+            ops_test=ops_test,
+            charm=kafka_charm,
+            kraft_mode=kraft_mode,
         ),
-        ops_test.model.deploy(kafka_charm, application_name=APP_NAME, num_units=1, series="jammy"),
         ops_test.model.deploy(
             app_charm, application_name=DUMMY_NAME_1, num_units=1, series="jammy"
         ),
     )
 
-    await ops_test.model.add_relation(APP_NAME, ZK)
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_CONSUMER}")
 
     async with ops_test.fast_forward(fast_interval="60s"):
         await ops_test.model.wait_for_idle(
-            apps=[APP_NAME, ZK, DUMMY_NAME_1],
+            apps=[*kafka_apps, DUMMY_NAME_1],
             idle_period=30,
             status="active",
             timeout=2000,

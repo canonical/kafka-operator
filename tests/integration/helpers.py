@@ -12,7 +12,7 @@ from enum import Enum
 from json.decoder import JSONDecodeError
 from pathlib import Path
 from subprocess import PIPE, CalledProcessError, check_output
-from typing import Any, List, Optional, Set
+from typing import Any, List, Literal, Optional, Set
 
 import yaml
 from charms.kafka.v0.client import KafkaClient
@@ -26,16 +26,28 @@ from tenacity.stop import stop_after_attempt
 from tenacity.wait import wait_fixed
 
 from core.models import JSON
-from literals import BALANCER_WEBSERVER_USER, JMX_CC_PORT, PATHS, PEER, SECURITY_PROTOCOL_PORTS
+from literals import (
+    BALANCER_WEBSERVER_USER,
+    JMX_CC_PORT,
+    PATHS,
+    PEER,
+    PEER_CLUSTER_ORCHESTRATOR_RELATION,
+    PEER_CLUSTER_RELATION,
+    SECURITY_PROTOCOL_PORTS,
+)
 from managers.auth import Acl, AuthManager
 
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 APP_NAME = METADATA["name"]
-ZK_NAME = "zookeeper"
+ZK = "zookeeper"
+CONTROLLER_NAME = "controller"
 DUMMY_NAME = "app"
 REL_NAME_ADMIN = "kafka-client-admin"
 REL_NAME_PRODUCER = "kafka-client-producer"
 TEST_DEFAULT_MESSAGES = 15
+
+
+KRaftMode = Literal["single", "multi"]
 
 
 class KRaftUnitStatus(Enum):
@@ -45,6 +57,75 @@ class KRaftUnitStatus(Enum):
 
 
 logger = logging.getLogger(__name__)
+
+
+async def deploy_cluster(
+    ops_test: OpsTest,
+    charm: Path,
+    kraft_mode: KRaftMode,
+    series: str = "jammy",
+    config_broker: dict = {},
+    config_controller: dict = {},
+    num_broker: int = 1,
+    num_controller: int = 1,
+    storage_broker: dict = {},
+    app_name_broker: str = str(APP_NAME),
+    app_name_controller: str = CONTROLLER_NAME,
+):
+    """Deploys an Apache Kafka cluster using the Charmed Apache Kafka operator in KRaft mode."""
+    logger.info(f"Deploying Kafka cluster in '{kraft_mode}' mode")
+
+    await ops_test.model.deploy(
+        charm,
+        application_name=app_name_broker,
+        num_units=num_broker,
+        series=series,
+        storage=storage_broker,
+        config={
+            "roles": "broker,controller" if kraft_mode == "single" else "broker",
+            "profile": "testing",
+        }
+        | config_broker,
+        trust=True,
+    )
+
+    if kraft_mode == "multi":
+        await ops_test.model.deploy(
+            charm,
+            application_name=app_name_controller,
+            num_units=num_controller,
+            series=series,
+            config={
+                "roles": "controller",
+                "profile": "testing",
+            }
+            | config_controller,
+            trust=True,
+        )
+
+    status = "active" if kraft_mode == "single" else "blocked"
+    apps = [app_name_broker] if kraft_mode == "single" else [app_name_broker, app_name_controller]
+    await ops_test.model.wait_for_idle(
+        apps=apps,
+        idle_period=30,
+        timeout=1800,
+        raise_on_error=False,
+        status=status,
+    )
+
+    if kraft_mode == "multi":
+        await ops_test.model.add_relation(
+            f"{app_name_broker}:{PEER_CLUSTER_ORCHESTRATOR_RELATION}",
+            f"{app_name_controller}:{PEER_CLUSTER_RELATION}",
+        )
+
+    await ops_test.model.wait_for_idle(
+        apps=apps,
+        idle_period=30,
+        timeout=1800,
+        raise_on_error=False,
+        status="active",
+    )
 
 
 def load_acls(model_full_name: str | None, zk_uris: str) -> Set[Acl]:
@@ -420,7 +501,7 @@ def get_client_usernames(ops_test: OpsTest, owner: str = APP_NAME) -> set[str]:
 
 # FIXME: will need updating after zookeeper_client is implemented in full
 def get_kafka_zk_relation_data(
-    ops_test: OpsTest, owner: str, unit_name: str, relation_name: str = ZK_NAME
+    ops_test: OpsTest, owner: str, unit_name: str, relation_name: str = "zookeeper"
 ) -> dict[str, str]:
     unit_data = show_unit(ops_test, unit_name)
 
