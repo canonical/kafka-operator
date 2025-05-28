@@ -12,7 +12,6 @@ from typing import TYPE_CHECKING, Any
 
 from charms.data_platform_libs.v0.data_interfaces import (
     SECRET_GROUPS,
-    DatabaseRequirerData,
     DataPeerData,
     DataPeerOtherUnitData,
     DataPeerUnitData,
@@ -32,7 +31,6 @@ from core.models import (
     KafkaCluster,
     OAuth,
     PeerCluster,
-    ZooKeeper,
 )
 from literals import (
     ADMIN_USER,
@@ -52,7 +50,6 @@ from literals import (
     REL_NAME,
     SECRETS_UNIT,
     SECURITY_PROTOCOL_PORTS,
-    ZK,
     AuthMap,
     Status,
     Substrates,
@@ -66,7 +63,6 @@ logger = logging.getLogger(__name__)
 custom_secret_groups = SECRET_GROUPS
 setattr(custom_secret_groups, "BROKER", "broker")
 setattr(custom_secret_groups, "BALANCER", "balancer")
-setattr(custom_secret_groups, "ZOOKEEPER", "zookeeper")
 setattr(custom_secret_groups, "CONTROLLER", "controller")
 
 SECRET_LABEL_MAP = {
@@ -74,9 +70,6 @@ SECRET_LABEL_MAP = {
     "broker-password": getattr(custom_secret_groups, "BROKER"),
     "controller-password": getattr(custom_secret_groups, "CONTROLLER"),
     "broker-uris": getattr(custom_secret_groups, "BROKER"),
-    "zk-username": getattr(custom_secret_groups, "ZOOKEEPER"),
-    "zk-password": getattr(custom_secret_groups, "ZOOKEEPER"),
-    "zk-uris": getattr(custom_secret_groups, "ZOOKEEPER"),
     "balancer-username": getattr(custom_secret_groups, "BALANCER"),
     "balancer-password": getattr(custom_secret_groups, "BALANCER"),
     "balancer-uris": getattr(custom_secret_groups, "BALANCER"),
@@ -121,9 +114,6 @@ class ClusterState(Object):
         self.peer_unit_interface = DataPeerUnitData(
             self.model, relation_name=PEER, additional_secret_fields=SECRETS_UNIT
         )
-        self.zookeeper_requires_interface = DatabaseRequirerData(
-            self.model, relation_name=ZK, database_name=f"/{self.model.app.name}"
-        )
         self.client_provider_interface = KafkaProviderData(self.model, relation_name=REL_NAME)
 
     # --- RELATIONS ---
@@ -132,11 +122,6 @@ class ClusterState(Object):
     def peer_relation(self) -> Relation | None:
         """The cluster peer relation."""
         return self.model.get_relation(PEER)
-
-    @property
-    def zookeeper_relation(self) -> Relation | None:
-        """The ZooKeeper relation."""
-        return self.model.get_relation(ZK)
 
     @property
     def client_relations(self) -> set[Relation]:
@@ -215,9 +200,6 @@ class ClusterState(Object):
                 cluster_uuid=self.cluster.cluster_uuid,
                 racks=self.racks,
                 broker_capacities=self.broker_capacities,
-                zk_username=self.zookeeper.username,
-                zk_password=self.zookeeper.password,
-                zk_uris=self.zookeeper.uris,
                 **extra_kwargs,  # in case of roles=broker,[balancer,controller] on this app
             )
 
@@ -302,15 +284,6 @@ class ClusterState(Object):
         return brokers
 
     @property
-    def zookeeper(self) -> ZooKeeper:
-        """The ZooKeeper relation state."""
-        return ZooKeeper(
-            relation=self.zookeeper_relation,
-            data_interface=self.zookeeper_requires_interface,
-            local_app=self.cluster.app,
-        )
-
-    @property
     def oauth(self) -> OAuth:
         """The oauth relation state."""
         return OAuth(
@@ -334,7 +307,6 @@ class ClusterState(Object):
                     bootstrap_server=self.bootstrap_server,
                     password=self.cluster.client_passwords.get(f"relation-{relation.id}", ""),
                     tls="enabled" if self.cluster.tls_enabled else "disabled",
-                    zookeeper_uris=self.zookeeper.uris,
                 )
             )
 
@@ -525,7 +497,7 @@ class ClusterState(Object):
 
     @property
     def ready_to_start(self) -> Status:  # noqa: C901
-        """Check for active ZooKeeper relation and adding of inter-broker auth username.
+        """Check for active controller relation and adding of inter-broker auth username.
 
         Returns:
             True if ZK is related and `sync` user has been added. False otherwise.
@@ -575,17 +547,6 @@ class ClusterState(Object):
             if not self.cluster.cluster_uuid:
                 return Status.NO_CLUSTER_UUID
 
-        if self.kraft_mode == False:  # noqa: E712
-            if not self.zookeeper:
-                return Status.ZK_NOT_RELATED
-
-            if not self.zookeeper.zookeeper_connected:
-                return Status.ZK_NO_DATA
-
-            # TLS must be enabled for Kafka and ZK or disabled for both
-            if self.cluster.tls_enabled ^ self.zookeeper.tls:
-                return Status.ZK_TLS_MISMATCH
-
         if self.cluster.tls_enabled and not self.unit_broker.certificate:
             return Status.NO_CERT
 
@@ -613,13 +574,11 @@ class ClusterState(Object):
         """Is the deployment running in KRaft mode?
 
         Returns:
-            True if Kraft mode, False if ZooKeeper, None when undefined.
+            True if Kraft mode, None when undefined.
         """
         # NOTE: self.roles when running colocated, peer_cluster.roles when multiapp
         if CONTROLLER.value in (self.roles + self.peer_cluster.roles):
             return True
-        if self.zookeeper_relation:
-            return False
 
         # FIXME raise instead of none. `not kraft_mode` is falsy
         # NOTE: if previous checks are not met, we don't know yet how the charm is being deployed

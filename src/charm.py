@@ -149,6 +149,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         # FIXME: This logic should be improved as part of ticket DPE-3155
         # For more information, please refer to https://warthogs.atlassian.net/browse/DPE-3155
         time.sleep(10.0)
+        self.broker.update_credentials_cache()
 
     def _disable_enable_restart_broker(self, event: RunWithLock) -> None:
         """Handler for `rolling_ops` disable_enable restart events.

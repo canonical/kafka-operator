@@ -28,7 +28,6 @@ GROUP = "root"
 
 # FIXME: these need better names
 PEER = "cluster"
-ZK = "zookeeper"
 REL_NAME = "kafka-client"
 OAUTH_REL_NAME = "oauth"
 
@@ -298,9 +297,9 @@ class Status(Enum):
 
 DEPENDENCIES = {
     "kafka_service": {
-        "dependencies": {"zookeeper": ">3.6"},
+        "dependencies": {},
         "name": "kafka",
-        "upgrade_supported": "^3",  # zk support removed in 4.0
-        "version": "3.9.0",
+        "upgrade_supported": "^4",
+        "version": "4.0.0",
     },
 }
