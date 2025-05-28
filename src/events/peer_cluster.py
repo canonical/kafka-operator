@@ -147,9 +147,7 @@ class PeerClusterEventsHandler(Object):
                 "cluster-uuid": self.charm.state.peer_cluster.cluster_uuid,
                 "racks": str(self.charm.state.peer_cluster.racks),
                 "broker-capacities": json.dumps(self.charm.state.peer_cluster.broker_capacities),
-                "zk-uris": self.charm.state.peer_cluster.zk_uris,
-                "zk-username": self.charm.state.peer_cluster.zk_username,
-                "zk-password": self.charm.state.peer_cluster.zk_password,
+                "super-users": self.charm.state.super_users,
             }
         )
 

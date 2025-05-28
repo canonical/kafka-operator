@@ -342,36 +342,6 @@ class ConfigManager(CommonConfigManager):
         ]
 
     @property
-    def auth_properties(self) -> list[str]:
-        """Builds properties necessary for inter-broker authorization through ZooKeeper.
-
-        Returns:
-            List of properties to be set
-        """
-        if self.state.kraft_mode:
-            return []
-
-        return [
-            f"broker.id={self.state.unit_broker.unit_id}",
-            f"zookeeper.connect={self.state.zookeeper.connect}",
-            "zookeeper.set.acl=true",
-        ]
-
-    @property
-    def zookeeper_tls_properties(self) -> list[str]:
-        """Builds the properties necessary for SSL connections to ZooKeeper.
-
-        Returns:
-            List of properties to be set
-        """
-        return [
-            "zookeeper.ssl.client.enable=true",
-            f"zookeeper.ssl.truststore.location={self.workload.paths.truststore}",
-            f"zookeeper.ssl.truststore.password={self.state.unit_broker.truststore_password}",
-            "zookeeper.clientCnxnSocket=org.apache.zookeeper.ClientCnxnSocketNetty",
-        ]
-
-    @property
     def tls_properties(self) -> list[str]:
         """Builds the properties necessary for TLS authentication.
 
@@ -400,8 +370,12 @@ class ConfigManager(CommonConfigManager):
         listener_name = self.internal_listener.name.lower()
         listener_mechanism = self.internal_listener.mechanism.lower()
 
+        admin_usermame = ADMIN_USER
+        admin_password = self.state.cluster.internal_user_credentials.get(ADMIN_USER, "")
+
+        # Related to KAFKA-15513: we should add admin user to the internal listener in case of premature bootstrap
         scram_properties = [
-            f'listener.name.{listener_name}.{listener_mechanism}.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";',
+            f'listener.name.{listener_name}.{listener_mechanism}.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}" user_{admin_usermame}="{admin_password}";',
             f"listener.name.{listener_name}.sasl.enabled.mechanisms={self.internal_listener.mechanism}",
         ]
         for auth in self.client_listeners + self.external_listeners + self.extra_listeners:
@@ -735,7 +709,7 @@ class ConfigManager(CommonConfigManager):
             if not self.state.runs_broker:
                 properties = (
                     [
-                        f"super.users={self.state.super_users}",
+                        f"super.users={self.state.peer_cluster.super_users or self.state.super_users}",
                         f"log.dirs={self.state.log_dirs}",
                         f"listeners={controller_listener}",
                         f"listener.security.protocol.map={controller_protocol_map}",
@@ -760,7 +734,6 @@ class ConfigManager(CommonConfigManager):
                 f"inter.broker.protocol.version={self.inter_broker_protocol_version}",
             ]
             + self.scram_properties
-            + self.auth_properties
             + self.oauth_properties
             + self.config_properties
             + self.default_replication_properties
@@ -772,8 +745,6 @@ class ConfigManager(CommonConfigManager):
 
         if self.state.cluster.tls_enabled and self.state.unit_broker.certificate:
             properties += self.tls_properties
-            if self.state.kraft_mode == False:  # noqa: E712
-                properties += self.zookeeper_tls_properties
 
         if self.state.runs_balancer or BALANCER.value in self.state.peer_cluster.roles:
             properties += KAFKA_CRUISE_CONTROL_OPTIONS.splitlines()
@@ -792,23 +763,6 @@ class ConfigManager(CommonConfigManager):
             for conf_key, value in self.config.dict().items()
             if value is not None
         ]
-
-    @property
-    @override
-    def jaas_config(self) -> str:
-        return inspect.cleandoc(
-            f"""
-            Client {{
-                org.apache.zookeeper.server.auth.DigestLoginModule required
-                username="{self.state.zookeeper.username}"
-                password="{self.state.zookeeper.password}";
-            }};
-            """
-        )
-
-    def set_zk_jaas_config(self) -> None:
-        """Writes the ZooKeeper JAAS config using ZooKeeper relation data."""
-        self.workload.write(content=self.jaas_config, path=self.workload.paths.zk_jaas)
 
     def set_server_properties(self) -> None:
         """Writes all Kafka config properties to the `server.properties` path."""
@@ -968,7 +922,7 @@ class BalancerConfigManager(CommonConfigManager):
         properties = (
             [
                 f"bootstrap.servers={self.state.peer_cluster.broker_uris}",
-                f"zookeeper.connect={self.state.peer_cluster.zk_uris}",
+                # f"zookeeper.connect={self.state.peer_cluster.zk_uris}",
                 "zookeeper.security.enabled=true",
                 f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{self.state.peer_cluster.broker_username}" password="{self.state.peer_cluster.broker_password}";',
                 f"sasl.mechanism={self.state.default_auth.mechanism}",
@@ -996,8 +950,8 @@ class BalancerConfigManager(CommonConfigManager):
             f"""
             Client {{
                 org.apache.zookeeper.server.auth.DigestLoginModule required
-                username="{self.state.peer_cluster.zk_username}"
-                password="{self.state.peer_cluster.zk_password}";
+                username="{CONTROLLER_USER}"
+                password="{self.state.peer_cluster.controller_password}";
             }};
         """
         )
