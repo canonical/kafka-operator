@@ -85,15 +85,14 @@ jobs:
       matrix:
         tox-environments:
           - integration-charm
-          #- integration-provider
+          - integration-provider
           #- integration-scaling
           - integration-password-rotation
           #- integration-tls
           #- integration-upgrade
           #- integration-balancer-single
           #- integration-balancer-multi
-          #- integration-kraft-single
-          #- integration-kraft-multi
+          - integration-kraft
         kraft-mode:
           - single
           - multi
