@@ -88,7 +88,7 @@ jobs:
           - integration-provider
           #- integration-scaling
           - integration-password-rotation
-          #- integration-tls
+          - integration-tls
           #- integration-upgrade
           #- integration-balancer-single
           #- integration-balancer-multi
