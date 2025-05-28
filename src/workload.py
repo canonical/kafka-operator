@@ -129,7 +129,9 @@ class Workload(WorkloadBase):
             # self.kafka.ensure(snap.SnapState.Present, revision=CHARMED_KAFKA_SNAP_REVISION)
             # self.kafka.connect(plug="removable-media")
             # self.kafka.hold()
-            os.system("wget https://github.com/imanenami/test-snaps/raw/refs/heads/main/charmed-kafka_4.0.0_amd64.snap")
+            os.system(
+                "wget https://github.com/imanenami/test-snaps/raw/refs/heads/main/charmed-kafka_4.0.0_amd64.snap"
+            )
             os.system("snap install --dangerous ./charmed-kafka_4.0.0_amd64.snap")
             return True
         except snap.SnapError as e:
