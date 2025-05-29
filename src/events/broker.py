@@ -473,6 +473,9 @@ class BrokerOperator(Object):
         if not all([self.charm.unit.is_leader(), self.charm.state.runs_broker, self.healthy]):
             return
 
+        # Update client properties first, to ensure it's consistent with latest listener config
+        self.config_manager.set_client_properties()
+
         for client in self.charm.state.clients:
 
             if not client.password:
