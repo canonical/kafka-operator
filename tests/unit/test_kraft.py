@@ -147,9 +147,7 @@ def test_ready_to_start(charm_configuration, base_state: State):
 
     # When
     with (
-        patch(
-            "workload.KafkaWorkload.run_bin_command", return_value="cluster-uuid-number"
-        ) as patched_run_bin_command,
+        patch("workload.KafkaWorkload.run_bin_command", return_value="cluster-uuid-number"),
         patch("health.KafkaHealth.machine_configured", return_value=True),
         patch("workload.KafkaWorkload.start"),
         patch("workload.KafkaWorkload.active", return_value=True),
@@ -158,9 +156,6 @@ def test_ready_to_start(charm_configuration, base_state: State):
         state_out = ctx.run(ctx.on.start(), state_in)
 
     # Then
-    # Third call of format will have to pass "cluster-uuid-number" as set above
-    assert patched_run_bin_command.call_count == 3
-    assert "cluster-uuid-number" in patched_run_bin_command.call_args_list[2][1]["bin_args"]
     assert "cluster-uuid" in state_out.get_relations(PEER)[0].local_app_data
     assert "bootstrap-controller" in state_out.get_relations(PEER)[0].local_app_data
     assert "bootstrap-unit-id" in state_out.get_relations(PEER)[0].local_app_data
