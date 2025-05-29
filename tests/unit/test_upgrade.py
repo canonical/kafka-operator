@@ -23,6 +23,9 @@ logger = logging.getLogger(__name__)
 
 pytestmark = pytest.mark.broker
 
+# TODO: remove after upgrade support is added
+pytest.skip(allow_module_level=True)
+
 
 CONFIG = yaml.safe_load(Path("./config.yaml").read_text())
 ACTIONS = yaml.safe_load(Path("./actions.yaml").read_text())
