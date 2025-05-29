@@ -19,7 +19,7 @@ from literals import (
 
 from .helpers import (
     APP_NAME,
-    ZK_NAME,
+    CONTROLLER_NAME,
     balancer_exporter_is_up,
     balancer_is_ready,
     balancer_is_running,
@@ -57,12 +57,16 @@ class TestBalancer:
                 trust=True,
             ),
             ops_test.model.deploy(
-                ZK_NAME,
+                kafka_charm,
                 channel="3/edge",
-                application_name=ZK_NAME,
+                application_name=CONTROLLER_NAME,
                 num_units=1,
                 series="jammy",
                 trust=True,
+                config={
+                    "roles": "controller",
+                    "profile": "testing",
+                },
             ),
             ops_test.model.deploy(
                 "kafka-test-app",
@@ -95,11 +99,11 @@ class TestBalancer:
             )
 
         await ops_test.model.wait_for_idle(
-            apps=[ZK_NAME],
+            apps=[CONTROLLER_NAME],
             idle_period=30,
             timeout=1800,
             raise_on_error=False,
-            status="active",
+            status="blocked",
         )
         await ops_test.model.wait_for_idle(
             apps=list({APP_NAME, self.balancer_app}),
@@ -109,12 +113,15 @@ class TestBalancer:
             status="blocked",
         )
         assert ops_test.model.applications[APP_NAME].status == "blocked"
-        assert ops_test.model.applications[ZK_NAME].status == "active"
+        assert ops_test.model.applications[CONTROLLER_NAME].status == "blocked"
         assert ops_test.model.applications[self.balancer_app].status == "blocked"
 
     @pytest.mark.abort_on_fail
     async def test_relate_not_enough_brokers(self, ops_test: OpsTest):
-        await ops_test.model.add_relation(APP_NAME, ZK_NAME)
+        await ops_test.model.add_relation(
+            f"{APP_NAME}:{PEER_CLUSTER_ORCHESTRATOR_RELATION}",
+            f"{CONTROLLER_NAME}:{PEER_CLUSTER_RELATION}",
+        )
         await ops_test.model.add_relation(PRODUCER_APP, APP_NAME)
         if self.balancer_app != APP_NAME:
             await ops_test.model.add_relation(
@@ -123,7 +130,7 @@ class TestBalancer:
             )
 
         await ops_test.model.wait_for_idle(
-            apps=list({APP_NAME, ZK_NAME, self.balancer_app}),
+            apps=list({APP_NAME, CONTROLLER_NAME, self.balancer_app}),
             idle_period=30,
             timeout=1200,
             check_freq=30,
@@ -146,7 +153,7 @@ class TestBalancer:
             lambda: len(ops_test.model.applications[APP_NAME].units) == 3
         )
         await ops_test.model.wait_for_idle(
-            apps=list({APP_NAME, ZK_NAME, self.balancer_app, PRODUCER_APP}),
+            apps=list({APP_NAME, CONTROLLER_NAME, self.balancer_app, PRODUCER_APP}),
             status="active",
             timeout=3600,
             check_freq=30,
@@ -179,7 +186,7 @@ class TestBalancer:
             lambda: len(ops_test.model.applications[APP_NAME].units) == 4
         )
         await ops_test.model.wait_for_idle(
-            apps=list({APP_NAME, ZK_NAME, PRODUCER_APP, self.balancer_app}),
+            apps=list({APP_NAME, CONTROLLER_NAME, PRODUCER_APP, self.balancer_app}),
             status="active",
             timeout=1800,
             idle_period=30,
@@ -221,7 +228,7 @@ class TestBalancer:
             lambda: len(ops_test.model.applications[APP_NAME].units) == 4
         )
         await ops_test.model.wait_for_idle(
-            apps=list({APP_NAME, ZK_NAME, PRODUCER_APP, self.balancer_app}),
+            apps=list({APP_NAME, CONTROLLER_NAME, PRODUCER_APP, self.balancer_app}),
             status="active",
             timeout=1800,
             idle_period=30,
@@ -326,14 +333,13 @@ class TestBalancer:
         await ops_test.model.wait_for_idle(apps=[TLS_NAME], idle_period=15)
         assert ops_test.model.applications[TLS_NAME].status == "active"
 
-        await ops_test.model.add_relation(TLS_NAME, ZK_NAME)
         await ops_test.model.add_relation(TLS_NAME, f"{APP_NAME}:{TLS_RELATION}")
 
         if self.balancer_app != APP_NAME:
             await ops_test.model.add_relation(TLS_NAME, f"{BALANCER_APP}:{TLS_RELATION}")
 
         await ops_test.model.wait_for_idle(
-            apps=list({APP_NAME, ZK_NAME, self.balancer_app}),
+            apps=list({APP_NAME, CONTROLLER_NAME, self.balancer_app}),
             status="active",
             idle_period=30,
             timeout=3600,

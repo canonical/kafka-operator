@@ -24,6 +24,7 @@ from literals import (
     BALANCER,
     BROKER,
     INTERNAL_USERS,
+    KRAFT_NODE_ID_OFFSET,
     SECRETS_APP,
     Substrates,
 )
@@ -502,6 +503,11 @@ class KafkaBroker(RelationState):
         e.g kafka/2 --> 2
         """
         return int(self.unit.name.split("/")[1])
+
+    @property
+    def broker_id(self) -> int:
+        """`node.id` of the `broker` in KRaft."""
+        return KRAFT_NODE_ID_OFFSET + self.unit_id
 
     @property
     def internal_address(self) -> str:

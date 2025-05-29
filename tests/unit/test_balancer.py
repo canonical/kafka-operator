@@ -263,14 +263,6 @@ def test_ready_to_start_ok(
             new_callable=PropertyMock,
             return_value=[],
         ),
-        patch(
-            "managers.config.ConfigManager.jaas_config", new_callable=PropertyMock, return_value=""
-        ),
-        patch(
-            "managers.config.BalancerConfigManager.jaas_config",
-            new_callable=PropertyMock,
-            return_value="",
-        ),
         patch("health.KafkaHealth.machine_configured", return_value=True),
         patch("charms.operator_libs_linux.v2.snap.SnapCache"),  # specific VM, works fine on k8s
     ):
@@ -445,7 +437,7 @@ def test_balancer_manager_rebalance_full(
 
 
 @pytest.mark.parametrize("mode", ["add", "remove"])
-@pytest.mark.parametrize("brokerid", [None, 0])
+@pytest.mark.parametrize("brokerid", [None, 100])
 def test_rebalance_add_remove_broker_id_length(
     ctx_broker_and_balancer: Context,
     base_state: State,
