@@ -4,7 +4,6 @@
 
 """Manager for handling Kafka configuration."""
 
-import inspect
 import json
 import logging
 import os
@@ -57,6 +56,8 @@ cruise.control.metrics.reporter.metrics.reporting.interval.ms=6000
 CRUISE_CONTROL_CONFIG_OPTIONS = """
 metric.reporter.topic=__CruiseControlMetrics
 sample.store.class=com.linkedin.kafka.cruisecontrol.monitor.sampling.KafkaSampleStore
+topic.config.provider.class=com.linkedin.kafka.cruisecontrol.config.KafkaAdminTopicConfigProvider
+kafka.broker.failure.detection.enable=true
 partition.metric.sample.store.topic=__KafkaCruiseControlPartitionMetricSamples
 broker.metric.sample.store.topic=__KafkaCruiseControlModelTrainingSamples
 max.active.user.tasks=10
@@ -240,16 +241,6 @@ class CommonConfigManager:
         ...
 
     @property
-    @abstractmethod
-    def jaas_config(self) -> str:
-        """Builds the JAAS config for Client/KafkaClient authentication.
-
-        Returns:
-            String of JAAS config for ZooKeeper or Kafka authentication.
-        """
-        ...
-
-    @property
     def jvm_performance_opts(self) -> str:
         """The JVM config options for tuning performance settings.
 
@@ -303,10 +294,6 @@ class ConfigManager(CommonConfigManager):
     @override
     def kafka_opts(self) -> str:
         opts = []
-        if not self.state.runs_controller:
-            opts = [
-                f"-Djava.security.auth.login.config={self.workload.paths.zk_jaas}",
-            ]
 
         http_proxy = os.environ.get("JUJU_CHARM_HTTP_PROXY")
         https_proxy = os.environ.get("JUJU_CHARM_HTTPS_PROXY")
@@ -375,7 +362,7 @@ class ConfigManager(CommonConfigManager):
 
         # Related to KAFKA-15513: we should add admin user to the internal listener in case of premature bootstrap
         scram_properties = [
-            f'listener.name.{listener_name}.{listener_mechanism}.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}" user_{admin_usermame}="{admin_password}";',
+            f'listener.name.{listener_name}.{listener_mechanism}.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}" user_{admin_usermame}="{admin_password}" user_{username}="{password}";',
             f"listener.name.{listener_name}.sasl.enabled.mechanisms={self.internal_listener.mechanism}",
         ]
         for auth in self.client_listeners + self.external_listeners + self.extra_listeners:
@@ -884,20 +871,6 @@ class BalancerConfigManager(CommonConfigManager):
         ]
 
     @property
-    def cc_zookeeper_tls_properties(self) -> list[str]:
-        """Builds the properties necessary for SSL connections to ZooKeeper.
-
-        Returns:
-            List of properties to be set
-        """
-        return [
-            "zookeeper.ssl.client.enable=true",
-            f"zookeeper.ssl.truststore.location={self.workload.paths.truststore}",
-            f"zookeeper.ssl.truststore.password={self.state.unit_broker.truststore_password}",
-            "zookeeper.clientCnxnSocket=org.apache.zookeeper.ClientCnxnSocketNetty",
-        ]
-
-    @property
     def cc_tls_properties(self) -> list[str]:
         """Builds the properties necessary for TLS authentication.
 
@@ -922,8 +895,6 @@ class BalancerConfigManager(CommonConfigManager):
         properties = (
             [
                 f"bootstrap.servers={self.state.peer_cluster.broker_uris}",
-                # f"zookeeper.connect={self.state.peer_cluster.zk_uris}",
-                "zookeeper.security.enabled=true",
                 f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{self.state.peer_cluster.broker_username}" password="{self.state.peer_cluster.broker_password}";',
                 f"sasl.mechanism={self.state.default_auth.mechanism}",
                 f"security.protocol={self.state.default_auth.protocol}",
@@ -936,29 +907,12 @@ class BalancerConfigManager(CommonConfigManager):
         )
 
         if self.state.cluster.tls_enabled and self.state.unit_broker.certificate:
-            properties += self.cc_tls_properties + self.cc_zookeeper_tls_properties
+            properties += self.cc_tls_properties
 
         if self.config.profile == PROFILE_TESTING:
             properties += CRUISE_CONTROL_TESTING_OPTIONS.split("\n")
 
         return properties
-
-    @property
-    @override
-    def jaas_config(self) -> str:
-        return inspect.cleandoc(
-            f"""
-            Client {{
-                org.apache.zookeeper.server.auth.DigestLoginModule required
-                username="{CONTROLLER_USER}"
-                password="{self.state.peer_cluster.controller_password}";
-            }};
-        """
-        )
-
-    def set_zk_jaas_config(self) -> None:
-        """Writes the ZooKeeper JAAS config using Balancer relation data."""
-        self.workload.write(content=self.jaas_config, path=self.workload.paths.balancer_jaas)
 
     def set_cruise_control_properties(self) -> None:
         """Writes all Cruise Control properties to the `cruisecontrol.properties` path."""

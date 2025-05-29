@@ -18,7 +18,7 @@ from ops.pebble import ExecError
 from core.cluster import ClusterState
 from core.structured_config import CharmConfig
 from core.workload import WorkloadBase
-from literals import GROUP, KRAFT_NODE_ID_OFFSET, USER_NAME, Substrates
+from literals import GROUP, USER_NAME, Substrates
 
 logger = logging.getLogger(__name__)
 
@@ -283,7 +283,7 @@ class TLSManager:
             f"--command-config {self.workload.paths.client_properties}",
             f"--bootstrap-server {self.state.bootstrap_server_internal}",
             "--entity-type brokers",
-            f"--entity-name {self.state.unit_broker.unit_id + KRAFT_NODE_ID_OFFSET}",
+            f"--entity-name {self.state.unit_broker.broker_id}",
             "--alter",
             f"--add-config listener.name.CLIENT_SSL_SSL.ssl.truststore.location={self.workload.paths.truststore}",
         ]

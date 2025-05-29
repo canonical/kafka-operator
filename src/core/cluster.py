@@ -482,7 +482,7 @@ class ClusterState(Object):
 
             broker_capacities.append(
                 {
-                    "brokerId": str(broker.unit_id),
+                    "brokerId": str(broker.broker_id),
                     "capacity": {
                         "DISK": broker.storages,
                         "CPU": {"num.cores": broker.cores},

@@ -387,7 +387,6 @@ def test_kafka_opts(ctx: Context, base_state: State) -> None:
 
         # Then
         args = charm.broker.config_manager.kafka_opts
-        assert "-Djava.security.auth.login.config" in args
         assert "KAFKA_OPTS" in args
 
 
