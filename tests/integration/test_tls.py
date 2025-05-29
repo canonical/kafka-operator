@@ -287,7 +287,7 @@ async def test_truststore_live_reload(ops_test: OpsTest, kafka_apps):
     client_config = {
         "bootstrap_servers": ssl_bootstrap_server,
         "security_protocol": "SSL",
-        "api_version": (0, 10),
+        "api_version": (2, 6),
         "ssl_cafile": tmp_paths["broker_ca"],
         "ssl_certfile": tmp_paths["cert"],
         "ssl_keyfile": tmp_paths["private_key"],
