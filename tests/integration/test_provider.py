@@ -291,7 +291,6 @@ async def test_connection_updated_on_tls_enabled(ops_test: OpsTest, app_charm, k
         timeout=1800,
         idle_period=60,
         status="active",
-        raise_on_error=False,
     )
 
     # ensure at least one update-status run
