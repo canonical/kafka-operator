@@ -30,12 +30,12 @@ from integration.helpers import (
     TEST_DEFAULT_MESSAGES,
     broker_id_to_unit_id,
     check_logs,
-    check_socket,
     deploy_cluster,
     get_address,
+    kraft_quorum_status,
     produce_and_check_logs,
 )
-from literals import SECURITY_PROTOCOL_PORTS
+from literals import CONTROLLER_PORT
 
 RESTART_DELAY = 60
 CLIENT_TIMEOUT = 30
@@ -248,11 +248,24 @@ async def test_freeze_broker_with_topic_leader(
     ops_test: OpsTest,
     c_writes: ContinuousWrites,
     c_writes_runner: ContinuousWrites,
+    controller_app: str,
+    kraft_mode,
 ):
     topic_description = await get_topic_description(
         ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
     )
     initial_leader_num = topic_description.leader
+
+    controller_unit_num = (
+        next(iter({0, 1, 2} - {broker_id_to_unit_id(initial_leader_num)}))
+        if kraft_mode == "single"
+        else 0
+    )
+    address = await get_address(
+        ops_test=ops_test, app_name=controller_app, unit_num=controller_unit_num
+    )
+    bootstrap_controller = f"{address}:{CONTROLLER_PORT}"
+    controller_unit = f"{controller_app}/{controller_unit_num}"
 
     logger.info(
         f"Freezing broker of leader for topic '{ContinuousWrites.TOPIC_NAME}': {initial_leader_num}"
@@ -271,10 +284,12 @@ async def test_freeze_broker_with_topic_leader(
     assert topic_description.in_sync_replicas == {100, 101, 102} - {initial_leader_num}
     assert initial_leader_num != topic_description.leader
 
-    address = await get_address(ops_test, unit_num=broker_id_to_unit_id(initial_leader_num))
-    assert not check_socket(
-        address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
-    ), f"Broker {initial_leader_num} reported as up"
+    # verify the broker left the cluster
+    while initial_leader_num in kraft_quorum_status(
+        ops_test, controller_unit, bootstrap_controller
+    ):
+        logging.info(f"Broker {initial_leader_num} reported as up")
+        await asyncio.sleep(REELECTION_TIME)
 
     # verify new writes are continuing. Also, check that leader changed
     topic_description = await get_topic_description(
@@ -299,8 +314,8 @@ async def test_freeze_broker_with_topic_leader(
     )
 
     # verify the unit is now rejoined the cluster
-    assert check_socket(
-        address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
+    assert initial_leader_num in kraft_quorum_status(
+        ops_test, controller_unit, bootstrap_controller
     ), f"Broker {initial_leader_num} reported as down"
     assert topic_description.in_sync_replicas == {100, 101, 102}
 
