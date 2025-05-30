@@ -29,6 +29,7 @@ from core.models import JSON
 from literals import (
     BALANCER_WEBSERVER_USER,
     JMX_CC_PORT,
+    KRAFT_NODE_ID_OFFSET,
     PATHS,
     PEER,
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
@@ -357,7 +358,7 @@ def check_logs(ops_test: OpsTest, kafka_unit_name: str, topic: str) -> None:
 
     passed = False
     for log in logs:
-        if topic and "index" in log:
+        if topic in log and "index" in log:
             passed = True
             break
 
@@ -798,3 +799,13 @@ async def list_truststore_aliases(ops_test: OpsTest, unit: str = f"{APP_NAME}/0"
         trusted_aliases.append(line.split(",")[0])
 
     return trusted_aliases
+
+
+def unit_id_to_broker_id(unit_id: int):
+    """Converts unit id to broker id in KRaft mode."""
+    return KRAFT_NODE_ID_OFFSET + unit_id
+
+
+def broker_id_to_unit_id(broker_id: int):
+    """Converts broker id to unit id in KRaft mode."""
+    return broker_id - KRAFT_NODE_ID_OFFSET
