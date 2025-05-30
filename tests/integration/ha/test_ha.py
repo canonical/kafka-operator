@@ -285,11 +285,13 @@ async def test_freeze_broker_with_topic_leader(
     assert initial_leader_num != topic_description.leader
 
     # verify the broker left the cluster
-    while initial_leader_num in kraft_quorum_status(
-        ops_test, controller_unit, bootstrap_controller
-    ):
-        logging.info(f"Broker {initial_leader_num} reported as up")
-        await asyncio.sleep(REELECTION_TIME)
+    # this could only be done in multi mode since in single mode, the controller is registered as FOLLOWER.
+    if kraft_mode == "multi":
+        while initial_leader_num in kraft_quorum_status(
+            ops_test, controller_unit, bootstrap_controller
+        ):
+            logging.info(f"Broker {initial_leader_num} reported as up")
+            await asyncio.sleep(REELECTION_TIME)
 
     # verify new writes are continuing. Also, check that leader changed
     topic_description = await get_topic_description(
