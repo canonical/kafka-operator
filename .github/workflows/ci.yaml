@@ -86,7 +86,6 @@ jobs:
         tox-environments:
           - integration-charm
           - integration-provider
-          #- integration-scaling
           - integration-password-rotation
           - integration-tls
           #- integration-upgrade
@@ -144,7 +143,10 @@ jobs:
       matrix:
         tox-environments:
           - integration-ha
-    name: ${{ matrix.tox-environments }}
+        kraft-mode:
+          - single
+          - multi
+    name: ${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}
     needs:
       - lint
       - unit-test
@@ -177,6 +179,6 @@ jobs:
             echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
           fi
       - name: Run integration tests
-        run: tox run -e ${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models
+        run: tox run -e ${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kraft-mode ${{ matrix.kraft-mode }}
         env:
           CI_PACKED_CHARMS: ${{ needs.build.outputs.charms }}
