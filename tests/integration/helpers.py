@@ -801,11 +801,11 @@ async def list_truststore_aliases(ops_test: OpsTest, unit: str = f"{APP_NAME}/0"
     return trusted_aliases
 
 
-def unit_id_to_broker_id(unit_id: int):
+def unit_id_to_broker_id(unit_id: int) -> int:
     """Converts unit id to broker id in KRaft mode."""
     return KRAFT_NODE_ID_OFFSET + unit_id
 
 
-def broker_id_to_unit_id(broker_id: int):
+def broker_id_to_unit_id(broker_id: int) -> int:
     """Converts broker id to unit id in KRaft mode."""
     return broker_id - KRAFT_NODE_ID_OFFSET
