@@ -100,7 +100,7 @@ class ActionEvents(Object):
 
         try:
             self.dependent.auth_manager.add_user(
-                username=username, password=new_password, zk_auth=True
+                username=username, password=new_password, internal=True
             )
         except Exception as e:
             logger.error(str(e))
