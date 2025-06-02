@@ -44,10 +44,6 @@ class TLSManager:
 
         self.keytool = "charmed-kafka.keytool" if self.substrate == "vm" else "keytool"
 
-    def generate_alias(self, app_name: str, relation_id: int) -> str:
-        """Generate an alias from a relation. Used to identify ca certs."""
-        return f"{app_name}-{relation_id}"
-
     def set_server_key(self) -> None:
         """Sets the unit private-key."""
         if not self.state.unit_broker.private_key:

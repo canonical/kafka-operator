@@ -18,6 +18,7 @@ from ops.framework import Object
 from ops.pebble import ExecError
 
 from literals import REL_NAME, Status
+from core.models import KafkaClient
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -179,7 +180,7 @@ class KafkaProvider(Object):
             return
 
         # All units will need to remove the MTLS cert (if any) from their truststores, if the client relation is ACTUALLY broken.
-        alias = self.dependent.tls_manager.generate_alias(
+        alias = KafkaClient.generate_alias(
             app_name=event.relation.app.name,
             relation_id=event.relation.id,
         )

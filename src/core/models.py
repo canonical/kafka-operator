@@ -979,7 +979,12 @@ class KafkaClient(RelationState):
         if not self.relation:
             return ""
 
-        return f"{self.relation.app.name}-{self.relation.id}"
+        return self.generate_alias(self.relation.app.name, self.relation.id)
+
+    @staticmethod
+    def generate_alias(app_name: str, relation_id: int) -> str:
+        """Generate an alias from a relation."""
+        return f"{app_name}-{relation_id}"
 
 
 class OAuth:
