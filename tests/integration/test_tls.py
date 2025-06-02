@@ -170,7 +170,7 @@ async def test_mtls(ops_test: OpsTest):
             apps=[APP_NAME, DUMMY_NAME], idle_period=30, status="active"
         )
 
-    # # run mtls producer
+    # run mtls producer
     num_messages = 10
     action = await ops_test.model.units.get(f"{DUMMY_NAME}/0").run_action(
         "run-mtls-producer",
