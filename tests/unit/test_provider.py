@@ -11,6 +11,7 @@ from unittest.mock import MagicMock, PropertyMock, patch
 import pytest
 import yaml
 from ops.testing import Container, Context, PeerRelation, Relation, Secret, State
+from tests.unit.helpers import TLSArtifacts
 
 from charm import KafkaCharm
 from literals import (
@@ -248,8 +249,9 @@ def test_mtls_without_tls_relation(
     assert state_out.app_status == Status.MTLS_REQUIRES_TLS.value.status
 
 
+@pytest.mark.parametrize("tls_artifacts", [False, True], indirect=True)
 def test_mtls_setup(
-    ctx: Context, base_state: State, zk_data: dict[str, str], tls_artifacts
+    ctx: Context, base_state: State, zk_data: dict[str, str], tls_artifacts: TLSArtifacts
 ) -> None:
     # Given
     zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)

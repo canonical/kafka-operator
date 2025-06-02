@@ -3,18 +3,12 @@
 # See LICENSE file for licensing details.
 import json
 from collections import defaultdict
-from dataclasses import dataclass
 from unittest.mock import Mock, PropertyMock, patch
 
 import pytest
-from charms.tls_certificates_interface.v3.tls_certificates import (
-    generate_ca,
-    generate_certificate,
-    generate_csr,
-    generate_private_key,
-)
 from ops import JujuVersion
 from src.literals import INTERNAL_USERS, SNAP_NAME, SUBSTRATE
+from tests.unit.helpers import TLSArtifacts, generate_tls_artifacts
 
 from managers.balancer import CruiseControlClient
 
@@ -159,20 +153,6 @@ def patched_snap(monkeypatch):
         yield
 
 
-@dataclass
-class TLSArtifacts:
-    certificate: str
-    private_key: str
-    ca: str
-
-
 @pytest.fixture
-def tls_artifacts() -> TLSArtifacts:
-    ca_key = generate_private_key()
-    ca = generate_ca(private_key=ca_key, subject="SOME-CA")
-    key = generate_private_key()
-    csr = generate_csr(key, subject="some-app/0", sans_dns=["localhost"], sans_ip=["127.0.0.1"])
-    cert = generate_certificate(csr, ca, ca_key)
-    return TLSArtifacts(
-        certificate=cert.decode("utf-8"), private_key=key.decode("utf-8"), ca=ca.decode("utf-8")
-    )
+def tls_artifacts(request: pytest.FixtureRequest) -> TLSArtifacts:
+    return generate_tls_artifacts(with_intermediate=bool(request.param))

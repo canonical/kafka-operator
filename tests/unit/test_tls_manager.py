@@ -16,23 +16,18 @@ from unittest.mock import MagicMock
 import pytest
 import yaml
 from charmlibs import pathops
-from charms.tls_certificates_interface.v3.tls_certificates import (
-    generate_ca,
-    generate_certificate,
-    generate_csr,
-    generate_private_key,
-)
 
 # from src.core.cluster import ClusterState
 from src.core.models import KafkaBroker
 from src.core.structured_config import CharmConfig
 from src.core.workload import CharmedKafkaPaths, WorkloadBase
 from src.literals import BROKER, SUBSTRATE
-from src.managers.tls import Sans, TLSManager
+from src.managers.tls import TLSManager
+from tests.unit.helpers import TLSArtifacts, generate_tls_artifacts
 
 logger = logging.getLogger(__name__)
 
-UNIT_NAME = "kafka-connect/0"
+UNIT_NAME = "kafka/0"
 INTERNAL_ADDRESS = "10.10.10.10"
 BIND_ADDRESS = "10.20.20.20"
 KEYTOOL = "keytool"
@@ -116,38 +111,11 @@ def tls_manager(tmp_path_factory):
     mock_workload.paths = CharmedKafkaPaths(BROKER)
     mock_workload.paths.conf_path = tmp_path_factory.mktemp("workload")
 
-    ca_key = generate_private_key()
-    ca = generate_ca(private_key=ca_key, subject="TEST-CA")
-
-    intermediate_key = generate_private_key()
-    intermediate_csr = generate_csr(private_key=intermediate_key, subject="INTERMEDIATE-CA")
-    intermediate_cert = generate_certificate(intermediate_csr, ca, ca_key)
-
-    private_key = generate_private_key()
-    csr = generate_csr(
-        private_key=private_key,
-        subject=UNIT_NAME,
-        sans_ip=[INTERNAL_ADDRESS],
-        sans_dns=[UNIT_NAME],
-    )
-    cert = generate_certificate(csr, ca, ca_key)
-
-    data = {
-        "ca-cert": ca.decode("utf-8"),
-        "chain": json.dumps([intermediate_cert.decode("utf-8")]),
-        "certificate": cert.decode("utf-8"),
-        "private-key": private_key.decode("utf-8"),
-        "keystore-password": "keystore-password",
-        "truststore-password": "truststore-password",
-    }
-
     # Mock State
     mock_state = MagicMock()
     mock_broker_state = KafkaBroker(None, MagicMock(), MagicMock(), SUBSTRATE)
-    mock_broker_state.relation_data = data
+    mock_broker_state.relation_data = {}
     mock_state.unit_broker = mock_broker_state
-    # mock_state.unit_broker.internal_address = INTERNAL_ADDRESS
-    # mock_state.unit_broker.unit.name = UNIT_NAME
 
     raw_config = {
         k: v.get("default")
@@ -160,22 +128,49 @@ def tls_manager(tmp_path_factory):
         config=CharmConfig(**raw_config),
     )
     mgr.keytool = KEYTOOL
+
     yield mgr
 
 
-def test_leaf_cert_validity_checker(tls_manager: TLSManager) -> None:
-    """Tests `TlSManager.is_valid_leaf_certificate()` method functionality."""
-    # build a cert
-    app_ca_key = generate_private_key()
-    app_ca = generate_ca(private_key=app_ca_key, subject="SOME-CA")
-    app_key = generate_private_key()
-    csr = generate_csr(
-        app_key, subject="some-app/0", sans_dns=["localhost"], sans_ip=["127.0.0.1"]
-    )
-    app_cert = generate_certificate(csr, app_ca, app_ca_key)
+def _set_manager_state(mgr: TLSManager, tls_artifacts: TLSArtifacts | None = None) -> None:
+    data = {
+        "ca-cert": "ca",
+        "chain": json.dumps(["certificate", "ca"]),
+        "certificate": "certificate",
+        "private-key": "private-key",
+        "keystore-password": "keystore-password",
+        "truststore-password": "truststore-password",
+    }
 
-    assert tls_manager.is_valid_leaf_certificate(app_cert.decode("utf-8"))
-    assert not tls_manager.is_valid_leaf_certificate(app_ca.decode("utf-8"))
+    if tls_artifacts:
+        data.update(
+            {
+                "ca-cert": tls_artifacts.ca,
+                "chain": json.dumps(tls_artifacts.chain),
+                "certificate": tls_artifacts.certificate,
+                "private-key": tls_artifacts.private_key,
+            }
+        )
+
+    mgr.state.unit_broker.relation_data = data
+
+
+def _tls_manager_set_everything(mgr: TLSManager) -> None:
+    mgr.set_ca()
+    mgr.set_chain()
+    mgr.set_server_key()
+    mgr.set_certificate()
+    mgr.set_bundle()
+    mgr.set_keystore()
+    mgr.set_truststore()
+
+
+@pytest.mark.parametrize("tls_artifacts", [False, True], indirect=True)
+def test_leaf_cert_validity_checker(tls_manager: TLSManager, tls_artifacts: TLSArtifacts) -> None:
+    """Tests `TlSManager.is_valid_leaf_certificate()` method functionality."""
+    assert tls_manager.is_valid_leaf_certificate(tls_artifacts.certificate)
+    for cert in tls_artifacts.chain[1:]:
+        assert not tls_manager.is_valid_leaf_certificate(cert)
 
 
 @pytest.mark.skipif(
@@ -185,52 +180,78 @@ def test_leaf_cert_validity_checker(tls_manager: TLSManager) -> None:
     "tls_initialized", [False, True], ids=["TLS NOT initialized", "TLS initialized"]
 )
 @pytest.mark.parametrize(
-    "with_intermediate_ca", [False, True], ids=["NO intermediate CA", "ONE intermediate CA"]
+    "tls_artifacts",
+    [False, True],
+    ids=["NO intermediate CA", "ONE intermediate CA"],
+    indirect=True,
 )
-def test_lifecycle(
+def test_tls_manager_set_methods(
     tls_manager: TLSManager,
     caplog: pytest.LogCaptureFixture,
     tls_initialized: bool,
-    with_intermediate_ca: bool,
-    tmp_path_factory,
+    tls_artifacts: TLSArtifacts,
 ) -> None:
     """Tests the lifecycle of adding/removing certs from Java and TLSManager points of view."""
+    _set_manager_state(tls_manager, tls_artifacts=tls_artifacts)
+
     if not tls_initialized:
         tls_manager.state.unit_broker.relation_data = {}
         tls_manager.state.peer_cluster.relation_data = {"tls": ""}
 
-    if not with_intermediate_ca and tls_initialized:
-        del tls_manager.state.unit_broker.relation_data["chain"]
-
     caplog.set_level(logging.DEBUG)
-    tls_manager.set_ca()
-    tls_manager.set_chain()
-    tls_manager.set_server_key()
-    tls_manager.set_certificate()
-    tls_manager.set_bundle()
-    tls_manager.set_keystore()
-    tls_manager.set_truststore()
+    _tls_manager_set_everything(tls_manager)
 
     if not tls_initialized:
+        assert not os.listdir(tls_manager.workload.paths.conf_path)
         return
 
-    # build another cert
-    app_ca_key = generate_private_key()
-    app_ca = generate_ca(private_key=app_ca_key, subject="SOME-CA")
-    app_key = generate_private_key()
-    csr = generate_csr(
-        app_key, subject="some-app/0", sans_dns=["localhost"], sans_ip=["127.0.0.1"]
+    assert (
+        tls_manager.workload.root / tls_manager.workload.paths.conf_path / "server.pem"
+    ).read_text() == tls_artifacts.certificate
+    assert (
+        tls_manager.workload.root / tls_manager.workload.paths.conf_path / "server.key"
+    ).read_text() == tls_artifacts.private_key
+    assert (
+        tls_manager.workload.root / tls_manager.workload.paths.conf_path / "bundle1.pem"
+    ).read_text() == tls_artifacts.ca
+
+
+@pytest.mark.skipif(
+    JAVA_TESTS_DISABLED, reason=f"Can't locate {KEYTOOL} and/or java in the test environment."
+)
+@pytest.mark.parametrize(
+    "with_intermediate", [False, True], ids=["NO intermediate CA", "ONE intermediate CA"]
+)
+def test_tls_manager_truststore_functionality(
+    tls_manager: TLSManager,
+    caplog: pytest.LogCaptureFixture,
+    with_intermediate: bool,
+    tmp_path_factory,
+) -> None:
+    tls_artifacts = generate_tls_artifacts(
+        subject=UNIT_NAME,
+        sans_ip=[INTERNAL_ADDRESS],
+        sans_dns=[UNIT_NAME],
+        with_intermediate=with_intermediate,
     )
-    app_cert = generate_certificate(csr, app_ca, app_ca_key)
+    _set_manager_state(tls_manager, tls_artifacts=tls_artifacts)
+    _tls_manager_set_everything(tls_manager)
+
+    # build another cert
+    other_tls = generate_tls_artifacts(subject="some-app/0")
 
     tmp_dir = tmp_path_factory.mktemp("someapp")
     app_certfile = f"{tmp_dir}/app.pem"
     app_keyfile = f"{tmp_dir}/app.key"
 
-    open(app_certfile, "w").write(app_cert.decode("utf-8"))
-    open(app_keyfile, "w").write(app_key.decode("utf-8"))
+    open(app_certfile, "w").write(other_tls.certificate)
+    open(app_keyfile, "w").write(other_tls.private_key)
 
     truststore_path = f"{tls_manager.workload.paths.conf_path}/truststore.jks"
+
+    for i in range(2 + int(with_intermediate)):
+        assert f"bundle{i}" in tls_manager.trusted_certificates
+
     with simple_ssl_server(certfile=app_certfile, keyfile=app_keyfile):
         # since we don't have the app cert/ca in our truststore, JKS test should fail.
         with pytest.raises(JKSError):
@@ -238,7 +259,7 @@ def test_lifecycle(
 
         # Add the app cert
         filename = f"{tls_manager.workload.paths.conf_path}/some-app.pem"
-        open(filename, "w").write(app_cert.decode("utf-8"))
+        open(filename, "w").write(other_tls.certificate)
         tls_manager.import_cert(alias="some-app", filename="some-app.pem")
 
         # now the test should pass
@@ -246,7 +267,7 @@ def test_lifecycle(
 
         # import again with the same alias
         filename = f"{tls_manager.workload.paths.conf_path}/other-file.pem"
-        open(filename, "w").write(app_cert.decode("utf-8"))
+        open(filename, "w").write(other_tls.certificate)
         tls_manager.import_cert(alias="some-app", filename="other-file.pem")
         assert "some-app" in tls_manager.trusted_certificates
 
@@ -260,7 +281,7 @@ def test_lifecycle(
 
         # Now add the app's CA cert instead of its own cert
         filename = f"{tls_manager.workload.paths.conf_path}/some-app-ca.pem"
-        open(filename, "w").write(app_ca.decode("utf-8"))
+        open(filename, "w").write(other_tls.ca)
         tls_manager.import_cert(alias="some-app-ca", filename="some-app-ca.pem")
 
         # the test should pass again
@@ -272,25 +293,40 @@ def test_lifecycle(
     assert "alias <other-app> does not exist" in log_record.msg.lower()
     assert log_record.levelname == "WARNING"
 
+
+@pytest.mark.skipif(
+    JAVA_TESTS_DISABLED, reason=f"Can't locate {KEYTOOL} and/or java in the test environment."
+)
+@pytest.mark.parametrize(
+    "with_intermediate", [False, True], ids=["NO intermediate CA", "ONE intermediate CA"]
+)
+def test_tls_manager_sans(
+    tls_manager: TLSManager,
+    with_intermediate: bool,
+) -> None:
+    """Tests the lifecycle of adding/removing certs from Java and TLSManager points of view."""
+    tls_artifacts = generate_tls_artifacts(
+        subject=UNIT_NAME,
+        sans_ip=[INTERNAL_ADDRESS],
+        sans_dns=[UNIT_NAME],
+        with_intermediate=with_intermediate,
+    )
+    _set_manager_state(tls_manager, tls_artifacts=tls_artifacts)
+    _tls_manager_set_everything(tls_manager)
     # check SANs
     current_sans = tls_manager.get_current_sans()
-    return
-    assert current_sans and current_sans == Sans(sans_ip=[INTERNAL_ADDRESS], sans_dns=[UNIT_NAME])
+    assert current_sans and current_sans == {
+        "sans_ip": [INTERNAL_ADDRESS],
+        "sans_dns": [UNIT_NAME],
+    }
     expected_sans = tls_manager.build_sans()
-    assert expected_sans.sans_ip == current_sans.sans_ip
-    assert expected_sans.sans_dns != current_sans.sans_dns
-
-    # since we didn't add our FQDN to the cert SANS, we expect a change being detected:
-    assert tls_manager.sans_change_detected
-
-    # if with_intermediate_ca:
-    #     import pdb
-    #     pdb.set_trace()
+    # Because of the internal address mismatch:
+    assert expected_sans != current_sans
 
 
-@pytest.mark.skip
 def test_simulate_os_errors(tls_manager: TLSManager):
     """Checks TLSManager functionality when random OS Errors happen."""
+    _set_manager_state(tls_manager)
 
     def _erroneous_hook(*args, **kwargs):
         raise subprocess.CalledProcessError(
@@ -301,7 +337,7 @@ def test_simulate_os_errors(tls_manager: TLSManager):
     tls_manager.workload.write = _erroneous_hook
 
     for method in dir(TLSManager):
-        if not method.startswith("set_") or method == "set_chain":
+        if not method.startswith("set_"):
             continue
 
         with pytest.raises(subprocess.CalledProcessError):
