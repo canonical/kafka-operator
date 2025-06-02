@@ -24,8 +24,6 @@ from literals import (
     BALANCER,
     BALANCER_GOALS_TESTING,
     BROKER,
-    CONTROLLER_LISTENER_NAME,
-    CONTROLLER_PORT,
     CONTROLLER_USER,
     DEFAULT_BALANCER_GOALS,
     HARD_BALANCER_GOALS,
@@ -84,6 +82,8 @@ SERVER_PROPERTIES_BLACKLIST = [
     "extra_listeners",
     "roles",
     "expose_external",
+    "cruisecontrol_balance_threshold",
+    "cruisecontrol_capacity_threshold",
 ]
 
 
@@ -388,23 +388,28 @@ class ConfigManager(CommonConfigManager):
         ]
 
     @property
+    def controller_tls_properties(self) -> list[str]:
+        """Builds the properties necessary for KRaft controller TLS authentication."""
+        # FIXME: mTLS not yet supported, likely bugs if accidentally enabled
+        return [f"controller.{prop}" for prop in self.tls_properties]
+
+    @property
     def scram_properties(self) -> list[str]:
-        """Builds the properties for each scram listener.
+        """Builds the properties for each SCRAM listener.
 
         Returns:
-            list of scram properties to be set
+            List of SCRAM properties to be set
         """
         username = INTER_BROKER_USER
         password = self.state.cluster.internal_user_credentials.get(INTER_BROKER_USER, "")
 
-        listener_name = self.internal_listener.name.lower()
-        listener_mechanism = self.internal_listener.mechanism.lower()
-
-        scram_properties = [
-            f'listener.name.{listener_name}.{listener_mechanism}.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";',
-            f"listener.name.{listener_name}.sasl.enabled.mechanisms={self.internal_listener.mechanism}",
-        ]
-        for auth in self.client_listeners + self.external_listeners + self.extra_listeners:
+        scram_properties = []
+        for auth in (
+            self.client_listeners
+            + self.external_listeners
+            + self.extra_listeners
+            + [self.internal_listener]
+        ):
             if not auth.mechanism.startswith("SCRAM"):
                 continue
 
@@ -422,14 +427,13 @@ class ConfigManager(CommonConfigManager):
         """Builds the SCRAM properties for controller listener.
 
         Returns:
-            list of scram properties to be set
+            List of SCRAM properties to be set
         """
         password = self.state.peer_cluster.controller_password
-        listener_mechanism = self.internal_listener.mechanism.lower()
-        listener_name = CONTROLLER_LISTENER_NAME.lower()
+        listener_mechanism = self.controller_listener.mechanism.lower()
+        listener_name = self.controller_listener.name.lower()
 
         return [
-            "sasl.enabled.mechanisms=SCRAM-SHA-512",
             f"sasl.mechanism.controller.protocol={self.internal_listener.mechanism}",
             f'listener.name.{listener_name}.{listener_mechanism}.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{CONTROLLER_USER}" password="{password}" user_{CONTROLLER_USER}="{password}";',
             f"listener.name.{listener_name}.sasl.enabled.mechanisms={self.internal_listener.mechanism}",
@@ -447,7 +451,7 @@ class ConfigManager(CommonConfigManager):
         return [
             f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{CONTROLLER_USER}" password="{password}";',
             f"sasl.mechanism={self.internal_listener.mechanism}",
-            "security.protocol=SASL_PLAINTEXT",
+            f"security.protocol={self.internal_listener.protocol}",
         ]
 
     @property
@@ -512,9 +516,13 @@ class ConfigManager(CommonConfigManager):
         )
 
     @property
-    def controller_listener(self) -> None:
+    def controller_listener(self) -> Listener:
         """Return the controller listener."""
-        pass  # TODO: No good abstraction in place for the controller use case
+        return Listener(
+            host=self.state.unit_broker.internal_address,
+            auth_map=self.state.default_auth,
+            scope="CONTROLLER",
+        )
 
     @property
     def extra_listeners(self) -> list[Listener]:
@@ -595,6 +603,9 @@ class ConfigManager(CommonConfigManager):
             + self.client_listeners
             + self.external_listeners
             + self.extra_listeners
+            + [self.controller_listener]
+            if self.state.runs_controller
+            else []
         )
 
     @property
@@ -703,7 +714,7 @@ class ConfigManager(CommonConfigManager):
             f"process.roles={','.join(roles)}",
             f"node.id={node_id}",
             f"controller.quorum.bootstrap.servers={self.state.peer_cluster.bootstrap_controller}",
-            f"controller.listener.names={CONTROLLER_LISTENER_NAME}",
+            f"controller.listener.names={self.controller_listener.name}",
             *self.controller_scram_properties,
             *self.controller_kraft_client_properties,
         ]
@@ -726,28 +737,23 @@ class ConfigManager(CommonConfigManager):
         listeners_repr = [listener.listener for listener in self.all_listeners]
         advertised_listeners = [listener.advertised_listener for listener in self.all_listeners]
 
-        if self.state.kraft_mode:
-            controller_protocol_map = f"{CONTROLLER_LISTENER_NAME}:SASL_PLAINTEXT"
-            controller_listener = f"{CONTROLLER_LISTENER_NAME}://{self.state.unit_broker.internal_address}:{CONTROLLER_PORT}"
-
-            # NOTE: Case where the controller is running standalone. Early return with a
-            # smaller subset of config options
-            if not self.state.runs_broker:
-                properties = (
-                    [
-                        f"super.users={self.state.super_users}",
-                        f"log.dirs={self.state.log_dirs}",
-                        f"listeners={controller_listener}",
-                        f"listener.security.protocol.map={controller_protocol_map}",
-                    ]
-                    + self.controller_properties
-                    + self.authorizer_class
-                )
-                return properties
-
-            protocol_map.append(controller_protocol_map)
-            if self.state.runs_controller:
-                listeners_repr.append(controller_listener)
+        # NOTE: Case where the controller is running standalone. Early return with a
+        # smaller subset of config options
+        if self.state.runs_controller and not self.state.runs_broker:
+            properties = (
+                [
+                    f"super.users={self.state.super_users}",
+                    f"log.dirs={self.state.log_dirs}",
+                    f"listeners={self.controller_listener.listener}",
+                    f"listener.security.protocol.map={self.controller_listener.protocol_map}",
+                ]
+                + self.controller_properties
+                + self.authorizer_class
+                + self.controller_tls_properties
+                if self.state.cluster.tls_enabled and self.state.unit_broker.certificate
+                else []
+            )
+            return properties
 
         properties = (
             [
@@ -772,8 +778,12 @@ class ConfigManager(CommonConfigManager):
 
         if self.state.cluster.tls_enabled and self.state.unit_broker.certificate:
             properties += self.tls_properties
+
             if self.state.kraft_mode == False:  # noqa: E712
                 properties += self.zookeeper_tls_properties
+
+            if self.state.runs_controller:
+                properties += self.controller_tls_properties
 
         if self.state.runs_balancer or BALANCER.value in self.state.peer_cluster.roles:
             properties += KAFKA_CRUISE_CONTROL_OPTIONS.splitlines()

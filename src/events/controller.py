@@ -92,6 +92,13 @@ class KRaftHandler(Object):
 
         self.add_to_quorum()
 
+        if self.model.unit.is_leader():
+            # necessary to refresh this in case TLS has been enabled/disabled
+            # this triggers changes in all the other relation data for large deployments
+            self.charm.state.cluster.update(
+                {"bootstrap-controller": self.charm.state.bootstrap_controller}
+            )
+
     def _init_kraft_mode(self) -> None:
         """Initialize the server when running controller mode."""
         # NOTE: checks for `runs_broker` in this method should be `is_cluster_manager` in
@@ -118,11 +125,11 @@ class KRaftHandler(Object):
             generated_password = self.charm.workload.generate_password()
 
             if self.charm.state.peer_cluster_orchestrator:
-
                 if not self.charm.state.peer_cluster_orchestrator.controller_password:
                     self.charm.state.peer_cluster_orchestrator.update(
                         {"controller-password": generated_password}
                     )
+
             elif not self.charm.state.peer_cluster.controller_password:
                 # single mode, controller & leader
                 self.charm.state.cluster.update({"controller-password": generated_password})

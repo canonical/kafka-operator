@@ -39,7 +39,6 @@ from literals import (
     BALANCER,
     BROKER,
     CONTROLLER,
-    CONTROLLER_PORT,
     CONTROLLER_USER,
     INTERNAL_USERS,
     KRAFT_NODE_ID_OFFSET,
@@ -455,7 +454,8 @@ class ClusterState(Object):
     def bootstrap_controller(self) -> str:
         """Returns the controller listener in the format HOST:PORT."""
         if self.runs_controller:
-            return f"{self.unit_broker.internal_address}:{CONTROLLER_PORT}"
+            return f"{self.unit_broker.internal_address}:{SECURITY_PROTOCOL_PORTS[self.default_auth].controller}"
+
         return ""
 
     @property
