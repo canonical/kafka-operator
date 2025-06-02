@@ -164,7 +164,7 @@ class KafkaProvider(Object):
             group=client.consumer_group_prefix,
         )
 
-        self.charm.tls.maybe_update_truststore()
+        self.charm.tls.update_truststore()
 
     def _on_relation_created(self, event: RelationCreatedEvent) -> None:
         """Handler for `kafka-client-relation-created` event."""

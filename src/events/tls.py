@@ -155,7 +155,7 @@ class TLSHandler(Object):
             getattr(self.charm, dependent).tls_manager.set_keystore()
 
         # single-unit Kafka can lose restart events if it loses connection with TLS-enabled ZK
-        self.maybe_update_truststore()
+        self.update_truststore()
         self.charm.on.config_changed.emit()
 
     def _on_certificate_expiring(self, _) -> None:
@@ -245,16 +245,16 @@ class TLSHandler(Object):
             self.charm.state.cluster.update({"mtls": "enabled"})
             self.charm.on.config_changed.emit()
 
-        self.maybe_update_truststore()
+        self.update_truststore()
 
     def _on_client_certificates_removed(self, event: CertificatesRemovedEvent) -> None:
         """Handle the certificates removed event."""
-        self.maybe_update_truststore()
+        self.update_truststore()
         # Turn off MTLS if no clients are remaining.
         if self.charm.unit.is_leader() and not self.charm.state.has_mtls_clients:
             self.charm.state.cluster.update({"mtls": ""})
 
-    def maybe_update_truststore(self) -> None:
+    def update_truststore(self) -> None:
         """Updates the truststore based on current state of MTLS client relations and certificates available on the `certificate_transfer` interface."""
         if not all(
             [
