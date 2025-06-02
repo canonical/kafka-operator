@@ -5,11 +5,13 @@
 import dataclasses
 import logging
 from pathlib import Path
-from unittest.mock import PropertyMock, patch
+from typing import cast
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 import yaml
 from ops.testing import Container, Context, PeerRelation, Relation, Secret, State
+from tests.unit.helpers import TLSArtifacts
 
 from charm import KafkaCharm
 from literals import (
@@ -18,7 +20,9 @@ from literals import (
     REL_NAME,
     SUBSTRATE,
     ZK,
+    Status,
 )
+from managers.auth import AuthManager
 
 pytestmark = pytest.mark.broker
 
@@ -132,6 +136,11 @@ def test_client_relation_broken_removes_user(ctx: Context, base_state: State) ->
         patch("managers.auth.AuthManager.add_user"),
         patch("managers.auth.AuthManager.delete_user") as patched_delete_user,
         patch("managers.auth.AuthManager.remove_all_user_acls") as patched_remove_acls,
+        patch(
+            "managers.tls.TLSManager.trusted_certificates",
+            new_callable=PropertyMock,
+            return_value=[],
+        ),
         patch("workload.KafkaWorkload.run_bin_command"),
         patch("core.cluster.ZooKeeper.connect", new_callable=PropertyMock, return_value="yes"),
     ):
@@ -176,7 +185,6 @@ def test_client_relation_joined_sets_necessary_relation_data(
     assert not {
         "username",
         "password",
-        "tls-ca",
         "endpoints",
         "data",
         "zookeeper-uris",
@@ -189,3 +197,121 @@ def test_client_relation_joined_sets_necessary_relation_data(
     assert relation_databag.get("zookeeper-uris", None) == "yes"
     assert relation_databag.get("username", None) == f"relation-{client_relation.id}"
     assert relation_databag.get("consumer-group-prefix", None) == f"relation-{client_relation.id}-"
+
+
+# -- MTLS tests --
+
+
+def test_mtls_without_tls_relation(
+    ctx: Context, base_state: State, zk_data: dict[str, str]
+) -> None:
+    # Given
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
+    restart_relation = PeerRelation("restart", "rolling_op")
+    client_rel_id = 11
+    client_relation = Relation(
+        REL_NAME,
+        "app",
+        id=client_rel_id,
+        remote_app_data={
+            "topic": "TOPIC",
+            "extra-user-roles": "consumer,producer",
+            "mtls-cert": "cert",
+        },
+    )
+    cluster_peer = PeerRelation(
+        PEER,
+        PEER,
+        local_app_data={f"relation-{client_relation.id}": "password"},
+    )
+    state_in = dataclasses.replace(
+        base_state,
+        relations=[cluster_peer, client_relation, restart_relation, zk_relation],
+    )
+
+    with (
+        patch("workload.KafkaWorkload.read", return_value=["key=value"]),
+        patch(
+            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=True
+        ),
+        # Model props
+        patch("core.models.KafkaCluster.internal_user_credentials"),
+        patch(
+            "core.models.ZooKeeper.zookeeper_connected",
+            new_callable=PropertyMock,
+            return_value=True,
+        ),
+    ):
+        state_out = ctx.run(ctx.on.relation_changed(client_relation), state_in)
+
+    # Then
+    assert state_out.app_status == Status.MTLS_REQUIRES_TLS.value.status
+
+
+@pytest.mark.parametrize("tls_artifacts", [False, True], indirect=True)
+def test_mtls_setup(
+    ctx: Context, base_state: State, zk_data: dict[str, str], tls_artifacts: TLSArtifacts
+) -> None:
+    # Given
+    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
+    restart_relation = PeerRelation("restart", "rolling_op")
+    client_rel_id = 11
+    secret = Secret(
+        tracked_content={"mtls-cert": tls_artifacts.certificate},
+        label=f"kafka-client.{client_rel_id}.mtls.secret",
+    )
+    client_relation = Relation(
+        REL_NAME,
+        "app",
+        id=client_rel_id,
+        remote_app_data={
+            "topic": "TOPIC",
+            "extra-user-roles": "consumer,producer",
+            "secret-mtls": secret.id,
+        },
+    )
+
+    cluster_peer = PeerRelation(
+        PEER,
+        PEER,
+        local_app_data={f"relation-{client_relation.id}": "password", "tls": "enabled"},
+        local_unit_data={"certificate": "cert", "ca-cert": "ca"},
+    )
+    state_in = dataclasses.replace(
+        base_state,
+        relations=[cluster_peer, client_relation, restart_relation, zk_relation],
+        secrets=[secret],
+    )
+
+    with (
+        patch("workload.KafkaWorkload.read", return_value=["key=value"]),
+        patch(
+            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=True
+        ),
+        # Model props
+        patch("core.models.KafkaCluster.internal_user_credentials"),
+        patch(
+            "core.models.ZooKeeper.zookeeper_connected",
+            new_callable=PropertyMock,
+            return_value=True,
+        ),
+        # TLSManager methods
+        patch(
+            "managers.tls.TLSManager.get_current_sans",
+            return_value={"sans_ip": "ip", "sans_dns": "dns"},
+        ),
+        patch(
+            "managers.tls.TLSManager.build_sans", return_value={"sans_ip": "ip", "sans_dns": "dns"}
+        ),
+        ctx(ctx.on.relation_changed(client_relation), state_in) as mgr,
+    ):
+        mock_auth_manager = MagicMock(spec=AuthManager)
+        charm = cast(KafkaCharm, mgr.charm)
+        charm.broker.auth_manager = mock_auth_manager
+        state_out = mgr.run()
+
+    # Then
+    assert mock_auth_manager.update_user_acls.call_count == 2
+    assert mock_auth_manager.remove_all_user_acls.call_count == 1
+    assert f"relation-{client_rel_id}" in mock_auth_manager.remove_all_user_acls.call_args[0]
+    assert state_out.app_status == Status.ACTIVE.value.status

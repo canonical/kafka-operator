@@ -33,8 +33,7 @@ REL_NAME = "kafka-client"
 OAUTH_REL_NAME = "oauth"
 
 TLS_RELATION = "certificates"
-TRUSTED_CERTIFICATE_RELATION = "trusted-certificate"
-TRUSTED_CA_RELATION = "trusted-ca"
+CERTIFICATE_TRANSFER_RELATION = "client-cas"
 PEER_CLUSTER_RELATION = "peer-cluster"
 PEER_CLUSTER_ORCHESTRATOR_RELATION = "peer-cluster-orchestrator"
 BALANCER_TOPICS = [
@@ -164,7 +163,6 @@ CONTROLLER = Role(
     requested_secrets=[
         "broker-username",
         "broker-password",
-        "controller-password",
     ],
 )
 BALANCER = Role(
@@ -270,6 +268,12 @@ class Status(Enum):
         WaitingStatus("internal broker credentials not yet added"), "DEBUG"
     )
     NO_CERT = StatusLevel(WaitingStatus("unit waiting for signed certificates"), "INFO")
+    MTLS_REQUIRES_TLS = StatusLevel(
+        BlockedStatus("Can't setup MTLS client without a TLS relation first."), "ERROR"
+    )
+    INVALID_CLIENT_CERTIFICATE = StatusLevel(
+        BlockedStatus("MTLS Client's certificate is not a valid leaf certificate."), "ERROR"
+    )
     SYSCONF_NOT_OPTIMAL = StatusLevel(
         ActiveStatus("machine system settings are not optimal - see logs for info"),
         "WARNING",

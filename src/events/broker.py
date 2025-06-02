@@ -322,6 +322,9 @@ class BrokerOperator(Object):
             *[listener.port for listener in self.config_manager.all_listeners]
         )
 
+        # Update truststore if needed.
+        self.charm.tls.update_truststore()
+
         # If Kafka is related to client charms, update their information.
         if self.model.relations.get(REL_NAME, None) and self.charm.unit.is_leader():
             self.update_client_data()
@@ -472,7 +475,7 @@ class BrokerOperator(Object):
                     "username": client.username,
                     "password": client.password,
                     "tls": client.tls,
-                    "tls-ca": client.tls,  # TODO: fix tls-ca
+                    "tls-ca": self.charm.state.unit_broker.ca,
                 }
             )
 

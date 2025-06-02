@@ -38,6 +38,7 @@ from literals import (
     ADMIN_USER,
     BALANCER,
     BROKER,
+    CERTIFICATE_TRANSFER_RELATION,
     CONTROLLER,
     CONTROLLER_PORT,
     CONTROLLER_USER,
@@ -88,12 +89,22 @@ class PeerClusterOrchestratorData(ProviderData, RequirerData):
     SECRET_LABEL_MAP = SECRET_LABEL_MAP
     SECRET_FIELDS = BROKER.requested_secrets
 
+    # This is to bypass the PrematureDataAccessError, which is irrelevant in this case.
+    def _update_relation_data(self, relation: Relation, data: dict[str, str]) -> None:
+        """Set values for fields not caring whether it's a secret or not."""
+        super(ProviderData, self)._update_relation_data(relation, data)
+
 
 class PeerClusterData(ProviderData, RequirerData):
     """Broker provider data model."""
 
     SECRET_LABEL_MAP = SECRET_LABEL_MAP
     SECRET_FIELDS = list(set(BALANCER.requested_secrets) | set(CONTROLLER.requested_secrets))
+
+    # This is to bypass the PrematureDataAccessError, which is irrelevant in this case.
+    def _update_relation_data(self, relation: Relation, data: dict[str, str]) -> None:
+        """Set values for fields not caring whether it's a secret or not."""
+        super(ProviderData, self)._update_relation_data(relation, data)
 
 
 class ClusterState(Object):
@@ -217,6 +228,18 @@ class ClusterState(Object):
     def oauth_relation(self) -> Relation | None:
         """The OAuth relation."""
         return self.model.get_relation(OAUTH_REL_NAME)
+
+    @property
+    def has_mtls_clients(self) -> bool:
+        """Returns True if there exists any mTLS client either in `kafka_client` or `certificate_transfer` interfaces, False otherwise."""
+        if any(client.mtls_cert for client in self.clients):
+            return True
+
+        cert_transfer_relations = set(self.model.relations[CERTIFICATE_TRANSFER_RELATION])
+        if cert_transfer_relations:
+            return True
+
+        return False
 
     # --- CORE COMPONENTS ---
 
@@ -582,7 +605,7 @@ class ClusterState(Object):
 
         return Status.ACTIVE
 
-    @property
+    @cached_property
     def kraft_mode(self) -> bool | None:
         """Is the deployment running in KRaft mode?
 

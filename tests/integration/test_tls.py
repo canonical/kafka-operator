@@ -3,7 +3,6 @@
 # See LICENSE file for licensing details.
 
 import asyncio
-import base64
 import json
 import logging
 import os
@@ -15,26 +14,25 @@ from charms.tls_certificates_interface.v3.tls_certificates import generate_priva
 from pytest_operator.plugin import OpsTest
 
 from literals import (
+    CERTIFICATE_TRANSFER_RELATION,
     REL_NAME,
     SECURITY_PROTOCOL_PORTS,
     TLS_RELATION,
-    TRUSTED_CERTIFICATE_RELATION,
     ZK,
 )
 
 from .helpers import (
     APP_NAME,
-    REL_NAME_ADMIN,
+    REL_NAME_PRODUCER,
     check_tls,
     create_test_topic,
-    extract_ca,
     extract_private_key,
     get_active_brokers,
     get_address,
     get_kafka_zk_relation_data,
+    get_provider_data,
     list_truststore_aliases,
     search_secrets,
-    set_mtls_client_acls,
     set_tls_private_key,
     sign_manual_certs,
 )
@@ -44,7 +42,6 @@ logger = logging.getLogger(__name__)
 
 TLS_NAME = "self-signed-certificates"
 CERTS_NAME = "tls-certificates-operator"
-MTLS_NAME = "mtls"
 TLS_REQUIRER = "tls-certificates-requirer"
 MANUAL_TLS_NAME = "manual-tls-certificates"
 
@@ -65,7 +62,7 @@ async def test_deploy_tls(ops_test: OpsTest, kafka_charm):
             application_name=APP_NAME,
             series="jammy",
             config={
-                "ssl_principal_mapping_rules": "RULE:^.*[Cc][Nn]=([a-zA-Z0-9.]*).*$/$1/L,DEFAULT"
+                # "ssl_principal_mapping_rules": "RULE:^.*[Cc][Nn]=([a-zA-Z0-9.]*).*$/$1/L,DEFAULT"
             },
         ),
     )
@@ -131,7 +128,7 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm):
     await ops_test.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME], timeout=1000, idle_period=30)
 
     # ensuring at least a few update-status
-    await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
+    await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_PRODUCER}")
     async with ops_test.fast_forward(fast_interval="20s"):
         await asyncio.sleep(60)
 
@@ -167,63 +164,33 @@ async def test_mtls(ops_test: OpsTest):
     # creating the signed external cert on the unit
     action = await ops_test.model.units.get(f"{DUMMY_NAME}/0").run_action("create-certificate")
     response = await action.wait()
-    client_certificate = response.results["client-certificate"]
-    client_ca = response.results["client-ca"]
 
-    encoded_client_certificate = base64.b64encode(client_certificate.encode("utf-8")).decode(
-        "utf-8"
-    )
-    encoded_client_ca = base64.b64encode(client_ca.encode("utf-8")).decode("utf-8")
+    async with ops_test.fast_forward(fast_interval="60s"):
+        await ops_test.model.wait_for_idle(
+            apps=[APP_NAME, DUMMY_NAME], idle_period=30, status="active"
+        )
 
-    # deploying mtls operator with certs
-    tls_config = {
-        "generate-self-signed-certificates": "false",
-        "certificate": encoded_client_certificate,
-        "ca-certificate": encoded_client_ca,
-    }
-    await ops_test.model.deploy(
-        CERTS_NAME, channel="stable", config=tls_config, series="jammy", application_name=MTLS_NAME
-    )
-    await ops_test.model.wait_for_idle(apps=[MTLS_NAME], timeout=1000, idle_period=15)
-    await ops_test.model.add_relation(
-        f"{APP_NAME}:{TRUSTED_CERTIFICATE_RELATION}", f"{MTLS_NAME}:{TLS_RELATION}"
-    )
-    await ops_test.model.wait_for_idle(
-        apps=[APP_NAME, MTLS_NAME], idle_period=60, timeout=2000, status="active"
-    )
-
-    # getting kafka ca and address
-    broker_ca = extract_ca(ops_test=ops_test, unit_name=f"{APP_NAME}/0")
-
-    address = await get_address(ops_test, app_name=APP_NAME)
-    ssl_port = SECURITY_PROTOCOL_PORTS["SSL", "SSL"].client
-    sasl_port = SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client
-    ssl_bootstrap_server = f"{address}:{ssl_port}"
-    sasl_bootstrap_server = f"{address}:{sasl_port}"
-
-    # setting ACLs using normal sasl port
-    await set_mtls_client_acls(ops_test, bootstrap_server=sasl_bootstrap_server)
-
+    # run mtls producer
     num_messages = 10
-
-    # running mtls producer
     action = await ops_test.model.units.get(f"{DUMMY_NAME}/0").run_action(
         "run-mtls-producer",
-        **{
-            "bootstrap-server": ssl_bootstrap_server,
-            "broker-ca": base64.b64encode(broker_ca.encode("utf-8")).decode("utf-8"),
-            "num-messages": num_messages,
-        },
+        **{"num-messages": num_messages},
     )
 
     response = await action.wait()
-
     assert response.results.get("success", None) == "TRUE"
+
+    provider_data = get_provider_data(
+        ops_test,
+        owner=DUMMY_NAME,
+        unit_name=f"{DUMMY_NAME}/0",
+        relation_interface=REL_NAME_PRODUCER,
+    )
 
     offsets_action = await ops_test.model.units.get(f"{DUMMY_NAME}/0").run_action(
         "get-offsets",
         **{
-            "bootstrap-server": ssl_bootstrap_server,
+            "bootstrap-server": provider_data["endpoints"],
         },
     )
 
@@ -231,19 +198,21 @@ async def test_mtls(ops_test: OpsTest):
 
     topic_name, min_offset, max_offset = response.results["output"].strip().split(":")
 
-    assert topic_name == "TEST-TOPIC"
+    assert topic_name == "test-topic"
     assert min_offset == "0"
     assert max_offset == str(num_messages)
 
 
 @pytest.mark.abort_on_fail
-async def test_truststore_live_reload(ops_test: OpsTest):
+async def test_certificate_transfer(ops_test: OpsTest):
     """Tests truststore live reload functionality using kafka-python client."""
     requirer = "other-req/0"
     test_msg = {"test": 123456}
 
     await ops_test.model.deploy(
-        TLS_NAME, channel="stable", application_name="other-ca", revision=155
+        TLS_NAME,
+        application_name="other-ca",
+        channel="1/stable",
     )
     await ops_test.model.deploy(
         TLS_REQUIRER, channel="stable", application_name="other-req", revision=102
@@ -265,29 +234,14 @@ async def test_truststore_live_reload(ops_test: OpsTest):
         ),
     }
 
-    certs_operator_config = {
-        "generate-self-signed-certificates": "false",
-        "certificate": base64.b64encode(local_store["cert"].encode("utf-8")).decode("utf-8"),
-        "ca-certificate": base64.b64encode(local_store["ca_cert"].encode("utf-8")).decode("utf-8"),
-    }
-
-    await ops_test.model.deploy(
-        CERTS_NAME,
-        channel="stable",
-        series="jammy",
-        application_name="other-op",
-        config=certs_operator_config,
-    )
-
-    await ops_test.model.wait_for_idle(
-        apps=["other-op"], idle_period=60, timeout=2000, status="active"
-    )
-
+    # Transfer other-ca's CA certificate via the client-cas relation
     # We don't expect a broker restart here because of truststore live reload
-    await ops_test.model.add_relation(f"{APP_NAME}:{TRUSTED_CERTIFICATE_RELATION}", "other-op")
+    await ops_test.model.add_relation(
+        f"{APP_NAME}:{CERTIFICATE_TRANSFER_RELATION}", "other-ca:send-ca-cert"
+    )
 
     await ops_test.model.wait_for_idle(
-        apps=["other-op", APP_NAME], idle_period=60, timeout=2000, status="active"
+        apps=["other-ca", APP_NAME], idle_period=60, timeout=2000, status="active"
     )
 
     address = await get_address(ops_test, app_name=APP_NAME, unit_num=0)
@@ -332,20 +286,8 @@ async def test_truststore_live_reload(ops_test: OpsTest):
 
     # cleanup
     await ops_test.model.remove_application("other-ca", block_until_done=True)
-    await ops_test.model.remove_application("other-op", block_until_done=True)
     await ops_test.model.remove_application("other-req", block_until_done=True)
     tmp_dir.cleanup()
-
-
-@pytest.mark.abort_on_fail
-async def test_mtls_broken(ops_test: OpsTest):
-    await ops_test.model.remove_application(MTLS_NAME, block_until_done=True)
-    await ops_test.model.wait_for_idle(
-        apps=[APP_NAME],
-        status="active",
-        idle_period=30,
-        timeout=2000,
-    )
 
 
 @pytest.mark.abort_on_fail
@@ -377,14 +319,21 @@ async def test_kafka_tls_scaling(ops_test: OpsTest):
         ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client
     )
 
-    # remove relation and check connection again
+
+@pytest.mark.abort_on_fail
+async def test_mtls_broken(ops_test: OpsTest):
+    # remove client relation and check connection
     await ops_test.model.applications[APP_NAME].remove_relation(
-        f"{APP_NAME}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_ADMIN}"
+        f"{APP_NAME}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_PRODUCER}"
     )
     await ops_test.model.wait_for_idle(apps=[APP_NAME])
-    assert not check_tls(
-        ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client
-    )
+
+    for unit_num in range(len(ops_test.model.applications[APP_NAME].units)):
+        kafka_address = await get_address(ops_test=ops_test, app_name=APP_NAME, unit_num=unit_num)
+        assert not check_tls(
+            ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client
+        )
+        assert not check_tls(ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SSL", "SSL"].client)
 
 
 @pytest.mark.abort_on_fail
@@ -410,10 +359,6 @@ async def test_tls_removed(ops_test: OpsTest):
         assert not {"pem", "key", "p12", "jks"} & file_extensions
 
 
-# TODO: this test tends to be really flaky and needs treatment.
-@pytest.mark.skipif(
-    os.environ.get("CI") is not None, reason="Flaky on CI, passes 1 out of 3 times on average."
-)
 @pytest.mark.abort_on_fail
 async def test_manual_tls_chain(ops_test: OpsTest):
     await ops_test.model.deploy(MANUAL_TLS_NAME)
