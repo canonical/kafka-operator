@@ -83,7 +83,7 @@ SECRET_LABEL_MAP = {
 }
 
 
-class PeerClusterOrchestratorData(RequirerData, ProviderData):
+class PeerClusterOrchestratorData(ProviderData, RequirerData):
     """Broker provider data model."""
 
     SECRET_LABEL_MAP = SECRET_LABEL_MAP
@@ -95,7 +95,7 @@ class PeerClusterOrchestratorData(RequirerData, ProviderData):
         super(ProviderData, self)._update_relation_data(relation, data)
 
 
-class PeerClusterData(RequirerData, ProviderData):
+class PeerClusterData(ProviderData, RequirerData):
     """Broker provider data model."""
 
     SECRET_LABEL_MAP = SECRET_LABEL_MAP
