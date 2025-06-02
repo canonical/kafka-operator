@@ -323,14 +323,17 @@ async def test_kafka_tls_scaling(ops_test: OpsTest):
 @pytest.mark.abort_on_fail
 async def test_mtls_broken(ops_test: OpsTest):
     # remove client relation and check connection
-    kafka_address = await get_address(ops_test=ops_test, app_name=APP_NAME, unit_num=2)
     await ops_test.model.applications[APP_NAME].remove_relation(
         f"{APP_NAME}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_PRODUCER}"
     )
     await ops_test.model.wait_for_idle(apps=[APP_NAME])
-    assert not check_tls(
-        ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client
-    )
+
+    for unit_num in range(len(ops_test.model.applications[APP_NAME].units)):
+        kafka_address = await get_address(ops_test=ops_test, app_name=APP_NAME, unit_num=unit_num)
+        assert not check_tls(
+            ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client
+        )
+        assert not check_tls(ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SSL", "SSL"].client)
 
 
 @pytest.mark.abort_on_fail
