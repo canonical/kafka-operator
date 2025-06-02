@@ -17,8 +17,8 @@ from ops.charm import RelationBrokenEvent, RelationCreatedEvent
 from ops.framework import Object
 from ops.pebble import ExecError
 
-from literals import REL_NAME, Status
 from core.models import KafkaClient
+from literals import REL_NAME, Status
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
