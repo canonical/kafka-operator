@@ -232,9 +232,8 @@ class ClusterState(Object):
     @property
     def has_mtls_clients(self) -> bool:
         """Returns True if there exists any mTLS client either in `kafka_client` or `certificate_transfer` interfaces, False otherwise."""
-        for client in self.clients:
-            if client.mtls_cert:
-                return True
+        if any([client.mtls_cert for client in self.clients]):
+            return True
 
         cert_transfer_relations = set(self.model.relations[CERTIFICATE_TRANSFER_RELATION])
         if cert_transfer_relations:
