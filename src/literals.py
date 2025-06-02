@@ -269,10 +269,10 @@ class Status(Enum):
     )
     NO_CERT = StatusLevel(WaitingStatus("unit waiting for signed certificates"), "INFO")
     MTLS_REQUIRES_TLS = StatusLevel(
-        BlockedStatus("Can't setup MTLS client without a TLS relation first."), "INFO"
+        BlockedStatus("Can't setup MTLS client without a TLS relation first."), "ERROR"
     )
     INVALID_CLIENT_CERTIFICATE = StatusLevel(
-        BlockedStatus("MTLS Client's certificate is not a valid leaf certificate."), "INFO"
+        BlockedStatus("MTLS Client's certificate is not a valid leaf certificate."), "ERROR"
     )
     SYSCONF_NOT_OPTIMAL = StatusLevel(
         ActiveStatus("machine system settings are not optimal - see logs for info"),
