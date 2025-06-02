@@ -275,9 +275,7 @@ class TLSHandler(Object):
             if not client.relation:
                 continue
 
-            alias = self.charm.broker.tls_manager.generate_alias(
-                client.relation.app.name, client.relation.id
-            )
+            alias = client.alias
             live_aliases.add(alias)
 
             if not self.charm.broker.tls_manager.alias_needs_update(alias, client.mtls_cert):

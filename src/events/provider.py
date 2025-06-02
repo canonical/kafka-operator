@@ -79,12 +79,8 @@ class KafkaProvider(Object):
             event.defer()
             return
 
-        mtls_cert_alias = self.dependent.tls_manager.generate_alias(
-            event.relation.app.name,
-            event.relation.id,
-        )
         if requesting_client.mtls_cert and self.dependent.tls_manager.alias_needs_update(
-            mtls_cert_alias, requesting_client.mtls_cert
+            requesting_client.alias, requesting_client.mtls_cert
         ):
             logging.debug("Waiting for MTLS setup.")
             event.defer()

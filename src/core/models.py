@@ -973,6 +973,14 @@ class KafkaClient(RelationState):
         """Returns TLS cert of the client."""
         return self.relation_data.get("mtls-cert", "")
 
+    @property
+    def alias(self) -> str:
+        """The alias used to refer to client's MTLS certificate."""
+        if not self.relation:
+            return ""
+
+        return f"{self.relation.app.name}-{self.relation.id}"
+
 
 class OAuth:
     """State collection metadata for the oauth relation."""
