@@ -8,7 +8,6 @@ This charm is meant to be used only for testing
 of the libraries in this repository.
 """
 
-import base64
 import logging
 import os
 import shutil
@@ -325,14 +324,20 @@ class ApplicationCharm(CharmBase):
         self.kafka_requirer_producer.set_mtls_cert(producer_relation.id, response["certificate"])
 
     def run_mtls_producer(self, event: ActionEvent):
-        broker_ca = event.params["broker-ca"]
-        bootstrap_server = event.params["bootstrap-server"]
+        producer_relation = self.model.get_relation(REL_NAME_PRODUCER)
+        broker_data = (
+            self.kafka_requirer_producer.as_dict(producer_relation.id) if producer_relation else {}
+        )
+        broker_ca = broker_data.get("tls-ca")
+        bootstrap_server = broker_data.get("endpoints")
+
+        if not broker_ca or not bootstrap_server:
+            event.fail("Can't fetch Broker data from the relation.")
+            return
+
         num_messages = int(event.params["num-messages"])
-
-        decode_cert = base64.b64decode(broker_ca).decode("utf-8").strip()
-
         try:
-            self._create_truststore(broker_ca=decode_cert)
+            self._create_truststore(broker_ca=broker_ca)
             self._attempt_mtls_connection(
                 bootstrap_servers=bootstrap_server, num_messages=num_messages
             )

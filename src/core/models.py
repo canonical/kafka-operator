@@ -33,6 +33,8 @@ from literals import (
     BROKER,
     INTERNAL_USERS,
     SECRETS_APP,
+    SECURITY_PROTOCOL_PORTS,
+    AuthMap,
     Substrates,
 )
 from managers.k8s import K8sManager
@@ -925,7 +927,16 @@ class KafkaClient(RelationState):
     @property
     def bootstrap_server(self) -> str:
         """The Kafka server endpoints for the client application to connect with."""
-        return self._bootstrap_server
+        if not all([self.tls, self.mtls_cert]):
+            return self._bootstrap_server
+
+        scram_ssl_auth = AuthMap("SASL_SSL", "SCRAM-SHA-512")
+        mtls_auth = AuthMap("SSL", "SSL")
+
+        return self._bootstrap_server.replace(
+            f":{SECURITY_PROTOCOL_PORTS[scram_ssl_auth].client}",
+            f":{SECURITY_PROTOCOL_PORTS[mtls_auth].client}",
+        )
 
     @property
     def password(self) -> str:

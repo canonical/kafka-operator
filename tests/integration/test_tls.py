@@ -3,7 +3,6 @@
 # See LICENSE file for licensing details.
 
 import asyncio
-import base64
 import json
 import logging
 import os
@@ -27,11 +26,11 @@ from .helpers import (
     REL_NAME_PRODUCER,
     check_tls,
     create_test_topic,
-    extract_ca,
     extract_private_key,
     get_active_brokers,
     get_address,
     get_kafka_zk_relation_data,
+    get_provider_data,
     list_truststore_aliases,
     search_secrets,
     set_tls_private_key,
@@ -171,34 +170,27 @@ async def test_mtls(ops_test: OpsTest):
             apps=[APP_NAME, DUMMY_NAME], idle_period=30, status="active"
         )
 
-    # TODO: these should be fixed when tls-ca issue is resolved,
-    # getting kafka ca and address
-    broker_ca = extract_ca(ops_test=ops_test, unit_name=f"{APP_NAME}/0")
-
-    address = await get_address(ops_test, app_name=APP_NAME)
-    ssl_port = SECURITY_PROTOCOL_PORTS["SSL", "SSL"].client
-    ssl_bootstrap_server = f"{address}:{ssl_port}"
-
+    # # run mtls producer
     num_messages = 10
-
-    # running mtls producer
     action = await ops_test.model.units.get(f"{DUMMY_NAME}/0").run_action(
         "run-mtls-producer",
-        **{
-            "bootstrap-server": ssl_bootstrap_server,
-            "broker-ca": base64.b64encode(broker_ca.encode("utf-8")).decode("utf-8"),
-            "num-messages": num_messages,
-        },
+        **{"num-messages": num_messages},
     )
 
     response = await action.wait()
-
     assert response.results.get("success", None) == "TRUE"
+
+    provider_data = get_provider_data(
+        ops_test,
+        owner=DUMMY_NAME,
+        unit_name=f"{DUMMY_NAME}/0",
+        relation_interface=REL_NAME_PRODUCER,
+    )
 
     offsets_action = await ops_test.model.units.get(f"{DUMMY_NAME}/0").run_action(
         "get-offsets",
         **{
-            "bootstrap-server": ssl_bootstrap_server,
+            "bootstrap-server": provider_data["endpoints"],
         },
     )
 

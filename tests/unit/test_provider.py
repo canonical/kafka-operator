@@ -185,7 +185,6 @@ def test_client_relation_joined_sets_necessary_relation_data(
     assert not {
         "username",
         "password",
-        "tls-ca",
         "endpoints",
         "data",
         "zookeeper-uris",

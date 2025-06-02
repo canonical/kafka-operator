@@ -475,7 +475,7 @@ class BrokerOperator(Object):
                     "username": client.username,
                     "password": client.password,
                     "tls": client.tls,
-                    "tls-ca": client.tls,  # TODO: fix tls-ca
+                    "tls-ca": self.charm.state.unit_broker.ca,
                 }
             )
 
