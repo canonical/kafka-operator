@@ -331,7 +331,6 @@ class TLSManager:
         """Returns the certificate Common Name (CN)."""
         cert_obj = x509.load_pem_x509_certificate(cert.encode("utf-8"), default_backend())
         return cert_obj.subject.rfc4514_string()
-        # return str(cert_obj.subject.get_attributes_for_oid(x509.NameOID.COMMON_NAME)[0].value)
 
     @staticmethod
     def certificate_fingerprint(cert: str):
