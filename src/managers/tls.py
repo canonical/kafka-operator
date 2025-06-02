@@ -293,6 +293,9 @@ class TLSManager:
 
     def alias_common_name(self, alias: str) -> str:
         """Returns the common name for a loaded certificate alias."""
+        if alias not in self.trusted_certificates:
+            raise Exception(f"{alias=} can't be found in the truststore.")
+
         cert = "\n".join(self.workload.read(f"{self.workload.paths.conf_path}/{alias}.pem"))
         if not cert:
             raise FileNotFoundError(f"Can't find the certificate for {alias=}")
