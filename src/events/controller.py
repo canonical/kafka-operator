@@ -125,7 +125,7 @@ class KRaftHandler(Object):
         upgrade_state = self.charm.state.kraft_upgrade_state
         leader = self.charm.unit.is_leader() and role == "controller"
 
-        logger.info(f"Upgrading controller listeners: {self.charm.unit.name} {upgrade_state}")
+        logger.debug(f"Upgrading controller listeners: {self.charm.unit.name} {upgrade_state}")
         match role, leader, upgrade_state.controller, upgrade_state.broker:
 
             case "controller", True, "idle", _:

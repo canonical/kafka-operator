@@ -287,6 +287,9 @@ class Status(Enum):
     WAITING_FOR_REBALANCE = StatusLevel(
         WaitingStatus("awaiting completion of rebalance task"), "DEBUG"
     )
+    TLS_MISMATCH = StatusLevel(
+        BlockedStatus("tls must be enabled on both KRaft controller and broker"), "ERROR"
+    )
 
 
 DEPENDENCIES = {

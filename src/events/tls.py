@@ -90,6 +90,7 @@ class TLSHandler(Object):
             return
 
         self.charm.state.cluster.update({"tls": "enabled"})
+        self.charm.state.kraft_tls_enabled = True
 
     def _tls_relation_joined(self, event: RelationJoinedEvent) -> None:
         """Handler for `certificates_relation_joined` event."""
@@ -124,6 +125,7 @@ class TLSHandler(Object):
         if self.charm.state.runs_controller:
             if self.charm.unit.is_leader():
                 self.charm.state.cluster.update({"tls": ""})
+                self.charm.state.kraft_tls_enabled = False
                 # we should keep the controller TLS listener up, and don't remove the TLS artifacts.
                 return
             else:
@@ -143,6 +145,7 @@ class TLSHandler(Object):
             return
 
         self.charm.state.cluster.update({"tls": ""})
+        self.charm.state.kraft_tls_enabled = False
 
     def _trusted_relation_created(self, event: EventBase) -> None:
         """Handle relation created event to trusted tls charm."""

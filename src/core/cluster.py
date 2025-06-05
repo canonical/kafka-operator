@@ -558,6 +558,8 @@ class ClusterState(Object):
                 return Status.NO_BOOTSTRAP_CONTROLLER
             if not self.cluster.cluster_uuid:
                 return Status.NO_CLUSTER_UUID
+            if self.cluster.tls_enabled ^ self.kraft_tls_enabled:
+                return Status.TLS_MISMATCH
 
         if self.kraft_mode == False:  # noqa: E712
             if not self.zookeeper:
@@ -589,6 +591,9 @@ class ClusterState(Object):
 
         if not self.peer_cluster.broker_connected_kraft_mode:
             return Status.NO_BROKER_DATA
+
+        if self.cluster.tls_enabled ^ self.kraft_tls_enabled:
+            return Status.TLS_MISMATCH
 
         return Status.ACTIVE
 
@@ -630,12 +635,42 @@ class ClusterState(Object):
         return self.runs_broker and not self.runs_controller
 
     @property
+    def runs_controller_only(self) -> bool:
+        """Is the charm ONLY running controller in KRaft mode?"""
+        return self.runs_controller and not self.runs_broker
+
+    @property
     def kraft_cluster(self):
         """The appropriate cluster object for read/write actions in KRaft mode."""
         if self.runs_broker and self.runs_controller:
             return self.cluster
 
         return self.peer_cluster
+
+    @property
+    def kraft_tls_enabled(self) -> bool:
+        """Return True if TLS is enabled in KRaft mode, False otherwise."""
+        if self.runs_broker and self.runs_controller:
+            return self.cluster.tls_enabled
+
+        if self.runs_broker:
+            # we're broker, check if TLS is enabled on controller
+            return bool(self.kraft_cluster.relation_data.get("tls-controller", ""))
+
+        # we're controller, check if TLS is enabled on broker
+        return bool(self.kraft_cluster.relation_data.get("tls-broker", ""))
+
+    @kraft_tls_enabled.setter
+    def kraft_tls_enabled(self, value: bool) -> None:
+        val = "enabled" if value else ""
+
+        if not self.kraft_mode or (self.runs_broker and self.runs_controller):
+            return
+
+        if self.runs_broker:
+            self.kraft_cluster.update({"tls-broker": val})
+        else:
+            self.kraft_cluster.update({"tls-controller": val})
 
     @property
     def controller_upgrade_state(self) -> ListenerUpgradeState:

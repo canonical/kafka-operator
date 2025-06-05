@@ -11,12 +11,14 @@ import os
 import re
 import textwrap
 from abc import abstractmethod
+from functools import cached_property
 from typing import Iterable, cast
 
 from lightkube.core.exceptions import ApiError
 from typing_extensions import override
 
 from core.cluster import ClusterState
+from core.models import PeerCluster
 from core.structured_config import CharmConfig, LogLevel
 from core.workload import CharmedKafkaPaths, WorkloadBase
 from literals import (
@@ -299,6 +301,11 @@ class ConfigManager(CommonConfigManager):
         self.config = config
         self.current_version = current_version
 
+    @cached_property
+    def peer_cluster_state(self) -> PeerCluster:
+        """Cached peer_cluster state."""
+        return self.state.peer_cluster
+
     @property
     @override
     def kafka_opts(self) -> str:
@@ -436,7 +443,7 @@ class ConfigManager(CommonConfigManager):
         Returns:
             List of SCRAM properties to be set
         """
-        password = self.state.peer_cluster.controller_password
+        password = self.peer_cluster_state.controller_password
         listeners = []
 
         for listener in self.controller_listeners:
@@ -458,7 +465,7 @@ class ConfigManager(CommonConfigManager):
         Returns:
             list of KRaft client properties to be set
         """
-        password = self.state.peer_cluster.controller_password
+        password = self.peer_cluster_state.controller_password
 
         return [
             f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{CONTROLLER_USER}" password="{password}";',
@@ -539,16 +546,16 @@ class ConfigManager(CommonConfigManager):
     @property
     def bootstrap_controller(self) -> str:
         """The bootstrap controller that should be used, considering the listeners upgrade state."""
-        old_port = self.state.peer_cluster.bootstrap_controller_port
+        old_port = self.peer_cluster_state.bootstrap_controller_port
         new_port = self.active_controller_listener.port
 
-        old_bootstrap_controller = self.state.peer_cluster.bootstrap_controller
-        new_bootstrap_controller = self.state.peer_cluster.bootstrap_controller.replace(
+        old_bootstrap_controller = self.peer_cluster_state.bootstrap_controller
+        new_bootstrap_controller = self.peer_cluster_state.bootstrap_controller.replace(
             f":{old_port}", f":{new_port}"
         )
 
         if old_port == new_port:
-            return self.state.peer_cluster.bootstrap_controller
+            return self.peer_cluster_state.bootstrap_controller
 
         if not self.state.should_use_new_listeners:
             return old_bootstrap_controller
@@ -558,7 +565,7 @@ class ConfigManager(CommonConfigManager):
     @property
     def controller_listeners(self) -> list[Listener]:
         """Return all controller listeners including those used in controller listener upgrades."""
-        current_controller_port = self.state.peer_cluster.bootstrap_controller_port
+        current_controller_port = self.peer_cluster_state.bootstrap_controller_port
         listeners = [self.active_controller_listener]
 
         if not current_controller_port:
@@ -858,7 +865,7 @@ class ConfigManager(CommonConfigManager):
             if self.state.kraft_mode == False:  # noqa: E712
                 properties += self.zookeeper_tls_properties
 
-        if self.state.runs_balancer or BALANCER.value in self.state.peer_cluster.roles:
+        if self.state.runs_balancer or BALANCER.value in self.peer_cluster_state.roles:
             properties += KAFKA_CRUISE_CONTROL_OPTIONS.splitlines()
             properties += self.metrics_reporter_properties
 
