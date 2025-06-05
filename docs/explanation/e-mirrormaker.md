@@ -1,4 +1,4 @@
-## MirrorMaker2 overview
+## MirrorMaker2.0 overview
 
 Under the hood, MirrorMaker uses Kafka Connect source connectors to replicate data. These include:
 

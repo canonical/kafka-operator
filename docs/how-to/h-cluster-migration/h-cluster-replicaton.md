@@ -1,11 +1,10 @@
-# Set up MirrorMaker cluster replication
+# Cluster replication
 
 This How-To will cover how to set up cluster replication using MirrorMaker through [Kafka Connect](https://kafka.apache.org/documentation/#connect).
 
 [note]
 For a brief explanation of how MirrorMaker works, see the [MirrorMaker explanation]() page.
 [/note]
-
 
 ## Pre-requisites
 
@@ -14,8 +13,8 @@ To set up cluster replication we need:
 - Two Charmed Apache Kafka clusters:
   - An "active" source cluster to replicate from.
   - A "passive" target cluster to replicate to.
-  - A Charmed Kafka Connect cluster to run the MirrorMaker connectors.
-  
+- A Charmed Kafka Connect cluster to run the MirrorMaker connectors.
+
 [note]
 It is best practice to co-locate the Kafka Connect cluster with the target Apache Kafka cluster - for example in the same cloud region.
 [/note]
@@ -24,7 +23,6 @@ For guidance on how to set up Charmed Apache Kafka, please refer to the followin
   - The [Charmed Apache Kafka Tutorial](/t/charmed-kafka-tutorial-overview/10571)
   - The [How to deploy guide](/t/charmed-apache-kafka-documentation-how-to-deploy/13261) for Charmed Apache Kafka
   - The [Charmed Kafka Connect Tutorial]() <!-- TODO: fill with Connect tutorial link -->
-
 
 ## Deploy a MirrorMaker integrator
 
@@ -110,11 +108,11 @@ MirrorMaker allows for a deployment where both clusters are active. This means t
 
 In essence, it is equivalent to do two active-passive deployments, one for each direction. 
 
-It is also recommended to have two Kafka Connect deployments ready, one on each end of the replication.
+We recommend having two Kafka Connect deployments ready, one on each end of the replication.
 
 ### Deployment
 
-To ensure that the topics are prefixed with the cluster name and do not collide with each other, deploy 2 different Mirrormaker integrators with the config option `prefix_topics=true`:
+To ensure that the topics are prefixed with the cluster name and do not collide with each other, deploy two different Mirrormaker integrators with the config option `prefix_topics=true`:
 
 ```bash
 juju deploy mirrormaker-connect-integrator --config prefix_topics=true mirrormaker-a-b
