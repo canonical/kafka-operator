@@ -309,3 +309,23 @@ class TestKRaft:
             await self._assert_listeners_accessible(
                 ops_test, broker_unit_num=unit_num, controller_unit_num=unit_num, tls=True
             )
+
+    @pytest.mark.skipif(not tls_enabled, reason="only required when TLS is on.")
+    @pytest.mark.abort_on_fail
+    async def test_disable_tls(self, ops_test: OpsTest):
+        await ops_test.model.applications[APP_NAME].remove_relation(self.controller_app, TLS_NAME)
+        if self.controller_app != APP_NAME:
+            await ops_test.model.applications[APP_NAME].remove_relation(APP_NAME, TLS_NAME)
+
+        async with ops_test.fast_forward(fast_interval="90s"):
+            await ops_test.model.wait_for_idle(
+                apps={self.controller_app, APP_NAME, TLS_NAME},
+                idle_period=60,
+                timeout=1800,
+                status="active",
+            )
+
+        for unit_num in range(3):
+            await self._assert_listeners_accessible(
+                ops_test, broker_unit_num=unit_num, controller_unit_num=unit_num, tls=False
+            )
