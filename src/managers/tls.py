@@ -240,11 +240,21 @@ class TLSManager:
 
     def reload_truststore(self) -> None:
         """Reloads the truststore using `kafka-configs` utility without restarting the broker."""
+        if not (
+            all(
+                [
+                    (self.workload.root / self.workload.paths.truststore).exists(),
+                    (self.workload.root / self.workload.paths.client_properties).exists(),
+                ]
+            )
+        ):
+            return
+
         bin_args = [
             f"--command-config {self.workload.paths.client_properties}",
             f"--bootstrap-server {self.state.bootstrap_server_internal}",
             "--entity-type brokers",
-            f"--entity-name {self.state.unit_broker.unit_id}",
+            f"--entity-name {self.state.unit_broker.broker_id}",
             "--alter",
             f"--add-config listener.name.CLIENT_SSL_SSL.ssl.truststore.location={self.workload.paths.truststore}",
         ]

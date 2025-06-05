@@ -3,12 +3,10 @@
 # See LICENSE file for licensing details.
 
 import logging
-from unittest.mock import Mock
 
 import pytest
 
 from managers.auth import Acl, AuthManager
-from workload import KafkaWorkload
 
 logger = logging.getLogger(__name__)
 
@@ -72,24 +70,3 @@ def test_generate_consumer_acls():
 
     assert sorted(operations) == sorted({"READ", "DESCRIBE"})
     assert sorted(resource_types) == sorted({"TOPIC", "GROUP"})
-
-
-def test_add_user_adds_zk_tls_flag(monkeypatch) -> None:
-    """Checks zk-tls-config-file flag is called for configs bin command."""
-    # Given
-    state = Mock()
-    state.zookeeper.connect = "host"
-    workload = KafkaWorkload(container=Mock())
-    patched_exec = Mock()
-    monkeypatch.setattr(workload, "run_bin_command", patched_exec)
-    auth_manager = AuthManager(state, workload, "", "")
-
-    # When
-    auth_manager.add_user("samwise", "gamgee", zk_auth=True)
-    args = patched_exec.call_args_list[0][1]
-
-    # Then
-    assert (
-        f"--zk-tls-config-file={workload.paths.server_properties}" in args["bin_args"]
-    ), "--zk-tls-config-file flag not found"
-    assert "--zookeeper=host" in args["bin_args"], "--zookeeper flag not found"

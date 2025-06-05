@@ -140,7 +140,7 @@ class AuthManager:
     def add_user(
         self, username: str, password: str, zk_auth: bool = False, internal: bool = False
     ) -> None:
-        """Adds new user credentials to ZooKeeper.
+        """Adds new user credentials to cluster.
 
         Args:
             username: the user name to add
@@ -162,11 +162,7 @@ class AuthManager:
         # needed only here, as internal SCRAM users cannot be created using `--bootstrap-server` until the cluster has initialised
         # instead must be authorized using ZooKeeper JAAS
         if zk_auth:
-            command = base_command + [
-                f"--zookeeper={self.state.zookeeper.connect}",
-                f"--zk-tls-config-file={self.workload.paths.server_properties}",
-            ]
-            opts = [self.kafka_opts]
+            raise Exception("zk_auth is not supported in Apache Kafka 4.")
         else:
             bootstrap_server = (
                 f"{self.state.unit_broker.internal_address}:{SECURITY_PROTOCOL_PORTS[self.state.default_auth].internal}"
@@ -184,7 +180,7 @@ class AuthManager:
         )
 
     def delete_user(self, username: str) -> None:
-        """Deletes user credentials from ZooKeeper.
+        """Deletes user credentials from cluster.
 
         Args:
             username: the user name to delete
