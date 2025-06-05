@@ -150,6 +150,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         # For more information, please refer to https://warthogs.atlassian.net/browse/DPE-3155
         time.sleep(10.0)
 
+        if self.state.runs_controller:
+            self.broker.kraft.add_to_quorum()
+
     def _disable_enable_restart_broker(self, event: RunWithLock) -> None:
         """Handler for `rolling_ops` disable_enable restart events.
 

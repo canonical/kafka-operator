@@ -12,7 +12,7 @@ from tenacity import retry, stop_after_attempt, wait_fixed
 
 from core.cluster import ClusterState
 from core.workload import WorkloadBase
-from literals import GROUP, KRAFT_VERSION, USER_ID
+from literals import GROUP, KRAFT_VERSION, SECURITY_PROTOCOL_PORTS, USER_ID, AuthMap, Scope
 
 logger = logging.getLogger(__name__)
 
@@ -90,17 +90,22 @@ class ControllerManager:
     )
     def add_controller(self, bootstrap_node: str) -> str:
         """Adds current unit to the dynamic quorum in KRaft mode, returns the added unit's directory_id if successful."""
-        result = self.workload.run_bin_command(
-            bin_keyword="metadata-quorum",
-            bin_args=[
-                "--bootstrap-controller",
-                bootstrap_node,
-                "--command-config",
-                self.workload.paths.server_properties,
-                "add-controller",
-            ],
-        )
-        logger.debug(result)
+        try:
+            result = self.workload.run_bin_command(
+                bin_keyword="metadata-quorum",
+                bin_args=[
+                    "--bootstrap-controller",
+                    bootstrap_node,
+                    "--command-config",
+                    self.workload.paths.server_properties,
+                    "add-controller",
+                ],
+            )
+            logger.debug(result)
+        except CalledProcessError as e:
+            error_details = e.stderr
+            if "DuplicateVoterException" not in error_details:
+                raise e
 
         directory_id = self.get_directory_id(self.state.log_dirs)
         return directory_id
@@ -138,3 +143,22 @@ class ControllerManager:
                 # successful
                 return
             raise e
+
+    def listener_health_check(
+        self, scope: Scope, auth_map: AuthMap, all_units: bool = False
+    ) -> bool:
+        """Check all units listeners on the cluster for a given Scope and AuthMap."""
+        if not all_units:
+            return self.workload.check_socket(
+                self.state.unit_broker.internal_address,
+                getattr(SECURITY_PROTOCOL_PORTS[auth_map], scope.lower()),
+            )
+
+        for unit in self.state.brokers:
+            if not self.workload.check_socket(
+                unit.internal_address, getattr(SECURITY_PROTOCOL_PORTS[auth_map], scope.lower())
+            ):
+                logger.debug(f"{unit.unit.name} - {scope} | {auth_map} not ready yet.")
+                return False
+
+        return True

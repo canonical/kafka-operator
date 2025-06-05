@@ -188,6 +188,16 @@ class WorkloadBase(ABC):
         """
         ...
 
+    @abstractmethod
+    def check_socket(self, host: str, port: int) -> bool:
+        """Checks whether an IPv4 socket is up or not."""
+        ...
+
+    @abstractmethod
+    def cleanup_cluster_metadata(self, log_dirs: str) -> None:
+        """Cleanup provided log_dirs from cluster metadata. This is only safe to run when using KRaft multi-mode on brokers."""
+        ...
+
     def get_version(self) -> str:
         """Get the workload version.
 

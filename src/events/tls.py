@@ -121,9 +121,23 @@ class TLSHandler(Object):
             {"csr": "", "certificate": "", "ca": "", "ca-cert": "", "chain": ""}
         )
 
+        if self.charm.state.runs_controller:
+            if self.charm.unit.is_leader():
+                self.charm.state.cluster.update({"tls": ""})
+                # we should keep the controller TLS listener up, and don't remove the TLS artifacts.
+                return
+            else:
+                self.charm.broker.kraft.remove_from_quorum()
+
         # remove all existing keystores from the unit so we don't preserve certs
         self.charm.broker.tls_manager.remove_stores()
         self.charm.balancer.tls_manager.remove_stores()
+
+        if self.charm.state.kraft_mode and self.charm.state.runs_broker_only:
+            # In KRaft multi mode, the broker should clean up its cluster metadata
+            # after TLS relation broken and reload it from the controller to avoid
+            # getting stuck in a crash loop
+            self.charm.workload.cleanup_cluster_metadata(self.charm.state.log_dirs)
 
         if not self.charm.unit.is_leader():
             return

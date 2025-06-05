@@ -86,10 +86,11 @@ AuthProtocol = Literal["SASL_PLAINTEXT", "SASL_SSL", "SSL"]
 AuthMechanism = Literal["SCRAM-SHA-512", "OAUTHBEARER", "SSL"]
 Scope = Literal["INTERNAL", "CLIENT", "EXTERNAL", "EXTRA", "CONTROLLER"]
 AuthMap = NamedTuple("AuthMap", protocol=AuthProtocol, mechanism=AuthMechanism)
+ListenerUpgradeState = Literal["idle", "followers", "done"]
 
 SECURITY_PROTOCOL_PORTS: dict[AuthMap, Ports] = {
-    AuthMap("SASL_PLAINTEXT", "SCRAM-SHA-512"): Ports(9092, 19092, 29092, 19192),
-    AuthMap("SASL_SSL", "SCRAM-SHA-512"): Ports(9093, 19093, 29093, 19193),
+    AuthMap("SASL_PLAINTEXT", "SCRAM-SHA-512"): Ports(9092, 19092, 29092, 9097),
+    AuthMap("SASL_SSL", "SCRAM-SHA-512"): Ports(9093, 19093, 29093, 9098),
     AuthMap("SSL", "SSL"): Ports(9094, 19094, 29094, 19194),
     AuthMap("SASL_PLAINTEXT", "OAUTHBEARER"): Ports(9095, 19095, 29095, 19195),
     AuthMap("SASL_SSL", "OAUTHBEARER"): Ports(9096, 19096, 29096, 19196),
@@ -162,7 +163,6 @@ CONTROLLER = Role(
     requested_secrets=[
         "broker-username",
         "broker-password",
-        "controller-password",
     ],
 )
 BALANCER = Role(
@@ -174,7 +174,6 @@ BALANCER = Role(
         "broker-username",
         "broker-password",
         "broker-uris",
-        "controller-passwrod",
         "zk-username",
         "zk-password",
         "zk-uris",

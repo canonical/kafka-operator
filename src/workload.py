@@ -6,7 +6,9 @@
 
 import logging
 import os
+import socket
 import subprocess
+from contextlib import closing
 from typing import Mapping
 
 from charmlibs import pathops
@@ -183,6 +185,17 @@ class Workload(WorkloadBase):
         bin_str = " ".join(bin_args)
         command = f"{opts_str} {SNAP_NAME}.{bin_keyword} {bin_str}"
         return self.exec(command)
+
+    @override
+    def check_socket(self, host: str, port: int) -> bool:
+        with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
+            return sock.connect_ex((host, port)) == 0
+
+    @override
+    def cleanup_cluster_metadata(self, log_dirs: str) -> None:
+        for log_dir in log_dirs.split(","):
+            for metadata_dir in (self.root / log_dir).glob("__cluster_metadata*"):
+                self.exec(f"rm -rf {metadata_dir}")
 
 
 class KafkaWorkload(Workload):

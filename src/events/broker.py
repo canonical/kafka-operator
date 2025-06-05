@@ -7,6 +7,7 @@
 import json
 import logging
 from datetime import datetime
+from functools import cached_property
 from typing import TYPE_CHECKING
 
 from charms.operator_libs_linux.v2.snap import SnapError
@@ -200,6 +201,8 @@ class BrokerOperator(Object):
         self.workload.start()
         logger.info("Kafka service started")
 
+        self.kraft.add_to_quorum()
+
         # TODO: Update users. Not sure if this is the best place, as cluster might be still
         # stabilizing.
         # if self.charm.state.kraft_mode and self.charm.state.runs_broker:
@@ -221,12 +224,29 @@ class BrokerOperator(Object):
         if not self.charm.pending_inactive_statuses:
             logger.info(f'Broker {self.charm.unit.name.split("/")[1]} connected')
 
-    def _on_config_changed(self, event: EventBase) -> None:
+    def _on_config_changed(self, event: EventBase) -> None:  # noqa: C901
         """Generic handler for most `config_changed` events across relations."""
         # only overwrite properties if service is already active
         if not self.upgrade.idle or not self.healthy:
             event.defer()
             return
+
+        if self.charm.state.runs_controller and self.charm.state.is_controller_upgrading:
+            if not self.charm.unit.is_leader():
+                # wait for controller upgrade process to finish
+                self.workload.cleanup_cluster_metadata(self.charm.state.log_dirs)
+                self.kraft.remove_from_quorum()
+                event.defer()
+                return
+
+            if any(
+                unit.added_to_quorum
+                for unit in self.charm.state.brokers
+                if unit.unit != self.charm.unit
+            ):
+                # wait for all the followers to leave the quorum
+                event.defer()
+                return
 
         # Load current properties set in the charm workload
         properties = self.workload.read(self.workload.paths.server_properties)
@@ -318,9 +338,14 @@ class BrokerOperator(Object):
         # update these whenever possible
         self.config_manager.set_client_properties()  # to ensure clients have fresh data
         self.update_external_services()  # in case of IP changes or pod reschedules
-        self.charm.state.unit_broker.unit.set_ports(  # in case of listeners changes
-            *[listener.port for listener in self.config_manager.all_listeners]
-        )
+        if self.charm.state.runs_broker:
+            self.charm.state.unit_broker.unit.set_ports(  # in case of listeners changes
+                *[listener.port for listener in self.config_manager.all_listeners]
+            )
+        elif self.charm.state.runs_controller:  # only valid for KRaft-multi on controllers
+            self.charm.state.unit_broker.unit.set_ports(
+                *[listener.port for listener in self.config_manager.controller_listeners]
+            )
 
         # If Kafka is related to client charms, update their information.
         if self.model.relations.get(REL_NAME, None) and self.charm.unit.is_leader():
@@ -416,7 +441,7 @@ class BrokerOperator(Object):
         self.charm.state.unit_broker.update({"storages": self.balancer_manager.storages})
         self.charm.on.config_changed.emit()
 
-    @property
+    @cached_property
     def healthy(self) -> bool:
         """Checks and updates various charm lifecycle states.
 

@@ -23,6 +23,7 @@ from literals import (
     PEER,
     Status,
 )
+from managers.config import ConfigManager
 from managers.controller import ControllerManager
 from workload import KafkaWorkload
 
@@ -48,6 +49,11 @@ class KRaftHandler(Object):
         )
 
         self.controller_manager = ControllerManager(self.charm.state, self.workload)
+        self.config_manager = ConfigManager(
+            state=self.charm.state,
+            workload=self.workload,
+            config=self.charm.config,
+        )
 
         self.upgrade = self.broker.upgrade
 
@@ -58,6 +64,7 @@ class KRaftHandler(Object):
             self.framework.observe(getattr(self.charm.on, "kafka_pebble_ready"), self._on_start)
 
         self.framework.observe(getattr(self.charm.on, "update_status"), self._on_update_status)
+        self.framework.observe(getattr(self.charm.on, "config_changed"), self._on_update_status)
 
         self.framework.observe(
             self.charm.on[PEER].relation_departed, self._on_peer_relation_departed
@@ -85,19 +92,85 @@ class KRaftHandler(Object):
         # update status to add controller
         self.charm.on.update_status.emit()
 
-    def _on_update_status(self, _: UpdateStatusEvent) -> None:
+    def _on_update_status(self, event: UpdateStatusEvent) -> None:
         """Handler for `update-status` events."""
         if not self.upgrade.idle or not self.broker.healthy:
             return
 
-        self.add_to_quorum()
+        # Don't run the state machine if we're done.
+        if not self.charm.state.is_controller_upgrading:
+            if not self.charm.unit.is_leader():
+                return
 
-        if self.model.unit.is_leader():
-            # necessary to refresh this in case TLS has been enabled/disabled
-            # this triggers changes in all the other relation data for large deployments
-            self.charm.state.cluster.update(
-                {"bootstrap-controller": self.charm.state.bootstrap_controller}
-            )
+            if self.charm.state.runs_broker:
+                self.charm.state.broker_upgrade_state = "idle"
+            if self.charm.state.runs_controller:
+                self.charm.state.controller_upgrade_state = "idle"
+            return
+
+        if not self.run_listener_upgrade_state_machine():
+            event.defer()
+
+    def run_listener_upgrade_state_machine(self) -> bool:
+        """Changes peer_cluster state according to KIP-853 stages defined for controller listener upgrade process.
+
+        Returns:
+            bool: Returns True if state changes, and False otherwise.
+        """
+        if self.charm.state.runs_broker_only and not self.charm.unit.is_leader():
+            # no action required on non-leader brokers
+            return True
+
+        role = "controller" if self.charm.state.runs_controller else "broker"
+        upgrade_state = self.charm.state.kraft_upgrade_state
+        leader = self.charm.unit.is_leader() and role == "controller"
+
+        logger.info(f"Upgrading controller listeners: {self.charm.unit.name} {upgrade_state}")
+        match role, leader, upgrade_state.controller, upgrade_state.broker:
+
+            case "controller", True, "idle", _:
+                # leader controller health check
+                if not self.controller_manager.listener_health_check(
+                    scope="CONTROLLER",
+                    auth_map=self.config_manager.active_controller_listener.auth_map,
+                    all_units=False,
+                ):
+                    return False
+
+                self.charm.state.controller_upgrade_state = "done"
+                if self.charm.state.runs_broker:
+                    # KRaft single mode: we're basically done here.
+                    self.charm.state.cluster.update(
+                        {"bootstrap-controller": self.charm.state.bootstrap_controller}
+                    )
+                    self.charm.state.peer_cluster.update(
+                        {"bootstrap-controller": self.charm.state.bootstrap_controller}
+                    )
+                    self.charm.state.controller_upgrade_state = "done"
+
+                return True
+
+            case "broker", _, "done", "idle":
+                # broker health check
+                if not self.controller_manager.listener_health_check(
+                    scope="INTERNAL", auth_map=self.config_manager.internal_listener.auth_map
+                ):
+                    return False
+
+                self.charm.state.broker_upgrade_state = "done"
+                return True
+
+            case "controller", True, "done", "done":
+                # update peer cluster data
+                self.charm.state.cluster.update(
+                    {"bootstrap-controller": self.charm.state.bootstrap_controller}
+                )
+                self.charm.state.peer_cluster.update(
+                    {"bootstrap-controller": self.charm.state.bootstrap_controller}
+                )
+                return True
+
+        return False
 
     def _init_kraft_mode(self) -> None:
         """Initialize the server when running controller mode."""
@@ -189,6 +262,9 @@ class KRaftHandler(Object):
         ):
             return
 
+        if self.charm.state.is_controller_upgrading:
+            return
+
         directory_id = self.controller_manager.add_controller(
             self.charm.state.cluster.bootstrap_controller
         )
@@ -212,7 +288,7 @@ class KRaftHandler(Object):
             self.controller_manager.remove_controller(
                 self.charm.state.kraft_unit_id,
                 directory_id,
-                bootstrap_node=self.charm.state.bootstrap_controller,
+                bootstrap_node=self.charm.state.peer_cluster.bootstrap_controller,
             )
 
     def _on_peer_relation_departed(self, event: RelationDepartedEvent) -> None:

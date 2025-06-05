@@ -10,7 +10,6 @@ import pytest
 from pytest_operator.plugin import OpsTest
 
 from literals import (
-    CONTROLLER_PORT,
     KRAFT_NODE_ID_OFFSET,
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
     PEER_CLUSTER_RELATION,
@@ -32,6 +31,7 @@ pytestmark = pytest.mark.kraft
 
 CONTROLLER_APP = "controller"
 PRODUCER_APP = "producer"
+CONTROLLER_PORT = 9097
 
 
 class TestKRaft:
