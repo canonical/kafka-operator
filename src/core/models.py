@@ -235,6 +235,16 @@ class PeerCluster(RelationState):
         )
 
     @property
+    def bootstrap_controller_port(self) -> int | None:
+        """The listener port used in `bootstrap_controller`."""
+        parts = self.bootstrap_controller.split(":")
+
+        if not self.bootstrap_controller or len(parts) < 1:
+            return None
+
+        return int(parts[1])
+
+    @property
     def bootstrap_unit_id(self) -> str:
         """Bootstrap unit ID in KRaft mode."""
         if self._bootstrap_unit_id:

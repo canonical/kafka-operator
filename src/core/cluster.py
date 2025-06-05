@@ -6,6 +6,7 @@
 
 import logging
 import os
+from dataclasses import dataclass
 from functools import cached_property
 from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, Any
@@ -39,7 +40,6 @@ from literals import (
     BALANCER,
     BROKER,
     CONTROLLER,
-    CONTROLLER_PORT,
     CONTROLLER_USER,
     INTERNAL_USERS,
     KRAFT_NODE_ID_OFFSET,
@@ -53,6 +53,7 @@ from literals import (
     SECURITY_PROTOCOL_PORTS,
     ZK,
     AuthMap,
+    ListenerUpgradeState,
     Status,
     Substrates,
 )
@@ -80,6 +81,14 @@ SECRET_LABEL_MAP = {
     "balancer-password": getattr(custom_secret_groups, "BALANCER"),
     "balancer-uris": getattr(custom_secret_groups, "BALANCER"),
 }
+
+
+@dataclass
+class KRaftUpgradeState:
+    """Object to model different stages of controller listener upgrades in KRaft clusters (see KIP-853)."""
+
+    broker: ListenerUpgradeState
+    controller: ListenerUpgradeState
 
 
 class PeerClusterOrchestratorData(ProviderData, RequirerData):
@@ -455,7 +464,8 @@ class ClusterState(Object):
     def bootstrap_controller(self) -> str:
         """Returns the controller listener in the format HOST:PORT."""
         if self.runs_controller:
-            return f"{self.unit_broker.internal_address}:{CONTROLLER_PORT}"
+            return f"{self.unit_broker.internal_address}:{SECURITY_PROTOCOL_PORTS[self.default_auth].controller}"
+
         return ""
 
     @property
@@ -548,6 +558,8 @@ class ClusterState(Object):
                 return Status.NO_BOOTSTRAP_CONTROLLER
             if not self.cluster.cluster_uuid:
                 return Status.NO_CLUSTER_UUID
+            if self.cluster.tls_enabled ^ self.kraft_tls_enabled:
+                return Status.TLS_MISMATCH
 
         if self.kraft_mode == False:  # noqa: E712
             if not self.zookeeper:
@@ -580,9 +592,12 @@ class ClusterState(Object):
         if not self.peer_cluster.broker_connected_kraft_mode:
             return Status.NO_BROKER_DATA
 
+        if self.cluster.tls_enabled ^ self.kraft_tls_enabled:
+            return Status.TLS_MISMATCH
+
         return Status.ACTIVE
 
-    @property
+    @cached_property
     def kraft_mode(self) -> bool | None:
         """Is the deployment running in KRaft mode?
 
@@ -613,3 +628,95 @@ class ClusterState(Object):
     def runs_controller(self) -> bool:
         """Is the charm enabling the controller?"""
         return CONTROLLER.value in self.roles
+
+    @property
+    def runs_broker_only(self) -> bool:
+        """Is the charm ONLY running broker in KRaft mode?"""
+        return self.runs_broker and not self.runs_controller
+
+    @property
+    def runs_controller_only(self) -> bool:
+        """Is the charm ONLY running controller in KRaft mode?"""
+        return self.runs_controller and not self.runs_broker
+
+    @property
+    def kraft_cluster(self):
+        """The appropriate cluster object for read/write actions in KRaft mode."""
+        if self.runs_broker and self.runs_controller:
+            return self.cluster
+
+        return self.peer_cluster
+
+    @property
+    def kraft_tls_enabled(self) -> bool:
+        """Return True if TLS is enabled in KRaft mode, False otherwise."""
+        if self.runs_broker and self.runs_controller:
+            return self.cluster.tls_enabled
+
+        if self.runs_broker:
+            # we're broker, check if TLS is enabled on controller
+            return bool(self.kraft_cluster.relation_data.get("tls-controller", ""))
+
+        # we're controller, check if TLS is enabled on broker
+        return bool(self.kraft_cluster.relation_data.get("tls-broker", ""))
+
+    @kraft_tls_enabled.setter
+    def kraft_tls_enabled(self, value: bool) -> None:
+        val = "enabled" if value else ""
+
+        if not self.kraft_mode or (self.runs_broker and self.runs_controller):
+            return
+
+        if self.runs_broker:
+            self.kraft_cluster.update({"tls-broker": val})
+        else:
+            self.kraft_cluster.update({"tls-controller": val})
+
+    @property
+    def controller_upgrade_state(self) -> ListenerUpgradeState:
+        """State of the controller(s) in the listener upgrade scenario in KRaft clusters."""
+        return self.kraft_cluster.relation_data.get("controller-upgrade-phase", "idle")
+
+    @controller_upgrade_state.setter
+    def controller_upgrade_state(self, value: ListenerUpgradeState) -> None:
+        self.kraft_cluster.update({"controller-upgrade-phase": value})
+
+    @property
+    def broker_upgrade_state(self) -> ListenerUpgradeState:
+        """State of the broker(s) in the listener upgrade scenario in KRaft clusters."""
+        return self.kraft_cluster.relation_data.get("broker-upgrade-phase", "idle")
+
+    @broker_upgrade_state.setter
+    def broker_upgrade_state(self, value: ListenerUpgradeState) -> None:
+        self.kraft_cluster.update({"broker-upgrade-phase": value})
+
+    @property
+    def kraft_upgrade_state(self) -> KRaftUpgradeState:
+        """State of the whole Kafka cluster in the listener upgrade scenario in KRaft clusters."""
+        return KRaftUpgradeState(
+            broker=self.broker_upgrade_state, controller=self.controller_upgrade_state
+        )
+
+    @cached_property
+    def is_controller_upgrading(self) -> bool:
+        """Are controllers listeners upgrading in KRaft mode?"""
+        active_port = SECURITY_PROTOCOL_PORTS[self.default_auth].controller
+        return self.peer_cluster.bootstrap_controller_port != active_port
+
+    @property
+    def should_use_new_listeners(self) -> bool:
+        """Whether the unit should use new listeners in KRaft controller upgrade process."""
+        role = "controller" if self.runs_controller else "broker"
+        leader = self.unit_broker.unit.is_leader()
+        state = self.kraft_upgrade_state
+
+        followers_turn = state.controller in ("followers", "done")
+        brokers_turn = state.controller == "done"
+
+        if role == "broker":
+            return brokers_turn
+
+        if not leader:
+            return followers_turn
+
+        return True
