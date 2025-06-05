@@ -180,7 +180,7 @@ class CommonConfigManager:
     @cached_property
     def peer_cluster_state(self) -> PeerCluster:
         """Cached peer_cluster state."""
-        return self.peer_cluster_state
+        return self.state.peer_cluster
 
     @property
     def log_level(self) -> str:
