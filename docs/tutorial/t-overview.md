@@ -36,5 +36,6 @@ Here’s an overview of the steps required with links to our separate tutorials 
 * [Integrate with client applications](/t/charmed-kafka-tutorial-relate-kafka/10573)
 * [Manage passwords](/t/charmed-kafka-tutorial-manage-passwords/10569)
 * [Enable encryption](/t/charmed-kafka-documentation-tutorial-enable-security/12043)
+* [Use Kafka Connect for ETL]( /t/charmed-apache-kafka-documentation-tutorial-using-kafka-connect-for-etl/17862)
 * [Rebalance and Reassign Partitions](/t/charmed-apache-kafka-documentation-tutorial-rebalance-and-reassign-partitions/17018)
 * [Cleanup your environment](/t/charmed-kafka-tutorial-cleanup-environment/10565)
