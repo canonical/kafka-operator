@@ -313,9 +313,9 @@ class TestKRaft:
     @pytest.mark.skipif(not tls_enabled, reason="only required when TLS is on.")
     @pytest.mark.abort_on_fail
     async def test_disable_tls(self, ops_test: OpsTest):
-        await ops_test.model.applications[APP_NAME].remove_relation(self.controller_app, TLS_NAME)
+        await ops_test.juju("remove-relation", self.controller_app, TLS_NAME)
         if self.controller_app != APP_NAME:
-            await ops_test.model.applications[APP_NAME].remove_relation(APP_NAME, TLS_NAME)
+            await ops_test.juju("remove-relation", APP_NAME, TLS_NAME)
 
         async with ops_test.fast_forward(fast_interval="90s"):
             await ops_test.model.wait_for_idle(
