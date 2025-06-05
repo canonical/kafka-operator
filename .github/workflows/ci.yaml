@@ -94,6 +94,8 @@ jobs:
           - integration-balancer-multi
           - integration-kraft-single
           - integration-kraft-multi
+          - integration-kraft-single-tls
+          - integration-kraft-multi-tls
     name: ${{ matrix.tox-environments }}
     needs:
       - lint

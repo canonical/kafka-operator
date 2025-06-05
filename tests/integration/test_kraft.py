@@ -14,6 +14,8 @@ from literals import (
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
     PEER_CLUSTER_RELATION,
     SECURITY_PROTOCOL_PORTS,
+    TLS_RELATION,
+    AuthMap,
 )
 
 from .helpers import (
@@ -31,7 +33,9 @@ pytestmark = pytest.mark.kraft
 
 CONTROLLER_APP = "controller"
 PRODUCER_APP = "producer"
-CONTROLLER_PORT = 9097
+TLS_NAME = "self-signed-certificates"
+
+tls_enabled = os.environ.get("TLS", "disabled") == "enabled"
 
 
 class TestKRaft:
@@ -40,18 +44,21 @@ class TestKRaft:
     controller_app: str = {"single": APP_NAME, "multi": CONTROLLER_APP}[deployment_strat]
 
     async def _assert_listeners_accessible(
-        self, ops_test: OpsTest, broker_unit_num=0, controller_unit_num=0
+        self, ops_test: OpsTest, broker_unit_num=0, controller_unit_num=0, tls: bool = False
     ):
+        auth_map = (
+            AuthMap("SASL_PLAINTEXT", "SCRAM-SHA-512")
+            if not tls
+            else AuthMap("SASL_SSL", "SCRAM-SHA-512")
+        )
         logger.info(f"Asserting broker listeners are up: {APP_NAME}/{broker_unit_num}")
         address = await get_address(ops_test=ops_test, app_name=APP_NAME, unit_num=broker_unit_num)
         assert check_socket(
-            address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].internal
+            address, SECURITY_PROTOCOL_PORTS[auth_map].internal
         )  # Internal listener
 
         # Client listener should not be enabled if there is no relations
-        assert not check_socket(
-            address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
-        )
+        assert not check_socket(address, SECURITY_PROTOCOL_PORTS[auth_map].client)
 
         logger.info(
             f"Asserting controller listeners are up: {self.controller_app}/{controller_unit_num}"
@@ -62,7 +69,7 @@ class TestKRaft:
                 ops_test=ops_test, app_name=self.controller_app, unit_num=controller_unit_num
             )
 
-        assert check_socket(address, CONTROLLER_PORT)
+        assert check_socket(address, SECURITY_PROTOCOL_PORTS[auth_map].controller)
 
     @pytest.mark.abort_on_fail
     async def test_build_and_deploy(self, ops_test: OpsTest, kafka_charm):
@@ -164,7 +171,8 @@ class TestKRaft:
         )
 
         address = await get_address(ops_test=ops_test, app_name=self.controller_app)
-        bootstrap_controller = f"{address}:{CONTROLLER_PORT}"
+        controller_port = SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].controller
+        bootstrap_controller = f"{address}:{controller_port}"
 
         unit_status = kraft_quorum_status(
             ops_test, f"{self.controller_app}/0", bootstrap_controller
@@ -186,6 +194,7 @@ class TestKRaft:
             )
 
     @pytest.mark.abort_on_fail
+    @pytest.mark.skipif(tls_enabled, reason="Not required with TLS test.")
     async def test_leader_change(self, ops_test: OpsTest):
         await ops_test.model.applications[self.controller_app].destroy_units(
             f"{self.controller_app}/0"
@@ -202,7 +211,8 @@ class TestKRaft:
             await asyncio.sleep(120)
 
         address = await get_address(ops_test=ops_test, app_name=self.controller_app, unit_num=1)
-        bootstrap_controller = f"{address}:{CONTROLLER_PORT}"
+        controller_port = SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].controller
+        bootstrap_controller = f"{address}:{controller_port}"
         offset = KRAFT_NODE_ID_OFFSET if self.controller_app == APP_NAME else 0
 
         unit_status = kraft_quorum_status(
@@ -235,6 +245,7 @@ class TestKRaft:
         assert unit_status[offset + 3] == KRaftUnitStatus.FOLLOWER
 
     @pytest.mark.abort_on_fail
+    @pytest.mark.skipif(tls_enabled, reason="Not required with TLS test.")
     async def test_scale_in(self, ops_test: OpsTest):
         await ops_test.model.applications[self.controller_app].destroy_units(
             *(f"{self.controller_app}/{unit_id}" for unit_id in (1, 2))
@@ -251,7 +262,8 @@ class TestKRaft:
             await asyncio.sleep(120)
 
         address = await get_address(ops_test=ops_test, app_name=self.controller_app, unit_num=3)
-        bootstrap_controller = f"{address}:{CONTROLLER_PORT}"
+        controller_port = SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].controller
+        bootstrap_controller = f"{address}:{controller_port}"
         offset = KRAFT_NODE_ID_OFFSET if self.deployment_strat == "single" else 0
 
         unit_status = kraft_quorum_status(
@@ -263,3 +275,37 @@ class TestKRaft:
         await self._assert_listeners_accessible(
             ops_test, broker_unit_num=broker_unit_num, controller_unit_num=3
         )
+
+    @pytest.mark.skipif(not tls_enabled, reason="only required when TLS is on.")
+    @pytest.mark.abort_on_fail
+    async def test_enable_tls(self, ops_test: OpsTest):
+        await ops_test.model.deploy(TLS_NAME, application_name=TLS_NAME, channel="1/stable")
+        await ops_test.model.wait_for_idle(
+            apps=[TLS_NAME], idle_period=30, timeout=600, status="active"
+        )
+
+        await ops_test.model.add_relation(f"{self.controller_app}:{TLS_RELATION}", TLS_NAME)
+        await ops_test.model.wait_for_idle(
+            apps=[self.controller_app, TLS_NAME], idle_period=60, timeout=1200
+        )
+
+        # should be blocked in KRaft multi because of TLS mismatch
+        status = "blocked" if self.controller_app != APP_NAME else "active"
+        assert ops_test.model.applications[APP_NAME].status == status
+        assert ops_test.model.applications[self.controller_app].status == status
+
+        if self.controller_app != APP_NAME:
+            await ops_test.model.add_relation(f"{APP_NAME}:{TLS_RELATION}", TLS_NAME)
+
+        async with ops_test.fast_forward(fast_interval="90s"):
+            await ops_test.model.wait_for_idle(
+                apps={self.controller_app, APP_NAME, TLS_NAME},
+                idle_period=45,
+                timeout=1200,
+                status="active",
+            )
+
+        for unit_num in range(3):
+            await self._assert_listeners_accessible(
+                ops_test, broker_unit_num=unit_num, controller_unit_num=unit_num, tls=True
+            )
