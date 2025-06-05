@@ -177,6 +177,11 @@ class CommonConfigManager:
     workload: WorkloadBase
     state: ClusterState
 
+    @cached_property
+    def peer_cluster_state(self) -> PeerCluster:
+        """Cached peer_cluster state."""
+        return self.peer_cluster_state
+
     @property
     def log_level(self) -> str:
         """Return the Java-compliant logging level set by the user.
@@ -300,11 +305,6 @@ class ConfigManager(CommonConfigManager):
         self.workload = workload
         self.config = config
         self.current_version = current_version
-
-    @cached_property
-    def peer_cluster_state(self) -> PeerCluster:
-        """Cached peer_cluster state."""
-        return self.state.peer_cluster
 
     @property
     @override
@@ -998,12 +998,12 @@ class BalancerConfigManager(CommonConfigManager):
         if self.config.profile == PROFILE_TESTING:
             goals = BALANCER_GOALS_TESTING
 
-        if self.state.peer_cluster.racks:
+        if self.peer_cluster_state.racks:
             if (
                 min(
-                    [3, len(self.state.peer_cluster.broker_capacities.get("brokerCapacities", []))]
+                    [3, len(self.peer_cluster_state.broker_capacities.get("brokerCapacities", []))]
                 )
-                > self.state.peer_cluster.racks
+                > self.peer_cluster_state.racks
             ):  # replication-factor > racks is not ideal
                 goals = goals + ["RackAwareDistribution"]
             else:
@@ -1057,10 +1057,10 @@ class BalancerConfigManager(CommonConfigManager):
         """
         properties = (
             [
-                f"bootstrap.servers={self.state.peer_cluster.broker_uris}",
-                f"zookeeper.connect={self.state.peer_cluster.zk_uris}",
+                f"bootstrap.servers={self.peer_cluster_state.broker_uris}",
+                f"zookeeper.connect={self.peer_cluster_state.zk_uris}",
                 "zookeeper.security.enabled=true",
-                f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{self.state.peer_cluster.broker_username}" password="{self.state.peer_cluster.broker_password}";',
+                f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{self.peer_cluster_state.broker_username}" password="{self.peer_cluster_state.broker_password}";',
                 f"sasl.mechanism={self.state.default_auth.mechanism}",
                 f"security.protocol={self.state.default_auth.protocol}",
                 f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
@@ -1086,8 +1086,8 @@ class BalancerConfigManager(CommonConfigManager):
             f"""
             Client {{
                 org.apache.zookeeper.server.auth.DigestLoginModule required
-                username="{self.state.peer_cluster.zk_username}"
-                password="{self.state.peer_cluster.zk_password}";
+                username="{self.peer_cluster_state.zk_username}"
+                password="{self.peer_cluster_state.zk_password}";
             }};
         """
         )
@@ -1106,7 +1106,7 @@ class BalancerConfigManager(CommonConfigManager):
     def set_broker_capacities(self) -> None:
         """Writes all broker storage capacities to `capacityJBOD.json`."""
         self.workload.write(
-            content=json.dumps(self.state.peer_cluster.broker_capacities),
+            content=json.dumps(self.peer_cluster_state.broker_capacities),
             path=self.workload.paths.capacity_jbod_json,
         )
 
