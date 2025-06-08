@@ -1,8 +1,6 @@
 (explanation-cluster-configuration)=
 # Cluster configuration
 
-# Cluster configuration
-
 [Apache Kafka](https://kafka.apache.org) is an open-source distributed event streaming platform that requires an external solution to coordinate and sync metadata between all active brokers.
 One of such solutions is [Apache ZooKeeper](https://zookeeper.apache.org).
 
@@ -21,4 +19,3 @@ For a Charmed Apache Kafka related to a Charmed Apache ZooKeeper:
 - the list of the broker ids of the cluster can be found in `/kafka/brokers/ids`
 - the endpoint used to access the broker with id `0` can be found in `/kafka/brokers/ids/0`
 - the credentials for the Apache Kafka users can be found in `/kafka/config/users`
-

@@ -1,8 +1,6 @@
 (explanation-cryptography)=
 # Cryptography
 
-# Cryptography
-
 This document describes the cryptography used by Charmed Apache Kafka.
 
 ## Resource checksums
@@ -100,4 +98,3 @@ Starting from revision 168 of Charmed Apache Kafka, Juju secrets are used for st
 
 When using mTLS, client certificates are loaded into a `tls-certificates` operator and provided to the Charmed Apache Kafka via the plain-text unencrypted 
 relation. Certificates are stored in the password-protected Truststore file.
-

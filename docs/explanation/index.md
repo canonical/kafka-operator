@@ -7,5 +7,9 @@
 :glob:
 :hidden:
 
-*
-*/index
+security.md
+cryptography.md
+cluster-configuration.md
+trademarks.md
+mirrormaker2-0.md
+```

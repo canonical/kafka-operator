@@ -1,8 +1,6 @@
 (explanation-security)=
 # Security
 
-# Security hardening guide
-
 This document provides an overview of security features and guidance for hardening the security of [Charmed Apache Kafka](https://charmhub.io/kafka) deployments, including setting up and managing a secure environment.
 
 ## Environment
@@ -106,4 +104,3 @@ the [file system paths](/reference/file-system-paths) for further information.
 ## Additional Resources
 
 For details on the cryptography used by Charmed Apache Kafka, see the [Cryptography](/explanation/cryptography) explanation page.
-

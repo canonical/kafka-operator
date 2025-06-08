@@ -1,7 +1,5 @@
 (explanation-mirrormaker2-0)=
-# MirrorMaker2.0
-
-## MirrorMaker2.0 overview
+# MirrorMaker 2.0 overview
 
 Under the hood, MirrorMaker uses Kafka Connect source connectors to replicate data. These include:
 
@@ -22,4 +20,3 @@ In addition to the [MirrorMaker-specific configuration](https://kafka.apache.org
 The [MirrorMaker Integrator charm](https://charmhub.io/mirrormaker-connect-integrator) enables the management of Apache Kafka Connect tasks to mirror and replicate topics from one Charmed Apache Kafka application to another.
 
 The MirrorMaker application has two endpoints that can be used with a Kafka cluster: `source` and `target`. The `source` endpoint is used to integrate with the active cluster, while the `target` endpoint is used to integrate with the passive cluster.
-
