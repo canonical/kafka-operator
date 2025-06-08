@@ -1,6 +1,4 @@
 (reference-apache-kafka-listeners)=
-# Apache Kafka Listeners
-
 # Apache Kafka listeners
 
 Charmed Apache Kafka comes with a set of listeners that can be enabled for

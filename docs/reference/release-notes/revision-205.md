@@ -1,8 +1,6 @@
 (reference-release-notes-revision-205)=
 # Revision 205
 
-# Release 205
-
 New revisions of [Charmed Apache Kafka](http://charmhub.io/kafka) and [Charmed Apache Kafka K8s](http://charmhub.io/kafka-k8s) have been published to their `3/stable` channels.
 
 > Check the documentation on how to upgrade between minor versions on [VM](https://charmhub.io/kafka/docs/h-upgrade), and on [K8s](https://charmhub.io/kafka-k8s/docs/h-upgrade)

@@ -1,6 +1,4 @@
 (reference-statuses)=
-# Statuses
-
 # Charm statuses
 
 The charm follows [standard Juju applications statuses](https://juju.is/docs/olm/status-values#application-status). Here you can find the expected end-users reactions on different statuses:

@@ -1,11 +1,9 @@
 (reference-file-system-paths)=
-# File System Paths
-
-# File system path
+# File system paths
 
 In the following table, we summarize some of the most relevant file paths used in the Apache Kafka and Apache ZooKeeper charms.
 
-## Apache Kafka 
+## Apache Kafka
 
 | Path                                           | Description                                                                                                                                                                                           | Permission                                    |
 |------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------|

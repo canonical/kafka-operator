@@ -1,7 +1,5 @@
 (reference-release-notes-revision-156-126)=
 # Revision 156/126
-
-# Revision 156/126
 <sub>Wednesday, February 28, 2024</sub>
 
 Dear community,

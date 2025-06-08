@@ -1,6 +1,4 @@
 (reference-performance-tuning)=
-# Performance Tuning
-
 # Performance tuning
 
 This section contains some suggested values to get a better performance from Charmed Apache Kafka.

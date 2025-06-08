@@ -1,7 +1,5 @@
 (reference-release-notes-revision-195-149)=
 # Revision 195/149
-
-# Revision 195/149
 <sub>Wed, Dec 18th, 2024</sub>
 
 Dear community,
