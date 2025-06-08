@@ -1,6 +1,8 @@
-[note]
+(index)=
+
+```{note}
 This is a **IAAS/VM** operator. To deploy on Kubernetes, see [Charmed Apache Kafka K8s operator](https://charmhub.io/kafka-k8s).
-[/note]
+```
 
 # Charmed Apache Kafka documentation
 
@@ -22,8 +24,8 @@ refer to [Charmhub](https://charmhub.io/), for more charmed operators that can b
 
 | | |
 |--|--|
-|  [Tutorials](/t/charmed-kafka-tutorial-overview/10571)</br>  Get started - a hands-on introduction to using Charmed Apache Kafka operator for new users </br> |  [How-to guides](/t/charmed-kafka-how-to-manage-units/10287) </br> Step-by-step guides covering key operations and common tasks |
-| [Reference](/t/charmed-apache-kafka-documentation-reference-file-system-paths/13262) </br> Technical information - specifications, APIs, architecture | [Explanation](/t/charmed-apache-kafka-documentation-explanation-security-hardening-guide/15830) </br> Concepts - discussion and clarification of key topics  |
+|  [Tutorials](/tutorial/1-introduction)</br>  Get started - a hands-on introduction to using Charmed Apache Kafka operator for new users </br> |  [How-to guides](/how-to/manage-units) </br> Step-by-step guides covering key operations and common tasks |
+| [Reference](/reference/file-system-paths) </br> Technical information - specifications, APIs, architecture | [Explanation](/explanation/security) </br> Concepts - discussion and clarification of key topics  |
 
 ## Project and community
 
@@ -41,52 +43,93 @@ Apache®, Apache Kafka, Kafka®, and the Apache Kafka logo are either registered
 
 The Charmed Apache Kafka Operator is free software, distributed under the Apache Software License, version 2.0. See [LICENSE](https://github.com/canonical/kafka-operator/blob/main/LICENSE) for more information.
 
-# Contents
+# Navigation
 
-1. [Tutorial](tutorial)
-  1. [1. Introduction](tutorial/t-overview.md)
-  1. [2. Set up the environment](tutorial/t-setup-environment.md)
-  1. [3. Deploy Apache Kafka](tutorial/t-deploy.md)
-  1. [4. Integrate with client applications](tutorial/t-relate-kafka.md)
-  1. [5. Manage passwords](tutorial/t-manage-passwords.md)
-  1. [6. Enable Encryption](tutorial/t-enable-encryption.md)
-  1. [7. Use Kafka Connect for ETL](tutorial/t-kafka-connect.md)
-  1. [8. Rebalance and Reassign Partitions](tutorial/t-reassign-partitions.md)
-  1. [9. Cleanup your environment](tutorial/t-cleanup-environment.md)
-1. [How To](how-to)
-  1. [Deploy](how-to/h-deploy)
-    1. [Deploy anywhere](how-to/h-deploy/h-deploy-anywhere.md)
-    1. [Deploy on AWS](how-to/h-deploy/h-deploy-aws.md)
-    1. [Deploy on Azure](how-to/h-deploy/h-deploy-azure.md)
-    1. [KRaft mode](how-to/h-deploy/h-kraft-mode.md)
-  1. [Manage units](how-to/h-manage-units.md)
-  1. [Manage applications](how-to/h-manage-app.md)
-  1. [Enable encryption](how-to/h-enable-encryption.md)
-  1. [Upgrade](how-to/h-upgrade.md)
-  1. [Monitoring](how-to/h-monitoring)
-    1. [Enable Monitoring](how-to/h-monitoring/h-enable-monitoring.md)
-    1. [Integrate alerts and dashboards](how-to/h-monitoring/h-integrate-alerts-dashboards.md)
-  1. [Migrate a cluster](how-to/h-cluster-migration.md)
-  1. [Create mTLS Client Credentials](how-to/h-create-mtls-client-credentials.md)
-  1. [Enable Oauth through Hydra](how-to/h-enable-oauth.md)
-  1. [Back up and restore](how-to/h-backup.md)
-  1. [Manage message schemas](how-to/h-manage-message-schemas.md)
-  1. [Use Kafka Connect for ETL workloads](how-to/h-kafka-connect.md)
-1. [Reference](reference)
-  1. [Release Notes](reference/r-releases)
-    1. [Revision 156/126](reference/r-releases/r-rev156_126.md)
-    1. [Revision 156/136](reference/r-releases/r-rev156_136.md)
-    1. [Revision 195/149](reference/r-releases/r-rev195_149.md)
-    1. [Revision 205](reference/r-releases/r-rev205.md)
-  1. [File System Paths](reference/r-file-system-paths.md)
-  1. [Snap Entrypoints](reference/r-snap-entrypoints.md)
-  1. [Apache Kafka Listeners](reference/r-listeners.md)
-  1. [Statuses](reference/r-statuses.md)
-  1. [Requirements](reference/r-requirements.md)
-  1. [Performance Tuning](reference/r-performance-tuning.md)
-  1. [Contact](reference/r-contacts.md)
-1. [Explanation](explanation)
-  1. [Security](explanation/e-security.md)
-  1. [Cryptography](explanation/e-cryptography.md)
-  1. [Cluster configuration](explanation/e-cluster-configuration.md)
-  1. [Trademarks](explanation/e-trademarks.md)
+[details=Navigation]
+
+|Level | Path | Navlink|
+|--- | --- | ---|
+|1 | tutorial | [Tutorial]()|
+|2 | t-overview | [1. Introduction](/tutorial/1-introduction)|
+|2 | t-setup-environment | [2. Set up the environment](/tutorial/2-set-up-the-environment)|
+|2 | t-deploy | [3. Deploy Apache Kafka](/tutorial/3-deploy-apache-kafka)|
+|2 | t-relate-kafka | [4. Integrate with client applications](/tutorial/4-integrate-with-client-applications)|
+|2 | t-manage-passwords | [5. Manage passwords](/tutorial/5-manage-passwords)|
+|2 | t-enable-encryption | [6. Enable Encryption](/tutorial/6-enable-encryption)|
+|2 | t-kafka-connect | [7. Use Kafka Connect for ETL]( /t/charmed-apache-kafka-documentation-tutorial-using-kafka-connect-for-etl/17862)|
+|2 | t-reassign-partitions | [8. Rebalance and Reassign Partitions](/tutorial/8-rebalance-and-reassign-partitions)|
+|2 | t-cleanup-environment | [9. Cleanup your environment](/tutorial/9-cleanup-your-environment)|
+|1 | how-to | [How To]() |
+|2 | h-deploy | [Deploy]() |
+|3 | h-deploy-anywhere| [Deploy anywhere](/how-to/deploy/deploy-anywhere)|
+|3 | h-deploy-aws | [Deploy on AWS](/how-to/deploy/deploy-on-aws)|
+|3 | h-deploy-azure | [Deploy on Azure](/how-to/deploy/deploy-on-azure)|
+|3 | h-kraft-mode | [KRaft mode](https://discourse.charmhub.io/t/15976)|
+|2 | h-manage-units | [Manage units](/how-to/manage-units)|
+|2 | h-manage-app | [Manage applications](/how-to/manage-applications)|
+|2 | h-enable-encryption | [Enable encryption](/how-to/enable-encryption)|
+|2 | h-upgrade | [Upgrade](/how-to/upgrade)|
+|2 | h-monitoring | [Monitoring]()|
+|3 | h-enable-monitoring | [Enable Monitoring](/how-to/monitoring/enable-monitoring)|
+|3 | h-integrate-alerts-dashboards | [Integrate alerts and dashboards](/how-to/monitoring/integrate-alerts-and-dashboards)|
+|2 | h-cluster-replication | [Cluster replication]()|
+|3 | h-cluster-migration | [Migrate a cluster](/how-to/cluster-replication/migrate-a-cluster)|
+|3 | h-cluster-replication | [Cluster replication](/how-to/cluster-replication/cluster-replication)|
+|2 | h-create-mtls-client-credentials | [Create mTLS Client Credentials](/how-to/create-mtls-client-credentials)|
+|2 | h-enable-oauth | [Enable Oauth through Hydra](/how-to/enable-oauth-through-hydra)|
+|2 | h-backup | [Back up and restore](/how-to/back-up-and-restore)|
+|2 | h-manage-message-schemas | [Manage message schemas](/how-to/manage-message-schemas)|
+|2 | h-kafka-connect | [Use Kafka Connect for ETL workloads](/how-to/use-kafka-connect-for-etl-workloads)|
+|1 | reference | [Reference]()|
+|2 | r-releases | [Release Notes]()|
+|3 | r-rev156_126 | [Revision 156/126](/)|python3 -m doh -i discourse.charmhub.io -t 10288 --generate_h1
+|3 | r-rev156_136 | [Revision 156/136](/)|
+|3 | r-rev195_149 | [Revision 195/149](/)|
+|3 | r-rev205 | [Revision 205](/)|
+|2 | r-actions | [Actions](https://charmhub.io/kafka/actions?channel=3/stable)|
+|2 | r-configurations | [Configurations](https://charmhub.io/kafka/configure?channel=3/stable)|
+|2 | r-libraries | [Libraries](https://charmhub.io/kafka/libraries/kafka_libs?channel=3/stable)|
+|2 | r-file-system-paths | [File System Paths](/reference/file-system-paths)|
+|2 | r-snap-entrypoints | [Snap Entrypoints](/reference/snap-entrypoints)|
+|2 | r-listeners | [Apache Kafka Listeners](/reference/apache-kafka-listeners)|
+|2 | r-statuses | [Statuses](/reference/statuses)|
+|2 | r-requirements | [Requirements](/reference/requirements)|
+|2 | r-performance-tuning | [Performance Tuning](/reference/performance-tuning)|
+|2 | r-contacts | [Contact](/reference/contact)|
+|1 | explanation | [Explanation]()|
+|2 | e-security | [Security](/explanation/security)|
+|2 | e-cryptography | [Cryptography](/explanation/cryptography)|
+|2 | e-cluster-configuration | [Cluster configuration](/explanation/cluster-configuration)|
+|2 | e-trademarks | [Trademarks](/explanation/trademarks)|
+|2 | e-mirrormaker | [MirrorMaker2.0](/)|
+
+[/details]
+
+# Redirects
+
+[details=Mapping table]
+| Path | Location |
+| ---- | -------- |
+[/details]
+
+-------------------------
+
+abatisse | 2024-02-22 08:43:52 UTC | #2
+
+Same issue with links as in [kafka-k8s](https://discourse.charmhub.io/t/charmed-kafka-k8s-documentation/10296/4?u=abatisse)
+
+-------------------------
+
+
+```{toctree}
+:titlesonly:
+:maxdepth: 2
+:glob:
+:hidden:
+
+Home <self>
+tutorial*/index
+how*/index
+reference*/index
+explanation*/index
+*
