@@ -7,5 +7,6 @@
 :glob:
 :hidden:
 
-*
-*/index
+enable-monitoring.md
+alerts.md
+```

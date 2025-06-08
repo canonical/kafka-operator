@@ -1,6 +1,4 @@
 (how-to-manage-units)=
-# Manage units
-
 # How to manage units
 
 For general Juju unit management process, see the [Juju documentation](https://juju.is/docs/juju/manage-units).

@@ -1,6 +1,4 @@
 (how-to-upgrade)=
-# Upgrade
-
 # How to upgrade between minor versions
 
 ```{note}

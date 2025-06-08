@@ -7,5 +7,6 @@
 :glob:
 :hidden:
 
-*
-*/index
+migrate.md
+replication.md
+```

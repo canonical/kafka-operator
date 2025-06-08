@@ -1,6 +1,4 @@
 (how-to-use-kafka-connect-for-etl-workloads)=
-# Use Kafka Connect for ETL workloads
-
 # How to use Kafka Connect for ETL workloads
 
 [Kafka Connect](https://kafka.apache.org/documentation/#connect) is a framework for easy deployment of Apache Kafka clients for common ETL tasks on different data sources and sinks, managed through multiple jobs running on a distributed cluster of workers.

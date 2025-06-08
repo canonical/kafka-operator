@@ -1,8 +1,6 @@
 (how-to-cluster-replication-cluster-replication)=
 # Cluster replication
 
-# Cluster replication
-
 This How-To will cover how to set up cluster replication using MirrorMaker through [Kafka Connect](https://kafka.apache.org/documentation/#connect).
 
 ```{note}

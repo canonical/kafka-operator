@@ -1,17 +1,17 @@
 (how-to-deploy-deploy-on-aws)=
-# Deploy on AWS
-
 # How to deploy on AWS
 
 [Amazon Web Services](https://aws.amazon.com/) is a popular subsidiary of Amazon that provides on-demand cloud computing platforms on a metered pay-as-you-go basis. Access the AWS web console at [console.aws.amazon.com](https://console.aws.amazon.com/).
 
 ## Summary
 
-* [Install AWS and Juju tooling](#install-aws-and-juju-tooling)
-  * [Authenticate](#authenticate)
-* [Bootstrap Juju controller on AWS EC2](#bootstrap-juju-controller-on-aws-ec2)
-* [Deploy charms](#deploy-charms)
-* [Clean up](#clean-up)
+- [How to deploy on AWS](#how-to-deploy-on-aws)
+  - [Summary](#summary)
+  - [Install AWS and Juju tooling](#install-aws-and-juju-tooling)
+    - [Authenticate](#authenticate)
+  - [Bootstrap Juju controller on AWS EC2](#bootstrap-juju-controller-on-aws-ec2)
+  - [Deploy charms](#deploy-charms)
+  - [Clean up](#clean-up)
 
 ---
 

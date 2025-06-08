@@ -1,6 +1,4 @@
 (how-to-create-mtls-client-credentials)=
-# Create mTLS Client Credentials
-
 # Create mTLS client credentials
 
 Requirements:

@@ -7,5 +7,8 @@
 :glob:
 :hidden:
 
-*
-*/index
+Anywhere<deploy-anywhere.md>
+AWS<deploy-aws.md>
+Azure<deploy-azure.md>
+KRaft mode<kraft-mode.md>
+```

@@ -1,6 +1,4 @@
 (how-to-deploy-kraft-mode)=
-# KRaft mode
-
 # How to set up KRaft mode
 
 ```{caution}

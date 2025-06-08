@@ -1,7 +1,5 @@
 (how-to-monitoring-integrate-alerts-and-dashboards)=
-# Integrate alerts and dashboards
-
-# Integrate custom alerting rules and dashboards
+# Alerts and dashboards
 
 This guide shows you how to integrate an existing set of rules and/or dashboards to your Charmed Apache Kafka and Charmed Apache ZooKeeper deployment to be consumed with the [Canonical Observability Stack (COS)](https://charmhub.io/topics/canonical-observability-stack).
 To do so, we will sync resources stored in a git repository to COS Lite.
@@ -69,4 +67,3 @@ As for the dashboards, they should be available in the Grafana interface.
 ## Conclusion
 
 In this guide, we enabled monitoring on a Charmed Apache Kafka deployment and integrated alert rules and dashboards by syncing a git repository to the COS stack.
-

@@ -1,6 +1,4 @@
 (how-to-cluster-replication-migrate-a-cluster)=
-# Migrate a cluster
-
 # Migrate from a non-charmed Apache Kafka
 
 This How-To guide covers executing a cluster migration to a Charmed Apache Kafka deployment using MirrorMaker 2.0.

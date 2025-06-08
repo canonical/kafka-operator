@@ -1,7 +1,5 @@
 (how-to-back-up-and-restore)=
-# Back up and restore
-
-# Configuration backup and restore
+# Backup and restore
 
 Apache Kafka configuration is distributed using Apache ZooKeeper.
 An Apache ZooKeeper backup can be stored on any S3-compatible storage.

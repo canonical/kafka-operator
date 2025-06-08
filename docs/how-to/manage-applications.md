@@ -1,6 +1,4 @@
 (how-to-manage-applications)=
-# Manage applications
-
 # How to manage related applications
 
 Relations to new applications are supported via the "[kafka_client](https://github.com/canonical/charm-relation-interfaces/blob/main/interfaces/kafka_client/v0/README.md)" interface.

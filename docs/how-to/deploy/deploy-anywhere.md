@@ -1,6 +1,4 @@
 (how-to-deploy-deploy-anywhere)=
-# Deploy anywhere
-
 # How to deploy Charmed Apache Kafka
 
 ```{caution}
