@@ -28,11 +28,15 @@ Check that the Juju version is correctly installed:
 juju version
 ```
 
-[details="Output example"]
+<details>
+
+<summary> Output example</summary>
+
 ```shell
 3.6-rc1-genericlinux-amd64
 ```
-[/details]
+
+</details>
 
 ### Azure CLI
 
@@ -44,7 +48,10 @@ Verify that it is correctly installed:
 az --version
 ```
 
-[details="Output example"]
+<details>
+
+<summary> Output example</summary>
+
 ```shell
 azure-cli                         2.65.0
 
@@ -64,7 +71,8 @@ Legal docs and information: aka.ms/AzureCliLegal
 
 Your CLI is up-to-date.
 ```
-[/details]
+
+</details>
 
 ### Authenticate
 
@@ -201,13 +209,17 @@ az resource list
 
 List your Juju credentials with the `juju credentials` command.
 
-[details="Output example"]
+<details>
+
+<summary> Output example</summary>
+
 ```shell
 Client Credentials:
 Cloud        Credentials
 azure        NAME_OF_YOUR_CREDENTIAL
 ```
-[/details]
+
+</details>
 
 Remove Azure CLI credentials from Juju:
 
@@ -243,4 +255,3 @@ Finally, log out from Azure CLI:
 ```shell
 az logout 
 ```
-

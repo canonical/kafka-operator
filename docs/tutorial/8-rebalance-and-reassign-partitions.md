@@ -157,7 +157,9 @@ This should produce an output similar to the result seen below, with broker `3` 
           "offsetLag": 0,
           "isFuture": false
         },
-        ...
+        
+    }
+}
 ```
 
 ### Removing old brokers

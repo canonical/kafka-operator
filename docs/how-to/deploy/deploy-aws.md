@@ -17,17 +17,19 @@ To check whether both Juju and AWS CLI are correctly installed, run commands to 
 
 ```shell
 juju version
-
 aws --version
 ```
 
-[details="Output example"]
-```shell
-3.5.4-genericlinux-amd64
+<details>
 
+<summary> Output example</summary>
+
+```text
+3.5.4-genericlinux-amd64
 aws-cli/2.13.25 Python/3.11.5 Linux/6.2.0-33-generic exe/x86_64.ubuntu.23 prompt/off
 ```
-[/details]
+
+</details>
 
 ### Authenticate
 
@@ -58,8 +60,11 @@ Bootstrap Juju controller ([check all supported configuration options](https://j
 juju bootstrap aws <CONTROLLER_NAME>
 ```
 
-[details="Output example"]
-```shell
+<details>
+
+<summary> Output example</summary>
+
+```text
 Creating Juju controller "aws-us-east-1" on aws/us-east-1
 Looking for packaged Juju agent version 3.5.4 for amd64
 Located Juju agent version 3.5.4-ubuntu-amd64 at https://juju-dist-aws.s3.amazonaws.com/agents/agent/3.5.4/juju-3.5.4-linux-amd64.tgz
@@ -81,7 +86,8 @@ Now you can run
 	juju add-model <model-name>
 to create a new model to deploy workloads.
 ```
-[/details]
+
+</details>
 
 ## Deploy charms
 
@@ -147,10 +153,48 @@ via the AWS portal. See [Amazon AWS documentation](https://repost.aws/knowledge-
 on how to remove active resources no longer needed.
 
 After destroying the controller, check and manually delete all unnecessary AWS EC2 instances, to show the list of all your EC2 instances run the following command (make sure to use the correct region):
- 
+
 ```shell
 aws ec2 describe-instances --region us-east-1 --query "Reservations[].Instances[*].{InstanceType: InstanceType, InstanceId: InstanceId, State: State.Name}" --output table
 ```
 
-[details="Output example"]
+<details>
+
+<summary> Output example</summary>
+
+```text
+-------------------------------------------------------
+|                  DescribeInstances                  |
++---------------------+----------------+--------------+
+|     InstanceId      | InstanceType   |    State     |
++---------------------+----------------+--------------+
+|  i-0f374435695ffc54c|  m7i.xlarge    |  terminated  |
+|  i-0e1e8279f6b2a08e0|  m7i.xlarge    |  terminated  |
+|  i-061e0d10d36c8cffe|  m7i.xlarge    |  terminated  |
+|  i-0f4615983d113166d|  m7i.xlarge    |  terminated  |
++---------------------+----------------+--------------+
+```
+
+</details>
+
+List your Juju credentials with the `juju credentials` command:
+
 ```shell
+...
+Client Credentials:
+Cloud        Credentials
+aws          NAME_OF_YOUR_CREDENTIAL
+...
+```
+
+Remove AWS EC2 CLI credentials from Juju:
+
+```shell
+juju remove-credential aws NAME_OF_YOUR_CREDENTIAL
+```
+
+Finally, remove AWS CLI user credentials (to avoid forgetting and leaking):
+
+```shell
+rm -f ~/.aws/credentials.yaml
+```

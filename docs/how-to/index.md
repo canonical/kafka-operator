@@ -18,5 +18,5 @@ Create mTLS client credentials<create-mtls-client-credentials.md>
 Enable OAuth<oauth.md>
 Back up and restore<back-up-and-restore.md>
 Manage message schemas<schemas.md>
-Use Kafka Connect for ETL workloads<kafka-connect.md>
+Use Kafka Connect<kafka-connect.md>
 ```

@@ -3,9 +3,10 @@
 
 This is part of the [Charmed Apache Kafka Tutorial](/tutorial/1-introduction). Please refer to this page for more information and an overview of the content. 
 
-## Clean up your environment 
+(remove-kafka-and-juju)=
+## Remove Charmed Apache Kafka and Juju
 
-If you're done using Charmed Apache Kafka and Juju and would like to free up resources on your machine, you can remove Charmed Apache Kafka, Charmed Apache Zookeeper and Juju. 
+If you're done using Charmed Apache Kafka and Juju and would like to free up resources on your machine, you can remove Charmed Apache Kafka, Charmed Apache Zookeeper and Juju.
 
 ```{caution}
 Removing Charmed Apache Kafka as shown below will delete all the data in the Apache Kafka. Further, when you remove Juju as shown below you lose access to any other applications you have hosted on Juju.
@@ -31,8 +32,8 @@ sudo snap remove juju --purge
 
 ## What's next?
 
-In this tutorial, we've successfully deployed Apache Kafka, added/removed replicas, added/removed users to/from the cluster, and even enabled and disabled TLS. 
-You may now keep your Charmed Apache Kafka deployment running or remove it entirely using the steps in [Remove Charmed Apache Kafka and Juju](#remove-charmed-kafka-and-juju). 
+In this tutorial, we've successfully deployed Apache Kafka, added/removed replicas, added/removed users to/from the cluster, and even enabled and disabled TLS.
+You may now keep your Charmed Apache Kafka deployment running or remove it entirely using the steps in [Remove Charmed Apache Kafka and Juju](remove-kafka-and-juju).
 If you're looking for what to do next you can:
 
 - Run [Charmed Apache Kafka on Kubernetes](https://github.com/canonical/kafka-k8s-operator).

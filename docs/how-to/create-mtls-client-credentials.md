@@ -4,9 +4,9 @@
 Requirements:
 
 - Charmed Apache Kafka cluster up and running
-- [Admin credentials](./h-manage-app.md)
-- [Encryption enabled](./h-enable-encryption.md)
-- [Java JRE](https://ubuntu.com/tutorials/install-jre#1-overview) installed
+- [Admin credentials](how-to-manage-applications)
+- [Encryption enabled](how-to-enable-encryption)
+- [Java Runtime Environment (JRE)](https://ubuntu.com/tutorials/install-jre#1-overview) installed
 - [`charmed-kafka` snap](https://snapcraft.io/charmed-kafka) installed
 - [jq](https://snapcraft.io/jq) installed
 

@@ -39,7 +39,7 @@ Refer to the [documentation](https://charmhub.io/cos-configuration-k8s/configure
 Adding, updating or deleting an alert rule or a dashboard in the repository will be reflected in the monitoring stack.
 
 ```{note}
-You need to manually refresh `cos-config`'s local repository with the *sync-now* action if you do not want to wait for the next [update-status event](/) to pull the latest changes.
+You need to manually refresh `cos-config`'s local repository with the *sync-now* action if you do not want to wait for the next [update-status event](https://documentation.ubuntu.com/juju/3.6/reference/hook/#update-status) to pull the latest changes.
 ```
 
 ## Forward the rules and dashboards

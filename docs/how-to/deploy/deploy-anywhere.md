@@ -2,7 +2,7 @@
 # How to deploy Charmed Apache Kafka
 
 ```{caution}
-For K8s Charmed Apache Kafka, see the [Charmed Apache Kafka K8s documentation](/) instead.
+For K8s Charmed Apache Kafka, see the [Charmed Apache Kafka K8s documentation](https://charmhub.io/kafka-k8s) instead.
 ```
 
 To deploy a Charmed Apache Kafka cluster on a bare environment, it is necessary to:
@@ -25,43 +25,43 @@ List available controllers:
 Make sure that the controller's back-end cloud is **not** K8s. 
 The cloud information can be retrieved with the following command
 
-```commandline
+```shell
 juju list-controllers
 ```
 
 Switch to another controller if needed:
 
-```commandline
+```shell
 juju switch <controller>
 ```
 
 If there are no suitable controllers, create a new one:
 
-```commandline
+```shell
 juju bootstrap <cloud> <controller>
 ```
 
-where `<cloud>` -- the cloud to deploy controller to, e.g., `localhost`. For more information on how to set up a new cloud, see the [How to manage clouds](https:///t/1100) guide in Juju documentation.
+where `<cloud>` -- the cloud to deploy controller to, e.g., `localhost`. For more information on how to set up a new cloud, see the [How to manage clouds](https://documentation.ubuntu.com/juju/latest/howto/manage-clouds/index.html) guide in Juju documentation.
 
-For more Juju controller setup guidance, see the [How to manage controllers](/) guide in Juju documentation.
+For more Juju controller setup guidance, see the [How to manage controllers](https://documentation.ubuntu.com/juju/3.6/howto/manage-controllers/) guide in Juju documentation.
 
 ## Juju model setup
 
 You can create a new Juju model using 
 
-```commandline
+```shell
 juju add-model <model>
 ```
 
 Alternatively, you can switch to any existing Juju model: 
 
-```commandline
+```shell
 juju switch <model-name>
 ```
 
 Make sure that the model is of a correct type (not `k8s`):
 
-```commandline
+```shell
 juju show-model | yq '.[].type'
 ```
 
@@ -69,7 +69,7 @@ juju show-model | yq '.[].type'
 
 Charmed Apache Kafka and Charmed Apache ZooKeeper can both be deployed as follows:
 
-```commandline
+```shell
 $ juju deploy kafka --channel 3/stable -n <kafka-units>
 $ juju deploy zookeeper --channel 3/stable -n <zookeeper-units>
 ```
@@ -84,42 +84,42 @@ $ juju relate kafka zookeeper
 
 Check the status of the deployment:
 
-```commandline
+```shell
 juju status
 ```
 
-The deployment should be complete once all the units show `active` or `idle` status. 
+The deployment should be complete once all the units show `active` or `idle` status.
 
 ## (Optional) Create an external admin users
 
-Charmed Apache Kafka aims to follow the _secure by default_ paradigm. As a consequence, after being deployed the Apache Kafka cluster 
-won't expose any external listener. 
-In fact, ports are only opened when client applications are related, also 
+Charmed Apache Kafka aims to follow the _secure by default_ paradigm. As a consequence, after being deployed the Apache Kafka cluster
+won't expose any external listener.
+In fact, ports are only opened when client applications are related, also
 depending on the protocols to be used.
 
 ```{note}
-For more information about the available listeners and protocols please refer to [this table](/reference/apache-kafka-listeners). 
+For more information about the available listeners and protocols please refer to [this table](reference-apache-kafka-listeners). 
 ```
 
 It is however generally useful for most of the use cases to create a first admin user
-to be used to manage the Apache Kafka cluster (either internally or externally). 
+to be used to manage the Apache Kafka cluster (either internally or externally).
 
-To create an admin user, deploy the [Data Integrator Charm](https://charmhub.io/data-integrator) with 
+To create an admin user, deploy the [Data Integrator Charm](https://charmhub.io/data-integrator) with
 `extra-user-roles` set to `admin`:
 
-```commandline
+```shell
 juju deploy data-integrator --channel stable --config topic-name=test-topic --config extra-user-roles=admin
 ```
 
 ... and relate it to the Apache Kafka charm:
 
-```commandline
+```shell
 juju relate data-integrator kafka
 ```
 
 To retrieve authentication information, such as the username and password, use:
 
-```commandline
+```shell
 juju run data-integrator/leader get-credentials
 ```
 

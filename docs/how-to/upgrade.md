@@ -7,7 +7,7 @@ This feature is available on Charmed Apache Kafka and Charmed Apache ZooKeeper f
 
 Charm upgrades can include both upgrades of operator code (e.g. the revision used by the charm) and/or the workload version. Note that since the charm code pins a particular version of the workload, a charm upgrade may or may not involve also a workload version upgrade. 
 
-In general, the following guide only applies for in-place upgrades that involve (at most) minor version upgrade of Apache Kafka workload, e.g. between Apache Kafka 3.4.x to 3.5.x. Major workload upgrades are generally **NOT SUPPORTED**, and they should be carried out using [full cluster-to-cluster migrations](/how-to/cluster-replication/migrate-a-cluster).
+In general, the following guide only applies for in-place upgrades that involve (at most) minor version upgrade of Apache Kafka workload, e.g. between Apache Kafka 3.4.x to 3.5.x. Major workload upgrades are generally **NOT SUPPORTED**, and they should be carried out using [full cluster-to-cluster migrations](how-to-cluster-replication-migrate-a-cluster).
 
 While upgrading an Apache Kafka cluster, do not perform any other major operations, including, but not limited to, the following:
 
