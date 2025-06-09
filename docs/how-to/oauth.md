@@ -1,5 +1,5 @@
 (how-to-enable-oauth-through-hydra)=
-# Enable Oauth through Hydra
+# Enable OAuth through Hydra
 
 Versions used for this integration example:
 
@@ -86,5 +86,4 @@ $ curl https://10.64.140.44/iam-hydra/oauth2/token -k -u eeec2a88-52bf-46e6-85bf
 {"access_token":"ory_at_b2pcwnwTpCVHPbxoU7L45isbRJhNdBbn91y4Ex0YNrA.easwGEfsTJ7VnNfER2svIMHwen5ZzNXaVZm8i7QdLLg","expires_in":3599,"scope":"profile","token_type":"bearer"}
 ```
 
-With this token, a client can now authenticate on Apache Kafka using oAuth listeners.
-
+With this token, a client can now authenticate on Apache Kafka using OAuth listeners.

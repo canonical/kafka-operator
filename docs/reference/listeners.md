@@ -2,14 +2,14 @@
 # Apache Kafka listeners
 
 Charmed Apache Kafka comes with a set of listeners that can be enabled for
-inter- and intra-cluster communication. 
+inter- and intracluster communication. 
 
 *Internal listeners* are used for internal traffic and exchange of information 
 between Apache Kafka brokers, whereas *external listeners* are used for external clients
 to be optionally enabled based on the relations created on particular
-charm endpoints. Each listener is characterized by a specific port, scope and protocol. 
+charm endpoints. Each listener is characterised by a specific port, scope and protocol. 
 
-In the following table, we summarize the protocols, the port and
+In the following table, we summarise the protocols, the port and
 the relation that each listener is bound to. Note that based on whether a `certificates`
 relation is present, one of two mutually exclusive types of listeners can be 
 opened. 

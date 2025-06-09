@@ -64,7 +64,7 @@ juju relate zookeeper:cos-agent grafana-agent
 
 Finally, relate `grafana-agent` with consumed COS offers:
 
-```
+```shell
 juju relate grafana-agent grafana-dashboards
 juju relate grafana-agent loki-logging
 juju relate grafana-agent prometheus-receive-remote-write

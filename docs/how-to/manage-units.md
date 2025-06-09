@@ -141,4 +141,3 @@ sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule require
 ...
 bootstrap.servers=<BOOTSTRAP_SERVERS>
 ```
-

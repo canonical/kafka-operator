@@ -95,7 +95,7 @@ This command shows available backups, for example:
 Below is a list of parameters shown for each backup:
 
 - `Id`: identifier of the backup.
-- `Log-Sequence-number`: a database-specific number to identify its state. Learn more about the Zxid on [Apache ZooKeeper documentation](https://zookeeper.apache.org/doc/r3.9.2/zookeeperProgrammers.html#sc_timeInZk).
+- `Log-Sequence-number`: a database-specific number to identify its state. Learn more about the zxid on [Apache ZooKeeper documentation](https://zookeeper.apache.org/doc/r3.9.2/zookeeperProgrammers.html#sc_timeInZk).
 - `Path`: path of the snapshot file in the S3 repository.
 
 ## Restore a backup

@@ -88,7 +88,7 @@ kafka:
 ok: "True"
 ```
 
-Save the value listed under `bootstrap-server`, `username` and `password`. *(Note: your hostnames, usernames, and passwords will likely be different.)*
+Save the value listed under `bootstrap-server`, `username` and `password`. *(Note: your hostname, usernames, and passwords will likely be different.)*
 
 ### Produce/consume messages
 

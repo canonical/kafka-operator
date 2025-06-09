@@ -54,7 +54,7 @@ Make sure that the output of the action is successful.
 This action must be run before Charmed Apache Kafka upgrades.
 ```
 
-The action will also configure the charm to minimize high-availability reduction and ensure a safe upgrade process. After successful execution, the charm is ready to be upgraded.
+The action will also configure the charm to minimise high-availability reduction and ensure a safe upgrade process. After successful execution, the charm is ready to be upgraded.
 
 ### Step 3: Upgrade
 

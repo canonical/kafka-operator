@@ -92,12 +92,12 @@ juju exec --application kafka-test-app "tail /tmp/*.log"
 ```
 
 Note that if the `kafka-test-app` was running before, there may be multiple logs related to the different
-runs. Refer to the latest logs produced and also check that in the logs the connection is indeed established 
-with the encrypted port `9093`. 
+runs. Refer to the latest logs produced and also check that in the logs the connection is indeed established
+with the encrypted port `9093`.
 
 ### Remove external TLS certificate
 
-To remove the external TLS and return to the locally generated one, un-relate applications:
+To remove the external TLS and return to the locally generated one, remove relation with certificates provider:
 
 ```shell
 juju remove-relation kafka self-signed-certificates
@@ -105,4 +105,3 @@ juju remove-relation zookeeper self-signed-certificates
 ```
 
 The Charmed Apache Kafka application is not using TLS anymore.
-

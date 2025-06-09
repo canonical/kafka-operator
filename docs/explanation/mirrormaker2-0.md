@@ -5,7 +5,7 @@ Under the hood, MirrorMaker uses Kafka Connect source connectors to replicate da
 
 - **MirrorSourceConnector** - replicates topics from an original cluster to a new cluster. It also replicates ACLs and is necessary for the MirrorCheckpointConnector to run
 
-- **MirrorCheckpointConnector** - periodically tracks offsets. If enabled, it also synchronizes consumer group offsets between the original and new clusters
+- **MirrorCheckpointConnector** - periodically tracks offsets. If enabled, it also synchronises consumer group offsets between the original and new clusters
 
 - **MirrorHeartbeatConnector** - periodically checks connectivity between the original and new clusters
 
@@ -15,7 +15,7 @@ MirrorMaker runs as a distributed service on the target cluster. It can consume 
 
 In addition to the [MirrorMaker-specific configuration](https://kafka.apache.org/documentation/#mirrormakerconfigs), the MirrorMaker service can also be configured using many of the same settings as [Kafka Connect](https://kafka.apache.org/documentation/#connectconfigs).
 
-## Charmed MirorMaker integrator
+## Charmed MirrorMaker integrator
 
 The [MirrorMaker Integrator charm](https://charmhub.io/mirrormaker-connect-integrator) enables the management of Apache Kafka Connect tasks to mirror and replicate topics from one Charmed Apache Kafka application to another.
 

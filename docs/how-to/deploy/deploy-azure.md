@@ -3,31 +3,18 @@
 
 [Azure](https://azure.com/) is the cloud computing platform developed by Microsoft. It has management, access and development of applications and services to individuals, companies, and governments through its global infrastructure. Access the Azure web console at [portal.azure.com](https://portal.azure.com/).
 
-## Summary
-
-- [How to deploy on Azure](#how-to-deploy-on-azure)
-  - [Summary](#summary)
-  - [Install Client Environment](#install-client-environment)
-    - [Juju](#juju)
-    - [Azure CLI](#azure-cli)
-    - [Authenticate](#authenticate)
-    - [Bootstrap Juju controller on Azure](#bootstrap-juju-controller-on-azure)
-  - [Deploy charms](#deploy-charms)
-  - [Clean up](#clean-up)
-
----
-
 ## Install Client Environment
 
-```{caution}
-**WARNING**: The current limitations:
+```{warning}
+Current limitations:
+
 * Only supported starting Juju 3.6 (currently edge)
-* Juju cli should be on Azure VM for it to be able to reach cloud metadata endpoint.
+* Juju CLI should be on Azure VM for it to be able to reach cloud metadata endpoint.
 * Managed Identity and the Juju resources should be on the same Azure subscription
 * The current setup has been tested on Ubuntu 22.04+
 ```
 
-### Juju 
+### Juju
 
 Install Juju via snap:
 
@@ -49,7 +36,7 @@ juju version
 
 ### Azure CLI
 
-Install the Azure CLI on Linux distributions by following the [Azure CLI's installation guide](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux?pivots=apt).
+Install the Azure CLI on Linux distributions by following the [Azure CLI installation guide](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux?pivots=apt).
 
 Verify that it is correctly installed:
 
@@ -82,7 +69,7 @@ Your CLI is up-to-date.
 ### Authenticate
 
 ```{note}
-For more information on how to authenticate, refer to the [Juju documentation](/) and [a dedicated user guide on how to register Azure on Juju](/).
+For more information on how to authenticate, refer to the [Juju documentation](https://documentation.ubuntu.com/juju/3.6/reference/cloud/list-of-supported-clouds/the-microsoft-azure-cloud-and-juju/#authentication-types) and [a dedicated user guide on how to register Azure on Juju](https://discourse.charmhub.io/t/how-to-use-juju-with-microsoft-azure/15219).
 ```
 
 First of all, retrieve your subscription id:
@@ -100,8 +87,8 @@ No     Subscription name                     Subscription ID                    
 [2]    <other_subscription_name>             <other_subscription_id>               canonical.com
 ```
 
-In the prompt, select the subscription id you would like to connect the controller to, and store the id 
-as it will be needed in the next step when bootstrapping the controller. 
+In the prompt, select the subscription id you would like to connect the controller to, and store the id
+as it will be needed in the next step when bootstrapping the controller.
 
 ### Bootstrap Juju controller on Azure
 

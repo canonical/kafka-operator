@@ -48,7 +48,7 @@ passive/0*        active    idle   1        10.86.75.153    9092,19092/tcp
 kafka-connect/0*  active    idle   2        10.86.75.45     8083/tcp
 ```
 
-To integrate Kafka Connect with the passive cluster (as recommened for active-passive replication), run:
+To integrate Kafka Connect with the passive cluster (as recommended for active-passive replication), run:
 
 ```bash
 juju integrate kafka-connect passive
@@ -97,11 +97,12 @@ passive/0*        active    idle   1        10.86.75.153    9092,19092/tcp
 ```
 
 ```{note}
-Task status might show as UNASSIGNED since there are no replication tasks running yet. If the active Kafka cluster is idle, this is expected. The task status will change to `RUNNING` once the replication tasks are created and started.
-[\note]
+Task status might show as UNASSIGNED since there are no replication tasks running yet. 
+If the active Kafka cluster is idle, this is expected. 
+The task status will change to `RUNNING` once the replication tasks are created and started.
+```
 
 With this, the deployment is complete. The Charmed Kafka Connect cluster will now start tasks to replicate data from the active cluster to the passive cluster.
-
 
 ## Set up active-active replication
 
@@ -113,7 +114,7 @@ We recommend having two Kafka Connect deployments ready, one on each end of the 
 
 ### Deployment
 
-To ensure that the topics are prefixed with the cluster name and do not collide with each other, deploy two different Mirrormaker integrators with the config option `prefix_topics=true`:
+To ensure that the topics are prefixed with the cluster name and do not collide with each other, deploy two different MirrorMaker integrators with the configuration option `prefix_topics=true`:
 
 ```bash
 juju deploy mirrormaker-connect-integrator --config prefix_topics=true mirrormaker-a-b

@@ -18,7 +18,7 @@ To migrate a cluster we need:
 - A bootstrapped Juju VM cloud running Charmed Apache Kafka to migrate to. For guidance on how to deploy a new Charmed Apache Kafka, see:
   - The [Charmed Apache Kafka Tutorial](/tutorial/1-introduction)
   - The [How to deploy guide](/how-to/deploy/deploy-anywhere) for Charmed Apache Kafka
-- The CLI tool `yq` - https://github.com/mikefarah/yq
+- The CLI tool `yq` - [GitHub repository](https://github.com/mikefarah/yq)
     - `snap install yq --channel=v3/stable`
 
 ## Getting cluster details and admin credentials
@@ -46,7 +46,7 @@ List of bootstrap-server IPs:
 export NEW_SERVERS=$(juju show-unit data-integrator/0 | yq -r '.. | .endpoints? // empty')
 ```
 
-Building full sasl.jaas.config for authorisation:
+Building full `sasl.jaas.config` for authorisation:
 
 ```bash
 export NEW_SASL_JAAS_CONFIG="org.apache.kafka.common.security.scram.ScramLoginModule required username=\""${NEW_USERNAME}"\" password=\""${NEW_PASSWORD}\"\;

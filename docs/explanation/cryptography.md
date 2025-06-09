@@ -10,27 +10,27 @@ Charmed Apache Kafka and Charmed Apache ZooKeeper operators use pinned revisions
 The [Charmed Apache Kafka snap](https://snapstore.io/charmed-kafka) and [Charmed Apache ZooKeeper snap](https://snapstore.io/charmed-zookeeper) package the Apache Kafka and Apache ZooKeeper workloads, respectively, along with the necessary dependencies and utilities for operator lifecycle management.
 For details on the contents of these snaps, refer to the `snapcraft.yaml` file in the source code: [Charmed Apache Kafka snap contents](https://github.com/canonical/charmed-kafka-snap/blob/3/edge/snap/snapcraft.yaml) and [Charmed Apache ZooKeeper snap contents](https://github.com/canonical/charmed-zookeeper-snap/blob/3/edge/snap/snapcraft.yaml).
 
-Every artifact included in the snaps is verified against its SHA-256 or SHA-512 checksum after download.
+Every artefact included in the snaps is verified against its SHA-256 or SHA-512 checksum after download.
 
 ## Sources verification
 
 Charmed Apache Kafka sources are stored in:
 
 * GitHub repositories for snaps, rocks and charms
-* LaunchPad repositories for the Apache Kafka and Apache ZooKeeper upstream fork used for building their respective distributions
+* Launchpad repositories for the Apache Kafka and Apache ZooKeeper upstream fork used for building their respective distributions
 
-### LaunchPad
+### Launchpad
 
 Distributions are built using private repositories only, hosted as part of the [SOSS namespace](https://launchpad.net/soss) to eventually
-integrate with Canonical's standard process for fixing CVEs. 
-Branches associated with releases are mirrored to a public repository, hosted in the [Data Platform namespace](https://launchpad.net/~data-platform) 
-to also provide the community with the patched source code. 
+integrate with Canonical's standard process for fixing CVE.
+Branches associated with releases are mirrored to a public repository, hosted in the [Data Platform namespace](https://launchpad.net/~data-platform)
+to also provide the community with the patched source code.
 
 ### GitHub
 
-All Apache Kafka and Apache ZooKeeper artifacts built by Canonical are published and released 
+All Apache Kafka and Apache ZooKeeper artefacts built by Canonical are published and released 
 programmatically using release pipelines implemented via GitHub Actions. 
-Distributions are published as both GitHub and LaunchPad releases via the [central-uploader repository](https://github.com/canonical/central-uploader), while 
+Distributions are published as both GitHub and Launchpad releases via the [central-uploader repository](https://github.com/canonical/central-uploader), while 
 charms, snaps and rocks are published using the workflows of their respective repositories. 
 
 All repositories in GitHub are set up with branch protection rules, requiring:
@@ -55,7 +55,7 @@ stored in a password-protected Keystore file. The password of the Keystore is st
 and revision 130 of Charmed Apache ZooKeeper. The relation also provides the CA certificate, which is loaded into a password-protected Truststore file.
 
 When encryption is enabled, hostname verification is turned on for client connections, including inter-broker communication. The cipher suite can 
-be customized by specifying a list of allowed cipher suites for external clients and Apache ZooKeeper connections. This is done using the charm configuration options
+be customised by specifying a list of allowed cipher suites for external clients and Apache ZooKeeper connections. This is done using the charm configuration options
 `ssl_cipher_suites`  and `zookeeper_ssl_cipher_suites` respectively (see [reference documentation](https://charmhub.io/kafka/configurations)). 
 
 Encryption at rest is currently not supported, although it can be provided by the substrate (cloud or on-premises).
@@ -82,7 +82,7 @@ Permissions on the file are restricted to the root user only.
 
 Authentication among brokers is based on the SCRAM-SHA-512 protocol. Usernames and passwords are exchanged via peer relations, using Juju secrets from revision 168 of Charmed Apache Kafka.
 
-The Apache Kafka username and password, used by brokers to authenticate one another, are stored both in an Apache ZooKeeper zNode and in a JAAS configuration file on the Apache Kafka server in plain text format. 
+The Apache Kafka username and password, used by brokers to authenticate one another, are stored both in an Apache ZooKeeper znode and in a JAAS configuration file on the Apache Kafka server in plain text format.
 
 The file needs to be readable and writable by root (as it is created by the charm) and readable by the `snap_daemon` user running the Apache Kafka server snap commands.
 
@@ -90,8 +90,8 @@ The file needs to be readable and writable by root (as it is created by the char
 
 Clients can authenticate to Apache Kafka using:
 
-1. username and password exchanged using SCRAM-SHA-512 protocols 
-2. client certificates or CAs (mTLS)
+1. username and password exchanged using SCRAM-SHA-512 protocols
+2. client certificates or CA (mTLS)
 
 When using SCRAM, usernames and passwords are stored in Apache ZooKeeper to be used by the Apache Kafka processes, in peer-relation data to be used by the Apache Kafka charm and in external relation to be shared with client applications. 
 Starting from revision 168 of Charmed Apache Kafka, Juju secrets are used for storing the credentials instead of plain text.

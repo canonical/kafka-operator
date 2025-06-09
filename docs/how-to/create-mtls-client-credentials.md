@@ -84,7 +84,7 @@ openssl pkcs12 -export -in client_chain.pem \
 -name client-chain -noiter -nomaciter
 ```
 
-### Create trustsore (server cert)
+### Create truststore (server cert)
 
 Inject root CA and server CA into the truststore file:
 

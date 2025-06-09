@@ -40,7 +40,7 @@ The following requirements are meant to be for production environment:
 - 64GB of RAM
 - 24 cores
 - 12 storage devices
-- 10 GbE card
+- 10 Gb Ethernet card
 
 The charm can be deployed in much smaller environments if needed. For more information on requirements and version compartibility, see the [Requirements](https://discourse.charmhub.io/t/charmed-kafka-documentation-reference-requirements/10563) page.
 
@@ -54,14 +54,14 @@ For more information on how to perform typical tasks, see the How to guides sect
 Charmed Apache Kafka and Charmed Apache ZooKeeper can both be deployed as follows:
 
 ```shell
-$ juju deploy zookeeper -n 5
-$ juju deploy kafka -n 3
+juju deploy zookeeper -n 5
+juju deploy kafka -n 3
 ```
 
 After this, it is necessary to connect them:
 
 ```shell
-$ juju relate kafka zookeeper
+juju relate kafka zookeeper
 ```
 
 To watch the process, the `juju status` command can be used. Once all the units are shown as `active|idle` the credentials to access a broker can be queried with:
@@ -83,7 +83,7 @@ Note that Charmed Apache Kafka cluster is secure-by-default: when no other appli
 
 Available Charmed Apache Kafka bin commands can be found with:
 
-```
+```shell
 snap info charmed-kafka
 ```
 
@@ -125,7 +125,7 @@ When storage is added or removed, the Apache Kafka service will restart to ensur
 
 The Charmed Apache Kafka Operator supports Juju [relations](https://juju.is/docs/olm/relations) for interfaces listed below.
 
-#### The kafka_client interface
+#### The Kafka_client interface
 
 The `kafka_client` interface is used with the [Data Integrator](https://charmhub.io/data-integrator) charm, which upon relation automatically provides credentials and endpoints for connecting to the desired product.
 
@@ -240,11 +240,11 @@ Since the Charmed Apache Kafka Operator is deployed on a machine environment, it
 of the COS relations. The [offers-overlay](https://github.com/canonical/cos-lite-bundle/blob/main/overlays/offers-overlay.yaml)
 can be used, and this step is shown in the COS tutorial.
 
-Next, deploy [grafana-agent](https://charmhub.io/grafana-agent) and follow the
+Next, deploy [Grafana-agent](https://charmhub.io/grafana-agent) and follow the
 [tutorial](https://discourse.charmhub.io/t/using-the-grafana-agent-machine-charm/8896)
 to relate it to the COS Lite offers.
 
-Now, relate kafka with the grafana-agent:
+Now, relate Apache Kafka with the Grafana agent:
 
 ```shell
 juju relate kafka grafana-agent
@@ -256,7 +256,7 @@ After this is complete, Grafana will show two new dashboards: `Kafka Metrics` an
 
 For an overview of security features of the Charmed Apache Kafka Operator, see the [Security page](https://canonical.com/data/docs/kafka/iaas/e-security) in the Explanation section of the documentation.
 
-Security issues in the Charmed Apache Kafka Operator can be reported through [LaunchPad](https://wiki.ubuntu.com/DebuggingSecurity#How%20to%20File). Please do not file GitHub issues about security issues.
+Security issues in the Charmed Apache Kafka Operator can be reported through [Launchpad](https://wiki.ubuntu.com/DebuggingSecurity#How%20to%20File). Please do not file GitHub issues about security issues.
 
 ## Performance tuning
 

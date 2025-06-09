@@ -12,9 +12,9 @@ To address this, we can make use of [LinkedIn's Cruise Control](https://github.c
 At a high level, Cruise Control is made up of the following five components:
 
 - **Workload Monitor** - responsible for the metrics collection from Apache Kafka
-- **Analyzer** - generates allocation proposals based on configured [Goals](https://github.com/linkedin/cruise-control?tab=readme-ov-file#goals)
+- **Analyser** - generates allocation proposals based on configured [Goals](https://github.com/linkedin/cruise-control?tab=readme-ov-file#goals)
 - **Anomaly Detector** - detects failures in brokers, disks, metrics or goals and (optionally) self-heals
-- **Webserver** - a REST API for user operations
+- **Web server** - a REST API for user operations
 - **Executor** - issues re-allocation commands to Apache Kafka
 
 ### Deploying partition balancer

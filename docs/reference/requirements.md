@@ -19,7 +19,7 @@ For production environments, it is recommended to deploy at least five nodes for
 - 64GB of RAM
 - 24 cores
 - 12 storage devices
-- 10 GbE card
+- 10 Gb Ethernet card
 
 ## Supported architectures
 
