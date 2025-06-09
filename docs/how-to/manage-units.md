@@ -48,7 +48,7 @@ Partition reassignment can still be done manually by the admin user by using the
 `charmed-kafka.reassign-partitions` Charmed Apache Kafka bin utility script. 
 For more information on the script usage, refer to [Apache Kafka documentation](https://kafka.apache.org/documentation/#basic_ops_partitionassignment). 
 
-[LinkedIn’s Cruise Control](https://github.com/linkedin/cruise-control) can be used for semi-automatic rebalancing. For guidance on how to use it with Charmed Apache Kafka, see our [Tutorial](/tutorial/8-rebalance-and-reassign-partitions).
+[LinkedIn’s Cruise Control](https://github.com/linkedin/cruise-control) can be used for semi-automatic rebalancing. For guidance on how to use it with Charmed Apache Kafka, see our [Tutorial](tutorial-8-rebalance-and-reassign-partitions).
 
 ## Admin utility scripts
 
@@ -58,13 +58,13 @@ Apache Kafka ships with `bin/*.sh` commands to do various administrative tasks s
 * `bin/kafka-topics.sh` for topic management
 * `bin/kafka-acls.sh` for management of ACLs of Apache Kafka users
 
-Please refer to the upstream [Apache Kafka project](https://github.com/apache/kafka/tree/trunk/bin) and its [documentation](https://kafka.apache.org/documentation/#basic_ops), 
-for a full list of the bash commands available in Apache Kafka distributions. 
-Additionally, you can use `--help` argument to print a short summary for a given bash command. 
+Please refer to the upstream [Apache Kafka project](https://github.com/apache/kafka/tree/trunk/bin) and its [documentation](https://kafka.apache.org/documentation/#basic_ops),
+for a full list of the bash commands available in Apache Kafka distributions.
+Additionally, you can use `--help` argument to print a short summary for a given bash command.
 
-The most important commands are also exposed via the [Charmed Apache Kafka snap](https://snapcraft.io/charmed-kafka), 
-accessible via `charmed-kafka.<command>`. 
-For more information about the mapping between the Apache Kafka bin commands and the snap entrypoints, see the [Snap Entrypoints](/reference/snap-entrypoints) reference page.
+The most important commands are also exposed via the [Charmed Apache Kafka snap](https://snapcraft.io/charmed-kafka),
+accessible via `charmed-kafka.<command>`.
+For more information about the mapping between the Apache Kafka bin commands and the snap entrypoints, see the [Snap Entrypoints](reference-snap-entrypoints) reference page.
 
 ```{caution}
 Before running bash scripts, make sure that some listeners have been correctly 
@@ -72,7 +72,7 @@ opened by creating appropriate integrations.
 ```
 
 For more information about how listeners are opened based on relations, see the [Listeners](reference-apache-kafka-listeners).
-For example, to open a SASL/SCRAM listener, integrate a client application using the data integrator, as described in the [How to manage app guide](/how-to/manage-applications).
+For example, to open a SASL/SCRAM listener, integrate a client application using the data integrator, as described in the [How to manage app guide](../how-to/manage-applications).
 
 To run most of the scripts, you need to provide:
 

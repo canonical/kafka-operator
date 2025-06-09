@@ -1,7 +1,7 @@
 (tutorial-5-manage-passwords)=
 # 5. Manage passwords
 
-This is part of the [Charmed Apache Kafka Tutorial](/tutorial/1-introduction). Please refer to this page for more information and an overview of the content.
+This is part of the [Charmed Apache Kafka Tutorial](1-introduction). Please refer to this page for more information and an overview of the content.
 
 ## Manage passwords
 
@@ -156,7 +156,7 @@ kafka:
 ok: "True"
 ```
 
-To rotate external passwords with no or limited downtime, please refer to the how-to guide on [app management](/how-to/manage-applications).
+To rotate external passwords with no or limited downtime, please refer to the how-to guide on [app management](../how-to/manage-applications).
 
 #### Remove the user
 

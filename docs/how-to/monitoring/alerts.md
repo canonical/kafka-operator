@@ -6,7 +6,7 @@ To do so, we will sync resources stored in a git repository to COS Lite.
 
 ## Prerequisites
 
-Deploy the `cos-lite` bundle in a Kubernetes environment and integrate Charmed Apache Kafka and Charmed Apache ZooKeeper to the COS offers, as shown in the [How to Enable Monitoring](/how-to/monitoring/enable-monitoring) guide.
+Deploy the `cos-lite` bundle in a Kubernetes environment and integrate Charmed Apache Kafka and Charmed Apache ZooKeeper to the COS offers, as shown in the [How to Enable Monitoring](enable-monitoring) guide.
 This guide will refer to the models that charms are deployed into as:
 
 * `<cos-model>` for the model containing observability charms (and deployed on K8s)

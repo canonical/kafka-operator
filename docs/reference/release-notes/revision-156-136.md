@@ -50,4 +50,4 @@ More information about the artefacts is provided by the following table:
   The reconfiguration generally resulted from some glitch and connection drop with the Juju controller that resulted in transient inconsistent 
   databag of Juju events. This was once observed during a controller upgrade  (see reported [bug](https://bugs.launchpad.net/juju/+bug/2053055) on Juju), but its occurrence is not limited to it. 
   The current revision provides more robust logic (ticket [DPE-4183](https://warthogs.atlassian.net/browse/DPE-4183)) to avoid dynamic reconfiguration in such cases.  
-* Upgrades from previous stable versions can be done with the standard upgrading process, as outlined in the [documentation](/how-to/upgrade)
+* Upgrades from previous stable versions can be done with the standard upgrading process, as outlined in the [documentation](../../how-to/upgrade)

@@ -1,7 +1,7 @@
 (tutorial-8-rebalance-and-reassign-partitions)=
 # 8. Rebalance and Reassign Partitions
 
-This is part of the Charmed Apache Kafka Tutorial. Please refer to the [overview page](/tutorial/1-introduction) for more information and the overview of the content.
+This is part of the Charmed Apache Kafka Tutorial. Please refer to the [overview page](1-introduction) for more information and the overview of the content.
 
 ## Partition rebalancing and reassignment
 
@@ -50,7 +50,7 @@ juju integrate kafka:peer-cluster-orchestrator cruise-control:peer-cluster
 
 ### Adding new brokers
 
-After completing the steps in the [Integrate with client applications](/tutorial/4-integrate-with-client-applications) tutorial page, you should have three `kafka` units and a client application actively writing messages to an existing topic. Let's scale-out the `kafka` application to four units:
+After completing the steps in the [Integrate with client applications](4-integrate-with-client-applications) tutorial page, you should have three `kafka` units and a client application actively writing messages to an existing topic. Let's scale-out the `kafka` application to four units:
 
 ```bash
 juju add-unit kafka 4

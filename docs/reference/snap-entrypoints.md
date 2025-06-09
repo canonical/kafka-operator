@@ -1,5 +1,5 @@
 (reference-snap-entrypoints)=
-# Snap Entrypoints
+# Snap entrypoints
 
 Snap entrypoints wrap the Apache Kafka Distribution Bash scripts and make sure
 that they run with the correct environment settings (configuration files, logging files, etc). 

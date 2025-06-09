@@ -6,7 +6,7 @@ This How-To guide covers executing a cluster migration to a Charmed Apache Kafka
 The MirrorMaker runs on the new (destination) cluster as a process on each Juju unit in an active/passive setup. It acts as a consumer from an existing cluster (source) and a producer to the Charmed Apache Kafka cluster (target). Data and consumer offsets for all existing topics will be synced **one-way** in parallel (one process on each unit) until both clusters are in-sync, with all data replicated across both in real-time.
 
 ```{note}
-For a brief explanation of how MirrorMaker works, see the [MirrorMaker explanation](/explanation/mirrormaker2-0) page.
+For a brief explanation of how MirrorMaker works, see the [MirrorMaker explanation](explanation-mirrormaker2-0) page.
 ```
 
 ## Pre-requisites
@@ -16,8 +16,8 @@ To migrate a cluster we need:
 - An "old" existing Apache Kafka cluster to migrate from.
   - The cluster needs to be reachable from/to the new Apache Kafka cluster. 
 - A bootstrapped Juju VM cloud running Charmed Apache Kafka to migrate to. For guidance on how to deploy a new Charmed Apache Kafka, see:
-  - The [Charmed Apache Kafka Tutorial](/tutorial/1-introduction)
-  - The [How to deploy guide](/how-to/deploy/deploy-anywhere) for Charmed Apache Kafka
+  - The [Charmed Apache Kafka Tutorial](../../tutorial/1-introduction)
+  - The [How to deploy guide](../../how-to/deploy/deploy-anywhere) for Charmed Apache Kafka
 - The CLI tool `yq` - [GitHub repository](https://github.com/mikefarah/yq)
     - `snap install yq --channel=v3/stable`
 

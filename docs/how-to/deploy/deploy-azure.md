@@ -163,7 +163,7 @@ juju integrate kafka zookeeper
 ```{caution}
 Note that the smallest instance types on Azure may not have enough resources for hosting 
 an Apache Kafka broker. We recommend selecting an instance type that provides at the very least `8` GB of RAM and `4` cores, e.g. `Standard_A4_v2`.
-For more guidance on production environment sizing, see the [Requirements page](/reference/requirements).
+For more guidance on production environment sizing, see the [Requirements page](../../reference/requirements).
 You can find more information about the available instance types in the [Azure documentation](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes/overview).
 ```
 
@@ -181,7 +181,7 @@ And integrate it with the Kafka application:
 juju integrate kafka admin
 ```
 
-For more information on Data Integrator and how to use it, please refer to the [how-to manage applications](/how-to/manage-applications) guide.
+For more information on Data Integrator and how to use it, please refer to the [how-to manage applications](../../how-to/manage-applications) guide.
 
 ## Clean up
 
