@@ -1,5 +1,5 @@
 (how-to-cluster-replication-index)=
-# Cluster-Replication
+# Cluster replication
 
 ```{toctree}
 :titlesonly:
@@ -7,6 +7,6 @@
 :glob:
 :hidden:
 
-migrate.md
-replication.md
+Migration<migrate.md>
+Replication<replication.md>
 ```

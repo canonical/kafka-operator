@@ -86,7 +86,7 @@ Charmed Apache Kafka supports the following authentication layers:
 
 Each combination of authentication scheme and encryption is associated with the dedicated listener and it maps to a well-defined port. See the [listeners reference documentation](../reference/listeners) for more information.
 
-### Monitoring and Auditing
+### Monitoring and auditing
 
 Charmed Apache Kafka provides native integration with the [Canonical Observability Stack (COS)](https://charmhub.io/topics/canonical-observability-stack).
 To reduce the blast radius of infrastructure disruptions, the general recommendation is to deploy COS and the observed application into separate environments, isolated from one another. Refer to the [COS production deployments best practices](https://charmhub.io/topics/canonical-observability-stack/reference/best-practices)
@@ -101,6 +101,6 @@ customise the logging level either for all logs via the [`log_level`](https://ch
 only tune the logging level of the `authorizerAppender` in the `log4j.properties` file. See
 the [file system paths](/reference/file-system-paths) for further information.
 
-## Additional Resources
+## Additional resources
 
 For details on the cryptography used by Charmed Apache Kafka, see the [Cryptography](/explanation/cryptography) explanation page.

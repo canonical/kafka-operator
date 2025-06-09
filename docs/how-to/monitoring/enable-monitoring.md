@@ -1,5 +1,5 @@
 (how-to-monitoring-enable-monitoring)=
-# Enable Monitoring
+# Enable monitoring
 
 Both Charmed Apache Kafka and Charmed Apache ZooKeeper come with the [JMX exporter](https://github.com/prometheus/jmx_exporter/).
 The metrics can be queried by accessing the `http://<kafka-unit-ip>:9101/metrics` and `http://<zookeeper-unit-ip>:9998/metrics` endpoints, respectively.

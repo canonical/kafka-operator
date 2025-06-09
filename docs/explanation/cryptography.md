@@ -78,7 +78,7 @@ Juju secrets are used for exchanging credentials starting from revision 168 of C
 Usernames and passwords for different users are stored in Apache ZooKeeper servers in a [JAAS](https://docs.oracle.com/en/java/javase/11/security/java-authentication-and-authorization-service-jaas-reference-guide.html) configuration file in plain text format. 
 Permissions on the file are restricted to the root user only. 
 
-### Apache Kafka Inter-broker authentication
+### Apache Kafka interbroker authentication
 
 Authentication among brokers is based on the SCRAM-SHA-512 protocol. Usernames and passwords are exchanged via peer relations, using Juju secrets from revision 168 of Charmed Apache Kafka.
 

@@ -7,7 +7,7 @@ This How-To will cover how to set up cluster replication using MirrorMaker throu
 For a brief explanation of how MirrorMaker works, see the [MirrorMaker explanation](/explanation/mirrormaker2-0) page.
 ```
 
-## Pre-requisites
+## Prerequisites
 
 To set up cluster replication we need:
 
