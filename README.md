@@ -7,9 +7,10 @@
 
 ## Overview
 
-The Charmed Apache Kafka Operator delivers automated operations management [from Day 0 to Day 2](https://codilime.com/blog/day-0-day-1-day-2-the-software-lifecycle-in-the-cloud-age/) on the [Apache Kafka](https://kafka.apache.org) event streaming platform. It is an open source, end-to-end, production ready data platform on top of cloud native technologies. 
+The Charmed Apache Kafka Operator delivers automated operations management [from Day 0 to Day 2](https://codilime.com/blog/day-0-day-1-day-2-the-software-lifecycle-in-the-cloud-age/) on the [Apache Kafka](https://kafka.apache.org) event streaming platform. It is an open source, end-to-end, production ready data platform on top of cloud native technologies.
 
 The Charmed Operator can be found on [Charmhub](https://charmhub.io/kafka) and it comes with production-ready features such as:
+
 - Fault-tolerance, replication, scalability and high-availability out-of-the-box.
 - SASL/SCRAM auth for Broker-Broker and Client-Broker authentication enabled by default.
 - Access control management supported with user-provided ACL lists.
