@@ -8,5 +8,4 @@
 :hidden:
 
 *
-*/index
 ```
