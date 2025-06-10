@@ -276,12 +276,11 @@ class TLSHandler(Object):
                 continue
 
             alias = client.alias
-            live_aliases.add(alias)
-
             if not self.charm.broker.tls_manager.alias_needs_update(alias, client.mtls_cert):
                 continue
 
             self.charm.broker.tls_manager.update_cert(alias=alias, cert=client.mtls_cert)
+            live_aliases.add(alias)
             should_reload = True
 
         # Transferred certs
