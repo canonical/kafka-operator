@@ -6,6 +6,7 @@ import dataclasses
 import json
 import logging
 from pathlib import Path
+from typing import cast
 from unittest.mock import patch
 
 import pytest
@@ -183,13 +184,18 @@ def test_remove_controller(charm_configuration, base_state: State):
     cluster_peer = PeerRelation(
         PEER,
         PEER,
-        local_unit_data={"added-to-quorum": "true", "directory-id": "random-uuid"},
-        peers_data={1: {"added-to-quorum": "true", "directory-id": "other-uuid"}},
+        local_unit_data={"directory-id": "random-uuid"},
+        peers_data={1: {"directory-id": "other-uuid"}},
     )
     state_in = dataclasses.replace(base_state, relations=[cluster_peer], leader=False)
 
     # When
-    with (patch("workload.KafkaWorkload.run_bin_command") as patched_run_bin_command,):
+    with (
+        patch("workload.KafkaWorkload.run_bin_command") as patched_run_bin_command,
+        patch(
+            "managers.controller.ControllerManager.is_kraft_leader_or_follower", return_value=True
+        ),
+    ):
         _ = ctx.run(ctx.on.relation_departed(cluster_peer, remote_unit=0), state_in)
 
     # Then
@@ -235,3 +241,60 @@ def test_leader_change(charm_configuration, base_state: State):
         state_out.get_relations(PEER)[0].local_app_data["bootstrap-controller"]
         != previous_controller
     )
+
+
+def test_controller_listener_upgrade_state_machine_in_kraft_single(
+    charm_configuration, base_state: State, passwords_data: dict[str, str]
+):
+    unit_ip = "10.10.10.10"
+    sasl_plaintext_controller = f"{unit_ip}:9097"
+    sasl_ssl_controller = f"{unit_ip}:9098"
+    charm_configuration["options"]["roles"]["default"] = "broker,controller"
+    ctx = Context(
+        KafkaCharm,
+        meta=METADATA,
+        config=charm_configuration,
+        actions=ACTIONS,
+    )
+
+    cluster_peer = PeerRelation(
+        PEER,
+        PEER,
+        local_unit_data={
+            "ca-cert": "ca-cert",
+            "certificate": "certificate",
+            "private-address": unit_ip,
+        },
+        local_app_data={
+            "cluster-uuid": "cluster-uuid",
+            "bootstrap-controller": sasl_plaintext_controller,
+            "bootstrap-replica-id": "old-uuid",
+            "bootstrap-unit-id": "1",
+            "tls": "enabled",
+        }
+        | passwords_data,
+    )
+    restart_peer = PeerRelation("restart", "rolling_op")
+
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, restart_peer])
+
+    with (
+        patch(
+            "managers.tls.TLSManager.get_current_sans",
+            return_value={"sans_ip": [unit_ip], "sans_dns": ["denethor"]},
+        ),
+        patch("managers.controller.ControllerManager.listener_health_check") as health_check,
+        ctx(ctx.on.update_status(), state_in) as mgr,
+    ):
+        health_check.return_value = True
+        charm = cast(KafkaCharm, mgr.charm)
+        state_out = mgr.run()
+
+    # Then
+    assert (
+        state_out.get_relations(PEER)[0].local_app_data["bootstrap-controller"]
+        == sasl_ssl_controller
+    )
+    assert charm.state.peer_cluster.bootstrap_controller == sasl_ssl_controller
+    assert charm.state.kraft_upgrade_state.controller == "done"
+    assert charm.state.kraft_upgrade_state.broker == "done"

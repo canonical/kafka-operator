@@ -18,6 +18,7 @@ from charm import KafkaCharm
 from literals import (
     ADMIN_USER,
     CONTAINER,
+    CONTROLLER_USER,
     DEPENDENCIES,
     INTER_BROKER_USER,
     INTERNAL_USERS,
@@ -791,3 +792,47 @@ def test_cruise_control_reporter_only_with_balancer(ctx: Context, base_state: St
 
         # Then
         assert reporters_config_value in charm.broker.config_manager.server_properties
+
+
+@pytest.mark.parametrize("tls", [False, True])
+def test_kraft_multi_controller_sets_base_properties(
+    base_state: State, charm_configuration: dict, tls: bool
+):
+    charm_configuration["options"]["roles"]["default"] = "controller"
+    bootstrap_controller = "10.10.10.10:9097" if not tls else "10.10.10.10:9098"
+    unit_ip = "10.10.10.20"
+    controller_password = "pass1234"
+    cluster_peer = PeerRelation(
+        PEER,
+        PEER,
+        local_unit_data={"private-address": unit_ip}
+        | ({"certificate": "cert", "ca": "ca"} if tls else {}),
+        local_app_data={
+            f"{CONTROLLER_USER}-password": controller_password,
+            "bootstrap-controller": bootstrap_controller,
+        }
+        | ({} if not tls else {"tls": "enabled"}),
+    )
+    ctx = Context(
+        KafkaCharm, meta=METADATA, config=charm_configuration, actions=ACTIONS, unit_id=0
+    )
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer])
+
+    with ctx(ctx.on.config_changed(), state_in) as manager:
+        charm = cast(KafkaCharm, manager.charm)
+
+    # Assert
+    expected_protocol = "SASL_PLAINTEXT" if not tls else "SASL_SSL"
+    expected_auth = "SCRAM-SHA-512"
+    expected_port = 9097 if not tls else 9098
+    expected_listener_name = f'CONTROLLER_{expected_protocol}_{expected_auth.replace("-", "_")}'
+
+    properties = charm.broker.config_manager.server_properties
+    assert f"listeners={expected_listener_name}://{unit_ip}:{expected_port}"
+    assert (
+        f"listener.security.protocol.map={expected_listener_name}:{expected_protocol}"
+        in properties
+    )
+    assert f"sasl.mechanism.controller.protocol={expected_auth}" in properties
+    assert f"controller.listener.names={expected_listener_name}" in properties
+    assert f"controller.quorum.bootstrap.servers={bootstrap_controller}" in properties

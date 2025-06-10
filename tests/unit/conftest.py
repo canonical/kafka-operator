@@ -47,6 +47,7 @@ def patched_workload(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("workload.Workload.active", lambda _: True)
     monkeypatch.setattr("workload.Workload.write", lambda _, content, path: None)
     monkeypatch.setattr("workload.Workload.read", lambda _, path: [])
+    monkeypatch.setattr("workload.Workload.get_service_pid", lambda _: 1314231)
 
 
 @pytest.fixture(autouse=True)
