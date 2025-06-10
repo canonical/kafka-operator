@@ -130,6 +130,27 @@ PATHS = {
 }
 
 
+class KRaftUnitStatus(str, Enum):
+    """KRaft unit status (also known as role) in KRaft Quorums."""
+
+    LEADER = "Leader"
+    FOLLOWER = "Follower"
+    OBSERVER = "Observer"
+
+
+@dataclass
+class KRaftQuorumInfo:
+    """Object containing Quorum info for a KRaft controller."""
+
+    directory_id: str
+    status: KRaftUnitStatus
+
+    @property
+    def is_leader_or_follower(self) -> bool:
+        """Whether the unit is a KRaft leader or follower."""
+        return self.status in (KRaftUnitStatus.LEADER, KRaftUnitStatus.FOLLOWER)
+
+
 @dataclass
 class Role:
     value: str
@@ -163,6 +184,7 @@ CONTROLLER = Role(
     requested_secrets=[
         "broker-username",
         "broker-password",
+        "controller-password",
     ],
 )
 BALANCER = Role(

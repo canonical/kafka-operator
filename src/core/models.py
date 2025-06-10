@@ -717,11 +717,6 @@ class KafkaBroker(RelationState):
         """Directory ID of the node as saved in `meta.properties`."""
         return self.relation_data.get("directory-id", "")
 
-    @property
-    def added_to_quorum(self) -> bool:
-        """Whether or not this node is added to dynamic quorum in KRaft mode."""
-        return bool(self.relation_data.get("added-to-quorum", False))
-
 
 class ZooKeeper(RelationState):
     """State collection metadata for a the Zookeeper relation."""

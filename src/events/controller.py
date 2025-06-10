@@ -100,6 +100,7 @@ class KRaftHandler(Object):
         # Don't run the state machine if we're done.
         if not self.charm.state.is_controller_upgrading:
             if not self.charm.unit.is_leader():
+                self.add_to_quorum()
                 return
 
             if self.charm.state.runs_broker:
@@ -146,7 +147,7 @@ class KRaftHandler(Object):
                     self.charm.state.peer_cluster.update(
                         {"bootstrap-controller": self.charm.state.bootstrap_controller}
                     )
-                    self.charm.state.controller_upgrade_state = "done"
+                    self.charm.state.broker_upgrade_state = "done"
 
                 return True
 
@@ -197,15 +198,8 @@ class KRaftHandler(Object):
 
             generated_password = self.charm.workload.generate_password()
 
-            if self.charm.state.peer_cluster_orchestrator:
-                if not self.charm.state.peer_cluster_orchestrator.controller_password:
-                    self.charm.state.peer_cluster_orchestrator.update(
-                        {"controller-password": generated_password}
-                    )
-
-            elif not self.charm.state.peer_cluster.controller_password:
-                # single mode, controller & leader
-                self.charm.state.cluster.update({"controller-password": generated_password})
+            self.charm.state.cluster.update({"controller-password": generated_password})
+            self.charm.state.kraft_cluster.update({"controller-password": generated_password})
 
             bootstrap_data = {
                 "bootstrap-controller": self.charm.state.bootstrap_controller,
@@ -257,34 +251,31 @@ class KRaftHandler(Object):
         """Adds current unit to the dynamic quorum in KRaft mode if this is a follower unit."""
         if (
             self.charm.unit.is_leader()
-            or self.charm.state.unit_broker.added_to_quorum
             or not self.charm.state.runs_controller
+            or self.charm.state.is_controller_upgrading
         ):
             return
 
-        if self.charm.state.is_controller_upgrading:
+        if self.controller_manager.is_kraft_leader_or_follower():
             return
 
         directory_id = self.controller_manager.add_controller(
             self.charm.state.cluster.bootstrap_controller
         )
 
-        self.charm.state.unit_broker.update(
-            {"directory-id": directory_id, "added-to-quorum": "true"}
-        )
+        self.charm.state.unit_broker.update({"directory-id": directory_id})
 
     def remove_from_quorum(self) -> None:
         """Removes current unit from the dynamic quorum in KRaft mode."""
         if not self.charm.state.runs_controller:
             return
 
-        if self.charm.state.unit_broker.added_to_quorum or self.charm.unit.is_leader():
+        if self.controller_manager.is_kraft_leader_or_follower():
             directory_id = (
                 self.charm.state.unit_broker.directory_id
                 if not self.charm.unit.is_leader()
                 else self.charm.state.cluster.bootstrap_replica_id
             )
-            self.charm.state.unit_broker.update({"added-to-quorum": ""})
             self.controller_manager.remove_controller(
                 self.charm.state.kraft_unit_id,
                 directory_id,

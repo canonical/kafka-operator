@@ -234,16 +234,19 @@ class BrokerOperator(Object):
         if self.charm.state.runs_controller and self.charm.state.is_controller_upgrading:
             if not self.charm.unit.is_leader():
                 # wait for controller upgrade process to finish
-                self.workload.cleanup_cluster_metadata(self.charm.state.log_dirs)
                 self.kraft.remove_from_quorum()
+                if not self.kraft.controller_manager.is_kraft_leader_or_follower():
+                    self.workload.cleanup_cluster_metadata(self.charm.state.log_dirs)
+                    return
                 event.defer()
                 return
 
-            if any(
-                unit.added_to_quorum
-                for unit in self.charm.state.brokers
-                if unit.unit != self.charm.unit
-            ):
+            quorum_units = {
+                unit_id
+                for unit_id, info in self.kraft.controller_manager.quorum_status().items()
+                if info.is_leader_or_follower
+            }
+            if quorum_units ^ {self.charm.state.kraft_unit_id}:
                 # wait for all the followers to leave the quorum
                 event.defer()
                 return

@@ -12,7 +12,16 @@ from tenacity import retry, stop_after_attempt, wait_fixed
 
 from core.cluster import ClusterState
 from core.workload import WorkloadBase
-from literals import GROUP, KRAFT_VERSION, SECURITY_PROTOCOL_PORTS, USER_ID, AuthMap, Scope
+from literals import (
+    GROUP,
+    KRAFT_VERSION,
+    SECURITY_PROTOCOL_PORTS,
+    USER_ID,
+    AuthMap,
+    KRaftQuorumInfo,
+    KRaftUnitStatus,
+    Scope,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -104,8 +113,7 @@ class ControllerManager:
             logger.debug(result)
         except CalledProcessError as e:
             error_details = e.stderr
-            if "DuplicateVoterException" not in error_details:
-                raise e
+            logger.error(error_details)
 
         directory_id = self.get_directory_id(self.state.log_dirs)
         return directory_id
@@ -162,3 +170,47 @@ class ControllerManager:
                 return False
 
         return True
+
+    def quorum_status(self) -> dict[int, KRaftQuorumInfo]:
+        """Returns a mapping of controller id to KRaftQuorumInfo."""
+        bootstrap_controller = self.state.peer_cluster.bootstrap_controller
+        if not bootstrap_controller:
+            return {}
+
+        try:
+            result = self.workload.run_bin_command(
+                bin_keyword="metadata-quorum",
+                bin_args=[
+                    "--bootstrap-controller",
+                    bootstrap_controller,
+                    "--command-config",
+                    self.workload.paths.server_properties,
+                    "describe",
+                    "--replication",
+                ],
+            )
+        except CalledProcessError as e:
+            error_details = e.stderr
+            logger.error(error_details)
+            return {}
+
+        status: dict[int, KRaftQuorumInfo] = {}
+        for line in result.split("\n"):
+            fields = [c.strip() for c in line.split("\t")]
+            try:
+                status[int(fields[0])] = KRaftQuorumInfo(
+                    directory_id=fields[1], status=KRaftUnitStatus(fields[6])
+                )
+            except (ValueError, IndexError):
+                continue
+
+        logger.debug(f"Latest quorum status: {status}")
+        return status
+
+    def is_kraft_leader_or_follower(self) -> bool:
+        """Checks whether the unit is a KRaft leader or follower. This is an online check."""
+        quorum_status = self.quorum_status()
+        if self.state.kraft_unit_id not in quorum_status:
+            return False
+
+        return quorum_status[self.state.kraft_unit_id].is_leader_or_follower

@@ -471,6 +471,8 @@ class ConfigManager(CommonConfigManager):
             f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{CONTROLLER_USER}" password="{password}";',
             f"sasl.mechanism={self.active_controller_listener.mechanism}",
             f"security.protocol={self.active_controller_listener.protocol}",
+            "default.api.timeout.ms=20000",
+            "request.timeout.ms=10000",
         ]
 
     @property
