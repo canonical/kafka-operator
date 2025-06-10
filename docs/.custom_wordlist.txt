@@ -136,6 +136,7 @@ md
 microk
 mmap
 nodeport
+parallelisation
 params
 portUnification
 programmatically
@@ -145,6 +146,8 @@ rebalance
 rebalanced
 rebalances
 rebalancing
+runtime
+scalability
 schemas
 storages
 sysctl
