@@ -125,6 +125,9 @@ class KafkaProvider(Object):
             logger.info("No MTLS cert provided. skipping MTLS setup.")
             return
 
+        if not event.relation or not event.relation.active:
+            return
+
         if not all(
             [self.charm.state.cluster.tls_enabled, self.charm.state.unit_broker.certificate]
         ):

@@ -28,7 +28,7 @@ from ops.charm import (
 )
 from ops.framework import Object
 
-from literals import TLS_RELATION, Status
+from literals import CERTIFICATE_TRANSFER_RELATION, TLS_RELATION, Status
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -65,7 +65,9 @@ class TLSHandler(Object):
             getattr(self.charm.on, "set_tls_private_key_action"), self._set_tls_private_key
         )
 
-        self.certificate_transfer = CertificateTransferRequires(self.charm, "client-cas")
+        self.certificate_transfer = CertificateTransferRequires(
+            self.charm, CERTIFICATE_TRANSFER_RELATION
+        )
         self.framework.observe(
             self.certificate_transfer.on.certificate_set_updated,
             self._on_client_certificates_available,
@@ -225,6 +227,10 @@ class TLSHandler(Object):
 
     def _on_client_certificates_available(self, event: CertificatesAvailableEvent) -> None:
         """Handle the certificates available event on the `certifcate_transfer` interface."""
+        relation = self.charm.model.get_relation(CERTIFICATE_TRANSFER_RELATION, event.relation_id)
+        if not relation or not relation.active:
+            return
+
         if not all(
             [self.charm.state.cluster.tls_enabled, self.charm.state.unit_broker.certificate]
         ):
