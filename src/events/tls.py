@@ -108,7 +108,7 @@ class TLSHandler(Object):
     def _tls_relation_broken(self, _) -> None:
         """Handler for `certificates_relation_broken` event."""
         self.charm.state.unit_broker.update(
-            {"csr": "", "certificate": "", "ca": "", "ca-cert": "", "chain": ""}
+            {"csr": "", "certificate": "", "ca-cert": "", "chain": ""}
         )
 
         # remove all existing keystores from the unit so we don't preserve certs
@@ -140,7 +140,6 @@ class TLSHandler(Object):
             {
                 "certificate": event.certificate,
                 "ca-cert": event.ca,
-                "ca": "",
                 "chain": json.dumps(event.chain),
             }
         )

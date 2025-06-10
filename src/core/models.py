@@ -617,7 +617,7 @@ class KafkaBroker(RelationState):
             Empty if cert not yet generated/signed
         """
         # defaults to ca for backwards compatibility after field change introduced with secrets
-        return self.relation_data.get("ca-cert") or self.relation_data.get("ca", "")
+        return self.relation_data.get("ca-cert", "")
 
     @property
     def chain(self) -> list[str]:
