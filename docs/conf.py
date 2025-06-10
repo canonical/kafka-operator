@@ -221,7 +221,16 @@ redirects = {}
 
 linkcheck_ignore = [
     "http://127.0.0.1:8000",
-    "https://github.com/canonical/ACME/*"
+    "https://github.com/canonical/ACME/*",
+    "https://kafka.apache.org/documentation/#basic_ops_partitionassignment",
+    "https://kafka.apache.org/documentation/#basic_ops",
+    "https://kafka.apache.org/documentation/#connectconfigs",
+    "https://kafka.apache.org/documentation/#kraft",
+    "https://kafka.apache.org/documentation/#mirrormakerconfigs",
+    "https://matrix.to/#/#charmhub-data-platform:ubuntu.com",
+    "https://us-east-1.console.aws.amazon.com/ec2/",
+    "https://kafka.apache.org/39/documentation.html#georeplication-overview",
+    "https://kafka.apache.org/39/documentation.html#georeplication-monitoring"
     ]
 
 

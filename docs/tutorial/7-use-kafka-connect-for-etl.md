@@ -15,7 +15,7 @@ By the end, you should be able to use Kafka Connect integrator and Kafka Connect
 
 We will be deploying different charmed data solutions including PostgreSQL and OpenSearch. If you require more information or face issues deploying any of the mentioned products, you should consult the respective documentations:
 
-- For PostgreSQL, refer to [Charmed PostgreSQL tutorial](https://charmhub.io/postgresql/docs/t-overview).
+- For PostgreSQL, refer to [Charmed PostgreSQL tutorial](https://canonical-charmed-postgresql.readthedocs-hosted.com/14/tutorial/).
 - For OpenSearch, refer to [Charmed OpenSearch tutorial](https://charmhub.io/opensearch/docs/tutorial).
 
 ### Check current deployment

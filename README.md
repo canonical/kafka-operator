@@ -257,7 +257,7 @@ After this is complete, Grafana will show two new dashboards: `Kafka Metrics` an
 
 For an overview of security features of the Charmed Apache Kafka Operator, see the [Security page](https://canonical.com/data/docs/kafka/iaas/e-security) in the Explanation section of the documentation.
 
-Security issues in the Charmed Apache Kafka Operator can be reported through [Launchpad](https://wiki.ubuntu.com/DebuggingSecurity#How%20to%20File). Please do not file GitHub issues about security issues.
+Security issues in the Charmed Apache Kafka Operator can be reported through [Launchpad](https://wiki.ubuntu.com/DebuggingSecurity#How_to_File). Please do not file GitHub issues about security issues.
 
 ## Performance tuning
 
