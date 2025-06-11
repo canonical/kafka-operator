@@ -1,7 +1,7 @@
-(tutorial-2-set-up-the-environment)=
+(tutorial-environment)=
 # 2. Set up the environment
 
-This is part of the [Charmed Apache Kafka Tutorial](1-introduction). Please refer to this page for more information and an overview of the content.
+This is part of the [Charmed Apache Kafka Tutorial](introduction). Please refer to this page for more information and an overview of the content.
 
 ## Setup the environment
 

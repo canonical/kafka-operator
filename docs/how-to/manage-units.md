@@ -48,7 +48,7 @@ Partition reassignment can still be done manually by the admin user by using the
 `charmed-kafka.reassign-partitions` Charmed Apache Kafka bin utility script. 
 For more information on the script usage, refer to [Apache Kafka documentation](https://kafka.apache.org/documentation/#basic_ops_partitionassignment). 
 
-[LinkedIn’s Cruise Control](https://github.com/linkedin/cruise-control) can be used for semi-automatic rebalancing. For guidance on how to use it with Charmed Apache Kafka, see our [Tutorial](tutorial-8-rebalance-and-reassign-partitions).
+[LinkedIn’s Cruise Control](https://github.com/linkedin/cruise-control) can be used for semi-automatic rebalancing. For guidance on how to use it with Charmed Apache Kafka, see our [Tutorial](tutorial-rebalance-partitions).
 
 ## Admin utility scripts
 

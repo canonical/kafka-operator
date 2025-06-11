@@ -1,7 +1,7 @@
-(tutorial-3-deploy-apache-kafka)=
+(tutorial-deploy)=
 # 3. Deploy Apache Kafka
 
-This is part of the [Charmed Apache Kafka Tutorial](1-introduction). Please refer to this page for more information and an overview of the content.
+This is part of the [Charmed Apache Kafka Tutorial](introduction). Please refer to this page for more information and an overview of the content.
 
 ## Deploy Charmed Apache Kafka (and Charmed ZooKeeper)
 

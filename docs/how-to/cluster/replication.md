@@ -22,9 +22,9 @@ It is best practice to co-locate the Kafka Connect cluster with the target Apach
 
 For guidance on how to set up Charmed Apache Kafka, please refer to the following resources:
 
-- The [Charmed Apache Kafka Tutorial](tutorial-1-introduction)
+- The [Charmed Apache Kafka Tutorial](tutorial-introduction)
 - The [How to deploy guide](how-to-deploy-deploy-anywhere) for Charmed Apache Kafka
-- The [Charmed Kafka Connect Tutorial](tutorial-7-kafka-connect))
+- The [Charmed Kafka Connect Tutorial](tutorial-kafka-connect))
 
 ## Deploy a MirrorMaker integrator
 

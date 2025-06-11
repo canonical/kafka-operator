@@ -1,4 +1,4 @@
-(tutorial-1-introduction)=
+(tutorial-introduction)=
 # 1. Introduction
 
 <!-- # Charmed Apache Kafka tutorial -->
@@ -36,11 +36,11 @@ Before we start, make sure your machine meets the following requirements:
 
 Here’s an overview of the steps required with links to our separate tutorials that deal with each individual step:
 
-- [Set up the environment](tutorial-2-set-up-the-environment)
-- [Deploy Charmed Apache Kafka](tutorial-3-deploy-apache-kafka)
-- [Integrate with client applications](tutorial-4-integrate-with-client-applications)
-- [Manage passwords](tutorial-5-manage-passwords)
-- [Enable encryption](tutorial-6-enable-encryption)
-- [Use Kafka Connect for ETL](tutorial-7-kafka-connect)
-- [Rebalance and Reassign Partitions](tutorial-8-rebalance-and-reassign-partitions)
-- [Cleanup your environment](tutorial-9-cleanup-your-environment)
+- [Set up the environment](tutorial-environment)
+- [Deploy Charmed Apache Kafka](tutorial-deploy)
+- [Integrate with client applications](tutorial-integrate-with-client-applications)
+- [Manage passwords](tutorial-manage-passwords)
+- [Enable encryption](tutorial-enable-encryption)
+- [Use Kafka Connect for ETL](tutorial-kafka-connect)
+- [Rebalance and Reassign Partitions](tutorial-rebalance-partitions)
+- [Cleanup your environment](tutorial-cleanup)

@@ -1,7 +1,7 @@
-(tutorial-7-kafka-connect)=
+(tutorial-kafka-connect)=
 # 7. Use Kafka Connect for ETL
 
-This is part of the [Charmed Apache Kafka Tutorial](1-introduction). Please refer to this page for more information and an overview of the content.
+This is part of the [Charmed Apache Kafka Tutorial](introduction). Please refer to this page for more information and an overview of the content.
 
 ## Using Kafka Connect for ETL
 
