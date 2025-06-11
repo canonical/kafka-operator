@@ -241,7 +241,7 @@ Since the Charmed Apache Kafka Operator is deployed on a machine environment, it
 of the COS relations. The [offers-overlay](https://github.com/canonical/cos-lite-bundle/blob/main/overlays/offers-overlay.yaml)
 can be used, and this step is shown in the COS tutorial.
 
-Next, deploy [Grafana-agent](https://charmhub.io/grafana-agent) and follow the
+Next, deploy [Grafana agent](https://charmhub.io/grafana-agent) and follow the
 [tutorial](https://discourse.charmhub.io/t/using-the-grafana-agent-machine-charm/8896)
 to relate it to the COS Lite offers.
 
