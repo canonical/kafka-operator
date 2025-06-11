@@ -46,12 +46,11 @@ The Charmed Apache Kafka Operator is free software, distributed under the Apache
 ```{toctree}
 :titlesonly:
 :maxdepth: 2
-:glob:
 :hidden:
 
 Home <self>
-tutorial*/index
-how*/index
-reference*/index
-explanation*/index
+tutorial/index
+how-to/index
+reference/index
+explanation/index
 ```

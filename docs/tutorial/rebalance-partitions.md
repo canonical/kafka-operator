@@ -1,7 +1,7 @@
 (tutorial-rebalance-partitions)=
 # 8. Rebalance and Reassign Partitions
 
-This is part of the Charmed Apache Kafka Tutorial. Please refer to the [overview page](introduction) for more information and the overview of the content.
+This is part of the [Charmed Apache Kafka Tutorial](index.md). Please refer to the [overview page](introduction) for more information and the overview of the content.
 
 ## Partition rebalancing and reassignment
 
