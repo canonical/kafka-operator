@@ -4,7 +4,6 @@
 ```{toctree}
 :titlesonly:
 :maxdepth: 2
-:glob:
 :hidden:
 
 release-notes/index.md
@@ -14,8 +13,8 @@ Libraries<https://charmhub.io/kafka/libraries/kafka_libs?channel=3/stable>
 file-system-paths.md
 snap-entrypoints.md
 listeners.md
-statuses.md
+Statuses<statuses.md>
 requirements.md
 performance-tuning.md
-contact.md
+Contact<contact.md>
 ```

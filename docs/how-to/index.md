@@ -4,7 +4,6 @@
 ```{toctree}
 :titlesonly:
 :maxdepth: 2
-:glob:
 :hidden:
 
 deploy/index.md

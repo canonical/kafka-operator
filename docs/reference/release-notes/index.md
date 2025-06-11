@@ -7,8 +7,5 @@
 :glob:
 :hidden:
 
-revision-205.md
-revision-195-149.md
-revision-156-136.md
-revision-156-126.md
+*
 ```
