@@ -13,7 +13,7 @@ from unittest.mock import PropertyMock, patch
 import pytest
 import trustme
 import yaml
-from ops.testing import Container, Context, PeerRelation, Relation, State
+from ops.testing import Container, Context, PeerRelation, State
 from trustme import CA
 
 from charm import KafkaCharm
@@ -61,43 +61,6 @@ def charm_configuration():
 def ctx() -> Context:
     ctx = Context(KafkaCharm, meta=METADATA, config=CONFIG, actions=ACTIONS, unit_id=0)
     return ctx
-
-
-def test_mtls_not_enabled_if_trusted_certificate_added_before_tls_relation(
-    ctx: Context, base_state: State
-) -> None:
-    # Given
-    cluster_peer = PeerRelation(PEER, PEER)
-    cert_relation = Relation("trusted-certificate", "tls-one")
-    state_in = dataclasses.replace(base_state, relations=[cluster_peer, cert_relation])
-
-    # When
-    state_out = ctx.run(ctx.on.relation_created(cert_relation), state_in)
-
-    # Then
-    assert (
-        state_out.get_relation(cluster_peer.id).local_app_data.get("mtls", "disabled") != "enabled"
-    )
-
-
-def test_mtls_added(ctx: Context, base_state: State) -> None:
-    # Given
-    cluster_peer = PeerRelation(
-        PEER,
-        PEER,
-        local_app_data={"tls": "enabled"},
-        local_unit_data={"private-address": "treebeard"},
-    )
-    cert_relation = Relation("trusted-certificate", "tls-one")
-    state_in = dataclasses.replace(base_state, relations=[cluster_peer, cert_relation])
-
-    # Given
-    state_out = ctx.run(ctx.on.relation_created(cert_relation), state_in)
-
-    # Then
-    assert (
-        state_out.get_relation(cluster_peer.id).local_app_data.get("mtls", "disabled") == "enabled"
-    )
 
 
 @pytest.mark.parametrize(

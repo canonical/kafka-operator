@@ -34,6 +34,7 @@ APP_NAME = METADATA["name"]
 ZK_NAME = "zookeeper"
 DUMMY_NAME = "app"
 REL_NAME_ADMIN = "kafka-client-admin"
+REL_NAME_PRODUCER = "kafka-client-producer"
 TEST_DEFAULT_MESSAGES = 15
 
 

@@ -33,13 +33,13 @@ kazoo = ">=2.8.0"
 
 # The cosl dep could be removed from here once PYDEPS is released:
 # https://github.com/canonical/charmcraft/pull/1003
-cosl = ">= 0.0.5"
+cosl = ">= 0.0.50"
 
 tenacity = ">=8.0.1"
 pure-sasl = ">=0.6.2"
 jsonschema = ">=4.10"
 cryptography = ">42.0.0"
-pydantic = "<2"
+pydantic = "^2.11"
 pyyaml = "^6.0.1"
 requests = "^2.32.3"
 lightkube = "0.15.0"
@@ -52,9 +52,8 @@ ops = ">=2.0.0"
 # data_platform_libs/v0/upgrade.py
 # grafana_agent/v0/cos_agent.py requires pydantic <2
 poetry-core = "*"
-pydantic = "^1.10, <2"
-# tls_certificates_interface/v1/tls_certificates.py
-# tls_certificates lib uses a feature only available in cryptography >=42.0.5
+pydantic = "^2.11"
+# tls_certificates_interface/v3/tls_certificates.py
 cryptography = ">=42.0.5"
 # hydra/v0/oauth.py
 jsonschema = "*"

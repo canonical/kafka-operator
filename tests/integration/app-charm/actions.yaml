@@ -7,12 +7,6 @@ create-certificate:
 run-mtls-producer:
   description: Runs producer
   params:
-    bootstrap-server:
-      type: string
-      description: The address for mtls Kafka
-    broker-ca:
-      type: string
-      description: The CA used for broker identity from certificates relation
     num-messages:
       type: integer
       description: The number of messages to be sent for testing

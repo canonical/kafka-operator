@@ -7,28 +7,28 @@
 import base64
 import json
 import logging
-import os
 import re
 import warnings
 from typing import TYPE_CHECKING
 
+from charms.certificate_transfer_interface.v1.certificate_transfer import (
+    CertificatesAvailableEvent,
+    CertificatesRemovedEvent,
+    CertificateTransferRequires,
+)
 from charms.tls_certificates_interface.v3.tls_certificates import (
     CertificateAvailableEvent,
-    EventBase,
     TLSCertificatesRequiresV3,
-    _load_relation_data,
     generate_csr,
     generate_private_key,
 )
 from ops.charm import (
     ActionEvent,
-    RelationBrokenEvent,
-    RelationChangedEvent,
     RelationJoinedEvent,
 )
 from ops.framework import Object
 
-from literals import TLS_RELATION, TRUSTED_CA_RELATION, TRUSTED_CERTIFICATE_RELATION, Status
+from literals import CERTIFICATE_TRANSFER_RELATION, TLS_RELATION, Status
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -65,24 +65,16 @@ class TLSHandler(Object):
             getattr(self.charm.on, "set_tls_private_key_action"), self._set_tls_private_key
         )
 
-        # External certificates handlers (for mTLS)
-        for relation in [TRUSTED_CERTIFICATE_RELATION, TRUSTED_CA_RELATION]:
-            self.framework.observe(
-                self.charm.on[relation].relation_created,
-                self._trusted_relation_created,
-            )
-            self.framework.observe(
-                self.charm.on[relation].relation_joined,
-                self._trusted_relation_joined,
-            )
-            self.framework.observe(
-                self.charm.on[relation].relation_changed,
-                self._trusted_relation_changed,
-            )
-            self.framework.observe(
-                self.charm.on[relation].relation_broken,
-                self._trusted_relation_broken,
-            )
+        self.certificate_transfer = CertificateTransferRequires(
+            self.charm, CERTIFICATE_TRANSFER_RELATION
+        )
+        self.framework.observe(
+            self.certificate_transfer.on.certificate_set_updated,
+            self._on_client_certificates_available,
+        )
+        self.framework.observe(
+            self.certificate_transfer.on.certificates_removed, self._on_client_certificates_removed
+        )
 
     def _tls_relation_created(self, _) -> None:
         """Handler for `certificates_relation_created` event."""
@@ -118,7 +110,7 @@ class TLSHandler(Object):
     def _tls_relation_broken(self, _) -> None:
         """Handler for `certificates_relation_broken` event."""
         self.charm.state.unit_broker.update(
-            {"csr": "", "certificate": "", "ca": "", "ca-cert": "", "chain": ""}
+            {"csr": "", "certificate": "", "ca-cert": "", "chain": ""}
         )
 
         # remove all existing keystores from the unit so we don't preserve certs
@@ -129,137 +121,6 @@ class TLSHandler(Object):
             return
 
         self.charm.state.cluster.update({"tls": ""})
-
-    def _trusted_relation_created(self, event: EventBase) -> None:
-        """Handle relation created event to trusted tls charm."""
-        if not self.charm.unit.is_leader():
-            return
-
-        if not self.charm.state.cluster.tls_enabled:
-            self.charm._set_status(Status.NO_CERT)
-            event.defer()
-            return
-
-        if not self.charm.state.cluster.mtls_enabled:
-            # Create a "mtls" flag so a new listener (CLIENT_SSL) is created
-            self.charm.state.cluster.update({"mtls": "enabled"})
-            self.charm.on.config_changed.emit()
-
-    def _trusted_relation_joined(self, event: RelationJoinedEvent) -> None:
-        """Generate a CSR so the tls-certificates operator works as expected."""
-        # Once the certificates have been added, TLS setup has finished
-        if not self.charm.workload.installed:
-            event.defer()
-            return
-
-        if not self.charm.state.unit_broker.certificate:
-            self.charm._set_status(Status.NO_CERT)
-            event.defer()
-            return
-
-        alias = self.charm.broker.tls_manager.generate_alias(
-            app_name=event.app.name,
-            relation_id=event.relation.id,
-        )
-        subject = (
-            os.uname()[1]
-            if self.charm.substrate == "k8s"
-            else self.charm.state.unit_broker.internal_address
-        )
-        sans = self.charm.broker.tls_manager.build_sans()
-        csr = (
-            generate_csr(
-                add_unique_id_to_subject_name=bool(alias),
-                private_key=self.charm.state.unit_broker.private_key.encode("utf-8"),
-                subject=subject,
-                sans_ip=sans["sans_ip"],
-                sans_dns=sans["sans_dns"],
-            )
-            .decode()
-            .strip()
-        )
-
-        csr_dict = [{"certificate_signing_request": csr}]
-        event.relation.data[self.model.unit]["certificate_signing_requests"] = json.dumps(csr_dict)
-
-    def _trusted_relation_changed(self, event: RelationChangedEvent) -> None:
-        """Overrides the requirer logic of TLSInterface."""
-        if not event.relation or not event.relation.app:
-            return
-
-        if not self.charm.workload.installed:
-            event.defer()
-            return
-
-        # Once the certificates have been added, TLS setup has finished
-        if not self.charm.state.unit_broker.certificate:
-            logger.debug("Missing TLS relation, deferring")
-            event.defer()
-            return
-
-        relation_data = _load_relation_data(event.relation.data[event.relation.app])
-        provider_certificates = relation_data.get("certificates", [])
-
-        if not provider_certificates:
-            logger.warning("No certificates on provider side")
-            event.defer()
-            return
-
-        alias = self.charm.broker.tls_manager.generate_alias(
-            event.relation.app.name,
-            event.relation.id,
-        )
-        # NOTE: Relation should only be used with one set of certificates,
-        # hence using just the first item on the list.
-        content = (
-            provider_certificates[0]["certificate"]
-            if event.relation.name == TRUSTED_CERTIFICATE_RELATION
-            else provider_certificates[0]["ca"]
-        )
-        filename = f"{alias}.pem"
-        self.charm.workload.write(
-            content=content, path=f"{self.charm.workload.paths.conf_path}/{filename}"
-        )
-        self.charm.broker.tls_manager.import_cert(alias=f"{alias}", filename=filename)
-
-        # Live reload the truststore
-        self.charm.broker.tls_manager.reload_truststore()
-
-    def _trusted_relation_broken(self, event: RelationBrokenEvent) -> None:
-        """Handle relation broken for a trusted certificate/ca relation."""
-        if not event.relation or not event.relation.app:
-            return
-
-        # Once the certificates have been added, TLS setup has finished
-        if not self.charm.state.unit_broker.certificate:
-            logger.debug("Missing TLS relation, deferring")
-            event.defer()
-            return
-
-        # All units will need to remove the cert from their truststore
-        alias = self.charm.broker.tls_manager.generate_alias(
-            app_name=event.relation.app.name,
-            relation_id=event.relation.id,
-        )
-
-        logger.info(f"Removing {alias=} from truststore...")
-        self.charm.broker.tls_manager.remove_cert(alias=alias)
-
-        # The leader will also handle removing the "mtls" flag if needed
-        if not self.charm.unit.is_leader():
-            return
-
-        mtls_relations = set(
-            self.model.relations[TRUSTED_CA_RELATION]
-            + self.model.relations[TRUSTED_CERTIFICATE_RELATION]
-        )
-        for relation in mtls_relations:
-            if relation == event.relation:
-                mtls_relations.remove(event.relation)
-
-        # No relations means that there are no certificates left in the truststore
-        if not mtls_relations:
-            self.charm.state.cluster.update({"mtls": ""})
 
     def _on_certificate_available(self, event: CertificateAvailableEvent) -> None:
         """Handler for `certificates_available` event after provider updates signed certs."""
@@ -281,7 +142,6 @@ class TLSHandler(Object):
             {
                 "certificate": event.certificate,
                 "ca-cert": event.ca,
-                "ca": "",
                 "chain": json.dumps(event.chain),
             }
         )
@@ -296,6 +156,7 @@ class TLSHandler(Object):
             getattr(self.charm, dependent).tls_manager.set_keystore()
 
         # single-unit Kafka can lose restart events if it loses connection with TLS-enabled ZK
+        self.update_truststore()
         self.charm.on.config_changed.emit()
 
     def _on_certificate_expiring(self, _) -> None:
@@ -363,3 +224,82 @@ class TLSHandler(Object):
         )
 
         self.charm.state.unit_broker.update({"csr": new_csr.decode("utf-8").strip()})
+
+    def _on_client_certificates_available(self, event: CertificatesAvailableEvent) -> None:
+        """Handle the certificates available event on the `certifcate_transfer` interface."""
+        relation = self.charm.model.get_relation(CERTIFICATE_TRANSFER_RELATION, event.relation_id)
+        if not relation or not relation.active:
+            return
+
+        if not all(
+            [self.charm.state.cluster.tls_enabled, self.charm.state.unit_broker.certificate]
+        ):
+            logger.debug("Missing TLS relation, deferring")
+            self.charm._set_status(Status.NO_CERT)
+            event.defer()
+            return
+
+        transferred_certs = self.certificate_transfer.get_all_certificates()
+
+        if (
+            self.charm.unit.is_leader()
+            and transferred_certs
+            and not self.charm.state.cluster.mtls_enabled
+        ):
+            # Create a "mtls" flag so a new listener (CLIENT_SSL) is created
+            self.charm.state.cluster.update({"mtls": "enabled"})
+            self.charm.on.config_changed.emit()
+
+        self.update_truststore()
+
+    def _on_client_certificates_removed(self, event: CertificatesRemovedEvent) -> None:
+        """Handle the certificates removed event."""
+        self.update_truststore()
+        # Turn off MTLS if no clients are remaining.
+        if self.charm.unit.is_leader() and not self.charm.state.has_mtls_clients:
+            self.charm.state.cluster.update({"mtls": ""})
+
+    def update_truststore(self) -> None:
+        """Updates the truststore based on current state of MTLS client relations and certificates available on the `certificate_transfer` interface."""
+        if not all(
+            [
+                self.charm.workload.installed,
+                self.charm.state.cluster.tls_enabled,
+                self.charm.state.unit_broker.certificate,
+                self.charm.state.unit_broker.ca,
+            ]
+        ):
+            # not ready yet.
+            return
+
+        should_reload = False
+        live_aliases = set()
+
+        # Client MTLS certs
+        for client in self.charm.state.clients:
+            if not client.relation:
+                continue
+
+            alias = client.alias
+            if not self.charm.broker.tls_manager.alias_needs_update(alias, client.mtls_cert):
+                continue
+
+            self.charm.broker.tls_manager.update_cert(alias=alias, cert=client.mtls_cert)
+            live_aliases.add(alias)
+            should_reload = True
+
+        # Transferred certs
+        transferred_certs = self.certificate_transfer.get_all_certificates()
+        for cert in transferred_certs:
+            alias = self.charm.broker.tls_manager.certificate_common_name(cert)
+            live_aliases.add(alias)
+
+            if not self.charm.broker.tls_manager.alias_needs_update(alias, cert):
+                continue
+
+            self.charm.broker.tls_manager.update_cert(alias=alias, cert=cert)
+            should_reload = True
+
+        logger.debug(f"Following aliases should be in the truststore: {live_aliases}")
+        if should_reload:
+            self.charm.broker.tls_manager.reload_truststore()

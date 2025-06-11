@@ -5,6 +5,7 @@ name: Release to Charmhub
 on:
   push:
     branches:
+      - 3/edge
       - main
 
 jobs:
@@ -22,7 +23,7 @@ jobs:
       - ci-tests
     uses: canonical/data-platform-workflows/.github/workflows/release_charm.yaml@v29.0.0
     with:
-      channel: 3/edge
+      channel: ${{ github.ref_name != 'main' && github.ref_name || '4/edge' }}
       artifact-prefix: ${{ needs.ci-tests.outputs.artifact-prefix }}
     secrets:
       charmhub-token: ${{ secrets.CHARMHUB_TOKEN }}
