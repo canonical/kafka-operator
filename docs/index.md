@@ -33,7 +33,7 @@ Charmed Apache Kafka is a distribution of Apache Kafka. It’s an open-source pr
 - [Join the Discourse forum](https://discourse.charmhub.io/tag/kafka)
 - [Contribute](https://github.com/canonical/kafka-operator/blob/main/CONTRIBUTING.md) and report [issues](https://github.com/canonical/kafka-operator/issues/new)
 - Explore [Canonical Data Fabric solutions](https://canonical.com/data)
-- [Contact us]([/t/13107) for all further questions
+- [Contact us](/t/13107) for all further questions
 
 Apache®, Apache Kafka, Kafka®, and the Apache Kafka logo are either registered trademarks or trademarks of the Apache Software Foundation in the United States and/or other countries.
 
@@ -66,7 +66,9 @@ The Charmed Apache Kafka Operator is free software, distributed under the Apache
   1. [Monitoring](how-to/h-monitoring)
     1. [Enable Monitoring](how-to/h-monitoring/h-enable-monitoring.md)
     1. [Integrate alerts and dashboards](how-to/h-monitoring/h-integrate-alerts-dashboards.md)
-  1. [Migrate a cluster](how-to/h-cluster-migration.md)
+  1. [Cluster replication](how-to/h-cluster-replication)
+    1. [Migrate a cluster](how-to/h-cluster-replication/h-cluster-migration.md)
+    1. [Cluster replication](how-to/h-cluster-replication/h-cluster-replication.md)
   1. [Create mTLS Client Credentials](how-to/h-create-mtls-client-credentials.md)
   1. [Enable Oauth through Hydra](how-to/h-enable-oauth.md)
   1. [Back up and restore](how-to/h-backup.md)
@@ -90,3 +92,4 @@ The Charmed Apache Kafka Operator is free software, distributed under the Apache
   1. [Cryptography](explanation/e-cryptography.md)
   1. [Cluster configuration](explanation/e-cluster-configuration.md)
   1. [Trademarks](explanation/e-trademarks.md)
+  1. [MirrorMaker2.0](explanation/e-mirrormaker.md)
