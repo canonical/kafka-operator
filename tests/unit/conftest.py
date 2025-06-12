@@ -8,6 +8,7 @@ from unittest.mock import Mock, PropertyMock, patch
 import pytest
 from ops import JujuVersion
 from src.literals import INTERNAL_USERS, SNAP_NAME, SUBSTRATE
+from tests.unit.helpers import TLSArtifacts, generate_tls_artifacts
 
 from managers.balancer import CruiseControlClient
 
@@ -150,3 +151,8 @@ def patched_snap(monkeypatch):
     with monkeypatch.context() as m:
         m.setattr("charms.operator_libs_linux.v2.snap.SnapCache", cache)
         yield
+
+
+@pytest.fixture
+def tls_artifacts(request: pytest.FixtureRequest) -> TLSArtifacts:
+    return generate_tls_artifacts(with_intermediate=bool(request.param))

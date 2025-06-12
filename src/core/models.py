@@ -33,6 +33,8 @@ from literals import (
     BROKER,
     INTERNAL_USERS,
     SECRETS_APP,
+    SECURITY_PROTOCOL_PORTS,
+    AuthMap,
     Substrates,
 )
 from managers.k8s import K8sManager
@@ -615,7 +617,7 @@ class KafkaBroker(RelationState):
             Empty if cert not yet generated/signed
         """
         # defaults to ca for backwards compatibility after field change introduced with secrets
-        return self.relation_data.get("ca-cert") or self.relation_data.get("ca", "")
+        return self.relation_data.get("ca-cert", "")
 
     @property
     def chain(self) -> list[str]:
@@ -625,7 +627,7 @@ class KafkaBroker(RelationState):
     @property
     def bundle(self) -> list[str]:
         """The cert bundle used for TLS identity."""
-        if not all([self.certificate, self.ca, self.chain]):
+        if not all([self.certificate, self.ca]):
             return []
 
         # manual-tls-certificates is loaded with the signed cert, the intermediate CA that signed it
@@ -925,7 +927,16 @@ class KafkaClient(RelationState):
     @property
     def bootstrap_server(self) -> str:
         """The Kafka server endpoints for the client application to connect with."""
-        return self._bootstrap_server
+        if not all([self.tls, self.mtls_cert]):
+            return self._bootstrap_server
+
+        scram_ssl_auth = AuthMap("SASL_SSL", "SCRAM-SHA-512")
+        mtls_auth = AuthMap("SSL", "SSL")
+
+        return self._bootstrap_server.replace(
+            f":{SECURITY_PROTOCOL_PORTS[scram_ssl_auth].client}",
+            f":{SECURITY_PROTOCOL_PORTS[mtls_auth].client}",
+        )
 
     @property
     def password(self) -> str:
@@ -967,6 +978,24 @@ class KafkaClient(RelationState):
         When `admin` is set, the Kafka charm interprets this as a new super.user.
         """
         return self.relation_data.get("extra-user-roles", "")
+
+    @property
+    def mtls_cert(self) -> str:
+        """Returns TLS cert of the client."""
+        return self.relation_data.get("mtls-cert", "")
+
+    @property
+    def alias(self) -> str:
+        """The alias used to refer to client's MTLS certificate."""
+        if not self.relation:
+            return ""
+
+        return self.generate_alias(self.relation.app.name, self.relation.id)
+
+    @staticmethod
+    def generate_alias(app_name: str, relation_id: int) -> str:
+        """Generate an alias from a relation."""
+        return f"{app_name}-{relation_id}"
 
 
 class OAuth:

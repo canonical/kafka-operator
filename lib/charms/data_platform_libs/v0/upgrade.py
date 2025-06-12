@@ -275,7 +275,7 @@ from ops.charm import (
 )
 from ops.framework import EventBase, EventSource, Object
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, Relation, Unit, WaitingStatus
-from pydantic import BaseModel, root_validator, validator
+from pydantic import BaseModel, root_validator, field_validator
 
 # The unique Charmhub library identifier, never change it
 LIBID = "156258aefb79435a93d933409a8c8684"
@@ -351,7 +351,7 @@ class DependencyModel(BaseModel):
     upgrade_supported: str
     version: str
 
-    @validator("dependencies", "upgrade_supported", each_item=True)
+    @field_validator("dependencies", "upgrade_supported")
     @classmethod
     def dependencies_validator(cls, value):
         """Validates version constraint."""
