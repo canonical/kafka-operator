@@ -19,6 +19,7 @@ from core.workload import CharmedKafkaPaths, WorkloadBase
 from literals import (
     BALANCER,
     BROKER,
+    CHARMED_KAFKA_SNAP_REVISION,
     GROUP,
     SNAP_NAME,
     USER_NAME,
@@ -126,14 +127,9 @@ class Workload(WorkloadBase):
             True if successfully installed. False otherwise.
         """
         try:
-            # self.kafka.ensure(snap.SnapState.Present, revision=CHARMED_KAFKA_SNAP_REVISION)
-            # self.kafka.connect(plug="removable-media")
-            # self.kafka.hold()
-            # os.system(
-            #     "wget https://github.com/imanenami/test-snaps/raw/refs/heads/main/charmed-kafka_4.0.0_amd64.snap"
-            # )
-            os.system("snap install --dangerous ./src/charmed-kafka_4.0.0_amd64.snap")
-            os.system("snap connect charmed-kafka:mount-observe :mount-observe")
+            self.kafka.ensure(snap.SnapState.Present, revision=CHARMED_KAFKA_SNAP_REVISION)
+            self.kafka.connect(plug="removable-media")
+            self.kafka.hold()
             return True
         except snap.SnapError as e:
             logger.error(str(e))

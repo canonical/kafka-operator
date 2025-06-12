@@ -12,18 +12,16 @@ from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, StatusBase
 
 CHARM_KEY = "kafka"
 SNAP_NAME = "charmed-kafka"
-CHARMED_KAFKA_SNAP_REVISION = "48"
+CHARMED_KAFKA_SNAP_REVISION = "61"
 CONTAINER = "kafka"
 SUBSTRATE = "vm"
 STORAGE = "data"
 
-# '584788' refers to snap_daemon, which do not exists on the storage-attached hook prior to the
+# '584792' refers to _daemon_, which do not exists on the storage-attached hook prior to the
 # snap install.
-# FIXME (24.04): From snapd 2.61 onwards, snap_daemon is being deprecated and replaced with _daemon_,
-# which now possesses a UID of 584792.
 # See https://snapcraft.io/docs/system-usernames.
-USER_ID = 584788
-USER_NAME = "snap_daemon"
+USER_ID = 584792
+USER_NAME = "_daemon_"
 GROUP = "root"
 
 # FIXME: these need better names
