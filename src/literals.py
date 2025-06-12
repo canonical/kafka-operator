@@ -77,24 +77,23 @@ class Ports:
     client: int
     internal: int
     external: int
+    controller: int
     extra: int = 0
 
 
 AuthProtocol = Literal["SASL_PLAINTEXT", "SASL_SSL", "SSL"]
 AuthMechanism = Literal["SCRAM-SHA-512", "OAUTHBEARER", "SSL"]
-Scope = Literal["INTERNAL", "CLIENT", "EXTERNAL", "EXTRA"]
+Scope = Literal["INTERNAL", "CLIENT", "EXTERNAL", "EXTRA", "CONTROLLER"]
 AuthMap = NamedTuple("AuthMap", protocol=AuthProtocol, mechanism=AuthMechanism)
+ListenerUpgradeState = Literal["idle", "followers", "done"]
 
 SECURITY_PROTOCOL_PORTS: dict[AuthMap, Ports] = {
-    AuthMap("SASL_PLAINTEXT", "SCRAM-SHA-512"): Ports(9092, 19092, 29092),
-    AuthMap("SASL_SSL", "SCRAM-SHA-512"): Ports(9093, 19093, 29093),
-    AuthMap("SSL", "SSL"): Ports(9094, 19094, 29094),
-    AuthMap("SASL_PLAINTEXT", "OAUTHBEARER"): Ports(9095, 19095, 29095),
-    AuthMap("SASL_SSL", "OAUTHBEARER"): Ports(9096, 19096, 29096),
+    AuthMap("SASL_PLAINTEXT", "SCRAM-SHA-512"): Ports(9092, 19092, 29092, 9097),
+    AuthMap("SASL_SSL", "SCRAM-SHA-512"): Ports(9093, 19093, 29093, 9098),
+    AuthMap("SSL", "SSL"): Ports(9094, 19094, 29094, 19194),
+    AuthMap("SASL_PLAINTEXT", "OAUTHBEARER"): Ports(9095, 19095, 29095, 19195),
+    AuthMap("SASL_SSL", "OAUTHBEARER"): Ports(9096, 19096, 29096, 19196),
 }
-# FIXME this port should exist on the previous abstraction
-CONTROLLER_PORT = 9097
-CONTROLLER_LISTENER_NAME = "INTERNAL_CONTROLLER"
 
 # FIXME: when running broker node.id will be unit-id + 100. If unit is only running
 # the controller node.id == unit-id. This way we can keep a human readable mapping of ids.
@@ -128,6 +127,27 @@ PATHS = {
         "BIN": f"/snap/{SNAP_NAME}/current/opt/cruise-control",
     },
 }
+
+
+class KRaftUnitStatus(str, Enum):
+    """KRaft unit status (also known as role) in KRaft Quorums."""
+
+    LEADER = "Leader"
+    FOLLOWER = "Follower"
+    OBSERVER = "Observer"
+
+
+@dataclass
+class KRaftQuorumInfo:
+    """Object containing Quorum info for a KRaft controller."""
+
+    directory_id: str
+    status: KRaftUnitStatus
+
+    @property
+    def is_leader_or_follower(self) -> bool:
+        """Whether the unit is a KRaft leader or follower."""
+        return self.status in (KRaftUnitStatus.LEADER, KRaftUnitStatus.FOLLOWER)
 
 
 @dataclass
@@ -174,7 +194,6 @@ BALANCER = Role(
         "broker-username",
         "broker-password",
         "broker-uris",
-        "controller-passwrod",
         "zk-username",
         "zk-password",
         "zk-uris",
@@ -293,6 +312,9 @@ class Status(Enum):
     )
     WAITING_FOR_REBALANCE = StatusLevel(
         WaitingStatus("awaiting completion of rebalance task"), "DEBUG"
+    )
+    TLS_MISMATCH = StatusLevel(
+        BlockedStatus("tls must be enabled on both KRaft controller and broker"), "ERROR"
     )
 
 
