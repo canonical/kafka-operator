@@ -21,8 +21,7 @@ Charmed Apache Kafka sources are stored in:
 
 ### Launchpad
 
-Distributions are built using private repositories only, hosted as part of the [SOSS namespace](https://launchpad.net/~soss-security-team) to eventually
-<!-- https://launchpad.net/soss is unavailable -->
+Distributions are built using private repositories only, hosted as part of the [SOSS namespace](https://launchpad.net/soss) (private) to eventually
 integrate with Canonical's standard process for fixing CVE.
 Branches associated with releases are mirrored to a public repository, hosted in the [Data Platform namespace](https://launchpad.net/~data-platform)
 to also provide the community with the patched source code.

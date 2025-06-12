@@ -73,7 +73,7 @@ juju relate grafana-agent prometheus-receive-remote-write
 Wait for all components to settle down on a `active/idle` state on both 
 models, e.g. `<kafka_model_name>` and `<cos_model_name>`.
 
-After this is complete, the monitoring COS stack should be up and running and ready to be used. 
+After this is complete, the monitoring COS stack should be up and running and ready to be used.
 
 ## Connect Grafana web interface
 

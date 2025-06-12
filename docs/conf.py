@@ -230,7 +230,8 @@ linkcheck_ignore = [
     "https://matrix.to/#/#charmhub-data-platform:ubuntu.com",
     "https://us-east-1.console.aws.amazon.com/ec2/",
     "https://kafka.apache.org/39/documentation.html#georeplication-overview",
-    "https://kafka.apache.org/39/documentation.html#georeplication-monitoring"
+    "https://kafka.apache.org/39/documentation.html#georeplication-monitoring",
+    "https://launchpad.net/soss"
     ]
 
 
