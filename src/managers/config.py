@@ -636,11 +636,7 @@ class ConfigManager(CommonConfigManager):
     @property
     def authorizer_class(self) -> list[str]:
         """Return the authorizer Java class used on Kafka."""
-        if self.state.kraft_mode:
-            return [
-                "authorizer.class.name=org.apache.kafka.metadata.authorizer.StandardAuthorizer"
-            ]
-        return ["authorizer.class.name=kafka.security.authorizer.AclAuthorizer"]
+        return ["authorizer.class.name=org.apache.kafka.metadata.authorizer.StandardAuthorizer"]
 
     @property
     def controller_properties(self) -> list[str]:
@@ -649,9 +645,6 @@ class ConfigManager(CommonConfigManager):
         Returns:
             List of properties to be set
         """
-        if self.state.kraft_mode == False:  # noqa: E712
-            return []
-
         roles = []
         node_id = self.state.unit_broker.unit_id
         if self.state.runs_broker:
@@ -687,28 +680,27 @@ class ConfigManager(CommonConfigManager):
         listeners_repr = [listener.listener for listener in self.all_listeners]
         advertised_listeners = [listener.advertised_listener for listener in self.all_listeners]
 
-        if self.state.kraft_mode:
-            controller_protocol_map = f"{CONTROLLER_LISTENER_NAME}:SASL_PLAINTEXT"
-            controller_listener = f"{CONTROLLER_LISTENER_NAME}://{self.state.unit_broker.internal_address}:{CONTROLLER_PORT}"
+        controller_protocol_map = f"{CONTROLLER_LISTENER_NAME}:SASL_PLAINTEXT"
+        controller_listener = f"{CONTROLLER_LISTENER_NAME}://{self.state.unit_broker.internal_address}:{CONTROLLER_PORT}"
 
-            # NOTE: Case where the controller is running standalone. Early return with a
-            # smaller subset of config options
-            if not self.state.runs_broker:
-                properties = (
-                    [
-                        f"super.users={self.state.peer_cluster.super_users or self.state.super_users}",
-                        f"log.dirs={self.state.log_dirs}",
-                        f"listeners={controller_listener}",
-                        f"listener.security.protocol.map={controller_protocol_map}",
-                    ]
-                    + self.controller_properties
-                    + self.authorizer_class
-                )
-                return properties
+        # NOTE: Case where the controller is running standalone. Early return with a
+        # smaller subset of config options
+        if not self.state.runs_broker:
+            properties = (
+                [
+                    f"super.users={self.state.peer_cluster.super_users or self.state.super_users}",
+                    f"log.dirs={self.state.log_dirs}",
+                    f"listeners={controller_listener}",
+                    f"listener.security.protocol.map={controller_protocol_map}",
+                ]
+                + self.controller_properties
+                + self.authorizer_class
+            )
+            return properties
 
-            protocol_map.append(controller_protocol_map)
-            if self.state.runs_controller:
-                listeners_repr.append(controller_listener)
+        protocol_map.append(controller_protocol_map)
+        if self.state.runs_controller:
+            listeners_repr.append(controller_listener)
 
         properties = (
             [

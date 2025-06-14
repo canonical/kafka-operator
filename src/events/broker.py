@@ -348,21 +348,6 @@ class BrokerOperator(Object):
 
         self.charm.state.unit_broker.update({"storages": self.balancer_manager.storages})
 
-        # FIXME: if KRaft, don't execute
-        if self.charm.substrate == "vm" and not self.charm.state.kraft_mode:
-            # new dirs won't be used until topic partitions are assigned to it
-            # either automatically for new topics, or manually for existing
-            # set status only for running services, not on startup
-            # FIXME re-add this
-            self.workload.exec(["chmod", "-R", "750", f"{self.workload.paths.data_path}"])
-            self.workload.exec(
-                [
-                    "bash",
-                    "-c",
-                    f"""find {self.workload.paths.data_path} -type f -name meta.properties -delete || true""",
-                ]
-            )
-
         # all mounted data dirs should have correct ownership
         self.workload.exec(
             ["chown", "-R", f"{USER_ID}:{GROUP}", f"{self.workload.paths.data_path}"]

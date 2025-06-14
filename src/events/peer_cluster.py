@@ -155,7 +155,7 @@ class PeerClusterEventsHandler(Object):
 
     def _on_peer_cluster_broken(self, _: RelationBrokenEvent):
         """Handle the required logic to remove."""
-        if self.charm.state.kraft_mode is not None:
+        if self.charm.state.runs_controller:
             return
 
         self.charm.workload.stop()

@@ -334,9 +334,7 @@ class ClusterState(Object):
             Semicolon delimited string of current super users
         """
         super_users = set(INTERNAL_USERS)
-
-        if self.kraft_mode:
-            super_users.add(CONTROLLER_USER)
+        super_users.add(CONTROLLER_USER)
 
         for relation in self.client_relations:
             if not relation or not relation.app:
@@ -505,6 +503,12 @@ class ClusterState(Object):
         if not self.peer_relation:
             return Status.NO_PEER_RELATION
 
+        if self.runs_broker_only and not self.peer_cluster_orchestrator_relation:
+            return Status.MISSING_MODE
+
+        if self.runs_controller_only and not self.peer_cluster_relation:
+            return Status.MISSING_MODE      
+
         for status in [self._broker_status, self._balancer_status, self._controller_status]:
             if status != Status.ACTIVE:
                 return status
@@ -537,15 +541,11 @@ class ClusterState(Object):
         if not self.runs_broker:
             return Status.ACTIVE
 
-        # Neither ZooKeeper or KRaft are active
-        if self.kraft_mode is None:
-            return Status.MISSING_MODE
+        if not self.peer_cluster.bootstrap_controller:
+            return Status.NO_BOOTSTRAP_CONTROLLER
 
-        if self.kraft_mode:
-            if not self.peer_cluster.bootstrap_controller:  # FIXME: peer_cluster or cluster?
-                return Status.NO_BOOTSTRAP_CONTROLLER
-            if not self.cluster.cluster_uuid:
-                return Status.NO_CLUSTER_UUID
+        if not self.cluster.cluster_uuid:
+            return Status.NO_CLUSTER_UUID
 
         if self.cluster.tls_enabled and not self.unit_broker.certificate:
             return Status.NO_CERT
@@ -569,21 +569,6 @@ class ClusterState(Object):
 
         return Status.ACTIVE
 
-    @cached_property
-    def kraft_mode(self) -> bool | None:
-        """Is the deployment running in KRaft mode?
-
-        Returns:
-            True if Kraft mode, None when undefined.
-        """
-        # NOTE: self.roles when running colocated, peer_cluster.roles when multiapp
-        if CONTROLLER.value in (self.roles + self.peer_cluster.roles):
-            return True
-
-        # FIXME raise instead of none. `not kraft_mode` is falsy
-        # NOTE: if previous checks are not met, we don't know yet how the charm is being deployed
-        return None
-
     @property
     def runs_balancer(self) -> bool:
         """Is the charm enabling the balancer?"""
@@ -598,3 +583,13 @@ class ClusterState(Object):
     def runs_controller(self) -> bool:
         """Is the charm enabling the controller?"""
         return CONTROLLER.value in self.roles
+
+    @property
+    def runs_broker_only(self) -> bool:
+        """Is the charm ONLY running broker in KRaft mode?"""
+        return self.runs_broker and not self.runs_controller
+
+    @property
+    def runs_controller_only(self) -> bool:
+        """Is the charm ONLY running controller in KRaft mode?"""
+        return self.runs_controller and not self.runs_broker
