@@ -333,6 +333,9 @@ class ClusterState(Object):
         Returns:
             Semicolon delimited string of current super users
         """
+        if self.runs_controller_only:
+            return self.peer_cluster.super_users
+
         super_users = set(INTERNAL_USERS)
         super_users.add(CONTROLLER_USER)
 

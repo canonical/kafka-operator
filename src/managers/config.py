@@ -688,7 +688,7 @@ class ConfigManager(CommonConfigManager):
         if not self.state.runs_broker:
             properties = (
                 [
-                    f"super.users={self.state.peer_cluster.super_users or self.state.super_users}",
+                    f"super.users={self.state.super_users}",
                     f"log.dirs={self.state.log_dirs}",
                     f"listeners={controller_listener}",
                     f"listener.security.protocol.map={controller_protocol_map}",
