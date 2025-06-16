@@ -233,7 +233,7 @@ class Status(Enum):
     BROKER_NOT_RUNNING = StatusLevel(BlockedStatus("Broker not running"), "WARNING")
     NOT_ALL_RELATED = StatusLevel(MaintenanceStatus("not all units related"), "DEBUG")
     CC_NOT_RUNNING = StatusLevel(BlockedStatus("Cruise Control not running"), "WARNING")
-    MISSING_MODE = StatusLevel(BlockedStatus("Application needs ZooKeeper or KRaft mode"), "DEBUG")
+    MISSING_MODE = StatusLevel(BlockedStatus("Application needs to be related with a KRaft controller"), "DEBUG")
     NO_CLUSTER_UUID = StatusLevel(WaitingStatus("Waiting for cluster uuid"), "DEBUG")
     NO_BOOTSTRAP_CONTROLLER = StatusLevel(
         WaitingStatus("Waiting for bootstrap controller"), "DEBUG"
@@ -241,12 +241,6 @@ class Status(Enum):
     MISSING_CONTROLLER_PASSWORD = StatusLevel(
         WaitingStatus("Waiting for controller user credentials"), "DEBUG"
     )
-    ZK_NOT_RELATED = StatusLevel(BlockedStatus("missing required zookeeper relation"), "DEBUG")
-    ZK_NOT_CONNECTED = StatusLevel(BlockedStatus("unit not connected to zookeeper"), "ERROR")
-    ZK_TLS_MISMATCH = StatusLevel(
-        BlockedStatus("tls must be enabled on both kafka and zookeeper"), "ERROR"
-    )
-    ZK_NO_DATA = StatusLevel(WaitingStatus("zookeeper credentials not created yet"), "DEBUG")
     ADDED_STORAGE = StatusLevel(
         ActiveStatus("manual partition reassignment may be needed to utilize new storage volumes"),
         "WARNING",

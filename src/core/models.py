@@ -676,7 +676,6 @@ class KafkaClient(RelationState):
         bootstrap_server: str = "",
         password: str = "",  # nosec: B107
         tls: str = "",
-        zookeeper_uris: str = "",
     ):
         super().__init__(relation, data_interface, component, None)
         self.app = component
@@ -684,7 +683,6 @@ class KafkaClient(RelationState):
         self._bootstrap_server = bootstrap_server
         self._password = password
         self._tls = tls
-        self._zookeeper_uris = zookeeper_uris
 
     @property
     def username(self) -> str:
@@ -720,7 +718,7 @@ class KafkaClient(RelationState):
 
     @property
     def tls(self) -> str:
-        """Flag to confirm whether or not ZooKeeper has TLS enabled.
+        """Flag to confirm whether or not TLS is enabled.
 
         Returns:
             String of either 'enabled' or 'disabled'
@@ -728,13 +726,8 @@ class KafkaClient(RelationState):
         return self._tls
 
     @property
-    def zookeeper_uris(self) -> str:
-        """The ZooKeeper connection endpoints for the client application to connect with."""
-        return self._zookeeper_uris
-
-    @property
     def topic(self) -> str:
-        """The ZooKeeper connection endpoints for the client application to connect with."""
+        """The requested topic for the client."""
         return self.relation_data.get("topic", "")
 
     @property
