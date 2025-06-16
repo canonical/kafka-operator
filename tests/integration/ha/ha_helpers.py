@@ -12,9 +12,7 @@ from pytest_operator.plugin import OpsTest
 from integration.ha.continuous_writes import ContinuousWritesResult
 from integration.helpers import (
     APP_NAME,
-    get_active_brokers,
     get_address,
-    get_kafka_zk_relation_data,
 )
 from literals import PATHS, SECURITY_PROTOCOL_PORTS
 
@@ -214,16 +212,6 @@ def network_restore(machine_name: str) -> None:
     # remove mask from eth0
     restore_network_command = f"lxc config device remove {machine_name} eth0"
     subprocess.check_call(restore_network_command.split())
-
-
-def is_up(ops_test: OpsTest, broker_id: int) -> bool:
-    """Return if node up."""
-    kafka_zk_relation_data = get_kafka_zk_relation_data(
-        ops_test=ops_test, owner=ZK, unit_name=f"{APP_NAME}/0"
-    )
-    active_brokers = get_active_brokers(config=kafka_zk_relation_data)
-    chroot = kafka_zk_relation_data.get("database", kafka_zk_relation_data.get("chroot", ""))
-    return f"{chroot}/brokers/ids/{broker_id}" in active_brokers
 
 
 def assert_continuous_writes_consistency(result: ContinuousWritesResult):

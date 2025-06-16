@@ -41,7 +41,6 @@ from managers.auth import Acl, AuthManager
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 APP_NAME = METADATA["name"]
 SERIES = "noble"
-ZK = "zookeeper"
 CONTROLLER_NAME = "controller"
 DUMMY_NAME = "app"
 REL_NAME_ADMIN = "kafka-client-admin"
@@ -501,36 +500,6 @@ def get_client_usernames(ops_test: OpsTest, owner: str = APP_NAME) -> set[str]:
     return usernames
 
 
-# FIXME: will need updating after zookeeper_client is implemented in full
-def get_kafka_zk_relation_data(
-    ops_test: OpsTest, owner: str, unit_name: str, relation_name: str = "zookeeper"
-) -> dict[str, str]:
-    unit_data = show_unit(ops_test, unit_name)
-
-    kafka_zk_relation_data = {}
-    for info in unit_data[unit_name]["relation-info"]:
-        if info["endpoint"] == relation_name:
-            kafka_zk_relation_data["relation-id"] = info["relation-id"]
-
-            # initially collects all non-secret keys
-            kafka_zk_relation_data.update(dict(info["application-data"]))
-
-    user_secret = get_secret_by_label(
-        ops_test,
-        label=f"{relation_name}.{kafka_zk_relation_data['relation-id']}.user.secret",
-        owner=owner,
-    )
-
-    tls_secret = get_secret_by_label(
-        ops_test,
-        label=f"{relation_name}.{kafka_zk_relation_data['relation-id']}.tls.secret",
-        owner=owner,
-    )
-
-    # overrides to secret keys if found
-    return kafka_zk_relation_data | user_secret | tls_secret
-
-
 def get_provider_data(
     ops_test: OpsTest,
     owner: str,
@@ -562,33 +531,6 @@ def get_provider_data(
 
     # overrides to secret keys if found
     return provider_relation_data | user_secret | tls_secret
-
-
-def get_active_brokers(config: dict[str, str]) -> set[str]:
-    """Gets all brokers currently connected to ZooKeeper.
-
-    Args:
-        config: the relation data provided by ZooKeeper
-
-    Returns:
-        Set of active broker ids
-    """
-    chroot = config.get("database", config.get("chroot", ""))
-    username = config.get("username", "")
-    password = config.get("password", "")
-    hosts = [host.split(":")[0] for host in config.get("endpoints", "").split(",")]
-
-    zk = ZooKeeperManager(hosts=hosts, username=username, password=password)
-    path = f"{chroot}/brokers/ids/"
-
-    try:
-        brokers = zk.leader_znodes(path=path)
-    # auth might not be ready with ZK after relation yet
-    except (NoNodeError, AuthFailedError, QuorumLeaderNotFoundError) as e:
-        logger.warning(str(e))
-        return set()
-
-    return brokers
 
 
 async def get_address(ops_test: OpsTest, app_name=APP_NAME, unit_num=0) -> str:
