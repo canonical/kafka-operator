@@ -510,7 +510,7 @@ class ClusterState(Object):
             return Status.MISSING_MODE
 
         if self.runs_controller_only and not self.peer_cluster_relation:
-            return Status.MISSING_MODE      
+            return Status.MISSING_MODE
 
         for status in [self._broker_status, self._balancer_status, self._controller_status]:
             if status != Status.ACTIVE:

@@ -162,9 +162,7 @@ async def test_deploy_producer_same_topic(
 ):
     """Test the correct deployment and relation with role producer."""
     await asyncio.gather(
-        ops_test.model.deploy(
-            app_charm, application_name=DUMMY_NAME_1, num_units=1, series=SERIES
-        )
+        ops_test.model.deploy(app_charm, application_name=DUMMY_NAME_1, num_units=1, series=SERIES)
     )
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_PRODUCER}")
 
@@ -205,9 +203,7 @@ async def test_admin_added_to_super_users(ops_test: OpsTest, kafka_apps):
     app_charm = await ops_test.build_charm("tests/integration/app-charm")
 
     await asyncio.gather(
-        ops_test.model.deploy(
-            app_charm, application_name=DUMMY_NAME_1, num_units=1, series=SERIES
-        )
+        ops_test.model.deploy(app_charm, application_name=DUMMY_NAME_1, num_units=1, series=SERIES)
     )
     await ops_test.model.wait_for_idle(apps=[*kafka_apps, DUMMY_NAME_1])
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_ADMIN}")
@@ -278,9 +274,7 @@ async def test_connection_updated_on_tls_enabled(ops_test: OpsTest, app_charm, k
     # deploying tls
     tls_config = {"ca-common-name": "kafka"}
     # FIXME (certs): Unpin the revision once the charm is fixed
-    await ops_test.model.deploy(
-        TLS_NAME, channel="edge", config=tls_config, revision=163
-    )
+    await ops_test.model.deploy(TLS_NAME, channel="edge", config=tls_config, revision=163)
     await ops_test.model.wait_for_idle(
         apps=[TLS_NAME], idle_period=30, timeout=1800, status="active"
     )

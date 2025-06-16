@@ -57,9 +57,7 @@ async def test_deploy_tls(ops_test: OpsTest, kafka_charm, kraft_mode, kafka_apps
 
     await asyncio.gather(
         # FIXME (certs): Unpin the revision once the charm is fixed
-        ops_test.model.deploy(
-            TLS_NAME, channel="edge", config=tls_config, revision=163
-        ),
+        ops_test.model.deploy(TLS_NAME, channel="edge", config=tls_config, revision=163),
         deploy_cluster(
             ops_test=ops_test,
             charm=kafka_charm,

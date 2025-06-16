@@ -137,9 +137,7 @@ class AuthManager:
 
         return consumer_acls
 
-    def add_user(
-        self, username: str, password: str, internal: bool = False
-    ) -> None:
+    def add_user(self, username: str, password: str, internal: bool = False) -> None:
         """Adds new user credentials to cluster.
 
         Args:
