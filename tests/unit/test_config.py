@@ -626,7 +626,7 @@ def test_super_users(ctx: Context, base_state: State) -> None:
         charm = cast(KafkaCharm, manager.charm)
 
         # Then
-        assert len(charm.state.super_users.split(";")) == len(INTERNAL_USERS)
+        assert len(charm.state.super_users.split(";")) == len(INTERNAL_USERS) + 1
 
     cluster_peer = dataclasses.replace(
         cluster_peer, local_app_data={f"relation-{client_relation.id}": "mellon"}
@@ -640,7 +640,7 @@ def test_super_users(ctx: Context, base_state: State) -> None:
         charm = cast(KafkaCharm, manager.charm)
 
         # Then
-        assert len(charm.state.super_users.split(";")) == len(INTERNAL_USERS) + 1
+        assert len(charm.state.super_users.split(";")) == len(INTERNAL_USERS) + 2
 
     cluster_peer = dataclasses.replace(
         cluster_peer,
@@ -658,7 +658,7 @@ def test_super_users(ctx: Context, base_state: State) -> None:
         charm = cast(KafkaCharm, manager.charm)
 
         # Then
-        assert len(charm.state.super_users.split(";")) == len(INTERNAL_USERS) + 2
+        assert len(charm.state.super_users.split(";")) == len(INTERNAL_USERS) + 3
 
     client_ii_relation = dataclasses.replace(
         client_ii_relation, remote_app_data={"extra-user-roles": "consumer"}
@@ -672,7 +672,7 @@ def test_super_users(ctx: Context, base_state: State) -> None:
         charm = cast(KafkaCharm, manager.charm)
 
         # Then
-        assert len(charm.state.super_users.split(";")) == len(INTERNAL_USERS) + 1
+        assert len(charm.state.super_users.split(";")) == len(INTERNAL_USERS) + 2
 
 
 def test_cruise_control_reporter_only_with_balancer(ctx: Context, base_state: State):
