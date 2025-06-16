@@ -4,9 +4,10 @@
 
 import os
 import pathlib
-import pytest
 import subprocess
 import typing
+
+import pytest
 from pytest_operator.plugin import OpsTest
 
 from .helpers import APP_NAME, CONTROLLER_NAME, KRaftMode
@@ -28,9 +29,7 @@ def pytest_configure(config):
 
         # Remove charmcraft dependency from `ops_test` fixture
         check_deps = plugin.check_deps
-        plugin.check_deps = lambda *deps: check_deps(
-            *(dep for dep in deps if dep != "charmcraft")
-        )
+        plugin.check_deps = lambda *deps: check_deps(*(dep for dep in deps if dep != "charmcraft"))
 
 
 @pytest.fixture(scope="module")

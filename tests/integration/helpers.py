@@ -16,9 +16,7 @@ from typing import Any, List, Literal, Optional, Set
 
 import yaml
 from charms.kafka.v0.client import KafkaClient
-from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManager
 from kafka.admin import NewTopic
-from kazoo.exceptions import AuthFailedError, NoNodeError
 from pytest_operator.plugin import OpsTest
 from tenacity import retry
 from tenacity.retry import retry_if_result
