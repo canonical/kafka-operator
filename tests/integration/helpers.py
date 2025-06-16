@@ -40,6 +40,7 @@ from managers.auth import Acl, AuthManager
 
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 APP_NAME = METADATA["name"]
+SERIES = "noble"
 ZK = "zookeeper"
 CONTROLLER_NAME = "controller"
 DUMMY_NAME = "app"
@@ -64,7 +65,7 @@ async def deploy_cluster(
     ops_test: OpsTest,
     charm: Path,
     kraft_mode: KRaftMode,
-    series: str = "jammy",
+    series: str = "noble",
     config_broker: dict = {},
     config_controller: dict = {},
     num_broker: int = 1,

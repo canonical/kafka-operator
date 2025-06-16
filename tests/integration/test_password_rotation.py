@@ -8,7 +8,7 @@ import logging
 import pytest
 from pytest_operator.plugin import OpsTest
 
-from .helpers import APP_NAME, deploy_cluster, get_user, set_password
+from .helpers import APP_NAME, SERIES, deploy_cluster, get_user, set_password
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ async def test_build_and_deploy(ops_test: OpsTest, kraft_mode, kafka_charm, app_
             charm=kafka_charm,
             kraft_mode=kraft_mode,
         ),
-        ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series="jammy"),
+        ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series=SERIES),
     )
     await ops_test.model.wait_for_idle(
         apps=[*kafka_apps, DUMMY_NAME], timeout=2000, idle_period=30, raise_on_error=False

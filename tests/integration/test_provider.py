@@ -11,6 +11,7 @@ from pytest_operator.plugin import OpsTest
 from literals import CONTROLLER_USER, INTERNAL_USERS, SECURITY_PROTOCOL_PORTS
 
 from .helpers import (
+    SERIES,
     check_user,
     deploy_cluster,
     get_address,
@@ -51,7 +52,7 @@ async def test_deploy_charms_relate_active(
             kraft_mode=kraft_mode,
         ),
         ops_test.model.deploy(
-            app_charm, application_name=DUMMY_NAME_1, num_units=1, series="jammy"
+            app_charm, application_name=DUMMY_NAME_1, num_units=1, series=SERIES
         ),
     )
 
@@ -162,7 +163,7 @@ async def test_deploy_producer_same_topic(
     """Test the correct deployment and relation with role producer."""
     await asyncio.gather(
         ops_test.model.deploy(
-            app_charm, application_name=DUMMY_NAME_1, num_units=1, series="jammy"
+            app_charm, application_name=DUMMY_NAME_1, num_units=1, series=SERIES
         )
     )
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_PRODUCER}")
@@ -205,7 +206,7 @@ async def test_admin_added_to_super_users(ops_test: OpsTest, kafka_apps):
 
     await asyncio.gather(
         ops_test.model.deploy(
-            app_charm, application_name=DUMMY_NAME_1, num_units=1, series="jammy"
+            app_charm, application_name=DUMMY_NAME_1, num_units=1, series=SERIES
         )
     )
     await ops_test.model.wait_for_idle(apps=[*kafka_apps, DUMMY_NAME_1])
@@ -246,7 +247,7 @@ async def test_prefixed_topic_creation(ops_test: OpsTest, app_charm, kafka_apps)
             app_charm,
             application_name=DUMMY_NAME_3,
             num_units=1,
-            series="jammy",
+            series=SERIES,
             config={"topic-name": "test-*"},
         )
     )
@@ -278,7 +279,7 @@ async def test_connection_updated_on_tls_enabled(ops_test: OpsTest, app_charm, k
     tls_config = {"ca-common-name": "kafka"}
     # FIXME (certs): Unpin the revision once the charm is fixed
     await ops_test.model.deploy(
-        TLS_NAME, channel="edge", config=tls_config, series="jammy", revision=163
+        TLS_NAME, channel="edge", config=tls_config, revision=163
     )
     await ops_test.model.wait_for_idle(
         apps=[TLS_NAME], idle_period=30, timeout=1800, status="active"

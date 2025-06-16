@@ -20,6 +20,7 @@ from literals import (
 from .helpers import (
     APP_NAME,
     CONTROLLER_NAME,
+    SERIES,
     balancer_exporter_is_up,
     balancer_is_ready,
     balancer_is_running,
@@ -49,7 +50,7 @@ class TestBalancer:
                 kafka_charm,
                 application_name=APP_NAME,
                 num_units=1,
-                series="jammy",
+                series=SERIES,
                 config={
                     "roles": "broker,balancer" if self.balancer_app == APP_NAME else "broker",
                     "profile": "testing",
@@ -58,10 +59,9 @@ class TestBalancer:
             ),
             ops_test.model.deploy(
                 kafka_charm,
-                channel="3/edge",
                 application_name=CONTROLLER_NAME,
                 num_units=1,
-                series="jammy",
+                series=SERIES,
                 trust=True,
                 config={
                     "roles": "controller",
@@ -90,7 +90,7 @@ class TestBalancer:
                 kafka_charm,
                 application_name=self.balancer_app,
                 num_units=1,
-                series="jammy",
+                series=SERIES,
                 config={
                     "roles": self.balancer_app,
                     "profile": "testing",
@@ -328,7 +328,7 @@ class TestBalancer:
 
         # FIXME (certs): Unpin the revision once the charm is fixed
         await ops_test.model.deploy(
-            TLS_NAME, channel="edge", config=tls_config, series="jammy", revision=163
+            TLS_NAME, channel="edge", config=tls_config, series=SERIES, revision=163
         )
         await ops_test.model.wait_for_idle(apps=[TLS_NAME], idle_period=15)
         assert ops_test.model.applications[TLS_NAME].status == "active"

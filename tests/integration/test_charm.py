@@ -25,6 +25,7 @@ from .helpers import (
     APP_NAME,
     DUMMY_NAME,
     REL_NAME_ADMIN,
+    SERIES,
     check_socket,
     count_lines_with,
     deploy_cluster,
@@ -106,7 +107,7 @@ async def test_listeners(ops_test: OpsTest, app_charm, kafka_apps):
 
     # Add relation with dummy app
     await asyncio.gather(
-        ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series="jammy"),
+        ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series=SERIES),
     )
     await ops_test.model.wait_for_idle(apps=[*kafka_apps, DUMMY_NAME])
 

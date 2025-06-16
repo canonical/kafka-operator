@@ -27,6 +27,7 @@ from integration.helpers import (
     CONTROLLER_NAME,
     DUMMY_NAME,
     REL_NAME_ADMIN,
+    SERIES,
     TEST_DEFAULT_MESSAGES,
     broker_id_to_unit_id,
     check_logs,
@@ -81,7 +82,7 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm, app_charm, kraft
             charm=kafka_charm,
             kraft_mode=kraft_mode,
         ),
-        ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series="jammy"),
+        ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series=SERIES),
     )
     await ops_test.model.wait_for_idle(
         apps=[*kafka_apps, DUMMY_NAME],

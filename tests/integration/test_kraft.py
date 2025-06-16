@@ -18,6 +18,7 @@ from literals import (
 
 from .helpers import (
     APP_NAME,
+    SERIES,
     KRaftMode,
     KRaftUnitStatus,
     check_socket,
@@ -78,7 +79,7 @@ class TestKRaft:
                 kafka_charm,
                 application_name=APP_NAME,
                 num_units=1,
-                series="jammy",
+                series=SERIES,
                 config={
                     "roles": "broker,controller" if self.controller_app == APP_NAME else "broker",
                     "profile": "testing",
@@ -107,7 +108,7 @@ class TestKRaft:
                 kafka_charm,
                 application_name=self.controller_app,
                 num_units=1,
-                series="jammy",
+                series=SERIES,
                 config={
                     "roles": "controller",
                     "profile": "testing",

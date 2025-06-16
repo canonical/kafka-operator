@@ -23,7 +23,12 @@ from literals import (
 
 from .helpers import (
     APP_NAME,
+<<<<<<< HEAD
     REL_NAME_PRODUCER,
+=======
+    REL_NAME_ADMIN,
+    SERIES,
+>>>>>>> 040e549 (migrate tests to 24.04)
     check_tls,
     create_test_topic,
     deploy_cluster,
@@ -53,7 +58,7 @@ async def test_deploy_tls(ops_test: OpsTest, kafka_charm, kraft_mode, kafka_apps
     await asyncio.gather(
         # FIXME (certs): Unpin the revision once the charm is fixed
         ops_test.model.deploy(
-            TLS_NAME, channel="edge", config=tls_config, series="jammy", revision=163
+            TLS_NAME, channel="edge", config=tls_config, revision=163
         ),
         deploy_cluster(
             ops_test=ops_test,
@@ -99,7 +104,7 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm, kafka_apps):
     )
 
     await asyncio.gather(
-        ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series="jammy"),
+        ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series=SERIES),
     )
     await ops_test.model.wait_for_idle(
         apps=[*kafka_apps, DUMMY_NAME], timeout=1000, idle_period=30
@@ -143,10 +148,46 @@ async def test_mtls(ops_test: OpsTest, kafka_apps):
     action = await ops_test.model.units.get(f"{DUMMY_NAME}/0").run_action("create-certificate")
     response = await action.wait()
 
+<<<<<<< HEAD
     async with ops_test.fast_forward(fast_interval="60s"):
         await ops_test.model.wait_for_idle(
             apps=[APP_NAME, DUMMY_NAME], idle_period=30, status="active"
         )
+=======
+    encoded_client_certificate = base64.b64encode(client_certificate.encode("utf-8")).decode(
+        "utf-8"
+    )
+    encoded_client_ca = base64.b64encode(client_ca.encode("utf-8")).decode("utf-8")
+
+    # deploying mtls operator with certs
+    tls_config = {
+        "generate-self-signed-certificates": "false",
+        "certificate": encoded_client_certificate,
+        "ca-certificate": encoded_client_ca,
+    }
+    await ops_test.model.deploy(
+        CERTS_NAME, channel="stable", config=tls_config, application_name=MTLS_NAME
+    )
+    await ops_test.model.wait_for_idle(apps=[MTLS_NAME], timeout=1000, idle_period=15)
+    await ops_test.model.add_relation(
+        f"{APP_NAME}:{TRUSTED_CERTIFICATE_RELATION}", f"{MTLS_NAME}:{TLS_RELATION}"
+    )
+    await ops_test.model.wait_for_idle(
+        apps=[*kafka_apps, MTLS_NAME], idle_period=60, timeout=2000, status="active"
+    )
+
+    # getting kafka ca and address
+    broker_ca = extract_ca(ops_test=ops_test, unit_name=f"{APP_NAME}/0")
+
+    address = await get_address(ops_test, app_name=APP_NAME)
+    ssl_port = SECURITY_PROTOCOL_PORTS["SSL", "SSL"].client
+    sasl_port = SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client
+    ssl_bootstrap_server = f"{address}:{ssl_port}"
+    sasl_bootstrap_server = f"{address}:{sasl_port}"
+
+    # setting ACLs using normal sasl port
+    await set_mtls_client_acls(ops_test, bootstrap_server=sasl_bootstrap_server)
+>>>>>>> 040e549 (migrate tests to 24.04)
 
     # run mtls producer
     num_messages = 10
@@ -212,7 +253,27 @@ async def test_certificate_transfer(ops_test: OpsTest):
         ),
     }
 
+<<<<<<< HEAD
     # Transfer other-ca's CA certificate via the client-cas relation
+=======
+    certs_operator_config = {
+        "generate-self-signed-certificates": "false",
+        "certificate": base64.b64encode(local_store["cert"].encode("utf-8")).decode("utf-8"),
+        "ca-certificate": base64.b64encode(local_store["ca_cert"].encode("utf-8")).decode("utf-8"),
+    }
+
+    await ops_test.model.deploy(
+        CERTS_NAME,
+        channel="stable",
+        application_name="other-op",
+        config=certs_operator_config,
+    )
+
+    await ops_test.model.wait_for_idle(
+        apps=["other-op"], idle_period=60, timeout=2000, status="active"
+    )
+
+>>>>>>> 040e549 (migrate tests to 24.04)
     # We don't expect a broker restart here because of truststore live reload
     await ops_test.model.add_relation(
         f"{APP_NAME}:{CERTIFICATE_TRANSFER_RELATION}", "other-ca:send-ca-cert"
