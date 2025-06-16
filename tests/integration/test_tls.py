@@ -217,7 +217,7 @@ async def test_certificate_transfer(ops_test: OpsTest, kafka_apps):
     )
 
     await ops_test.model.wait_for_idle(
-        apps=[*kafka_apps, "other-op"], idle_period=60, timeout=2000, status="active"
+        apps=kafka_apps, idle_period=60, timeout=2000, status="active"
     )
 
     address = await get_address(ops_test, app_name=APP_NAME, unit_num=0)
