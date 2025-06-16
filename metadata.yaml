@@ -21,7 +21,7 @@ website:
 maintainers:
   - Canonical Data Platform <data-platform@lists.launchpad.net>
 series:
-  - jammy
+  - noble
 
 peers:
   cluster:
