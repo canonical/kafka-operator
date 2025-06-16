@@ -8,7 +8,13 @@ from unittest.mock import Mock, PropertyMock, patch
 import pytest
 from ops import JujuVersion
 from ops.testing import Relation
-from src.literals import INTERNAL_USERS, PEER_CLUSTER_RELATION, SNAP_NAME, SUBSTRATE
+from src.literals import (
+    CONTROLLER_USER,
+    INTERNAL_USERS,
+    PEER_CLUSTER_RELATION,
+    SNAP_NAME,
+    SUBSTRATE,
+)
 from src.managers.balancer import CruiseControlClient
 from tests.unit.helpers import TLSArtifacts, generate_tls_artifacts
 
@@ -41,7 +47,7 @@ def peer_cluster_rel() -> Relation:
 
 @pytest.fixture(scope="module")
 def passwords_data() -> dict[str, str]:
-    return {f"{user}-password": "mellon" for user in INTERNAL_USERS}
+    return {f"{user}-password": "mellon" for user in INTERNAL_USERS + [CONTROLLER_USER]}
 
 
 @pytest.fixture(autouse=True)

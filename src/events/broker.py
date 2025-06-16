@@ -324,7 +324,7 @@ class BrokerOperator(Object):
                 return
         except SnapError as e:
             logger.debug(f"Error: {e}")
-            self.charm._set_status(Status.BROKER_NOT_RUNNING)
+            self.charm._set_status(Status.SERVICE_NOT_RUNNING)
             return
 
     def _on_secret_changed(self, event: SecretChangedEvent) -> None:
@@ -391,7 +391,7 @@ class BrokerOperator(Object):
             return False
 
         if not self.workload.active():
-            self.charm._set_status(Status.BROKER_NOT_RUNNING)
+            self.charm._set_status(Status.SERVICE_NOT_RUNNING)
             return False
 
         return True

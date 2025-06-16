@@ -210,7 +210,7 @@ def test_healthy_fails_if_snap_not_active(
 
     # Then
     assert patched_snap_active.call_count
-    assert state_out.unit_status == Status.BROKER_NOT_RUNNING.value.status
+    assert state_out.unit_status == Status.SERVICE_NOT_RUNNING.value.status
 
 
 def test_healthy_succeeds(ctx: Context, base_state: State, passwords_data: dict[str, str]):
@@ -354,7 +354,7 @@ def test_update_status_blocks_if_machine_not_configured(
         state_out = ctx.run(ctx.on.update_status(), state_in)
 
     # Then
-    assert state_out.unit_status == Status.BROKER_NOT_RUNNING.value.status
+    assert state_out.unit_status == Status.SERVICE_NOT_RUNNING.value.status
 
 
 @pytest.mark.skipif(SUBSTRATE == "k8s", reason="sysctl config not used on K8s")

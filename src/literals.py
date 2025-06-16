@@ -230,7 +230,7 @@ class Status(Enum):
         BlockedStatus("missing required peer-cluster relation"), "DEBUG"
     )
     SNAP_NOT_INSTALLED = StatusLevel(BlockedStatus(f"unable to install {SNAP_NAME} snap"), "ERROR")
-    BROKER_NOT_RUNNING = StatusLevel(BlockedStatus("Broker not running"), "WARNING")
+    SERVICE_NOT_RUNNING = StatusLevel(BlockedStatus("Service not running"), "WARNING")
     NOT_ALL_RELATED = StatusLevel(MaintenanceStatus("not all units related"), "DEBUG")
     CC_NOT_RUNNING = StatusLevel(BlockedStatus("Cruise Control not running"), "WARNING")
     MISSING_MODE = StatusLevel(
