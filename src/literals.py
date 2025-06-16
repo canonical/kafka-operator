@@ -233,7 +233,9 @@ class Status(Enum):
     BROKER_NOT_RUNNING = StatusLevel(BlockedStatus("Broker not running"), "WARNING")
     NOT_ALL_RELATED = StatusLevel(MaintenanceStatus("not all units related"), "DEBUG")
     CC_NOT_RUNNING = StatusLevel(BlockedStatus("Cruise Control not running"), "WARNING")
-    MISSING_MODE = StatusLevel(BlockedStatus("Application needs to be related with a KRaft controller"), "DEBUG")
+    MISSING_MODE = StatusLevel(
+        BlockedStatus("Application needs to be related with a KRaft controller"), "DEBUG"
+    )
     NO_CLUSTER_UUID = StatusLevel(WaitingStatus("Waiting for cluster uuid"), "DEBUG")
     NO_BOOTSTRAP_CONTROLLER = StatusLevel(
         WaitingStatus("Waiting for bootstrap controller"), "DEBUG"

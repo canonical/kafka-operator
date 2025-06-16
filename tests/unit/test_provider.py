@@ -191,10 +191,10 @@ def test_client_relation_joined_sets_necessary_relation_data(
 
 
 def test_mtls_without_tls_relation(
-    ctx: Context, base_state: State, zk_data: dict[str, str]
+    ctx: Context,
+    base_state: State,
 ) -> None:
     # Given
-    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
     restart_relation = PeerRelation("restart", "rolling_op")
     client_rel_id = 11
     client_relation = Relation(
@@ -214,7 +214,7 @@ def test_mtls_without_tls_relation(
     )
     state_in = dataclasses.replace(
         base_state,
-        relations=[cluster_peer, client_relation, restart_relation, zk_relation],
+        relations=[cluster_peer, client_relation, restart_relation],
     )
 
     with (
@@ -224,11 +224,6 @@ def test_mtls_without_tls_relation(
         ),
         # Model props
         patch("core.models.KafkaCluster.internal_user_credentials"),
-        patch(
-            "core.models.ZooKeeper.zookeeper_connected",
-            new_callable=PropertyMock,
-            return_value=True,
-        ),
     ):
         state_out = ctx.run(ctx.on.relation_changed(client_relation), state_in)
 
@@ -237,13 +232,10 @@ def test_mtls_without_tls_relation(
 
 
 @pytest.mark.parametrize("tls_artifacts", [False, True], indirect=True)
-def test_mtls_setup(
-    ctx: Context, base_state: State, zk_data: dict[str, str], tls_artifacts: TLSArtifacts
-) -> None:
+def test_mtls_setup(ctx: Context, base_state: State, tls_artifacts: TLSArtifacts) -> None:
     # Given
-    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
     restart_relation = PeerRelation("restart", "rolling_op")
-    client_rel_id = 11
+    client_rel_id = 21
     secret = Secret(
         tracked_content={"mtls-cert": tls_artifacts.certificate},
         label=f"kafka-client.{client_rel_id}.mtls.secret",
@@ -267,7 +259,7 @@ def test_mtls_setup(
     )
     state_in = dataclasses.replace(
         base_state,
-        relations=[cluster_peer, client_relation, restart_relation, zk_relation],
+        relations=[cluster_peer, client_relation, restart_relation],
         secrets=[secret],
     )
 
@@ -278,11 +270,6 @@ def test_mtls_setup(
         ),
         # Model props
         patch("core.models.KafkaCluster.internal_user_credentials"),
-        patch(
-            "core.models.ZooKeeper.zookeeper_connected",
-            new_callable=PropertyMock,
-            return_value=True,
-        ),
         # TLSManager methods
         patch(
             "managers.tls.TLSManager.get_current_sans",
