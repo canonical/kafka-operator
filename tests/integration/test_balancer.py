@@ -40,9 +40,10 @@ TLS_NAME = "self-signed-certificates"
 class TestBalancer:
 
     deployment_strat: str = os.environ.get("DEPLOYMENT", "multi")
-    balancer_app: str = {"single": APP_NAME, "multi": "balancer"}[deployment_strat]
+    balancer_app: str = {"single": APP_NAME, "multi": "controller"}[deployment_strat]
 
     @pytest.mark.abort_on_fail
+    @pytest.mark.skip_if_deployed
     async def test_build_and_deploy(self, ops_test: OpsTest, kafka_charm):
 
         await asyncio.gather(
@@ -64,7 +65,9 @@ class TestBalancer:
                 series=SERIES,
                 trust=True,
                 config={
-                    "roles": "controller",
+                    "roles": "controller"
+                    if self.balancer_app == APP_NAME
+                    else "controller,balancer",
                     "profile": "testing",
                 },
             ),
@@ -84,19 +87,6 @@ class TestBalancer:
                 trust=True,
             ),
         )
-
-        if self.balancer_app != APP_NAME:
-            await ops_test.model.deploy(
-                kafka_charm,
-                application_name=self.balancer_app,
-                num_units=1,
-                series=SERIES,
-                config={
-                    "roles": self.balancer_app,
-                    "profile": "testing",
-                },
-                trust=True,
-            )
 
         await ops_test.model.wait_for_idle(
             apps=[CONTROLLER_NAME],
@@ -123,11 +113,6 @@ class TestBalancer:
             f"{CONTROLLER_NAME}:{PEER_CLUSTER_RELATION}",
         )
         await ops_test.model.add_relation(PRODUCER_APP, APP_NAME)
-        if self.balancer_app != APP_NAME:
-            await ops_test.model.add_relation(
-                f"{APP_NAME}:{PEER_CLUSTER_ORCHESTRATOR_RELATION}",
-                f"{BALANCER_APP}:{PEER_CLUSTER_RELATION}",
-            )
 
         await ops_test.model.wait_for_idle(
             apps=list({APP_NAME, CONTROLLER_NAME, self.balancer_app}),
@@ -327,9 +312,7 @@ class TestBalancer:
         tls_config = {"ca-common-name": "kafka"}
 
         # FIXME (certs): Unpin the revision once the charm is fixed
-        await ops_test.model.deploy(
-            TLS_NAME, channel="edge", config=tls_config, series=SERIES, revision=163
-        )
+        await ops_test.model.deploy(TLS_NAME, channel="edge", config=tls_config, revision=163)
         await ops_test.model.wait_for_idle(apps=[TLS_NAME], idle_period=15)
         assert ops_test.model.applications[TLS_NAME].status == "active"
 
