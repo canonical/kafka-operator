@@ -198,7 +198,7 @@ class CommonConfigManager:
         """
         opts = [
             "-Dcom.sun.management.jmxremote",
-            f"-javaagent:{self.workload.paths.jmx_prometheus_javaagent}={JMX_EXPORTER_PORT}:{self.workload.paths.jmx_prometheus_config}",
+            f"-javaagent:{CharmedKafkaPaths(BROKER).jmx_prometheus_javaagent}={JMX_EXPORTER_PORT}:{self.workload.paths.jmx_prometheus_config}",
         ]
 
         return f"KAFKA_JMX_OPTS='{' '.join(opts)}'"

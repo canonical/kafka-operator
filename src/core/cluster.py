@@ -509,15 +509,18 @@ class ClusterState(Object):
         if self.runs_broker_only and not self.peer_cluster_orchestrator_relation:
             return Status.MISSING_MODE
 
-        for status in [self._broker_status, self._balancer_status, self._controller_status]:
+        for status in [self._broker_status, self._controller_status]:
             if status != Status.ACTIVE:
                 return status
 
         return Status.ACTIVE
 
     @property
-    def _balancer_status(self) -> Status:
+    def balancer_status(self) -> Status:
         """Checks for role=balancer specific readiness."""
+        if not self.peer_relation:
+            return Status.NO_PEER_RELATION
+
         if not self.runs_balancer or not self.unit_broker.unit.is_leader():
             return Status.ACTIVE
 
@@ -530,9 +533,6 @@ class ClusterState(Object):
         if len(self.peer_cluster.broker_capacities.get("brokerCapacities", [])) < MIN_REPLICAS:
             return Status.NOT_ENOUGH_BROKERS
 
-        if not self.peer_cluster.controller_password:
-            return Status.MISSING_CONTROLLER_PASSWORD
-
         return Status.ACTIVE
 
     @property
@@ -543,6 +543,9 @@ class ClusterState(Object):
 
         if not self.peer_cluster.bootstrap_controller:
             return Status.NO_BOOTSTRAP_CONTROLLER
+
+        if not self.peer_cluster.controller_password:
+            return Status.MISSING_CONTROLLER_PASSWORD
 
         if not self.cluster.cluster_uuid:
             return Status.NO_CLUSTER_UUID
