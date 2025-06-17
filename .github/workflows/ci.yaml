@@ -64,14 +64,6 @@ jobs:
     permissions:
       pull-requests: write
 
-  sync-docs:
-    if: ${{ github.event_name != 'pull_request' || startsWith(github.event.pull_request.head.repo.full_name, 'canonical/') }}
-    uses: ./.github/workflows/sync_docs.yaml
-    secrets: inherit
-    permissions:
-      contents: write # Needed to update tags
-      pull-requests: write # Need to create PR
-
   build:
     strategy:
       matrix:
