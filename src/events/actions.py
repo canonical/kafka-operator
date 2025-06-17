@@ -99,9 +99,7 @@ class ActionEvents(Object):
             return
 
         try:
-            self.dependent.auth_manager.add_user(
-                username=username, password=new_password, internal=True
-            )
+            self.dependent.auth_manager.add_user(username=username, password=new_password)
         except Exception as e:
             logger.error(str(e))
             event.fail(f"unable to set password for {username}")
