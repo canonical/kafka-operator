@@ -685,7 +685,7 @@ class ConfigManager(CommonConfigManager):
 
         # NOTE: Case where the controller is running standalone. Early return with a
         # smaller subset of config options
-        if not self.state.runs_broker:
+        if self.state.runs_controller_only:
             properties = (
                 [
                     f"super.users={self.state.super_users}",
