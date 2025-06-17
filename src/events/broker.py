@@ -194,20 +194,6 @@ class BrokerOperator(Object):
         self.workload.start()
         logger.info("Kafka service started")
 
-        # TODO: Update users. Not sure if this is the best place, as cluster might be still
-        # stabilizing.
-        # if self.charm.state.kraft_mode and self.charm.state.runs_broker:
-        #     for username, password in self.charm.state.cluster.internal_user_credentials.items():
-        #         try:
-        #             self.auth_manager.add_user(
-        #                username=username, password=password, zk_auth=False, internal=True,
-        #             )
-        #         except subprocess.CalledProcessError:
-        #             logger.warning("Error adding users, cluster might not be ready yet")
-        #             logger.error(f"\n\tOn start:\nAdding user {username} failed. Let the rest of the hook run\n")
-        #             # event.defer()
-        #             continue
-
         # service_start might fail silently, confirm with ZK if kafka is actually connected
         self.charm.on.update_status.emit()
 
