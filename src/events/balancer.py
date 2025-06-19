@@ -101,7 +101,7 @@ class BalancerOperator(Object):
 
     def _on_start(self, event: StartEvent | PebbleReadyEvent) -> None:
         """Handler for `start` or `pebble-ready` events."""
-        current_status = self.charm.state.ready_to_start
+        current_status = self.charm.state.balancer_status
         if current_status is not Status.ACTIVE:
             self.charm._set_status(current_status)
             event.defer()
@@ -121,7 +121,6 @@ class BalancerOperator(Object):
 
         self.config_manager.set_cruise_control_properties()
         self.config_manager.set_broker_capacities()
-        self.config_manager.set_zk_jaas_config()
         self.config_manager.set_cruise_control_auth()
 
         try:
@@ -148,11 +147,6 @@ class BalancerOperator(Object):
                 "properties",
                 self.workload.paths.cruise_control_properties,
                 self.config_manager.cruise_control_properties,
-            ),
-            (
-                "jaas",
-                self.workload.paths.balancer_jaas,
-                self.config_manager.jaas_config.splitlines(),
             ),
         ]
 
@@ -191,14 +185,13 @@ class BalancerOperator(Object):
             # safe to update everything even if it hasn't changed, service will restart anyway
             self.config_manager.set_cruise_control_properties()
             self.config_manager.set_broker_capacities()
-            self.config_manager.set_zk_jaas_config()
 
             self.charm.on.start.emit()
 
     def rebalance(self, event: ActionEvent) -> None:
         """Handles the `rebalance` Juju Action."""
         if self.charm.state.runs_broker:
-            available_brokers = [broker.unit_id for broker in self.charm.state.brokers]
+            available_brokers = [broker.broker_id for broker in self.charm.state.brokers]
         else:
             brokers = (
                 [broker.name for broker in self.charm.state.peer_cluster.relation.units]
@@ -280,7 +273,7 @@ class BalancerOperator(Object):
         if not self.charm.state.runs_balancer:
             return True
 
-        current_status = self.charm.state.ready_to_start
+        current_status = self.charm.state.balancer_status
         if current_status is not Status.ACTIVE:
             self.charm._set_status(current_status)
             return False

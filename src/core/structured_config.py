@@ -71,7 +71,6 @@ class CharmConfig(BaseConfigModel):
     ssl_cipher_suites: str | None
     ssl_principal_mapping_rules: str
     replication_quota_window_num: int
-    zookeeper_ssl_cipher_suites: str | None
     profile: str
     certificate_extra_sans: list[str]
     extra_listeners: list[str]

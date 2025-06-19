@@ -4,7 +4,6 @@
 
 """Manager for handling Kafka configuration."""
 
-import inspect
 import json
 import logging
 import os
@@ -57,6 +56,8 @@ cruise.control.metrics.reporter.metrics.reporting.interval.ms=6000
 CRUISE_CONTROL_CONFIG_OPTIONS = """
 metric.reporter.topic=__CruiseControlMetrics
 sample.store.class=com.linkedin.kafka.cruisecontrol.monitor.sampling.KafkaSampleStore
+topic.config.provider.class=com.linkedin.kafka.cruisecontrol.config.KafkaAdminTopicConfigProvider
+kafka.broker.failure.detection.enable=true
 partition.metric.sample.store.topic=__KafkaCruiseControlPartitionMetricSamples
 broker.metric.sample.store.topic=__KafkaCruiseControlModelTrainingSamples
 max.active.user.tasks=10
@@ -197,7 +198,7 @@ class CommonConfigManager:
         """
         opts = [
             "-Dcom.sun.management.jmxremote",
-            f"-javaagent:{self.workload.paths.jmx_prometheus_javaagent}={JMX_EXPORTER_PORT}:{self.workload.paths.jmx_prometheus_config}",
+            f"-javaagent:{CharmedKafkaPaths(BROKER).jmx_prometheus_javaagent}={JMX_EXPORTER_PORT}:{self.workload.paths.jmx_prometheus_config}",
         ]
 
         return f"KAFKA_JMX_OPTS='{' '.join(opts)}'"
@@ -236,16 +237,6 @@ class CommonConfigManager:
 
         Returns:
             String of Java config options
-        """
-        ...
-
-    @property
-    @abstractmethod
-    def jaas_config(self) -> str:
-        """Builds the JAAS config for Client/KafkaClient authentication.
-
-        Returns:
-            String of JAAS config for ZooKeeper or Kafka authentication.
         """
         ...
 
@@ -303,10 +294,6 @@ class ConfigManager(CommonConfigManager):
     @override
     def kafka_opts(self) -> str:
         opts = []
-        if not self.state.runs_controller:
-            opts = [
-                f"-Djava.security.auth.login.config={self.workload.paths.zk_jaas}",
-            ]
 
         http_proxy = os.environ.get("JUJU_CHARM_HTTP_PROXY")
         https_proxy = os.environ.get("JUJU_CHARM_HTTPS_PROXY")
@@ -342,36 +329,6 @@ class ConfigManager(CommonConfigManager):
         ]
 
     @property
-    def auth_properties(self) -> list[str]:
-        """Builds properties necessary for inter-broker authorization through ZooKeeper.
-
-        Returns:
-            List of properties to be set
-        """
-        if self.state.kraft_mode:
-            return []
-
-        return [
-            f"broker.id={self.state.unit_broker.unit_id}",
-            f"zookeeper.connect={self.state.zookeeper.connect}",
-            "zookeeper.set.acl=true",
-        ]
-
-    @property
-    def zookeeper_tls_properties(self) -> list[str]:
-        """Builds the properties necessary for SSL connections to ZooKeeper.
-
-        Returns:
-            List of properties to be set
-        """
-        return [
-            "zookeeper.ssl.client.enable=true",
-            f"zookeeper.ssl.truststore.location={self.workload.paths.truststore}",
-            f"zookeeper.ssl.truststore.password={self.state.unit_broker.truststore_password}",
-            "zookeeper.clientCnxnSocket=org.apache.zookeeper.ClientCnxnSocketNetty",
-        ]
-
-    @property
     def tls_properties(self) -> list[str]:
         """Builds the properties necessary for TLS authentication.
 
@@ -400,8 +357,12 @@ class ConfigManager(CommonConfigManager):
         listener_name = self.internal_listener.name.lower()
         listener_mechanism = self.internal_listener.mechanism.lower()
 
+        admin_usermame = ADMIN_USER
+        admin_password = self.state.cluster.internal_user_credentials.get(ADMIN_USER, "")
+
+        # Related to KAFKA-15513: we should add admin user to the internal listener in case of premature bootstrap
         scram_properties = [
-            f'listener.name.{listener_name}.{listener_mechanism}.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";',
+            f'listener.name.{listener_name}.{listener_mechanism}.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}" user_{admin_usermame}="{admin_password}" user_{username}="{password}";',
             f"listener.name.{listener_name}.sasl.enabled.mechanisms={self.internal_listener.mechanism}",
         ]
         for auth in self.client_listeners + self.external_listeners + self.extra_listeners:
@@ -675,11 +636,7 @@ class ConfigManager(CommonConfigManager):
     @property
     def authorizer_class(self) -> list[str]:
         """Return the authorizer Java class used on Kafka."""
-        if self.state.kraft_mode:
-            return [
-                "authorizer.class.name=org.apache.kafka.metadata.authorizer.StandardAuthorizer"
-            ]
-        return ["authorizer.class.name=kafka.security.authorizer.AclAuthorizer"]
+        return ["authorizer.class.name=org.apache.kafka.metadata.authorizer.StandardAuthorizer"]
 
     @property
     def controller_properties(self) -> list[str]:
@@ -688,9 +645,6 @@ class ConfigManager(CommonConfigManager):
         Returns:
             List of properties to be set
         """
-        if self.state.kraft_mode == False:  # noqa: E712
-            return []
-
         roles = []
         node_id = self.state.unit_broker.unit_id
         if self.state.runs_broker:
@@ -726,28 +680,27 @@ class ConfigManager(CommonConfigManager):
         listeners_repr = [listener.listener for listener in self.all_listeners]
         advertised_listeners = [listener.advertised_listener for listener in self.all_listeners]
 
-        if self.state.kraft_mode:
-            controller_protocol_map = f"{CONTROLLER_LISTENER_NAME}:SASL_PLAINTEXT"
-            controller_listener = f"{CONTROLLER_LISTENER_NAME}://{self.state.unit_broker.internal_address}:{CONTROLLER_PORT}"
+        controller_protocol_map = f"{CONTROLLER_LISTENER_NAME}:SASL_PLAINTEXT"
+        controller_listener = f"{CONTROLLER_LISTENER_NAME}://{self.state.unit_broker.internal_address}:{CONTROLLER_PORT}"
 
-            # NOTE: Case where the controller is running standalone. Early return with a
-            # smaller subset of config options
-            if not self.state.runs_broker:
-                properties = (
-                    [
-                        f"super.users={self.state.super_users}",
-                        f"log.dirs={self.state.log_dirs}",
-                        f"listeners={controller_listener}",
-                        f"listener.security.protocol.map={controller_protocol_map}",
-                    ]
-                    + self.controller_properties
-                    + self.authorizer_class
-                )
-                return properties
+        # NOTE: Case where the controller is running standalone. Early return with a
+        # smaller subset of config options
+        if self.state.runs_controller_only:
+            properties = (
+                [
+                    f"super.users={self.state.super_users}",
+                    f"log.dirs={self.state.log_dirs}",
+                    f"listeners={controller_listener}",
+                    f"listener.security.protocol.map={controller_protocol_map}",
+                ]
+                + self.controller_properties
+                + self.authorizer_class
+            )
+            return properties
 
-            protocol_map.append(controller_protocol_map)
-            if self.state.runs_controller:
-                listeners_repr.append(controller_listener)
+        protocol_map.append(controller_protocol_map)
+        if self.state.runs_controller:
+            listeners_repr.append(controller_listener)
 
         properties = (
             [
@@ -760,7 +713,6 @@ class ConfigManager(CommonConfigManager):
                 f"inter.broker.protocol.version={self.inter_broker_protocol_version}",
             ]
             + self.scram_properties
-            + self.auth_properties
             + self.oauth_properties
             + self.config_properties
             + self.default_replication_properties
@@ -772,8 +724,6 @@ class ConfigManager(CommonConfigManager):
 
         if self.state.cluster.tls_enabled and self.state.unit_broker.certificate:
             properties += self.tls_properties
-            if self.state.kraft_mode == False:  # noqa: E712
-                properties += self.zookeeper_tls_properties
 
         if self.state.runs_balancer or BALANCER.value in self.state.peer_cluster.roles:
             properties += KAFKA_CRUISE_CONTROL_OPTIONS.splitlines()
@@ -792,23 +742,6 @@ class ConfigManager(CommonConfigManager):
             for conf_key, value in self.config.dict().items()
             if value is not None
         ]
-
-    @property
-    @override
-    def jaas_config(self) -> str:
-        return inspect.cleandoc(
-            f"""
-            Client {{
-                org.apache.zookeeper.server.auth.DigestLoginModule required
-                username="{self.state.zookeeper.username}"
-                password="{self.state.zookeeper.password}";
-            }};
-            """
-        )
-
-    def set_zk_jaas_config(self) -> None:
-        """Writes the ZooKeeper JAAS config using ZooKeeper relation data."""
-        self.workload.write(content=self.jaas_config, path=self.workload.paths.zk_jaas)
 
     def set_server_properties(self) -> None:
         """Writes all Kafka config properties to the `server.properties` path."""
@@ -930,20 +863,6 @@ class BalancerConfigManager(CommonConfigManager):
         ]
 
     @property
-    def cc_zookeeper_tls_properties(self) -> list[str]:
-        """Builds the properties necessary for SSL connections to ZooKeeper.
-
-        Returns:
-            List of properties to be set
-        """
-        return [
-            "zookeeper.ssl.client.enable=true",
-            f"zookeeper.ssl.truststore.location={self.workload.paths.truststore}",
-            f"zookeeper.ssl.truststore.password={self.state.unit_broker.truststore_password}",
-            "zookeeper.clientCnxnSocket=org.apache.zookeeper.ClientCnxnSocketNetty",
-        ]
-
-    @property
     def cc_tls_properties(self) -> list[str]:
         """Builds the properties necessary for TLS authentication.
 
@@ -968,8 +887,6 @@ class BalancerConfigManager(CommonConfigManager):
         properties = (
             [
                 f"bootstrap.servers={self.state.peer_cluster.broker_uris}",
-                f"zookeeper.connect={self.state.peer_cluster.zk_uris}",
-                "zookeeper.security.enabled=true",
                 f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{self.state.peer_cluster.broker_username}" password="{self.state.peer_cluster.broker_password}";',
                 f"sasl.mechanism={self.state.default_auth.mechanism}",
                 f"security.protocol={self.state.default_auth.protocol}",
@@ -982,29 +899,12 @@ class BalancerConfigManager(CommonConfigManager):
         )
 
         if self.state.cluster.tls_enabled and self.state.unit_broker.certificate:
-            properties += self.cc_tls_properties + self.cc_zookeeper_tls_properties
+            properties += self.cc_tls_properties
 
         if self.config.profile == PROFILE_TESTING:
             properties += CRUISE_CONTROL_TESTING_OPTIONS.split("\n")
 
         return properties
-
-    @property
-    @override
-    def jaas_config(self) -> str:
-        return inspect.cleandoc(
-            f"""
-            Client {{
-                org.apache.zookeeper.server.auth.DigestLoginModule required
-                username="{self.state.peer_cluster.zk_username}"
-                password="{self.state.peer_cluster.zk_password}";
-            }};
-        """
-        )
-
-    def set_zk_jaas_config(self) -> None:
-        """Writes the ZooKeeper JAAS config using Balancer relation data."""
-        self.workload.write(content=self.jaas_config, path=self.workload.paths.balancer_jaas)
 
     def set_cruise_control_properties(self) -> None:
         """Writes all Cruise Control properties to the `cruisecontrol.properties` path."""

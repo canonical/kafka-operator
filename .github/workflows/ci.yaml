@@ -37,12 +37,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Install requirements
-        run: |
-          sudo apt-get update
-          # We need JDK for TLSManager unit tests.
-          sudo apt-get install -y default-jdk-headless
-          pipx install tox
+      - name: Install tox
+        run: pipx install tox
       - name: Run tests
         run: tox run -e unit
 
@@ -64,14 +60,6 @@ jobs:
     permissions:
       pull-requests: write
 
-  sync-docs:
-    if: ${{ github.event_name != 'pull_request' || startsWith(github.event.pull_request.head.repo.full_name, 'canonical/') }}
-    uses: ./.github/workflows/sync_docs.yaml
-    secrets: inherit
-    permissions:
-      contents: write # Needed to update tags
-      pull-requests: write # Need to create PR
-
   build:
     strategy:
       matrix:
@@ -82,6 +70,7 @@ jobs:
     uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v29.0.0
     with:
       path-to-charm-directory: ${{ matrix.path }}
+      cache: false # TODO: fix after added to the charmcraftcache
 
   integration-test:
     strategy:
@@ -90,15 +79,21 @@ jobs:
         tox-environments:
           - integration-charm
           - integration-provider
-          - integration-scaling
           - integration-password-rotation
           - integration-tls
-          - integration-upgrade
+          #- integration-upgrade
           - integration-balancer-single
           - integration-balancer-multi
-          - integration-kraft-single
-          - integration-kraft-multi
-    name: ${{ matrix.tox-environments }}
+          - integration-kraft
+        kraft-mode:
+          - single
+          - multi
+        exclude:
+          - tox-environments: integration-balancer-single
+            kraft-mode: single
+          - tox-environments: integration-balancer-multi
+            kraft-mode: single   
+    name: ${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}
     needs:
       - lint
       - unit-test
@@ -113,7 +108,7 @@ jobs:
         with:
           provider: lxd
           juju-channel: 3.6/stable
-          bootstrap-options: "--agent-version 3.6.1"
+          bootstrap-options: "--agent-version 3.6.6"
       - name: Download packed charm(s)
         uses: actions/download-artifact@v4
         with:
@@ -131,7 +126,7 @@ jobs:
             echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
           fi
       - name: Run integration tests
-        run: tox run -e ${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}'
+        run: tox run -e ${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --kraft-mode ${{ matrix.kraft-mode }}
         env:
           CI_PACKED_CHARMS: ${{ needs.build.outputs.charms }}
 
@@ -141,12 +136,14 @@ jobs:
       matrix:
         tox-environments:
           - integration-ha
-    name: ${{ matrix.tox-environments }}
+        kraft-mode:
+          - single
+          - multi
+    name: ${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}
     needs:
       - lint
       - unit-test
       - build
-      - integration-test
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -157,7 +154,7 @@ jobs:
         with:
           provider: lxd
           juju-channel: 3.6/stable
-          bootstrap-options: "--agent-version 3.6.1"
+          bootstrap-options: "--agent-version 3.6.6"
       - name: Download packed charm(s)
         uses: actions/download-artifact@v4
         with:
@@ -175,6 +172,6 @@ jobs:
             echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
           fi
       - name: Run integration tests
-        run: tox run -e ${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models
+        run: tox run -e ${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kraft-mode ${{ matrix.kraft-mode }}
         env:
           CI_PACKED_CHARMS: ${{ needs.build.outputs.charms }}

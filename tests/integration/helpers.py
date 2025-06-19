@@ -12,13 +12,11 @@ from enum import Enum
 from json.decoder import JSONDecodeError
 from pathlib import Path
 from subprocess import PIPE, CalledProcessError, check_output
-from typing import Any, List, Optional, Set
+from typing import Any, List, Literal, Optional, Set
 
 import yaml
 from charms.kafka.v0.client import KafkaClient
-from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManager
 from kafka.admin import NewTopic
-from kazoo.exceptions import AuthFailedError, NoNodeError
 from pytest_operator.plugin import OpsTest
 from tenacity import retry
 from tenacity.retry import retry_if_result
@@ -26,16 +24,29 @@ from tenacity.stop import stop_after_attempt
 from tenacity.wait import wait_fixed
 
 from core.models import JSON
-from literals import BALANCER_WEBSERVER_USER, JMX_CC_PORT, PATHS, PEER, SECURITY_PROTOCOL_PORTS
+from literals import (
+    BALANCER_WEBSERVER_USER,
+    JMX_CC_PORT,
+    KRAFT_NODE_ID_OFFSET,
+    PATHS,
+    PEER,
+    PEER_CLUSTER_ORCHESTRATOR_RELATION,
+    PEER_CLUSTER_RELATION,
+    SECURITY_PROTOCOL_PORTS,
+)
 from managers.auth import Acl, AuthManager
 
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 APP_NAME = METADATA["name"]
-ZK_NAME = "zookeeper"
+SERIES = "noble"
+CONTROLLER_NAME = "controller"
 DUMMY_NAME = "app"
 REL_NAME_ADMIN = "kafka-client-admin"
 REL_NAME_PRODUCER = "kafka-client-producer"
 TEST_DEFAULT_MESSAGES = 15
+
+
+KRaftMode = Literal["single", "multi"]
 
 
 class KRaftUnitStatus(Enum):
@@ -47,9 +58,78 @@ class KRaftUnitStatus(Enum):
 logger = logging.getLogger(__name__)
 
 
-def load_acls(model_full_name: str | None, zk_uris: str) -> Set[Acl]:
+async def deploy_cluster(
+    ops_test: OpsTest,
+    charm: Path,
+    kraft_mode: KRaftMode,
+    series: str = "noble",
+    config_broker: dict = {},
+    config_controller: dict = {},
+    num_broker: int = 1,
+    num_controller: int = 1,
+    storage_broker: dict = {},
+    app_name_broker: str = str(APP_NAME),
+    app_name_controller: str = CONTROLLER_NAME,
+):
+    """Deploys an Apache Kafka cluster using the Charmed Apache Kafka operator in KRaft mode."""
+    logger.info(f"Deploying Kafka cluster in '{kraft_mode}' mode")
+
+    await ops_test.model.deploy(
+        charm,
+        application_name=app_name_broker,
+        num_units=num_broker,
+        series=series,
+        storage=storage_broker,
+        config={
+            "roles": "broker,controller" if kraft_mode == "single" else "broker",
+            "profile": "testing",
+        }
+        | config_broker,
+        trust=True,
+    )
+
+    if kraft_mode == "multi":
+        await ops_test.model.deploy(
+            charm,
+            application_name=app_name_controller,
+            num_units=num_controller,
+            series=series,
+            config={
+                "roles": "controller",
+                "profile": "testing",
+            }
+            | config_controller,
+            trust=True,
+        )
+
+    status = "active" if kraft_mode == "single" else "blocked"
+    apps = [app_name_broker] if kraft_mode == "single" else [app_name_broker, app_name_controller]
+    await ops_test.model.wait_for_idle(
+        apps=apps,
+        idle_period=30,
+        timeout=1800,
+        raise_on_error=False,
+        status=status,
+    )
+
+    if kraft_mode == "multi":
+        await ops_test.model.add_relation(
+            f"{app_name_broker}:{PEER_CLUSTER_ORCHESTRATOR_RELATION}",
+            f"{app_name_controller}:{PEER_CLUSTER_RELATION}",
+        )
+
+    await ops_test.model.wait_for_idle(
+        apps=apps,
+        idle_period=30,
+        timeout=1800,
+        raise_on_error=False,
+        status="active",
+    )
+
+
+def load_acls(model_full_name: str | None, bootstrap_server: str) -> Set[Acl]:
     result = check_output(
-        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.acls --authorizer-properties zookeeper.connect={zk_uris} --list'",
+        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.acls --command-config {PATHS['kafka']['CONF']}/client.properties --bootstrap-server {bootstrap_server} --list'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -276,7 +356,7 @@ def check_logs(ops_test: OpsTest, kafka_unit_name: str, topic: str) -> None:
 
     passed = False
     for log in logs:
-        if topic and "index" in log:
+        if topic in log and "index" in log:
             passed = True
             break
 
@@ -418,36 +498,6 @@ def get_client_usernames(ops_test: OpsTest, owner: str = APP_NAME) -> set[str]:
     return usernames
 
 
-# FIXME: will need updating after zookeeper_client is implemented in full
-def get_kafka_zk_relation_data(
-    ops_test: OpsTest, owner: str, unit_name: str, relation_name: str = ZK_NAME
-) -> dict[str, str]:
-    unit_data = show_unit(ops_test, unit_name)
-
-    kafka_zk_relation_data = {}
-    for info in unit_data[unit_name]["relation-info"]:
-        if info["endpoint"] == relation_name:
-            kafka_zk_relation_data["relation-id"] = info["relation-id"]
-
-            # initially collects all non-secret keys
-            kafka_zk_relation_data.update(dict(info["application-data"]))
-
-    user_secret = get_secret_by_label(
-        ops_test,
-        label=f"{relation_name}.{kafka_zk_relation_data['relation-id']}.user.secret",
-        owner=owner,
-    )
-
-    tls_secret = get_secret_by_label(
-        ops_test,
-        label=f"{relation_name}.{kafka_zk_relation_data['relation-id']}.tls.secret",
-        owner=owner,
-    )
-
-    # overrides to secret keys if found
-    return kafka_zk_relation_data | user_secret | tls_secret
-
-
 def get_provider_data(
     ops_test: OpsTest,
     owner: str,
@@ -479,33 +529,6 @@ def get_provider_data(
 
     # overrides to secret keys if found
     return provider_relation_data | user_secret | tls_secret
-
-
-def get_active_brokers(config: dict[str, str]) -> set[str]:
-    """Gets all brokers currently connected to ZooKeeper.
-
-    Args:
-        config: the relation data provided by ZooKeeper
-
-    Returns:
-        Set of active broker ids
-    """
-    chroot = config.get("database", config.get("chroot", ""))
-    username = config.get("username", "")
-    password = config.get("password", "")
-    hosts = [host.split(":")[0] for host in config.get("endpoints", "").split(",")]
-
-    zk = ZooKeeperManager(hosts=hosts, username=username, password=password)
-    path = f"{chroot}/brokers/ids/"
-
-    try:
-        brokers = zk.leader_znodes(path=path)
-    # auth might not be ready with ZK after relation yet
-    except (NoNodeError, AuthFailedError, QuorumLeaderNotFoundError) as e:
-        logger.warning(str(e))
-        return set()
-
-    return brokers
 
 
 async def get_address(ops_test: OpsTest, app_name=APP_NAME, unit_num=0) -> str:
@@ -717,3 +740,13 @@ async def list_truststore_aliases(ops_test: OpsTest, unit: str = f"{APP_NAME}/0"
         trusted_aliases.append(line.split(",")[0])
 
     return trusted_aliases
+
+
+def unit_id_to_broker_id(unit_id: int) -> int:
+    """Converts unit id to broker id in KRaft mode."""
+    return KRAFT_NODE_ID_OFFSET + unit_id
+
+
+def broker_id_to_unit_id(broker_id: int) -> int:
+    """Converts broker id to unit id in KRaft mode."""
+    return broker_id - KRAFT_NODE_ID_OFFSET

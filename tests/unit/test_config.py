@@ -30,7 +30,6 @@ from literals import (
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
     REL_NAME,
     SUBSTRATE,
-    ZK,
 )
 
 pytestmark = pytest.mark.broker
@@ -127,18 +126,13 @@ def test_log_dirs_in_server_properties(ctx: Context, base_state: State) -> None:
     assert found_log_dirs
 
 
-def test_listeners_in_server_properties(
-    charm_configuration: dict, base_state: State, zk_data: dict[str, str]
-) -> None:
+def test_listeners_in_server_properties(charm_configuration: dict, base_state: State) -> None:
     """Checks that listeners are split into INTERNAL, CLIENT and EXTERNAL."""
     # Given
     charm_configuration["options"]["expose_external"]["default"] = "nodeport"
     cluster_peer = PeerRelation(PEER, PEER, local_unit_data={"private-address": "treebeard"})
-    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
     client_relation = Relation(REL_NAME, "app")
-    state_in = dataclasses.replace(
-        base_state, relations=[cluster_peer, zk_relation, client_relation]
-    )
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, client_relation])
     ctx = Context(
         KafkaCharm, meta=METADATA, config=charm_configuration, actions=ACTIONS, unit_id=0
     )
@@ -196,22 +190,17 @@ def test_listeners_in_server_properties(
         assert listener in advertised_listeners
 
 
-def test_extra_listeners_in_server_properties(
-    charm_configuration: dict, base_state: State, zk_data: dict[str, str]
-):
+def test_extra_listeners_in_server_properties(charm_configuration: dict, base_state: State):
     """Checks that the extra-listeners are properly set from config."""
     # Given
     charm_configuration["options"]["extra_listeners"][
         "default"
     ] = "run{unit}.shadowfax:30000,{unit}.proudfoot:40000,fool.ofa.took:45000,no.port.{unit}.com"
     cluster_peer = PeerRelation(PEER, PEER, local_unit_data={"private-address": "treebeard"})
-    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
     client_relation = Relation(
         REL_NAME, "app", remote_app_data={"extra-user-roles": "admin,producer"}
     )
-    state_in = dataclasses.replace(
-        base_state, relations=[cluster_peer, zk_relation, client_relation]
-    )
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, client_relation])
     ctx = Context(
         KafkaCharm, meta=METADATA, config=charm_configuration, actions=ACTIONS, unit_id=0
     )
@@ -344,9 +333,7 @@ def test_oauth_client_listeners_in_server_properties(ctx: Context, base_state: S
         assert expected_advertised_listeners in charm.broker.config_manager.server_properties
 
 
-def test_ssl_listeners_in_server_properties(
-    ctx: Context, base_state: State, zk_data: dict[str, str], patched_exec
-) -> None:
+def test_ssl_listeners_in_server_properties(ctx: Context, base_state: State, patched_exec) -> None:
     """Checks that listeners are added after TLS relation are created."""
     # Given
     patched_exec.return_value = ""
@@ -356,7 +343,6 @@ def test_ssl_listeners_in_server_properties(
         local_unit_data={"private-address": "treebeard", "certificate": "keepitsecret"},
         local_app_data={"tls": "enabled", "mtls": "enabled"},
     )
-    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data | {"tls": "enabled"})
     # Simulate data-integrator relation
     client_relation = Relation(
         REL_NAME, "app", remote_app_data={"extra-user-roles": "admin,producer"}
@@ -365,7 +351,7 @@ def test_ssl_listeners_in_server_properties(
         REL_NAME, "appii", remote_app_data={"extra-user-roles": "admin,consumer"}
     )
     state_in = dataclasses.replace(
-        base_state, relations=[cluster_peer, zk_relation, client_relation, client_ii_relation]
+        base_state, relations=[cluster_peer, client_relation, client_ii_relation]
     )
 
     host = "treebeard" if SUBSTRATE == "vm" else "kafka-k8s-0.kafka-k8s-endpoints"
@@ -390,56 +376,6 @@ def test_ssl_listeners_in_server_properties(
         assert expected_advertised_listeners in charm.broker.config_manager.server_properties
 
 
-def test_zookeeper_config_succeeds_fails_config(ctx: Context, base_state: State) -> None:
-    """Checks that no ZK config is returned if missing field."""
-    # Given
-    zk_relation = Relation(
-        ZK,
-        ZK,
-        remote_app_data={
-            "database": "/kafka",
-            "chroot": "/kafka",
-            "username": "moria",
-            "endpoints": "1.1.1.1:2181,2.2.2.2:2181",
-            "tls": "disabled",
-        },
-    )
-    state_in = dataclasses.replace(base_state, relations=[zk_relation])
-
-    # When
-    with ctx(ctx.on.config_changed(), state_in) as manager:
-        charm = cast(KafkaCharm, manager.charm)
-
-        # Then
-        assert not charm.state.zookeeper.zookeeper_connected
-
-
-def test_zookeeper_config_succeeds_valid_config(ctx: Context, base_state: State) -> None:
-    """Checks that ZK config is returned if all fields."""
-    # Given
-    zk_relation = Relation(
-        ZK,
-        ZK,
-        remote_app_data={
-            "database": "/kafka",
-            "chroot": "/kafka",
-            "username": "moria",
-            "password": "mellon",
-            "endpoints": "1.1.1.1:2181,2.2.2.2:2181",
-            "tls": "disabled",
-        },
-    )
-    state_in = dataclasses.replace(base_state, relations=[zk_relation])
-
-    # When
-    with ctx(ctx.on.config_changed(), state_in) as manager:
-        charm = cast(KafkaCharm, manager.charm)
-
-        # Then
-        assert charm.state.zookeeper.zookeeper_connected
-        assert charm.state.zookeeper.connect == "1.1.1.1:2181,2.2.2.2:2181/kafka"
-
-
 def test_kafka_opts(ctx: Context, base_state: State) -> None:
     """Checks necessary args for KAFKA_OPTS."""
     # Given
@@ -451,7 +387,6 @@ def test_kafka_opts(ctx: Context, base_state: State) -> None:
 
         # Then
         args = charm.broker.config_manager.kafka_opts
-        assert "-Djava.security.auth.login.config" in args
         assert "KAFKA_OPTS" in args
 
 
@@ -601,17 +536,14 @@ def test_default_replication_properties_more_than_three(ctx: Context, base_state
         )
 
 
-def test_ssl_principal_mapping_rules(
-    charm_configuration: dict, base_state: State, zk_data: dict[str, str]
-) -> None:
+def test_ssl_principal_mapping_rules(charm_configuration: dict, base_state: State) -> None:
     """Check that a change in ssl_principal_mapping_rules is reflected in server_properties."""
     # Given
     charm_configuration["options"]["ssl_principal_mapping_rules"][
         "default"
     ] = "RULE:^(erebor)$/$1,DEFAULT"
     cluster_peer = PeerRelation(PEER, PEER)
-    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
-    state_in = dataclasses.replace(base_state, relations=[cluster_peer, zk_relation])
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer])
     ctx = Context(
         KafkaCharm, meta=METADATA, config=charm_configuration, actions=ACTIONS, unit_id=0
     )
@@ -634,31 +566,11 @@ def test_ssl_principal_mapping_rules(
         )
 
 
-def test_auth_properties(ctx: Context, base_state: State, zk_data: dict[str, str]) -> None:
-    """Checks necessary auth properties are present."""
-    # Given
-    cluster_peer = PeerRelation(PEER, PEER)
-    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
-    state_in = dataclasses.replace(base_state, relations=[cluster_peer, zk_relation])
-
-    # When
-    with ctx(ctx.on.config_changed(), state_in) as manager:
-        charm = cast(KafkaCharm, manager.charm)
-
-        # Then
-        assert "broker.id=0" in charm.broker.config_manager.auth_properties
-        assert (
-            f"zookeeper.connect={charm.state.zookeeper.connect}"
-            in charm.broker.config_manager.auth_properties
-        )
-
-
-def test_rack_properties(ctx: Context, base_state: State, zk_data: dict[str, str]) -> None:
+def test_rack_properties(ctx: Context, base_state: State) -> None:
     """Checks that rack properties are added to server properties."""
     # Given
     cluster_peer = PeerRelation(PEER, PEER)
-    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
-    state_in = dataclasses.replace(base_state, relations=[cluster_peer, zk_relation])
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer])
 
     # When
     with (
@@ -675,12 +587,11 @@ def test_rack_properties(ctx: Context, base_state: State, zk_data: dict[str, str
         assert "broker.rack=gondor-west" in charm.broker.config_manager.server_properties
 
 
-def test_inter_broker_protocol_version(ctx: Context, base_state: State, zk_data) -> None:
+def test_inter_broker_protocol_version(ctx: Context, base_state: State) -> None:
     """Checks that rack properties are added to server properties."""
     # Given
     cluster_peer = PeerRelation(PEER, PEER)
-    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
-    state_in = dataclasses.replace(base_state, relations=[cluster_peer, zk_relation])
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer])
 
     # When
     with ctx(ctx.on.config_changed(), state_in) as manager:
@@ -715,7 +626,7 @@ def test_super_users(ctx: Context, base_state: State) -> None:
         charm = cast(KafkaCharm, manager.charm)
 
         # Then
-        assert len(charm.state.super_users.split(";")) == len(INTERNAL_USERS)
+        assert len(charm.state.super_users.split(";")) == len(INTERNAL_USERS) + 1
 
     cluster_peer = dataclasses.replace(
         cluster_peer, local_app_data={f"relation-{client_relation.id}": "mellon"}
@@ -729,7 +640,7 @@ def test_super_users(ctx: Context, base_state: State) -> None:
         charm = cast(KafkaCharm, manager.charm)
 
         # Then
-        assert len(charm.state.super_users.split(";")) == len(INTERNAL_USERS) + 1
+        assert len(charm.state.super_users.split(";")) == len(INTERNAL_USERS) + 2
 
     cluster_peer = dataclasses.replace(
         cluster_peer,
@@ -747,7 +658,7 @@ def test_super_users(ctx: Context, base_state: State) -> None:
         charm = cast(KafkaCharm, manager.charm)
 
         # Then
-        assert len(charm.state.super_users.split(";")) == len(INTERNAL_USERS) + 2
+        assert len(charm.state.super_users.split(";")) == len(INTERNAL_USERS) + 3
 
     client_ii_relation = dataclasses.replace(
         client_ii_relation, remote_app_data={"extra-user-roles": "consumer"}
@@ -761,7 +672,7 @@ def test_super_users(ctx: Context, base_state: State) -> None:
         charm = cast(KafkaCharm, manager.charm)
 
         # Then
-        assert len(charm.state.super_users.split(";")) == len(INTERNAL_USERS) + 1
+        assert len(charm.state.super_users.split(";")) == len(INTERNAL_USERS) + 2
 
 
 def test_cruise_control_reporter_only_with_balancer(ctx: Context, base_state: State):

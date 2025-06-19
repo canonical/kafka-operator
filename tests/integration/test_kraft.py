@@ -4,7 +4,6 @@
 
 import asyncio
 import logging
-import os
 
 import pytest
 from pytest_operator.plugin import OpsTest
@@ -19,6 +18,8 @@ from literals import (
 
 from .helpers import (
     APP_NAME,
+    SERIES,
+    KRaftMode,
     KRaftUnitStatus,
     check_socket,
     create_test_topic,
@@ -36,8 +37,13 @@ PRODUCER_APP = "producer"
 
 class TestKRaft:
 
-    deployment_strat: str = os.environ.get("DEPLOYMENT", "multi")
-    controller_app: str = {"single": APP_NAME, "multi": CONTROLLER_APP}[deployment_strat]
+    deployment_strat: str
+    controller_app: str
+
+    @pytest.fixture(autouse=True)
+    def setup_method_fixture(self, kraft_mode: KRaftMode):
+        self.deployment_strat = kraft_mode
+        self.controller_app = {"single": APP_NAME, "multi": CONTROLLER_APP}[self.deployment_strat]
 
     async def _assert_listeners_accessible(
         self, ops_test: OpsTest, broker_unit_num=0, controller_unit_num=0
@@ -65,14 +71,15 @@ class TestKRaft:
         assert check_socket(address, CONTROLLER_PORT)
 
     @pytest.mark.abort_on_fail
-    async def test_build_and_deploy(self, ops_test: OpsTest, kafka_charm):
+    @pytest.mark.skip_if_deployed
+    async def test_build_and_deploy(self, ops_test: OpsTest, kafka_charm, kraft_mode):
 
         await asyncio.gather(
             ops_test.model.deploy(
                 kafka_charm,
                 application_name=APP_NAME,
                 num_units=1,
-                series="jammy",
+                series=SERIES,
                 config={
                     "roles": "broker,controller" if self.controller_app == APP_NAME else "broker",
                     "profile": "testing",
@@ -101,7 +108,7 @@ class TestKRaft:
                 kafka_charm,
                 application_name=self.controller_app,
                 num_units=1,
-                series="jammy",
+                series=SERIES,
                 config={
                     "roles": "controller",
                     "profile": "testing",

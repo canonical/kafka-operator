@@ -13,7 +13,7 @@ from unittest.mock import PropertyMock, patch
 import pytest
 import yaml
 from ops import ActiveStatus
-from ops.testing import ActionFailed, Container, Context, PeerRelation, Relation, State
+from ops.testing import ActionFailed, Container, Context, PeerRelation, State
 
 from charm import KafkaCharm
 from literals import (
@@ -22,7 +22,6 @@ from literals import (
     CONTAINER,
     PEER,
     SUBSTRATE,
-    ZK,
     Status,
 )
 from managers.balancer import CruiseControlClient
@@ -163,35 +162,30 @@ def test_ready_to_start_no_peer_cluster(ctx_balancer_only: Context, base_state: 
     assert state_out.unit_status == Status.NO_PEER_CLUSTER_RELATION.value.status
 
 
-def test_ready_to_start_no_zk_data(ctx_broker_and_balancer: Context, base_state: State) -> None:
+def test_ready_to_start_no_controller(ctx_broker_and_balancer: Context, base_state: State) -> None:
     # Given
     ctx = ctx_broker_and_balancer
     cluster_peer = PeerRelation(PEER, PEER)
-    relation = Relation(
-        interface=ZK,
-        endpoint=ZK,
-        remote_app_name=ZK,
-    )
-    state_in = dataclasses.replace(base_state, relations=[cluster_peer, relation])
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer])
 
     # When
     state_out = ctx.run(ctx.on.start(), state_in)
 
     # Then
-    assert state_out.unit_status == Status.ZK_NO_DATA.value.status
+    assert state_out.unit_status == Status.MISSING_MODE.value.status
 
 
 def test_ready_to_start_no_broker_data(
     ctx_broker_and_balancer: Context,
     base_state: State,
-    zk_data: dict[str, str],
     passwords_data: dict[str, str],
 ) -> None:
     # Given
     ctx = ctx_broker_and_balancer
     cluster_peer = PeerRelation(PEER, PEER, local_app_data=passwords_data)
-    relation = Relation(interface=ZK, endpoint=ZK, remote_app_name=ZK, remote_app_data=zk_data)
-    state_in = dataclasses.replace(base_state, relations=[cluster_peer, relation])
+    state_in = dataclasses.replace(
+        base_state, relations=[cluster_peer], config={"roles": "broker,controller,balancer"}
+    )
 
     # When
     state_out = ctx.run(ctx.on.start(), state_in)
@@ -203,14 +197,14 @@ def test_ready_to_start_no_broker_data(
 def test_ready_to_start_ok(
     ctx_broker_and_balancer: Context,
     base_state: State,
-    zk_data: dict[str, str],
+    kraft_data: dict[str, str],
     passwords_data: dict[str, str],
 ) -> None:
     # Given
     ctx = ctx_broker_and_balancer
     cluster_peer = PeerRelation(
         PEER,
-        local_app_data=passwords_data,
+        local_app_data=passwords_data | kraft_data | {"controller-password": "password"},
         peers_data={
             i: {
                 "cores": "8",
@@ -228,9 +222,11 @@ def test_ready_to_start_ok(
         },
     )
     restart_peer = PeerRelation("restart", "restart")
-    relation = Relation(interface=ZK, endpoint=ZK, remote_app_name=ZK)
     state_in = dataclasses.replace(
-        base_state, relations=[cluster_peer, restart_peer, relation], planned_units=3
+        base_state,
+        relations=[cluster_peer, restart_peer],
+        planned_units=3,
+        config={"roles": "broker,controller,balancer"},
     )
 
     # When
@@ -252,12 +248,6 @@ def test_ready_to_start_ok(
         patch("workload.KafkaWorkload.start"),
         patch("workload.BalancerWorkload.active", return_value=True),
         patch("workload.KafkaWorkload.active", return_value=True),
-        patch("core.models.ZooKeeper.broker_active", return_value=True),
-        patch(
-            "core.models.ZooKeeper.zookeeper_connected",
-            new_callable=PropertyMock,
-            return_value=True,
-        ),
         patch(
             "core.models.PeerCluster.broker_connected",
             new_callable=PropertyMock,
@@ -272,14 +262,6 @@ def test_ready_to_start_ok(
             "managers.config.BalancerConfigManager.cruise_control_properties",
             new_callable=PropertyMock,
             return_value=[],
-        ),
-        patch(
-            "managers.config.ConfigManager.jaas_config", new_callable=PropertyMock, return_value=""
-        ),
-        patch(
-            "managers.config.BalancerConfigManager.jaas_config",
-            new_callable=PropertyMock,
-            return_value="",
         ),
         patch("health.KafkaHealth.machine_configured", return_value=True),
         patch("charms.operator_libs_linux.v2.snap.SnapCache"),  # specific VM, works fine on k8s
@@ -455,7 +437,7 @@ def test_balancer_manager_rebalance_full(
 
 
 @pytest.mark.parametrize("mode", ["add", "remove"])
-@pytest.mark.parametrize("brokerid", [None, 0])
+@pytest.mark.parametrize("brokerid", [None, 100])
 def test_rebalance_add_remove_broker_id_length(
     ctx_broker_and_balancer: Context,
     base_state: State,

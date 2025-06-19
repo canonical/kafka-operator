@@ -16,22 +16,15 @@ from charms.data_platform_libs.v0.data_interfaces import (
     DataPeerData,
     DataPeerUnitData,
 )
-from charms.zookeeper.v0.client import (
-    NoUnitFoundError,
-    QuorumLeaderNotFoundError,
-    ZooKeeperManager,
-)
-from kazoo.client import AuthFailedError, ConnectionLoss, NoNodeError
-from kazoo.exceptions import NoAuthError
 from lightkube.resources.core_v1 import Node, Pod
 from ops.model import Application, Relation, Unit
-from tenacity import retry, retry_if_result, stop_after_attempt, wait_fixed
 from typing_extensions import override
 
 from literals import (
     BALANCER,
     BROKER,
     INTERNAL_USERS,
+    KRAFT_NODE_ID_OFFSET,
     SECRETS_APP,
     SECURITY_PROTOCOL_PORTS,
     AuthMap,
@@ -106,9 +99,6 @@ class PeerCluster(RelationState):
         bootstrap_replica_id: str = "",
         racks: int = 0,
         broker_capacities: BrokerCapacities = {},
-        zk_username: str = "",
-        zk_password: str = "",
-        zk_uris: str = "",
         balancer_username: str = "",
         balancer_password: str = "",
         balancer_uris: str = "",
@@ -124,9 +114,6 @@ class PeerCluster(RelationState):
         self._bootstrap_replica_id = bootstrap_replica_id
         self._racks = racks
         self._broker_capacities = broker_capacities
-        self._zk_username = zk_username
-        self._zk_password = zk_password
-        self._zk_uris = zk_uris
         self._balancer_username = balancer_username
         self._balancer_password = balancer_password
         self._balancer_uris = balancer_uris
@@ -299,54 +286,6 @@ class PeerCluster(RelationState):
         )
 
     @property
-    def zk_username(self) -> str:
-        """Username to connect to ZooKeeper."""
-        if self._zk_username:
-            return self._zk_username
-
-        if not self.relation or not self.relation.app:
-            return ""
-
-        return self.data_interface._fetch_relation_data_with_secrets(
-            component=self.relation.app,
-            req_secret_fields=BALANCER.requested_secrets,
-            relation=self.relation,
-            fields=BALANCER.requested_secrets,
-        ).get("zk-username", "")
-
-    @property
-    def zk_password(self) -> str:
-        """Password to connect to ZooKeeper."""
-        if self._zk_password:
-            return self._zk_password
-
-        if not self.relation or not self.relation.app:
-            return ""
-
-        return self.data_interface._fetch_relation_data_with_secrets(
-            component=self.relation.app,
-            req_secret_fields=BALANCER.requested_secrets,
-            relation=self.relation,
-            fields=BALANCER.requested_secrets,
-        ).get("zk-password", "")
-
-    @property
-    def zk_uris(self) -> str:
-        """The ZooKeeper server endpoints for the balancer application to connect with."""
-        if self._zk_uris:
-            return self._zk_uris
-
-        if not self.relation or not self.relation.app:
-            return ""
-
-        return self.data_interface._fetch_relation_data_with_secrets(
-            component=self.relation.app,
-            req_secret_fields=BALANCER.requested_secrets,
-            relation=self.relation,
-            fields=BALANCER.requested_secrets,
-        ).get("zk-uris", "")
-
-    @property
     def balancer_username(self) -> str:
         """The provided username for the balancer application."""
         if self._balancer_username:
@@ -403,9 +342,6 @@ class PeerCluster(RelationState):
                 self.broker_username,
                 self.broker_password,
                 self.broker_uris,
-                self.zk_username,
-                self.zk_password,
-                self.zk_uris,
                 self.broker_capacities,
                 # rack is optional, empty if not rack-aware
             ]
@@ -421,6 +357,14 @@ class PeerCluster(RelationState):
             return False
 
         return True
+
+    @property
+    def super_users(self) -> str:
+        """Returns the super users defined on the cluster."""
+        if not self.relation or not self.relation.app:
+            return ""
+
+        return self.relation_data.get("super-users", "")
 
 
 class KafkaCluster(RelationState):
@@ -561,6 +505,11 @@ class KafkaBroker(RelationState):
         e.g kafka/2 --> 2
         """
         return int(self.unit.name.split("/")[1])
+
+    @property
+    def broker_id(self) -> int:
+        """`node.id` of the `broker` in KRaft."""
+        return KRAFT_NODE_ID_OFFSET + self.unit_id
 
     @property
     def internal_address(self) -> str:
@@ -715,188 +664,6 @@ class KafkaBroker(RelationState):
         return bool(self.relation_data.get("added-to-quorum", False))
 
 
-class ZooKeeper(RelationState):
-    """State collection metadata for a the Zookeeper relation."""
-
-    def __init__(
-        self,
-        relation: Relation | None,
-        data_interface: Data,
-        local_app: Application | None = None,
-    ):
-        super().__init__(relation, data_interface, None, None)
-        self._local_app = local_app
-
-    @property
-    def username(self) -> str:
-        """Username to connect to ZooKeeper."""
-        if not self.relation:
-            return ""
-
-        return (
-            self.data_interface.fetch_relation_field(
-                relation_id=self.relation.id, field="username"
-            )
-            or ""
-        )
-
-    @property
-    def password(self) -> str:
-        """Password of the ZooKeeper user."""
-        if not self.relation:
-            return ""
-
-        return (
-            self.data_interface.fetch_relation_field(
-                relation_id=self.relation.id, field="password"
-            )
-            or ""
-        )
-
-    @property
-    def endpoints(self) -> str:
-        """IP/host where ZooKeeper is located."""
-        if not self.relation:
-            return ""
-
-        return (
-            self.data_interface.fetch_relation_field(
-                relation_id=self.relation.id, field="endpoints"
-            )
-            or ""
-        )
-
-    @property
-    def database(self) -> str:
-        """Path allocated for Kafka on ZooKeeper."""
-        if not self.relation:
-            return ""
-
-        return (
-            self.data_interface.fetch_relation_field(
-                relation_id=self.relation.id, field="database"
-            )
-            or self.chroot
-        )
-
-    @property
-    def chroot(self) -> str:
-        """Path allocated for Kafka on ZooKeeper."""
-        if not self.relation:
-            return ""
-
-        return (
-            self.data_interface.fetch_relation_field(relation_id=self.relation.id, field="chroot")
-            or ""
-        )
-
-    @property
-    def tls(self) -> bool:
-        """Check if TLS is enabled on ZooKeeper."""
-        if not self.relation:
-            return False
-
-        return (
-            self.data_interface.fetch_relation_field(relation_id=self.relation.id, field="tls")
-            or ""
-        ) == "enabled"
-
-    @property
-    def connect(self) -> str:
-        """Full connection string of sorted uris."""
-        sorted_uris = sorted(self.uris.replace(self.database, "").split(","))
-        sorted_uris[-1] = sorted_uris[-1] + self.database
-        return ",".join(sorted_uris)
-
-    @property
-    def zookeeper_connected(self) -> bool:
-        """Checks if there is an active ZooKeeper relation with all necessary data.
-
-        Returns:
-            True if ZooKeeper is currently related with sufficient relation data
-                for a broker to connect with. Otherwise False
-        """
-        if not all([self.username, self.password, self.endpoints, self.database, self.uris]):
-            return False
-
-        return True
-
-    @property
-    def hosts(self) -> list[str]:
-        """Get the hosts from the databag."""
-        return [host.split(":")[0] for host in self.endpoints.split(",")]
-
-    @property
-    def uris(self):
-        """Comma separated connection string, containing endpoints + chroot."""
-        return f"{self.endpoints.removesuffix('/')}/{self.database.removeprefix('/')}"
-
-    @property
-    def port(self) -> int:
-        """Get the port in use from the databag.
-
-        We can extract from:
-        - host1:port,host2:port
-        - host1,host2:port
-        """
-        try:
-            port = next(
-                iter([int(host.split(":")[1]) for host in reversed(self.endpoints.split(","))]),
-                2181,
-            )
-        except IndexError:
-            # compatibility with older zk versions
-            port = 2181
-
-        return port
-
-    @property
-    def zookeeper_version(self) -> str:
-        """Get running zookeeper version."""
-        zk = ZooKeeperManager(
-            hosts=self.hosts,
-            client_port=self.port,
-            username=self.username,
-            password=self.password,
-            use_ssl=self.tls,
-        )
-
-        return zk.get_version()
-
-    # retry to give ZK time to update its broker zNodes before failing
-    @retry(
-        wait=wait_fixed(3),
-        stop=stop_after_attempt(3),
-        retry=retry_if_result(lambda result: result is False),
-        retry_error_callback=lambda _: False,
-    )
-    def broker_active(self) -> bool:
-        """Checks if broker id is recognised as active by ZooKeeper."""
-        broker_id = self.data_interface.local_unit.name.split("/")[1]
-        path = f"{self.database}/brokers/ids/"
-        try:
-            zk = ZooKeeperManager(
-                hosts=self.hosts,
-                client_port=self.port,
-                username=self.username,
-                password=self.password,
-                use_ssl=self.tls,
-            )
-            brokers = zk.leader_znodes(path=path)
-        except (
-            NoNodeError,
-            AuthFailedError,
-            QuorumLeaderNotFoundError,
-            NoUnitFoundError,
-            ConnectionLoss,
-            NoAuthError,
-        ) as e:
-            logger.debug(str(e))
-            brokers = set()
-
-        return f"{path}{broker_id}" in brokers
-
-
 class KafkaClient(RelationState):
     """State collection metadata for a single related client application."""
 
@@ -909,7 +676,6 @@ class KafkaClient(RelationState):
         bootstrap_server: str = "",
         password: str = "",  # nosec: B107
         tls: str = "",
-        zookeeper_uris: str = "",
     ):
         super().__init__(relation, data_interface, component, None)
         self.app = component
@@ -917,7 +683,6 @@ class KafkaClient(RelationState):
         self._bootstrap_server = bootstrap_server
         self._password = password
         self._tls = tls
-        self._zookeeper_uris = zookeeper_uris
 
     @property
     def username(self) -> str:
@@ -953,7 +718,7 @@ class KafkaClient(RelationState):
 
     @property
     def tls(self) -> str:
-        """Flag to confirm whether or not ZooKeeper has TLS enabled.
+        """Flag to confirm whether or not TLS is enabled.
 
         Returns:
             String of either 'enabled' or 'disabled'
@@ -961,13 +726,8 @@ class KafkaClient(RelationState):
         return self._tls
 
     @property
-    def zookeeper_uris(self) -> str:
-        """The ZooKeeper connection endpoints for the client application to connect with."""
-        return self._zookeeper_uris
-
-    @property
     def topic(self) -> str:
-        """The ZooKeeper connection endpoints for the client application to connect with."""
+        """The requested topic for the client."""
         return self.relation_data.get("topic", "")
 
     @property

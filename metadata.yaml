@@ -21,7 +21,7 @@ website:
 maintainers:
   - Canonical Data Platform <data-platform@lists.launchpad.net>
 series:
-  - jammy
+  - noble
 
 peers:
   cluster:
@@ -41,9 +41,6 @@ provides:
     limit: 1
 
 requires:
-  zookeeper:
-    interface: zookeeper
-    limit: 1
   certificates:
     interface: tls-certificates
     limit: 1

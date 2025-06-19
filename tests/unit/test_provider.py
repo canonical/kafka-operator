@@ -19,7 +19,6 @@ from literals import (
     PEER,
     REL_NAME,
     SUBSTRATE,
-    ZK,
     Status,
 )
 from managers.auth import AuthManager
@@ -37,11 +36,15 @@ METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 
 @pytest.fixture()
 def base_state():
+    config = {"roles": "broker,controller"}
+
     if SUBSTRATE == "k8s":
-        state = State(leader=True, containers=[Container(name=CONTAINER, can_connect=True)])
+        state = State(
+            leader=True, containers=[Container(name=CONTAINER, can_connect=True)], config=config
+        )
 
     else:
-        state = State(leader=True)
+        state = State(leader=True, config=config)
 
     return state
 
@@ -55,15 +58,12 @@ def ctx() -> Context:
 def test_client_relation_created_defers_if_not_ready(ctx: Context, base_state: State) -> None:
     # Given
     cluster_peer = PeerRelation(PEER, PEER)
-    zk_relation = Relation(ZK, ZK)
     client_relation = Relation(
         REL_NAME,
         "app",
         remote_app_data={"topic": "TOPIC", "extra-user-roles": "consumer,producer"},
     )
-    state_in = dataclasses.replace(
-        base_state, relations=[cluster_peer, zk_relation, client_relation]
-    )
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, client_relation])
 
     # When
     with (
@@ -83,15 +83,12 @@ def test_client_relation_created_defers_if_not_ready(ctx: Context, base_state: S
 def test_client_relation_created_adds_user(ctx: Context, base_state: State) -> None:
     # Given
     cluster_peer = PeerRelation(PEER, PEER)
-    zk_relation = Relation(ZK, ZK)
     client_relation = Relation(
         REL_NAME,
         "app",
         remote_app_data={"topic": "TOPIC", "extra-user-roles": "consumer,producer"},
     )
-    state_in = dataclasses.replace(
-        base_state, relations=[cluster_peer, zk_relation, client_relation]
-    )
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, client_relation])
 
     # When
     with (
@@ -100,7 +97,6 @@ def test_client_relation_created_adds_user(ctx: Context, base_state: State) -> N
         ),
         patch("managers.auth.AuthManager.add_user") as patched_add_user,
         patch("workload.KafkaWorkload.run_bin_command"),
-        patch("core.cluster.ZooKeeper.connect", new_callable=PropertyMock, return_value="yes"),
     ):
         state_out = ctx.run(ctx.on.relation_changed(client_relation), state_in)
 
@@ -113,7 +109,6 @@ def test_client_relation_broken_removes_user(ctx: Context, base_state: State) ->
     """Checks if users are removed on clientrelationbroken hook."""
     # Given
     cluster_peer = PeerRelation(PEER, PEER)
-    zk_relation = Relation(ZK, ZK)
     client_relation = Relation(
         REL_NAME,
         "app",
@@ -125,7 +120,7 @@ def test_client_relation_broken_removes_user(ctx: Context, base_state: State) ->
         label="cluster.kafka-k8s.app" if SUBSTRATE == "k8s" else "cluster.kafka.app",
     )
     state_in = dataclasses.replace(
-        base_state, relations=[cluster_peer, zk_relation, client_relation], secrets=[secret]
+        base_state, relations=[cluster_peer, client_relation], secrets=[secret]
     )
 
     # When
@@ -142,7 +137,6 @@ def test_client_relation_broken_removes_user(ctx: Context, base_state: State) ->
             return_value=[],
         ),
         patch("workload.KafkaWorkload.run_bin_command"),
-        patch("core.cluster.ZooKeeper.connect", new_callable=PropertyMock, return_value="yes"),
     ):
         state_out = ctx.run(ctx.on.relation_broken(client_relation), state_in)
 
@@ -159,15 +153,12 @@ def test_client_relation_joined_sets_necessary_relation_data(
     """Checks if all needed provider relation data is set on clientrelationjoined hook."""
     # Given
     cluster_peer = PeerRelation(PEER, PEER)
-    zk_relation = Relation(ZK, ZK)
     client_relation = Relation(
         REL_NAME,
         "app",
         remote_app_data={"topic": "TOPIC", "extra-user-roles": "consumer,producer"},
     )
-    state_in = dataclasses.replace(
-        base_state, relations=[cluster_peer, zk_relation, client_relation]
-    )
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, client_relation])
 
     # When
     with (
@@ -176,7 +167,6 @@ def test_client_relation_joined_sets_necessary_relation_data(
         ),
         patch("managers.auth.AuthManager.add_user"),
         patch("workload.KafkaWorkload.run_bin_command"),
-        patch("core.models.ZooKeeper.uris", new_callable=PropertyMock, return_value="yes"),
     ):
         state_out = ctx.run(ctx.on.relation_changed(client_relation), state_in)
 
@@ -187,14 +177,12 @@ def test_client_relation_joined_sets_necessary_relation_data(
         "password",
         "endpoints",
         "data",
-        "zookeeper-uris",
         "consumer-group-prefix",
         "tls",
         "topic",
     } - set(relation_databag.keys())
 
     assert relation_databag.get("tls", None) == "disabled"
-    assert relation_databag.get("zookeeper-uris", None) == "yes"
     assert relation_databag.get("username", None) == f"relation-{client_relation.id}"
     assert relation_databag.get("consumer-group-prefix", None) == f"relation-{client_relation.id}-"
 
@@ -203,10 +191,10 @@ def test_client_relation_joined_sets_necessary_relation_data(
 
 
 def test_mtls_without_tls_relation(
-    ctx: Context, base_state: State, zk_data: dict[str, str]
+    ctx: Context,
+    base_state: State,
 ) -> None:
     # Given
-    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
     restart_relation = PeerRelation("restart", "rolling_op")
     client_rel_id = 11
     client_relation = Relation(
@@ -226,7 +214,7 @@ def test_mtls_without_tls_relation(
     )
     state_in = dataclasses.replace(
         base_state,
-        relations=[cluster_peer, client_relation, restart_relation, zk_relation],
+        relations=[cluster_peer, client_relation, restart_relation],
     )
 
     with (
@@ -236,11 +224,6 @@ def test_mtls_without_tls_relation(
         ),
         # Model props
         patch("core.models.KafkaCluster.internal_user_credentials"),
-        patch(
-            "core.models.ZooKeeper.zookeeper_connected",
-            new_callable=PropertyMock,
-            return_value=True,
-        ),
     ):
         state_out = ctx.run(ctx.on.relation_changed(client_relation), state_in)
 
@@ -249,13 +232,10 @@ def test_mtls_without_tls_relation(
 
 
 @pytest.mark.parametrize("tls_artifacts", [False, True], indirect=True)
-def test_mtls_setup(
-    ctx: Context, base_state: State, zk_data: dict[str, str], tls_artifacts: TLSArtifacts
-) -> None:
+def test_mtls_setup(ctx: Context, base_state: State, tls_artifacts: TLSArtifacts) -> None:
     # Given
-    zk_relation = Relation(ZK, ZK, remote_app_data=zk_data)
     restart_relation = PeerRelation("restart", "rolling_op")
-    client_rel_id = 11
+    client_rel_id = 21
     secret = Secret(
         tracked_content={"mtls-cert": tls_artifacts.certificate},
         label=f"kafka-client.{client_rel_id}.mtls.secret",
@@ -279,7 +259,7 @@ def test_mtls_setup(
     )
     state_in = dataclasses.replace(
         base_state,
-        relations=[cluster_peer, client_relation, restart_relation, zk_relation],
+        relations=[cluster_peer, client_relation, restart_relation],
         secrets=[secret],
     )
 
@@ -290,11 +270,6 @@ def test_mtls_setup(
         ),
         # Model props
         patch("core.models.KafkaCluster.internal_user_credentials"),
-        patch(
-            "core.models.ZooKeeper.zookeeper_connected",
-            new_callable=PropertyMock,
-            return_value=True,
-        ),
         # TLSManager methods
         patch(
             "managers.tls.TLSManager.get_current_sans",

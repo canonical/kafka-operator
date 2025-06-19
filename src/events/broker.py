@@ -28,7 +28,6 @@ from events.controller import KRaftHandler
 from events.oauth import OAuthHandler
 from events.provider import KafkaProvider
 from events.upgrade import KafkaDependencyModel, KafkaUpgrade
-from events.zookeeper import ZooKeeperHandler
 from health import KafkaHealth
 from literals import (
     BROKER,
@@ -88,9 +87,6 @@ class BrokerOperator(Object):
             ),
         )
         self.action_events = ActionEvents(self)
-
-        if not self.charm.state.runs_controller:
-            self.zookeeper = ZooKeeperHandler(self)
 
         self.provider = KafkaProvider(self)
         self.oauth = OAuthHandler(self)
@@ -176,9 +172,7 @@ class BrokerOperator(Object):
 
         self.update_external_services()
 
-        # required settings given zookeeper connection config has been created
         self.config_manager.set_server_properties()
-        self.config_manager.set_zk_jaas_config()
         self.config_manager.set_client_properties()
 
         # during pod-reschedules (e.g upgrades or otherwise) we lose all files
@@ -200,20 +194,6 @@ class BrokerOperator(Object):
         self.workload.start()
         logger.info("Kafka service started")
 
-        # TODO: Update users. Not sure if this is the best place, as cluster might be still
-        # stabilizing.
-        # if self.charm.state.kraft_mode and self.charm.state.runs_broker:
-        #     for username, password in self.charm.state.cluster.internal_user_credentials.items():
-        #         try:
-        #             self.auth_manager.add_user(
-        #                username=username, password=password, zk_auth=False, internal=True,
-        #             )
-        #         except subprocess.CalledProcessError:
-        #             logger.warning("Error adding users, cluster might not be ready yet")
-        #             logger.error(f"\n\tOn start:\nAdding user {username} failed. Let the rest of the hook run\n")
-        #             # event.defer()
-        #             continue
-
         # service_start might fail silently, confirm with ZK if kafka is actually connected
         self.charm.on.update_status.emit()
 
@@ -232,12 +212,9 @@ class BrokerOperator(Object):
         properties = self.workload.read(self.workload.paths.server_properties)
         properties_changed = set(properties) ^ set(self.config_manager.server_properties)
 
-        zk_jaas = self.workload.read(self.workload.paths.zk_jaas)
-        zk_jaas_changed = set(zk_jaas) ^ set(self.config_manager.jaas_config.splitlines())
-
         current_sans = self.tls_manager.get_current_sans()
 
-        if not (properties and zk_jaas):
+        if not properties:
             # Event fired before charm has properly started
             event.defer()
             return
@@ -283,20 +260,6 @@ class BrokerOperator(Object):
 
             return  # early return here to ensure new node cert arrives before updating advertised.listeners
 
-        if zk_jaas_changed:
-            clean_broker_jaas = [conf.strip() for conf in zk_jaas]
-            clean_config_jaas = [
-                conf.strip() for conf in self.config_manager.jaas_config.splitlines()
-            ]
-            logger.info(
-                (
-                    f'Broker {self.charm.unit.name.split("/")[1]} updating JAAS config - '
-                    f"OLD JAAS = {set(clean_broker_jaas) - set(clean_config_jaas)}, "
-                    f"NEW JAAS = {set(clean_config_jaas) - set(clean_broker_jaas)}"
-                )
-            )
-            self.config_manager.set_zk_jaas_config()
-
         if properties_changed:
             logger.info(
                 (
@@ -307,7 +270,7 @@ class BrokerOperator(Object):
             )
             self.config_manager.set_server_properties()
 
-        if zk_jaas_changed or properties_changed:
+        if properties_changed:
             if isinstance(event, StorageEvent):  # to get new storages
                 self.charm.on[f"{self.charm.restart.name}"].acquire_lock.emit(
                     callback_override="_disable_enable_restart_broker"
@@ -337,11 +300,6 @@ class BrokerOperator(Object):
         if not self.upgrade.idle or not self.healthy:
             return
 
-        if not self.charm.state.kraft_mode:
-            if not self.charm.state.zookeeper.broker_active():
-                self.charm._set_status(Status.ZK_NOT_CONNECTED)
-                return
-
         # NOTE for situations like IP change and late integration with rack-awareness charm.
         # If properties have changed, the broker will restart.
         self.charm.on.config_changed.emit()
@@ -352,7 +310,7 @@ class BrokerOperator(Object):
                 return
         except SnapError as e:
             logger.debug(f"Error: {e}")
-            self.charm._set_status(Status.BROKER_NOT_RUNNING)
+            self.charm._set_status(Status.SERVICE_NOT_RUNNING)
             return
 
     def _on_secret_changed(self, event: SecretChangedEvent) -> None:
@@ -375,21 +333,6 @@ class BrokerOperator(Object):
             return
 
         self.charm.state.unit_broker.update({"storages": self.balancer_manager.storages})
-
-        # FIXME: if KRaft, don't execute
-        if self.charm.substrate == "vm" and not self.charm.state.kraft_mode:
-            # new dirs won't be used until topic partitions are assigned to it
-            # either automatically for new topics, or manually for existing
-            # set status only for running services, not on startup
-            # FIXME re-add this
-            self.workload.exec(["chmod", "-R", "750", f"{self.workload.paths.data_path}"])
-            self.workload.exec(
-                [
-                    "bash",
-                    "-c",
-                    f"""find {self.workload.paths.data_path} -type f -name meta.properties -delete || true""",
-                ]
-            )
 
         # all mounted data dirs should have correct ownership
         self.workload.exec(
@@ -434,7 +377,7 @@ class BrokerOperator(Object):
             return False
 
         if not self.workload.active():
-            self.charm._set_status(Status.BROKER_NOT_RUNNING)
+            self.charm._set_status(Status.SERVICE_NOT_RUNNING)
             return False
 
         return True
@@ -469,7 +412,6 @@ class BrokerOperator(Object):
             client.update(
                 {
                     "endpoints": client.bootstrap_server,
-                    "zookeeper-uris": client.zookeeper_uris,
                     "consumer-group-prefix": client.consumer_group_prefix,
                     "topic": client.topic,
                     "username": client.username,
@@ -493,8 +435,21 @@ class BrokerOperator(Object):
                 "cluster-uuid": self.charm.state.peer_cluster.cluster_uuid,
                 "racks": str(self.charm.state.peer_cluster.racks),
                 "broker-capacities": json.dumps(self.charm.state.peer_cluster.broker_capacities),
-                "zk-uris": self.charm.state.peer_cluster.zk_uris,
-                "zk-username": self.charm.state.peer_cluster.zk_username,
-                "zk-password": self.charm.state.peer_cluster.zk_password,
+                "super-users": self.charm.state.super_users,
             }
         )
+
+    def update_credentials_cache(self) -> None:
+        """Ensures the broker's credentials cache is updated after restart."""
+        if not all([self.charm.unit.is_leader(), self.charm.state.runs_broker, self.healthy]):
+            return
+
+        # Update client properties first, to ensure it's consistent with latest listener config
+        self.config_manager.set_client_properties()
+
+        for client in self.charm.state.clients:
+
+            if not client.password:
+                continue
+
+            self.auth_manager.add_user(client.username, client.password)
