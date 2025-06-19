@@ -3,7 +3,7 @@ name: Automatic doc checks
 
 on:
   push:
-    branches: [ main ]
+    branches: [ 3/edge ]
   pull_request:
     paths:
       - 'docs/**'   # Only run on changes to the docs directory
