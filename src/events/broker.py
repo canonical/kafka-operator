@@ -44,6 +44,7 @@ from literals import (
 from managers.auth import AuthManager
 from managers.balancer import BalancerManager
 from managers.config import TESTING_OPTIONS, ConfigManager
+from managers.controller import ControllerManager
 from managers.k8s import K8sManager
 from managers.tls import TLSManager
 from workload import KafkaWorkload
@@ -73,6 +74,7 @@ class BrokerOperator(Object):
             substrate=self.charm.substrate,
             config=self.charm.config,
         )
+        self.controller_manager = ControllerManager(self.charm.state, self.workload)
 
         # Fast exit after workload instantiation, but before any event observer
         if not any(role in self.charm.config.roles for role in [BROKER.value, CONTROLLER.value]):
@@ -272,6 +274,11 @@ class BrokerOperator(Object):
 
         if properties_changed:
             if isinstance(event, StorageEvent):  # to get new storages
+                self.controller_manager.format_storages(
+                    uuid=self.charm.state.peer_cluster.cluster_uuid,
+                    internal_user_credentials=self.charm.state.cluster.internal_user_credentials,
+                    initial_controllers=f"{self.charm.state.peer_cluster.bootstrap_unit_id}@{self.charm.state.peer_cluster.bootstrap_controller}:{self.charm.state.peer_cluster.bootstrap_replica_id}",
+                )
                 self.charm.on[f"{self.charm.restart.name}"].acquire_lock.emit(
                     callback_override="_disable_enable_restart_broker"
                 )
