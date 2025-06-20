@@ -49,10 +49,18 @@ class LogLevel(str, Enum):
     DEBUG = "DEBUG"
 
 
+class Profile(str, Enum):
+    """Enum for the `profile` field."""
+
+    TESTING = "testing"
+    STAGING = "staging"
+    PRODUCTION = "production"
+
+
 class CharmConfig(BaseConfigModel):
     """Manager for the structured configuration."""
 
-    roles: str
+    # Kafka configs
     compression_type: str
     log_flush_interval_messages: int  # int  # long
     log_flush_interval_ms: int | None  # long
@@ -71,14 +79,16 @@ class CharmConfig(BaseConfigModel):
     ssl_cipher_suites: str | None
     ssl_principal_mapping_rules: str
     replication_quota_window_num: int
+    # Charm configs
+    roles: str
     profile: str
     certificate_extra_sans: list[str]
     extra_listeners: list[str]
+    expose_external: str | None
     log_level: str
     network_bandwidth: int = Field(default=50000, validate_default=False, gt=0)
     cruisecontrol_balance_threshold: float = Field(default=1.1, validate_default=False, ge=1)
     cruisecontrol_capacity_threshold: float = Field(default=0.8, validate_default=False, le=1)
-    expose_external: str | None
 
     @validator("*", pre=True)
     @classmethod
@@ -162,7 +172,13 @@ class CharmConfig(BaseConfigModel):
             raise ValueError("Value below -1. Accepted value are greater or equal than -1.")
         return int_value
 
-    @validator("log_flush_interval_messages", "log_flush_interval_ms")
+    @validator(
+        "log_flush_interval_messages",
+        "log_flush_interval_ms",
+        "offsets_topic_num_partitions",
+        "transaction_state_log_num_partitions",
+        "replication_quota_window_num",
+    )
     @classmethod
     def greater_than_one(cls, value: str) -> int | None:
         """Check value greater than one."""
@@ -171,7 +187,15 @@ class CharmConfig(BaseConfigModel):
             raise ValueError("Value below 1. Accepted value are greater or equal than 1.")
         return int_value
 
-    @validator("replication_quota_window_num", "log_segment_bytes", "message_max_bytes")
+    @validator("log_segment_bytes")
+    @classmethod
+    def greater_than_1_mb(cls, value: int) -> int | None:
+        """Check value greater than 1 MB."""
+        if value < 1024 * 1024:
+            raise ValueError("Value below 1 MB. Accepted value are greater or equal than 1 MB.")
+        return value
+
+    @validator("message_max_bytes")
     @classmethod
     def greater_than_zero(cls, value: int) -> int | None:
         """Check value greater than zero."""
@@ -226,9 +250,12 @@ class CharmConfig(BaseConfigModel):
     @classmethod
     def profile_values(cls, value: str) -> str | None:
         """Check profile config option is one of `testing`, `staging` or `production`."""
-        if value not in ["testing", "staging", "production"]:
-            raise ValueError("Value not one of 'testing', 'staging' or 'production'")
-
+        try:
+            _profile = Profile(value)
+        except Exception as e:
+            raise ValueError(
+                f"Value out of the accepted values. Could not properly parsed the roles configuration: {e}"
+            )
         return value
 
     @validator("expose_external")
