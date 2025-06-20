@@ -70,7 +70,6 @@ def test_config_parsing_parameters_integer_values() -> None:
     """Check that integer fields are parsed correctly."""
     integer_fields = [
         "log_flush_offset_checkpoint_interval_ms",
-        "log_segment_bytes",
         "message_max_bytes",
         "offsets_topic_num_partitions",
         "transaction_state_log_num_partitions",
@@ -115,16 +114,20 @@ def test_values_gt_zero() -> None:
 
 def test_values_gteq_zero() -> None:
     """Check fields greater or equal than zero."""
-    gteq_zero_fields = [
-        "replication_quota_window_num",
-        "log_segment_bytes",
-        "message_max_bytes",
-    ]
+    gteq_zero_fields = ["message_max_bytes"]
     erroneus_values = [-2147483649, -34]
     valid_values = [42, 1000, 1, 0]
     for field in gteq_zero_fields:
         check_invalid_values(field, erroneus_values)
         check_valid_values(field, valid_values)
+
+
+def test_values_gt_one_mb() -> None:
+    """Check fields greater than 1 MB."""
+    erroneus_values = map(str, [0, 1024 * 1024 - 1, -1])
+    valid_values = map(str, [1024 * 1024, 2147483647])
+    check_invalid_values("log_segment_bytes", erroneus_values)
+    check_valid_values("log_segment_bytes", valid_values)
 
 
 def test_values_in_specific_intervals() -> None:
