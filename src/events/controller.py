@@ -160,7 +160,7 @@ class KRaftHandler(Object):
         updated_bootstrap_data = {
             "bootstrap-controller": self.charm.state.bootstrap_controller,
             "bootstrap-unit-id": str(self.charm.state.kraft_unit_id),
-            "bootstrap-replica-id": self.charm.state.unit_broker.directory_id,
+            "bootstrap-replica-id": self.charm.state.unit_broker.metadata_directory_id,
         }
         self.charm.state.cluster.update(updated_bootstrap_data)
 
@@ -179,12 +179,12 @@ class KRaftHandler(Object):
         ):
             return
 
-        directory_id = self.controller_manager.add_controller(
+        metadata_directory_id = self.controller_manager.add_controller(
             self.charm.state.cluster.bootstrap_controller
         )
 
         self.charm.state.unit_broker.update(
-            {"directory-id": directory_id, "added-to-quorum": "true"}
+            {"metadata-directory-id": metadata_directory_id, "added-to-quorum": "true"}
         )
 
     def remove_from_quorum(self) -> None:
@@ -193,15 +193,15 @@ class KRaftHandler(Object):
             return
 
         if self.charm.state.unit_broker.added_to_quorum or self.charm.unit.is_leader():
-            directory_id = (
-                self.charm.state.unit_broker.directory_id
+            metadata_directory_id = (
+                self.charm.state.unit_broker.metadata_directory_id
                 if not self.charm.unit.is_leader()
                 else self.charm.state.cluster.bootstrap_replica_id
             )
             self.charm.state.unit_broker.update({"added-to-quorum": ""})
             self.controller_manager.remove_controller(
                 self.charm.state.kraft_unit_id,
-                directory_id,
+                metadata_directory_id,
                 bootstrap_node=self.charm.state.bootstrap_controller,
             )
 

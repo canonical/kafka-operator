@@ -178,8 +178,8 @@ def test_remove_controller(charm_configuration, base_state: State):
     cluster_peer = PeerRelation(
         PEER,
         PEER,
-        local_unit_data={"added-to-quorum": "true", "directory-id": "random-uuid"},
-        peers_data={1: {"added-to-quorum": "true", "directory-id": "other-uuid"}},
+        local_unit_data={"added-to-quorum": "true", "metadata-directory-id": "random-uuid"},
+        peers_data={1: {"added-to-quorum": "true", "metadata-directory-id": "other-uuid"}},
     )
     state_in = dataclasses.replace(base_state, relations=[cluster_peer], leader=False)
 
@@ -204,7 +204,7 @@ def test_leader_change(charm_configuration, base_state: State):
     cluster_peer = PeerRelation(
         PEER,
         PEER,
-        local_unit_data={"added-to-quorum": "true", "directory-id": "new-uuid"},
+        local_unit_data={"added-to-quorum": "true", "metadata-directory-id": "new-uuid"},
         local_app_data={
             "bootstrap-controller": previous_controller,
             "bootstrap-replica-id": "old-uuid",

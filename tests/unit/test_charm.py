@@ -443,7 +443,7 @@ def test_storage_add_defers_if_service_not_healthy(
 
 
 @pytest.mark.skipif(SUBSTRATE == "k8s", reason="multiple storage not supported in K8s")
-def test_storage_add_disableenables_and_starts(
+def test_storage_add(
     ctx: Context, base_state: State, kraft_data: dict[str, str], passwords_data: dict[str, str]
 ) -> None:
     # Given
@@ -462,6 +462,7 @@ def test_storage_add_disableenables_and_starts(
         patch("managers.config.ConfigManager.set_server_properties"),
         patch("managers.config.ConfigManager.set_client_properties"),
         patch("managers.config.ConfigManager.set_environment"),
+        patch("managers.controller.ControllerManager.format_storages") as patched_format_storages,
         patch("workload.KafkaWorkload.read", return_value=["gandalf=grey"]),
         patch("workload.KafkaWorkload.disable_enable") as patched_disable_enable,
         patch("workload.KafkaWorkload.start") as patched_start,
@@ -470,6 +471,7 @@ def test_storage_add_disableenables_and_starts(
         ctx.run(ctx.on.storage_attached(storage), state_in)
 
     # Then
+    assert patched_format_storages.call_count == 1
     assert patched_disable_enable.call_count == 1
     assert patched_start.call_count == 1
     assert patched_defer.call_count == 0
