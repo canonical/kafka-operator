@@ -654,9 +654,9 @@ class KafkaBroker(RelationState):
         return self.k8s.get_node_ip(self.pod_name)
 
     @property
-    def directory_id(self) -> str:
+    def metadata_directory_id(self) -> str:
         """Directory ID of the node as saved in `meta.properties`."""
-        return self.relation_data.get("directory-id", "")
+        return self.relation_data.get("metadata-directory-id", "")
 
     @property
     def added_to_quorum(self) -> bool:

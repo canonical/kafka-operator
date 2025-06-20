@@ -74,8 +74,12 @@ class ControllerManager:
         ).strip()
         return uuid
 
-    def get_directory_id(self, log_dirs: str) -> str:
-        """Read directory.id from meta.properties file in the logs dir."""
+    def get_metadata_directory_id(self, log_dirs: str) -> str:
+        """Read directory.id from meta.properties file in the logs dir.
+
+        If metadata.log.dir is not set, it will be found in the first log directory declared in
+        log.dirs
+        """
         raw = self.workload.read(os.path.join(log_dirs, "meta.properties"))
         for line in raw:
             if line.startswith("directory.id"):
@@ -89,7 +93,11 @@ class ControllerManager:
         reraise=True,
     )
     def add_controller(self, bootstrap_node: str) -> str:
-        """Adds current unit to the dynamic quorum in KRaft mode, returns the added unit's directory_id if successful."""
+        """Adds current unit to the dynamic quorum in KRaft mode.
+
+        Returns:
+            the added unit's metadata_directory_id if successful.
+        """
         try:
             result = self.workload.run_bin_command(
                 bin_keyword="metadata-quorum",
@@ -107,8 +115,8 @@ class ControllerManager:
             if "DuplicateVoterException" not in error_details:
                 raise e
 
-        directory_id = self.get_directory_id(self.state.log_dirs)
-        return directory_id
+        metadata_directory_id = self.get_metadata_directory_id(self.state.log_dirs)
+        return metadata_directory_id
 
     @retry(
         wait=wait_fixed(10),
@@ -116,9 +124,12 @@ class ControllerManager:
         reraise=True,
     )
     def remove_controller(
-        self, controller_id: int, controller_directory_id: str, bootstrap_node: str | None = None
+        self,
+        controller_id: int,
+        controller_metadata_directory_id: str,
+        bootstrap_node: str | None = None,
     ):
-        """Removes a controller with specified controller_id and directory_id from KRaft dynamic quorum."""
+        """Removes a controller with specified controller_id and metadata_directory_id from KRaft dynamic quorum."""
         if not bootstrap_node:
             bootstrap_node = self.state.cluster.bootstrap_controller
 
@@ -134,7 +145,7 @@ class ControllerManager:
                     "--controller-id",
                     str(controller_id),
                     "--controller-directory-id",
-                    controller_directory_id,
+                    controller_metadata_directory_id,
                 ],
             )
         except CalledProcessError as e:
