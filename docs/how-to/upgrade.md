@@ -1,5 +1,5 @@
 (how-to-upgrade)=
-# How to upgrade between minor versions
+# How to upgrade between versions
 
 ```{note}
 This feature is available on Charmed Apache Kafka and Charmed Apache ZooKeeper from revisions 134 and 103, respectively. Upgrade from previous versions is **not supported**, although possible (see [example](https://github.com/deusebio/kafka-pre-upgrade-patch)).

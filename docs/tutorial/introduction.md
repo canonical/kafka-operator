@@ -1,6 +1,4 @@
-(tutorial-introduction)=
-# 1. Introduction
-
+# Tutorial
 <!-- # Charmed Apache Kafka tutorial -->
 
 The Charmed Apache Kafka Operator delivers automated operations management from [Day 0 to Day 2](https://codilime.com/blog/day-0-day-1-day-2-the-software-lifecycle-in-the-cloud-age/) on the [Apache Kafka](https://kafka.apache.org/) event streaming platform.
@@ -32,6 +30,7 @@ Before we start, make sure your machine meets the following requirements:
 - At least `20` GB of available storage.
 - Access to the internet for downloading the required snaps and charms.
 
+(tutorial-index)=
 ## Step-by-step guide
 
 Here’s an overview of the steps required with links to our separate tutorials that deal with each individual step:

@@ -92,7 +92,7 @@ Charmed Apache Kafka provides native integration with the [Canonical Observabili
 To reduce the blast radius of infrastructure disruptions, the general recommendation is to deploy COS and the observed application into separate environments, isolated from one another. Refer to the [COS production deployments best practices](https://charmhub.io/topics/canonical-observability-stack/reference/best-practices)
 for more information.
 
-For instructions, see the [How to integrate the Charmed Apache Kafka deployment with COS](../how-to/monitoring/enable-monitoring) and [How to customise the alerting rules and dashboards](../how-to/monitoring/alerts.md) guides.
+For instructions, see the [How to integrate the Charmed Apache Kafka deployment with COS](how-to-monitoring-enable-monitoring) and [How to customise the alerting rules and dashboards](how-to-monitoring-integrate-alerts-and-dashboards) guides.
 
 External user access to Apache Kafka is logged to the `kafka-authorizer.log` that is pushed to [Loki endpoint](https://charmhub.io/loki-k8s) and exposed via [Grafana](https://charmhub.io/grafana), both components being part of the COS stack.
 

@@ -1,6 +1,23 @@
 (explanation-index)=
 # Explanation
 
+The pages in this section help deeper understanding of various topics and concepts important to Charmed Apache Kafka.
+
+## Security
+
+Secure deployments of Charmed Apache Kafka can be achieved through using recommended configurations, including setting up encryption and authentication.
+For more details, see [Security topic overview](explanation-security) and [Cryptography usage explanation](explanation-cryptography) pages.
+
+## Cluster configuration
+
+See the [Cluster configuration](explanation-cluster-configuration) page for explanation of the Apache ZooKeeper role in Charmed Apache Kafka.
+
+Check the [MirrorMaker explanation](explanation-mirrormaker2-0) page for more context about how MirrorMaker works for replication/migration of clusters.
+
+## Other topics
+
+To read more about our usage of Apache Kafka and other relevant trademarks, see the [Trademarks](explanation-trademarks) explanation page.
+
 ```{toctree}
 :titlesonly:
 :maxdepth: 2

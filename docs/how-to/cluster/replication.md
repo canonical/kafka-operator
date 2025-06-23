@@ -1,10 +1,10 @@
 (how-to-cluster-replication-cluster-replication)=
-# Cluster replication
+# Set up replication between clusters
 
 This How-To will cover how to set up cluster replication using MirrorMaker through [Kafka Connect](https://kafka.apache.org/documentation/#connect).
 
 ```{note}
-For a brief explanation of how MirrorMaker works, see the [MirrorMaker explanation](../../explanation/mirrormaker2-0) page.
+For a brief explanation of how MirrorMaker works, see the [MirrorMaker explanation](explanation-mirrormaker2-0) page.
 ```
 
 ## Prerequisites
@@ -12,8 +12,8 @@ For a brief explanation of how MirrorMaker works, see the [MirrorMaker explanati
 To set up cluster replication we need:
 
 - Two Charmed Apache Kafka clusters:
-  - An "active" source cluster to replicate from.
-  - A "passive" target cluster to replicate to.
+  - A source cluster to replicate from.
+  - A target cluster to replicate to.
 - A Charmed Kafka Connect cluster to run the MirrorMaker connectors.
 
 ```{note}
@@ -163,4 +163,3 @@ juju integrate mirrormaker-b-a:target kafka-a
 
 With this, the deployment is complete. There will be two bi-directional replication flows between `kafka-a` and `kafka-b`. The topics will be prefixed with the cluster name, so that they do not collide with each other.
 For example, a topic called `demo` created on `kafka-a` will be replicated as a new topic on `kafka-b` named `kafka-a.replica.demo`, and vice versa.
-
