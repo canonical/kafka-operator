@@ -3,6 +3,20 @@
 
 ```
 
+(tutorial-index)=
+## Step-by-step guide
+
+Here’s an overview of the steps required with links to our separate tutorials that deal with each individual step:
+
+- [Set up the environment](tutorial-environment)
+- [Deploy Charmed Apache Kafka](tutorial-deploy)
+- [Integrate with client applications](tutorial-integrate-with-client-applications)
+- [Manage passwords](tutorial-manage-passwords)
+- [Enable encryption](tutorial-enable-encryption)
+- [Use Kafka Connect for ETL](tutorial-kafka-connect)
+- [Rebalance and Reassign Partitions](tutorial-rebalance-partitions)
+- [Cleanup your environment](tutorial-cleanup)
+
 ```{toctree}
 :titlesonly:
 :maxdepth: 2
