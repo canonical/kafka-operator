@@ -145,7 +145,7 @@ Create a new Juju model, if needed:
 juju add-model <MODEL_NAME>
 ```
 
-(Optional) To increase the debug level if you are troubleshooting charms:
+(Optional) If you are troubleshooting charms and wish to see DEBUG logs:
 
 ```shell
 juju model-config logging-config='<root>=INFO;unit=DEBUG'

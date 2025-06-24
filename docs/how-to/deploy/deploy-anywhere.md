@@ -1,6 +1,6 @@
 # How to deploy Charmed Apache Kafka
 
-This is a common (platform-agnostic) deployment guide.  
+This guide provides platform-independent deployment instructions.
 For specific guides, see: [AWS](how-to-deploy-deploy-on-aws), [Azure](how-to-deploy-deploy-on-azure) and [KRaft mode](how-to-deploy-kraft-mode).
 
 (how-to-deploy-deploy-anywhere)=

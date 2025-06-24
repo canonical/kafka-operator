@@ -1,7 +1,7 @@
 (explanation-index)=
 # Explanation
 
-The pages in this section help deeper understanding of various topics and concepts important to Charmed Apache Kafka.
+The pages in this section aim to provide additional context and deeper understanding of foundational topics and concepts relevant to Charmed Apache Kafka.
 
 ## Security
 
@@ -12,7 +12,7 @@ For more details, see [Security topic overview](explanation-security) and [Crypt
 
 See the [Cluster configuration](explanation-cluster-configuration) page for explanation of the Apache ZooKeeper role in Charmed Apache Kafka.
 
-Check the [MirrorMaker explanation](explanation-mirrormaker2-0) page for more context about how MirrorMaker works for replication/migration of clusters.
+Check the [MirrorMaker explanation](explanation-mirrormaker2-0) page for more context in to how MirrorMaker replicates and migrates Apache Kafka clusters.
 
 ## Other topics
 

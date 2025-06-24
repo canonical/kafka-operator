@@ -81,7 +81,7 @@ For more information on encryption, see the [Cryptography](cryptography) explana
 Charmed Apache Kafka supports the following authentication layers:
 
 1. [SCRAM-based SASL Authentication](how-to-manage-applications)
-2. [certificate-base Authentication (mTLS)](how-to-create-mtls-client-credentials)
+2. [certificate-based Authentication (mTLS)](how-to-create-mtls-client-credentials)
 3. OAuth Authentication using [Hydra](https://discourse.charmhub.io/t/how-to-connect-to-kafka-using-hydra-as-oidc-provider/14610) or [Google](https://discourse.charmhub.io/t/how-to-connect-to-kafka-using-google-as-oidc-provider/14611)
 
 Each combination of authentication scheme and encryption is associated with the dedicated listener and it maps to a well-defined port. See the [listeners reference documentation](reference-apache-kafka-listeners) for more information.
