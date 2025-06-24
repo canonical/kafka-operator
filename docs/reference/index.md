@@ -20,7 +20,7 @@ Charm-specific reference materials:
 
 General useful references:
 
-* {ref}`reference-apache-kafka-listeners`
+* {ref}`reference-broker-listeners`
 * {ref}`reference-performance-tuning`
 * {ref}`Contact information <reference-contact>`
 

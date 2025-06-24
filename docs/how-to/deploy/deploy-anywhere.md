@@ -102,7 +102,7 @@ In fact, ports are only opened when client applications are related, also
 depending on the protocols to be used.
 
 ```{note}
-For more information about the available listeners and protocols please refer to [this table](reference-apache-kafka-listeners). 
+For more information about the available listeners and protocols please refer to [this table](reference-broker-listeners). 
 ```
 
 It is however generally useful for most of the use cases to create a first admin user
