@@ -61,9 +61,9 @@ class Rule:
 
         From Kafka's SslPrincipalMapper.java:
 
-        > If we find a back reference that is not valid, then we will treat it as a literal string. 
-        For example, if we have 3 capturing groups and the Replacement Value has the value is 
-        "I owe $8 to him", then we want to treat the $8 as a literal "$8", rather than attempting 
+        > If we find a back reference that is not valid, then we will treat it as a literal string.
+        For example, if we have 3 capturing groups and the Replacement Value has the value is
+        "I owe $8 to him", then we want to treat the $8 as a literal "$8", rather than attempting
         to use it as a back reference.
         """
 
@@ -83,7 +83,7 @@ class Rule:
         if self.is_default:
             return "DEFAULT"
         buf = f"RULE:{self.pattern.pattern if self.pattern else ''}"
-        if self.replacement:
+        if self.replacement is not None:
             buf += f"/{self.replacement}"
         if self.to_lower_case:
             buf += "/L"
@@ -126,7 +126,7 @@ class SslPrincipalMapper:
                 raise ValueError(
                     f"Invalid rule: `{rule}`, unmatched substring: `{rule[matcher.end():]}`"
                 )
-            # empty rules are ignored
+            # add a DEFAULT rule if empty
             if matcher.group(1) is not None:
                 result.append(Rule())
             elif matcher.group(2) is not None:
