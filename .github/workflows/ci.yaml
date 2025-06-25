@@ -88,6 +88,7 @@ jobs:
           - integration-balancer-single
           - integration-balancer-multi
           - integration-kraft
+          - integration-kraft-tls
         kraft-mode:
           - single
           - multi

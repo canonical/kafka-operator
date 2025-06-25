@@ -569,6 +569,16 @@ class TLSState:
         return sorted(set(bundle), key=bundle.index)  # ordering might matter
 
     @property
+    def rotation(self) -> bool:
+        """Whether or not CA/chain rotation is in progress."""
+        return bool(self.relation_data.get(f"{self.scope.value}-rotation", ""))
+
+    @rotation.setter
+    def rotation(self, value: bool) -> None:
+        _value = "" if not value else "true"
+        self.relation_state.update({f"{self.scope.value}-rotation": _value})
+
+    @property
     def ready(self) -> bool:
         """Returns True if all the necessary TLS relation data has been set, False otherwise."""
         return all([self.certificate, self.ca, self.private_key])

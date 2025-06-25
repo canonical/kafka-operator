@@ -247,6 +247,15 @@ class BrokerOperator(Object):
         self.config_manager.set_environment()
         self.charm.unit.set_workload_version(self.workload.get_version())
 
+        # Update peer-cluster trusted certs and check for TLS rotation
+        self.tls_manager.update_peer_cluster_trust()
+        tls_rotation = any(
+            [
+                self.charm.state.unit_broker.client_tls.rotation,
+                self.charm.state.unit_broker.peer_tls.rotation,
+            ]
+        )
+
         if sans_ip_changed or sans_dns_changed:
             logger.info(
                 (
@@ -273,7 +282,7 @@ class BrokerOperator(Object):
             )
             self.config_manager.set_server_properties()
 
-        if properties_changed:
+        if properties_changed or tls_rotation:
             if isinstance(event, StorageEvent):  # to get new storages
                 self.controller_manager.format_storages(
                     uuid=self.charm.state.peer_cluster.cluster_uuid,
@@ -300,6 +309,11 @@ class BrokerOperator(Object):
 
         # Update truststore if needed.
         self.charm.tls.update_truststore()
+
+        # Reset TLS rotation state
+        if tls_rotation:
+            self.charm.state.unit_broker.client_tls.rotation = False
+            self.charm.state.unit_broker.peer_tls.rotation = False
 
         # If Kafka is related to client charms, update their information.
         if self.model.relations.get(REL_NAME, None) and self.charm.unit.is_leader():
@@ -442,6 +456,9 @@ class BrokerOperator(Object):
         if not self.charm.unit.is_leader() or not self.healthy:
             return
 
+        # Update peer-cluster chain of trust
+        self.charm.state.peer_cluster_ca = self.charm.state.unit_broker.peer_tls.bundle
+
         self.charm.state.peer_cluster.update(
             {
                 "roles": self.charm.state.roles,
@@ -452,7 +469,6 @@ class BrokerOperator(Object):
                 "racks": str(self.charm.state.peer_cluster.racks),
                 "broker-capacities": json.dumps(self.charm.state.peer_cluster.broker_capacities),
                 "super-users": self.charm.state.super_users,
-                "broker-ca": self.charm.state.unit_broker.peer_tls.ca,
             }
         )
 

@@ -22,10 +22,11 @@ from integration.helpers.pytest_operator import (
     get_replica_count_by_broker_id,
 )
 from literals import (
+    INTERNAL_TLS_RELATION,
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
     PEER_CLUSTER_RELATION,
-    TLS_RELATION,
 )
+
 
 logger = logging.getLogger(__name__)
 
@@ -315,10 +316,12 @@ class TestBalancer:
         await ops_test.model.wait_for_idle(apps=[TLS_NAME], idle_period=15)
         assert ops_test.model.applications[TLS_NAME].status == "active"
 
-        await ops_test.model.add_relation(TLS_NAME, f"{APP_NAME}:{TLS_RELATION}")
+        await ops_test.model.add_relation(TLS_NAME, f"{APP_NAME}:{INTERNAL_TLS_RELATION}")
 
         if self.balancer_app != APP_NAME:
-            await ops_test.model.add_relation(TLS_NAME, f"{self.balancer_app}:{TLS_RELATION}")
+            await ops_test.model.add_relation(
+                TLS_NAME, f"{self.balancer_app}:{INTERNAL_TLS_RELATION}"
+            )
 
         await ops_test.model.wait_for_idle(
             apps=list({APP_NAME, CONTROLLER_NAME, self.balancer_app}),

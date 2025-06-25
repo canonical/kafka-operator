@@ -74,6 +74,13 @@ def patched_workload(monkeypatch: pytest.MonkeyPatch):
 
 
 @pytest.fixture(autouse=True)
+def patched_trust(monkeypatch: pytest.MonkeyPatch):
+    # patch peer_trusted_certificates here,
+    # we have comprehensive unit tests in test_tls_manager
+    monkeypatch.setattr("managers.tls.TLSManager.peer_trusted_certificates", {})
+
+
+@pytest.fixture(autouse=True)
 def random_uuid():
     with patch("managers.controller.ControllerManager.generate_uuid") as gen_uuid:
         gen_uuid.return_value = "some-random-uuid"

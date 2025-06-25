@@ -178,6 +178,15 @@ class TLSHandler(Object):
         self.charm.broker.tls_manager.remove_stores(scope=state.scope)
         self.charm.balancer.tls_manager.remove_stores(scope=state.scope)
 
+        if state.scope == TLSScope.PEER:
+            # switch back to internal TLS
+            is_leader = self.charm.unit.is_leader()
+            self.charm.broker.tls_manager.setup_internal_credentials(is_leader=is_leader)
+            self.charm.balancer.tls_manager.setup_internal_credentials(is_leader=is_leader)
+
+            state.rotation = True
+            self.charm.on.config_changed.emit()
+
         if not self.charm.unit.is_leader():
             return
 
@@ -209,7 +218,6 @@ class TLSHandler(Object):
             certificate_changed = True
 
         if state.ca and event.ca.raw != state.ca:
-            old_ca = state.ca
             ca_changed = True
 
         state.certificate = event.certificate.raw
@@ -220,14 +228,12 @@ class TLSHandler(Object):
             getattr(self.charm, dependent).tls_manager.remove_stores(scope=state.scope)
             getattr(self.charm, dependent).tls_manager.configure()
 
-        if ca_changed and old_ca:
-            for dependent in ["broker", "balancer"]:
-                getattr(self.charm, dependent).tls_manager.update_cert(
-                    alias="old-ca", cert=old_ca, scope=state.scope
-                )
+        if certificate_changed or ca_changed:
+            # this will trigger a restart.
+            state.rotation = True
 
-        if certificate_changed:
-            self.charm.on[f"{self.charm.restart.name}"].acquire_lock.emit()
+        if state.scope == TLSScope.PEER:
+            self.charm.state.peer_cluster_ca = state.bundle
 
         self.update_truststore()
         self.charm.on.config_changed.emit()

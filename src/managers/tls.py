@@ -39,6 +39,8 @@ class TLSManager:
 
     DEFAULT_HASH_ALGORITHM: hashes.HashAlgorithm = hashes.SHA256()
     SCOPES = (TLSScope.PEER, TLSScope.CLIENT)
+    TEMP_ALIAS_PREFIX = "new-"
+    PEER_CLUSTER_ALIAS = "cluster-tls"
 
     def __init__(
         self,
@@ -99,10 +101,9 @@ class TLSManager:
         self.state.internal_ca = ca.raw
         self.state.internal_ca_key = ca_key.raw
 
-        # Leads to no-op in KRaft single mode.
-        self.state.peer_cluster_ca = ca.raw
+        self.setup_internal_credentials(is_leader=True)
 
-    def setup_internal_credentials(self) -> None:
+    def setup_internal_credentials(self, is_leader: bool = False) -> None:
         """Generate self-signed certificate for the unit to be used for internal communications."""
         state = self.get_state(TLSScope.PEER)
 
@@ -144,13 +145,18 @@ class TLSManager:
         # Write configs
         self.configure()
 
+        if is_leader:
+            # If leader, also set the peer cluster chain.
+            # Leads to no-op in KRaft single mode.
+            self.state.peer_cluster_ca = state.bundle
+
     def set_server_key(self) -> None:
         """Sets the unit private-key."""
         for scope in self.SCOPES:
             state = self.get_state(scope)
 
             if not state.private_key:
-                logger.error("Can't set private-key to unit, missing private-key in relation data")
+                logger.debug("Can't set private-key to unit, missing private-key in relation data")
                 continue
 
             self.workload.write(
@@ -164,7 +170,7 @@ class TLSManager:
             state = self.get_state(scope)
 
             if not state.ca:
-                logger.error("Can't set CA to unit, missing CA in relation data")
+                logger.debug("Can't set CA to unit, missing CA in relation data")
                 continue
 
             self.workload.write(
@@ -177,7 +183,7 @@ class TLSManager:
             state = self.get_state(scope)
 
             if not state.certificate:
-                logger.error("Can't set certificate to unit, missing certificate in relation data")
+                logger.debug("Can't set certificate to unit, missing certificate in relation data")
                 continue
 
             self.workload.write(
@@ -191,7 +197,7 @@ class TLSManager:
             state = self.get_state(scope)
 
             if not state.certificate or not state.ca:
-                logger.error(
+                logger.debug(
                     "Can't set cert bundle to unit, missing certificate or CA in relation data"
                 )
                 continue
@@ -207,7 +213,7 @@ class TLSManager:
             state = self.get_state(scope)
 
             if not state.bundle:
-                logger.error("Can't set chain to unit, missing chain in relation data")
+                logger.debug("Can't set chain to unit, missing chain in relation data")
                 continue
 
             # setting each individual cert in the chain for trusting
@@ -257,7 +263,7 @@ class TLSManager:
             state = self.get_state(scope)
 
             if not all([state.private_key, state.certificate, state.ca]):
-                logger.error("Can't set keystore, missing TLS artifacts.")
+                logger.debug("Can't set keystore, missing TLS artifacts.")
                 continue
 
             command = [
@@ -288,6 +294,24 @@ class TLSManager:
                 logger.error(e.stdout)
                 raise e
 
+    def update_peer_cluster_trust(self) -> None:
+        """..."""
+        bundle = self.state.peer_cluster_ca
+        state = self.get_state(TLSScope.PEER)
+
+        if not bundle:
+            return
+
+        trusted_certs = self.peer_trusted_certificates
+        for i, cert in enumerate(bundle):
+            if self.certificate_fingerprint(cert) in trusted_certs.values():
+                continue
+
+            alias = f"{self.PEER_CLUSTER_ALIAS}{i}"
+            state.rotation = True
+
+            self.update_cert(alias=alias, cert=cert, scope=TLSScope.PEER)
+
     def configure(self) -> None:
         """Write all TLS artifacts including certs, keys, and keystores/truststores to the disk."""
         self.set_server_key()
@@ -297,9 +321,7 @@ class TLSManager:
         self.set_bundle()
         self.set_truststore()
         self.set_keystore()
-
-        if ca_cert := self.state.peer_cluster_ca:
-            self.update_cert(alias="peer-cluster-ca", cert=ca_cert, scope=TLSScope.PEER)
+        self.update_peer_cluster_trust()
 
     def import_cert(self, alias: str, filename: str, scope: TLSScope = TLSScope.CLIENT) -> None:
         """Add a certificate to the truststore."""
@@ -349,7 +371,7 @@ class TLSManager:
             )
         except (subprocess.CalledProcessError, ExecError) as e:
             if e.stdout and "does not exist" in e.stdout:
-                logger.warning(e.stdout)
+                logger.debug(e.stdout)
                 return
             logger.error(e.stdout)
             raise e
