@@ -6,7 +6,6 @@
 
 import json
 import logging
-from datetime import datetime
 from typing import TYPE_CHECKING
 
 from charms.operator_libs_linux.v2.snap import SnapError
@@ -168,13 +167,23 @@ class BrokerOperator(Object):
         if not self.upgrade.idle:
             return
 
+        # Internal TLS setup required?
+        if not self.charm.state.unit_broker.peer_tls.ready and not self.charm.state.internal_ca:
+            if not self.charm.unit.is_leader():
+                event.defer()
+                return
+
+            self.tls_manager.setup_internal_ca()
+
         current_status = self.charm.state.ready_to_start
         if current_status is not Status.ACTIVE:
             self.charm._set_status(current_status)
             event.defer()
             return
 
+        self.kraft.format_storages()
         self.update_external_services()
+        self.tls_manager.setup_internal_credentials()
 
         self.config_manager.set_server_properties()
         self.config_manager.set_client_properties()
@@ -183,16 +192,10 @@ class BrokerOperator(Object):
         # need to manually add-back key/truststores
         if (
             self.charm.state.cluster.tls_enabled
-            and self.charm.state.unit_broker.certificate
-            and self.charm.state.unit_broker.ca
+            and self.charm.state.unit_broker.client_tls.certificate
+            and self.charm.state.unit_broker.client_tls.ca
         ):  # TLS is probably completed
-            self.tls_manager.set_server_key()
-            self.tls_manager.set_ca()
-            self.tls_manager.set_chain()
-            self.tls_manager.set_certificate()
-            self.tls_manager.set_bundle()
-            self.tls_manager.set_truststore()
-            self.tls_manager.set_keystore()
+            self.tls_manager.configure()
 
         # start kafka service
         self.workload.start()
@@ -205,7 +208,7 @@ class BrokerOperator(Object):
         if not self.charm.pending_inactive_statuses:
             logger.info(f'Broker {self.charm.unit.name.split("/")[1]} connected')
 
-    def _on_config_changed(self, event: EventBase) -> None:
+    def _on_config_changed(self, event: EventBase) -> None:  # noqa: C901
         """Generic handler for most `config_changed` events across relations."""
         # only overwrite properties if service is already active
         if not self.upgrade.idle or not self.healthy:
@@ -254,13 +257,9 @@ class BrokerOperator(Object):
                     f"NEW SANs DNS = {expected_sans_dns - current_sans_dns}"
                 )
             )
-            self.charm.tls.certificates.on.certificate_expiring.emit(
-                certificate=self.charm.state.unit_broker.certificate,
-                expiry=datetime.now().isoformat(),
-            )  # new cert will eventually be dynamically loaded by the broker
-            self.charm.state.unit_broker.update(
-                {"certificate": ""}
-            )  # ensures only single requested new certs, will be replaced on new certificate-available event
+            self.charm.tls.refresh_tls_certificates.emit()
+            # new cert will eventually be dynamically loaded by the broker
+            self.charm.state.unit_broker.client_tls.certificate = ""
 
             return  # early return here to ensure new node cert arrives before updating advertised.listeners
 
@@ -290,9 +289,14 @@ class BrokerOperator(Object):
         # update these whenever possible
         self.config_manager.set_client_properties()  # to ensure clients have fresh data
         self.update_external_services()  # in case of IP changes or pod reschedules
-        self.charm.state.unit_broker.unit.set_ports(  # in case of listeners changes
-            *[listener.port for listener in self.config_manager.all_listeners]
-        )
+        if self.charm.state.runs_broker:
+            self.charm.state.unit_broker.unit.set_ports(  # in case of listeners changes
+                *[listener.port for listener in self.config_manager.all_listeners]
+            )
+        elif self.charm.state.runs_controller:  # only valid for KRaft-multi on controllers
+            self.charm.state.unit_broker.unit.set_ports(
+                *[listener.port for listener in self.config_manager.controller_listeners]
+            )
 
         # Update truststore if needed.
         self.charm.tls.update_truststore()
@@ -429,7 +433,7 @@ class BrokerOperator(Object):
                     "username": client.username,
                     "password": client.password,
                     "tls": client.tls,
-                    "tls-ca": self.charm.state.unit_broker.ca,
+                    "tls-ca": self.charm.state.unit_broker.client_tls.ca,
                 }
             )
 
@@ -448,6 +452,7 @@ class BrokerOperator(Object):
                 "racks": str(self.charm.state.peer_cluster.racks),
                 "broker-capacities": json.dumps(self.charm.state.peer_cluster.broker_capacities),
                 "super-users": self.charm.state.super_users,
+                "broker-ca": self.charm.state.unit_broker.peer_tls.ca,
             }
         )
 

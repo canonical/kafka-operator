@@ -78,7 +78,10 @@ class KafkaProvider(Object):
 
         # We don't want to set credentials for the client before MTLS setup.
         if requesting_client.mtls_cert and not all(
-            [self.charm.state.cluster.tls_enabled, self.charm.state.unit_broker.certificate]
+            [
+                self.charm.state.cluster.tls_enabled,
+                self.charm.state.unit_broker.client_tls.certificate,
+            ]
         ):
             logger.debug("Missing TLS relation, deferring")
             self.charm._set_status(Status.MTLS_REQUIRES_TLS)
@@ -134,7 +137,10 @@ class KafkaProvider(Object):
             return
 
         if not all(
-            [self.charm.state.cluster.tls_enabled, self.charm.state.unit_broker.certificate]
+            [
+                self.charm.state.cluster.tls_enabled,
+                self.charm.state.unit_broker.client_tls.certificate,
+            ]
         ):
             logger.debug("Missing TLS relation, deferring")
             self.charm._set_status(Status.MTLS_REQUIRES_TLS)

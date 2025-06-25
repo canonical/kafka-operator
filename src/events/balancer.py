@@ -119,6 +119,7 @@ class BalancerOperator(Object):
             if self.charm.state.peer_cluster_orchestrator:
                 self.charm.state.peer_cluster_orchestrator.update(payload)
 
+        self.tls_manager.setup_internal_credentials()
         self.config_manager.set_cruise_control_properties()
         self.config_manager.set_broker_capacities()
         self.config_manager.set_cruise_control_auth()

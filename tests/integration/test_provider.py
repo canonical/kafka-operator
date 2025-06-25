@@ -12,13 +12,12 @@ from integration.helpers.pytest_operator import (
     SERIES,
     check_user,
     deploy_cluster,
-    get_address,
     get_client_usernames,
     get_provider_data,
     load_acls,
     load_super_users,
 )
-from literals import CONTROLLER_USER, INTERNAL_USERS, SECURITY_PROTOCOL_PORTS
+from literals import CONTROLLER_USER, INTERNAL_USERS
 
 logger = logging.getLogger(__name__)
 
@@ -74,13 +73,7 @@ async def test_deploy_charms_relate_active(
             model_full_name=ops_test.model_full_name,
         )
 
-    address = await get_address(ops_test)
-    port = SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
-    bootstrap_server = f"{address}:{port}"
-
-    for acl in load_acls(
-        model_full_name=ops_test.model_full_name, bootstrap_server=bootstrap_server
-    ):
+    for acl in load_acls(model_full_name=ops_test.model_full_name):
         assert acl.username in usernames
         assert acl.operation in ["READ", "DESCRIBE"]
         assert acl.resource_type in ["GROUP", "TOPIC"]
@@ -110,13 +103,7 @@ async def test_deploy_multiple_charms_same_topic_relate_active(
             model_full_name=ops_test.model_full_name,
         )
 
-    address = await get_address(ops_test)
-    port = SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
-    bootstrap_server = f"{address}:{port}"
-
-    for acl in load_acls(
-        model_full_name=ops_test.model_full_name, bootstrap_server=bootstrap_server
-    ):
+    for acl in load_acls(model_full_name=ops_test.model_full_name):
         assert acl.username in usernames
         assert acl.operation in ["READ", "DESCRIBE"]
         assert acl.resource_type in ["GROUP", "TOPIC"]
@@ -135,11 +122,7 @@ async def test_remove_application_removes_user_and_acls(
         await ops_test.model.wait_for_idle(apps=kafka_apps, idle_period=60, status="active")
 
     # checks that old users are removed from active cluster ACLs
-    address = await get_address(ops_test)
-    port = SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
-    bootstrap_server = f"{address}:{port}"
-
-    acls = load_acls(model_full_name=ops_test.model_full_name, bootstrap_server=bootstrap_server)
+    acls = load_acls(model_full_name=ops_test.model_full_name)
     acl_usernames = set()
     for acl in acls:
         acl_usernames.add(acl.username)
@@ -170,11 +153,7 @@ async def test_deploy_producer_same_topic(
             apps=[*kafka_apps, DUMMY_NAME_1], idle_period=60, status="active"
         )
 
-    address = await get_address(ops_test)
-    port = SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
-    bootstrap_server = f"{address}:{port}"
-
-    acls = load_acls(model_full_name=ops_test.model_full_name, bootstrap_server=bootstrap_server)
+    acls = load_acls(model_full_name=ops_test.model_full_name)
     acl_usernames = set()
     for acl in acls:
         acl_usernames.add(acl.username)

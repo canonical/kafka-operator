@@ -48,7 +48,7 @@ class AuthManager:
     def _get_acls_from_cluster(self) -> str:
         """Loads the currently active ACLs from the Kafka cluster."""
         command = [
-            f"--bootstrap-server={self.state.bootstrap_server}",
+            f"--bootstrap-server={self.state.bootstrap_server_internal}",
             f"--command-config={self.workload.paths.client_properties}",
             "--list",
         ]
@@ -169,7 +169,7 @@ class AuthManager:
             `(subprocess.CalledProcessError | ops.pebble.ExecError)`: if the error returned a non-zero exit code
         """
         command = [
-            f"--bootstrap-server={self.state.bootstrap_server}",
+            f"--bootstrap-server={self.state.bootstrap_server_internal}",
             f"--command-config={self.workload.paths.client_properties}",
             "--alter",
             "--entity-type=users",
@@ -206,7 +206,7 @@ class AuthManager:
             `(subprocess.CalledProcessError | ops.pebble.ExecError)`: if the error returned a non-zero exit code
         """
         command = [
-            f"--bootstrap-server={self.state.bootstrap_server}",
+            f"--bootstrap-server={self.state.bootstrap_server_internal}",
             f"--command-config={self.workload.paths.client_properties}",
             "--add",
             f"--allow-principal=User:{username}",
@@ -247,7 +247,7 @@ class AuthManager:
             `(subprocess.CalledProcessError | ops.pebble.ExecError)`: if the error returned a non-zero exit code
         """
         command = [
-            f"--bootstrap-server={self.state.bootstrap_server}",
+            f"--bootstrap-server={self.state.bootstrap_server_internal}",
             f"--command-config={self.workload.paths.client_properties}",
             "--remove",
             f"--allow-principal=User:{username}",

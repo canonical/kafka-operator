@@ -99,7 +99,7 @@ async def test_remove_controller_relation_relate(ops_test: OpsTest, kraft_mode, 
 async def test_listeners(ops_test: OpsTest, app_charm, kafka_apps):
     address = await get_address(ops_test=ops_test)
     assert check_socket(
-        address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].internal
+        address, SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].internal
     )  # Internal listener
 
     # Client listener should not be enabled if there is no relations

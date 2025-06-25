@@ -31,7 +31,6 @@ from literals import (
     PEER,
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
     PEER_CLUSTER_RELATION,
-    SECURITY_PROTOCOL_PORTS,
     KRaftUnitStatus,
 )
 from managers.auth import Acl, AuthManager
@@ -142,7 +141,8 @@ def get_unit_ipv4_address(model_full_name: str | None, unit_name: str) -> str | 
     return None
 
 
-def load_acls(model_full_name: str | None, bootstrap_server: str) -> Set[Acl]:
+def load_acls(model_full_name: str | None) -> Set[Acl]:
+    bootstrap_server = f"{get_unit_ipv4_address(model_full_name, 'kafka/0')}:19093"
     result = check_output(
         f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.acls --command-config {PATHS['kafka']['CONF']}/client.properties --bootstrap-server {bootstrap_server} --list'",
         stderr=PIPE,
@@ -170,8 +170,9 @@ def load_super_users(model_full_name: str | None) -> List[str]:
 
 
 def check_user(model_full_name: str | None, username: str) -> None:
+    bootstrap_server = f"{get_unit_ipv4_address(model_full_name, 'kafka/0')}:19093"
     result = check_output(
-        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.configs --bootstrap-server localhost:9092 --describe --entity-type users --entity-name {username}' --command-config /var/snap/charmed-kafka/current/etc/kafka/client.properties",
+        f"JUJU_MODEL={model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.configs --bootstrap-server {bootstrap_server} --describe --entity-type users --entity-name {username}' --command-config /var/snap/charmed-kafka/current/etc/kafka/client.properties",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -226,7 +227,7 @@ def extract_private_key(ops_test: OpsTest, unit_name: str) -> str | None:
         owner=unit_name,
     )
 
-    return user_secret.get("private-key")
+    return user_secret.get("client-private-key")
 
 
 def extract_ca(ops_test: OpsTest, unit_name: str) -> str | None:
@@ -381,10 +382,7 @@ def check_logs(ops_test: OpsTest, kafka_unit_name: str, topic: str) -> None:
 
 async def run_client_properties(ops_test: OpsTest) -> str:
     """Runs command requiring admin permissions, authenticated with bootstrap-server."""
-    bootstrap_server = (
-        await get_address(ops_test=ops_test)
-        + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT', 'SCRAM-SHA-512'].client}"
-    )
+    bootstrap_server = f"{get_unit_ipv4_address(ops_test.model_full_name, 'kafka/0')}:19093"
     result = check_output(
         f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.configs --bootstrap-server {bootstrap_server} --describe --all --command-config {PATHS['kafka']['CONF']}/client.properties --entity-type users'",
         stderr=PIPE,
@@ -738,7 +736,7 @@ async def list_truststore_aliases(ops_test: OpsTest, unit: str = f"{APP_NAME}/0"
 
     try:
         result = check_output(
-            f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit} sudo -i 'charmed-kafka.keytool -list -keystore /var/snap/charmed-kafka/current/etc/kafka/truststore.jks -storepass {truststore_password}'",
+            f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit} sudo -i 'charmed-kafka.keytool -list -keystore /var/snap/charmed-kafka/current/etc/kafka/client-truststore.jks -storepass {truststore_password}'",
             stderr=PIPE,
             shell=True,
             universal_newlines=True,
