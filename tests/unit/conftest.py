@@ -34,9 +34,12 @@ def zk_data() -> dict[str, str]:
 
 @pytest.fixture(scope="module")
 def kraft_data() -> dict[str, str]:
+    tls_data = generate_tls_artifacts(sans_ip=["10.10.10.11"])
     return {
         "bootstrap-controller": "10.10.10.10:9097",
         "cluster-uuid": "random-uuid",
+        "internal-ca": tls_data.ca,
+        "internal-ca-key": tls_data.signing_key,
     }
 
 

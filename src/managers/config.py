@@ -10,12 +10,14 @@ import os
 import re
 import textwrap
 from abc import abstractmethod
+from functools import cached_property
 from typing import Iterable, cast
 
 from lightkube.core.exceptions import ApiError
 from typing_extensions import override
 
 from core.cluster import ClusterState
+from core.models import PeerCluster
 from core.structured_config import CharmConfig, LogLevel
 from core.workload import CharmedKafkaPaths, WorkloadBase
 from literals import (
@@ -23,8 +25,6 @@ from literals import (
     BALANCER,
     BALANCER_GOALS_TESTING,
     BROKER,
-    CONTROLLER_LISTENER_NAME,
-    CONTROLLER_PORT,
     CONTROLLER_USER,
     DEFAULT_BALANCER_GOALS,
     HARD_BALANCER_GOALS,
@@ -175,6 +175,11 @@ class CommonConfigManager:
     config: CharmConfig
     workload: WorkloadBase
     state: ClusterState
+
+    @cached_property
+    def peer_cluster_state(self) -> PeerCluster:
+        """Cached peer_cluster state."""
+        return self.state.peer_cluster
 
     @property
     def log_level(self) -> str:
@@ -335,21 +340,60 @@ class ConfigManager(CommonConfigManager):
         Returns:
             List of properties to be set
         """
-        mtls = "required" if self.state.cluster.mtls_enabled else "none"
-        return [
+        properties = []
+
+        # Internal listeners always use TLS regardless.
+        for listener in self.controller_listeners + [self.internal_listener]:
+            listener_name = listener.name.lower()
+            properties += [
+                f"listener.name.{listener_name}.ssl.truststore.location={self.workload.paths.peer_truststore}",
+                f"listener.name.{listener_name}.ssl.truststore.password={self.state.unit_broker.truststore_password}",
+                f"listener.name.{listener_name}.ssl.keystore.location={self.workload.paths.peer_keystore}",
+                f"listener.name.{listener_name}.ssl.keystore.password={self.state.unit_broker.keystore_password}",
+            ]
+
+        if not all([self.state.cluster.tls_enabled, self.state.unit_broker.client_tls.ready]):
+            return properties
+
+        return properties + [
             f"ssl.truststore.location={self.workload.paths.truststore}",
             f"ssl.truststore.password={self.state.unit_broker.truststore_password}",
             f"ssl.keystore.location={self.workload.paths.keystore}",
             f"ssl.keystore.password={self.state.unit_broker.keystore_password}",
-            f"ssl.client.auth={mtls}",
         ]
 
     @property
-    def scram_properties(self) -> list[str]:
-        """Builds the properties for each scram listener.
+    def client_tls_properties(self) -> list[str]:
+        """Builds the properties necessary for TLS authentication of clients, either internal or KRaft.
 
         Returns:
-            list of scram properties to be set
+            List of properties to be set
+        """
+        return [
+            f"ssl.truststore.location={self.workload.paths.peer_truststore}",
+            f"ssl.truststore.password={self.state.unit_broker.truststore_password}",
+            f"ssl.keystore.location={self.workload.paths.peer_keystore}",
+            f"ssl.keystore.password={self.state.unit_broker.keystore_password}",
+        ]
+
+    @property
+    def mtls_properties(self) -> list[str]:
+        """Builds the properties necessary for MTLS authentication.
+
+        Returns:
+            List of properties to be set
+        """
+        if not self.state.cluster.mtls_enabled:
+            return []
+
+        return ["ssl.client.auth=required"]
+
+    @property
+    def scram_properties(self) -> list[str]:
+        """Builds the properties for each SCRAM listener.
+
+        Returns:
+            list of SCRAM properties to be set
         """
         username = INTER_BROKER_USER
         password = self.state.cluster.internal_user_credentials.get(INTER_BROKER_USER, "")
@@ -383,18 +427,22 @@ class ConfigManager(CommonConfigManager):
         """Builds the SCRAM properties for controller listener.
 
         Returns:
-            list of scram properties to be set
+            list of SCRAM properties to be set
         """
-        password = self.state.peer_cluster.controller_password
-        listener_mechanism = self.internal_listener.mechanism.lower()
-        listener_name = CONTROLLER_LISTENER_NAME.lower()
+        password = self.peer_cluster_state.controller_password
+        listeners = []
 
-        return [
-            "sasl.enabled.mechanisms=SCRAM-SHA-512",
-            f"sasl.mechanism.controller.protocol={self.internal_listener.mechanism}",
-            f'listener.name.{listener_name}.{listener_mechanism}.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{CONTROLLER_USER}" password="{password}" user_{CONTROLLER_USER}="{password}";',
-            f"listener.name.{listener_name}.sasl.enabled.mechanisms={self.internal_listener.mechanism}",
-        ]
+        for listener in self.controller_listeners:
+            listener_mechanism = listener.mechanism.lower()
+            listener_name = listener.name.lower()
+
+            listeners += [
+                f"sasl.mechanism.controller.protocol={listener.mechanism}",
+                f'listener.name.{listener_name}.{listener_mechanism}.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{CONTROLLER_USER}" password="{password}" user_{CONTROLLER_USER}="{password}";',
+                f"listener.name.{listener_name}.sasl.enabled.mechanisms={listener.mechanism}",
+            ]
+
+        return listeners
 
     @property
     def controller_kraft_client_properties(self) -> list[str]:
@@ -403,13 +451,22 @@ class ConfigManager(CommonConfigManager):
         Returns:
             list of KRaft client properties to be set
         """
-        password = self.state.peer_cluster.controller_password
+        password = self.peer_cluster_state.controller_password
 
-        return [
-            f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{CONTROLLER_USER}" password="{password}";',
-            f"sasl.mechanism={self.internal_listener.mechanism}",
-            "security.protocol=SASL_PLAINTEXT",
-        ]
+        stripped_properties = list(set(self.server_properties) - set(self.tls_properties))
+        stripped_properties.sort()
+
+        return (
+            stripped_properties
+            + [
+                f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{CONTROLLER_USER}" password="{password}";',
+                f"sasl.mechanism={self.active_controller_listener.mechanism}",
+                f"security.protocol={self.active_controller_listener.protocol}",
+                "default.api.timeout.ms=20000",
+                "request.timeout.ms=10000",
+            ]
+            + self.client_tls_properties
+        )
 
     @property
     def oauth_properties(self) -> list[str]:
@@ -468,14 +525,23 @@ class ConfigManager(CommonConfigManager):
         """Return the internal listener."""
         return Listener(
             host=self.state.unit_broker.internal_address,
-            auth_map=self.state.default_auth,
+            auth_map=self.state.internal_auth,
             scope="INTERNAL",
         )
 
     @property
-    def controller_listener(self) -> None:
-        """Return the controller listener."""
-        pass  # TODO: No good abstraction in place for the controller use case
+    def active_controller_listener(self) -> Listener:
+        """Returns the active (current) controller listener."""
+        return Listener(
+            host=self.state.unit_broker.internal_address,
+            auth_map=self.state.internal_auth,
+            scope="CONTROLLER",
+        )
+
+    @property
+    def controller_listeners(self) -> list[Listener]:
+        """Return all controller listeners including those used in controller listener upgrades."""
+        return [self.active_controller_listener]
 
     @property
     def extra_listeners(self) -> list[Listener]:
@@ -556,6 +622,7 @@ class ConfigManager(CommonConfigManager):
             + self.client_listeners
             + self.external_listeners
             + self.extra_listeners
+            + (self.controller_listeners if self.state.runs_controller else [])
         )
 
     @property
@@ -611,13 +678,10 @@ class ConfigManager(CommonConfigManager):
 
         properties = [
             f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";',
-            f"sasl.mechanism={self.state.default_auth.mechanism}",
-            f"security.protocol={self.state.default_auth.protocol}",
-            f"bootstrap.servers={self.state.bootstrap_server}",
-        ]
-
-        if self.state.cluster.tls_enabled and self.state.unit_broker.certificate:
-            properties += self.tls_properties
+            f"sasl.mechanism={self.state.internal_auth.mechanism}",
+            f"security.protocol={self.state.internal_auth.protocol}",
+            f"bootstrap.servers={self.state.bootstrap_server_internal}",
+        ] + self.client_tls_properties
 
         return [f"{prefix}.{prop}" if prefix else prop for prop in properties]
 
@@ -656,10 +720,9 @@ class ConfigManager(CommonConfigManager):
         properties = [
             f"process.roles={','.join(roles)}",
             f"node.id={node_id}",
-            f"controller.quorum.bootstrap.servers={self.state.peer_cluster.bootstrap_controller}",
-            f"controller.listener.names={CONTROLLER_LISTENER_NAME}",
+            f"controller.quorum.bootstrap.servers={self.peer_cluster_state.bootstrap_controller}",
+            f"controller.listener.names={','.join([listener.name for listener in self.controller_listeners])}",
             *self.controller_scram_properties,
-            *self.controller_kraft_client_properties,
         ]
 
         return properties
@@ -679,9 +742,10 @@ class ConfigManager(CommonConfigManager):
         protocol_map = [listener.protocol_map for listener in self.all_listeners]
         listeners_repr = [listener.listener for listener in self.all_listeners]
         advertised_listeners = [listener.advertised_listener for listener in self.all_listeners]
-
-        controller_protocol_map = f"{CONTROLLER_LISTENER_NAME}:SASL_PLAINTEXT"
-        controller_listener = f"{CONTROLLER_LISTENER_NAME}://{self.state.unit_broker.internal_address}:{CONTROLLER_PORT}"
+        controller_listeners = [
+            listener.advertised_listener for listener in self.controller_listeners
+        ]
+        controller_protocol_map = [listener.protocol_map for listener in self.controller_listeners]
 
         # NOTE: Case where the controller is running standalone. Early return with a
         # smaller subset of config options
@@ -690,17 +754,19 @@ class ConfigManager(CommonConfigManager):
                 [
                     f"super.users={self.state.super_users}",
                     f"log.dirs={self.state.log_dirs}",
-                    f"listeners={controller_listener}",
-                    f"listener.security.protocol.map={controller_protocol_map}",
+                    f"listeners={','.join(controller_listeners)}",
+                    f"listener.security.protocol.map={','.join(controller_protocol_map)}",
                 ]
                 + self.controller_properties
                 + self.authorizer_class
+                + self.tls_properties
+                # TODO: might want to add self.mtls_properties
             )
             return properties
 
-        protocol_map.append(controller_protocol_map)
-        if self.state.runs_controller:
-            listeners_repr.append(controller_listener)
+        if self.state.runs_broker_only:
+            # KRaft, broker only: we don't need the listener, but still need the protocol mapping
+            protocol_map += controller_protocol_map
 
         properties = (
             [
@@ -720,12 +786,11 @@ class ConfigManager(CommonConfigManager):
             + DEFAULT_CONFIG_OPTIONS.split("\n")
             + self.authorizer_class
             + self.controller_properties
+            + self.tls_properties
+            + self.mtls_properties
         )
 
-        if self.state.cluster.tls_enabled and self.state.unit_broker.certificate:
-            properties += self.tls_properties
-
-        if self.state.runs_balancer or BALANCER.value in self.state.peer_cluster.roles:
+        if self.state.runs_balancer or BALANCER.value in self.peer_cluster_state.roles:
             properties += KAFKA_CRUISE_CONTROL_OPTIONS.splitlines()
             properties += self.metrics_reporter_properties
 
@@ -753,6 +818,10 @@ class ConfigManager(CommonConfigManager):
         """Writes all client config properties to the `client.properties` path."""
         self.workload.write(
             content="\n".join(self.client_properties), path=self.workload.paths.client_properties
+        )
+        self.workload.write(
+            content="\n".join(self.controller_kraft_client_properties),
+            path=self.workload.paths.kraft_client_properties,
         )
 
     def set_environment(self) -> None:
@@ -841,12 +910,12 @@ class BalancerConfigManager(CommonConfigManager):
         if self.config.profile == PROFILE_TESTING:
             goals = BALANCER_GOALS_TESTING
 
-        if self.state.peer_cluster.racks:
+        if self.peer_cluster_state.racks:
             if (
                 min(
-                    [3, len(self.state.peer_cluster.broker_capacities.get("brokerCapacities", []))]
+                    [3, len(self.peer_cluster_state.broker_capacities.get("brokerCapacities", []))]
                 )
-                > self.state.peer_cluster.racks
+                > self.peer_cluster_state.racks
             ):  # replication-factor > racks is not ideal
                 goals = goals + ["RackAwareDistribution"]
             else:
@@ -870,9 +939,9 @@ class BalancerConfigManager(CommonConfigManager):
             List of properties to be set
         """
         return [
-            f"ssl.truststore.location={self.workload.paths.truststore}",
+            f"ssl.truststore.location={self.workload.paths.peer_truststore}",
             f"ssl.truststore.password={self.state.unit_broker.truststore_password}",
-            f"ssl.keystore.location={self.workload.paths.keystore}",
+            f"ssl.keystore.location={self.workload.paths.peer_keystore}",
             f"ssl.keystore.password={self.state.unit_broker.keystore_password}",
             "ssl.client.auth=none",  # TODO mTLS related. Will need changing if mTLS is introduced
         ]
@@ -886,20 +955,18 @@ class BalancerConfigManager(CommonConfigManager):
         """
         properties = (
             [
-                f"bootstrap.servers={self.state.peer_cluster.broker_uris}",
-                f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{self.state.peer_cluster.broker_username}" password="{self.state.peer_cluster.broker_password}";',
-                f"sasl.mechanism={self.state.default_auth.mechanism}",
-                f"security.protocol={self.state.default_auth.protocol}",
+                f"bootstrap.servers={self.peer_cluster_state.broker_uris}",
+                f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{self.peer_cluster_state.broker_username}" password="{self.peer_cluster_state.broker_password}";',
+                f"sasl.mechanism={self.state.internal_auth.mechanism}",
+                f"security.protocol={self.state.internal_auth.protocol}",
                 f"capacity.config.file={self.workload.paths.capacity_jbod_json}",
                 "webserver.security.enable=true",
                 f"webserver.auth.credentials.file={self.workload.paths.cruise_control_auth}",
             ]
             + CRUISE_CONTROL_CONFIG_OPTIONS.split("\n")
             + self.goals
+            + self.cc_tls_properties
         )
-
-        if self.state.cluster.tls_enabled and self.state.unit_broker.certificate:
-            properties += self.cc_tls_properties
 
         if self.config.profile == PROFILE_TESTING:
             properties += CRUISE_CONTROL_TESTING_OPTIONS.split("\n")
@@ -916,7 +983,7 @@ class BalancerConfigManager(CommonConfigManager):
     def set_broker_capacities(self) -> None:
         """Writes all broker storage capacities to `capacityJBOD.json`."""
         self.workload.write(
-            content=json.dumps(self.state.peer_cluster.broker_capacities),
+            content=json.dumps(self.peer_cluster_state.broker_capacities),
             path=self.workload.paths.capacity_jbod_json,
         )
 

@@ -9,11 +9,11 @@ import pytest
 from pytest_operator.plugin import OpsTest
 
 from literals import (
-    CONTROLLER_PORT,
     KRAFT_NODE_ID_OFFSET,
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
     PEER_CLUSTER_RELATION,
     SECURITY_PROTOCOL_PORTS,
+    AuthMap,
 )
 
 from .helpers import (
@@ -48,16 +48,15 @@ class TestKRaft:
     async def _assert_listeners_accessible(
         self, ops_test: OpsTest, broker_unit_num=0, controller_unit_num=0
     ):
+        auth_map = AuthMap("SASL_SSL", "SCRAM-SHA-512")
         logger.info(f"Asserting broker listeners are up: {APP_NAME}/{broker_unit_num}")
         address = await get_address(ops_test=ops_test, app_name=APP_NAME, unit_num=broker_unit_num)
         assert check_socket(
-            address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].internal
+            address, SECURITY_PROTOCOL_PORTS[auth_map].internal
         )  # Internal listener
 
         # Client listener should not be enabled if there is no relations
-        assert not check_socket(
-            address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
-        )
+        assert not check_socket(address, SECURITY_PROTOCOL_PORTS[auth_map].client)
 
         logger.info(
             f"Asserting controller listeners are up: {self.controller_app}/{controller_unit_num}"
@@ -68,7 +67,7 @@ class TestKRaft:
                 ops_test=ops_test, app_name=self.controller_app, unit_num=controller_unit_num
             )
 
-        assert check_socket(address, CONTROLLER_PORT)
+        assert check_socket(address, SECURITY_PROTOCOL_PORTS[auth_map].controller)
 
     @pytest.mark.abort_on_fail
     @pytest.mark.skip_if_deployed
@@ -151,7 +150,7 @@ class TestKRaft:
     async def test_authorizer(self, ops_test: OpsTest):
 
         address = await get_address(ops_test=ops_test)
-        port = SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].internal
+        port = SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].internal
 
         await create_test_topic(ops_test, f"{address}:{port}")
 
@@ -171,7 +170,8 @@ class TestKRaft:
         )
 
         address = await get_address(ops_test=ops_test, app_name=self.controller_app)
-        bootstrap_controller = f"{address}:{CONTROLLER_PORT}"
+        controller_port = SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].controller
+        bootstrap_controller = f"{address}:{controller_port}"
 
         unit_status = kraft_quorum_status(
             ops_test, f"{self.controller_app}/0", bootstrap_controller
@@ -209,7 +209,8 @@ class TestKRaft:
             await asyncio.sleep(120)
 
         address = await get_address(ops_test=ops_test, app_name=self.controller_app, unit_num=1)
-        bootstrap_controller = f"{address}:{CONTROLLER_PORT}"
+        controller_port = SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].controller
+        bootstrap_controller = f"{address}:{controller_port}"
         offset = KRAFT_NODE_ID_OFFSET if self.controller_app == APP_NAME else 0
 
         unit_status = kraft_quorum_status(
@@ -258,7 +259,8 @@ class TestKRaft:
             await asyncio.sleep(120)
 
         address = await get_address(ops_test=ops_test, app_name=self.controller_app, unit_num=3)
-        bootstrap_controller = f"{address}:{CONTROLLER_PORT}"
+        controller_port = SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].controller
+        bootstrap_controller = f"{address}:{controller_port}"
         offset = KRAFT_NODE_ID_OFFSET if self.deployment_strat == "single" else 0
 
         unit_status = kraft_quorum_status(

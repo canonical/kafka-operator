@@ -45,6 +45,10 @@ requires:
     interface: tls-certificates
     limit: 1
     optional: true
+  peer-certificates:
+    interface: tls-certificates
+    limit: 1
+    optional: true
   client-cas:
     interface: certificate_transfer
     optional: true

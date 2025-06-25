@@ -80,7 +80,7 @@ class KRaftHandler(Object):
             event.defer()
             return
 
-        self._format_storages()
+        self.format_storages()
 
         # update status to add controller
         self.charm.on.update_status.emit()
@@ -90,6 +90,7 @@ class KRaftHandler(Object):
         if not self.upgrade.idle or not self.broker.healthy:
             return
 
+        self.broker.config_manager.set_client_properties()
         self.add_to_quorum()
 
     def _init_kraft_mode(self) -> None:
@@ -116,16 +117,8 @@ class KRaftHandler(Object):
         if self.charm.state.runs_controller and not self.charm.state.cluster.bootstrap_controller:
 
             generated_password = self.charm.workload.generate_password()
-
-            if self.charm.state.peer_cluster_orchestrator:
-
-                if not self.charm.state.peer_cluster_orchestrator.controller_password:
-                    self.charm.state.peer_cluster_orchestrator.update(
-                        {"controller-password": generated_password}
-                    )
-            elif not self.charm.state.peer_cluster.controller_password:
-                # single mode, controller & leader
-                self.charm.state.cluster.update({"controller-password": generated_password})
+            self.charm.state.cluster.update({"controller-password": generated_password})
+            self.charm.state.kraft_cluster.update({"controller-password": generated_password})
 
             bootstrap_data = {
                 "bootstrap-controller": self.charm.state.bootstrap_controller,
@@ -134,8 +127,12 @@ class KRaftHandler(Object):
             }
             self.charm.state.cluster.update(bootstrap_data)
 
-    def _format_storages(self) -> None:
+    def format_storages(self) -> None:
         """Format storages provided relevant keys exist."""
+        if self.controller_manager.get_directory_id(self.charm.state.log_dirs):
+            # Already formatted!
+            return
+
         self.broker.config_manager.set_server_properties()
         if self.charm.state.runs_broker:
             credentials = self.charm.state.cluster.internal_user_credentials
