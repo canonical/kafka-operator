@@ -100,8 +100,9 @@ def java_jks_test(truststore_path: str, truststore_password: str, ssl_server_por
 
 
 @pytest.fixture()
-def tls_manager(tmp_path_factory):
+def tls_manager(tmp_path_factory, monkeypatch):
     """A TLSManager instance with minimal functioning mock `Workload` and `State`."""
+    monkeypatch.undo()
     mock_workload = MagicMock(spec=WorkloadBase)
     mock_workload.write = lambda content, path: open(path, "w").write(content)
     mock_workload.exec = _exec
@@ -294,7 +295,7 @@ def test_tls_manager_truststore_functionality(
     tls_manager.remove_cert("other-app")
     log_record = caplog.records[-1]
     assert "alias <other-app> does not exist" in log_record.msg.lower()
-    assert log_record.levelname == "WARNING"
+    assert log_record.levelname == "DEBUG"
 
 
 @pytest.mark.skipif(
@@ -349,3 +350,32 @@ def test_simulate_os_errors(tls_manager: TLSManager):
 
     with pytest.raises(subprocess.CalledProcessError):
         tls_manager.remove_cert("some-alias")
+
+
+def test_peer_cluster_trust(tls_manager: TLSManager):
+    _set_manager_state(tls_manager)
+    tls_manager.state.roles = "broker"
+    tls_data = generate_tls_artifacts(subject="controller/0")
+
+    tls_manager.state.peer_cluster_ca = [tls_data.ca]
+    tls_manager.update_peer_cluster_trust()
+
+    trusted_certs = tls_manager.peer_trusted_certificates
+    assert f"{tls_manager.PEER_CLUSTER_ALIAS}0" in trusted_certs
+    assert len(trusted_certs) == 1
+    fingerprint = next(iter(trusted_certs.values()))
+
+    # expect no-op here
+    tls_manager.update_peer_cluster_trust()
+    assert len(tls_manager.peer_trusted_certificates) == 1
+
+    # Now let's rotate
+    new_tls_data = generate_tls_artifacts(subject="controller/0")
+    tls_manager.state.peer_cluster_ca = [new_tls_data.ca]
+
+    tls_manager.update_peer_cluster_trust()
+    trusted_certs = tls_manager.peer_trusted_certificates
+    assert f"{tls_manager.PEER_CLUSTER_ALIAS}0" in trusted_certs
+    assert len(trusted_certs) == 1
+    new_fingerprint = next(iter(trusted_certs.values()))
+    assert new_fingerprint != fingerprint

@@ -107,6 +107,9 @@ class PeerClusterEventsHandler(Object):
 
         self._default_relation_changed(event)
 
+        # Update peer-cluster chain of trust
+        self.charm.state.peer_cluster_ca = self.charm.state.unit_broker.peer_tls.bundle
+
         # will no-op if relation does not exist
         self.charm.state.peer_cluster.update(
             {
@@ -117,7 +120,6 @@ class PeerClusterEventsHandler(Object):
                 "bootstrap-controller": self.charm.state.peer_cluster.bootstrap_controller,
                 "bootstrap-unit-id": self.charm.state.peer_cluster.bootstrap_unit_id,
                 "bootstrap-replica-id": self.charm.state.peer_cluster.bootstrap_replica_id,
-                "controller-ca": self.charm.state.unit_broker.peer_tls.ca,
             }
         )
 
@@ -138,6 +140,9 @@ class PeerClusterEventsHandler(Object):
 
         self._default_relation_changed(event)
 
+        # Update peer-cluster chain of trust
+        self.charm.state.peer_cluster_ca = self.charm.state.unit_broker.peer_tls.bundle
+
         # will no-op if relation does not exist
         self.charm.state.peer_cluster.update(
             {
@@ -149,7 +154,6 @@ class PeerClusterEventsHandler(Object):
                 "racks": str(self.charm.state.peer_cluster.racks),
                 "broker-capacities": json.dumps(self.charm.state.peer_cluster.broker_capacities),
                 "super-users": self.charm.state.super_users,
-                "broker-ca": self.charm.state.unit_broker.peer_tls.ca,
             }
         )
 

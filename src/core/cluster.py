@@ -4,6 +4,7 @@
 
 """Objects representing the state of KafkaCharm."""
 
+import json
 import logging
 import os
 from functools import cached_property
@@ -40,6 +41,7 @@ from literals import (
     CERTIFICATE_TRANSFER_RELATION,
     CONTROLLER,
     CONTROLLER_USER,
+    INTERNAL_TLS_RELATION,
     INTERNAL_USERS,
     KRAFT_NODE_ID_OFFSET,
     MIN_REPLICAS,
@@ -626,6 +628,11 @@ class ClusterState(Object):
         return self.peer_cluster
 
     @property
+    def use_internal_tls(self) -> bool:
+        """..."""
+        return not bool(self.model.get_relation(INTERNAL_TLS_RELATION))
+
+    @property
     def internal_ca(self) -> Certificate | None:
         """The internal CA certificate used for the peer relations."""
         ca = self.cluster.relation_data.get("internal-ca", "")
@@ -653,22 +660,22 @@ class ClusterState(Object):
         self.cluster.update({"internal-ca-key": value})
 
     @property
-    def peer_cluster_ca(self) -> str:
-        """CA certificate of the peer-cluster app."""
+    def peer_cluster_ca(self) -> list[str]:
+        """CA certificate chain of the peer-cluster app."""
         if self.runs_broker_only:
-            return self.kraft_cluster.relation_data.get("controller-ca", "")
+            return json.loads(self.kraft_cluster.relation_data.get("controller-ca", "null")) or []
 
         if self.runs_controller_only:
-            return self.kraft_cluster.relation_data.get("broker-ca", "")
+            return json.loads(self.kraft_cluster.relation_data.get("broker-ca", "null")) or []
 
         # KRaft single mode
-        return self.unit_broker.peer_tls.ca
+        return self.unit_broker.peer_tls.bundle
 
     @peer_cluster_ca.setter
-    def peer_cluster_ca(self, value: str) -> None:
+    def peer_cluster_ca(self, value: str | list[str]) -> None:
+        _value = [value] if isinstance(value, str) else value
+        _value = json.dumps(_value)
         if self.runs_broker_only:
-            self.kraft_cluster.update({"broker-ca": value})
+            self.kraft_cluster.update({"broker-ca": _value})
         elif self.runs_controller_only:
-            self.kraft_cluster.update({"controller-ca": value})
-
-        self.unit_broker.peer_tls.ca = value
+            self.kraft_cluster.update({"controller-ca": _value})

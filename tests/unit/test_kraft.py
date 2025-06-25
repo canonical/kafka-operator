@@ -12,6 +12,7 @@ import pytest
 import yaml
 from ops import ActiveStatus
 from ops.testing import Container, Context, PeerRelation, Relation, State
+from tests.unit.helpers import generate_tls_artifacts
 
 from charm import KafkaCharm
 from literals import (
@@ -122,8 +123,11 @@ def test_ready_to_start_missing_broker_data_as_controller(charm_configuration, b
         actions=ACTIONS,
     )
     cluster_peer = PeerRelation(PEER, PEER)
+    tls_data = generate_tls_artifacts()
     peer_cluster = Relation(
-        PEER_CLUSTER_RELATION, "peer_cluster", remote_app_data={"broker-ca": "broker-ca"}
+        PEER_CLUSTER_RELATION,
+        "peer_cluster",
+        remote_app_data={"broker-ca": json.dumps([tls_data.ca])},
     )
     state_in = dataclasses.replace(base_state, relations=[cluster_peer, peer_cluster])
 
