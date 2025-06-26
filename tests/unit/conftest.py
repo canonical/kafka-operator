@@ -81,6 +81,13 @@ def patched_trust(monkeypatch: pytest.MonkeyPatch):
 
 
 @pytest.fixture(autouse=True)
+def patched_get_users():
+    # patch AuthManager.get_users here, we have unit tests in test_auth
+    with patch("managers.auth.AuthManager.get_users", return_value=["admin"]):
+        yield
+
+
+@pytest.fixture(autouse=True)
 def random_uuid():
     with patch("managers.controller.ControllerManager.generate_uuid") as gen_uuid:
         gen_uuid.return_value = "some-random-uuid"
