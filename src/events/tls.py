@@ -25,6 +25,7 @@ from charms.tls_certificates_interface.v4.tls_certificates import (
 from ops.charm import (
     ActionEvent,
     RelationBrokenEvent,
+    RelationCreatedEvent,
 )
 from ops.framework import EventBase, EventSource, Object
 
@@ -153,12 +154,13 @@ class TLSHandler(Object):
                 {"truststore-password": self.charm.workload.generate_password()}
             )
 
-    def _tls_relation_created(self, _) -> None:
+    def _tls_relation_created(self, event: RelationCreatedEvent) -> None:
         """Handler for `certificates_relation_created` event."""
         if not self.charm.unit.is_leader() or not self.charm.state.peer_relation:
             return
 
-        self.charm.state.cluster.update({"tls": "enabled"})
+        if event.relation.name == TLS_RELATION:
+            self.charm.state.cluster.update({"tls": "enabled"})
 
     def _tls_relation_broken(self, event: RelationBrokenEvent) -> None:
         """Handler for `certificates_relation_broken` event."""
@@ -232,7 +234,7 @@ class TLSHandler(Object):
             # this will trigger a restart.
             state.rotation = True
 
-        if state.scope == TLSScope.PEER:
+        if state.scope == TLSScope.PEER and self.charm.unit.is_leader():
             self.charm.state.peer_cluster_ca = state.bundle
 
         self.update_truststore()
