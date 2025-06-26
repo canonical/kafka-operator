@@ -1,0 +1,71 @@
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+name: Sync feature PRs to kafka-k8s-operator
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  sync-pr:
+    runs-on: ubuntu-latest
+    # Run for feature branches only
+    if: contains(github.head_ref, 'dpe-')
+
+    steps:
+    - name: Checkout kafka
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+
+    - name: Checkout kafka-k8s
+      uses: actions/checkout@v4
+      with:
+        repository: canonical/kafka-k8s-operator
+        token: ${{ secrets.GITHUB_TOKEN }}
+        path: kafka-k8s-operator
+        fetch-depth: 0
+
+    - name: Configure Git
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Create branch in kafka-k8s
+      run: |
+        cd kafka-k8s-operator
+        git checkout -b ${{ github.head_ref }}
+
+    - name: Copy changes to kafka-k8s
+      run: |
+        # Generate patches from PR branch
+        git format-patch origin/${{ github.base_ref }} --stdout > /tmp/patches.diff
+        cd kafka-k8s-operator
+        # Apply patches; abort and fail gracefully if there are conflicts
+        if ! git am < ../tmp/patches.diff; then
+          echo "Patch application failed"
+          git am --abort
+          exit 1
+        fi
+
+    - name: Commit and push to kafka-k8s
+      run: |
+        cd kafka-k8s-operator
+        git push origin ${{ github.head_ref }}
+
+    - name: Create PR in kafka-k8s
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const { data: pr } = await github.rest.pulls.create({
+            owner: 'canonical',
+            repo: 'kafka-k8s-operator',
+            title: `[Auto-sync] ${context.payload.pull_request.title}`,
+            head: '${{ github.head_ref }}',
+            base: 'main',
+            body: `This PR was automatically created from kafka PR #${{ github.event.number }}.
+
+Original PR: ${{ github.event.pull_request.html_url }}
+Original Author: @${{ github.event.pull_request.user.login }}
