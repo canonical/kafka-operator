@@ -129,7 +129,7 @@ class KRaftHandler(Object):
 
     def format_storages(self) -> None:
         """Format storages provided relevant keys exist."""
-        if self.controller_manager.get_directory_id(self.charm.state.log_dirs):
+        if self.controller_manager.get_metadata_directory_id(self.charm.state.log_dirs):
             # Already formatted!
             return
 
