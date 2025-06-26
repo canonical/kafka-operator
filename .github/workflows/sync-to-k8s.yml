@@ -69,3 +69,26 @@ jobs:
 
 Original PR: ${{ github.event.pull_request.html_url }}
 Original Author: @${{ github.event.pull_request.user.login }}
+
+---
+
+${{ github.event.pull_request.body || 'No description provided.' }}`
+          });
+
+        // Get reviewers from the original PR
+        const reviewersResp = await github.rest.pulls.listRequestedReviewers({
+          owner: context.repo.owner,
+          repo: context.repo.repo,
+          pull_number: context.payload.pull_request.number,
+        });
+        const reviewers = reviewersResp.data.users.map(u => u.login);
+
+        // Request reviewers on the new PR (if any)
+        if (reviewers.length > 0) {
+          await github.rest.pulls.requestReviewers({
+            owner: 'canonical',
+            repo: 'kafka-k8s-operator',
+            pull_number: pr.number,
+            reviewers: reviewers,
+          });
+        }
