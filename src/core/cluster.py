@@ -679,3 +679,28 @@ class ClusterState(Object):
             self.kraft_cluster.update({"broker-ca": _value})
         elif self.runs_controller_only:
             self.kraft_cluster.update({"controller-ca": _value})
+
+    @property
+    def tls_rotation(self) -> bool:
+        """Returns True if TLS rotation is in progress, False otherwise."""
+        return any(
+            [
+                self.unit_broker.client_tls.rotation,
+                self.unit_broker.peer_tls.rotation,
+            ]
+        )
+
+    @tls_rotation.setter
+    def tls_rotation(self, value: bool) -> None:
+        self.unit_broker.client_tls.rotation = value
+        self.unit_broker.peer_tls.rotation = value
+
+    @property
+    def balancer_tls_rotation(self) -> bool:
+        """Returns True if TLS rotation is in progress, False otherwise."""
+        return bool(self.cluster.relation_data.get("balancer-rotation", ""))
+
+    @balancer_tls_rotation.setter
+    def balancer_tls_rotation(self, value: bool) -> None:
+        _value = "" if not value else "true"
+        self.cluster.update({"balancer-rotation": _value})

@@ -6,6 +6,7 @@
 
 import json
 import logging
+from subprocess import CalledProcessError
 from typing import TYPE_CHECKING
 
 from charms.operator_libs_linux.v2.snap import SnapError
@@ -249,12 +250,6 @@ class BrokerOperator(Object):
 
         # Update peer-cluster trusted certs and check for TLS rotation
         self.tls_manager.update_peer_cluster_trust()
-        tls_rotation = any(
-            [
-                self.charm.state.unit_broker.client_tls.rotation,
-                self.charm.state.unit_broker.peer_tls.rotation,
-            ]
-        )
 
         if sans_ip_changed or sans_dns_changed:
             logger.info(
@@ -282,7 +277,7 @@ class BrokerOperator(Object):
             )
             self.config_manager.set_server_properties()
 
-        if properties_changed or tls_rotation:
+        if properties_changed or self.charm.state.tls_rotation:
             if isinstance(event, StorageEvent):  # to get new storages
                 self.controller_manager.format_storages(
                     uuid=self.charm.state.peer_cluster.cluster_uuid,
@@ -310,10 +305,16 @@ class BrokerOperator(Object):
         # Update truststore if needed.
         self.charm.tls.update_truststore()
 
-        # Reset TLS rotation state
-        if tls_rotation:
-            self.charm.state.unit_broker.client_tls.rotation = False
-            self.charm.state.unit_broker.peer_tls.rotation = False
+        if self.charm.state.tls_rotation:
+            # If TLS rotation is needed, inform the balancer.
+            if self.charm.state.runs_balancer:
+                self.charm.state.balancer_tls_rotation = True
+
+            # Reset TLS rotation state
+            self.charm.state.tls_rotation = False
+
+        if self.charm.unit.is_leader():
+            self.update_credentials_cache()
 
         # If Kafka is related to client charms, update their information.
         if self.model.relations.get(REL_NAME, None) and self.charm.unit.is_leader():
@@ -477,12 +478,19 @@ class BrokerOperator(Object):
         if not all([self.charm.unit.is_leader(), self.charm.state.runs_broker, self.healthy]):
             return
 
+        try:
+            users = self.auth_manager.get_users()
+        except CalledProcessError as e:
+            # probably the cluster is not healthy, we'll check in the next update-status
+            logger.error(e)
+            return
+
         # Update client properties first, to ensure it's consistent with latest listener config
         self.config_manager.set_client_properties()
 
         for client in self.charm.state.clients:
 
-            if not client.password:
+            if not client.password or client.username in users:
                 continue
 
             self.auth_manager.add_user(client.username, client.password)
