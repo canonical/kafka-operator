@@ -615,7 +615,7 @@ def balancer_is_ready(ops_test: OpsTest, app_name: str) -> bool:
         logger.error(e)
         return False
 
-    print(f"{monitor_state_json=}")
+    logger.debug(f"{monitor_state_json=}")
 
     return all(
         [
@@ -649,8 +649,7 @@ def get_kafka_broker_state(ops_test: OpsTest, app_name: str) -> JSON:
         logger.error(e)
         return False
 
-    print(f"{broker_state_json=}")
-
+    logger.debug(f"{broker_state_json=}")
     return broker_state_json
 
 
@@ -685,7 +684,7 @@ def kraft_quorum_status(
             continue
 
     if verbose:
-        print(unit_status)
+        logger.debug(f"{unit_status=}")
 
     return unit_status
 
