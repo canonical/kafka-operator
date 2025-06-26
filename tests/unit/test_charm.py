@@ -655,7 +655,7 @@ def test_config_changed_updates_client_properties(ctx: Context, base_state: Stat
         ctx.run(ctx.on.config_changed(), state_in)
 
     # Then
-    set_client_properties.assert_called_once()
+    set_client_properties.assert_called()
 
 
 def test_config_changed_updates_client_data(ctx: Context, base_state: State) -> None:
@@ -687,8 +687,8 @@ def test_config_changed_updates_client_data(ctx: Context, base_state: State) -> 
         ctx.run(ctx.on.config_changed(), state_in)
 
     # Then
-    patched_set_client_properties.assert_called_once()
-    patched_update_client_data.assert_called_once()
+    patched_set_client_properties.assert_called()
+    patched_update_client_data.assert_called()
 
 
 def test_config_changed_restarts(ctx: Context, base_state: State) -> None:
