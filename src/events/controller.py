@@ -138,6 +138,9 @@ class KRaftHandler(Object):
     def format_storages(self) -> None:
         """Format storages provided relevant keys exist."""
         self.config_manager.set_server_properties()
+        if self.controller_manager.get_metadata_directory_id(self.charm.state.log_dirs):
+            # Already formatted!
+            return
 
         if self.charm.state.runs_broker:
             credentials = self.charm.state.cluster.internal_user_credentials
