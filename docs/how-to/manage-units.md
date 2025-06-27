@@ -71,8 +71,8 @@ Before running bash scripts, make sure that some listeners have been correctly
 opened by creating appropriate integrations. 
 ```
 
-For more information about how listeners are opened based on relations, see the [Listeners](reference-apache-kafka-listeners).
-For example, to open a SASL/SCRAM listener, integrate a client application using the data integrator, as described in the [How to manage app guide](../how-to/manage-applications).
+For more information about how listeners are opened based on relations, see the [Listeners](reference-broker-listeners).
+For example, to open a SASL/SCRAM listener, integrate a client application using the data integrator, as described in the [How to manage app guide](how-to-manage-applications).
 
 To run most of the scripts, you need to provide:
 

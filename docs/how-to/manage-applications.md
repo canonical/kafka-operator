@@ -4,7 +4,7 @@
 Relations to new applications are supported via the "[{spellexception}`kafka_client`](https://github.com/canonical/charm-relation-interfaces/blob/main/interfaces/kafka_client/v0/README.md)" interface.
 
 ## Within Juju via `kafka_client` interface
- 
+
 If the charm supports the `kafka_client` interface, just create a relation between the two charms:
 
 ```shell
@@ -91,9 +91,9 @@ juju relate kafka rotated-user
 ```
 
 At this point, we effectively have two overlapping users, so that applications can swap the password
-from one to another. 
+from one to another.
 If the applications consist of fleets of independent producers and consumers, user credentials can be rotated
-progressively across fleets, such that no effective downtime is achieved. 
+progressively across fleets, such that no effective downtime is achieved.
 
 Once all applications have rotated their credentials, it is then safe to remove data first `data-integrator` charm
 
@@ -112,4 +112,3 @@ juju run kafka/leader set-password password=<password>
 # to randomly generate a password for the operator user
 juju run kafka/leader set-password
 ```
-
