@@ -1,5 +1,9 @@
-(how-to-deploy-deploy-anywhere)=
 # How to deploy Charmed Apache Kafka
+
+This guide provides platform-independent deployment instructions.
+For specific guides, see: [AWS](how-to-deploy-deploy-on-aws), [Azure](how-to-deploy-deploy-on-azure) and [KRaft mode](how-to-deploy-kraft-mode).
+
+(how-to-deploy-deploy-anywhere)=
 
 ```{caution}
 For K8s Charmed Apache Kafka, see the [Charmed Apache Kafka K8s documentation](https://charmhub.io/kafka-k8s) instead.
@@ -70,8 +74,8 @@ juju show-model | yq '.[].type'
 Charmed Apache Kafka and Charmed Apache ZooKeeper can both be deployed as follows:
 
 ```shell
-$ juju deploy kafka --channel 3/stable -n <kafka-units>
-$ juju deploy zookeeper --channel 3/stable -n <zookeeper-units>
+juju deploy kafka --channel 3/stable -n <kafka-units>
+juju deploy zookeeper --channel 3/stable -n <zookeeper-units>
 ```
 
 where `<kafka-units>` and `<zookeeper-units>` – the number of units to deploy for Charmed Apache Kafka and Charmed Apache ZooKeeper. We recommend values of at least `3` and `5` respectively.
@@ -79,7 +83,7 @@ where `<kafka-units>` and `<zookeeper-units>` – the number of units to deploy 
 Connect Charmed Apache ZooKeeper and Charmed Apache Kafka by relating/integrating them:
 
 ```shell
-$ juju relate kafka zookeeper
+juju relate kafka zookeeper
 ```
 
 Check the status of the deployment:
@@ -98,7 +102,7 @@ In fact, ports are only opened when client applications are related, also
 depending on the protocols to be used.
 
 ```{note}
-For more information about the available listeners and protocols please refer to [this table](reference-apache-kafka-listeners). 
+For more information about the available listeners and protocols please refer to [this table](reference-broker-listeners). 
 ```
 
 It is however generally useful for most of the use cases to create a first admin user
@@ -122,4 +126,3 @@ To retrieve authentication information, such as the username and password, use:
 ```shell
 juju run data-integrator/leader get-credentials
 ```
-

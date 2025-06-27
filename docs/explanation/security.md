@@ -74,17 +74,17 @@ To do that, you need to relate Charmed Apache Kafka and Charmed Apache ZooKeeper
 Please refer to the [Charming Security page](https://charmhub.io/topics/security-with-x-509-certificates) for more information on how to select the right certificate
 provider for your use case. 
 
-For more information on encryption, see the [Cryptography](cryptography) explanation page and the [How to enable encryption](../how-to/enable-encryption) guide.
+For more information on encryption, see the [Cryptography](cryptography) explanation page and the [How to enable encryption](how-to-enable-encryption) guide.
 
 ### Authentication
 
 Charmed Apache Kafka supports the following authentication layers:
 
-1. [SCRAM-based SASL Authentication](../how-to/manage-applications)
-2. [certificate-base Authentication (mTLS)](../how-to/create-mtls-client-credentials)
+1. [SCRAM-based SASL Authentication](how-to-manage-applications)
+2. [certificate-based Authentication (mTLS)](how-to-create-mtls-client-credentials)
 3. OAuth Authentication using [Hydra](https://discourse.charmhub.io/t/how-to-connect-to-kafka-using-hydra-as-oidc-provider/14610) or [Google](https://discourse.charmhub.io/t/how-to-connect-to-kafka-using-google-as-oidc-provider/14611)
 
-Each combination of authentication scheme and encryption is associated with the dedicated listener and it maps to a well-defined port. See the [listeners reference documentation](../reference/listeners) for more information.
+Each combination of authentication scheme and encryption is associated with the dedicated listener and it maps to a well-defined port. See the [listeners reference documentation](reference-broker-listeners) for more information.
 
 ### Monitoring and auditing
 
@@ -92,14 +92,14 @@ Charmed Apache Kafka provides native integration with the [Canonical Observabili
 To reduce the blast radius of infrastructure disruptions, the general recommendation is to deploy COS and the observed application into separate environments, isolated from one another. Refer to the [COS production deployments best practices](https://charmhub.io/topics/canonical-observability-stack/reference/best-practices)
 for more information.
 
-For instructions, see the [How to integrate the Charmed Apache Kafka deployment with COS](../how-to/monitoring/enable-monitoring) and [How to customise the alerting rules and dashboards](../how-to/monitoring/alerts.md) guides.
+For instructions, see the [How to integrate the Charmed Apache Kafka deployment with COS](how-to-monitoring-enable-monitoring) and [How to customise the alerting rules and dashboards](how-to-monitoring-integrate-alerts-and-dashboards) guides.
 
 External user access to Apache Kafka is logged to the `kafka-authorizer.log` that is pushed to [Loki endpoint](https://charmhub.io/loki-k8s) and exposed via [Grafana](https://charmhub.io/grafana), both components being part of the COS stack.
 
 Access denials are logged at the `INFO` level, whereas allowed accesses are logged at the `DEBUG` level. Depending on the auditing needs,
 customise the logging level either for all logs via the [`log_level`](https://charmhub.io/kafka/configurations?channel=3/stable#log_level) configuration option or
 only tune the logging level of the `authorizerAppender` in the `log4j.properties` file. See
-the [file system paths](../reference/file-system-paths) for further information.
+the [file system paths](reference-file-system-paths) for further information.
 
 ## Additional resources
 

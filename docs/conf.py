@@ -231,7 +231,9 @@ linkcheck_ignore = [
     "https://us-east-1.console.aws.amazon.com/ec2/",
     "https://kafka.apache.org/39/documentation.html#georeplication-overview",
     "https://kafka.apache.org/39/documentation.html#georeplication-monitoring",
-    "https://launchpad.net/soss"
+    "https://launchpad.net/soss",
+    "https://cwiki.apache.org/*",
+    "https://archive.apache.org/*"
     ]
 
 
