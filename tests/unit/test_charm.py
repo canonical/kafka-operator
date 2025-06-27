@@ -203,6 +203,10 @@ def test_healthy_fails_if_snap_not_active(
     with (
         patch("workload.KafkaWorkload.active", return_value=False) as patched_snap_active,
         patch("workload.KafkaWorkload.start"),
+        patch(
+            "core.cluster.ClusterState.ready_to_start",
+            new_callable=PropertyMock(return_value=Status.ACTIVE),
+        ),
         ctx(ctx.on.start(), state_in) as manager,
     ):
         charm = cast(KafkaCharm, manager.charm)

@@ -504,6 +504,16 @@ class ClusterState(Object):
         return {"brokerCapacities": broker_capacities}
 
     @property
+    def balancer_initialized(self) -> bool:
+        """Whether or not Cruise Control internal topics are created."""
+        return self.cluster.relation_data.get("balancer-init") != "true"
+
+    @balancer_initialized.setter
+    def balancer_initialized(self, value: bool) -> None:
+        _value = "true" if value else ""
+        self.cluster.update({"balancer-init": _value})
+
+    @property
     def ready_to_start(self) -> Status:  # noqa: C901
         """Check for active controller relation and adding of inter-broker auth username.
 
