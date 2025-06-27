@@ -275,6 +275,15 @@ class BrokerOperator(Object):
             )
             self.config_manager.set_server_properties()
 
+        # If TLS rotation is needed, reset the balancer beforehand.
+        if (
+            self.charm.unit.is_leader()
+            and self.charm.state.runs_balancer
+            and self.charm.state.tls_rotation
+        ):
+            self.charm.state.balancer_tls_rotation = True
+            self.charm.balancer._on_start(event)
+
         if properties_changed or self.charm.state.tls_rotation:
             if isinstance(event, StorageEvent):  # to get new storages
                 self.controller_manager.format_storages(
@@ -303,12 +312,8 @@ class BrokerOperator(Object):
         # Update truststore if needed.
         self.charm.tls.update_truststore()
 
+        # Reset TLS rotation state
         if self.charm.state.tls_rotation:
-            # If TLS rotation is needed, inform the balancer.
-            if self.charm.state.runs_balancer:
-                self.charm.state.balancer_tls_rotation = True
-
-            # Reset TLS rotation state
             self.charm.state.tls_rotation = False
 
         if self.charm.unit.is_leader():
@@ -455,15 +460,18 @@ class BrokerOperator(Object):
         # Update peer-cluster chain of trust
         self.charm.state.peer_cluster_ca = self.charm.state.unit_broker.peer_tls.bundle
 
+        # Optimization: cache peer_cluster to avoid multiple loadings
+        peer_cluster_state = self.charm.state.peer_cluster
+
         self.charm.state.peer_cluster.update(
             {
                 "roles": self.charm.state.roles,
-                "broker-username": self.charm.state.peer_cluster.broker_username,
-                "broker-password": self.charm.state.peer_cluster.broker_password,
-                "broker-uris": self.charm.state.peer_cluster.broker_uris,
-                "cluster-uuid": self.charm.state.peer_cluster.cluster_uuid,
-                "racks": str(self.charm.state.peer_cluster.racks),
-                "broker-capacities": json.dumps(self.charm.state.peer_cluster.broker_capacities),
+                "broker-username": peer_cluster_state.broker_username,
+                "broker-password": peer_cluster_state.broker_password,
+                "broker-uris": peer_cluster_state.broker_uris,
+                "cluster-uuid": peer_cluster_state.cluster_uuid,
+                "racks": str(peer_cluster_state.racks),
+                "broker-capacities": json.dumps(peer_cluster_state.broker_capacities),
                 "super-users": self.charm.state.super_users,
             }
         )
@@ -477,7 +485,7 @@ class BrokerOperator(Object):
             users = self.auth_manager.get_users()
         except CalledProcessError as e:
             # probably the cluster is not healthy, we'll check in the next update-status
-            logger.error(e)
+            logger.debug(e)
             return
 
         # Update client properties first, to ensure it's consistent with latest listener config
