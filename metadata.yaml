@@ -34,11 +34,14 @@ peers:
 provides:
   kafka-client:
     interface: kafka_client
+    optional: true
   cos-agent:
     interface: cos_agent
+    optional: true
   peer-cluster-orchestrator:
     interface: peer_cluster
     limit: 1
+    optional: true
 
 requires:
   certificates:
