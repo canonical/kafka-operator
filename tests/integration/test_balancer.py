@@ -118,7 +118,6 @@ class TestBalancer:
             apps=list({APP_NAME, CONTROLLER_NAME, self.balancer_app}),
             idle_period=30,
             timeout=1200,
-            check_freq=30,
         )
 
         async with ops_test.fast_forward(fast_interval="20s"):
@@ -141,8 +140,7 @@ class TestBalancer:
             apps=list({APP_NAME, CONTROLLER_NAME, self.balancer_app, PRODUCER_APP}),
             status="active",
             timeout=3600,
-            check_freq=30,
-            idle_period=60,
+            idle_period=90,
             raise_on_error=False,
         )
 

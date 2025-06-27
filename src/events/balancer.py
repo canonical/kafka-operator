@@ -14,8 +14,6 @@ from ops import (
     EventBase,
     InstallEvent,
     Object,
-    PebbleReadyEvent,
-    StartEvent,
 )
 from ops.pebble import ExecError
 
@@ -99,7 +97,7 @@ class BalancerOperator(Object):
                 f"{CRUISE_CONTROL_TESTING_OPTIONS}"
             )
 
-    def _on_start(self, event: StartEvent | PebbleReadyEvent) -> None:
+    def _on_start(self, event: EventBase) -> None:
         """Handler for `start` or `pebble-ready` events."""
         current_status = self.charm.state.balancer_status
         if current_status is not Status.ACTIVE:
@@ -124,12 +122,15 @@ class BalancerOperator(Object):
         self.config_manager.set_broker_capacities()
         self.config_manager.set_cruise_control_auth()
 
-        try:
-            self.balancer_manager.create_internal_topics()
-        except (CalledProcessError, ExecError) as e:
-            logger.warning(e.stdout)
-            event.defer()
-            return
+        if not self.charm.state.balancer_initialized:
+            try:
+                self.balancer_manager.create_internal_topics()
+                self.charm.state.balancer_initialized = True
+            except (CalledProcessError, ExecError) as e:
+                # Probably cluster not healthy, and will recover, hence the DEBUG log.
+                logger.debug(e.stdout)
+                event.defer()
+                return
 
         self.workload.restart()
 
