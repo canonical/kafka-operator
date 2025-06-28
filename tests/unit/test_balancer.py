@@ -14,6 +14,7 @@ import pytest
 import yaml
 from ops import ActiveStatus
 from ops.testing import ActionFailed, Container, Context, PeerRelation, State
+from tests.unit.helpers import generate_tls_artifacts
 
 from charm import KafkaCharm
 from literals import (
@@ -202,6 +203,7 @@ def test_ready_to_start_ok(
 ) -> None:
     # Given
     ctx = ctx_broker_and_balancer
+    tls_data = generate_tls_artifacts()
     cluster_peer = PeerRelation(
         PEER,
         local_app_data=passwords_data | kraft_data | {"controller-password": "password"},
@@ -219,6 +221,8 @@ def test_ready_to_start_ok(
             "storages": json.dumps(
                 {f"/var/snap/charmed-kafka/common/var/lib/kafka/data/{0}": "10240"}
             ),
+            "peer-certificate": tls_data.certificate,
+            "peer-ca-cert": tls_data.ca,
         },
     )
     restart_peer = PeerRelation("restart", "restart")
@@ -242,6 +246,9 @@ def test_ready_to_start_ok(
             new_callable=PropertyMock,
             return_value={"brokerCapacities": [{}, {}, {}]},
         ),
+        # The json.loads patch above leads to corrupt data for TLSState.chain
+        # which also relies on json.loads
+        patch("core.models.TLSState.chain", new_callable=PropertyMock, return_value=[]),
         patch("workload.KafkaWorkload.read"),
         patch("workload.BalancerWorkload.exec"),
         patch("workload.BalancerWorkload.restart"),
@@ -263,6 +270,11 @@ def test_ready_to_start_ok(
             new_callable=PropertyMock,
             return_value=[],
         ),
+        patch(
+            "managers.tls.TLSManager.build_sans",
+            return_value={"sans_ip": ["10.10.10.10"], "sans_dns": ["dns"]},
+        ),
+        patch("managers.tls.TLSManager.configure"),
         patch("health.KafkaHealth.machine_configured", return_value=True),
         patch("charms.operator_libs_linux.v2.snap.SnapCache"),  # specific VM, works fine on k8s
     ):

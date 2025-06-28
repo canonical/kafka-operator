@@ -36,7 +36,7 @@ from integration.helpers import (
     kraft_quorum_status,
     produce_and_check_logs,
 )
-from literals import CONTROLLER_PORT
+from literals import SECURITY_PROTOCOL_PORTS
 
 RESTART_DELAY = 60
 CLIENT_TIMEOUT = 30
@@ -102,7 +102,7 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm, app_charm, kraft
 async def test_replicated_events(ops_test: OpsTest, kafka_apps):
     await ops_test.model.applications[APP_NAME].add_units(count=2)
     await ops_test.model.wait_for_idle(
-        apps=[APP_NAME], status="active", timeout=600, idle_period=120, wait_for_exact_units=3
+        apps=[APP_NAME], status="active", timeout=1200, idle_period=120, wait_for_exact_units=3
     )
     logger.info("Producing messages and checking on all units")
     produce_and_check_logs(
@@ -265,7 +265,8 @@ async def test_freeze_broker_with_topic_leader(
     address = await get_address(
         ops_test=ops_test, app_name=controller_app, unit_num=controller_unit_num
     )
-    bootstrap_controller = f"{address}:{CONTROLLER_PORT}"
+    controller_port = SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].controller
+    bootstrap_controller = f"{address}:{controller_port}"
     controller_unit = f"{controller_app}/{controller_unit_num}"
 
     logger.info(

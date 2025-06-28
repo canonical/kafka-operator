@@ -10,7 +10,7 @@ import tempfile
 
 import kafka
 import pytest
-from charms.tls_certificates_interface.v3.tls_certificates import generate_private_key
+from charms.tls_certificates_interface.v4.tls_certificates import generate_private_key
 from pytest_operator.plugin import OpsTest
 
 from literals import (
@@ -117,7 +117,7 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm, kafka_apps):
     )
 
     # Rotate credentials
-    new_private_key = generate_private_key().decode("utf-8")
+    new_private_key = generate_private_key().raw
 
     await set_tls_private_key(ops_test, key=new_private_key)
 
@@ -132,7 +132,7 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm, kafka_apps):
     )
 
     assert private_key != private_key_2
-    assert private_key_2 == new_private_key
+    assert private_key_2 == new_private_key.strip()
 
 
 @pytest.mark.abort_on_fail
@@ -206,7 +206,7 @@ async def test_certificate_transfer(ops_test: OpsTest, kafka_apps):
         "cert": search_secrets(ops_test=ops_test, owner=requirer, search_key="certificate"),
         "ca_cert": search_secrets(ops_test=ops_test, owner=requirer, search_key="ca-certificate"),
         "broker_ca": search_secrets(
-            ops_test=ops_test, owner=f"{APP_NAME}/0", search_key="ca-cert"
+            ops_test=ops_test, owner=f"{APP_NAME}/0", search_key="client-ca-cert"
         ),
     }
 
@@ -223,7 +223,7 @@ async def test_certificate_transfer(ops_test: OpsTest, kafka_apps):
     address = await get_address(ops_test, app_name=APP_NAME, unit_num=0)
     ssl_port = SECURITY_PROTOCOL_PORTS["SSL", "SSL"].client
     ssl_bootstrap_server = f"{address}:{ssl_port}"
-    sasl_port = SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client
+    sasl_port = SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].internal
     sasl_bootstrap_server = f"{address}:{sasl_port}"
 
     # create `test` topic and set ACLs
@@ -318,9 +318,16 @@ async def test_tls_removed(ops_test: OpsTest, kafka_apps):
             "ssh", unit.name, "sudo ls /var/snap/charmed-kafka/current/etc/kafka"
         )
         assert not ret
-        file_extensions = {f.split(".")[-1] for f in stdout.split() if f}
-        logging.info(f"{', '.join(file_extensions)} files found on {unit.name}")
+        file_extensions = {
+            f.split(".")[-1] for f in stdout.split() if f and f.startswith("client-")
+        }
+        logging.info(f"CLIENT TLS: {', '.join(file_extensions)} files found on {unit.name}")
         assert not {"pem", "key", "p12", "jks"} & file_extensions
+
+        # peer TLS artifacts should remain intact.
+        file_extensions = {f.split(".")[-1] for f in stdout.split() if f and f.startswith("peer-")}
+        logging.info(f"PEER TLS: {', '.join(file_extensions)} files found on {unit.name}")
+        assert {"pem", "key", "p12", "jks"} & file_extensions
 
 
 @pytest.mark.abort_on_fail
