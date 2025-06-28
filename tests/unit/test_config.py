@@ -541,7 +541,7 @@ def test_ssl_principal_mapping_rules(charm_configuration: dict, base_state: Stat
     # Given
     charm_configuration["options"]["ssl_principal_mapping_rules"][
         "default"
-    ] = "RULE:^(erebor)$/$1,DEFAULT"
+    ] = "RULE:^(erebor)$/$1/,DEFAULT"
     cluster_peer = PeerRelation(PEER, PEER)
     state_in = dataclasses.replace(base_state, relations=[cluster_peer])
     ctx = Context(
@@ -561,7 +561,7 @@ def test_ssl_principal_mapping_rules(charm_configuration: dict, base_state: Stat
 
         # Then
         assert (
-            "ssl.principal.mapping.rules=RULE:^(erebor)$/$1,DEFAULT"
+            "ssl.principal.mapping.rules=RULE:^(erebor)$/$1/,DEFAULT"
             in charm.broker.config_manager.server_properties
         )
 
