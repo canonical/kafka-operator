@@ -206,7 +206,7 @@ async def test_exporter_endpoints(ops_test: OpsTest):
 async def test_auxiliary_paths(ops_test: OpsTest):
     for path in PATHS["kafka"]:
         result = subprocess.check_output(
-            f"juju ssh {APP_NAME}/leader sudo ls -l \\${path}",
+            f"JUJU_MODEL={ops_test.model_full_name} juju ssh {APP_NAME}/leader sudo ls -l \\${path}",
             shell=True,
             stderr=subprocess.PIPE,
             universal_newlines=True,
