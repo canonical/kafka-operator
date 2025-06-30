@@ -115,7 +115,7 @@ def test_secret_removed_preserves_credentials(
         _ = mgr.run()
 
     state_interim = dataclasses.replace(
-        base_state,
+        state_in,
         config=base_state.config,
     )
 
