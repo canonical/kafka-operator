@@ -291,7 +291,7 @@ class TLSHandler(Object):
         # Transferred certs
         transferred_certs = self.certificate_transfer.get_all_certificates()
         for cert in transferred_certs:
-            alias = self.charm.broker.tls_manager.certificate_common_name(cert)
+            alias = self.charm.broker.tls_manager.certificate_distinguished_name(cert)
             live_aliases.add(alias)
 
             if not self.charm.broker.tls_manager.alias_needs_update(alias, cert):
