@@ -5,6 +5,8 @@
 import asyncio
 import json
 import logging
+import re
+import subprocess
 import time
 from subprocess import PIPE, check_output
 
@@ -15,6 +17,7 @@ from pytest_operator.plugin import OpsTest
 from literals import (
     DEPENDENCIES,
     JMX_EXPORTER_PORT,
+    PATHS,
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
     PEER_CLUSTER_RELATION,
     REL_NAME,
@@ -197,6 +200,22 @@ async def test_exporter_endpoints(ops_test: OpsTest):
     jmx_exporter_url = f"http://{unit_address}:{JMX_EXPORTER_PORT}/metrics"
     jmx_resp = requests.get(jmx_exporter_url)
     assert jmx_resp.ok
+
+
+@pytest.mark.abort_on_fail
+async def test_auxiliary_paths(ops_test: OpsTest):
+    for path in PATHS["kafka"]:
+        result = subprocess.check_output(
+            f"juju ssh {APP_NAME}/leader sudo ls -l \\${path}",
+            shell=True,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
+        )
+        print(f"{path} content: {result}")
+        match = re.match("total ([0-9]+)", result)
+        assert match
+        # Some files should be there.
+        assert int(match.group(1)) > 0
 
 
 @pytest.mark.abort_on_fail
