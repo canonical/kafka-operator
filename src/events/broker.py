@@ -28,6 +28,7 @@ from events.controller import KRaftHandler
 from events.oauth import OAuthHandler
 from events.provider import KafkaProvider
 from events.upgrade import KafkaDependencyModel, KafkaUpgrade
+from events.user_secrets import SecretsHandler
 from health import KafkaHealth
 from literals import (
     BROKER,
@@ -89,6 +90,7 @@ class BrokerOperator(Object):
             ),
         )
         self.action_events = ActionEvents(self)
+        self.user_secrets = SecretsHandler(self)
 
         self.provider = KafkaProvider(self)
         self.oauth = OAuthHandler(self)

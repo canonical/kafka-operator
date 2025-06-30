@@ -85,6 +85,7 @@ SERVER_PROPERTIES_BLACKLIST = [
     "extra_listeners",
     "roles",
     "expose_external",
+    "system_users",
 ]
 
 
