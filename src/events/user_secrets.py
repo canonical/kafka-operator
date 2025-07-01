@@ -83,7 +83,7 @@ class SecretsHandler(Object):
             logger.error(f"unable to set password for {username}: {e}")
             return
 
-        # This will update peer-clutser data
+        # This will update peer-cluster data
         self.charm.on.config_changed.emit()
 
     def load_auth_secret(self) -> dict[str, str]:
