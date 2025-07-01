@@ -4,6 +4,7 @@
 
 import json
 import logging
+import re
 import socket
 import subprocess
 import tempfile
@@ -127,6 +128,22 @@ async def deploy_cluster(
         raise_on_error=False,
         status="active",
     )
+
+
+def get_unit_ipv4_address(model_full_name: str | None, unit_name: str) -> str | None:
+    """A safer alternative for `juju.unit.get_public_address()` which is robust to network changes."""
+    stdout = check_output(
+        f"JUJU_MODEL={model_full_name} juju ssh {unit_name} hostname -i",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+    ipv4_matches = re.findall(r"[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}", stdout)
+
+    if ipv4_matches:
+        return ipv4_matches[0]
+
+    return None
 
 
 def load_acls(model_full_name: str | None, bootstrap_server: str) -> Set[Acl]:
