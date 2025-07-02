@@ -43,7 +43,9 @@ CONTROLLER_NAME = "controller"
 DUMMY_NAME = "app"
 REL_NAME_ADMIN = "kafka-client-admin"
 REL_NAME_PRODUCER = "kafka-client-producer"
+AUTH_SECRET_CONFIG_KEY = "system-users"
 TEST_DEFAULT_MESSAGES = 15
+TEST_SECRET_NAME = "auth"
 
 
 KRaftMode = Literal["single", "multi"]
@@ -180,17 +182,18 @@ def get_user(model_full_name: str | None, username: str = "sync") -> str:
     return line
 
 
-async def set_password(ops_test: OpsTest, username="sync", password=None, num_unit=0) -> Any:
-    """Use the charm action to start a password rotation."""
-    params = {"username": username}
-    if password:
-        params["password"] = password
-
-    action = await ops_test.model.units.get(f"{APP_NAME}/{num_unit}").run_action(
-        "set-password", **params
+async def set_password(
+    ops_test: OpsTest, username: str = "sync", password: str = "testpass"
+) -> None:
+    """Use the charm `system-users` config option to start a password rotation."""
+    custom_auth = {username: password}
+    secret_id = await ops_test.model.add_secret(
+        name=TEST_SECRET_NAME, data_args=[f"{u}={p}" for u, p in custom_auth.items()]
     )
-    password = await action.wait()
-    return password.results
+    # grant access to our app
+    await ops_test.model.grant_secret(secret_name=TEST_SECRET_NAME, application=APP_NAME)
+    # configure the app to use the secret_id
+    await ops_test.model.applications[APP_NAME].set_config({AUTH_SECRET_CONFIG_KEY: secret_id})
 
 
 async def set_tls_private_key(ops_test: OpsTest, key: Optional[str] = None, num_unit=0):

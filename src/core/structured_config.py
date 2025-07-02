@@ -16,6 +16,9 @@ from literals import BALANCER, BROKER, CONTROLLER, SUBSTRATE
 logger = logging.getLogger(__name__)
 
 
+SECRET_REGEX = re.compile("secret:[a-z0-9]{20}")
+
+
 class LogLevel(str, Enum):
     """Enum for the `log_level` field."""
 
@@ -57,6 +60,7 @@ class CharmConfig(BaseConfigModel):
     network_bandwidth: int = Field(default=50000, validate_default=False, gt=0)
     cruisecontrol_balance_threshold: float = Field(default=1.1, validate_default=False, ge=1)
     cruisecontrol_capacity_threshold: float = Field(default=0.8, validate_default=False, le=1)
+    system_users: str | None = None
 
     @validator("*", pre=True)
     @classmethod
@@ -248,3 +252,15 @@ class CharmConfig(BaseConfigModel):
             raise ValueError("Value for port is not unique for each listener.")
 
         return listeners
+
+    @validator("system_users")
+    @classmethod
+    def system_users_secret_validator(cls, value: str) -> str:
+        """Check validity of `system-users` field which should be a user secret URI."""
+        if not SECRET_REGEX.match(value):
+            raise ValueError(
+                "Provided value for system-users config is not a valid secret URI, "
+                "accepted values are formatted like 'secret:cvnra0b1c2e3f4g5hi6j'"
+            )
+
+        return value

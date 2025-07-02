@@ -8,7 +8,7 @@ import logging
 import pytest
 from pytest_operator.plugin import OpsTest
 
-from .helpers import APP_NAME, SERIES, deploy_cluster, get_user, set_password
+from .helpers import APP_NAME, SERIES, TEST_SECRET_NAME, deploy_cluster, get_user, set_password
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +26,7 @@ async def test_build_and_deploy(ops_test: OpsTest, kraft_mode, kafka_charm, app_
             ops_test=ops_test,
             charm=kafka_charm,
             kraft_mode=kraft_mode,
+            num_broker=3,
         ),
         ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series=SERIES),
     )
@@ -51,8 +52,7 @@ async def test_password_rotation(ops_test: OpsTest, kafka_apps):
         model_full_name=ops_test.model_full_name,
     )
 
-    result = await set_password(ops_test, username="sync", num_unit=0)
-    assert "sync-password" in result.keys()
+    await set_password(ops_test, username="sync", password="newpass123")
 
     await ops_test.model.wait_for_idle(apps=kafka_apps, status="active", idle_period=30)
 
@@ -62,3 +62,17 @@ async def test_password_rotation(ops_test: OpsTest, kafka_apps):
     )
 
     assert initial_sync_user != new_sync_user
+    assert "newpass123" in new_sync_user
+
+    # Update secret
+    await ops_test.model.update_secret(name=TEST_SECRET_NAME, data_args=["sync=updatedpass"])
+
+    await ops_test.model.wait_for_idle(apps=kafka_apps, status="active", idle_period=30)
+
+    updated_sync_user = get_user(
+        username="sync",
+        model_full_name=ops_test.model_full_name,
+    )
+
+    assert new_sync_user != updated_sync_user
+    assert "updatedpass" in updated_sync_user
