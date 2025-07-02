@@ -146,7 +146,7 @@ async def test_client_properties_makes_admin_connection(ops_test: OpsTest, kafka
     )
     result = await run_client_properties(ops_test=ops_test)
     assert result
-    print(result)
+    logger.debug(f"{result=}")
 
     acls = 0
     for line in result.strip().split("\n"):

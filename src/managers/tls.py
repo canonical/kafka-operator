@@ -303,7 +303,7 @@ class TLSManager:
         if not cert:
             raise FileNotFoundError(f"Can't find the certificate for {alias=}")
 
-        return self.certificate_common_name(cert)
+        return self.certificate_distinguished_name(cert)
 
     @staticmethod
     def is_valid_leaf_certificate(cert: str) -> bool:
@@ -329,8 +329,8 @@ class TLSManager:
         return not (key_usage.key_cert_sign or key_usage.crl_sign or basic_constraints.ca)
 
     @staticmethod
-    def certificate_common_name(cert: str) -> str:
-        """Returns the certificate Common Name (CN)."""
+    def certificate_distinguished_name(cert: str) -> str:
+        """Returns the certificate distinguished name."""
         cert_obj = x509.load_pem_x509_certificate(cert.encode("utf-8"), default_backend())
         return cert_obj.subject.rfc4514_string()
 

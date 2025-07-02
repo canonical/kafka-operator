@@ -19,6 +19,7 @@ from ops.pebble import ExecError
 
 from core.models import KafkaClient
 from literals import REL_NAME, Status
+from managers.ssl_principal_mapper import NoMatchingRuleError, SslPrincipalMapper
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -34,6 +35,10 @@ class KafkaProvider(Object):
         super().__init__(dependent, "kafka_client")
         self.dependent = dependent
         self.charm: "KafkaCharm" = dependent.charm
+
+        self.ssl_principal_mapper = SslPrincipalMapper(
+            self.charm.config.ssl_principal_mapping_rules
+        )
 
         self.kafka_provider = KafkaProviderEventHandlers(
             self.charm, self.charm.state.client_provider_interface
@@ -146,7 +151,19 @@ class KafkaProvider(Object):
             self.charm.state.cluster.update({"mtls": "enabled"})
             self.charm.on.config_changed.emit()
 
-        username = self.dependent.tls_manager.certificate_common_name(event.mtls_cert)
+        distinguished_name = self.dependent.tls_manager.certificate_distinguished_name(
+            event.mtls_cert
+        )
+        try:
+            cert_principal = self.ssl_principal_mapper.get_name(
+                distinguished_name=distinguished_name
+            )
+        except NoMatchingRuleError:
+            logger.error(
+                f"Relation {event.relation.id} doesn't have a certificate that can be mapped to the current ssl_principal_mapping_rules"
+            )
+            return
+
         client = next(
             iter(
                 [
@@ -158,7 +175,7 @@ class KafkaProvider(Object):
         )
         self.dependent.auth_manager.remove_all_user_acls(client.username)
         self.dependent.auth_manager.update_user_acls(
-            username=username,
+            username=cert_principal,
             topic=client.topic,
             extra_user_roles=client.extra_user_roles,
             group=client.consumer_group_prefix,
