@@ -8,7 +8,7 @@ import logging
 import pytest
 from pytest_operator.plugin import OpsTest
 
-from .helpers import APP_NAME, SERIES, deploy_cluster, get_user, set_password
+from .helpers import APP_NAME, SERIES, TEST_SECRET_NAME, deploy_cluster, get_user, set_password
 
 logger = logging.getLogger(__name__)
 
@@ -63,3 +63,16 @@ async def test_password_rotation(ops_test: OpsTest, kafka_apps):
 
     assert initial_sync_user != new_sync_user
     assert "newpass123" in new_sync_user
+
+    # Update secret
+    await ops_test.model.update_secret(name=TEST_SECRET_NAME, data_args=["sync=updatedpass"])
+
+    await ops_test.model.wait_for_idle(apps=kafka_apps, status="active", idle_period=30)
+
+    updated_sync_user = get_user(
+        username="sync",
+        model_full_name=ops_test.model_full_name,
+    )
+
+    assert new_sync_user != updated_sync_user
+    assert "updatedpass" in updated_sync_user
