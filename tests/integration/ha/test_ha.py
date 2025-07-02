@@ -4,12 +4,15 @@
 
 import asyncio
 import logging
+import subprocess
+from itertools import product
 
 import pytest
 from pytest_operator.plugin import OpsTest
 
 from integration.ha.continuous_writes import ContinuousWrites
 from integration.ha.ha_helpers import (
+    all_brokers_up,
     assert_continuous_writes_consistency,
     get_topic_description,
     get_topic_offsets,
@@ -31,14 +34,12 @@ from integration.helpers import (
     TEST_DEFAULT_MESSAGES,
     broker_id_to_unit_id,
     check_logs,
-    check_socket,
     deploy_cluster,
     get_address,
-    get_unit_ipv4_address,
     kraft_quorum_status,
     produce_and_check_logs,
 )
-from literals import CONTROLLER_PORT, SECURITY_PROTOCOL_PORTS
+from literals import CONTROLLER_PORT
 
 RESTART_DELAY = 60
 CLIENT_TIMEOUT = 30
@@ -73,6 +74,28 @@ async def restart_delay(ops_test: OpsTest):
     yield
     for unit in ops_test.model.applications[APP_NAME].units:
         await remove_restart_delay(ops_test=ops_test, unit_name=unit.name)
+
+
+@pytest.fixture()
+async def reset_network_state(ops_test: OpsTest, kafka_apps):
+    """Resets all lxc network config to defaults on all machines."""
+    logger.info("Resetting units network state")
+    restore_funcs = (network_release, network_restore)
+    machines = ops_test.model.machines.values()
+    for machine, _func in product(machines, restore_funcs):
+        try:
+            _func(machine.hostname)
+        except subprocess.CalledProcessError:
+            continue
+
+    await ops_test.model.wait_for_idle(
+        apps=kafka_apps,
+        idle_period=30,
+        timeout=3600,
+        status="active",
+    )
+
+    await all_brokers_up(ops_test)
 
 
 @pytest.mark.skip_if_deployed
@@ -407,6 +430,7 @@ async def test_full_cluster_restart(
 
 async def test_network_cut_without_ip_change(
     ops_test: OpsTest,
+    reset_network_state,
     c_writes: ContinuousWrites,
     c_writes_runner: ContinuousWrites,
 ):
@@ -458,20 +482,8 @@ async def test_network_cut_without_ip_change(
     network_release(machine_name=leader_machine_name)
     await asyncio.sleep(REELECTION_TIME)
 
-    broker_ip = get_unit_ipv4_address(ops_test.model_full_name, leader_unit_name)
-    assert broker_ip
-
-    async with ops_test.fast_forward(fast_interval="30s"):
-        result = c_writes.stop()
-        for _ in range(20):  # ~10 min.
-            # we should wait non-deterministically until the broker is up
-            if check_socket(
-                broker_ip, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
-            ):
-                break
-
-            logger.info(f"{leader_unit_name} @ {broker_ip} not healthy yet...")
-            await asyncio.sleep(30)
+    await all_brokers_up(ops_test)
+    result = c_writes.stop()
 
     # verify the unit's now rejoined the cluster, retry for a couple of times to avoid flakiness
     for _ in range(6):
@@ -491,6 +503,7 @@ async def test_network_cut_without_ip_change(
 
 async def test_network_cut(
     ops_test: OpsTest,
+    reset_network_state,
     c_writes: ContinuousWrites,
     c_writes_runner: ContinuousWrites,
 ):
@@ -541,20 +554,8 @@ async def test_network_cut(
     logger.info(f"Restoring network of broker: {initial_leader_num}")
     network_restore(machine_name=leader_machine_name)
 
-    new_broker_ip = get_unit_ipv4_address(ops_test.model_full_name, leader_unit_name)
-    assert new_broker_ip
-
-    async with ops_test.fast_forward(fast_interval="30s"):
-        result = c_writes.stop()
-        for _ in range(20):  # ~10 min.
-            # we should wait non-deterministically until the new hostname is registered with the cluster
-            if check_socket(
-                new_broker_ip, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
-            ):
-                break
-
-            logger.info(f"{leader_unit_name} @ {new_broker_ip} not healthy yet...")
-            await asyncio.sleep(30)
+    await all_brokers_up(ops_test)
+    result = c_writes.stop()
 
     # verify the unit's now rejoined the cluster, retry for a couple of times to avoid flakiness
     for _ in range(6):
