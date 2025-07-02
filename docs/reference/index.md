@@ -7,9 +7,9 @@ This section contains the following reference materials.
 
 Charmhub generated content:
 
-* [Actions](https://charmhub.io/kafka/actions?channel=4/edge)
-* [Configurations](https://charmhub.io/kafka/configure?channel=4/edge)
-* [Libraries](https://charmhub.io/kafka/libraries/kafka_libs?channel=4/edge)
+* [Actions](https://charmhub.io/kafka/actions?channel=3/edge)
+* [Configurations](https://charmhub.io/kafka/configure?channel=3/edge)
+* [Libraries](https://charmhub.io/kafka/libraries/kafka_libs?channel=3/edge)
 
 Charm-specific reference materials:
 
@@ -30,9 +30,9 @@ General useful references:
 :hidden:
 
 release-notes/index.md
-Actions<https://charmhub.io/kafka/actions?channel=4/edge>
-Configurations<https://charmhub.io/kafka/configure?channel=4/edge>
-Libraries<https://charmhub.io/kafka/libraries/kafka_libs?channel=4/edge>
+Actions<https://charmhub.io/kafka/actions?channel=3/edge>
+Configurations<https://charmhub.io/kafka/configure?channel=3/edge>
+Libraries<https://charmhub.io/kafka/libraries/kafka_libs?channel=3/edge>
 file-system-paths.md
 snap-entrypoints.md
 listeners.md
