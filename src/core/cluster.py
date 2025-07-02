@@ -428,6 +428,15 @@ class ClusterState(Object):
         return ",".join([os.fspath(storage.location) for storage in self.model.storages["data"]])
 
     @property
+    def metadata_log_dir(self) -> str:
+        """Builds the necessary metadata.log.dir based on log_dirs.
+
+        Returns:
+            String of metadata.log.dir property value to be set
+        """
+        return f"{self.log_dirs.split(',')[0]}/metadata"
+
+    @property
     def planned_units(self) -> int:
         """Return the planned units for the charm."""
         return self.model.app.planned_units()
