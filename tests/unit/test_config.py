@@ -126,6 +126,23 @@ def test_log_dirs_in_server_properties(ctx: Context, base_state: State) -> None:
     assert found_log_dirs
 
 
+def test_metadata_log_dir_in_server_properties(ctx: Context, base_state: State) -> None:
+    """Checks that metadata.log.dir is added to server_properties."""
+    # Given
+    found_metadata_log_dir = False
+    state_in = base_state
+
+    # When
+    with (ctx(ctx.on.config_changed(), state_in) as manager,):
+        charm = cast(KafkaCharm, manager.charm)
+        for prop in charm.broker.config_manager.server_properties:
+            if "metadata.log.dir" in prop:
+                found_metadata_log_dir = True
+
+    # Then
+    assert found_metadata_log_dir
+
+
 def test_listeners_in_server_properties(charm_configuration: dict, base_state: State) -> None:
     """Checks that listeners are split into INTERNAL, CLIENT and EXTERNAL."""
     # Given
