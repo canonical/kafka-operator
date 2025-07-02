@@ -34,6 +34,7 @@ from literals import (
     JVM_MEM_MAX_GB,
     JVM_MEM_MIN_GB,
     KRAFT_NODE_ID_OFFSET,
+    PATHS,
     PROFILE_TESTING,
     SECURITY_PROTOCOL_PORTS,
     AuthMap,
@@ -273,6 +274,14 @@ class CommonConfigManager:
         ]
 
         return f"KAFKA_HEAP_OPTS='{' '.join(opts)}'"
+
+    @property
+    def auxiliary_paths(self) -> list[str]:
+        """Auxiliary environment variables for logs, config and other useful base paths."""
+        if self.state.runs_broker or self.state.runs_controller:
+            return [f"{key}={path}" for key, path in PATHS["kafka"].items()]
+
+        return [f"{key}={path}" for key, path in PATHS["cruise-control"].items()]
 
 
 class ConfigManager(CommonConfigManager):
@@ -764,7 +773,7 @@ class ConfigManager(CommonConfigManager):
             self.jvm_performance_opts,
             self.heap_opts,
             self.log_level,
-        ]
+        ] + self.auxiliary_paths
 
         raw_current_env = self.workload.read("/etc/environment")
         current_env = map_env(raw_current_env)
@@ -932,7 +941,7 @@ class BalancerConfigManager(CommonConfigManager):
             self.heap_opts,
             self.log_level,
             self.kafka_opts,
-        ]
+        ] + self.auxiliary_paths
 
         raw_current_env = self.workload.read("/etc/environment")
         current_env = map_env(raw_current_env)
