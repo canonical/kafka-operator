@@ -88,13 +88,6 @@ async def reset_network_state(ops_test: OpsTest, kafka_apps):
         except subprocess.CalledProcessError:
             continue
 
-    await ops_test.model.wait_for_idle(
-        apps=kafka_apps,
-        idle_period=30,
-        timeout=3600,
-        status="active",
-    )
-
     await all_brokers_up(ops_test)
 
 
