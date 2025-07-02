@@ -79,9 +79,9 @@ Principal charms support the latest LTS series “22.04” only.
 
 | Charm | Revision | Hardware architecture | Juju version | Artefacts |
 |---|---|---|---|---|
-| Charmed Apache Kafka | [205](https://github.com/canonical/kafka-operator/releases/tag/rev205) | AMD64 | 2.9.45+, Juju 3.1+ | Distribution: [3.9.0-ubuntu1](https://launchpad.net/kafka-releases/3.x/3.9.0-ubuntu1). <br> Snap: [revision 61](https://snapcraft.io/charmed-kafka). |
-| Charmed Apache ZooKeeper | [???]() | AMD64 | 2.9.45+, Juju 3.1+ | Distribution: [3.9.2-ubuntu0](https://launchpad.net/zookeeper-releases/3.x/3.9.2-ubuntu0). <br> Snap: [revision ??](https://snapcraft.io/charmed-zookeeper). |
+| Charmed Apache Kafka | [205](https://github.com/canonical/kafka-operator/releases/tag/rev205) | AMD64 | 2.9.45+, Juju 3.1+ | Distribution: [3.9.0-ubuntu1](https://launchpad.net/kafka-releases/3.x/3.9.0-ubuntu1). <br> Snap: [revision 48](https://snapcraft.io/charmed-kafka). |
+| Charmed Apache ZooKeeper | [149](https://github.com/canonical/zookeeper-operator/tree/40576c1c87badd1e2352afc013ed0754808ef44c) | AMD64 | 2.9.45+, Juju 3.1+ | Distribution: [3.9.2-ubuntu0](https://launchpad.net/zookeeper-releases/3.x/3.9.2-ubuntu0). <br> Snap: [revision 39](https://snapcraft.io/charmed-zookeeper). |
 
 Apache Kafka release notes: [3.7.0](https://archive.apache.org/dist/kafka/3.7.0/RELEASE_NOTES.html), [3.8.0](https://archive.apache.org/dist/kafka/3.8.0/RELEASE_NOTES.html), [3.9.0](https://archive.apache.org/dist/kafka/3.9.0/RELEASE_NOTES.html).
 
-Apache ZooKeeper release notes: [3.9.0](https://zookeeper.apache.org/doc/r3.9.0/releasenotes.html).
+Apache ZooKeeper release notes: [3.9.0](https://zookeeper.apache.org/doc/r3.9.0/releasenotes.html), [3.9.1](https://zookeeper.apache.org/doc/r3.9.1/releasenotes.html), [3.9.2](https://zookeeper.apache.org/doc/r3.9.2/releasenotes.html).
