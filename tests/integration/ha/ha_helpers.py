@@ -1,19 +1,17 @@
 #!/usr/bin/env python3
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
+import asyncio
 import logging
 import re
 import subprocess
 from dataclasses import dataclass
-from subprocess import PIPE, check_output
+from subprocess import PIPE, CalledProcessError, check_output
 
 from pytest_operator.plugin import OpsTest
 
 from integration.ha.continuous_writes import ContinuousWritesResult
-from integration.helpers import (
-    APP_NAME,
-    get_address,
-)
+from integration.helpers import APP_NAME, check_socket, get_address, get_unit_ipv4_address
 from literals import PATHS, SECURITY_PROTOCOL_PORTS
 
 PROCESS = "kafka.Kafka"
@@ -38,15 +36,12 @@ class ProcessRunningError(Exception):
     """Raised when a process is running when it is not expected to be."""
 
 
-async def get_topic_description(
-    ops_test: OpsTest, topic: str, unit_name: str | None = None
-) -> TopicDescription:
+async def get_topic_description(ops_test: OpsTest, topic: str) -> TopicDescription:
     """Get the broker with the topic leader.
 
     Args:
         ops_test: OpsTest utility class
         topic: the desired topic to check
-        unit_name: unit to run the command on
     """
     bootstrap_servers = []
     for unit in ops_test.model.applications[APP_NAME].units:
@@ -54,14 +49,22 @@ async def get_topic_description(
             await get_address(ops_test=ops_test, unit_num=unit.name.split("/")[-1])
             + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT', 'SCRAM-SHA-512'].client}"
         )
-    unit_name = unit_name or ops_test.model.applications[APP_NAME].units[0].name
 
-    output = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.topics --bootstrap-server {','.join(bootstrap_servers)} --command-config {PATHS['kafka']['CONF']}/client.properties --describe --topic {topic}'",
-        stderr=PIPE,
-        shell=True,
-        universal_newlines=True,
-    )
+    output = ""
+    for unit in ops_test.model.applications[APP_NAME].units:
+        try:
+            output = check_output(
+                f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit.name} sudo -i 'charmed-kafka.topics --bootstrap-server {','.join(bootstrap_servers)} --command-config {PATHS['kafka']['CONF']}/client.properties --describe --topic {topic}'",
+                stderr=PIPE,
+                shell=True,
+                universal_newlines=True,
+            )
+            break
+        except CalledProcessError:
+            logger.debug(f"Unit {unit.name} not available, trying next unit...")
+
+    if not output:
+        raise Exception("get_topic_description: No units available!")
 
     leader = int(re.search(r"Leader: (\d+)", output)[1])
     in_sync_replicas = {int(i) for i in re.search(r"Isr: ([\d,]+)", output)[1].split(",")}
@@ -69,15 +72,12 @@ async def get_topic_description(
     return TopicDescription(leader, in_sync_replicas)
 
 
-async def get_topic_offsets(
-    ops_test: OpsTest, topic: str, unit_name: str | None = None
-) -> list[str]:
+async def get_topic_offsets(ops_test: OpsTest, topic: str) -> list[str]:
     """Get the offsets of a topic on a unit.
 
     Args:
         ops_test: OpsTest utility class
         topic: the desired topic to check
-        unit_name: unit to run the command on
     """
     bootstrap_servers = []
     for unit in ops_test.model.applications[APP_NAME].units:
@@ -85,15 +85,23 @@ async def get_topic_offsets(
             await get_address(ops_test=ops_test, unit_num=unit.name.split("/")[-1])
             + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT', 'SCRAM-SHA-512'].client}"
         )
-    unit_name = unit_name or ops_test.model.applications[APP_NAME].units[0].name
 
-    # example of topic offset output: 'test-topic:0:10'
-    result = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.get-offsets --bootstrap-server {','.join(bootstrap_servers)} --command-config {PATHS['kafka']['CONF']}/client.properties --topic {topic}'",
-        stderr=PIPE,
-        shell=True,
-        universal_newlines=True,
-    )
+    result = ""
+    for unit in ops_test.model.applications[APP_NAME].units:
+        try:
+            # example of topic offset output: 'test-topic:0:10'
+            result = check_output(
+                f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit.name} sudo -i 'charmed-kafka.get-offsets --bootstrap-server {','.join(bootstrap_servers)} --command-config {PATHS['kafka']['CONF']}/client.properties --topic {topic}'",
+                stderr=PIPE,
+                shell=True,
+                universal_newlines=True,
+            )
+            break
+        except CalledProcessError:
+            logger.debug(f"Unit {unit.name} not available, trying next unit...")
+
+    if not result:
+        raise Exception("get_topic_offsets: No units available!")
 
     return re.search(rf"{topic}:(\d+:\d+)", result)[1].split(":")
 
@@ -174,7 +182,7 @@ def network_throttle(machine_name: str) -> None:
     subprocess.check_call(limit_set_command.split())
     limit_set_command = f"lxc config device set {machine_name} eth0 limits.ingress=1kbit"
     subprocess.check_call(limit_set_command.split())
-    limit_set_command = f"lxc config set {machine_name} limits.network.priority=10"
+    limit_set_command = f"lxc config device set {machine_name} eth0 limits.priority=10"
     subprocess.check_call(limit_set_command.split())
 
 
@@ -188,7 +196,7 @@ def network_release(machine_name: str) -> None:
     subprocess.check_call(limit_set_command.split())
     limit_set_command = f"lxc config device set {machine_name} eth0 limits.ingress="
     subprocess.check_call(limit_set_command.split())
-    limit_set_command = f"lxc config set {machine_name} limits.network.priority="
+    limit_set_command = f"lxc config device set {machine_name} eth0 limits.priority="
     subprocess.check_call(limit_set_command.split())
 
 
@@ -219,3 +227,27 @@ def assert_continuous_writes_consistency(result: ContinuousWritesResult):
     assert (
         result.count - 1 == result.last_expected_message
     ), f"Last expected message {result.last_expected_message} doesn't match count {result.count}"
+
+
+async def all_brokers_up(ops_test: OpsTest, timeout_seconds: int = 600):
+    """Waits until client listeners are up on all broker units."""
+    async with ops_test.fast_forward(fast_interval="30s"):
+        for _ in range(timeout_seconds // 30):
+            all_up = True
+            for unit in ops_test.model.applications[APP_NAME].units:
+                broker_ip = get_unit_ipv4_address(ops_test.model_full_name, unit.name)
+
+                if not broker_ip:
+                    all_up = False
+                    continue
+
+                if not check_socket(
+                    broker_ip, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
+                ):
+                    logger.info(f"{unit.name} @ {broker_ip} not healthy yet...")
+                    all_up = False
+
+            if all_up:
+                return
+
+            await asyncio.sleep(30)
