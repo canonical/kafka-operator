@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
+import asyncio
 import logging
 import re
 import subprocess
@@ -10,10 +11,7 @@ from subprocess import PIPE, CalledProcessError, check_output
 from pytest_operator.plugin import OpsTest
 
 from integration.ha.continuous_writes import ContinuousWritesResult
-from integration.helpers import (
-    APP_NAME,
-    get_address,
-)
+from integration.helpers import APP_NAME, check_socket, get_address, get_unit_ipv4_address
 from literals import PATHS, SECURITY_PROTOCOL_PORTS
 
 PROCESS = "kafka.Kafka"
@@ -229,3 +227,27 @@ def assert_continuous_writes_consistency(result: ContinuousWritesResult):
     assert (
         result.count - 1 == result.last_expected_message
     ), f"Last expected message {result.last_expected_message} doesn't match count {result.count}"
+
+
+async def all_brokers_up(ops_test: OpsTest):
+    """Assert client listeners are up on all broker units."""
+    async with ops_test.fast_forward(fast_interval="30s"):
+        for _ in range(20):  # ~10 min.
+            all_up = True
+            for unit in ops_test.model.applications[APP_NAME].units:
+                broker_ip = get_unit_ipv4_address(ops_test.model_full_name, unit.name)
+
+                if not broker_ip:
+                    all_up = False
+                    continue
+
+                if not check_socket(
+                    broker_ip, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
+                ):
+                    logger.info(f"{unit.name} @ {broker_ip} not healthy yet...")
+                    all_up = False
+
+            if all_up:
+                return
+
+            await asyncio.sleep(30)

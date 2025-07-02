@@ -130,12 +130,16 @@ async def deploy_cluster(
 
 def get_unit_ipv4_address(model_full_name: str | None, unit_name: str) -> str | None:
     """A safer alternative for `juju.unit.get_public_address()` which is robust to network changes."""
-    stdout = check_output(
-        f"JUJU_MODEL={model_full_name} juju ssh {unit_name} hostname -i",
-        stderr=PIPE,
-        shell=True,
-        universal_newlines=True,
-    )
+    try:
+        stdout = check_output(
+            f"JUJU_MODEL={model_full_name} juju ssh {unit_name} hostname -i",
+            stderr=PIPE,
+            shell=True,
+            universal_newlines=True,
+        )
+    except CalledProcessError:
+        return None
+
     ipv4_matches = re.findall(r"[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}", stdout)
 
     if ipv4_matches:
