@@ -229,10 +229,10 @@ def assert_continuous_writes_consistency(result: ContinuousWritesResult):
     ), f"Last expected message {result.last_expected_message} doesn't match count {result.count}"
 
 
-async def all_brokers_up(ops_test: OpsTest):
-    """Assert client listeners are up on all broker units."""
+async def all_brokers_up(ops_test: OpsTest, timeout_seconds: int = 600):
+    """Waits until client listeners are up on all broker units."""
     async with ops_test.fast_forward(fast_interval="30s"):
-        for _ in range(20):  # ~10 min.
+        for _ in range(timeout_seconds // 30):
             all_up = True
             for unit in ops_test.model.applications[APP_NAME].units:
                 broker_ip = get_unit_ipv4_address(ops_test.model_full_name, unit.name)
