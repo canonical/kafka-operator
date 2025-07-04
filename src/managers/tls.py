@@ -295,7 +295,10 @@ class TLSManager:
                 raise e
 
     def update_peer_cluster_trust(self) -> None:
-        """..."""
+        """Updates peer truststore with current state of peer-cluster certificate chain.
+
+        This method will toggle the TLS rotation state variable if certificate change is detected in the peer-cluster relationship.
+        """
         bundle = self.state.peer_cluster_ca
         state = self.get_state(TLSScope.PEER)
 

@@ -629,7 +629,7 @@ class ClusterState(Object):
 
     @property
     def use_internal_tls(self) -> bool:
-        """..."""
+        """Whether internal TLS is being used or not."""
         return not bool(self.model.get_relation(INTERNAL_TLS_RELATION))
 
     @property
