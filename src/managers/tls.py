@@ -59,9 +59,9 @@ class TLSManager:
     def get_state(self, scope: TLSScope) -> TLSState:
         """Returns the TLSState object for the given scope."""
         if scope == TLSScope.PEER:
-            return self.state.unit_broker.peer_tls
+            return self.state.unit_broker.peer_certs
         elif scope == TLSScope.CLIENT:
-            return self.state.unit_broker.client_tls
+            return self.state.unit_broker.client_certs
 
         raise NotImplementedError(f"Unknown scope: {scope}")
 
@@ -311,7 +311,7 @@ class TLSManager:
                 continue
 
             alias = f"{self.PEER_CLUSTER_ALIAS}{i}"
-            state.rotation = True
+            state.rotate = True
 
             self.update_cert(alias=alias, cert=cert, scope=TLSScope.PEER)
 

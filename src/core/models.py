@@ -569,12 +569,12 @@ class TLSState:
         return sorted(set(bundle), key=bundle.index)  # ordering might matter
 
     @property
-    def rotation(self) -> bool:
+    def rotate(self) -> bool:
         """Whether or not CA/chain rotation is in progress."""
         return bool(self.relation_data.get(f"{self.scope.value}-rotation", ""))
 
-    @rotation.setter
-    def rotation(self, value: bool) -> None:
+    @rotate.setter
+    def rotate(self, value: bool) -> None:
         _value = "" if not value else "true"
         self.relation_state.update({f"{self.scope.value}-rotation": _value})
 
@@ -631,12 +631,12 @@ class KafkaBroker(RelationState):
 
     # --- TLS ---
     @property
-    def peer_tls(self) -> TLSState:
+    def peer_certs(self) -> TLSState:
         """TLS state for internal (peer) communications."""
         return TLSState(self, TLSScope.PEER)
 
     @property
-    def client_tls(self) -> TLSState:
+    def client_certs(self) -> TLSState:
         """TLS state for external (client) communications."""
         return TLSState(self, TLSScope.CLIENT)
 
