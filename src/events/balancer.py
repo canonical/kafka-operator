@@ -133,8 +133,8 @@ class BalancerOperator(Object):
 
         self.workload.restart()
 
-        if self.charm.state.balancer_tls_rotation:
-            self.charm.state.balancer_tls_rotation = False
+        if self.charm.state.balancer_tls_rotate:
+            self.charm.state.balancer_tls_rotate = False
 
         logger.info("CruiseControl service started")
 
@@ -186,7 +186,7 @@ class BalancerOperator(Object):
 
             content_changed = True
 
-        if content_changed or self.charm.state.balancer_tls_rotation:
+        if content_changed or self.charm.state.balancer_tls_rotate:
             # safe to update everything even if it hasn't changed, service will restart anyway
             self.config_manager.set_cruise_control_properties()
             self.config_manager.set_broker_capacities()

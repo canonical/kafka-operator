@@ -167,7 +167,7 @@ class BrokerOperator(Object):
             return
 
         # Internal TLS setup required?
-        if not self.charm.state.unit_broker.peer_tls.ready and not self.charm.state.internal_ca:
+        if not self.charm.state.unit_broker.peer_certs.ready and not self.charm.state.internal_ca:
             if not self.charm.unit.is_leader():
                 event.defer()
                 return
@@ -191,8 +191,8 @@ class BrokerOperator(Object):
         # need to manually add-back key/truststores
         if (
             self.charm.state.cluster.tls_enabled
-            and self.charm.state.unit_broker.client_tls.certificate
-            and self.charm.state.unit_broker.client_tls.ca
+            and self.charm.state.unit_broker.client_certs.certificate
+            and self.charm.state.unit_broker.client_certs.ca
         ):  # TLS is probably completed
             self.tls_manager.configure()
 
@@ -261,7 +261,7 @@ class BrokerOperator(Object):
             )
             self.charm.tls.refresh_tls_certificates.emit()
             # new cert will eventually be dynamically loaded by the broker
-            self.charm.state.unit_broker.client_tls.certificate = ""
+            self.charm.state.unit_broker.client_certs.certificate = ""
 
             return  # early return here to ensure new node cert arrives before updating advertised.listeners
 
@@ -275,7 +275,7 @@ class BrokerOperator(Object):
             )
             self.config_manager.set_server_properties()
 
-        if properties_changed or self.charm.state.tls_rotation:
+        if properties_changed or self.charm.state.tls_rotate:
             if isinstance(event, StorageEvent):  # to get new storages
                 self.controller_manager.format_storages(
                     uuid=self.charm.state.peer_cluster.cluster_uuid,
@@ -303,13 +303,13 @@ class BrokerOperator(Object):
         # Update truststore if needed.
         self.charm.tls.update_truststore()
 
-        if self.charm.state.tls_rotation:
+        if self.charm.state.tls_rotate:
             # If TLS rotation is needed, inform the balancer.
             if self.charm.state.runs_balancer:
-                self.charm.state.balancer_tls_rotation = True
+                self.charm.state.balancer_tls_rotate = True
 
             # Reset TLS rotation state
-            self.charm.state.tls_rotation = False
+            self.charm.state.tls_rotate = False
 
         if self.charm.unit.is_leader():
             self.update_credentials_cache()
@@ -443,7 +443,7 @@ class BrokerOperator(Object):
                     "username": client.username,
                     "password": client.password,
                     "tls": client.tls,
-                    "tls-ca": self.charm.state.unit_broker.client_tls.ca,
+                    "tls-ca": self.charm.state.unit_broker.client_certs.ca,
                 }
             )
 
@@ -453,7 +453,7 @@ class BrokerOperator(Object):
             return
 
         # Update peer-cluster chain of trust
-        self.charm.state.peer_cluster_ca = self.charm.state.unit_broker.peer_tls.bundle
+        self.charm.state.peer_cluster_ca = self.charm.state.unit_broker.peer_certs.bundle
 
         self.charm.state.peer_cluster.update(
             {

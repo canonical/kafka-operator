@@ -63,10 +63,10 @@ class TLSHandler(Object):
         peer_private_key = None
         client_private_key = None
 
-        if peer_key := self.charm.state.unit_broker.peer_tls.private_key:
+        if peer_key := self.charm.state.unit_broker.peer_certs.private_key:
             peer_private_key = PrivateKey.from_string(peer_key)
 
-        if client_key := self.charm.state.unit_broker.client_tls.private_key:
+        if client_key := self.charm.state.unit_broker.client_certs.private_key:
             client_private_key = PrivateKey.from_string(client_key)
 
         self.certificates = TLSCertificatesRequiresV4(
@@ -130,9 +130,9 @@ class TLSHandler(Object):
     def requirer_state(self, requirer: TLSCertificatesRequiresV4) -> TLSState:
         """Returns the appropriate TLSState based on the scope of the TLS Certificates Requirer instance."""
         if requirer.relationship_name == TLS_RELATION:
-            return self.charm.state.unit_broker.client_tls
+            return self.charm.state.unit_broker.client_certs
         elif requirer.relationship_name == INTERNAL_TLS_RELATION:
-            return self.charm.state.unit_broker.peer_tls
+            return self.charm.state.unit_broker.peer_certs
 
         raise NotImplementedError(f"{requirer.relationship_name} not supported!")
 
@@ -165,9 +165,9 @@ class TLSHandler(Object):
     def _tls_relation_broken(self, event: RelationBrokenEvent) -> None:
         """Handler for `certificates_relation_broken` event."""
         state = (
-            self.charm.state.unit_broker.client_tls
+            self.charm.state.unit_broker.client_certs
             if event.relation.name == TLS_RELATION
-            else self.charm.state.unit_broker.peer_tls
+            else self.charm.state.unit_broker.peer_certs
         )
 
         # clear TLS state
@@ -186,7 +186,7 @@ class TLSHandler(Object):
             self.charm.broker.tls_manager.setup_internal_credentials(is_leader=is_leader)
             self.charm.balancer.tls_manager.setup_internal_credentials(is_leader=is_leader)
 
-            state.rotation = True
+            state.rotate = True
             self.charm.on.config_changed.emit()
 
         if not self.charm.unit.is_leader():
@@ -232,7 +232,7 @@ class TLSHandler(Object):
 
         if certificate_changed or ca_changed:
             # this will trigger a restart.
-            state.rotation = True
+            state.rotate = True
 
         if state.scope == TLSScope.PEER and self.charm.unit.is_leader():
             self.charm.state.peer_cluster_ca = state.bundle
@@ -249,7 +249,7 @@ class TLSHandler(Object):
             else base64.b64decode(key).decode("utf-8")
         )
 
-        self.charm.state.unit_broker.client_tls.private_key = private_key
+        self.charm.state.unit_broker.client_certs.private_key = private_key
         self.certificates._private_key = PrivateKey.from_string(private_key)
         self.refresh_tls_certificates.emit()
 
@@ -262,7 +262,7 @@ class TLSHandler(Object):
         if not all(
             [
                 self.charm.state.cluster.tls_enabled,
-                self.charm.state.unit_broker.client_tls.certificate,
+                self.charm.state.unit_broker.client_certs.certificate,
             ]
         ):
             logger.debug("Missing TLS relation, deferring")
@@ -296,8 +296,8 @@ class TLSHandler(Object):
             [
                 self.charm.workload.installed,
                 self.charm.state.cluster.tls_enabled,
-                self.charm.state.unit_broker.client_tls.certificate,
-                self.charm.state.unit_broker.client_tls.ca,
+                self.charm.state.unit_broker.client_certs.certificate,
+                self.charm.state.unit_broker.client_certs.ca,
             ]
         ):
             # not ready yet.

@@ -75,7 +75,7 @@ class KafkaProvider(Object):
         if requesting_client.mtls_cert and not all(
             [
                 self.charm.state.cluster.tls_enabled,
-                self.charm.state.unit_broker.client_tls.certificate,
+                self.charm.state.unit_broker.client_certs.certificate,
             ]
         ):
             logger.debug("Missing TLS relation, deferring")
@@ -134,7 +134,7 @@ class KafkaProvider(Object):
         if not all(
             [
                 self.charm.state.cluster.tls_enabled,
-                self.charm.state.unit_broker.client_tls.certificate,
+                self.charm.state.unit_broker.client_certs.certificate,
             ]
         ):
             logger.debug("Missing TLS relation, deferring")

@@ -360,7 +360,7 @@ class ClusterState(Object):
         """The current enabled auth.protocol for bootstrap."""
         auth_protocol = (
             "SASL_SSL"
-            if self.cluster.tls_enabled and self.unit_broker.client_tls.certificate
+            if self.cluster.tls_enabled and self.unit_broker.client_certs.certificate
             else "SASL_PLAINTEXT"
         )
 
@@ -516,7 +516,7 @@ class ClusterState(Object):
         if self.runs_broker_only and not self.peer_cluster_orchestrator_relation:
             return Status.MISSING_MODE
 
-        if not self.unit_broker.peer_tls.ready and not self.internal_ca:
+        if not self.unit_broker.peer_certs.ready and not self.internal_ca:
             return Status.NO_INTERNAL_TLS
 
         for status in [self._broker_status, self._controller_status]:
@@ -537,7 +537,7 @@ class ClusterState(Object):
         if not self.peer_cluster_relation and not self.runs_broker:
             return Status.NO_PEER_CLUSTER_RELATION
 
-        if not self.unit_broker.peer_tls.ready and not self.internal_ca:
+        if not self.unit_broker.peer_certs.ready and not self.internal_ca:
             return Status.NO_INTERNAL_TLS
 
         if not self.peer_cluster.broker_connected:
@@ -566,7 +566,7 @@ class ClusterState(Object):
         if self.runs_broker_only and not self.peer_cluster_ca:
             return Status.NO_PEER_CLUSTER_CA
 
-        if self.cluster.tls_enabled and not self.unit_broker.client_tls.certificate:
+        if self.cluster.tls_enabled and not self.unit_broker.client_certs.certificate:
             return Status.NO_CERT
 
         if not self.cluster.internal_user_credentials:
@@ -669,7 +669,7 @@ class ClusterState(Object):
             return json.loads(self.kraft_cluster.relation_data.get("broker-ca", "null")) or []
 
         # KRaft single mode
-        return self.unit_broker.peer_tls.bundle
+        return self.unit_broker.peer_certs.bundle
 
     @peer_cluster_ca.setter
     def peer_cluster_ca(self, value: str | list[str]) -> None:
@@ -681,26 +681,26 @@ class ClusterState(Object):
             self.kraft_cluster.update({"controller-ca": _value})
 
     @property
-    def tls_rotation(self) -> bool:
+    def tls_rotate(self) -> bool:
         """Returns True if TLS rotation is in progress, False otherwise."""
         return any(
             [
-                self.unit_broker.client_tls.rotation,
-                self.unit_broker.peer_tls.rotation,
+                self.unit_broker.client_certs.rotate,
+                self.unit_broker.peer_certs.rotate,
             ]
         )
 
-    @tls_rotation.setter
-    def tls_rotation(self, value: bool) -> None:
-        self.unit_broker.client_tls.rotation = value
-        self.unit_broker.peer_tls.rotation = value
+    @tls_rotate.setter
+    def tls_rotate(self, value: bool) -> None:
+        self.unit_broker.client_certs.rotate = value
+        self.unit_broker.peer_certs.rotate = value
 
     @property
-    def balancer_tls_rotation(self) -> bool:
+    def balancer_tls_rotate(self) -> bool:
         """Returns True if TLS rotation is in progress, False otherwise."""
         return bool(self.cluster.relation_data.get("balancer-rotation", ""))
 
-    @balancer_tls_rotation.setter
-    def balancer_tls_rotation(self, value: bool) -> None:
+    @balancer_tls_rotate.setter
+    def balancer_tls_rotate(self, value: bool) -> None:
         _value = "" if not value else "true"
         self.cluster.update({"balancer-rotation": _value})

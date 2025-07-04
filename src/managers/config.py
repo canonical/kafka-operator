@@ -352,7 +352,7 @@ class ConfigManager(CommonConfigManager):
                 f"listener.name.{listener_name}.ssl.keystore.password={self.state.unit_broker.keystore_password}",
             ]
 
-        if not all([self.state.cluster.tls_enabled, self.state.unit_broker.client_tls.ready]):
+        if not all([self.state.cluster.tls_enabled, self.state.unit_broker.client_certs.ready]):
             return properties
 
         return properties + [
