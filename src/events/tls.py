@@ -77,7 +77,6 @@ class TLSHandler(Object):
                     common_name=self.common_name,
                     sans_ip=frozenset(self.sans["sans_ip"]),
                     sans_dns=frozenset(self.sans["sans_dns"]),
-                    organization=TLSScope.CLIENT.value,
                 ),
             ],
             refresh_events=[self.refresh_tls_certificates],
@@ -92,7 +91,6 @@ class TLSHandler(Object):
                     common_name=self.common_name,
                     sans_ip=frozenset(self.sans["sans_ip"]),
                     sans_dns=frozenset(self.sans["sans_dns"]),
-                    organization=TLSScope.PEER.value,
                 ),
             ],
             private_key=peer_private_key,
@@ -105,11 +103,12 @@ class TLSHandler(Object):
             self.framework.observe(self.charm.on[rel].relation_broken, self._tls_relation_broken)
 
         self.framework.observe(
-            getattr(self.certificates.on, "certificate_available"), self._on_certificate_available
+            getattr(self.certificates.on, "certificate_available"),
+            self._on_client_certificate_available,
         )
         self.framework.observe(
             getattr(self.peer_certificates.on, "certificate_available"),
-            self._on_certificate_available,
+            self._on_peer_certificate_available,
         )
 
         self.framework.observe(
@@ -121,10 +120,11 @@ class TLSHandler(Object):
         )
         self.framework.observe(
             self.certificate_transfer.on.certificate_set_updated,
-            self._on_client_certificates_available,
+            self._on_mtls_client_certificates_available,
         )
         self.framework.observe(
-            self.certificate_transfer.on.certificates_removed, self._on_client_certificates_removed
+            self.certificate_transfer.on.certificates_removed,
+            self._on_mtls_client_certificates_removed,
         )
 
     def requirer_state(self, requirer: TLSCertificatesRequiresV4) -> TLSState:
@@ -195,25 +195,13 @@ class TLSHandler(Object):
         if state.scope == TLSScope.CLIENT:
             self.charm.state.cluster.update({"tls": ""})
 
-    def _on_certificate_available(self, event: CertificateAvailableEvent) -> None:
-        """Handler for `certificates_available` event after provider updates signed certs."""
-        if not self.charm.workload.installed:
-            event.defer()
-            return
-
-        if not self.charm.state.peer_relation:
-            logger.warning("No peer relation on certificate available")
-            event.defer()
-            return
-
+    def _handle_certificate_available_event(
+        self, event: CertificateAvailableEvent, requirer: TLSCertificatesRequiresV4
+    ) -> None:
+        """Handle TLS `certificate_available` event for the given TLS requirer."""
         ca_changed = False
         certificate_changed = False
 
-        requirer = (
-            self.certificates
-            if event.certificate.organization == TLSScope.CLIENT.value
-            else self.peer_certificates
-        )
         state = self.requirer_state(requirer)
 
         if state.certificate and event.certificate.raw != state.certificate:
@@ -234,9 +222,26 @@ class TLSHandler(Object):
             # this will trigger a restart.
             state.rotate = True
 
-        if state.scope == TLSScope.PEER and self.charm.unit.is_leader():
-            self.charm.state.peer_cluster_ca = state.bundle
+    def _on_peer_certificate_available(self, event: CertificateAvailableEvent) -> None:
+        """Handler for `certificate_available` event after provider updates signed certs for peer TLS relation."""
+        if not self.ready:
+            event.defer()
+            return
 
+        self._handle_certificate_available_event(event, self.peer_certificates)
+        if self.charm.unit.is_leader():
+            # Update peer-cluster CA/chain.
+            self.charm.state.peer_cluster_ca = self.charm.state.unit_broker.peer_certs.bundle
+
+        self.charm.on.config_changed.emit()
+
+    def _on_client_certificate_available(self, event: CertificateAvailableEvent) -> None:
+        """Handler for `certificate_available` event after provider updates signed certs for client TLS relation."""
+        if not self.ready:
+            event.defer()
+            return
+
+        self._handle_certificate_available_event(event, self.certificates)
         self.update_truststore()
         self.charm.on.config_changed.emit()
 
@@ -253,7 +258,7 @@ class TLSHandler(Object):
         self.certificates._private_key = PrivateKey.from_string(private_key)
         self.refresh_tls_certificates.emit()
 
-    def _on_client_certificates_available(self, event: CertificatesAvailableEvent) -> None:
+    def _on_mtls_client_certificates_available(self, event: CertificatesAvailableEvent) -> None:
         """Handle the certificates available event on the `certifcate_transfer` interface."""
         relation = self.charm.model.get_relation(CERTIFICATE_TRANSFER_RELATION, event.relation_id)
         if not relation or not relation.active:
@@ -283,7 +288,7 @@ class TLSHandler(Object):
 
         self.update_truststore()
 
-    def _on_client_certificates_removed(self, event: CertificatesRemovedEvent) -> None:
+    def _on_mtls_client_certificates_removed(self, event: CertificatesRemovedEvent) -> None:
         """Handle the certificates removed event."""
         self.update_truststore()
         # Turn off MTLS if no clients are remaining.
@@ -334,3 +339,16 @@ class TLSHandler(Object):
         logger.debug(f"Following aliases should be in the truststore: {live_aliases}")
         if should_reload:
             self.charm.broker.tls_manager.reload_truststore()
+
+    @property
+    def ready(self) -> bool:
+        """Returns True if workload and peer relation is ready, False otherwise."""
+        if not all([self.charm.workload.container_can_connect, self.charm.workload.installed]):
+            logger.debug("Workload not ready yet.")
+            return False
+
+        if not self.charm.state.peer_relation:
+            logger.warning("No peer relation on certificate available.")
+            return False
+
+        return True
