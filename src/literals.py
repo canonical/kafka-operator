@@ -62,15 +62,17 @@ SECRETS_APP = [
 SECRETS_UNIT = [
     "truststore-password",
     "keystore-password",
+    "client-ca-cert",
+    "client-certificate",
+    "client-chain",
+    "client-csr",
+    "client-private-key",
+    "peer-ca-cert",
+    "peer-certificate",
+    "peer-chain",
+    "peer-csr",
+    "peer-private-key",
 ]
-for scope in (TLSScope.CLIENT.value, TLSScope.PEER.value):
-    SECRETS_UNIT += [
-        f"{scope}-ca-cert",
-        f"{scope}-chain",
-        f"{scope}-csr",
-        f"{scope}-certificate",
-        f"{scope}-private-key",
-    ]
 
 JMX_EXPORTER_PORT = 9101
 JMX_CC_PORT = 9102
@@ -223,6 +225,7 @@ MODE_REMOVE = "remove"
 PROFILE_TESTING = "testing"
 
 
+<<<<<<< HEAD
 class KRaftUnitStatus(str, Enum):
     """KRaft unit status (also known as role) in KRaft Quorums."""
 
@@ -240,6 +243,8 @@ class KRaftQuorumInfo:
     status: KRaftUnitStatus
 
 
+=======
+>>>>>>> cc55e44 (refactor: based on first review)
 @dataclass
 class StatusLevel:
     """Status object helper."""
