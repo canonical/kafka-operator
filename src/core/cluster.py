@@ -638,7 +638,7 @@ class ClusterState(Object):
         ca = self.cluster.relation_data.get("internal-ca", "")
         ca_key = self.internal_ca_key
 
-        if ca_key is None or not ca:
+        if not all([ca_key, ca]):
             return None
 
         return Certificate.from_string(ca)
