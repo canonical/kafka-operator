@@ -6,7 +6,7 @@
 
 import json
 import logging
-from datetime import datetime
+from subprocess import CalledProcessError
 from typing import TYPE_CHECKING
 
 from charms.operator_libs_linux.v2.snap import SnapError
@@ -168,13 +168,23 @@ class BrokerOperator(Object):
         if not self.upgrade.idle:
             return
 
+        # Internal TLS setup required?
+        if not self.charm.state.unit_broker.peer_certs.ready and not self.charm.state.internal_ca:
+            if not self.charm.unit.is_leader():
+                event.defer()
+                return
+
+            self.tls_manager.setup_internal_ca()
+
         current_status = self.charm.state.ready_to_start
         if current_status is not Status.ACTIVE:
             self.charm._set_status(current_status)
             event.defer()
             return
 
+        self.kraft.format_storages()
         self.update_external_services()
+        self.tls_manager.setup_internal_credentials()
 
         self.config_manager.set_server_properties()
         self.config_manager.set_client_properties()
@@ -183,16 +193,10 @@ class BrokerOperator(Object):
         # need to manually add-back key/truststores
         if (
             self.charm.state.cluster.tls_enabled
-            and self.charm.state.unit_broker.certificate
-            and self.charm.state.unit_broker.ca
+            and self.charm.state.unit_broker.client_certs.certificate
+            and self.charm.state.unit_broker.client_certs.ca
         ):  # TLS is probably completed
-            self.tls_manager.set_server_key()
-            self.tls_manager.set_ca()
-            self.tls_manager.set_chain()
-            self.tls_manager.set_certificate()
-            self.tls_manager.set_bundle()
-            self.tls_manager.set_truststore()
-            self.tls_manager.set_keystore()
+            self.tls_manager.configure()
 
         # start kafka service
         self.workload.start()
@@ -205,7 +209,7 @@ class BrokerOperator(Object):
         if not self.charm.pending_inactive_statuses:
             logger.info(f'Broker {self.charm.unit.name.split("/")[1]} connected')
 
-    def _on_config_changed(self, event: EventBase) -> None:
+    def _on_config_changed(self, event: EventBase) -> None:  # noqa: C901
         """Generic handler for most `config_changed` events across relations."""
         # only overwrite properties if service is already active
         if not self.upgrade.idle or not self.healthy:
@@ -244,6 +248,9 @@ class BrokerOperator(Object):
         self.config_manager.set_environment()
         self.charm.unit.set_workload_version(self.workload.get_version())
 
+        # Update peer-cluster trusted certs and check for TLS rotation
+        self.tls_manager.update_peer_cluster_trust()
+
         if sans_ip_changed or sans_dns_changed:
             logger.info(
                 (
@@ -254,13 +261,9 @@ class BrokerOperator(Object):
                     f"NEW SANs DNS = {expected_sans_dns - current_sans_dns}"
                 )
             )
-            self.charm.tls.certificates.on.certificate_expiring.emit(
-                certificate=self.charm.state.unit_broker.certificate,
-                expiry=datetime.now().isoformat(),
-            )  # new cert will eventually be dynamically loaded by the broker
-            self.charm.state.unit_broker.update(
-                {"certificate": ""}
-            )  # ensures only single requested new certs, will be replaced on new certificate-available event
+            self.charm.tls.refresh_tls_certificates.emit()
+            # new cert will eventually be dynamically loaded by the broker
+            self.charm.state.unit_broker.client_certs.certificate = ""
 
             return  # early return here to ensure new node cert arrives before updating advertised.listeners
 
@@ -274,7 +277,7 @@ class BrokerOperator(Object):
             )
             self.config_manager.set_server_properties()
 
-        if properties_changed:
+        if properties_changed or self.charm.state.tls_rotate:
             if isinstance(event, StorageEvent):  # to get new storages
                 self.controller_manager.format_storages(
                     uuid=self.charm.state.peer_cluster.cluster_uuid,
@@ -290,12 +293,28 @@ class BrokerOperator(Object):
         # update these whenever possible
         self.config_manager.set_client_properties()  # to ensure clients have fresh data
         self.update_external_services()  # in case of IP changes or pod reschedules
-        self.charm.state.unit_broker.unit.set_ports(  # in case of listeners changes
-            *[listener.port for listener in self.config_manager.all_listeners]
-        )
+        if self.charm.state.runs_broker:
+            self.charm.state.unit_broker.unit.set_ports(  # in case of listeners changes
+                *[listener.port for listener in self.config_manager.all_listeners]
+            )
+        elif self.charm.state.runs_controller:  # only valid for KRaft-multi on controllers
+            self.charm.state.unit_broker.unit.set_ports(
+                *[listener.port for listener in self.config_manager.controller_listeners]
+            )
 
         # Update truststore if needed.
         self.charm.tls.update_truststore()
+
+        if self.charm.state.tls_rotate:
+            # If TLS rotation is needed, inform the balancer.
+            if self.charm.state.runs_balancer:
+                self.charm.state.balancer_tls_rotate = True
+
+            # Reset TLS rotation state
+            self.charm.state.tls_rotate = False
+
+        if self.charm.unit.is_leader():
+            self.update_credentials_cache()
 
         # If Kafka is related to client charms, update their information.
         if self.model.relations.get(REL_NAME, None) and self.charm.unit.is_leader():
@@ -426,7 +445,7 @@ class BrokerOperator(Object):
                     "username": client.username,
                     "password": client.password,
                     "tls": client.tls,
-                    "tls-ca": self.charm.state.unit_broker.ca,
+                    "tls-ca": self.charm.state.unit_broker.client_certs.ca,
                 }
             )
 
@@ -434,6 +453,9 @@ class BrokerOperator(Object):
         """Writes updated relation data to other peer_cluster apps."""
         if not self.charm.unit.is_leader() or not self.healthy:
             return
+
+        # Update peer-cluster chain of trust
+        self.charm.state.peer_cluster_ca = self.charm.state.unit_broker.peer_certs.bundle
 
         self.charm.state.peer_cluster.update(
             {
@@ -453,12 +475,19 @@ class BrokerOperator(Object):
         if not all([self.charm.unit.is_leader(), self.charm.state.runs_broker, self.healthy]):
             return
 
+        try:
+            users = self.auth_manager.get_users()
+        except CalledProcessError as e:
+            # probably the cluster is not healthy, we'll check in the next update-status
+            logger.error(e)
+            return
+
         # Update client properties first, to ensure it's consistent with latest listener config
         self.config_manager.set_client_properties()
 
         for client in self.charm.state.clients:
 
-            if not client.password:
+            if not client.password or client.username in users:
                 continue
 
             self.auth_manager.add_user(client.username, client.password)

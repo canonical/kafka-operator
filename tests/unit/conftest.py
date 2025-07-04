@@ -34,9 +34,12 @@ def zk_data() -> dict[str, str]:
 
 @pytest.fixture(scope="module")
 def kraft_data() -> dict[str, str]:
+    tls_data = generate_tls_artifacts(sans_ip=["10.10.10.11"])
     return {
         "bootstrap-controller": "10.10.10.10:9097",
         "cluster-uuid": "random-uuid",
+        "internal-ca": tls_data.ca,
+        "internal-ca-key": tls_data.signing_key,
     }
 
 
@@ -68,6 +71,20 @@ def patched_workload(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("workload.Workload.write", lambda _, content, path: None)
     monkeypatch.setattr("workload.Workload.read", lambda _, path: [])
     monkeypatch.setattr("workload.Workload.get_service_pid", lambda _: 1314231)
+
+
+@pytest.fixture(autouse=True)
+def patched_trust(monkeypatch: pytest.MonkeyPatch):
+    # patch peer_trusted_certificates here,
+    # we have comprehensive unit tests in test_tls_manager
+    monkeypatch.setattr("managers.tls.TLSManager.peer_trusted_certificates", {})
+
+
+@pytest.fixture(autouse=True)
+def patched_get_users():
+    # patch AuthManager.get_users here, we have unit tests in test_auth
+    with patch("managers.auth.AuthManager.get_users", return_value=["admin"]):
+        yield
 
 
 @pytest.fixture(autouse=True)

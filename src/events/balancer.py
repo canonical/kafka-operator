@@ -119,6 +119,7 @@ class BalancerOperator(Object):
             if self.charm.state.peer_cluster_orchestrator:
                 self.charm.state.peer_cluster_orchestrator.update(payload)
 
+        self.tls_manager.setup_internal_credentials()
         self.config_manager.set_cruise_control_properties()
         self.config_manager.set_broker_capacities()
         self.config_manager.set_cruise_control_auth()
@@ -131,6 +132,10 @@ class BalancerOperator(Object):
             return
 
         self.workload.restart()
+
+        if self.charm.state.balancer_tls_rotate:
+            self.charm.state.balancer_tls_rotate = False
+
         logger.info("CruiseControl service started")
 
     def _on_config_changed(self, _: EventBase) -> None:
@@ -181,7 +186,7 @@ class BalancerOperator(Object):
 
             content_changed = True
 
-        if content_changed:
+        if content_changed or self.charm.state.balancer_tls_rotate:
             # safe to update everything even if it hasn't changed, service will restart anyway
             self.config_manager.set_cruise_control_properties()
             self.config_manager.set_broker_capacities()
