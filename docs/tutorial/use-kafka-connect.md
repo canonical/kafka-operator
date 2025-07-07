@@ -1,5 +1,5 @@
 (tutorial-kafka-connect)=
-# 7. Use Kafka Connect for ETL
+# 6. Use Kafka Connect for ETL
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 

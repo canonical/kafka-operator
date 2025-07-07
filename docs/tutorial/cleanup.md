@@ -1,5 +1,5 @@
 (tutorial-cleanup)=
-# 9. Cleanup your environment
+# 8. Cleanup your environment
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
@@ -42,4 +42,3 @@ If you're looking for what to do next you can:
 - [Report](https://github.com/canonical/kafka-operator/issues) any problems you encountered.
 - [Give us your feedback](https://matrix.to/#/#charmhub-data-platform:ubuntu.com).
 - [Contribute to the code base](https://github.com/canonical/kafka-operator)
-
