@@ -3,19 +3,17 @@
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
-## Deploy Charmed Apache Kafka (and Charmed ZooKeeper)
-
 To deploy Charmed Apache Kafka, all you need to do is run the following commands, which will automatically fetch [Apache Kafka](https://charmhub.io/kafka?channel=3/stable) and [Apache ZooKeeper](https://charmhub.io/zookeeper?channel=3/stable) charms from [Charmhub](https://charmhub.io/) and deploy them to your model. For example, to deploy a cluster of five Apache ZooKeeper units and three Apache Kafka units, you can simply run:
 
 ```shell
-$ juju deploy zookeeper -n 5
-$ juju deploy kafka -n 3
+juju deploy zookeeper -n 5
+juju deploy kafka -n 3
 ```
 
 After this, it is necessary to connect them:
 
 ```shell
-$ juju relate kafka zookeeper
+juju relate kafka zookeeper
 ```
 
 Juju will now fetch Charmed Apache Kafka and Charmed Apache Zookeeper and begin deploying them to the LXD cloud. This process can take several minutes depending on how provisioned (RAM, CPU, etc) your machine is. You can track the progress by running:
@@ -146,4 +144,3 @@ snap info charmed-kafka
 However, although the commands above can run within the cluster, it is generally recommended during operations
 to enable external listeners and use these for running the admin commands from outside the cluster. 
 To do so, as we will see in the next section, we will deploy a [data-integrator](https://charmhub.io/data-integrator) charm and relate it to Charmed Apache Kafka.
-
