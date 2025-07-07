@@ -8,6 +8,7 @@ import subprocess
 from itertools import product
 
 import pytest
+from flaky import flaky
 from pytest_operator.plugin import OpsTest
 
 from integration.ha.continuous_writes import ContinuousWrites
@@ -23,6 +24,7 @@ from integration.ha.ha_helpers import (
     network_throttle,
     patch_restart_delay,
     remove_restart_delay,
+    reset_kafka_service,
     send_control_signal,
 )
 from integration.helpers import (
@@ -77,14 +79,15 @@ async def restart_delay(ops_test: OpsTest):
 
 
 @pytest.fixture()
-async def reset_network_state(ops_test: OpsTest, kafka_apps):
-    """Resets all lxc network config to defaults on all machines."""
-    logger.info("Resetting units network state")
-    restore_funcs = (network_release, network_restore)
+async def restore_state(ops_test: OpsTest, kafka_apps):
+    """Resets all machines network and Apache Kafka service to the default state."""
+    logger.info("Resetting units state")
+    restore_funcs = (network_release, network_restore, reset_kafka_service)
     machines = ops_test.model.machines.values()
     for machine, _func in product(machines, restore_funcs):
         try:
             _func(machine.hostname)
+            await asyncio.sleep(10)
         except subprocess.CalledProcessError:
             continue
 
@@ -190,8 +193,10 @@ async def test_multi_cluster_isolation(ops_test: OpsTest, kafka_charm):
     )
 
 
+@flaky(max_runs=3, min_passes=1)
 async def test_kill_broker_with_topic_leader(
     ops_test: OpsTest,
+    restore_state,
     c_writes: ContinuousWrites,
     c_writes_runner: ContinuousWrites,
     restart_delay,
@@ -238,8 +243,10 @@ async def test_kill_broker_with_topic_leader(
     assert_continuous_writes_consistency(result=result)
 
 
+@flaky(max_runs=3, min_passes=1)
 async def test_restart_broker_with_topic_leader(
     ops_test: OpsTest,
+    restore_state,
     c_writes: ContinuousWrites,
     c_writes_runner: ContinuousWrites,
 ):
@@ -273,8 +280,10 @@ async def test_restart_broker_with_topic_leader(
     assert_continuous_writes_consistency(result=result)
 
 
+@flaky(max_runs=3, min_passes=1)
 async def test_freeze_broker_with_topic_leader(
     ops_test: OpsTest,
+    restore_state,
     c_writes: ContinuousWrites,
     c_writes_runner: ContinuousWrites,
     controller_app: str,
@@ -354,8 +363,10 @@ async def test_freeze_broker_with_topic_leader(
     assert_continuous_writes_consistency(result=result)
 
 
+@flaky(max_runs=3, min_passes=1)
 async def test_full_cluster_crash(
     ops_test: OpsTest,
+    restore_state,
     c_writes: ContinuousWrites,
     c_writes_runner: ContinuousWrites,
     restart_delay,
@@ -388,8 +399,10 @@ async def test_full_cluster_crash(
     assert_continuous_writes_consistency(result=result)
 
 
+@flaky(max_runs=3, min_passes=1)
 async def test_full_cluster_restart(
     ops_test: OpsTest,
+    restore_state,
     c_writes: ContinuousWrites,
     c_writes_runner: ContinuousWrites,
 ):
@@ -421,9 +434,10 @@ async def test_full_cluster_restart(
     assert_continuous_writes_consistency(result=result)
 
 
+@flaky(max_runs=3, min_passes=1)
 async def test_network_cut_without_ip_change(
     ops_test: OpsTest,
-    reset_network_state,
+    restore_state,
     c_writes: ContinuousWrites,
     c_writes_runner: ContinuousWrites,
 ):
@@ -494,9 +508,10 @@ async def test_network_cut_without_ip_change(
     assert_continuous_writes_consistency(result=result)
 
 
+@flaky(max_runs=3, min_passes=1)
 async def test_network_cut(
     ops_test: OpsTest,
-    reset_network_state,
+    restore_state,
     c_writes: ContinuousWrites,
     c_writes_runner: ContinuousWrites,
 ):

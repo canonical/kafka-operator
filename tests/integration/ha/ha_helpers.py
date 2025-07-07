@@ -222,6 +222,17 @@ def network_restore(machine_name: str) -> None:
     subprocess.check_call(restore_network_command.split())
 
 
+def reset_kafka_service(machine_name: str) -> None:
+    """Restarts charmed-kafka daemon service on the target machine.
+
+    Args:
+        machine_name: lxc container hostname
+    """
+    # remove mask from eth0
+    reset_command = f"lxc exec {machine_name} sudo snap restart charmed-kafka.daemon"
+    subprocess.check_call(reset_command.split())
+
+
 def assert_continuous_writes_consistency(result: ContinuousWritesResult):
     """Check results of a stopped ContinuousWrites call against expected results."""
     assert (
