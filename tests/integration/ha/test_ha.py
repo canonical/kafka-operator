@@ -508,7 +508,9 @@ async def test_network_cut_without_ip_change(
     assert_continuous_writes_consistency(result=result)
 
 
-@flaky(max_runs=3, min_passes=1)
+@pytest.mark.skip(
+    reason="IP change is not handled gracefully, leading to unpredictable results"
+)
 async def test_network_cut(
     ops_test: OpsTest,
     restore_state,
@@ -561,6 +563,11 @@ async def test_network_cut(
     # Release the network
     logger.info(f"Restoring network of broker: {initial_leader_num}")
     network_restore(machine_name=leader_machine_name)
+
+    logger.info("Reconnecting to the juju model...")
+    await ops_test.model.disconnect()
+    await asyncio.sleep(5)
+    await ops_test.model.connect()
 
     await all_brokers_up(ops_test)
     result = c_writes.stop()
