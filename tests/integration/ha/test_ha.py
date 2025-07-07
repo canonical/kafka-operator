@@ -508,9 +508,7 @@ async def test_network_cut_without_ip_change(
     assert_continuous_writes_consistency(result=result)
 
 
-@pytest.mark.skip(
-    reason="IP change is not handled gracefully, leading to unpredictable results"
-)
+@pytest.mark.skip(reason="IP change is not handled gracefully, leading to unpredictable results")
 async def test_network_cut(
     ops_test: OpsTest,
     restore_state,
