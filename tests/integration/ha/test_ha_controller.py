@@ -14,6 +14,7 @@ from integration.helpers import (
     CONTROLLER_NAME,
     DUMMY_NAME,
     REL_NAME_ADMIN,
+    KRaftMode,
 )
 from integration.helpers.ha import (
     assert_all_brokers_up,
@@ -39,10 +40,14 @@ from integration.helpers.jubilant import (
 
 logger = logging.getLogger(__name__)
 
-USERNAME = "super"
-
 CLIENT_TIMEOUT = 10
 RESTART_DELAY = 60
+
+
+@pytest.fixture(autouse=True)
+def raise_if_not_kraft_multi(kraft_mode: KRaftMode):
+    if kraft_mode != "multi":
+        raise Exception("Controller HA tests should only run with --kraft-mode=multi")
 
 
 @pytest.mark.skip_if_deployed

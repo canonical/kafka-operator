@@ -123,13 +123,11 @@ def juju(request: pytest.FixtureRequest):
             juju.model_config({"update-status-hook-interval": "90s"})
             yield juju
 
-            log = juju.debug_log(limit=30)
+            log = juju.debug_log(limit=1000)
     else:
         juju = jubilant.Juju(model=model)
         yield juju
         log = juju.debug_log(limit=1000)
 
-    #
     if request.session.testsfailed:
-        log = juju.debug_log(limit=30)
         print(log, end="")
