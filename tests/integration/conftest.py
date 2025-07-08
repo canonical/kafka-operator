@@ -2,6 +2,7 @@
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import logging
 import os
 import pathlib
 import subprocess
@@ -110,6 +111,9 @@ async def _build_charm(self, charm_path: typing.Union[str, os.PathLike]) -> path
 
 
 # -- Jubilant --
+
+
+logging.getLogger("jubilant.wait").setLevel(logging.WARNING)
 
 
 @pytest.fixture(scope="module")
