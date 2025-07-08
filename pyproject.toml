@@ -97,6 +97,7 @@ tenacity = ">=7.0"
 pure-sasl = ">=0.5"
 kafka-python-ng = ">=2.0"
 requests = ">2.25"
+flaky = ">=3.0"
 
 
 [tool.poetry.group.format.dependencies]

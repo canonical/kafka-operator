@@ -10,7 +10,7 @@ import typing
 import pytest
 from pytest_operator.plugin import OpsTest
 
-from .helpers import APP_NAME, CONTROLLER_NAME, KRaftMode
+from integration.helpers.pytest_operator import APP_NAME, CONTROLLER_NAME, KRaftMode
 
 
 def pytest_addoption(parser):

@@ -9,7 +9,7 @@ import time
 import pytest
 from pytest_operator.plugin import OpsTest
 
-from .helpers import (
+from integration.helpers.pytest_operator import (
     APP_NAME,
     DUMMY_NAME,
     REL_NAME_ADMIN,
