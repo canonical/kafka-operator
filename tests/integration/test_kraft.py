@@ -8,15 +8,7 @@ import logging
 import pytest
 from pytest_operator.plugin import OpsTest
 
-from literals import (
-    CONTROLLER_PORT,
-    KRAFT_NODE_ID_OFFSET,
-    PEER_CLUSTER_ORCHESTRATOR_RELATION,
-    PEER_CLUSTER_RELATION,
-    SECURITY_PROTOCOL_PORTS,
-)
-
-from .helpers import (
+from integration.helpers.pytest_operator import (
     APP_NAME,
     SERIES,
     KRaftMode,
@@ -25,6 +17,13 @@ from .helpers import (
     create_test_topic,
     get_address,
     kraft_quorum_status,
+)
+from literals import (
+    CONTROLLER_PORT,
+    KRAFT_NODE_ID_OFFSET,
+    PEER_CLUSTER_ORCHESTRATOR_RELATION,
+    PEER_CLUSTER_RELATION,
+    SECURITY_PROTOCOL_PORTS,
 )
 
 logger = logging.getLogger(__name__)

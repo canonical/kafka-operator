@@ -139,9 +139,13 @@ jobs:
       matrix:
         tox-environments:
           - integration-ha
+          - integration-ha-controller
         kraft-mode:
           - single
           - multi
+        exclude:
+          - tox-environments: integration-ha-controller
+            kraft-mode: single 
     name: ${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}
     needs:
       - lint

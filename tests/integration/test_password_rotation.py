@@ -8,7 +8,14 @@ import logging
 import pytest
 from pytest_operator.plugin import OpsTest
 
-from .helpers import APP_NAME, SERIES, TEST_SECRET_NAME, deploy_cluster, get_user, set_password
+from integration.helpers.pytest_operator import (
+    APP_NAME,
+    SERIES,
+    TEST_SECRET_NAME,
+    deploy_cluster,
+    get_user,
+    set_password,
+)
 
 logger = logging.getLogger(__name__)
 
