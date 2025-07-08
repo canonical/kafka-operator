@@ -2,7 +2,7 @@
 # Copyright 2025 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-"""Manager for handling Kafka SSL principal mappings."""
+"""Manager for handling Apache Kafka SSL principal mappings."""
 
 import logging
 import re
