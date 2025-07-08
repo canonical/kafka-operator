@@ -4,6 +4,7 @@
 
 """Structured configuration for the Kafka charm."""
 import logging
+import re
 from enum import Enum
 from typing import Literal
 
