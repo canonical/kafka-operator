@@ -10,15 +10,14 @@ Charmed Apache Kafka is an open-source software operator, packaged as a [Juju ch
 
 [Apache Kafka](https://kafka.apache.org) is a free, open-source software project by the Apache Software Foundation.
 
-Charmed Apache Kafka is a solution helps ops teams and
-administrators automate Apache Kafka operations from [Day 0 to Day 2](https://codilime.com/blog/day-0-day-1-day-2-the-software-lifecycle-in-the-cloud-age/) with additional capabilities, such as: replication, TLS encryption, password rotation, easy-to-use application integration, and monitoring.
+The charm helps ops teams and administrators automate Apache Kafka operations from [Day 0 to Day 2](https://codilime.com/blog/day-0-day-1-day-2-the-software-lifecycle-in-the-cloud-age/) with additional capabilities, such as: replication, TLS encryption, password rotation, easy-to-use application integration, and monitoring.
 
 ## In this documentation
 
 | | |
 |--|--|
 |  [Tutorial](tutorial-introduction)</br>  Learn by [setting up environment](tutorial-environment), [deploying charm](tutorial-deploy), [integrating clients](tutorial-integrate-with-client-applications), managing [passwords](tutorial-manage-passwords), configuring [encryption](tutorial-enable-encryption), using [Kafka Connect](tutorial-kafka-connect), and [rebalancing partitions](tutorial-rebalance-partitions). </br> |  [How-to guides](how-to-index) </br> Practical instructions for key tasks, like [deploy](how-to-deploy-index) on different platforms, [manage](how-to-manage-units) Juju units, [Monitor](how-to-monitoring-enable-monitoring) metrics, [back up and restore](how-to-back-up-and-restore), use [Kafka Connect](how-to-use-kafka-connect-for-etl-workloads). |
-| [Reference](reference-index) </br> Technical information, for example: charm's [actions](https://charmhub.io/kafka/actions?channel=3/edge), [configuration parameters](https://charmhub.io/kafka/configure?channel=3/edge), [libraries](https://charmhub.io/kafka/libraries/kafka_libs?channel=3/edge), [statuses](reference-statuses), as well as [requirements](reference-requirements), and [file system paths](reference-file-system-paths). | [Explanation](explanation-index) </br> Explore and grow your understanding of key topics, such as: [security](explanation-security) and [cryptography](explanation-cryptography), [clusterisation](explanation-cluster-configuration) and [MirrorMaker](explanation-mirrormaker2-0) usage. |
+| [Reference](reference-index) </br> Technical information, for example: charm's [actions](https://charmhub.io/kafka/actions?channel=3/edge), [configuration parameters](https://charmhub.io/kafka/configure?channel=3/edge), [libraries](https://charmhub.io/kafka/libraries/kafka_libs?channel=3/edge), [statuses](reference-statuses), as well as [requirements](reference-requirements), and [file system paths](reference-file-system-paths). | [Explanation](explanation-index) </br> Explore and grow your understanding of key topics, such as: [security](explanation-security) and [cryptography](explanation-cryptography), [Apache ZooKeeper](explanation-cluster-configuration) and [MirrorMaker](explanation-mirrormaker2-0) usage. |
 
 ## Project and community
 
