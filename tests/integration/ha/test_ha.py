@@ -306,7 +306,7 @@ def test_full_cluster_crash(
 
     logger.info("Killing all brokers...")
     # kill all units "simultaneously"
-    units = juju.status().apps[CONTROLLER_NAME].units
+    units = juju.status().apps[APP_NAME].units
     for unit in units:
         send_control_signal(juju, unit, signal="SIGKILL")
 
@@ -341,7 +341,7 @@ def test_full_cluster_restart(
 
     logger.info("Restarting all brokers...")
     # Restart all units "simultaneously"
-    units = juju.status().apps[CONTROLLER_NAME].units
+    units = juju.status().apps[APP_NAME].units
     for unit in units:
         send_control_signal(juju, unit, signal="SIGTERM")
 
