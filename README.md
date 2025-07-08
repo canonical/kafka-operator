@@ -92,7 +92,7 @@ The charm can be scaled out using `juju add-unit` command:
 juju add-unit kafka -n <num_of_desired_units>
 ```
 
-This will add brokers to match the required number. For example, to scale a deployment with 3 kafka units to 5, run:
+This will add brokers to match the required number. For example, to scale a deployment with three kafka units to five, run:
 
 ```bash
 juju add-unit kafka -n 2
@@ -110,7 +110,7 @@ First, add a custom secret for the internal `admin` user with your desired passw
 juju add-secret mysecret admin=My$trongP4ss
 ```
 
-You will receive a secret-id in response which looks like: 
+You will receive a secret ID in response, for example: 
 
 ```text
 secret:cvh7kruupa1s46bqvuig
@@ -227,9 +227,9 @@ Passing keys to external/internal keys should *only be done with* `base64 -w0` *
 Apply keys on each Charmed Apache Kafka unit:
 
 ```bash
-juju run kafka/0 set-tls-private-key "internal-key=$(base64 -w0 internal-key.pem)"  --wait
-juju run kafka/1 set-tls-private-key "internal-key=$(base64 -w0 internal-key.pem)"  --wait
-juju run kafka/2 set-tls-private-key "internal-key=$(base64 -w0 internal-key.pem)"  --wait
+juju run kafka/0 set-tls-private-key "internal-key=$(base64 -w0 internal-key.pem)" --wait
+juju run kafka/1 set-tls-private-key "internal-key=$(base64 -w0 internal-key.pem)" --wait
+juju run kafka/2 set-tls-private-key "internal-key=$(base64 -w0 internal-key.pem)" --wait
 ```
 
 To disable TLS remove the relation:
