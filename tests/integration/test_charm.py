@@ -178,7 +178,6 @@ async def test_logs_write_to_storage(ops_test: OpsTest, kafka_apps):
     )
 
 
-@pytest.mark.skip(reason="can't test with locally built snap")
 async def test_rack_awareness_integration(ops_test: OpsTest):
     kafka_machine_id = await get_machine(ops_test)
 
@@ -186,7 +185,7 @@ async def test_rack_awareness_integration(ops_test: OpsTest):
         "kafka-broker-rack-awareness",
         channel="edge",
         application_name="rack",
-        base="ubuntu@22.04",
+        series=SERIES,
         to=kafka_machine_id,
         config={"broker-rack": "integration-zone"},
     )
