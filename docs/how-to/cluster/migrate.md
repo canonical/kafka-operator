@@ -23,14 +23,14 @@ To migrate a cluster we need:
 
 ## Getting cluster details and admin credentials
 
-By design, the `kafka` charm will not expose any available connections until related by a client. In this case, we deploy `data-integrator` charms and relate them to each `kafka` application, requesting `admin` level privileges:
+By design, the `kafka` charm will not expose any available connections until integrated by a client. In this case, we deploy `data-integrator` charms and integrate them to each `kafka` application, requesting `admin` level privileges:
 
 ```bash
 juju deploy data-integrator --channel=edge -n 1 --config extra-user-roles="admin" --config topic-name="default"
-juju relate kafka data-integrator
+juju integrate kafka data-integrator
 ```
 
-When the `data-integrator` charm relates to a `kafka` application on the `kafka-client` relation interface, passing `extra-user-roles=admin`, a new user with `super.user` permissions will be created on that cluster, with the charm passing back the credentials and broker addresses in the relation data to the `data-integrator`.
+When the `data-integrator` charm integrates to a `kafka` application on the `kafka-client` relation interface, passing `extra-user-roles=admin`, a new user with `super.user` permissions will be created on that cluster, with the charm passing back the credentials and broker addresses in the relation data to the `data-integrator`.
 As we will need full access to both clusters, we must grab these newly generated authorisation credentials from the `data-integrator`.
 
 SASL credentials to connect to the target Charmed Apache Kafka cluster:

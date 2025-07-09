@@ -46,8 +46,8 @@ juju deploy zookeeper --channel edge -n 3
 # Deploy the charm
 juju deploy ./*.charm -n 3
 
-# After Apache ZooKeeper has initialised, relate the applications
-juju relate kafka zookeeper
+# After Apache ZooKeeper has initialised, integrate the applications
+juju integrate kafka zookeeper
 ```
 
 ## Developing
