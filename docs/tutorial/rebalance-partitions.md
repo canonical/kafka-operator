@@ -1,9 +1,7 @@
 (tutorial-rebalance-partitions)=
-# 8. Rebalance and Reassign Partitions
+# 7. Rebalance and reassign partitions
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
-
-## Partition rebalancing and reassignment
 
 By default, when adding more brokers to an Apache Kafka cluster, the current allocated partitions on the original brokers are not automatically redistributed across the new brokers. This can lead to inefficient resource usage and over-provisioning. On the other hand, when removing brokers to reduce capacity, partitions assigned to the removed brokers are also not redistributed, which can result in under-replicated data at best and permanent data loss at worst.
 
@@ -17,7 +15,7 @@ At a high level, Cruise Control is made up of the following five components:
 - **Web server** - a REST API for user operations
 - **Executor** - issues re-allocation commands to Apache Kafka
 
-### Deploying partition balancer
+## Deploying partition balancer
 
 The Charmed Apache Kafka charm has a configuration option `roles`, which takes a list of possible values.
 Different roles can be configured to run on the same machine, or as separate Juju applications.
@@ -48,7 +46,7 @@ Now, to make the new `cruise-control` application aware of the existing Apache K
 juju integrate kafka:peer-cluster-orchestrator cruise-control:peer-cluster
 ```
 
-### Adding new brokers
+## Adding new brokers
 
 After completing the steps in the [Integrate with client applications](integrate-with-client-applications) tutorial page, you should have three `kafka` units and a client application actively writing messages to an existing topic. Let's scale-out the `kafka` application to four units:
 
@@ -162,7 +160,7 @@ This should produce an output similar to the result seen below, with broker `3` 
 }
 ```
 
-### Removing old brokers
+## Removing old brokers
 
 To safely scale-in an Apache Kafka cluster, we must make sure to carefully move any existing data from units about to be removed, to another unit that will persist.
 
@@ -213,7 +211,7 @@ Now, it is safe to scale-in the cluster, removing the broker number `3` complete
 juju remove-unit kafka/3
 ```
 
-### Full cluster rebalancing
+## Full cluster rebalancing
 
 Over time, an Apache Kafka cluster in production may develop an imbalance in partition allocation, with some brokers having greater/fewer allocated than others. This can occur as topic load fluctuates, partitions are added or removed due to reconfiguration, or new topics are created or deleted. Therefore, as part of regular cluster maintenance, administrators should periodically redistribute partitions across existing broker units to ensure optimal performance.
 
@@ -240,4 +238,3 @@ To implement the proposed changes, run the same command but with `dryrun=false`:
 ```bash
 juju run cruise-control/0 rebalance mode=full dryrun=false --wait=10m
 ```
-
