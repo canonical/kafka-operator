@@ -35,7 +35,7 @@ Sans = TypedDict("Sans", {"sans_ip": list[str], "sans_dns": list[str]})
 
 
 class UnknownScopeError(Exception):
-    """Exception raised when TLS scope is undefined or not impelemented."""
+    """Exception raised when TLS scope is undefined or not implemented."""
 
 
 class TLSManager:
