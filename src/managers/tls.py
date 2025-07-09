@@ -34,6 +34,10 @@ logger = logging.getLogger(__name__)
 Sans = TypedDict("Sans", {"sans_ip": list[str], "sans_dns": list[str]})
 
 
+class UnknownScopeError(Exception):
+    """Exception raised when TLS scope is undefined or not impelemented."""
+
+
 class TLSManager:
     """Manager for building necessary files for Java TLS auth."""
 
@@ -63,7 +67,7 @@ class TLSManager:
         elif scope == TLSScope.CLIENT:
             return self.state.unit_broker.client_certs
 
-        raise NotImplementedError(f"Unknown scope: {scope}")
+        raise UnknownScopeError(f"Unknown scope: {scope}")
 
     def get_truststore_path(self, scope: TLSScope) -> str:
         """Returns the truststore path for the given scope."""
@@ -72,7 +76,7 @@ class TLSManager:
         elif scope == TLSScope.CLIENT:
             return self.workload.paths.truststore
 
-        raise NotImplementedError(f"Unknown scope: {scope}")
+        raise UnknownScopeError(f"Unknown scope: {scope}")
 
     def get_keystore_path(self, scope: TLSScope) -> str:
         """Returns the keystore path for the given scope."""
@@ -81,7 +85,7 @@ class TLSManager:
         elif scope == TLSScope.CLIENT:
             return self.workload.paths.keystore
 
-        raise NotImplementedError(f"Unknown scope: {scope}")
+        raise UnknownScopeError(f"Unknown scope: {scope}")
 
     def setup_internal_ca(self) -> None:
         """Set up internal CA to issue self-signed certificates for internal communications.
@@ -118,7 +122,8 @@ class TLSManager:
 
         ca_key, ca = self.state.internal_ca_key, self.state.internal_ca
         if ca is None or ca_key is None:
-            raise Exception("Internal CA is not setup yet.")
+            logger.error("Internal CA is not setup yet.")
+            return
 
         private_key = (
             PrivateKey(state.private_key) if state.private_key else generate_private_key()
