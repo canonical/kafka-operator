@@ -32,18 +32,18 @@ jobs:
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-    - name: Create branch in kafka-k8s
+    - name: Create branch in kafka-k8s-operator
       run: |
         cd kafka-k8s-operator
         git checkout -b ${{ github.head_ref }}
 
     - name: Copy changes to kafka-k8s
       run: |
-        # Generate patches from PR branch
-        git format-patch origin/${{ github.base_ref }} --stdout > /tmp/patches.diff
+        # Generate patches from PR branch, excluding workflow files
+        git format-patch origin/${{ github.base_ref }} --stdout -- ':!.github/workflows/' > /tmp/patches.diff
         cd kafka-k8s-operator
         # Apply patches; abort and fail gracefully if there are conflicts
-        if ! git am < ../tmp/patches.diff; then
+        if ! git am < /tmp/patches.diff; then
           echo "Patch application failed"
           git am --abort
           exit 1
@@ -54,7 +54,7 @@ jobs:
         cd kafka-k8s-operator
         git push origin ${{ github.head_ref }}
 
-    - name: Create PR in kafka-k8s
+    - name: Create PR in kafka-k8s-operator
       uses: actions/github-script@v7
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -63,32 +63,32 @@ jobs:
             owner: 'canonical',
             repo: 'kafka-k8s-operator',
             title: `[Auto-sync] ${context.payload.pull_request.title}`,
-            head: '${{ github.head_ref }}',
+            head: context.payload.pull_request.head.ref,
             base: 'main',
-            body: `This PR was automatically created from kafka PR #${{ github.event.number }}.
+            body: `This PR was automatically created from kafka PR #${context.payload.pull_request.number}.
 
-Original PR: ${{ github.event.pull_request.html_url }}
-Original Author: @${{ github.event.pull_request.user.login }}
+          Original PR: ${context.payload.pull_request.html_url}
+          Original Author: @${context.payload.pull_request.user.login}
 
----
+          ---
 
-${{ github.event.pull_request.body || 'No description provided.' }}`
+          ${context.payload.pull_request.body || 'No description provided.'}`
           });
 
-        // Get reviewers from the original PR
-        const reviewersResp = await github.rest.pulls.listRequestedReviewers({
-          owner: context.repo.owner,
-          repo: context.repo.repo,
-          pull_number: context.payload.pull_request.number,
-        });
-        const reviewers = reviewersResp.data.users.map(u => u.login);
-
-        // Request reviewers on the new PR (if any)
-        if (reviewers.length > 0) {
-          await github.rest.pulls.requestReviewers({
-            owner: 'canonical',
-            repo: 'kafka-k8s-operator',
-            pull_number: pr.number,
-            reviewers: reviewers,
+          // Get reviewers from the original PR
+          const reviewersResp = await github.rest.pulls.listRequestedReviewers({
+            owner: context.payload.pull_request.base.repo.owner.login,
+            repo: context.payload.pull_request.base.repo.name,
+            pull_number: context.payload.pull_request.number,
           });
-        }
+          const reviewers = reviewersResp.data.users.map(u => u.login);
+
+          // Request reviewers on the new PR (if any)
+          if (reviewers.length > 0) {
+            await github.rest.pulls.requestReviewers({
+              owner: 'canonical',
+              repo: 'kafka-k8s-operator',
+              pull_number: pr.number,
+              reviewers: reviewers,
+            });
+          }
