@@ -167,11 +167,13 @@ class BrokerOperator(Object):
             return
 
         # Internal TLS setup required?
-        if not self.charm.state.unit_broker.peer_certs.ready and not self.charm.state.internal_ca:
-            if not self.charm.unit.is_leader():
-                event.defer()
-                return
-
+        if all(
+            [
+                not self.charm.state.unit_broker.peer_certs.ready,
+                not self.charm.state.internal_ca,
+                self.charm.unit.is_leader(),
+            ]
+        ):
             self.tls_manager.setup_internal_ca()
 
         current_status = self.charm.state.ready_to_start
@@ -295,7 +297,7 @@ class BrokerOperator(Object):
             self.charm.state.unit_broker.unit.set_ports(  # in case of listeners changes
                 *[listener.port for listener in self.config_manager.all_listeners]
             )
-        elif self.charm.state.runs_controller:  # only valid for KRaft-multi on controllers
+        elif self.charm.state.runs_controller_only:
             self.charm.state.unit_broker.unit.set_ports(
                 *[listener.port for listener in self.config_manager.controller_listeners]
             )
@@ -485,7 +487,12 @@ class BrokerOperator(Object):
 
         for client in self.charm.state.clients:
 
-            if not client.password or client.username in users:
+            if not client.password:
+                # client not setup yet.
+                continue
+
+            if client.username in users:
+                # no need to re-add the user.
                 continue
 
             self.auth_manager.add_user(client.username, client.password)
