@@ -6,6 +6,7 @@
 
 import json
 import logging
+from dataclasses import dataclass
 from functools import cached_property
 from typing import MutableMapping, TypeAlias, TypedDict
 
@@ -44,6 +45,24 @@ BrokerCapacity = TypedDict("BrokerCapacity", {"brokerId": str, "capacity": Capac
 BrokerCapacities = TypedDict(
     "BrokerCapacities", {"brokerCapacities": list[BrokerCapacity]}, total=False
 )
+
+
+@dataclass
+class GeneratedCa:
+    """Data class to model generated CA artifacts."""
+
+    ca: str
+    ca_key: str
+
+
+@dataclass
+class SelfSignedCertificate:
+    """Data class to model self signed certificate artifacts."""
+
+    ca: str
+    csr: str
+    certificate: str
+    private_key: str
 
 
 class RelationState:
@@ -579,6 +598,13 @@ class TLSState:
     def ready(self) -> bool:
         """Returns True if all the necessary TLS relation data has been set, False otherwise."""
         return all([self.certificate, self.ca, self.private_key])
+
+    def set_self_signed(self, value: SelfSignedCertificate) -> None:
+        """Sets CA, private_key, CSR, and cert state vars based on the provided `SelfSignedCertificate` bundle."""
+        self.private_key = value.private_key
+        self.certificate = value.certificate
+        self.ca = value.ca
+        self.csr = value.csr
 
 
 class KafkaBroker(RelationState):
