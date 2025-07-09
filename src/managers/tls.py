@@ -24,7 +24,7 @@ from cryptography.hazmat.primitives import hashes
 from ops.pebble import ExecError
 
 from core.cluster import ClusterState
-from core.models import TLSScope, TLSState
+from core.models import GeneratedCa, SelfSignedCertificate, TLSScope, TLSState
 from core.structured_config import CharmConfig
 from core.workload import WorkloadBase
 from literals import GROUP, USER_NAME, Substrates
@@ -87,14 +87,8 @@ class TLSManager:
 
         raise UnknownScopeError(f"Unknown scope: {scope}")
 
-    def setup_internal_ca(self) -> None:
-        """Set up internal CA to issue self-signed certificates for internal communications.
-
-        Should only run on leader unit.
-        """
-        if not self.state.unit_broker.unit.is_leader():
-            return
-
+    def generate_internal_ca(self) -> GeneratedCa:
+        """Set up internal CA to issue self-signed certificates for internal communications."""
         ca_key = generate_private_key()
         ca = generate_ca(
             private_key=ca_key,
@@ -102,12 +96,10 @@ class TLSManager:
             common_name=f"{self.state.unit_broker.unit.app.name}",
             organization=TLSScope.PEER.value,
         )
-        self.state.internal_ca = ca.raw
-        self.state.internal_ca_key = ca_key.raw
 
-        self.setup_internal_credentials(is_leader=True)
+        return GeneratedCa(ca=ca.raw, ca_key=ca_key.raw)
 
-    def setup_internal_credentials(self, is_leader: bool = False) -> None:
+    def generate_self_signed_certificate(self) -> SelfSignedCertificate | None:
         """Generate self-signed certificate for the unit to be used for internal communications."""
         state = self.get_state(TLSScope.PEER)
 
@@ -117,7 +109,6 @@ class TLSManager:
 
         if state.ready:
             logger.debug("No need to set up internal credentials...")
-            self.configure()
             return
 
         ca_key, ca = self.state.internal_ca_key, self.state.internal_ca
@@ -141,19 +132,9 @@ class TLSManager:
             csr=csr, ca=ca, ca_private_key=ca_key, validity=timedelta(days=3650)
         )
 
-        # Update state
-        state.private_key = private_key.raw
-        state.certificate = certificate.raw
-        state.ca = ca.raw
-        state.csr = csr.raw
-
-        # Write configs
-        self.configure()
-
-        if is_leader:
-            # If leader, also set the peer cluster chain.
-            # Leads to no-op in KRaft single mode.
-            self.state.peer_cluster_ca = state.bundle
+        return SelfSignedCertificate(
+            ca=ca.raw, csr=csr.raw, certificate=certificate.raw, private_key=private_key.raw
+        )
 
     def set_server_key(self) -> None:
         """Sets the unit private-key."""

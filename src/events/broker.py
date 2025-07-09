@@ -174,7 +174,12 @@ class BrokerOperator(Object):
                 self.charm.unit.is_leader(),
             ]
         ):
-            self.tls_manager.setup_internal_ca()
+            # Generate internal CA
+            generated_ca = self.tls_manager.generate_internal_ca()
+            self.charm.state.internal_ca = generated_ca.ca
+            self.charm.state.internal_ca_key = generated_ca.ca_key
+            # Now generate unit's self-signed certs
+            self.setup_internal_tls()
 
         current_status = self.charm.state.ready_to_start
         if current_status is not Status.ACTIVE:
@@ -184,7 +189,7 @@ class BrokerOperator(Object):
 
         self.kraft.format_storages()
         self.update_external_services()
-        self.tls_manager.setup_internal_credentials()
+        self.setup_internal_tls()
 
         self.config_manager.set_server_properties()
         self.config_manager.set_client_properties()
@@ -389,6 +394,23 @@ class BrokerOperator(Object):
 
         self.charm.state.unit_broker.update({"storages": self.balancer_manager.storages})
         self.charm.on.config_changed.emit()
+
+    def setup_internal_tls(self) -> None:
+        """Generates a self-signed certificate if required and writes all necessary TLS configuration for internal TLS."""
+        if self.charm.state.unit_broker.peer_certs.ready:
+            self.tls_manager.configure()
+            return
+
+        self_signed_cert = self.tls_manager.generate_self_signed_certificate()
+        if not self_signed_cert:
+            return
+
+        self.charm.state.unit_broker.peer_certs.set_self_signed(self_signed_cert)
+        self.tls_manager.configure()
+
+        if self.charm.unit.is_leader():
+            # If leader, also set the peer cluster chain. Leads to no-op in KRaft single mode.
+            self.charm.state.peer_cluster_ca = self.charm.state.unit_broker.peer_certs.bundle
 
     @property
     def healthy(self) -> bool:

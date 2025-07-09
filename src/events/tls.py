@@ -182,9 +182,7 @@ class TLSHandler(Object):
 
         if state.scope == TLSScope.PEER:
             # switch back to internal TLS
-            is_leader = self.charm.unit.is_leader()
-            self.charm.broker.tls_manager.setup_internal_credentials(is_leader=is_leader)
-            self.charm.balancer.tls_manager.setup_internal_credentials(is_leader=is_leader)
+            self.charm.broker.setup_internal_tls()
 
             state.rotate = True
             self.charm.on.config_changed.emit()

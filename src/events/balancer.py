@@ -119,7 +119,7 @@ class BalancerOperator(Object):
             if self.charm.state.peer_cluster_orchestrator:
                 self.charm.state.peer_cluster_orchestrator.update(payload)
 
-        self.tls_manager.setup_internal_credentials()
+        self.setup_internal_tls()
         self.config_manager.set_cruise_control_properties()
         self.config_manager.set_broker_capacities()
         self.config_manager.set_cruise_control_auth()
@@ -266,6 +266,19 @@ class BalancerOperator(Object):
             return
 
         event.set_results(sanitised_response)
+
+    def setup_internal_tls(self) -> None:
+        """Generates a self-signed certificate if required and writes all necessary TLS configuration for internal TLS."""
+        if self.charm.state.unit_broker.peer_certs.ready:
+            self.tls_manager.configure()
+            return
+
+        self_signed_cert = self.tls_manager.generate_self_signed_certificate()
+        if not self_signed_cert:
+            return
+
+        self.charm.state.unit_broker.peer_certs.set_self_signed(self_signed_cert)
+        self.tls_manager.configure()
 
     @property
     def healthy(self) -> bool:
