@@ -357,15 +357,13 @@ class ClusterState(Object):
 
     @property
     def default_auth(self) -> AuthMap:
-        """The current enabled auth.protocol for bootstrap."""
+        """The current enabled auth.protocol for clients."""
         auth_protocol = (
             "SASL_SSL"
             if self.cluster.tls_enabled and self.unit_broker.client_certs.certificate
             else "SASL_PLAINTEXT"
         )
 
-        # FIXME: will need updating when we support multiple concurrent security.protocols
-        # as this is what is sent across the relation, currently SASL only
         return AuthMap(auth_protocol, "SCRAM-SHA-512")
 
     @property
