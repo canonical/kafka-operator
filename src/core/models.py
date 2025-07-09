@@ -539,7 +539,6 @@ class TLSState:
             String of ca contents in PEM format
             Empty if cert not yet generated/signed
         """
-        # defaults to ca for backwards compatibility after field change introduced with secrets
         return self.relation_data.get(f"{self.scope.value}-ca-cert", "")
 
     @ca.setter
@@ -563,8 +562,6 @@ class TLSState:
 
         # manual-tls-certificates is loaded with the signed cert, the intermediate CA that signed it
         # and then the missing chain for that CA
-        # ZK needs to present the full bundle - aka Keystore
-        # ZK needs to trust each item in the bundle - aka Truststore
         bundle = [self.certificate, self.ca] + self.chain
         return sorted(set(bundle), key=bundle.index)  # ordering might matter
 
