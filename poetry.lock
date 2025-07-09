@@ -718,6 +718,18 @@ files = [
 tests = ["asttokens (>=2.1.0)", "coverage", "coverage-enable-subprocess", "ipython", "littleutils", "pytest", "rich ; python_version >= \"3.11\""]
 
 [[package]]
+name = "flaky"
+version = "3.8.1"
+description = "Plugin for pytest that automatically reruns flaky tests."
+optional = false
+python-versions = ">=3.5"
+groups = ["integration"]
+files = [
+    {file = "flaky-3.8.1-py2.py3-none-any.whl", hash = "sha256:194ccf4f0d3a22b2de7130f4b62e45e977ac1b5ccad74d4d48f3005dcc38815e"},
+    {file = "flaky-3.8.1.tar.gz", hash = "sha256:47204a81ec905f3d5acfbd61daeabcada8f9d4031616d9bcb0618461729699f5"},
+]
+
+[[package]]
 name = "google-auth"
 version = "2.40.3"
 description = "Google Authentication Library"
@@ -1002,6 +1014,21 @@ files = [
 
 [package.dependencies]
 referencing = ">=0.31.0"
+
+[[package]]
+name = "jubilant"
+version = "1.2.0"
+description = "Juju CLI wrapper for charm integration testing"
+optional = false
+python-versions = ">=3.8"
+groups = ["integration"]
+files = [
+    {file = "jubilant-1.2.0-py3-none-any.whl", hash = "sha256:a43833e7c4d88ea6709a179d9ea5856a233beca9788479f533acdb1c1ab2a707"},
+    {file = "jubilant-1.2.0.tar.gz", hash = "sha256:966c2aef620ecaac84655fed2d179cfe4407ada08cf028c57a88116cec9fcc16"},
+]
+
+[package.dependencies]
+PyYAML = "==6.*"
 
 [[package]]
 name = "juju"
@@ -2539,4 +2566,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<4.0"
-content-hash = "c6f3b31b33d325b41f225fc664be8c033ec72e5f4657759cff1d892ed38b352a"
+content-hash = "8a3f1d2456546fc95e2e0c98549c8e04953dd714b59446c4f8a617bb8d3ccc26"

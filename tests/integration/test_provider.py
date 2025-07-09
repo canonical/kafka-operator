@@ -8,9 +8,7 @@ import logging
 import pytest
 from pytest_operator.plugin import OpsTest
 
-from literals import CONTROLLER_USER, INTERNAL_USERS, SECURITY_PROTOCOL_PORTS
-
-from .helpers import (
+from integration.helpers.pytest_operator import (
     SERIES,
     check_user,
     deploy_cluster,
@@ -20,6 +18,7 @@ from .helpers import (
     load_acls,
     load_super_users,
 )
+from literals import CONTROLLER_USER, INTERNAL_USERS, SECURITY_PROTOCOL_PORTS
 
 logger = logging.getLogger(__name__)
 
