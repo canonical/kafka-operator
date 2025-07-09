@@ -107,6 +107,9 @@ class PeerClusterEventsHandler(Object):
 
         self._default_relation_changed(event)
 
+        # Update peer-cluster chain of trust
+        self.charm.state.peer_cluster_ca = self.charm.state.unit_broker.peer_certs.bundle
+
         # will no-op if relation does not exist
         self.charm.state.peer_cluster.update(
             {
@@ -136,6 +139,9 @@ class PeerClusterEventsHandler(Object):
             return
 
         self._default_relation_changed(event)
+
+        # Update peer-cluster chain of trust
+        self.charm.state.peer_cluster_ca = self.charm.state.unit_broker.peer_certs.bundle
 
         # will no-op if relation does not exist
         self.charm.state.peer_cluster.update(

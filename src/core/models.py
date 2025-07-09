@@ -6,6 +6,7 @@
 
 import json
 import logging
+from dataclasses import dataclass
 from functools import cached_property
 from typing import MutableMapping, TypeAlias, TypedDict
 
@@ -29,6 +30,7 @@ from literals import (
     SECURITY_PROTOCOL_PORTS,
     AuthMap,
     Substrates,
+    TLSScope,
 )
 from managers.k8s import K8sManager
 
@@ -43,6 +45,24 @@ BrokerCapacity = TypedDict("BrokerCapacity", {"brokerId": str, "capacity": Capac
 BrokerCapacities = TypedDict(
     "BrokerCapacities", {"brokerCapacities": list[BrokerCapacity]}, total=False
 )
+
+
+@dataclass
+class GeneratedCa:
+    """Data class to model generated CA artifacts."""
+
+    ca: str
+    ca_key: str
+
+
+@dataclass
+class SelfSignedCertificate:
+    """Data class to model self signed certificate artifacts."""
+
+    ca: str
+    csr: str
+    certificate: str
+    private_key: str
 
 
 class RelationState:
@@ -480,6 +500,113 @@ class KafkaCluster(RelationState):
         return self.relation_data.get("bootstrap-unit-id", "")
 
 
+class TLSState:
+    """State collection metadata for TLS credentials."""
+
+    def __init__(self, relation_state: RelationState, scope: TLSScope):
+        self.scope = scope
+        self.relation_state = relation_state
+        self.relation_data = relation_state.relation_data
+
+    @property
+    def private_key(self) -> str:
+        """The unit private-key set during `certificates_joined`.
+
+        Returns:
+            String of key contents
+            Empty if key not yet generated
+        """
+        return self.relation_data.get(f"{self.scope.value}-private-key", "")
+
+    @private_key.setter
+    def private_key(self, value: str) -> None:
+        self.relation_state.update({f"{self.scope.value}-private-key": value})
+
+    @property
+    def csr(self) -> str:
+        """The unit cert signing request.
+
+        Returns:
+            String of csr contents
+            Empty if csr not yet generated
+        """
+        return self.relation_data.get(f"{self.scope.value}-csr", "")
+
+    @csr.setter
+    def csr(self, value: str) -> None:
+        self.relation_state.update({f"{self.scope.value}-csr": value})
+
+    @property
+    def certificate(self) -> str:
+        """The signed unit certificate from the provider relation.
+
+        Returns:
+            String of cert contents in PEM format
+            Empty if cert not yet generated/signed
+        """
+        return self.relation_data.get(f"{self.scope.value}-certificate", "")
+
+    @certificate.setter
+    def certificate(self, value: str) -> None:
+        self.relation_state.update({f"{self.scope.value}-certificate": value})
+
+    @property
+    def ca(self) -> str:
+        """The ca used to sign unit cert.
+
+        Returns:
+            String of ca contents in PEM format
+            Empty if cert not yet generated/signed
+        """
+        return self.relation_data.get(f"{self.scope.value}-ca-cert", "")
+
+    @ca.setter
+    def ca(self, value: str) -> None:
+        self.relation_state.update({f"{self.scope.value}-ca-cert": value})
+
+    @property
+    def chain(self) -> list[str]:
+        """The chain used to sign unit cert."""
+        return json.loads(self.relation_data.get(f"{self.scope.value}-chain", "null")) or []
+
+    @chain.setter
+    def chain(self, value: str) -> None:
+        self.relation_state.update({f"{self.scope.value}-chain": value})
+
+    @property
+    def bundle(self) -> list[str]:
+        """The cert bundle used for TLS identity."""
+        if not all([self.certificate, self.ca]):
+            return []
+
+        # manual-tls-certificates is loaded with the signed cert, the intermediate CA that signed it
+        # and then the missing chain for that CA
+        bundle = [self.certificate, self.ca] + self.chain
+        return sorted(set(bundle), key=bundle.index)  # ordering might matter
+
+    @property
+    def rotate(self) -> bool:
+        """Whether or not CA/chain rotation is in progress."""
+        return bool(self.relation_data.get(f"{self.scope.value}-rotation", ""))
+
+    @rotate.setter
+    def rotate(self, value: bool) -> None:
+        _value = "" if not value else "true"
+        self.relation_state.update({f"{self.scope.value}-rotation": _value})
+
+    @property
+    def ready(self) -> bool:
+        """Returns True if all the necessary TLS relation data has been set, False otherwise."""
+        return all([self.certificate, self.ca, self.private_key])
+
+    def set_self_signed(self, value: SelfSignedCertificate) -> None:
+        """Sets CA, private_key, CSR, and cert state vars based on the provided `SelfSignedCertificate` bundle."""
+        self.private_key = value.private_key
+        self.certificate = value.certificate
+        self.ca = value.ca
+        self.csr = value.csr
+
+
 class KafkaBroker(RelationState):
     """State collection metadata for a unit."""
 
@@ -526,65 +653,15 @@ class KafkaBroker(RelationState):
         return addr
 
     # --- TLS ---
+    @property
+    def peer_certs(self) -> TLSState:
+        """TLS state for internal (peer) communications."""
+        return TLSState(self, TLSScope.PEER)
 
     @property
-    def private_key(self) -> str:
-        """The unit private-key set during `certificates_joined`.
-
-        Returns:
-            String of key contents
-            Empty if key not yet generated
-        """
-        return self.relation_data.get("private-key", "")
-
-    @property
-    def csr(self) -> str:
-        """The unit cert signing request.
-
-        Returns:
-            String of csr contents
-            Empty if csr not yet generated
-        """
-        return self.relation_data.get("csr", "")
-
-    @property
-    def certificate(self) -> str:
-        """The signed unit certificate from the provider relation.
-
-        Returns:
-            String of cert contents in PEM format
-            Empty if cert not yet generated/signed
-        """
-        return self.relation_data.get("certificate", "")
-
-    @property
-    def ca(self) -> str:
-        """The ca used to sign unit cert.
-
-        Returns:
-            String of ca contents in PEM format
-            Empty if cert not yet generated/signed
-        """
-        # defaults to ca for backwards compatibility after field change introduced with secrets
-        return self.relation_data.get("ca-cert", "")
-
-    @property
-    def chain(self) -> list[str]:
-        """The chain used to sign unit cert."""
-        return json.loads(self.relation_data.get("chain", "null")) or []
-
-    @property
-    def bundle(self) -> list[str]:
-        """The cert bundle used for TLS identity."""
-        if not all([self.certificate, self.ca]):
-            return []
-
-        # manual-tls-certificates is loaded with the signed cert, the intermediate CA that signed it
-        # and then the missing chain for that CA
-        # ZK needs to present the full bundle - aka Keystore
-        # ZK needs to trust each item in the bundle - aka Truststore
-        bundle = [self.certificate, self.ca] + self.chain
-        return sorted(set(bundle), key=bundle.index)  # ordering might matter
+    def client_certs(self) -> TLSState:
+        """TLS state for external (client) communications."""
+        return TLSState(self, TLSScope.CLIENT)
 
     @property
     def keystore_password(self) -> str:

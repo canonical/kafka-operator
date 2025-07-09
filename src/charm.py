@@ -171,7 +171,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             return
 
     def _on_collect_status(self, event: CollectStatusEvent):
-        for status in self.pending_inactive_statuses + [Status.ACTIVE]:
+        for status in self.pending_inactive_statuses + [self.state.ready_to_start]:
             event.add_status(status.value.status)
 
 
