@@ -24,7 +24,7 @@ The following are some of the most important planned features and their implemen
 - [x] Super-user creation
 - [x] Inter-broker auth
 - [x] Horizontally scale brokers
-- [x] Username/Password creation for related applications
+- [x] Username/Password creation for integrated applications
 - [x] Automatic topic creation with associated user ACLs
 - [x] Persistent storage support with [Juju Storage](https://juju.is/docs/olm/defining-and-using-persistent-storage)
 - [x] TLS/SSL encrypted connections
@@ -62,7 +62,7 @@ juju deploy kafka -n 3
 After this, it is necessary to connect them:
 
 ```shell
-juju relate kafka zookeeper
+juju integrate kafka zookeeper
 ```
 
 To watch the process, the `juju status` command can be used. Once all the units are shown as `active|idle` the credentials to access a broker can be queried with:
@@ -80,7 +80,7 @@ BOOTSTRAP_SERVERS=$(juju run-action kafka/leader get-admin-credentials --wait | 
 juju ssh kafka/leader 'charmed-kafka.topics --bootstrap-server $BOOTSTRAP_SERVERS --list --command-config /var/snap/charmed-kafka/common/client.properties'
 ```
 
-Note that Charmed Apache Kafka cluster is secure-by-default: when no other application is related to Charmed Apache Kafka, listeners are disabled, thus preventing any incoming connection. However, even for running the commands above, listeners must be enabled. If there are no other applications, you can deploy a `data-integrator` charm and relate it to Charmed Apache Kafka to enable listeners.
+Note that Charmed Apache Kafka cluster is secure-by-default: when no other application is integrated to Charmed Apache Kafka, listeners are disabled, thus preventing any incoming connection. However, even for running the commands above, listeners must be enabled. If there are no other applications, you can deploy a `data-integrator` charm and integrate it to Charmed Apache Kafka to enable listeners.
 
 Available Charmed Apache Kafka bin commands can be found with:
 
@@ -137,10 +137,10 @@ juju deploy data-integrator
 juju config data-integrator topic-name=test-topic extra-user-roles=producer,consumer
 ```
 
-To relate the two applications:
+To integrate the two applications:
 
 ```shell
-juju relate data-integrator kafka
+juju integrate data-integrator kafka
 ```
 
 To retrieve information, enter:
@@ -190,8 +190,8 @@ juju config tls-certificates-operator generate-self-signed-certificates="true" c
 And enable TLS by relating the two applications to the `tls-certificates` charm:
 
 ```shell
-juju relate tls-certificates-operator zookeeper
-juju relate tls-certificates-operator kafka
+juju integrate tls-certificates-operator zookeeper
+juju integrate tls-certificates-operator kafka
 ```
 
 Updates to private keys for certificate signing requests (CSR) can be made via the `set-tls-private-key` action:
@@ -243,12 +243,12 @@ can be used, and this step is shown in the COS tutorial.
 
 Next, deploy [Grafana Agent](https://charmhub.io/grafana-agent) and follow the
 [tutorial](https://discourse.charmhub.io/t/using-the-grafana-agent-machine-charm/8896)
-to relate it to the COS Lite offers.
+to integrate it to the COS Lite offers.
 
-Now, relate Apache Kafka with the Grafana Agent:
+Now, integrate Apache Kafka with the Grafana Agent:
 
 ```shell
-juju relate kafka grafana-agent
+juju integrate kafka grafana-agent
 ```
 
 After this is complete, Grafana will show two new dashboards: `Kafka Metrics` and `Node Exporter Kafka`.

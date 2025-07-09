@@ -70,7 +70,7 @@ For more information on how to refresh the charm, see the [how-to upgrade](https
 ### Encryption
 
 Charmed Apache Kafka must be deployed with encryption enabled. 
-To do that, you need to relate Charmed Apache Kafka and Charmed Apache ZooKeeper to one of the TLS certificate operator charms. 
+To do that, you need to integrate Charmed Apache Kafka and Charmed Apache ZooKeeper to one of the TLS certificate operator charms. 
 Please refer to the [Charming Security page](https://charmhub.io/topics/security-with-x-509-certificates) for more information on how to select the right certificate
 provider for your use case. 
 

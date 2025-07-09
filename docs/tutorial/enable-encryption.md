@@ -39,12 +39,12 @@ self-signed-certificates/0*   active    idle   10.1.36.91
 ...
 ```
 
-To enable TLS on Charmed Apache Kafka, relate both the `kafka` and `zookeeper` charms with the
+To enable TLS on Charmed Apache Kafka, integrate both the `kafka` and `zookeeper` charms with the
 `self-signed-certificates` charm:
 
 ```shell
-juju relate zookeeper self-signed-certificates
-juju relate kafka:certificates self-signed-certificates
+juju integrate zookeeper self-signed-certificates
+juju integrate kafka:certificates self-signed-certificates
 ```
 
 After the charms settle into `active/idle` states, the Apache Kafka listeners should now have been swapped to the 
@@ -69,7 +69,7 @@ juju remove-relation kafka-test-app kafka
 Then enable encryption on the `kafka-test-app` by relating with the ` self-signed-certificates` charm
 
 ```shell
-juju relate kafka-test-app self-signed-certificates
+juju integrate kafka-test-app self-signed-certificates
 ```
 
 We can then set up the `kafka-test-app` to produce messages with the usual configuration (note that there is no difference 
@@ -79,10 +79,10 @@ here with the unencrypted workflow)
 juju config kafka-test-app topic_name=test_encryption_topic role=producer num_messages=25
 ```
 
-and then relate with the `kafka` cluster
+and then integrate with the `kafka` cluster
 
 ```shell
-juju relate kafka kafka-test-app
+juju integrate kafka kafka-test-app
 ```
 
 As before, you can check that the messages are pushed into the Apache Kafka cluster by inspecting the logs

@@ -83,7 +83,7 @@ where `<kafka-units>` and `<zookeeper-units>` – the number of units to deploy 
 Connect Charmed Apache ZooKeeper and Charmed Apache Kafka by relating/integrating them:
 
 ```shell
-juju relate kafka zookeeper
+juju integrate kafka zookeeper
 ```
 
 Check the status of the deployment:
@@ -98,7 +98,7 @@ The deployment should be complete once all the units show `active` or `idle` sta
 
 Charmed Apache Kafka aims to follow the _secure by default_ paradigm. As a consequence, after being deployed the Apache Kafka cluster
 won't expose any external listener.
-In fact, ports are only opened when client applications are related, also
+In fact, ports are only opened when client applications are integrated, also
 depending on the protocols to be used.
 
 ```{note}
@@ -115,10 +115,10 @@ To create an admin user, deploy the [Data Integrator Charm](https://charmhub.io/
 juju deploy data-integrator --channel stable --config topic-name=test-topic --config extra-user-roles=admin
 ```
 
-... and relate it to the Apache Kafka charm:
+... and integrate it to the Apache Kafka charm:
 
 ```shell
-juju relate data-integrator kafka
+juju integrate data-integrator kafka
 ```
 
 To retrieve authentication information, such as the username and password, use:
