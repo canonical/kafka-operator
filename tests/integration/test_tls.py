@@ -58,7 +58,7 @@ async def test_deploy_tls(ops_test: OpsTest, kafka_charm, kraft_mode, kafka_apps
             charm=kafka_charm,
             kraft_mode=kraft_mode,
             config_broker={
-                # "ssl_principal_mapping_rules": "RULE:^.*[Cc][Nn]=([a-zA-Z0-9.]*).*$/$1/L,DEFAULT"
+                "ssl_principal_mapping_rules": "RULE:^.*[Cc][Nn]=([a-zA-Z0-9.]*).*$/$1/L,DEFAULT"
             },
         ),
     )
