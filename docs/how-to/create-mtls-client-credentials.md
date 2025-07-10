@@ -139,7 +139,7 @@ keytool -list -keystore client.truststore.jks -storepass $KAFKA_CLIENT_TRUSTSTOR
 
 Since you are using TLS certificates for authentication, you need to provide a way to map the client's certificate to usernames defined on the Apache Kafka cluster.
 
-In charmed Apache Kafka, this could be done using the `ssl_principal_mapping_rules` configuration option, which defines how the certificate's common name is translated into a username, using a handy regex syntax (refer to [Apache Kafka's official documentation](https://kafka.apache.org/documentation/#security_authz_ssl) for more details on the syntax):
+In charmed Apache Kafka, this could be done using the `ssl_principal_mapping_rules` configuration option, which defines how the certificate's common name is translated into a username, using a handy regex syntax (refer to [Apache Kafka's official documentation](https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=89071740) for more details on the syntax):
 
 ```bash
 juju config kafka ssl_principal_mapping_rules='RULE:^.*[Cc][Nn]=([a-zA-Z0-9\.-]*).*$/$1/L,DEFAULT'
