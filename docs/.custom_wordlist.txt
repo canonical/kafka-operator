@@ -160,3 +160,8 @@ yaml
 yq
 znode
 znodes
+CA
+CAs
+PKI
+truststore
+truststores

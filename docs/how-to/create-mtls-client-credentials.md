@@ -13,7 +13,7 @@ This guide includes step-by-step instructions on how to create mTLS credentials 
 
 ## Create mTLS client credentials
 
-Each Apache Kafka mTLS client needs its own TLS certificate, which should be trusted by the charmed Apache Kafka application. In a typical production environment, certificates are issued either by the organization's PKI infrastructure, or trusted Certificate Authorities (CAs). For the sake of this guide, we will generate self-signed certificates.
+Each Apache Kafka mTLS client needs its own TLS certificate, which should be trusted by the charmed Apache Kafka application. In a typical production environment, certificates are issued either by the organisation's PKI infrastructure, or trusted Certificate Authorities (CAs). For the sake of this guide, we will generate self-signed certificates.
 
 To generate a self-signed certificate in one prompt, use the following command:
 
@@ -87,7 +87,7 @@ juju run self-signed-certificates/0 get-ca-certificate --format json | jq -r '."
 
 ## Create mutual trust relation: client -> server
 
-Depending on the type of the client application, there might be different ways to trust. In this guide, we are using the console-based apps shipped with the `charmed-kafka` snap, which depend on java keystore/trustsores. Follow the steps below to create necessary Java keystore and truststore artifacts for the client application:
+Depending on the type of the client application, there might be different ways to trust. In this guide, we are using the console-based apps shipped with the `charmed-kafka` snap, which depend on java keystore/truststores. Follow the steps below to create necessary Java keystore and truststore artefacts for the client application:
 
 ### Create client's keystore
 
@@ -138,7 +138,7 @@ keytool -list -keystore client.truststore.jks -storepass $KAFKA_CLIENT_TRUSTSTOR
 
 Since you are using TLS certificates for authentication, you need to provide a way to map the client's certificate to usernames defined on the Apache Kafka cluster.
 
-In charmed Apache Kafka, this could be done using the `ssl_principal_mapping_rules` config option, which defines how the certificate's common name is translated into a username, using a handy regex syntax (refer to [Apache Kafka's official documentation](https://kafka.apache.org/documentation/#security_authz_ssl) for more details on the syntax):
+In charmed Apache Kafka, this could be done using the `ssl_principal_mapping_rules` configuration option, which defines how the certificate's common name is translated into a username, using a handy regex syntax (refer to [Apache Kafka's official documentation](https://kafka.apache.org/documentation/#security_authz_ssl) for more details on the syntax):
 
 ```bash
 # Map the CN on the cert to be considered the principal (username)
