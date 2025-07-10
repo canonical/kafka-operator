@@ -91,29 +91,34 @@ Depending on the type of the client application, there might be different ways t
 
 ### Create client's keystore
 
-Create the client's keystore using the following commands:
+Create the client's keystore using the following commands.
+
+First, store the passwords used for keystores in environment variables:
 
 ```bash
-# Java keystore and truststore passwords
 KAFKA_CLIENT_KEYSTORE_PASSWORD=changeme
+KAFKA_CLIENT_TRUSTSTORE_PASSWORD=changeme
+```
 
-# create client's certificate chain
+Then, create the client's certificate chain:
+
+```bash
 cat client.pem client.key > client_chain.pem
+```
 
-# create PKCS12 keystore from chain and name it: client.keystore.p12
+Finally, create the PKCS12 keystore from the chain and name it `client.keystore.p12`:
+
+```
 openssl pkcs12 -export -in client_chain.pem \
--out client.keystore.p12 -password pass:$KAFKA_CLIENT_KEYSTORE_PASSWORD \
--name client -noiter -nomaciter
+  -out client.keystore.p12 -password pass:$KAFKA_CLIENT_KEYSTORE_PASSWORD \
+  -name client -noiter -nomaciter
 ```
 
 ### Create client's truststore
 
-Trust the broker's CA certificate by importing it into a Java truststore using the following command
+Trust the broker's CA certificate by importing it into a Java truststore using the following command:
 
 ```bash
-KAFKA_CLIENT_TRUSTSTORE_PASSWORD=changeme
-
-# import broker's certificate into the truststor and name it: client.truststsore.jks
 keytool -keystore client.truststore.jks -storepass $KAFKA_CLIENT_TRUSTSTORE_PASSWORD -noprompt \
   -importcert -alias server -file server.pem
 ```
@@ -123,8 +128,6 @@ keytool -keystore client.truststore.jks -storepass $KAFKA_CLIENT_TRUSTSTORE_PASS
 You can list the certificates loaded into client's keystore and truststore using the following commands:
 
 ```bash
-
-# ---------- Check certs validity
 echo "Client certs in Keystore:"
 keytool -list -keystore client.keystore.p12 -storepass $KAFKA_CLIENT_KEYSTORE_PASSWORD -rfc | grep "Alias name"
 keytool -list -keystore client.keystore.p12 -storepass $KAFKA_CLIENT_KEYSTORE_PASSWORD -v | grep until
@@ -141,7 +144,6 @@ Since you are using TLS certificates for authentication, you need to provide a w
 In charmed Apache Kafka, this could be done using the `ssl_principal_mapping_rules` configuration option, which defines how the certificate's common name is translated into a username, using a handy regex syntax (refer to [Apache Kafka's official documentation](https://kafka.apache.org/documentation/#security_authz_ssl) for more details on the syntax):
 
 ```bash
-# Map the CN on the cert to be considered the principal (username)
 juju config kafka ssl_principal_mapping_rules='RULE:^.*[Cc][Nn]=([a-zA-Z0-9\.-]*).*$/$1/L,DEFAULT'
 ```
 
@@ -149,19 +151,24 @@ This command will trigger a rolling restart of the charmed Apache Kafka applicat
 
 ## Add authorisation rules via ACLs for the client
 
-Grant read and write privileges to the mTLS client user over _group_, _topic_ and _transaction_ resources:
+In order to add authorisation rules for the mTLS client, first save the broker's connection information and configuration path into some environment variables:
 
 ```bash
-# Apache Kafka Broker connection info
 BROKER_IP=$(juju show-unit kafka/0 --format json | jq -r '."kafka/0"."public-address"')
 KAFKA_SERVERS_SASL="$BROKER_IP:19093"
 KAFKA_SERVERS_MTLS="$BROKER_IP:9094"
-
-# Client certificate's common name, this should be all lower-case because of the L suffix in ssl_principal_mapping_rules
-KAFKA_CLIENT_MTLS_CN=testclient
-
 SNAP_KAFKA_PATH=/var/snap/charmed-kafka/current/etc/kafka
+```
 
+Next, create the `KAFKA_CLIENT_MTLS_CN` environment variable holding client's certificate common name, this should be all lower-case because of the L suffix in the `ssl_principal_mapping_rules` configured before:
+
+```bash
+KAFKA_CLIENT_MTLS_CN=testclient
+```
+
+Finally, grant read and write privileges to the mTLS client user over `_group_`, `_topic_` and `_transaction_` resources using the following commands:
+
+```bash
 juju ssh kafka/leader "
 sudo charmed-kafka.acls --bootstrap-server $KAFKA_SERVERS_SASL --command-config $SNAP_KAFKA_PATH/client.properties \
 --add --allow-principal User:$KAFKA_CLIENT_MTLS_CN \
@@ -179,7 +186,7 @@ sudo charmed-kafka.acls --bootstrap-server $KAFKA_SERVERS_SASL --command-config 
 
 ## Test access
 
-Create a file called `client-mtls.properties` with the following configuration:
+To test the client's access, first create a file called `client-mtls.properties` with the following configuration:
 
 ```bash
 cat <<EOF > client-mtls.properties
@@ -195,26 +202,28 @@ ssl.client.auth=required
 EOF
 ```
 
-Test the client's access using below commands to create a topic named `TEST`:
+Next, copy the files to a path readable by the `charmed-kafka` snap commands:
 
 ```bash
-# ---------- Test Access
-# Copy the files to a path readable by the `charmed-kafka` snap commands
 sudo cp client.truststore.jks $SNAP_KAFKA_PATH/
 sudo cp client.keystore.p12 $SNAP_KAFKA_PATH/
 sudo cp client-mtls.properties $SNAP_KAFKA_PATH/
+```
 
-# Apply file permissions to be readable by the snap
+Apply file permissions to the copied files so that they are readable by the snap:
+
+```bash
 sudo chown snap_daemon:root $SNAP_KAFKA_PATH/client-mtls.properties
 sudo chown snap_daemon:root $SNAP_KAFKA_PATH/client.keystore.p12
 sudo chown snap_daemon:root $SNAP_KAFKA_PATH/client.truststore.jks
+```
 
-# Use newly created credentials to create a topic and list existing topics
+Now use the newly created credentials to create a topic named `TEST`:
+
+```bash
 sudo charmed-kafka.topics --bootstrap-server $KAFKA_SERVERS_MTLS --command-config $SNAP_KAFKA_PATH/client-mtls.properties \
 --create --topic TEST
-
-# You should see: Created topic TEST.
-
-sudo charmed-kafka.topics --list --bootstrap-server $KAFKA_SERVERS_MTLS --command-config $SNAP_KAFKA_PATH/client-mtls.properties
 ```
+
+You should see: `Created topic TEST` in the output.
 

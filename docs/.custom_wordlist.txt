@@ -50,7 +50,9 @@ checksums
 mTLS
 unencrypted
 truststore
+truststores
 keystore
+keystores
 SHA
 SASL
 hostname
@@ -163,5 +165,3 @@ znodes
 CA
 CAs
 PKI
-truststore
-truststores
