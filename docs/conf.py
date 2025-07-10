@@ -189,9 +189,15 @@ if 'READTHEDOCS_VERSION' in os.environ:
 else:
     sitemap_url_scheme = 'MANUAL/{link}'
 
-# Template and asset locations
+# Include `lastmod` dates in the sitemap:
 
-#html_static_path = ["_static"]
+sitemap_show_lastmod = True
+
+#######################
+# Template and asset locations
+#######################
+
+html_static_path = ["_static"]
 #templates_path = ["_templates"]
 
 
