@@ -8,6 +8,13 @@ options:
       This configuration accepts the following roles: 'broker' (standard functionality), 'balancer' (cruise control), 'controller' (KRaft mode).
     type: string
     default: broker
+  system-users:
+    description: |
+      User-provided secret ID which defines internal username/passwords on the Apache Kafka cluster.
+      The secret ID format is like "secret:cvh7kruupa1s46bqvuig" and should not be confused with secret name or label.
+      The secret could be defined using `juju add-secret <secret-name> <user>=<admin-password>` command, where `<user>` is one of the internal users defined by the charm: `sync` or `admin`.
+      The `juju add-secret` command will output the secret ID, which can then be granted to the charm and configured using `juju config` command.
+    type: string
   compression_type:
     description: Specify the final compression type for a given topic. This configuration accepts the standard compression codecs ('gzip', 'snappy', 'lz4', 'zstd'). It additionally accepts 'uncompressed' which is equivalent to no compression; and 'producer' which means retain the original compression codec set by the producer.
     type: string

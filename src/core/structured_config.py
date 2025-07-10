@@ -6,6 +6,7 @@
 import logging
 import re
 from enum import Enum
+from typing import Literal
 
 from charms.data_platform_libs.v0.data_models import BaseConfigModel
 from pydantic import Field, validator
@@ -15,29 +16,7 @@ from literals import BALANCER, BROKER, CONTROLLER, SUBSTRATE
 logger = logging.getLogger(__name__)
 
 
-class LogMessageTimestampType(str, Enum):
-    """Enum for the `log_message_timestamp_type` field."""
-
-    CREATE_TIME = "CreateTime"
-    LOG_APPEND_TIME = "LogAppendTime"
-
-
-class LogCleanupPolicy(str, Enum):
-    """Enum for the `log_cleanup_policy` field."""
-
-    COMPACT = "compact"
-    DELETE = "delete"
-
-
-class CompressionType(str, Enum):
-    """Enum for the `compression_type` field."""
-
-    GZIP = "gzip"
-    SNAPPY = "snappy"
-    LZ4 = "lz4"
-    ZSTD = "zstd"
-    UNCOMPRESSED = "uncompressed"
-    PRODUCER = "producer"
+SECRET_REGEX = re.compile("secret:[a-z0-9]{20}")
 
 
 class LogLevel(str, Enum):
@@ -52,8 +31,8 @@ class LogLevel(str, Enum):
 class CharmConfig(BaseConfigModel):
     """Manager for the structured configuration."""
 
-    roles: str
-    compression_type: str
+    # Kafka configs
+    compression_type: Literal["gzip", "snappy", "lz4", "zstd", "uncompressed", "producer"]
     log_flush_interval_messages: int  # int  # long
     log_flush_interval_ms: int | None  # long
     log_flush_offset_checkpoint_interval_ms: int
@@ -66,20 +45,22 @@ class CharmConfig(BaseConfigModel):
     unclean_leader_election_enable: bool
     log_cleaner_delete_retention_ms: int  # long
     log_cleaner_min_compaction_lag_ms: int  # long
-    log_cleanup_policy: str
-    log_message_timestamp_type: str
+    log_cleanup_policy: Literal["compact", "delete"]
+    log_message_timestamp_type: Literal["CreateTime", "LogAppendTime"]
     ssl_cipher_suites: str | None
     ssl_principal_mapping_rules: str
     replication_quota_window_num: int
-    zookeeper_ssl_cipher_suites: str | None
-    profile: str
+    # Charm configs
+    roles: str
+    profile: Literal["testing", "staging", "production"]
     certificate_extra_sans: list[str]
     extra_listeners: list[str]
+    expose_external: str | None
     log_level: str
     network_bandwidth: int = Field(default=50000, validate_default=False, gt=0)
     cruisecontrol_balance_threshold: float = Field(default=1.1, validate_default=False, ge=1)
     cruisecontrol_capacity_threshold: float = Field(default=0.8, validate_default=False, le=1)
-    expose_external: str | None
+    system_users: str | None = None
 
     @validator("*", pre=True)
     @classmethod
@@ -87,30 +68,6 @@ class CharmConfig(BaseConfigModel):
         """Check for empty strings."""
         if value == "":
             return None
-        return value
-
-    @validator("log_message_timestamp_type")
-    @classmethod
-    def log_message_timestamp_type_validator(cls, value: str) -> str | None:
-        """Check validity of `log_message_timestamp_type` field."""
-        try:
-            _log_message_timestap_type = LogMessageTimestampType(value)
-        except Exception as e:
-            raise ValueError(
-                f"Value out of the accepted values. Could not properly parsed the roles configuration: {e}"
-            )
-        return value
-
-    @validator("log_cleanup_policy")
-    @classmethod
-    def log_cleanup_policy_validator(cls, value: str) -> str | None:
-        """Check validity of `log_cleanup_policy` field."""
-        try:
-            _log_cleanup_policy = LogCleanupPolicy(value)
-        except Exception as e:
-            raise ValueError(
-                f"Value out of the accepted values. Could not properly parsed the roles configuration: {e}"
-            )
         return value
 
     @validator("log_cleaner_min_compaction_lag_ms")
@@ -163,7 +120,13 @@ class CharmConfig(BaseConfigModel):
             raise ValueError("Value below -1. Accepted value are greater or equal than -1.")
         return int_value
 
-    @validator("log_flush_interval_messages", "log_flush_interval_ms")
+    @validator(
+        "log_flush_interval_messages",
+        "log_flush_interval_ms",
+        "offsets_topic_num_partitions",
+        "transaction_state_log_num_partitions",
+        "replication_quota_window_num",
+    )
     @classmethod
     def greater_than_one(cls, value: str) -> int | None:
         """Check value greater than one."""
@@ -172,24 +135,20 @@ class CharmConfig(BaseConfigModel):
             raise ValueError("Value below 1. Accepted value are greater or equal than 1.")
         return int_value
 
-    @validator("replication_quota_window_num", "log_segment_bytes", "message_max_bytes")
+    @validator("log_segment_bytes")
+    @classmethod
+    def greater_than_1_mb(cls, value: int) -> int | None:
+        """Check value greater than 1 MB."""
+        if value < 1024 * 1024:
+            raise ValueError("Value below 1 MB. Accepted value are greater or equal than 1 MB.")
+        return value
+
+    @validator("message_max_bytes")
     @classmethod
     def greater_than_zero(cls, value: int) -> int | None:
         """Check value greater than zero."""
         if value < 0:
             raise ValueError("Value below -1. Accepted value are greater or equal than -1.")
-        return value
-
-    @validator("compression_type")
-    @classmethod
-    def value_compression_type(cls, value: str) -> str | None:
-        """Check validity of `compression_type` field."""
-        try:
-            _compression_type = CompressionType(value)
-        except Exception as e:
-            raise ValueError(
-                f"Value out of the accepted values. Could not properly parsed the roles configuration: {e}"
-            )
         return value
 
     @validator(
@@ -223,15 +182,6 @@ class CharmConfig(BaseConfigModel):
             return int_value
         raise ValueError("Value is not a long")
 
-    @validator("profile")
-    @classmethod
-    def profile_values(cls, value: str) -> str | None:
-        """Check profile config option is one of `testing`, `staging` or `production`."""
-        if value not in ["testing", "staging", "production"]:
-            raise ValueError("Value not one of 'testing', 'staging' or 'production'")
-
-        return value
-
     @validator("expose_external")
     @classmethod
     def expose_external_validator(cls, value: str) -> str | None:
@@ -245,18 +195,6 @@ class CharmConfig(BaseConfigModel):
         if value == "false":
             return
 
-        return value
-
-    @validator("log_level")
-    @classmethod
-    def log_level_values(cls, value: str) -> str | None:
-        """Check validity of `log_level` field."""
-        try:
-            _log_level = LogLevel(value)
-        except Exception as e:
-            raise ValueError(
-                f"Value out of the accepted values. Could not properly parsed the roles configuration: {e}"
-            )
         return value
 
     @validator("roles", pre=True)
@@ -314,3 +252,15 @@ class CharmConfig(BaseConfigModel):
             raise ValueError("Value for port is not unique for each listener.")
 
         return listeners
+
+    @validator("system_users")
+    @classmethod
+    def system_users_secret_validator(cls, value: str) -> str:
+        """Check validity of `system-users` field which should be a user secret URI."""
+        if not SECRET_REGEX.match(value):
+            raise ValueError(
+                "Provided value for system-users config is not a valid secret URI, "
+                "accepted values are formatted like 'secret:cvnra0b1c2e3f4g5hi6j'"
+            )
+
+        return value

@@ -15,8 +15,6 @@ The Charmed Operator can be found on [Charmhub](https://charmhub.io/kafka) and i
 - SASL/SCRAM auth for Broker-Broker and Client-Broker authentication enabled by default.
 - Access control management supported with user-provided ACL lists.
 
-As currently Apache Kafka requires a paired Apache ZooKeeper deployment in production, this operator makes use of [Charmed Apache ZooKeeper](https://github.com/canonical/zookeeper-operator) for various essential functions.
-
 ### Features checklist
 
 The following are some of the most important planned features and their implementation status:
@@ -34,7 +32,7 @@ The following are some of the most important planned features and their implemen
 
 ## Requirements
 
-For production environments, it is recommended to deploy at least 5 nodes for Apache Zookeeper and 3 for Apache Kafka.
+For production environments, it is recommended to deploy at least 5 nodes of Apache Kafka as **controllers** and 3 nodes of Apache Kafka as **brokers**.
 
 The following requirements are meant to be for production environment:
 
@@ -52,79 +50,95 @@ For more information on how to perform typical tasks, see the How to guides sect
 
 ### Deployment
 
-Charmed Apache Kafka and Charmed Apache ZooKeeper can both be deployed as follows:
+Charmed Apache Kafka can be deployed as follows:
 
-```shell
-juju deploy zookeeper -n 5
-juju deploy kafka -n 3
+```bash
+juju deploy kafka -n 5 --config roles="controller" controller
+juju deploy kafka -n 3 --config roles="broker"
 ```
 
-After this, it is necessary to connect them:
+After this, it is necessary to integrate them:
 
-```shell
-juju relate kafka zookeeper
+```bash
+juju integrate kafka:peer-cluster-orchestrator controller:peer-cluster
 ```
 
-To watch the process, the `juju status` command can be used. Once all the units are shown as `active|idle` the credentials to access a broker can be queried with:
-
-```shell
-juju run-action kafka/leader get-admin-credentials --wait
-```
+To watch the process, the `juju status` command can be used. Once all the units are shown as `active|idle`, the credentials to access a broker can be set using Juju secrets, discussed in the **Password Rotation** section.
 
 Apache Kafka ships with `bin/*.sh` commands to do various administrative tasks, e.g `bin/kafka-config.sh` to update cluster configuration, `bin/kafka-topics.sh` for topic management, and many more! Charmed Apache Kafka provides these commands for administrators to run their desired cluster configurations securely with SASL authentication, either from within the cluster or as an external client.
 
 For example, to list the current topics on the Apache Kafka cluster, run the following command:
 
-```shell
-BOOTSTRAP_SERVERS=$(juju run-action kafka/leader get-admin-credentials --wait | grep "bootstrap.servers" | cut -d "=" -f 2)
-juju ssh kafka/leader 'charmed-kafka.topics --bootstrap-server $BOOTSTRAP_SERVERS --list --command-config /var/snap/charmed-kafka/common/client.properties'
+```bash
+juju ssh kafka/leader 'sudo charmed-kafka.topics \
+    --bootstrap-server $(hostname -i):19093 \
+    --command-config $CONF/client.properties \
+    --list'
 ```
 
 Note that Charmed Apache Kafka cluster is secure-by-default: when no other application is related to Charmed Apache Kafka, listeners are disabled, thus preventing any incoming connection. However, even for running the commands above, listeners must be enabled. If there are no other applications, you can deploy a `data-integrator` charm and relate it to Charmed Apache Kafka to enable listeners.
 
 Available Charmed Apache Kafka bin commands can be found with:
 
-```shell
+```bash
 snap info charmed-kafka
 ```
 
 ### Scaling
 
-The charm can be scaled up using `juju scale-application` command:
+The charm can be scaled out using `juju add-unit` command:
 
-```shell
-juju scale-application kafka <num_of_units_to_scale_to>
+```bash
+juju add-unit kafka -n <num_of_desired_units>
 ```
 
-This will add or remove brokers to match the required number. For example, to scale a deployment with 3 kafka units to 5, run:
+This will add brokers to match the required number. For example, to scale a deployment with three kafka units to five, run:
 
-```shell
-juju scale-application kafka 5
+```bash
+juju add-unit kafka -n 2
 ```
 
 Even when scaling multiple units at the same time, the charm uses a rolling restart sequence to make sure the cluster stays available and healthy during the operation.
 
 ### Password rotation
 
-The `operator` user is used internally by the Charmed Apache Kafka Operator. 
-The `set-password` action can be used to rotate its password:
+The `admin` user is used internally by the Charmed Apache Kafka Operator. The password for this user can be set using Juju secrets. The process to set or change the password is described below.  
 
-```shell
-juju run-action kafka/leader set-password password=<password> --wait
+First, add a custom secret for the internal `admin` user with your desired password:
+
+```bash
+juju add-secret mysecret admin=My$trongP4ss
 ```
 
-Use the same action without a password parameter to randomly generate a password for the `operator` user.
+You will receive a secret ID in response, for example: 
+
+```text
+secret:cvh7kruupa1s46bqvuig
+```
+
+Then, grant access to the secret with:
+
+```bash
+juju grant-secret mysecret kafka
+```
+
+Finally, configure the Apache Kafka application to use the provided secret:
+
+```bash
+juju config kafka system-users=secret:cvh7kruupa1s46bqvuig
+```
+
 
 ### Storage support
 
 Currently, the Charmed Apache Kafka Operator supports 1 or more storage volumes. A 10G storage volume will be installed by default for `log.dirs`.
 This is used for logs storage, mounted on `/var/snap/kafka/common`
 
-When storage is added or removed, the Apache Kafka service will restart to ensure it uses the new volumes. Additionally, log + charm status messages will prompt users to manually reassign partitions so that the new storage volumes are populated. By default, Apache Kafka will not assign partitions to new directories/units until existing topic partitions are assigned to it, or a new topic is created.
+When storage is added or removed, the Apache Kafka service will restart to ensure it uses the new volumes. Additionally, logs and charm status messages will prompt users to manually reassign partitions so that the new storage volumes are populated. By default, Apache Kafka will not assign partitions to new directories/units until existing topic partitions are assigned to it, or a new topic is created.
 
 ## Relations
 
-The Charmed Apache Kafka Operator supports Juju [relations](https://juju.is/docs/olm/relations) for interfaces listed below.
+The Charmed Apache Kafka Operator supports Juju [relations (integrations)](https://documentation.ubuntu.com/juju/latest/reference/relation/) for interfaces listed below.
 
 #### The Kafka_client interface
 
@@ -132,21 +146,21 @@ The `kafka_client` interface is used with the [Data Integrator](https://charmhub
 
 To deploy the `data-integrator` charm with the desired `topic-name` and user roles:
 
-```shell
+```bash
 juju deploy data-integrator
-juju config data-integrator topic-name=test-topic extra-user-roles=producer,consumer
+juju config data-integrator topic-name=test-topic extra-user-roles="producer,consumer"
 ```
 
-To relate the two applications:
+To integrate the two applications:
 
-```shell
-juju relate data-integrator kafka
+```bash
+juju integrate data-integrator kafka
 ```
 
 To retrieve information, enter:
 
-```shell
-juju run-action data-integrator/leader get-credentials --wait
+```bash
+juju run data-integrator/leader get-credentials --wait
 ```
 
 The output looks like this:
@@ -177,35 +191,34 @@ The `tls-certificates` interface is used with the `tls-certificates-operator` ch
 
 To enable TLS, deploy the TLS charm first:
 
-```shell
+```bash
 juju deploy tls-certificates-operator
 ```
 
 Then, add the necessary configurations:
 
-```shell
+```bash
 juju config tls-certificates-operator generate-self-signed-certificates="true" ca-common-name="Test CA"
 ```
 
 And enable TLS by relating the two applications to the `tls-certificates` charm:
 
-```shell
-juju relate tls-certificates-operator zookeeper
-juju relate tls-certificates-operator kafka
+```bash
+juju integrate tls-certificates-operator kafka:certificates
 ```
 
 Updates to private keys for certificate signing requests (CSR) can be made via the `set-tls-private-key` action:
 
-```shell
+```bash
 # Updates can be done with auto-generated keys with
-juju run-action kafka/0 set-tls-private-key --wait
-juju run-action kafka/1 set-tls-private-key --wait
-juju run-action kafka/2 set-tls-private-key --wait
+juju run kafka/0 set-tls-private-key --wait
+juju run kafka/1 set-tls-private-key --wait
+juju run kafka/2 set-tls-private-key --wait
 ```
 
 Now you can generate shared internal key:
 
-```shell
+```bash
 openssl genrsa -out internal-key.pem 3072
 ```
 
@@ -213,17 +226,16 @@ Passing keys to external/internal keys should *only be done with* `base64 -w0` *
 
 Apply keys on each Charmed Apache Kafka unit:
 
-```shell
-juju run-action kafka/0 set-tls-private-key "internal-key=$(base64 -w0 internal-key.pem)"  --wait
-juju run-action kafka/1 set-tls-private-key "internal-key=$(base64 -w0 internal-key.pem)"  --wait
-juju run-action kafka/2 set-tls-private-key "internal-key=$(base64 -w0 internal-key.pem)"  --wait
+```bash
+juju run kafka/0 set-tls-private-key "internal-key=$(base64 -w0 internal-key.pem)" --wait
+juju run kafka/1 set-tls-private-key "internal-key=$(base64 -w0 internal-key.pem)" --wait
+juju run kafka/2 set-tls-private-key "internal-key=$(base64 -w0 internal-key.pem)" --wait
 ```
 
 To disable TLS remove the relation:
 
-```shell
+```bash
 juju remove-relation kafka tls-certificates-operator
-juju remove-relation zookeeper tls-certificates-operator
 ```
 
 > **Note**: The TLS settings here are for self-signed-certificates which are not recommended for production clusters, the `tls-certificates-operator` charm offers a variety of configurations, read more on the TLS charm in the [documentation](https://charmhub.io/tls-certificates-operator).
@@ -245,10 +257,10 @@ Next, deploy [Grafana Agent](https://charmhub.io/grafana-agent) and follow the
 [tutorial](https://discourse.charmhub.io/t/using-the-grafana-agent-machine-charm/8896)
 to relate it to the COS Lite offers.
 
-Now, relate Apache Kafka with the Grafana Agent:
+Now, integrate Apache Kafka with the Grafana Agent:
 
-```shell
-juju relate kafka grafana-agent
+```bash
+juju integrate kafka grafana-agent
 ```
 
 After this is complete, Grafana will show two new dashboards: `Kafka Metrics` and `Node Exporter Kafka`.

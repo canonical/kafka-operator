@@ -7,10 +7,16 @@ from unittest.mock import Mock, PropertyMock, patch
 
 import pytest
 from ops import JujuVersion
-from src.literals import INTERNAL_USERS, SNAP_NAME, SUBSTRATE
+from ops.testing import Relation
+from src.literals import (
+    CONTROLLER_USER,
+    INTERNAL_USERS,
+    PEER_CLUSTER_RELATION,
+    SNAP_NAME,
+    SUBSTRATE,
+)
+from src.managers.balancer import CruiseControlClient
 from tests.unit.helpers import TLSArtifacts, generate_tls_artifacts
-
-from managers.balancer import CruiseControlClient
 
 
 @pytest.fixture(scope="module")
@@ -27,8 +33,21 @@ def zk_data() -> dict[str, str]:
 
 
 @pytest.fixture(scope="module")
+def kraft_data() -> dict[str, str]:
+    return {
+        "bootstrap-controller": "10.10.10.10:9097",
+        "cluster-uuid": "random-uuid",
+    }
+
+
+@pytest.fixture(scope="module")
+def peer_cluster_rel() -> Relation:
+    return Relation(PEER_CLUSTER_RELATION, "peer_cluster")
+
+
+@pytest.fixture(scope="module")
 def passwords_data() -> dict[str, str]:
-    return {f"{user}-password": "mellon" for user in INTERNAL_USERS}
+    return {f"{user}-password": "mellon" for user in INTERNAL_USERS + [CONTROLLER_USER]}
 
 
 @pytest.fixture(autouse=True)
@@ -48,6 +67,14 @@ def patched_workload(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("workload.Workload.active", lambda _: True)
     monkeypatch.setattr("workload.Workload.write", lambda _, content, path: None)
     monkeypatch.setattr("workload.Workload.read", lambda _, path: [])
+    monkeypatch.setattr("workload.Workload.get_service_pid", lambda _: 1314231)
+
+
+@pytest.fixture(autouse=True)
+def random_uuid():
+    with patch("managers.controller.ControllerManager.generate_uuid") as gen_uuid:
+        gen_uuid.return_value = "some-random-uuid"
+        yield
 
 
 @pytest.fixture(autouse=True)

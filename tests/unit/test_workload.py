@@ -27,8 +27,9 @@ def test_run_bin_command_args(patched_exec):
     assert "--list" == patched_exec.call_args.args[0].split()[-1]
 
 
-def test_get_service_pid_raises():
+def test_get_service_pid_raises(monkeypatch):
     """Checks get_service_pid raises if PID cannot be found."""
+    monkeypatch.undo()
     with (
         patch(
             "builtins.open",
@@ -41,8 +42,9 @@ def test_get_service_pid_raises():
         KafkaWorkload().get_service_pid()
 
 
-def test_get_service_pid_raises_no_pid():
+def test_get_service_pid_raises_no_pid(monkeypatch):
     """Checks get_service_pid raises if PID cannot be found."""
+    monkeypatch.undo()
     with (
         patch("subprocess.check_output", return_value=""),
         pytest.raises(SnapError),

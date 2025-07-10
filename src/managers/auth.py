@@ -13,7 +13,6 @@ from ops.pebble import ExecError
 
 from core.cluster import ClusterState
 from core.workload import WorkloadBase
-from literals import SECURITY_PROTOCOL_PORTS
 
 logger = logging.getLogger(__name__)
 
@@ -137,16 +136,12 @@ class AuthManager:
 
         return consumer_acls
 
-    def add_user(
-        self, username: str, password: str, zk_auth: bool = False, internal: bool = False
-    ) -> None:
-        """Adds new user credentials to ZooKeeper.
+    def add_user(self, username: str, password: str) -> None:
+        """Adds new user credentials to cluster.
 
         Args:
             username: the user name to add
             password: the user password
-            zk_auth: flag to specify adding users using ZooKeeper authorizer
-                For use before cluster start
             internal: flag to use internal ports or client ones
 
         Raises:
@@ -159,32 +154,18 @@ class AuthManager:
             f"--add-config=SCRAM-SHA-512=[password={password}]",
         ]
 
-        # needed only here, as internal SCRAM users cannot be created using `--bootstrap-server` until the cluster has initialised
-        # instead must be authorized using ZooKeeper JAAS
-        if zk_auth:
-            command = base_command + [
-                f"--zookeeper={self.state.zookeeper.connect}",
-                f"--zk-tls-config-file={self.workload.paths.server_properties}",
-            ]
-            opts = [self.kafka_opts]
-        else:
-            bootstrap_server = (
-                f"{self.state.unit_broker.internal_address}:{SECURITY_PROTOCOL_PORTS[self.state.default_auth].internal}"
-                if internal
-                else self.state.bootstrap_server
-            )
-            command = base_command + [
-                f"--bootstrap-server={bootstrap_server}",
-                f"--command-config={self.workload.paths.client_properties}",
-            ]
-            opts = []
+        command = base_command + [
+            f"--bootstrap-server={self.state.bootstrap_server_internal}",
+            f"--command-config={self.workload.paths.client_properties}",
+        ]
+        opts = []
 
         self.workload.run_bin_command(
             bin_keyword="configs", bin_args=command, opts=opts + [self.log4j_opts]
         )
 
     def delete_user(self, username: str) -> None:
-        """Deletes user credentials from ZooKeeper.
+        """Deletes user credentials from cluster.
 
         Args:
             username: the user name to delete

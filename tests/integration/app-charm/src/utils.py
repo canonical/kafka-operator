@@ -44,7 +44,7 @@ def safe_write_to_file(content: str, path: str, mode: str = "w") -> None:
     with open(path, mode) as f:
         f.write(content)
 
-    shutil.chown(path, user="snap_daemon", group="root")
+    shutil.chown(path, user="_daemon_", group="root")
 
     return
 

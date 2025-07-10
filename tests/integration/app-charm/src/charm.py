@@ -136,16 +136,16 @@ class ApplicationCharm(CharmBase):
         cache = snap.SnapCache()
         kafka = cache["charmed-kafka"]
 
-        kafka.ensure(snap.SnapState.Latest, channel="3/edge", revision=19)
+        kafka.ensure(snap.SnapState.Latest, channel="4/edge", revision=61)
 
     @staticmethod
     def set_snap_ownership(path: str) -> None:
-        """Sets a filepath `snap_daemon` ownership."""
-        shutil.chown(path, user="snap_daemon", group="root")
+        """Sets a filepath `_daemon_` ownership."""
+        shutil.chown(path, user="_daemon_", group="root")
 
         for root, dirs, files in os.walk(path):
             for fp in dirs + files:
-                shutil.chown(os.path.join(root, fp), user="snap_daemon", group="root")
+                shutil.chown(os.path.join(root, fp), user="_daemon_", group="root")
 
     @staticmethod
     def set_snap_mode_bits(path: str) -> None:

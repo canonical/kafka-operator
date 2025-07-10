@@ -54,7 +54,7 @@ More information about the artefacts is provided by the following table:
 
 * A Charmed Apache Kafka cluster is secure by default, meaning that when deployed if there are no client charms related to it, external listeners will not be enabled.
 * We recommend deploying one `data-integrator` with `extra-user-roles=admin` alongside the Charmed Apache Kafka deployment, in order to enable listeners and also create one user with elevated permission
-to perform administrative tasks. For more information, see the [How-to manage application](../../how-to/manage-applications) guide.
+to perform administrative tasks. For more information, see the [How-to manage application](how-to-manage-applications) guide.
 * The current release has been tested with Juju 2.9.45+ and Juju 3.1+
 * In-place upgrade for charms tracking `latest` is not supported, both for Charmed Apache ZooKeeper and Charmed Apache Kafka charms. Perform data migration to upgrade to a Charmed Apache Kafka cluster managed via a `3/stable` charm.
-  For more information on how to perform the migration, see [How-to migrate a cluster](../../how-to/cluster/migrate) guide.
+  For more information on how to perform the migration, see [How-to migrate a cluster](how-to-cluster-replication-migrate-a-cluster) guide.

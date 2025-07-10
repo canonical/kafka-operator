@@ -1,10 +1,10 @@
 (how-to-cluster-replication-cluster-replication)=
-# Cluster replication
+# Set up replication between clusters
 
 This How-To will cover how to set up cluster replication using MirrorMaker through [Kafka Connect](https://kafka.apache.org/documentation/#connect).
 
 ```{note}
-For a brief explanation of how MirrorMaker works, see the [MirrorMaker explanation](../../explanation/mirrormaker2-0) page.
+For a brief explanation of how MirrorMaker works, see the [MirrorMaker explanation](explanation-mirrormaker2-0) page.
 ```
 
 ## Prerequisites
@@ -12,27 +12,26 @@ For a brief explanation of how MirrorMaker works, see the [MirrorMaker explanati
 To set up cluster replication we need:
 
 - Two Charmed Apache Kafka clusters:
-  - An "active" source cluster to replicate from.
-  - A "passive" target cluster to replicate to.
+  - A source cluster to replicate from.
+  - A target cluster to replicate to.
 - A Charmed Kafka Connect cluster to run the MirrorMaker connectors.
 
 ```{note}
-It is best practice to co-locate the Kafka Connect cluster with the target Apache Kafka cluster - for example in the same cloud region.
+The best practice is to co-locate the Kafka Connect cluster with the target Apache Kafka cluster, for example, in the same cloud region.
 ```
 
 For guidance on how to set up Charmed Apache Kafka, please refer to the following resources:
 
 - The [Charmed Apache Kafka Tutorial](tutorial-introduction)
 - The [How to deploy guide](how-to-deploy-deploy-anywhere) for Charmed Apache Kafka
-- The [Charmed Kafka Connect Tutorial](tutorial-kafka-connect))
+- The [Charmed Kafka Connect Tutorial](tutorial-kafka-connect)
 
-## Deploy a MirrorMaker integrator
+## Set up active-passive replication
 
-The MirrorMaker integrator charm manages tasks on a Charmed Kafka Connect cluster that replicates data from an active Apache Kafka cluster to a passive cluster.
+The [MirrorMaker integrator charm](https://charmhub.io/mirrormaker-connect-integrator) manages tasks on a Charmed Kafka Connect cluster that replicates data from an active Apache Kafka cluster to a passive cluster.
 
-### Current deployment
-
-Check the status of deployed applications by running `juju status` command. The result should be similar to:
+Check the status of deployed applications by running `juju status` command.
+The result should be similar to:
 
 ```text
 Model  Controller  Cloud/Region         Version  SLA          Timestamp
@@ -49,13 +48,15 @@ passive/0*        active    idle   1        10.86.75.153    9092,19092/tcp
 kafka-connect/0*  active    idle   2        10.86.75.45     8083/tcp
 ```
 
-To integrate Kafka Connect with the passive cluster (as recommended for active-passive replication), run:
+The `active` cluster serves as a source and `passive` as a target for replication.
+
+Integrate Kafka Connect with the passive cluster (as recommended for active-passive replication):
 
 ```bash
 juju integrate kafka-connect passive
 ```
 
-## Set up active-passive replication
+## Deploy a MirrorMaker integrator
 
 First, deploy the MirrorMaker integrator charm:
 
@@ -163,4 +164,3 @@ juju integrate mirrormaker-b-a:target kafka-a
 
 With this, the deployment is complete. There will be two bi-directional replication flows between `kafka-a` and `kafka-b`. The topics will be prefixed with the cluster name, so that they do not collide with each other.
 For example, a topic called `demo` created on `kafka-a` will be replicated as a new topic on `kafka-b` named `kafka-a.replica.demo`, and vice versa.
-

@@ -8,7 +8,7 @@ summary: |
   Dummy charm application meant to be used
   only for testing of the libs in this repository.
 series:
-  - jammy
+  - noble
 
 peers:
   cluster:

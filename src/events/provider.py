@@ -173,7 +173,7 @@ class KafkaProvider(Object):
     def _on_relation_broken(self, event: RelationBrokenEvent) -> None:
         """Handler for `kafka-client-relation-broken` event.
 
-        Removes relation users from ZooKeeper.
+        Removes relation users from cluster.
 
         Args:
             event: the event from a related client application needing a user

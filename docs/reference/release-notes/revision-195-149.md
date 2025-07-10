@@ -106,4 +106,4 @@ More information about the artefacts are provided by the following table:
 ## Technical notes
 
 * [GitHub Releases](https://github.com/canonical/kafka-operator/releases) provide a detailed list of bug fixes, PRs, and commits for each revision.
-* Upgrades from previous stable versions can be done with the standard upgrading process, as outlined in the [documentation](../../how-to/upgrade)
+* Upgrades from previous stable versions can be done with the standard upgrading process, as outlined in the [documentation](how-to-upgrade)

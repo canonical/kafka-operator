@@ -21,7 +21,7 @@ website:
 maintainers:
   - Canonical Data Platform <data-platform@lists.launchpad.net>
 series:
-  - jammy
+  - noble
 
 peers:
   cluster:
@@ -34,16 +34,16 @@ peers:
 provides:
   kafka-client:
     interface: kafka_client
+    optional: true
   cos-agent:
     interface: cos_agent
+    optional: true
   peer-cluster-orchestrator:
     interface: peer_cluster
     limit: 1
+    optional: true
 
 requires:
-  zookeeper:
-    interface: zookeeper
-    limit: 1
   certificates:
     interface: tls-certificates
     limit: 1

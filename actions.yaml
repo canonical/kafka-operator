@@ -1,19 +1,6 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 # In Juju 3 this will be easier to copy
-set-password:
-  description: Change an internal system user's password.
-    It is for internal charm users and SHOULD NOT be used by applications.
-    This action must be called on the leader unit.
-  params:
-    username:
-      type: string
-      description: The internal username to set password for.
-      enum: [admin, sync]
-    password:
-      type: string
-      description: The password will be auto-generated if this option is not specified.
-  required: [username]
 
 set-tls-private-key:
   description: Sets the private key identifying the target unit, which will be used for certificate signing requests (CSR).
@@ -25,11 +12,6 @@ set-tls-private-key:
       description: The content of private key for internal communications with clients.
         Content will be auto-generated if this option is not specified.
         Can be raw-string, or base64 encoded.
-
-get-admin-credentials:
-  description: Get administrator authentication credentials for client commands
-    The returned client_properties can be used for Apache Kafka bin commands using `--bootstrap-server` and `--command-config` for admin level administration
-    This action must be called on the leader unit.
 
 get-listeners:
   description: Get all active listeners and their port allocations
