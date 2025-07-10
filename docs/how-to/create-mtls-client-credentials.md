@@ -91,9 +91,7 @@ Depending on the type of the client application, there might be different ways t
 
 ### Create client's keystore
 
-Create the client's keystore using the following commands.
-
-First, store the passwords used for keystores in environment variables:
+To create the client's keystore, first store the passwords used for the keystores in some environment variables:
 
 ```bash
 KAFKA_CLIENT_KEYSTORE_PASSWORD=changeme
