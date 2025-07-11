@@ -213,6 +213,28 @@ MODE_REMOVE = "remove"
 PROFILE_TESTING = "testing"
 
 
+class KRaftUnitStatus(str, Enum):
+    """KRaft unit status (also known as role) in KRaft Quorums."""
+
+    LEADER = "Leader"
+    FOLLOWER = "Follower"
+    OBSERVER = "Observer"
+
+
+@dataclass
+class KRaftQuorumInfo:
+    """Object containing Quorum info for a KRaft controller."""
+
+    directory_id: str
+    lag: int
+    status: KRaftUnitStatus
+
+    @property
+    def is_leader_or_follower(self) -> bool:
+        """Whether the unit is a KRaft leader or follower."""
+        return self.status in (KRaftUnitStatus.LEADER, KRaftUnitStatus.FOLLOWER)
+
+
 @dataclass
 class StatusLevel:
     """Status object helper."""
@@ -242,6 +264,9 @@ class Status(Enum):
     )
     MISSING_CONTROLLER_PASSWORD = StatusLevel(
         WaitingStatus("Waiting for controller user credentials"), "DEBUG"
+    )
+    BROKER_NOT_CONNECTED = StatusLevel(
+        BlockedStatus("unit not connected to the controller"), "ERROR"
     )
     ADDED_STORAGE = StatusLevel(
         ActiveStatus("manual partition reassignment may be needed to utilize new storage volumes"),

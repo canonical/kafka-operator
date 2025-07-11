@@ -313,6 +313,10 @@ class BrokerOperator(Object):
         # If properties have changed, the broker will restart.
         self.charm.on.config_changed.emit()
 
+        if self.charm.state.runs_broker and not self.kraft.controller_manager.broker_active():
+            self.charm._set_status(Status.BROKER_NOT_CONNECTED)
+            return
+
         try:
             if self.health and not self.health.machine_configured():
                 self.charm._set_status(Status.SYSCONF_NOT_OPTIMAL)
