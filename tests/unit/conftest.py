@@ -92,6 +92,14 @@ def patched_exec():
         yield patched_exec
 
 
+@pytest.fixture(autouse=True)
+def patched_broker_active():
+    with patch(
+        "managers.controller.ControllerManager.broker_active", return_value=True
+    ) as _broker_active:
+        yield _broker_active
+
+
 @pytest.fixture()
 def patched_health_machine_configured():
     if SUBSTRATE == "vm":

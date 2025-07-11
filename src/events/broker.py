@@ -309,6 +309,10 @@ class BrokerOperator(Object):
         if not self.upgrade.idle or not self.healthy:
             return
 
+        if self.charm.state.runs_broker and not self.kraft.controller_manager.broker_active():
+            self.charm._set_status(Status.BROKER_NOT_CONNECTED)
+            return
+
         # NOTE for situations like IP change and late integration with rack-awareness charm.
         # If properties have changed, the broker will restart.
         self.charm.on.config_changed.emit()
