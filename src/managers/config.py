@@ -415,10 +415,19 @@ class ConfigManager(CommonConfigManager):
         """
         password = self.state.peer_cluster.controller_password
 
-        return [
+        # Strip CC properties from KRaft quorum client properties file
+        stripped_properties = list(
+            set(self.server_properties)
+            - set(KAFKA_CRUISE_CONTROL_OPTIONS.splitlines() + self.metrics_reporter_properties)
+        )
+        stripped_properties.sort()
+
+        return stripped_properties + [
             f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{CONTROLLER_USER}" password="{password}";',
             f"sasl.mechanism={self.internal_listener.mechanism}",
             "security.protocol=SASL_PLAINTEXT",
+            "default.api.timeout.ms=20000",
+            "request.timeout.ms=10000",
         ]
 
     @property
@@ -669,7 +678,6 @@ class ConfigManager(CommonConfigManager):
             f"controller.quorum.bootstrap.servers={self.state.peer_cluster.bootstrap_controller}",
             f"controller.listener.names={CONTROLLER_LISTENER_NAME}",
             *self.controller_scram_properties,
-            *self.controller_kraft_client_properties,
         ]
 
         return properties
@@ -760,9 +768,13 @@ class ConfigManager(CommonConfigManager):
         )
 
     def set_client_properties(self) -> None:
-        """Writes all client config properties to the `client.properties` path."""
+        """Writes all client config properties to the `client.properties` and `kraft-client.properties` paths."""
         self.workload.write(
             content="\n".join(self.client_properties), path=self.workload.paths.client_properties
+        )
+        self.workload.write(
+            content="\n".join(self.controller_kraft_client_properties),
+            path=self.workload.paths.kraft_client_properties,
         )
 
     def set_environment(self) -> None:

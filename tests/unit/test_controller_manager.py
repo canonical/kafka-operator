@@ -82,7 +82,7 @@ def test_add_controller(fake_workload) -> None:
     assert fake_workload.run_bin_command.call_args.kwargs["bin_keyword"] == "metadata-quorum"
     _args = " ".join(fake_workload.run_bin_command.call_args.kwargs["bin_args"])
     assert "add-controller" in _args
-    assert f"--command-config {fake_workload.paths.conf_path}/server.properties" in _args
+    assert f"--command-config {fake_workload.paths.conf_path}/kraft-client.properties" in _args
     assert "--bootstrap-controller 10.10.10.10:9097" in _args
 
     # DuplicateVoterException is fine
@@ -109,7 +109,7 @@ def test_remove_controller(fake_workload) -> None:
     assert fake_workload.run_bin_command.call_args.kwargs["bin_keyword"] == "metadata-quorum"
     _args = " ".join(fake_workload.run_bin_command.call_args.kwargs["bin_args"])
     assert "remove-controller" in _args
-    assert f"--command-config {fake_workload.paths.conf_path}/server.properties" in _args
+    assert f"--command-config {fake_workload.paths.conf_path}/kraft-client.properties" in _args
     assert "--bootstrap-controller 10.10.10.10:9097" in _args
     assert "--controller-id 101" in _args
     assert "--controller-directory-id abcdefg" in _args
