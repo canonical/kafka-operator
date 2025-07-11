@@ -217,9 +217,15 @@ class ControllerManager:
         if broker_id not in quorum_status:
             return False
 
+        expected_statuses = (
+            (KRaftUnitStatus.LEADER, KRaftUnitStatus.FOLLOWER)
+            if self.state.runs_controller
+            else (KRaftUnitStatus.OBSERVER,)
+        )
+
         return all(
             [
-                quorum_status[broker_id].status == KRaftUnitStatus.OBSERVER,
+                quorum_status[broker_id].status in expected_statuses,
                 quorum_status[broker_id].lag >= 0,
             ]
         )
