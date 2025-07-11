@@ -12,7 +12,6 @@ from integration.helpers.pytest_operator import (
     APP_NAME,
     SERIES,
     KRaftMode,
-    KRaftUnitStatus,
     check_socket,
     create_test_topic,
     get_address,
@@ -24,6 +23,7 @@ from literals import (
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
     PEER_CLUSTER_RELATION,
     SECURITY_PROTOCOL_PORTS,
+    KRaftUnitStatus,
 )
 
 logger = logging.getLogger(__name__)
