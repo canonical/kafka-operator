@@ -49,6 +49,17 @@ def test_quorum_status(fake_workload) -> None:
         state.kraft_unit_id = _id
         assert not manager.is_kraft_leader_or_follower()
 
+    fake_workload.run_bin_command = _raises_process_error(stderr="any-error")
+    assert not manager.quorum_status()
+
+
+def test_broker_active(fake_workload) -> None:
+    state = MagicMock()
+    state.runs_controller = False
+    state.peer_cluster.bootstrap_controller = "10.10.10.10:9097"
+    manager = ControllerManager(state=state, workload=fake_workload)
+    fake_workload.run_bin_command.return_value = METADATA_QUORUM_STUB["describe-replication"]
+
     state.unit_broker.broker_id = 100
     assert manager.broker_active()
 
@@ -59,9 +70,6 @@ def test_quorum_status(fake_workload) -> None:
     # broker which does not exist
     state.unit_broker.broker_id = 102
     assert not manager.broker_active()
-
-    fake_workload.run_bin_command = _raises_process_error(stderr="any-error")
-    assert not manager.quorum_status()
 
 
 def test_add_controller(fake_workload) -> None:
