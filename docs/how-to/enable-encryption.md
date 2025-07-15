@@ -20,7 +20,7 @@ juju config self-signed-certificates ca-common-name="Test CA"
 
 Please refer to [this post](https://charmhub.io/topics/security-with-x-509-certificates) for an overview of the TLS certificates Providers charms and some guidance on how to choose the right charm for your use case. 
 
-## integrate the charms
+## Integrate the charms
 
 ```
 juju integrate <tls-certificates> zookeeper
