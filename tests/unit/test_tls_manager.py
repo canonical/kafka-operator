@@ -41,7 +41,6 @@ def _exec(
     _: bool = False,
 ) -> str:
     _command = " ".join(command) if isinstance(command, list) else command
-    print(_command)
 
     for bin in ("chown", "chmod"):
         if _command.startswith(bin):
@@ -341,7 +340,6 @@ def test_simulate_os_errors(tls_manager: TLSManager):
             continue
 
         with pytest.raises(subprocess.CalledProcessError):
-            print(f"Calling {method}")
             getattr(tls_manager, method)()
 
     with pytest.raises(subprocess.CalledProcessError):

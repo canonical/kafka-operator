@@ -142,26 +142,21 @@ class AuthManager:
         Args:
             username: the user name to add
             password: the user password
-            internal: flag to use internal ports or client ones
 
         Raises:
             `(subprocess.CalledProcessError | ops.pebble.ExecError)`: if the error returned a non-zero exit code
         """
-        base_command = [
+        command = [
             "--alter",
             "--entity-type=users",
             f"--entity-name={username}",
             f"--add-config=SCRAM-SHA-512=[password={password}]",
-        ]
-
-        command = base_command + [
             f"--bootstrap-server={self.state.bootstrap_server_internal}",
             f"--command-config={self.workload.paths.client_properties}",
         ]
-        opts = []
 
         self.workload.run_bin_command(
-            bin_keyword="configs", bin_args=command, opts=opts + [self.log4j_opts]
+            bin_keyword="configs", bin_args=command, opts=[self.log4j_opts]
         )
 
     def delete_user(self, username: str) -> None:

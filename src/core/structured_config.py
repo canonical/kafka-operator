@@ -12,6 +12,7 @@ from charms.data_platform_libs.v0.data_models import BaseConfigModel
 from pydantic import Field, validator
 
 from literals import BALANCER, BROKER, CONTROLLER, SUBSTRATE
+from managers.ssl_principal_mapper import SslPrincipalMapper
 
 logger = logging.getLogger(__name__)
 
@@ -92,15 +93,9 @@ class CharmConfig(BaseConfigModel):
     @classmethod
     def ssl_principal_mapping_rules_validator(cls, value: str) -> str | None:
         """Check that the list is formed by valid regex values."""
-        # get all regex up until replacement position "/"
-        # TODO: check that there is a replacement as well, not: RULE:regex/
-        pat = re.compile(r"RULE:([^/]+)(?:,RULE:[^/]+)*(?:DEFAULT){0,1}")
-        matches = re.findall(pat, value)
-        for match in matches:
-            try:
-                re.compile(match)
-            except re.error:
-                raise ValueError("Non valid regex pattern")
+        rules = SslPrincipalMapper.split_rules(value)
+        # parse_rules will raise ValueError if the rules are not valid
+        SslPrincipalMapper.parse_rules(rules)
         return value
 
     @validator("transaction_state_log_num_partitions", "offsets_topic_num_partitions")
