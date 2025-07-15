@@ -84,7 +84,7 @@ juju deploy data-integrator rotated-user --channel stable \
   --config topic-name=test-topic --config extra-user-roles=admin
 ```
 
-The `data-integrator` charm can then be integrated to the `kafka` charm to create a new user:
+The `data-integrator` charm can then be integrated with the `kafka` charm to create a new user:
 
 ```shell
 juju integrate kafka rotated-user

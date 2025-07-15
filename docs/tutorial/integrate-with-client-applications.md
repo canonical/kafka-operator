@@ -26,7 +26,7 @@ Located charm "data-integrator" in charm-hub, revision 11
 Deploying "data-integrator" from charm-hub charm "data-integrator", revision 11 in channel stable on jammy
 ```
 
-### Integrate to Charmed Apache Kafka
+### Integrate with Charmed Apache Kafka
 
 Now that the Database Integrator charm has been set up, we can integrate it to Charmed Apache Kafka. This will automatically create a username, password, and database for the Database Integrator charm. Integrate the two applications with:
 

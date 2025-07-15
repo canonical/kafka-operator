@@ -20,7 +20,7 @@ We will be deploying different charmed data solutions including PostgreSQL and O
 
 ### Check current deployment
 
-Up to this point, we should have a 3-unit Apache Kafka application, integrated to a 5-unit ZooKeeper application. That means the `juju status` command should show an output similar to the following:
+Up to this point, we should have a 3-unit Apache Kafka application, integrated with a 5-unit ZooKeeper application. That means the `juju status` command should show an output similar to the following:
 
 ```bash
 Model     Controller  Cloud/Region         Version  SLA          Timestamp

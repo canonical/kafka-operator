@@ -80,7 +80,7 @@ BOOTSTRAP_SERVERS=$(juju run-action kafka/leader get-admin-credentials --wait | 
 juju ssh kafka/leader 'charmed-kafka.topics --bootstrap-server $BOOTSTRAP_SERVERS --list --command-config /var/snap/charmed-kafka/common/client.properties'
 ```
 
-Note that Charmed Apache Kafka cluster is secure-by-default: when no other application is integrated to Charmed Apache Kafka, listeners are disabled, thus preventing any incoming connection. However, even for running the commands above, listeners must be enabled. If there are no other applications, you can deploy a `data-integrator` charm and integrate it to Charmed Apache Kafka to enable listeners.
+Note that Charmed Apache Kafka cluster is secure-by-default: when no other application is integrated with Charmed Apache Kafka, listeners are disabled, thus preventing any incoming connection. However, even for running the commands above, listeners must be enabled. If there are no other applications, you can deploy a `data-integrator` charm and integrate it to Charmed Apache Kafka to enable listeners.
 
 Available Charmed Apache Kafka bin commands can be found with:
 

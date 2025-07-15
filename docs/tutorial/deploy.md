@@ -83,7 +83,7 @@ username: admin
 Providing you the `username` and `password` of the Apache Kafka cluster admin user. 
 
 ```{caution}
-When no other application is integrated to Apache Kafka, the cluster is secured-by-default and external listeners (bound to port `9092`) are disabled, thus preventing any external incoming connection. 
+When no other application is integrated with Apache Kafka, the cluster is secured-by-default and external listeners (bound to port `9092`) are disabled, thus preventing any external incoming connection. 
 ```
 
 Nevertheless, it is still possible to run a command from within the Apache Kafka cluster using the internal listeners in place of the external ones. 
