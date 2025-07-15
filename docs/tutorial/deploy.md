@@ -13,7 +13,7 @@ juju deploy kafka -n 3
 After this, it is necessary to connect them:
 
 ```shell
-juju relate kafka zookeeper
+juju integrate kafka zookeeper
 ```
 
 Juju will now fetch Charmed Apache Kafka and Charmed Apache Zookeeper and begin deploying them to the LXD cloud. This process can take several minutes depending on how provisioned (RAM, CPU, etc) your machine is. You can track the progress by running:
@@ -81,7 +81,7 @@ username: admin
 Providing you the `username` and `password` of the Apache Kafka cluster admin user. 
 
 ```{caution}
-When no other application is related to Apache Kafka, the cluster is secured-by-default and external listeners (bound to port `9092`) are disabled, thus preventing any external incoming connection. 
+When no other application is integrated with Apache Kafka, the cluster is secured-by-default and external listeners (bound to port `9092`) are disabled, thus preventing any external incoming connection. 
 ```
 
 Nevertheless, it is still possible to run a command from within the Apache Kafka cluster using the internal listeners in place of the external ones. 
@@ -142,5 +142,5 @@ snap info charmed-kafka
 ## What's next?
 
 However, although the commands above can run within the cluster, it is generally recommended during operations
-to enable external listeners and use these for running the admin commands from outside the cluster. 
-To do so, as we will see in the next section, we will deploy a [data-integrator](https://charmhub.io/data-integrator) charm and relate it to Charmed Apache Kafka.
+to enable external listeners and use these for running the admin commands from outside the cluster.
+To do so, as we will see in the next section, we will deploy a [data-integrator](https://charmhub.io/data-integrator) charm and integrate it to Charmed Apache Kafka.

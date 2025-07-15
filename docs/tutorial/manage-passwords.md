@@ -132,7 +132,8 @@ The easiest way to rotate user credentials using the `data-integrator` is by rem
 ```shell
 juju remove-relation kafka data-integrator
 # wait for the relation to be torn down 
-juju relate kafka data-integrator
+juju integrate kafka data-integrator
+juju integrate kafka data-integrator
 ```
 
 The successful credential rotation can be confirmed by retrieving the new password with the action `get-credentials`

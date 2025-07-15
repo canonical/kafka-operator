@@ -8,7 +8,7 @@ Relations to new applications are supported via the "[{spellexception}`kafka_cli
 If the charm supports the `kafka_client` interface, just create a relation between the two charms:
 
 ```shell
-juju relate kafka application
+juju integrate kafka application
 ```
 
 To remove a relation:
@@ -28,10 +28,10 @@ juju deploy data-integrator --channel edge
 juju config data-integrator topic-name=test-topic extra-user-roles=producer,consumer
 ```
 
-Relate the two applications with:
+integrate the two applications with:
 
 ```shell
-juju relate data-integrator kafka
+juju integrate data-integrator kafka
 ```
 
 To retrieve information, enter:
@@ -69,7 +69,7 @@ the application (either a charm supporting the `kafka-client` interface or a `da
 ```shell
 juju remove-relation kafka <charm-or-data-integrator>
 # wait for the relation to be torn down 
-juju relate kafka <charm-or-data-integrator>
+juju integrate kafka <charm-or-data-integrator>
 ```
 
 The successful credential rotation can be confirmed by retrieving the new password with the action `get-credentials`.
@@ -84,10 +84,10 @@ juju deploy data-integrator rotated-user --channel stable \
   --config topic-name=test-topic --config extra-user-roles=admin
 ```
 
-The `data-integrator` charm can then be related to the `kafka` charm to create a new user:
+The `data-integrator` charm can then be integrated with the `kafka` charm to create a new user:
 
 ```shell
-juju relate kafka rotated-user
+juju integrate kafka rotated-user
 ```
 
 At this point, we effectively have two overlapping users, so that applications can swap the password

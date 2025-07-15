@@ -20,17 +20,17 @@ juju config self-signed-certificates ca-common-name="Test CA"
 
 Please refer to [this post](https://charmhub.io/topics/security-with-x-509-certificates) for an overview of the TLS certificates Providers charms and some guidance on how to choose the right charm for your use case. 
 
-## Relate the charms
+## Integrate the charms
 
 ```
-juju relate <tls-certificates> zookeeper
-juju relate <tls-certificates> kafka:certificates
+juju integrate <tls-certificates> zookeeper
+juju integrate <tls-certificates> kafka:certificates
 ```
 
 where `<tls-certificates>` is the name of the TLS certificate provider charm deployed.
 
 ```{note}
-If Apache Kafka and Apache ZooKeeper are already related, they will start renegotiating the relation to provide each other certificates and enable/open the correct ports/connections. Otherwise, relate them after the both relations with the `<tls-certificates>`.
+If Apache Kafka and Apache ZooKeeper are already integrated, they will start renegotiating the relation to provide each other certificates and enable/open the correct ports/connections. Otherwise, integrate them after the both relations with the `<tls-certificates>`.
 ```
 
 ## Manage keys

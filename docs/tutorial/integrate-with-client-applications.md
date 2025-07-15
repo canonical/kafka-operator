@@ -24,12 +24,12 @@ Located charm "data-integrator" in charm-hub, revision 11
 Deploying "data-integrator" from charm-hub charm "data-integrator", revision 11 in channel stable on jammy
 ```
 
-## Relate to Charmed Apache Kafka
+### Integrate with Charmed Apache Kafka
 
-Now that the Database Integrator charm has been set up, we can relate it to Charmed Apache Kafka. This will automatically create a username, password, and database for the Database Integrator charm. Relate the two applications with:
+Now that the Database Integrator charm has been set up, we can integrate it to Charmed Apache Kafka. This will automatically create a username, password, and database for the Database Integrator charm. Integrate the two applications with:
 
 ```shell
-juju relate data-integrator kafka
+juju integrate data-integrator kafka
 ```
 
 Wait for `juju status --watch 1s` to show:
@@ -184,10 +184,10 @@ To produce messages to Apache Kafka, we need to configure the `kafka-test-app` t
 juju config kafka-test-app topic_name=test_kafka_app_topic role=producer num_messages=20
 ```
 
-To start producing messages to Apache Kafka, we **JUST** simply relate the Apache Kafka Test App with Apache Kafka
+To start producing messages to Apache Kafka, we **JUST** simply integrate the Apache Kafka Test App with Apache Kafka
 
 ```shell
-juju relate kafka-test-app kafka
+juju integrate kafka-test-app kafka
 ```
 
 ```{note}
@@ -231,7 +231,7 @@ Note that the `kafka-test-app` charm can also similarly be used to consume messa
 juju config kafka-test-app topic_name=test_kafka_app_topic role=consumer consumer_group_prefix=cg
 ```
 
-After configuring the Apache Kafka Test App, just relate it again with the Charmed Apache Kafka. This will again create a new user and start the consumer process. 
+After configuring the Apache Kafka Test App, just integrate it again with the Charmed Apache Kafka. This will again create a new user and start the consumer process. 
 
 ## What's next?
 
