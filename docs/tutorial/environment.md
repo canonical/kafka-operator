@@ -1,16 +1,14 @@
 (tutorial-environment)=
-# 2. Set up the environment
+# 1. Set up the environment
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
-
-## Setup the environment
 
 For this tutorial, we will need to set up the environment with two main components:
 
 * LXD that is a simple and lightweight virtual machine provisioner
 * Juju that will help us to deploy and manage Apache Kafka and related applications
 
-### Prepare LXD
+## Prepare LXD
 
 The fastest, simplest way to get started with Charmed Apache Kafka is to set up a local LXD cloud. LXD is a system container and virtual machine manager; Apache Kafka will be run in one of these containers and managed by Juju. While this tutorial covers the basics of LXD, you can [explore more LXD here](https://linuxcontainers.org/lxd/getting-started-cli/). LXD comes pre-installed on Ubuntu 20.04 LTS. Verify that LXD is installed by entering the command `which lxd` into the command line, this will output:
 
@@ -33,7 +31,7 @@ You can list all LXD containers by entering the command `lxc list` into the comm
 +------+-------+------+------+------+-----------+
 ```
 
-### Install and prepare Juju
+## Install and prepare Juju
 
 [Juju](https://juju.is/) is an Operator Lifecycle Manager (OLM) for clouds, bare metal, LXD or Kubernetes. We will be using it to deploy and manage Apache Kafka. As with LXD, Juju is installed from a snap package:
 

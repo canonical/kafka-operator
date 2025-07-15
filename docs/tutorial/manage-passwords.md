@@ -1,16 +1,15 @@
 (tutorial-manage-passwords)=
-# 5. Manage passwords
+# 4. Manage passwords
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
-## Manage passwords
 
 Passwords help to secure our cluster and are essential for security. Over time it is a good practice to change the password frequently. Here we will go through setting and changing the password both for the admin user and external Apache Kafka users managed by the data-integrator.
 
-### Admin user
+## Admin user
 
 The admin user password management is handled directly by the charm, by using Juju actions. 
 
-#### Retrieve the admin password
+### Retrieve the admin password
 
 As previously mentioned, the admin password can be retrieved by running the `get-admin-credentials` action on the Charmed Apache Kafka application:
 
@@ -41,7 +40,7 @@ unit-kafka-1:
 
 The admin password is under the result: `password`.
 
-#### Rotate the admin password
+### Rotate the admin password
 
 You can change the admin password to a new random password by entering:
 
@@ -70,7 +69,7 @@ The admin password is under the result: `admin-password`. It should be different
 When changing the admin password you will also need to update the admin password the in Kafka connection parameters; as the old password will no longer be valid.
 ```
 
-#### Set the admin password
+### Set the admin password
 
 You can change the admin password to a specific password by entering:
 
@@ -99,11 +98,11 @@ The admin password under the result: `admin-password` should match whatever you 
 When changing the admin password you will also need to update the admin password in the Kafka connection parameters, as the old password will no longer be valid.
 ```
 
-### External Apache Kafka users
+## External Apache Kafka users
 
 Unlike Admin management, the password management for external Apache Kafka users is instead managed using relations. Let's see this into play with the Data Integrator charm, that we have deployed in the previous part of the tutorial.
 
-#### Retrieve the password
+### Retrieve the password
 
 Similarly to the Charmed Apache Kafka, the `data-integrator` also exposes an action to retrieve the credentials, e.g. 
 
@@ -126,7 +125,7 @@ ok: "True"
 
 As before, the admin password is under the result: `password`.
 
-#### Rotate the password
+### Rotate the password
 
 The easiest way to rotate user credentials using the `data-integrator` is by removing and then re-relating the `data-integrator` with the `kafka` charm
 
@@ -158,7 +157,7 @@ ok: "True"
 
 To rotate external passwords with no or limited downtime, please refer to the how-to guide on [app management](how-to-manage-applications).
 
-#### Remove the user
+### Remove the user
 
 To remove the user, remove the relation. Removing the relation automatically removes the user that was created when the relation was created. Enter the following to remove the relation:
 
