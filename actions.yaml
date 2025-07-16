@@ -16,9 +16,6 @@ set-tls-private-key:
 get-listeners:
   description: Get all active listeners and their port allocations
 
-pre-upgrade-check:
-  description: Run necessary pre-upgrade checks before executing a charm upgrade.
-
 rebalance:
   description: Trigger a rebalance of cluster partitions based on configured goals
   params:
