@@ -105,7 +105,7 @@ class ControllerManager:
                     "--bootstrap-controller",
                     bootstrap_node,
                     "--command-config",
-                    self.workload.paths.server_properties,
+                    self.workload.paths.kraft_client_properties,
                     "add-controller",
                 ],
             )
@@ -140,7 +140,7 @@ class ControllerManager:
                     "--bootstrap-controller",
                     bootstrap_node,
                     "--command-config",
-                    self.workload.paths.server_properties,
+                    self.workload.paths.kraft_client_properties,
                     "remove-controller",
                     "--controller-id",
                     str(controller_id),

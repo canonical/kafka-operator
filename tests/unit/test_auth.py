@@ -70,3 +70,11 @@ def test_generate_consumer_acls():
 
     assert sorted(operations) == sorted({"READ", "DESCRIBE"})
     assert sorted(resource_types) == sorted({"TOPIC", "GROUP"})
+
+
+def test_get_users():
+    stub = """
+        SCRAM credential configs for user-principal 'admin' are SCRAM-SHA-512=iterations=4096
+        SCRAM credential configs for user-principal 'relation-8' are SCRAM-SHA-512=iterations=4096
+    """
+    assert AuthManager._parse_describe_users(stub) == ["admin", "relation-8"]
