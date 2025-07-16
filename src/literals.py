@@ -3,16 +3,20 @@
 # See LICENSE file for licensing details.
 
 """Collection of globals common to the KafkaCharm."""
-
 from dataclasses import dataclass
 from enum import Enum
 from typing import Literal, NamedTuple
 
+import toml
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, StatusBase, WaitingStatus
 
 CHARM_KEY = "kafka"
-SNAP_NAME = "charmed-kafka"
-CHARMED_KAFKA_SNAP_REVISION = "61"
+# TODO: check if using `charm_refresh` internals is feasible for workload instead of these literals
+with open("refresh_versions.toml", "r") as f:
+    data = toml.load(f)
+
+SNAP_NAME = data["snap"]["name"]
+CHARMED_KAFKA_SNAP_REVISION = data["snap"]["revisions"]["x86_64"]
 CONTAINER = "kafka"
 SUBSTRATE = "vm"
 STORAGE = "data"
@@ -323,11 +327,12 @@ class Status(Enum):
     )
 
 
-DEPENDENCIES = {
-    "kafka_service": {
-        "dependencies": {},
-        "name": "kafka",
-        "upgrade_supported": "^4",
-        "version": "4.0.0",
-    },
-}
+# v3 removed
+# DEPENDENCIES = {
+#     "kafka_service": {
+#         "dependencies": {},
+#         "name": "kafka",
+#         "upgrade_supported": "^4",
+#         "version": "4.0.0",
+#     },
+# }

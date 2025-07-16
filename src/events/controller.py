@@ -54,7 +54,6 @@ class KRaftHandler(Object):
             state=self.charm.state,
             workload=self.workload,
             config=self.charm.config,
-            current_version=self.upgrade.current_version,
         )
 
         self.framework.observe(getattr(self.charm.on, "start"), self._on_start)
@@ -76,7 +75,7 @@ class KRaftHandler(Object):
             return
 
         # don't want to run default start/pebble-ready events during upgrades
-        if not self.upgrade.idle:
+        if self.charm.refresh.in_progress:
             return
 
         self._init_kraft_mode()
@@ -93,7 +92,7 @@ class KRaftHandler(Object):
 
     def _on_update_status(self, event: UpdateStatusEvent) -> None:
         """Handler for `update-status` events."""
-        if not self.upgrade.idle or not self.healthy:
+        if self.charm.refresh.in_progress or not self.healthy:
             return
 
         # Ensure KRaft client properties are set and up-to-date.
