@@ -234,6 +234,7 @@ def test_tls_manager_truststore_functionality(
         sans_dns=[UNIT_NAME],
         with_intermediate=with_intermediate,
     )
+    caplog.set_level(logging.DEBUG)
     _set_manager_state(tls_manager, tls_artifacts=tls_artifacts)
     _tls_manager_set_everything(tls_manager)
 
@@ -373,7 +374,8 @@ def test_peer_cluster_trust(tls_manager: TLSManager):
 
     tls_manager.update_peer_cluster_trust()
     trusted_certs = tls_manager.peer_trusted_certificates
+    # we should have both certificates
     assert f"{tls_manager.PEER_CLUSTER_ALIAS}0" in trusted_certs
-    assert len(trusted_certs) == 1
-    new_fingerprint = next(iter(trusted_certs.values()))
-    assert new_fingerprint != fingerprint
+    assert f"{tls_manager.NEW_PREFIX}{tls_manager.PEER_CLUSTER_ALIAS}0" in trusted_certs
+    assert len(trusted_certs) == 2
+    assert fingerprint in tls_manager.peer_trusted_certificates.values()

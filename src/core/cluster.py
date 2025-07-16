@@ -679,6 +679,30 @@ class ClusterState(Object):
             self.kraft_cluster.update({"controller-ca": _value})
 
     @property
+    def trusted_by_our_app(self) -> set[str]:
+        """Returns a set of certificate fingeprints loaded into all units truststores of THIS (LOCAL) app."""
+        trusted_set = self.unit_broker.peer_certs.trusted_certificates
+        for unit in self.brokers:
+            trusted_set &= unit.peer_certs.trusted_certificates
+
+        return trusted_set
+
+    @property
+    def trusted_by_peer_cluster_app(self) -> set[str]:
+        """Returns a set of certificate fingeprints loaded into all units truststores of the REMOTE app."""
+        relation = self.kraft_cluster.relation
+
+        if not relation:
+            return set()
+
+        trust_list = json.loads(relation.data[relation.app].get("trust", "null")) or []
+        return set(trust_list)
+
+    def refresh_peer_cluster_trust_state(self) -> None:
+        """Updates `trusted_by_peer_cluster_app` state variable based on the intersection of certificates trusted by all units."""
+        self.kraft_cluster.update({"trust": json.dumps(sorted(self.trusted_by_our_app))})
+
+    @property
     def tls_rotate(self) -> bool:
         """Returns True if TLS rotation is in progress, False otherwise."""
         return any(
