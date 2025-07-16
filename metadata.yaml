@@ -30,6 +30,8 @@ peers:
     interface: rolling_op
   upgrade:
     interface: upgrade
+  refresh-v-three:
+    interface: refresh-v-three
 
 provides:
   kafka-client:
