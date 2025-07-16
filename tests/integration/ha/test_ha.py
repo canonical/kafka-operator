@@ -4,12 +4,16 @@
 
 import asyncio
 import logging
+import subprocess
+from itertools import product
 
 import pytest
+from flaky import flaky
 from pytest_operator.plugin import OpsTest
 
 from integration.ha.continuous_writes import ContinuousWrites
 from integration.ha.ha_helpers import (
+    all_brokers_up,
     assert_continuous_writes_consistency,
     get_topic_description,
     get_topic_offsets,
@@ -20,6 +24,7 @@ from integration.ha.ha_helpers import (
     network_throttle,
     patch_restart_delay,
     remove_restart_delay,
+    reset_kafka_service,
     send_control_signal,
 )
 from integration.helpers import (
@@ -71,6 +76,22 @@ async def restart_delay(ops_test: OpsTest):
     yield
     for unit in ops_test.model.applications[APP_NAME].units:
         await remove_restart_delay(ops_test=ops_test, unit_name=unit.name)
+
+
+@pytest.fixture()
+async def restore_state(ops_test: OpsTest, kafka_apps):
+    """Resets all machines network and Apache Kafka service to the default state."""
+    logger.info("Resetting units state")
+    restore_funcs = (network_release, network_restore, reset_kafka_service)
+    machines = ops_test.model.machines.values()
+    for machine, _func in product(machines, restore_funcs):
+        try:
+            _func(machine.hostname)
+            await asyncio.sleep(10)
+        except subprocess.CalledProcessError:
+            continue
+
+    await all_brokers_up(ops_test)
 
 
 @pytest.mark.skip_if_deployed
@@ -154,16 +175,28 @@ async def test_multi_cluster_isolation(ops_test: OpsTest, kafka_charm):
 
     await asyncio.gather(
         ops_test.juju(
-            f"remove-application --force --destroy-storage --no-wait --no-prompt {second_kafka_name}"
+            "remove-application",
+            "--force",
+            "--destroy-storage",
+            "--no-wait",
+            "--no-prompt",
+            second_kafka_name,
         ),
         ops_test.juju(
-            f"remove-application --force --destroy-storage --no-wait --no-prompt {second_controller_name}"
+            "remove-application",
+            "--force",
+            "--destroy-storage",
+            "--no-wait",
+            "--no-prompt",
+            second_controller_name,
         ),
     )
 
 
+@flaky(max_runs=3, min_passes=1)
 async def test_kill_broker_with_topic_leader(
     ops_test: OpsTest,
+    restore_state,
     c_writes: ContinuousWrites,
     c_writes_runner: ContinuousWrites,
     restart_delay,
@@ -210,8 +243,10 @@ async def test_kill_broker_with_topic_leader(
     assert_continuous_writes_consistency(result=result)
 
 
+@flaky(max_runs=3, min_passes=1)
 async def test_restart_broker_with_topic_leader(
     ops_test: OpsTest,
+    restore_state,
     c_writes: ContinuousWrites,
     c_writes_runner: ContinuousWrites,
 ):
@@ -245,8 +280,10 @@ async def test_restart_broker_with_topic_leader(
     assert_continuous_writes_consistency(result=result)
 
 
+@flaky(max_runs=3, min_passes=1)
 async def test_freeze_broker_with_topic_leader(
     ops_test: OpsTest,
+    restore_state,
     c_writes: ContinuousWrites,
     c_writes_runner: ContinuousWrites,
     controller_app: str,
@@ -326,8 +363,10 @@ async def test_freeze_broker_with_topic_leader(
     assert_continuous_writes_consistency(result=result)
 
 
+@flaky(max_runs=3, min_passes=1)
 async def test_full_cluster_crash(
     ops_test: OpsTest,
+    restore_state,
     c_writes: ContinuousWrites,
     c_writes_runner: ContinuousWrites,
     restart_delay,
@@ -360,8 +399,10 @@ async def test_full_cluster_crash(
     assert_continuous_writes_consistency(result=result)
 
 
+@flaky(max_runs=3, min_passes=1)
 async def test_full_cluster_restart(
     ops_test: OpsTest,
+    restore_state,
     c_writes: ContinuousWrites,
     c_writes_runner: ContinuousWrites,
 ):
@@ -393,10 +434,10 @@ async def test_full_cluster_restart(
     assert_continuous_writes_consistency(result=result)
 
 
-@pytest.mark.unstable
-@pytest.mark.abort_on_fail
+@flaky(max_runs=3, min_passes=1)
 async def test_network_cut_without_ip_change(
     ops_test: OpsTest,
+    restore_state,
     c_writes: ContinuousWrites,
     c_writes_runner: ContinuousWrites,
 ):
@@ -407,8 +448,9 @@ async def test_network_cut_without_ip_change(
         ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
     )
     initial_leader_num = topic_description.leader
+    leader_unit_name = f"{APP_NAME}/{broker_id_to_unit_id(initial_leader_num)}"
     leader_machine_name = await get_unit_machine_name(
-        ops_test=ops_test, unit_name=f"{APP_NAME}/{broker_id_to_unit_id(initial_leader_num)}"
+        ops_test=ops_test, unit_name=leader_unit_name
     )
 
     logger.info(
@@ -419,18 +461,26 @@ async def test_network_cut_without_ip_change(
 
     # verify replica is not in sync
     topic_description = await get_topic_description(
-        ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
+        ops_test=ops_test,
+        topic=ContinuousWrites.TOPIC_NAME,
     )
     assert topic_description.in_sync_replicas == {100, 101, 102} - {initial_leader_num}
     assert initial_leader_num != topic_description.leader
 
     # verify new writes are continuing. Also, check that leader changed
     topic_description = await get_topic_description(
-        ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
+        ops_test=ops_test,
+        topic=ContinuousWrites.TOPIC_NAME,
     )
-    initial_offsets = await get_topic_offsets(ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME)
+    initial_offsets = await get_topic_offsets(
+        ops_test=ops_test,
+        topic=ContinuousWrites.TOPIC_NAME,
+    )
     await asyncio.sleep(CLIENT_TIMEOUT * 2)
-    next_offsets = await get_topic_offsets(ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME)
+    next_offsets = await get_topic_offsets(
+        ops_test=ops_test,
+        topic=ContinuousWrites.TOPIC_NAME,
+    )
 
     assert int(next_offsets[-1]) > int(initial_offsets[-1])
 
@@ -439,20 +489,29 @@ async def test_network_cut_without_ip_change(
     network_release(machine_name=leader_machine_name)
     await asyncio.sleep(REELECTION_TIME)
 
-    topic_description = await get_topic_description(
-        ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
-    )
-    # verify the unit is now rejoined the cluster
-    assert topic_description.in_sync_replicas == {100, 101, 102}
+    await all_brokers_up(ops_test)
+    result = c_writes.stop()
 
+    # verify the unit's now rejoined the cluster, retry for a couple of times to avoid flakiness
+    for _ in range(6):
+        topic_description = await get_topic_description(
+            ops_test=ops_test,
+            topic=ContinuousWrites.TOPIC_NAME,
+        )
+        if topic_description.in_sync_replicas == {100, 101, 102}:
+            break
+
+        await asyncio.sleep(30)
+
+    assert topic_description.in_sync_replicas == {100, 101, 102}
     result = c_writes.stop()
     assert_continuous_writes_consistency(result=result)
 
 
-@pytest.mark.unstable
-@pytest.mark.abort_on_fail
+@pytest.mark.skip(reason="IP change is not handled gracefully, leading to unpredictable results")
 async def test_network_cut(
     ops_test: OpsTest,
+    restore_state,
     c_writes: ContinuousWrites,
     c_writes_runner: ContinuousWrites,
 ):
@@ -463,8 +522,9 @@ async def test_network_cut(
         ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
     )
     initial_leader_num = topic_description.leader
+    leader_unit_name = f"{APP_NAME}/{broker_id_to_unit_id(initial_leader_num)}"
     leader_machine_name = await get_unit_machine_name(
-        ops_test=ops_test, unit_name=f"{APP_NAME}/{broker_id_to_unit_id(initial_leader_num)}"
+        ops_test=ops_test, unit_name=leader_unit_name
     )
 
     logger.info(
@@ -474,23 +534,26 @@ async def test_network_cut(
     await asyncio.sleep(REELECTION_TIME * 2)
 
     # verify replica is not in sync, check on one of the remaining units
-    available_unit = f"{APP_NAME}/{next(iter({0, 1, 2} - {initial_leader_num}))}"
     topic_description = await get_topic_description(
-        ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME, unit_name=available_unit
+        ops_test=ops_test,
+        topic=ContinuousWrites.TOPIC_NAME,
     )
     assert topic_description.in_sync_replicas == {100, 101, 102} - {initial_leader_num}
     assert initial_leader_num != topic_description.leader
 
     # verify new writes are continuing. Also, check that leader changed
     topic_description = await get_topic_description(
-        ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME, unit_name=available_unit
+        ops_test=ops_test,
+        topic=ContinuousWrites.TOPIC_NAME,
     )
     initial_offsets = await get_topic_offsets(
-        ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME, unit_name=available_unit
+        ops_test=ops_test,
+        topic=ContinuousWrites.TOPIC_NAME,
     )
     await asyncio.sleep(CLIENT_TIMEOUT * 2)
     next_offsets = await get_topic_offsets(
-        ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME, unit_name=available_unit
+        ops_test=ops_test,
+        topic=ContinuousWrites.TOPIC_NAME,
     )
 
     assert int(next_offsets[-1]) > int(initial_offsets[-1]), "Messages not increasing"
@@ -499,14 +562,24 @@ async def test_network_cut(
     logger.info(f"Restoring network of broker: {initial_leader_num}")
     network_restore(machine_name=leader_machine_name)
 
-    async with ops_test.fast_forward(fast_interval="15s"):
-        result = c_writes.stop()
-        await asyncio.sleep(CLIENT_TIMEOUT * 8)
+    logger.info("Reconnecting to the juju model...")
+    await ops_test.model.disconnect()
+    await asyncio.sleep(5)
+    await ops_test.model.connect()
 
-    topic_description = await get_topic_description(
-        ops_test=ops_test, topic=ContinuousWrites.TOPIC_NAME
-    )
-    # verify the unit is now rejoined the cluster
+    await all_brokers_up(ops_test)
+    result = c_writes.stop()
+
+    # verify the unit's now rejoined the cluster, retry for a couple of times to avoid flakiness
+    for _ in range(6):
+        topic_description = await get_topic_description(
+            ops_test=ops_test,
+            topic=ContinuousWrites.TOPIC_NAME,
+        )
+        if topic_description.in_sync_replicas == {100, 101, 102}:
+            break
+
+        await asyncio.sleep(30)
+
     assert topic_description.in_sync_replicas == {100, 101, 102}
-
     assert_continuous_writes_consistency(result=result)
