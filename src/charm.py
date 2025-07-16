@@ -175,6 +175,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         time.sleep(10.0)
         self.broker.update_credentials_cache()
 
+        # Force update our trusted certs relation data.
+        self.broker.update_peer_truststore_state(force=True)
+
     def _disable_enable_restart_broker(self, event: RunWithLock) -> None:
         """Handler for `rolling_ops` disable_enable restart events.
 

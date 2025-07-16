@@ -731,12 +731,14 @@ def sign_manual_certs(ops_test: OpsTest, manual_app: str = "manual-tls-certifica
                 raise e
 
 
-async def list_truststore_aliases(ops_test: OpsTest, unit: str = f"{APP_NAME}/0") -> list[str]:
+async def list_truststore_aliases(
+    ops_test: OpsTest, unit: str = f"{APP_NAME}/0", scope: Literal["client", "peer"] = "client"
+) -> list[str]:
     truststore_password = extract_truststore_password(ops_test=ops_test, unit_name=unit)
 
     try:
         result = check_output(
-            f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit} sudo -i 'charmed-kafka.keytool -list -keystore /var/snap/charmed-kafka/current/etc/kafka/client-truststore.jks -storepass {truststore_password}'",
+            f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit} sudo -i 'charmed-kafka.keytool -list -keystore /var/snap/charmed-kafka/current/etc/kafka/{scope}-truststore.jks -storepass {truststore_password}'",
             stderr=PIPE,
             shell=True,
             universal_newlines=True,

@@ -76,7 +76,11 @@ class PeerClusterEventsHandler(Object):
 
     def _on_peer_cluster_created(self, event: RelationCreatedEvent) -> None:
         """Generic handler for peer-cluster `relation-created` events."""
-        if not self.charm.unit.is_leader() or not event.relation.app:
+        if not self.charm.unit.is_leader():
+            return
+
+        if not (relation := self.charm.state.peer_cluster.relation):
+            event.defer()
             return
 
         requested_secrets = set()
@@ -89,7 +93,7 @@ class PeerClusterEventsHandler(Object):
 
         # request secrets for the relation
         set_encoded_field(
-            event.relation,
+            relation,
             self.charm.state.cluster.app,
             REQ_SECRET_FIELDS,
             list(requested_secrets),
@@ -97,7 +101,7 @@ class PeerClusterEventsHandler(Object):
 
         # explicitly update the roles early, as we can't determine which model to instantiate
         # until both applications have roles set
-        event.relation.data[self.charm.state.cluster.app].update({"roles": self.charm.state.roles})
+        relation.data[self.charm.state.cluster.app].update({"roles": self.charm.state.roles})
 
     def _on_peer_cluster_changed(self, event: RelationChangedEvent) -> None:
         """Generic handler for peer-cluster `relation-changed` events."""

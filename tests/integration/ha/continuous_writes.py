@@ -113,7 +113,11 @@ class ContinuousWrites:
             num_partitions=1,
             replication_factor=3,
         )
-        client.create_topic(topic=topic_config)
+        try:
+            client.create_topic(topic=topic_config)
+        except TopicAlreadyExistsError:
+            self.clear()
+            client.create_topic(topic=topic_config)
 
     @retry(
         wait=wait_fixed(wait=5) + wait_random(0, 5),
