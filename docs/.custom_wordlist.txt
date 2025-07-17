@@ -84,6 +84,7 @@ Karapace
 Lifecycle
 lifecycle
 LinkedIn's
+LogQL
 MirrorMaker
 MirrorCheckpointConnector
 MirrorHeartbeatConnector
