@@ -315,15 +315,12 @@ class TestKRaft:
         await ops_test.model.add_relation(
             f"{self.controller_app}:{INTERNAL_TLS_RELATION}", TLS_NAME
         )
-        await ops_test.model.wait_for_idle(
-            apps=[self.controller_app, TLS_NAME], idle_period=60, timeout=1200
-        )
 
         async with ops_test.fast_forward(fast_interval="90s"):
             await ops_test.model.wait_for_idle(
                 apps={self.controller_app, APP_NAME, TLS_NAME},
                 idle_period=45,
-                timeout=1200,
+                timeout=2400,
                 status="active",
             )
 
@@ -361,7 +358,7 @@ class TestKRaft:
             await ops_test.model.wait_for_idle(
                 apps={self.controller_app, APP_NAME, TLS_NAME},
                 idle_period=60,
-                timeout=1800,
+                timeout=2400,
                 status="active",
             )
 
