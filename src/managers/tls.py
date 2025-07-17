@@ -309,7 +309,9 @@ class TLSManager:
             "-noprompt",
         ]
         try:
-            self.workload.exec(command=command, working_dir=self.workload.paths.conf_path)
+            self.workload.exec(
+                command=command, working_dir=self.workload.paths.conf_path, log_on_error=False
+            )
         except (subprocess.CalledProcessError, ExecError) as e:
             # in case this reruns and fails
             if e.stdout and "already exists" in e.stdout:
@@ -355,7 +357,9 @@ class TLSManager:
                 f"{self.state.unit_broker.truststore_password}",
                 "-noprompt",
             ]
-            self.workload.exec(command=command, working_dir=self.workload.paths.conf_path)
+            self.workload.exec(
+                command=command, working_dir=self.workload.paths.conf_path, log_on_error=False
+            )
             self.workload.exec(
                 f"rm -f {scope.value}-{alias}.pem".split(),
                 working_dir=self.workload.paths.conf_path,
