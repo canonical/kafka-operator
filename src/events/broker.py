@@ -155,7 +155,7 @@ class BrokerOperator(Object):
             )
 
         # don't want to run default start/pebble-ready events during upgrades
-        if self.charm.refresh.in_progress:
+        if not self.charm.refresh or self.charm.refresh.in_progress:
             return
 
         # Internal TLS setup required?
@@ -209,7 +209,7 @@ class BrokerOperator(Object):
     def _on_config_changed(self, event: EventBase) -> None:  # noqa: C901
         """Generic handler for most `config_changed` events across relations."""
         # only overwrite properties if service is already active
-        if self.charm.refresh.in_progress or not self.healthy:
+        if not self.charm.refresh or self.charm.refresh.in_progress or not self.healthy:
             event.defer()
             return
 
@@ -321,7 +321,7 @@ class BrokerOperator(Object):
 
     def _on_update_status(self, _: UpdateStatusEvent) -> None:
         """Handler for `update-status` events."""
-        if self.charm.refresh.in_progress or not self.healthy:
+        if not self.charm.refresh or self.charm.refresh.in_progress or not self.healthy:
             return
 
         # NOTE for situations like IP change and late integration with rack-awareness charm.
