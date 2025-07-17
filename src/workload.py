@@ -90,6 +90,7 @@ class Workload(WorkloadBase):
         command: list[str] | str,
         env: Mapping[str, str] | None = None,
         working_dir: str | None = None,
+        log_on_error: bool = True,
     ) -> str:
         try:
             output = subprocess.check_output(
@@ -103,7 +104,8 @@ class Workload(WorkloadBase):
             logger.debug(f"{output=}")
             return output
         except subprocess.CalledProcessError as e:
-            logger.error(f"cmd failed - cmd={e.cmd}, stdout={e.stdout}, stderr={e.stderr}")
+            if log_on_error:
+                logger.error(f"cmd failed - cmd={e.cmd}, stdout={e.stdout}, stderr={e.stderr}")
             raise e
 
     @override

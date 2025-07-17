@@ -535,7 +535,7 @@ class BrokerOperator(Object):
             self.auth_manager.add_user(client.username, client.password)
 
     def update_peer_truststore_state(self, force: bool = False) -> None:
-        """Updates the relation data pertinent to the unit/app truststore state on respective data bags.
+        """Updates the relation data reflecting the unit/app truststore state on respective data bags.
 
         Args:
             force (bool, optional): Bypass the check of whether a restart is performed after truststore modification time. Defaults to False.
