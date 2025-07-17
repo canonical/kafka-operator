@@ -68,7 +68,7 @@ class KRaftHandler(Object):
             return
 
         # don't want to run default start/pebble-ready events during upgrades
-        if self.charm.refresh.in_progress:
+        if not self.charm.refresh or self.charm.refresh.in_progress:
             return
 
         self._init_kraft_mode()
@@ -85,7 +85,7 @@ class KRaftHandler(Object):
 
     def _on_update_status(self, _: UpdateStatusEvent) -> None:
         """Handler for `update-status` events."""
-        if self.charm.refresh.in_progress or not self.broker.healthy:
+        if not self.charm.refresh or self.charm.refresh.in_progress or not self.broker.healthy:
             return
 
         self.add_to_quorum()

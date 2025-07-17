@@ -5,7 +5,6 @@
 """Charmed Machine Operator for Apache Kafka."""
 
 import logging
-import sys
 import time
 
 import charm_refresh
@@ -76,11 +75,17 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             self.refresh = charm_refresh.Machines(
                 MachinesKafkaRefresh(workload_name="Kafka", charm_name="kafka", _charm=self)
             )
-        except charm_refresh.PeerRelationNotReady:
-            self._set_status(Status.NO_PEER_RELATION)
-            sys.exit()
-        except charm_refresh.UnitTearingDown:
-            sys.exit()
+        except (charm_refresh.PeerRelationNotReady, charm_refresh.UnitTearingDown):
+            self.refresh = None
+
+        if (
+            self.refresh
+            and not self.refresh.next_unit_allowed_to_refresh
+            and self.refresh.workload_allowed_to_start
+        ):
+            # Only proceed if snap is installed (avoids KeyError during initial deployment)
+            if self.workload.installed and self.workload.active():
+                self.refresh.next_unit_allowed_to_refresh = True
 
         self._grafana_agent = COSAgentProvider(
             self,
@@ -109,12 +114,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.balancer = BalancerOperator(self)
 
         self.tls = TLSHandler(self)
-
-        if not self.refresh.next_unit_allowed_to_refresh:
-            if self.refresh.in_progress:
-                self._post_snap_refresh(self.refresh)
-            else:
-                self.refresh.next_unit_allowed_to_refresh = True
 
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
@@ -209,6 +208,39 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         all_healthy = all(dependent.healthy for dependent in dependents)
         if all_healthy:
             refresh.next_unit_allowed_to_refresh = True
+
+        # Handle post-refresh health checks if needed
+        self._handle_post_refresh_health_checks()
+
+    def _handle_post_refresh_health_checks(self) -> None:
+        """Handle post-refresh health checks that need to be retried in every Juju event."""
+        if not hasattr(self, "refresh"):
+            # Refresh not initialized yet (early startup or exception handling)
+            return
+
+        # Check if refresh is in progress and next_unit_allowed_to_refresh is not set
+        if (
+            self.refresh
+            and self.refresh.in_progress
+            and not self.refresh.next_unit_allowed_to_refresh
+        ):
+            try:
+                # Retry the health checks and set next_unit_allowed_to_refresh if healthy
+                logger.info("Retrying post-refresh health checks")
+                # Ensure workload is running
+                if not self.workload.active():
+                    self.workload.start()
+
+                # Check if application and unit are healthy
+                if self.broker.healthy and self.workload.active():
+                    self.refresh.next_unit_allowed_to_refresh = True
+                    logger.info("Post-refresh health checks passed, next unit allowed to refresh")
+                else:
+                    self.unit.status = ops.BlockedStatus("Post-refresh health check failed")
+
+            except Exception as e:
+                logger.warning(f"Post-refresh health check retry failed: {e}")
+                self.unit.status = ops.BlockedStatus(f"Post-refresh health check failed: {str(e)}")
 
 
 if __name__ == "__main__":
