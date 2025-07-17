@@ -84,7 +84,7 @@ Learn more:
 Scaling a Charmed Apache Kafka cluster does not automatically rebalance existing topics and partitions. Rebalancing must be performed manually—before scaling in or after scaling out.
 ```
 
-See the [Partition reassignment](how-to-partitions-reassignment) section of the How to manage units guide for details on how to rebalance Apache Kafka partitions between units.
+See the [Partition reassignment](how-to-partitions-reassignment) section of the How-to manage units guide for details on how to rebalance Apache Kafka partitions between units.
 
 ## Run out of disk space
 
