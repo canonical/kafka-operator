@@ -128,7 +128,7 @@ async def test_listeners(ops_test: OpsTest, app_charm, kafka_apps):
     await ops_test.model.applications[APP_NAME].remove_relation(
         f"{APP_NAME}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_ADMIN}"
     )
-    await ops_test.model.wait_for_idle(apps=[*kafka_apps])
+    await ops_test.model.wait_for_idle(apps=[*kafka_apps], idle_period=60)
 
     assert not check_socket(
         address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
