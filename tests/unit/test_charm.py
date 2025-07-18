@@ -336,6 +336,28 @@ def test_start_does_not_start_if_leader_has_not_set_creds(ctx: Context, base_sta
     assert state_out.unit_status == Status.NO_BOOTSTRAP_CONTROLLER.value.status
 
 
+def test_update_status_blocks_if_broker_not_active(
+    ctx: Context, base_state: State, kraft_data: dict[str, str], passwords_data: dict[str, str]
+):
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER, local_app_data=kraft_data | passwords_data)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer])
+
+    # When
+    with (
+        patch("workload.KafkaWorkload.active", return_value=True),
+        patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
+        patch(
+            "managers.controller.ControllerManager.broker_active", return_value=False
+        ) as patched_broker_active,
+    ):
+        state_out = ctx.run(ctx.on.update_status(), state_in)
+
+    # Then
+    patched_broker_active.assert_called()
+    assert state_out.unit_status == Status.BROKER_NOT_CONNECTED.value.status
+
+
 @pytest.mark.skipif(SUBSTRATE == "k8s", reason="machine health checks not used on K8s")
 def test_update_status_blocks_if_machine_not_configured(
     ctx: Context, base_state: State, passwords_data: dict[str, str]

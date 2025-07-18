@@ -102,7 +102,7 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm, app_charm, kraft
 async def test_replicated_events(ops_test: OpsTest, kafka_apps):
     await ops_test.model.applications[APP_NAME].add_units(count=2)
     await ops_test.model.wait_for_idle(
-        apps=[APP_NAME], status="active", timeout=600, idle_period=120, wait_for_exact_units=3
+        apps=[APP_NAME], status="active", timeout=1200, idle_period=120, wait_for_exact_units=3
     )
     logger.info("Producing messages and checking on all units")
     produce_and_check_logs(

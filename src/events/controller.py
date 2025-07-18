@@ -23,6 +23,7 @@ from literals import (
     PEER,
     Status,
 )
+from managers.config import ConfigManager
 from managers.controller import ControllerManager
 from workload import KafkaWorkload
 
@@ -40,6 +41,7 @@ class KRaftHandler(Object):
         super().__init__(broker, CONTROLLER.value)
         self.charm: "KafkaCharm" = broker.charm
         self.broker: "BrokerOperator" = broker
+        self.upgrade = self.broker.upgrade
 
         self.workload = KafkaWorkload(
             container=(
@@ -48,8 +50,12 @@ class KRaftHandler(Object):
         )
 
         self.controller_manager = ControllerManager(self.charm.state, self.workload)
-
-        self.upgrade = self.broker.upgrade
+        self.config_manager = ConfigManager(
+            state=self.charm.state,
+            workload=self.workload,
+            config=self.charm.config,
+            current_version=self.upgrade.current_version,
+        )
 
         self.framework.observe(getattr(self.charm.on, "start"), self._on_start)
         self.framework.observe(getattr(self.charm.on, "leader_elected"), self._leader_elected)
@@ -85,10 +91,13 @@ class KRaftHandler(Object):
         # update status to add controller
         self.charm.on.update_status.emit()
 
-    def _on_update_status(self, _: UpdateStatusEvent) -> None:
+    def _on_update_status(self, event: UpdateStatusEvent) -> None:
         """Handler for `update-status` events."""
-        if not self.upgrade.idle or not self.broker.healthy:
+        if not self.upgrade.idle or not self.healthy:
             return
+
+        # Ensure KRaft client properties are set and up-to-date.
+        self.config_manager.set_client_properties()
 
         self.add_to_quorum()
 
@@ -136,7 +145,7 @@ class KRaftHandler(Object):
 
     def _format_storages(self) -> None:
         """Format storages provided relevant keys exist."""
-        self.broker.config_manager.set_server_properties()
+        self.config_manager.set_server_properties()
         if self.charm.state.runs_broker:
             credentials = self.charm.state.cluster.internal_user_credentials
         elif self.charm.state.runs_controller:
@@ -208,3 +217,19 @@ class KRaftHandler(Object):
     def _on_peer_relation_departed(self, event: RelationDepartedEvent) -> None:
         if event.departing_unit == self.charm.unit:
             self.remove_from_quorum()
+
+    @property
+    def healthy(self) -> bool:
+        """Returns True if controller state is alive and workload is active. Otherwise False."""
+        # needed in case it's called by BrokerOperator in set_client_data
+        if not self.charm.state.runs_controller:
+            return True
+
+        current_status = self.charm.state.ready_to_start
+        if current_status is not Status.ACTIVE:
+            return False
+
+        if not self.workload.active():
+            return False
+
+        return True

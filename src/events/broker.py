@@ -389,6 +389,9 @@ class BrokerOperator(Object):
             self.charm._set_status(Status.SERVICE_NOT_RUNNING)
             return False
 
+        if self.charm.state.runs_broker and not self.kraft.controller_manager.broker_active():
+            self.charm._set_status(Status.BROKER_NOT_CONNECTED)
+
         return True
 
     def update_external_services(self) -> None:
