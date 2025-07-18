@@ -93,12 +93,7 @@ class KRaftHandler(Object):
 
     def _on_update_status(self, event: UpdateStatusEvent) -> None:
         """Handler for `update-status` events."""
-        if not self.upgrade.idle:
-            return
-
-        current_status = self.charm.state.ready_to_start
-        if current_status is not Status.ACTIVE or not self.workload.active():
-            event.defer()
+        if not self.upgrade.idle or not self.healthy:
             return
 
         # Ensure KRaft client properties are set and up-to-date.
@@ -222,3 +217,19 @@ class KRaftHandler(Object):
     def _on_peer_relation_departed(self, event: RelationDepartedEvent) -> None:
         if event.departing_unit == self.charm.unit:
             self.remove_from_quorum()
+
+    @property
+    def healthy(self) -> bool:
+        """Returns True if controller state is alive and workload is active. Otherwise False."""
+        # needed in case it's called by BrokerOperator in set_client_data
+        if not self.charm.state.runs_controller:
+            return True
+
+        current_status = self.charm.state.ready_to_start
+        if current_status is not Status.ACTIVE:
+            return False
+
+        if not self.workload.active():
+            return False
+
+        return True
