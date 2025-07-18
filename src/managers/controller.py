@@ -201,14 +201,6 @@ class ControllerManager:
         logger.debug(f"Latest quorum status: {status}")
         return status
 
-    def is_kraft_leader_or_follower(self) -> bool:
-        """Checks whether the unit is a KRaft leader or follower. This is a live check."""
-        quorum_status = self.quorum_status()
-        if self.state.kraft_unit_id not in quorum_status:
-            return False
-
-        return quorum_status[self.state.kraft_unit_id].is_leader_or_follower
-
     def broker_active(self) -> bool:
         """Checks if broker id is recognised as active by the controller. This is a live check."""
         quorum_status = self.quorum_status()
