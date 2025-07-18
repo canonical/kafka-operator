@@ -245,7 +245,7 @@ class TestKRaft:
             *(f"{self.controller_app}/{unit_id}" for unit_id in (1, 2))
         )
 
-        async with ops_test.fast_forward(fast_interval="60"):
+        async with ops_test.fast_forward(fast_interval="60s"):
             await ops_test.model.wait_for_idle(
                 apps=[self.controller_app],
                 status="active",
