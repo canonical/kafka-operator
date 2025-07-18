@@ -10,14 +10,19 @@ from itertools import product
 import pytest
 from pytest_operator.plugin import OpsTest
 
+from integration.ha.continuous_writes import ContinuousWrites
+from integration.helpers.ha import assert_continuous_writes_consistency
 from integration.helpers.pytest_operator import (
     APP_NAME,
+    DUMMY_NAME,
+    REL_NAME_ADMIN,
     SERIES,
     KRaftMode,
     check_socket,
     create_test_topic,
     get_address,
     kraft_quorum_status,
+    list_truststore_aliases,
     search_secrets,
 )
 from literals import (
@@ -300,7 +305,9 @@ class TestKRaft:
     @pytest.mark.skipif(not tls_enabled, reason="only required when TLS is on.")
     @pytest.mark.abort_on_fail
     async def test_relate_peer_tls(self, ops_test: OpsTest):
-        c_writes = ContinuousWrites(ops_test=ops_test, app=DUMMY_NAME)
+        # This test and the following one are inherently long due to double rolling restarts,
+        # In order not to break on constrained CI, we decrease the produce rate of CW to 2/s.
+        c_writes = ContinuousWrites(model=ops_test.model_full_name, app=DUMMY_NAME, produce_rate=2)
         c_writes.start()
 
         await ops_test.model.deploy(TLS_NAME, application_name=TLS_NAME, channel="1/stable")
@@ -344,7 +351,7 @@ class TestKRaft:
     @pytest.mark.skipif(not tls_enabled, reason="only required when TLS is on.")
     @pytest.mark.abort_on_fail
     async def test_remove_peer_tls_relation(self, ops_test: OpsTest):
-        c_writes = ContinuousWrites(ops_test=ops_test, app=DUMMY_NAME)
+        c_writes = ContinuousWrites(model=ops_test.model_full_name, app=DUMMY_NAME, produce_rate=2)
         c_writes.start()
         await asyncio.sleep(60)
 
