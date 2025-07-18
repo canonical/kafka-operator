@@ -166,6 +166,7 @@ class TestKRaft:
             status="active",
             timeout=1200,
             idle_period=20,
+            raise_on_error=False,
             wait_for_exact_units=3,
         )
 
