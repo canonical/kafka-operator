@@ -10,7 +10,7 @@ import os
 import ssl
 import subprocess
 from multiprocessing import Process
-from typing import Mapping
+from typing import Any, Mapping
 from unittest.mock import MagicMock
 
 import pytest
@@ -36,7 +36,7 @@ def _exec(
     command: list[str] | str,
     env: Mapping[str, str] | None = None,
     working_dir: str | None = None,
-    _: bool = False,
+    **kwargs: Any,
 ) -> str:
     _command = " ".join(command) if isinstance(command, list) else command
     print(_command)
