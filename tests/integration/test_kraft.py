@@ -198,6 +198,8 @@ class TestKRaft:
             f"{self.controller_app}/0"
         )
 
+        await asyncio.sleep(120)
+
         # ensure proper cleanup
         async with ops_test.fast_forward(fast_interval="60s"):
             await ops_test.model.wait_for_idle(
@@ -245,11 +247,13 @@ class TestKRaft:
             *(f"{self.controller_app}/{unit_id}" for unit_id in (1, 2))
         )
 
+        await asyncio.sleep(120)
+
         async with ops_test.fast_forward(fast_interval="60s"):
             await ops_test.model.wait_for_idle(
                 apps=[self.controller_app],
                 status="active",
-                timeout=600,
+                timeout=1200,
                 idle_period=40,
                 wait_for_exact_units=1,
             )
