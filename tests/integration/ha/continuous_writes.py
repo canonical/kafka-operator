@@ -42,13 +42,21 @@ class ContinuousWrites:
     TOPIC_NAME = "ha-test-topic"
     LAST_WRITTEN_VAL_PATH = "/tmp/last_written_value"
 
-    def __init__(self, ops_test: OpsTest, app: str):
+    def __init__(self, ops_test: OpsTest, app: str, *, produce_rate: float = 10.0):
+        """ContinuousWrites constructor.
+
+        Args:
+            ops_test (OpsTest): OpsTest fixture
+            app (str): app name
+            produce_rate (float, optional): Approx. message produce rate per second. Defaults to 10.0.
+        """
         self._ops_test = ops_test
         self._app = app
         self._is_stopped = True
         self._event = None
         self._queue = None
         self._process = None
+        self._rate = produce_rate
 
     @retry(
         wait=wait_fixed(wait=5) + wait_random(0, 5),
@@ -149,7 +157,7 @@ class ContinuousWrites:
         self._process = Process(
             target=ContinuousWrites._run_async,
             name="continuous_writes",
-            args=(self._event, self._queue, 0, self._ops_test),
+            args=(self._event, self._queue, 0, self._ops_test, self._rate),
         )
 
     def _stop_process(self):
@@ -174,7 +182,11 @@ class ContinuousWrites:
 
     @staticmethod
     async def _run(
-        event: Event, data_queue: Queue, starting_number: int, ops_test
+        event: Event,
+        data_queue: Queue,
+        starting_number: int,
+        ops_test: OpsTest,
+        produce_rate: float,
     ) -> None:  # noqa: C901
         """Continuous writing."""
 
@@ -194,6 +206,7 @@ class ContinuousWrites:
 
         write_value = starting_number
         client = _client()
+        _sleep_time = 10 / produce_rate
 
         while True:
             if not data_queue.empty():  # currently evaluates to false as we don't make updates
@@ -202,7 +215,7 @@ class ContinuousWrites:
                 client = _client()
 
             ContinuousWrites._produce_message(client=client, write_value=write_value)
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(_sleep_time)
 
             # process termination requested
             if event.is_set():
@@ -233,6 +246,14 @@ class ContinuousWrites:
                 time.sleep(0.1)
 
     @staticmethod
-    def _run_async(event: Event, data_queue: Queue, starting_number: int, ops_test: OpsTest):
+    def _run_async(
+        event: Event,
+        data_queue: Queue,
+        starting_number: int,
+        ops_test: OpsTest,
+        produce_rate: float,
+    ):
         """Run async code."""
-        asyncio.run(ContinuousWrites._run(event, data_queue, starting_number, ops_test))
+        asyncio.run(
+            ContinuousWrites._run(event, data_queue, starting_number, ops_test, produce_rate)
+        )

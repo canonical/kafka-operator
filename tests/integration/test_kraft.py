@@ -304,7 +304,9 @@ class TestKRaft:
     @pytest.mark.skipif(not tls_enabled, reason="only required when TLS is on.")
     @pytest.mark.abort_on_fail
     async def test_relate_peer_tls(self, ops_test: OpsTest):
-        c_writes = ContinuousWrites(ops_test=ops_test, app=DUMMY_NAME)
+        # This test and the following one are inherently long due to double rolling restarts,
+        # In order not to break on constrained CI, we decrease the produce rate of CW to 2/s.
+        c_writes = ContinuousWrites(ops_test=ops_test, app=DUMMY_NAME, produce_rate=2)
         c_writes.start()
 
         await ops_test.model.deploy(TLS_NAME, application_name=TLS_NAME, channel="1/stable")
@@ -348,7 +350,7 @@ class TestKRaft:
     @pytest.mark.skipif(not tls_enabled, reason="only required when TLS is on.")
     @pytest.mark.abort_on_fail
     async def test_remove_peer_tls_relation(self, ops_test: OpsTest):
-        c_writes = ContinuousWrites(ops_test=ops_test, app=DUMMY_NAME)
+        c_writes = ContinuousWrites(ops_test=ops_test, app=DUMMY_NAME, produce_rate=2)
         c_writes.start()
         await asyncio.sleep(60)
 
