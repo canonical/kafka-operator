@@ -391,7 +391,6 @@ class BrokerOperator(Object):
 
         if self.charm.state.runs_broker and not self.kraft.controller_manager.broker_active():
             self.charm._set_status(Status.BROKER_NOT_CONNECTED)
-            return False
 
         return True
 
