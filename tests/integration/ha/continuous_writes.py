@@ -206,7 +206,7 @@ class ContinuousWrites:
 
         write_value = starting_number
         client = _client()
-        _sleep_time = 10 / produce_rate
+        _sleep_time = 1 / produce_rate
 
         while True:
             if not data_queue.empty():  # currently evaluates to false as we don't make updates

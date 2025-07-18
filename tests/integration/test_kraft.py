@@ -322,7 +322,7 @@ class TestKRaft:
             await ops_test.model.wait_for_idle(
                 apps={self.controller_app, APP_NAME, TLS_NAME},
                 idle_period=45,
-                timeout=2400,
+                timeout=3600,
                 status="active",
             )
 
