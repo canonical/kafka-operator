@@ -61,6 +61,16 @@ Use `juju ssh` command to connect to a unit and access logs directly, for exampl
 juju ssh <unit-name> 'sudo tail -f /var/snap/charmed-kafka/common/var/log/kafka/server.log'
 ```
 
+Some of the most useful log files for Apache Kafka:
+
+* `server.log` -- The actual service logs.
+* `kafka-authorizer.log` -- Failed SASL authentications + denied ACL operations.
+* `controller.log` -- Logs from the {spellexception}`KafkaController`.
+* `kafkaServer-gc.log` -- Apache Kafka's Java garbage collector log.
+* `state-change.log` -- Tracks partition leader re-elections log.
+
+<!-- TODO: Consider moving the log files list to either the Reference or Explanation section -->
+
 ```{note}
 Learn more: 
 
