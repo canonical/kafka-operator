@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 import pytest
 from charmlibs import pathops
 from src.core.workload import CharmedKafkaPaths, WorkloadBase
-from src.literals import BROKER, KRaftUnitStatus
+from src.literals import BROKER, KRaftQuorumInfo, KRaftUnitStatus
 from src.managers.controller import ControllerManager
 from tests.unit.data.metadata_quorum_stub import METADATA_QUORUM_STUB
 
@@ -31,6 +31,13 @@ def _raises_process_error(stderr: str) -> Callable:
     return _exec
 
 
+def _is_leader_or_follower(unit_info: KRaftQuorumInfo | None):
+    if not unit_info:
+        return False
+
+    return unit_info.status in (KRaftUnitStatus.LEADER, KRaftUnitStatus.FOLLOWER)
+
+
 def test_quorum_status(fake_workload) -> None:
     state = MagicMock()
     state.peer_cluster.bootstrap_controller = "10.10.10.10:9097"
@@ -42,12 +49,10 @@ def test_quorum_status(fake_workload) -> None:
     assert quorum_status[0].status == KRaftUnitStatus.LEADER
     assert all(unit.directory_id for unit in quorum_status.values())
 
-    state.kraft_unit_id = 0
-    assert manager.is_kraft_leader_or_follower()
+    assert _is_leader_or_follower(manager.quorum_status().get(0))
 
     for _id in (100, 101, 1000, 9999):
-        state.kraft_unit_id = _id
-        assert not manager.is_kraft_leader_or_follower()
+        assert not _is_leader_or_follower(manager.quorum_status().get(_id))
 
     fake_workload.run_bin_command = _raises_process_error(stderr="any-error")
     assert not manager.quorum_status()

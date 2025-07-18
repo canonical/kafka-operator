@@ -229,11 +229,6 @@ class KRaftQuorumInfo:
     lag: int
     status: KRaftUnitStatus
 
-    @property
-    def is_leader_or_follower(self) -> bool:
-        """Whether the unit is a KRaft leader or follower."""
-        return self.status in (KRaftUnitStatus.LEADER, KRaftUnitStatus.FOLLOWER)
-
 
 @dataclass
 class StatusLevel:
