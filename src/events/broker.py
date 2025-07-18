@@ -145,7 +145,7 @@ class BrokerOperator(Object):
 
     def _on_start(self, event: StartEvent | PebbleReadyEvent) -> None:  # noqa: C901
         """Handler for `start` or `pebble-ready` events."""
-        if not self.workload.container_can_connect:
+        if not self.workload.container_can_connect or not self.charm.refresh:
             event.defer()
             return
 
@@ -155,7 +155,7 @@ class BrokerOperator(Object):
             )
 
         # don't want to run default start/pebble-ready events during upgrades
-        if not self.charm.refresh or self.charm.refresh.in_progress:
+        if self.charm.refresh.in_progress:
             return
 
         # Internal TLS setup required?
