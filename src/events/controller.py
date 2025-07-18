@@ -23,6 +23,7 @@ from literals import (
     PEER,
     Status,
 )
+from managers.config import ConfigManager
 from managers.controller import ControllerManager
 from workload import KafkaWorkload
 
@@ -40,6 +41,7 @@ class KRaftHandler(Object):
         super().__init__(broker, CONTROLLER.value)
         self.charm: "KafkaCharm" = broker.charm
         self.broker: "BrokerOperator" = broker
+        self.upgrade = self.broker.upgrade
 
         self.workload = KafkaWorkload(
             container=(
@@ -48,8 +50,12 @@ class KRaftHandler(Object):
         )
 
         self.controller_manager = ControllerManager(self.charm.state, self.workload)
-
-        self.upgrade = self.broker.upgrade
+        self.config_manager = ConfigManager(
+            state=self.charm.state,
+            workload=self.workload,
+            config=self.charm.config,
+            current_version=self.upgrade.current_version,
+        )
 
         self.framework.observe(getattr(self.charm.on, "start"), self._on_start)
         self.framework.observe(getattr(self.charm.on, "leader_elected"), self._leader_elected)
@@ -90,6 +96,9 @@ class KRaftHandler(Object):
         current_status = self.charm.state.ready_to_start
         if not self.upgrade.idle or current_status is not Status.ACTIVE:
             return
+
+        # Ensure KRaft client properties are set and up-to-date.
+        self.config_manager.set_client_properties()
 
         self.add_to_quorum()
 
@@ -137,7 +146,7 @@ class KRaftHandler(Object):
 
     def _format_storages(self) -> None:
         """Format storages provided relevant keys exist."""
-        self.broker.config_manager.set_server_properties()
+        self.config_manager.set_server_properties()
         if self.charm.state.runs_broker:
             credentials = self.charm.state.cluster.internal_user_credentials
         elif self.charm.state.runs_controller:
