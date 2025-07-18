@@ -174,6 +174,7 @@ class WorkloadBase(ABC):
         command: list[str] | str,
         env: dict[str, str] | None = None,
         working_dir: str | None = None,
+        log_on_error: bool = True,
     ) -> str:
         """Runs a command on the workload substrate."""
         ...
@@ -181,6 +182,11 @@ class WorkloadBase(ABC):
     @abstractmethod
     def active(self) -> bool:
         """Checks that the workload is active."""
+        ...
+
+    @abstractmethod
+    def modify_time(self, file: str) -> float:
+        """Returns the last modify time of a file on the workload in UNIX timestamp format."""
         ...
 
     @abstractmethod
@@ -229,6 +235,12 @@ class WorkloadBase(ABC):
     @abstractmethod
     def container_can_connect(self) -> bool:
         """Flag to check if workload container can connect."""
+        ...
+
+    @property
+    @abstractmethod
+    def last_restart(self) -> float:
+        """Returns a UNIX timestamp of last time the service was restarted."""
         ...
 
     @staticmethod
