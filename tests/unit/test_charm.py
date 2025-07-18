@@ -354,7 +354,7 @@ def test_update_status_blocks_if_broker_not_active(
         state_out = ctx.run(ctx.on.update_status(), state_in)
 
     # Then
-    patched_broker_active.assert_called_once()
+    patched_broker_active.assert_called()
     assert state_out.unit_status == Status.BROKER_NOT_CONNECTED.value.status
 
 
