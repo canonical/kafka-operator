@@ -105,7 +105,8 @@ We recommend the following minimum configuration for production environments:
   * `3` units of Apache Kafka
   * `5` units of Apache ZooKeeper
 
-For high loads, consider scaling the cluster out to `5` and `7` units respectively and then gradually increasing number of Apache Kafka units.
+For very high numbers of topics, partitions and brokers, consider scaling the Apache ZooKeeper cluster out to `5` or up to `7` units.
+For brokers, start with a minimum estimated number of Charmed Apache Kafka units, scaling out the number of units to meet desired throughput.
 
 ```{warning}
 Scaling an Apache ZooKeeper cluster out to higher numbers does not provide linear growth in performance.
