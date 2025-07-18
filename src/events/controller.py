@@ -87,7 +87,8 @@ class KRaftHandler(Object):
 
     def _on_update_status(self, _: UpdateStatusEvent) -> None:
         """Handler for `update-status` events."""
-        if not self.upgrade.idle or not self.broker.healthy:
+        current_status = self.charm.state.ready_to_start
+        if not self.upgrade.idle or current_status is not Status.ACTIVE:
             return
 
         self.add_to_quorum()
