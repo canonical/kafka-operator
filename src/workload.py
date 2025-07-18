@@ -208,10 +208,6 @@ class BalancerWorkload(Workload):
         self.service = BALANCER.service
         self.container = container
 
-    @override
-    def get_version(self) -> str:
-        raise NotImplementedError
-
     @property
     @override
     def layer(self) -> pebble.Layer:

@@ -56,7 +56,7 @@ class SecretsHandler(Object):
         if not self.model.unit.is_leader():
             return
 
-        if not self.dependent.upgrade.idle or not self.dependent.healthy:
+        if not self.charm.refresh or self.charm.refresh.in_progress or not self.dependent.healthy:
             event.defer()
             return
 
