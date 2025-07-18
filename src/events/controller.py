@@ -91,10 +91,14 @@ class KRaftHandler(Object):
         # update status to add controller
         self.charm.on.update_status.emit()
 
-    def _on_update_status(self, _: UpdateStatusEvent) -> None:
+    def _on_update_status(self, event: UpdateStatusEvent) -> None:
         """Handler for `update-status` events."""
+        if not self.upgrade.idle:
+            return
+
         current_status = self.charm.state.ready_to_start
-        if not self.upgrade.idle or current_status is not Status.ACTIVE:
+        if current_status is not Status.ACTIVE or not self.workload.active():
+            event.defer()
             return
 
         # Ensure KRaft client properties are set and up-to-date.
