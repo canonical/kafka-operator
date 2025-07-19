@@ -95,14 +95,14 @@ jobs:
           - tox-environments: integration-balancer-single
             kraft-mode: single
           - tox-environments: integration-balancer-multi
-            kraft-mode: single   
+            kraft-mode: single
     name: ${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}
     needs:
       - lint
       - unit-test
       - build
     runs-on: ubuntu-latest
-    timeout-minutes: 240
+    timeout-minutes: 120
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -149,14 +149,10 @@ jobs:
       - unit-test
       - build
     runs-on: [self-hosted, linux, AMD64, X64, xlarge, noble]
-    timeout-minutes: 120
+    timeout-minutes: 90
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-        with:
-          detached: true
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
         with:
