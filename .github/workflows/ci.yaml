@@ -88,7 +88,6 @@ jobs:
           - integration-balancer-single
           - integration-balancer-multi
           - integration-kraft
-          - integration-kraft-tls
         kraft-mode:
           - single
           - multi
@@ -140,6 +139,7 @@ jobs:
       matrix:
         tox-environments:
           - integration-ha
+          - integration-kraft-tls
         kraft-mode:
           - single
           - multi
@@ -148,7 +148,7 @@ jobs:
       - lint
       - unit-test
       - build
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, AMD64, X64, xlarge, noble]
     timeout-minutes: 120
     steps:
       - name: Checkout
