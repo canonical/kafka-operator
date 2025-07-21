@@ -426,7 +426,6 @@ def test_network_cut_without_ip_change(
         time.sleep(30)
 
     assert topic_description.in_sync_replicas == {100, 101, 102}
-    result = c_writes.stop()
     assert_continuous_writes_consistency(result=result)
 
 
