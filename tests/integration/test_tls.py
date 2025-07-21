@@ -13,14 +13,7 @@ import pytest
 from charms.tls_certificates_interface.v3.tls_certificates import generate_private_key
 from pytest_operator.plugin import OpsTest
 
-from literals import (
-    CERTIFICATE_TRANSFER_RELATION,
-    REL_NAME,
-    SECURITY_PROTOCOL_PORTS,
-    TLS_RELATION,
-)
-
-from .helpers import (
+from integration.helpers.pytest_operator import (
     APP_NAME,
     REL_NAME_PRODUCER,
     SERIES,
@@ -35,6 +28,13 @@ from .helpers import (
     set_tls_private_key,
     sign_manual_certs,
 )
+from literals import (
+    CERTIFICATE_TRANSFER_RELATION,
+    REL_NAME,
+    SECURITY_PROTOCOL_PORTS,
+    TLS_RELATION,
+)
+
 from .test_charm import DUMMY_NAME
 
 logger = logging.getLogger(__name__)

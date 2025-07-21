@@ -14,17 +14,7 @@ import pytest
 import requests
 from pytest_operator.plugin import OpsTest
 
-from literals import (
-    DEPENDENCIES,
-    JMX_EXPORTER_PORT,
-    PATHS,
-    PEER_CLUSTER_ORCHESTRATOR_RELATION,
-    PEER_CLUSTER_RELATION,
-    REL_NAME,
-    SECURITY_PROTOCOL_PORTS,
-)
-
-from .helpers import (
+from integration.helpers.pytest_operator import (
     APP_NAME,
     DUMMY_NAME,
     REL_NAME_ADMIN,
@@ -36,6 +26,15 @@ from .helpers import (
     get_machine,
     produce_and_check_logs,
     run_client_properties,
+)
+from literals import (
+    DEPENDENCIES,
+    JMX_EXPORTER_PORT,
+    PATHS,
+    PEER_CLUSTER_ORCHESTRATOR_RELATION,
+    PEER_CLUSTER_RELATION,
+    REL_NAME,
+    SECURITY_PROTOCOL_PORTS,
 )
 
 logger = logging.getLogger(__name__)
@@ -178,7 +177,6 @@ async def test_logs_write_to_storage(ops_test: OpsTest, kafka_apps):
     )
 
 
-@pytest.mark.skip(reason="can't test with locally built snap")
 async def test_rack_awareness_integration(ops_test: OpsTest):
     kafka_machine_id = await get_machine(ops_test)
 
@@ -186,7 +184,7 @@ async def test_rack_awareness_integration(ops_test: OpsTest):
         "kafka-broker-rack-awareness",
         channel="edge",
         application_name="rack",
-        base="ubuntu@22.04",
+        series=SERIES,
         to=kafka_machine_id,
         config={"broker-rack": "integration-zone"},
     )

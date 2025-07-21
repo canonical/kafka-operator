@@ -4,6 +4,7 @@
 
 import json
 import logging
+import re
 import socket
 import subprocess
 import tempfile
@@ -27,7 +28,6 @@ from core.models import JSON
 from literals import (
     BALANCER_WEBSERVER_USER,
     JMX_CC_PORT,
-    KRAFT_NODE_ID_OFFSET,
     PATHS,
     PEER,
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
@@ -127,6 +127,26 @@ async def deploy_cluster(
         raise_on_error=False,
         status="active",
     )
+
+
+def get_unit_ipv4_address(model_full_name: str | None, unit_name: str) -> str | None:
+    """A safer alternative for `juju.unit.get_public_address()` which is robust to network changes."""
+    try:
+        stdout = check_output(
+            f"JUJU_MODEL={model_full_name} juju ssh {unit_name} hostname -i",
+            stderr=PIPE,
+            shell=True,
+            universal_newlines=True,
+        )
+    except CalledProcessError:
+        return None
+
+    ipv4_matches = re.findall(r"[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}", stdout)
+
+    if ipv4_matches:
+        return ipv4_matches[0]
+
+    return None
 
 
 def load_acls(model_full_name: str | None, bootstrap_server: str) -> Set[Acl]:
@@ -742,13 +762,3 @@ async def list_truststore_aliases(ops_test: OpsTest, unit: str = f"{APP_NAME}/0"
         trusted_aliases.append(line.split(",")[0])
 
     return trusted_aliases
-
-
-def unit_id_to_broker_id(unit_id: int) -> int:
-    """Converts unit id to broker id in KRaft mode."""
-    return KRAFT_NODE_ID_OFFSET + unit_id
-
-
-def broker_id_to_unit_id(broker_id: int) -> int:
-    """Converts broker id to unit id in KRaft mode."""
-    return broker_id - KRAFT_NODE_ID_OFFSET
