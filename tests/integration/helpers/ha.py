@@ -378,7 +378,7 @@ def get_kraft_quorum_lags(juju: jubilant.Juju) -> list[int]:
             unit_ip = get_unit_ipv4_address(juju.model, unit)
             bootstrap_controller = f"{unit_ip}:{CONTROLLER_PORT}"
             result = check_output(
-                f"JUJU_MODEL={juju.model} juju ssh {unit} sudo -i 'charmed-kafka.metadata-quorum  --command-config {PATHS['kafka']['CONF']}/server.properties --bootstrap-controller {bootstrap_controller} describe --replication'",
+                f"JUJU_MODEL={juju.model} juju ssh {unit} sudo -i 'charmed-kafka.metadata-quorum  --command-config {PATHS['kafka']['CONF']}/kraft-client.properties --bootstrap-controller {bootstrap_controller} describe --replication'",
                 stderr=PIPE,
                 shell=True,
                 universal_newlines=True,
