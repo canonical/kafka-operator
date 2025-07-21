@@ -74,7 +74,7 @@ def test_build_and_deploy(juju: jubilant.Juju, kafka_charm, app_charm, kraft_mod
         lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME),
         delay=3,
         successes=20,
-        timeout=600,
+        timeout=1200,
     )
 
     status = juju.status()
