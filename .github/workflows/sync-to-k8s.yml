@@ -3,8 +3,9 @@
 name: Sync feature PRs to kafka-k8s-operator
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  # pull_request:
+  #   types: [opened, synchronize, reopened]
+  workflow_dispatch:
 
 jobs:
   sync-pr:
