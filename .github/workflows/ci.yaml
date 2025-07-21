@@ -102,7 +102,7 @@ jobs:
       - unit-test
       - build
     runs-on: ubuntu-latest
-    timeout-minutes: 240
+    timeout-minutes: 120
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -151,7 +151,7 @@ jobs:
       - lint
       - unit-test
       - build
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, AMD64, X64, xlarge, noble]
     timeout-minutes: 120
     steps:
       - name: Checkout
