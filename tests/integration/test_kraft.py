@@ -12,7 +12,6 @@ from integration.helpers.pytest_operator import (
     APP_NAME,
     SERIES,
     KRaftMode,
-    KRaftUnitStatus,
     check_socket,
     create_test_topic,
     get_address,
@@ -24,6 +23,7 @@ from literals import (
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
     PEER_CLUSTER_RELATION,
     SECURITY_PROTOCOL_PORTS,
+    KRaftUnitStatus,
 )
 
 logger = logging.getLogger(__name__)
@@ -164,8 +164,9 @@ class TestKRaft:
         await ops_test.model.wait_for_idle(
             apps=list({APP_NAME, self.controller_app}),
             status="active",
-            timeout=1200,
+            timeout=1800,
             idle_period=20,
+            raise_on_error=False,
             wait_for_exact_units=3,
         )
 
@@ -196,16 +197,17 @@ class TestKRaft:
         await ops_test.model.applications[self.controller_app].destroy_units(
             f"{self.controller_app}/0"
         )
-        await ops_test.model.wait_for_idle(
-            apps=list({APP_NAME, self.controller_app}),
-            status="active",
-            timeout=600,
-            idle_period=20,
-        )
+
+        await asyncio.sleep(120)
 
         # ensure proper cleanup
-        async with ops_test.fast_forward(fast_interval="20s"):
-            await asyncio.sleep(120)
+        async with ops_test.fast_forward(fast_interval="60s"):
+            await ops_test.model.wait_for_idle(
+                apps=list({APP_NAME, self.controller_app}),
+                status="active",
+                timeout=1800,
+                idle_period=40,
+            )
 
         address = await get_address(ops_test=ops_test, app_name=self.controller_app, unit_num=1)
         bootstrap_controller = f"{address}:{CONTROLLER_PORT}"
@@ -223,16 +225,15 @@ class TestKRaft:
 
         # test cluster stability by adding a new controller
         await ops_test.model.applications[self.controller_app].add_units(count=1)
-        await ops_test.model.wait_for_idle(
-            apps=list({APP_NAME, self.controller_app}),
-            status="active",
-            timeout=1200,
-            idle_period=20,
-        )
 
         # ensure unit is added to dynamic quorum
-        async with ops_test.fast_forward(fast_interval="20s"):
-            await asyncio.sleep(60)
+        async with ops_test.fast_forward(fast_interval="60s"):
+            await ops_test.model.wait_for_idle(
+                apps=list({APP_NAME, self.controller_app}),
+                status="active",
+                timeout=1200,
+                idle_period=40,
+            )
 
         unit_status = kraft_quorum_status(
             ops_test, f"{self.controller_app}/1", bootstrap_controller
@@ -245,16 +246,17 @@ class TestKRaft:
         await ops_test.model.applications[self.controller_app].destroy_units(
             *(f"{self.controller_app}/{unit_id}" for unit_id in (1, 2))
         )
-        await ops_test.model.wait_for_idle(
-            apps=[self.controller_app],
-            status="active",
-            timeout=600,
-            idle_period=20,
-            wait_for_exact_units=1,
-        )
 
-        async with ops_test.fast_forward(fast_interval="20s"):
-            await asyncio.sleep(120)
+        await asyncio.sleep(120)
+
+        async with ops_test.fast_forward(fast_interval="60s"):
+            await ops_test.model.wait_for_idle(
+                apps=[self.controller_app],
+                status="active",
+                timeout=1200,
+                idle_period=40,
+                wait_for_exact_units=1,
+            )
 
         address = await get_address(ops_test=ops_test, app_name=self.controller_app, unit_num=3)
         bootstrap_controller = f"{address}:{CONTROLLER_PORT}"

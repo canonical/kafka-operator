@@ -42,6 +42,14 @@ class CharmedKafkaPaths:
         return f"{self.conf_path}/client.properties"
 
     @property
+    def kraft_client_properties(self):
+        """The main kraft-client.properties filepath.
+
+        Contains all the client configuration for the KRaft Quorum AdminClient.
+        """
+        return f"{self.conf_path}/kraft-client.properties"
+
+    @property
     def balancer_jaas(self):
         """The cruise_control_jaas.conf filepath."""
         return f"{self.conf_path}/cruise_control_jaas.conf"

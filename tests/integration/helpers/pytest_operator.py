@@ -9,7 +9,6 @@ import socket
 import subprocess
 import tempfile
 from contextlib import closing
-from enum import Enum
 from json.decoder import JSONDecodeError
 from pathlib import Path
 from subprocess import PIPE, CalledProcessError, check_output
@@ -33,6 +32,7 @@ from literals import (
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
     PEER_CLUSTER_RELATION,
     SECURITY_PROTOCOL_PORTS,
+    KRaftUnitStatus,
 )
 from managers.auth import Acl, AuthManager
 
@@ -49,13 +49,6 @@ TEST_SECRET_NAME = "auth"
 
 
 KRaftMode = Literal["single", "multi"]
-
-
-class KRaftUnitStatus(Enum):
-    LEADER = "Leader"
-    FOLLOWER = "Follower"
-    OBSERVER = "Observer"
-
 
 logger = logging.getLogger(__name__)
 
@@ -688,7 +681,7 @@ def kraft_quorum_status(
 ) -> dict[int, KRaftUnitStatus]:
     """Returns a dict mapping of unit ID to KRaft unit status based on `kafka-metadata-quorum.sh` utility's output."""
     result = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.metadata-quorum  --command-config {PATHS['kafka']['CONF']}/server.properties --bootstrap-controller {bootstrap_controller} describe --replication'",
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.metadata-quorum  --command-config {PATHS['kafka']['CONF']}/kraft-client.properties --bootstrap-controller {bootstrap_controller} describe --replication'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
