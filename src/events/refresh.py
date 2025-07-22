@@ -101,9 +101,9 @@ class MachinesKafkaRefresh(KafkaRefresh, charm_refresh.CharmSpecificMachines):
         # For more information, please refer to https://warthogs.atlassian.net/browse/DPE-3155
         time.sleep(20)
 
-        logger.debug("Running post-upgrade check...")
-        if not self._charm.broker.healthy:
-            logger.error("Cluster is not healthy")
+        # Call post_snap_refresh to handle health checks and set next_unit_allowed_to_refresh
+        logger.debug("Running post-snap-refresh check...")
+        self._charm.post_snap_refresh(refresh)
 
     def run_pre_refresh_checks_after_1_unit_refreshed(self) -> None:
         """Implement pre-refresh checks after 1 unit refreshed."""
