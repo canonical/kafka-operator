@@ -211,12 +211,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             return status.value.status
 
         # Lower priority status from refresh
-        if (
-            self.refresh
-            and (
-                refresh_status := self.refresh.unit_status_lower_priority(
-                    workload_is_running=self.workload.active()
-                )
+        if self.refresh and (
+            refresh_status := self.refresh.unit_status_lower_priority(
+                workload_is_running=self.workload.active()
             )
         ):
             return refresh_status
