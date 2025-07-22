@@ -349,7 +349,6 @@ def test_update_status_blocks_if_machine_not_configured(
     with (
         patch("health.KafkaHealth.machine_configured", side_effect=SnapError()),
         patch("events.broker.BrokerOperator.healthy", return_value=True),
-        patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
     ):
         state_out = ctx.run(ctx.on.update_status(), state_in)
 
@@ -369,7 +368,6 @@ def test_update_status_sets_sysconf_warning(
     with (
         patch("workload.KafkaWorkload.active", return_value=True),
         patch("health.KafkaHealth.machine_configured", return_value=False),
-        patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
     ):
         state_out = ctx.run(ctx.on.update_status(), state_in)
 
@@ -389,10 +387,7 @@ def test_update_status_sets_active(
     state_in = dataclasses.replace(base_state, relations=[cluster_peer])
 
     # When
-    with (
-        patch("workload.KafkaWorkload.active", return_value=True),
-        patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
-    ):
+    with patch("workload.KafkaWorkload.active", return_value=True):
         state_out = ctx.run(ctx.on.update_status(), state_in)
 
     # Then
@@ -458,7 +453,6 @@ def test_storage_add(
     with (
         patch("workload.KafkaWorkload.active", return_value=True),
         patch("events.broker.BrokerOperator.healthy", return_value=True),
-        patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
         patch("managers.config.ConfigManager.set_server_properties"),
         patch("managers.config.ConfigManager.set_client_properties"),
         patch("managers.config.ConfigManager.set_environment"),
@@ -495,7 +489,6 @@ def test_config_changed_updates_server_properties(ctx: Context, base_state: Stat
             return_value=["gandalf=white"],
         ),
         patch("events.broker.BrokerOperator.healthy", return_value=True),
-        patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
         patch("workload.KafkaWorkload.read", return_value=["gandalf=grey"]),
         patch("managers.config.ConfigManager.set_server_properties") as set_server_properties,
         patch("managers.config.ConfigManager.set_client_properties"),
@@ -529,7 +522,6 @@ def test_config_changed_requests_new_certificate(
             return_value=["gandalf=white"],
         ),
         patch("events.broker.BrokerOperator.healthy", return_value=True),
-        patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
         patch("workload.KafkaWorkload.read", return_value=["gandalf=grey"]),
         patch("managers.config.ConfigManager.set_client_properties"),
         patch("events.tls.TLSHandler._request_certificate_renewal") as request_certificate_renewal,
@@ -571,7 +563,6 @@ def test_config_changed_does_not_request_new_certificate_for_slashes(
             return_value=["gandalf=white"],
         ),
         patch("events.broker.BrokerOperator.healthy", return_value=True),
-        patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
         patch("workload.KafkaWorkload.read", return_value=["gandalf=grey"]),
         patch("managers.config.ConfigManager.set_client_properties"),
         patch("events.tls.TLSHandler._request_certificate_renewal") as request_certificate_renewal,
@@ -613,7 +604,6 @@ def test_config_changed_updates_client_properties(ctx: Context, base_state: Stat
             return_value=["sauron=bad"],
         ),
         patch("events.broker.BrokerOperator.healthy", return_value=True),
-        patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
         patch("workload.KafkaWorkload.read", return_value=["gandalf=grey"]),
         patch("managers.config.ConfigManager.set_server_properties"),
         patch("managers.config.ConfigManager.set_client_properties") as set_client_properties,
@@ -643,7 +633,6 @@ def test_config_changed_updates_client_data(ctx: Context, base_state: State) -> 
             return_value=["gandalf=white"],
         ),
         patch("events.broker.BrokerOperator.healthy", return_value=True),
-        patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
         patch("workload.KafkaWorkload.read", return_value=["gandalf=white"]),
         patch("events.broker.BrokerOperator.update_client_data") as patched_update_client_data,
         patch(
@@ -675,7 +664,6 @@ def test_config_changed_restarts(ctx: Context, base_state: State) -> None:
         ),
         patch("events.broker.BrokerOperator.healthy", return_value=True),
         patch("workload.KafkaWorkload.read", return_value=["gandalf=white"]),
-        patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
         patch("managers.auth.AuthManager.add_user"),
         patch("managers.config.ConfigManager.set_server_properties"),
         patch(
@@ -725,7 +713,6 @@ def test_workload_version_is_set(ctx: Context, base_state: State):
             "workload.KafkaWorkload.run_bin_command",
             side_effect=[output_bin_install, output_bin_changed],
         ),
-        patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
         patch(
             "charms.rolling_ops.v0.rollingops.RollingOpsManager._on_run_with_lock", autospec=True
         ),
