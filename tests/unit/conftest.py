@@ -219,7 +219,7 @@ def mock_refresh():
     refresh_mock.unit_status_lower_priority.return_value = None
     refresh_mock.next_unit_allowed_to_refresh = True
     refresh_mock.workload_allowed_to_start = True
-    
+
     with (
         patch("charm_refresh.Machines", Mock(return_value=refresh_mock)),
         patch("charm.MachinesKafkaRefresh", Mock(return_value=None)),
