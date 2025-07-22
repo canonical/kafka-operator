@@ -13,7 +13,7 @@ This guide includes step-by-step instructions on how to create mTLS credentials 
 
 ## Create mTLS client credentials
 
-Each Apache Kafka mTLS client needs its own TLS certificate, which should be trusted by the charmed Apache Kafka application. In a typical production environment, certificates are issued either by the organisation's PKI infrastructure, or trusted Certificate Authorities (CAs). For the sake of this guide, we will generate self-signed certificates.
+Each Apache Kafka mTLS client needs its own TLS certificate, which should be trusted by the Charmed Apache Kafka application. In a typical production environment, certificates are issued either by the organisation's PKI infrastructure, or trusted Certificate Authorities (CAs).
 
 To generate a self-signed certificate in one prompt, use the following command:
 
@@ -35,7 +35,7 @@ juju deploy tls-certificates-operator \
     mtls-app
 ```
 
-Next, integrate the operator application with the charmed Apache Kafka application via the `trusted-certificate` interface:
+Next, integrate the operator application with the Charmed Apache Kafka application via the `trusted-certificate` interface:
 
 ```bash
 juju integrate kafka:trusted-certificate mtls-app
@@ -87,7 +87,7 @@ juju run self-signed-certificates/0 get-ca-certificate --format json | jq -r '."
 
 ## Create mutual trust relation: client -> server
 
-Depending on the type of the client application, there might be different ways to trust. In this guide, we are using the console-based apps shipped with the `charmed-kafka` snap, which depend on java keystore/truststores. Follow the steps below to create necessary Java keystore and truststore artefacts for the client application:
+Depending on the type of the client application, there might be different ways to trust. In this guide, we are using the console-based apps shipped with the `charmed-kafka` snap, which depend on Java keystore/truststores. Follow the steps below to create necessary Java keystore and truststore artefacts for the client application.
 
 ### Create client's keystore
 
@@ -114,7 +114,7 @@ openssl pkcs12 -export -in client_chain.pem \
 
 ### Create client's truststore
 
-Trust the broker's CA certificate by importing it into a Java truststore using the following command:
+Trust the broker's CA certificate by importing it into a Java truststore:
 
 ```bash
 keytool -keystore client.truststore.jks -storepass $KAFKA_CLIENT_TRUSTSTORE_PASSWORD -noprompt \
@@ -123,7 +123,7 @@ keytool -keystore client.truststore.jks -storepass $KAFKA_CLIENT_TRUSTSTORE_PASS
 
 ### Check certificates validity
 
-You can list the certificates loaded into client's keystore and truststore using the following commands:
+To list the certificates loaded into client's keystore and truststore:
 
 ```bash
 echo "Client certs in Keystore:"
@@ -139,7 +139,7 @@ keytool -list -keystore client.truststore.jks -storepass $KAFKA_CLIENT_TRUSTSTOR
 
 Since you are using TLS certificates for authentication, you need to provide a way to map the client's certificate to usernames defined on the Apache Kafka cluster.
 
-In charmed Apache Kafka, this could be done using the `ssl_principal_mapping_rules` configuration option, which defines how the certificate's common name is translated into a username, using a handy regex syntax (refer to [Apache Kafka's official documentation](https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=89071740) for more details on the syntax):
+In Charmed Apache Kafka, this is done using the `ssl_principal_mapping_rules` configuration option, which defines how the certificate's common name is translated into a username, using a regex (see [Apache Kafka's official documentation](https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=89071740) for more details on the syntax):
 
 ```bash
 juju config kafka ssl_principal_mapping_rules='RULE:^.*[Cc][Nn]=([a-zA-Z0-9\.-]*).*$/$1/L,DEFAULT'
@@ -149,7 +149,7 @@ This command will trigger a rolling restart of the charmed Apache Kafka applicat
 
 ## Add authorisation rules via ACLs for the client
 
-In order to add authorisation rules for the mTLS client, first save the broker's connection information and configuration path into some environment variables:
+To add authorisation rules for the mTLS client, first save the broker's connection information and configuration path into some environment variables:
 
 ```bash
 BROKER_IP=$(juju show-unit kafka/0 --format json | jq -r '."kafka/0"."public-address"')
@@ -184,7 +184,7 @@ sudo charmed-kafka.acls --bootstrap-server $KAFKA_SERVERS_SASL --command-config 
 
 ## Test access
 
-To test the client's access, first create a file called `client-mtls.properties` with the following configuration:
+To test the client's access, first create a file called `client-mtls.properties`:
 
 ```bash
 cat <<EOF > client-mtls.properties
