@@ -728,7 +728,6 @@ class ConfigManager(CommonConfigManager):
                 f"listeners={','.join(listeners_repr)}",
                 f"advertised.listeners={','.join(advertised_listeners)}",
                 f"inter.broker.listener.name={self.internal_listener.name}",
-                f"inter.broker.protocol.version={self.inter_broker_protocol_version}",
             ]
             + self.scram_properties
             + self.oauth_properties

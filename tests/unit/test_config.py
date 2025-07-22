@@ -600,10 +600,8 @@ def test_inter_broker_protocol_version(ctx: Context, base_state: State) -> None:
         # Then
         kafka_version: str = DEPENDENCIES.get("kafka_service", {}).get("version", "0.0.0")
         major_minor = ".".join(kafka_version.split(".")[:2])
-        assert (
-            f"inter.broker.protocol.version={major_minor}"
-            in charm.broker.config_manager.server_properties
-        )
+
+    assert charm.broker.config_manager.inter_broker_protocol_version == f"{major_minor}"
     assert len(DEPENDENCIES["kafka_service"]["version"].split(".")) == 3
 
 
