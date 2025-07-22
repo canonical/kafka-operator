@@ -208,3 +208,20 @@ def patched_snap(monkeypatch):
 @pytest.fixture
 def tls_artifacts(request: pytest.FixtureRequest) -> TLSArtifacts:
     return generate_tls_artifacts(with_intermediate=bool(request.param))
+
+
+@pytest.fixture(autouse=True)
+def mock_refresh():
+    """Fixture to shunt refresh logic and events."""
+    refresh_mock = Mock()
+    refresh_mock.in_progress = False
+    refresh_mock.unit_status_higher_priority = None
+    refresh_mock.unit_status_lower_priority.return_value = None
+    refresh_mock.next_unit_allowed_to_refresh = True
+    refresh_mock.workload_allowed_to_start = True
+    
+    with (
+        patch("charm_refresh.Machines", Mock(return_value=refresh_mock)),
+        patch("charm.MachinesKafkaRefresh", Mock(return_value=None)),
+    ):
+        yield

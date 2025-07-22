@@ -198,8 +198,31 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             return
 
     def _on_collect_status(self, event: CollectStatusEvent):
+        status = self._determine_unit_status()
+        event.add_status(status)
+
+    def _determine_unit_status(self):
+        """Determine the unit status, respecting refresh higher priority statuses."""
+        if self.refresh and self.refresh.unit_status_higher_priority:
+            return self.refresh.unit_status_higher_priority
+
+        # Check for pending inactive statuses (charm-specific logic)
         for status in self.pending_inactive_statuses + [self.state.ready_to_start]:
-            event.add_status(status.value.status)
+            return status.value.status
+
+        # Lower priority status from refresh
+        if (
+            self.refresh
+            and (
+                refresh_status := self.refresh.unit_status_lower_priority(
+                    workload_is_running=self.workload.active()
+                )
+            )
+        ):
+            return refresh_status
+
+        # Default to active if no other status is set
+        return ops.ActiveStatus()
 
     def post_snap_refresh(self, refresh: charm_refresh.Machines) -> None:
         """Handle post-snap refresh health checks and set next_unit_allowed_to_refresh."""
