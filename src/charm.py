@@ -50,7 +50,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
     """Charmed Operator for Kafka."""
 
     config_type = CharmConfig
-    # Remove: on = charm_refresh.RefreshCharmEvents()
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -85,7 +84,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         ):
             # Only proceed if snap is installed (avoids KeyError during initial deployment)
             if self.workload.installed and self.workload.active():
-                self.refresh.next_unit_allowed_to_refresh = True
+                self.post_snap_refresh(self.refresh)
 
         self._grafana_agent = COSAgentProvider(
             self,
@@ -202,45 +201,13 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         for status in self.pending_inactive_statuses + [self.state.ready_to_start]:
             event.add_status(status.value.status)
 
-    def _post_snap_refresh(self, refresh: charm_refresh.Machines):
+    def post_snap_refresh(self, refresh: charm_refresh.Machines) -> None:
+        """Handle post-snap refresh health checks and set next_unit_allowed_to_refresh."""
         dependents = [self.broker, self.balancer] if self.state.runs_balancer else [self.broker]
 
         all_healthy = all(dependent.healthy for dependent in dependents)
         if all_healthy:
             refresh.next_unit_allowed_to_refresh = True
-
-        # Handle post-refresh health checks if needed
-        self._handle_post_refresh_health_checks()
-
-    def _handle_post_refresh_health_checks(self) -> None:
-        """Handle post-refresh health checks that need to be retried in every Juju event."""
-        if not hasattr(self, "refresh"):
-            # Refresh not initialized yet (early startup or exception handling)
-            return
-
-        # Check if refresh is in progress and next_unit_allowed_to_refresh is not set
-        if (
-            self.refresh
-            and self.refresh.in_progress
-            and not self.refresh.next_unit_allowed_to_refresh
-        ):
-            try:
-                # Retry the health checks and set next_unit_allowed_to_refresh if healthy
-                logger.info("Retrying post-refresh health checks")
-                # Ensure workload is running
-                if not self.workload.active():
-                    self.workload.start()
-
-                # Check if application and unit are healthy
-                if self.broker.healthy and self.workload.active():
-                    self.refresh.next_unit_allowed_to_refresh = True
-                    logger.info("Post-refresh health checks passed, next unit allowed to refresh")
-                else:
-                    self.unit.status = ops.BlockedStatus("Post-refresh health check failed")
-
-            except Exception as e:
-                logger.warning(f"Post-refresh health check retry failed: {e}")
-                self.unit.status = ops.BlockedStatus(f"Post-refresh health check failed: {str(e)}")
 
 
 if __name__ == "__main__":

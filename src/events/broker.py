@@ -209,8 +209,12 @@ class BrokerOperator(Object):
     def _on_config_changed(self, event: EventBase) -> None:  # noqa: C901
         """Generic handler for most `config_changed` events across relations."""
         # only overwrite properties if service is already active
-        if not self.charm.refresh or self.charm.refresh.in_progress or not self.healthy:
+        if not self.charm.refresh or not self.healthy:
             event.defer()
+            return
+
+        if self.charm.refresh.in_progress:
+            logger.debug("Refresh in progress, skipping config changed event handling.")
             return
 
         # Load current properties set in the charm workload
