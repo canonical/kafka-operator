@@ -75,7 +75,7 @@ jobs:
       path-to-charm-directory: ${{ matrix.path }}
       cache: false # TODO: fix after added to the charmcraftcache
 
-  integration-test:
+  integration-test-github:
     strategy:
       fail-fast: false
       matrix:
@@ -85,18 +85,11 @@ jobs:
           - integration-password-rotation
           - integration-tls
           #- integration-upgrade
-          - integration-balancer-single
-          - integration-balancer-multi
           - integration-kraft
           - integration-kraft-tls
+          - integration-ha
         kraft-mode:
           - single
-          - multi
-        exclude:
-          - tox-environments: integration-balancer-single
-            kraft-mode: single
-          - tox-environments: integration-balancer-multi
-            kraft-mode: single   
     name: ${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}
     needs:
       - lint
@@ -134,19 +127,24 @@ jobs:
         env:
           CI_PACKED_CHARMS: ${{ needs.build.outputs.charms }}
 
-  integration-test-ha:
+  integration-test-self-hosted:
     strategy:
       fail-fast: false
       matrix:
         tox-environments:
+          - integration-charm
+          - integration-provider
+          - integration-password-rotation
+          - integration-tls
+          #- integration-upgrade
+          - integration-balancer-single
+          - integration-balancer-multi
+          - integration-kraft
+          - integration-kraft-tls
           - integration-ha
           - integration-ha-controller
         kraft-mode:
-          - single
           - multi
-        exclude:
-          - tox-environments: integration-ha-controller
-            kraft-mode: single 
     name: ${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}
     needs:
       - lint
