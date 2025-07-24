@@ -57,7 +57,7 @@ def get_topic_description(juju: jubilant.Juju, topic: str) -> TopicDescription:
             continue
 
         bootstrap_servers.append(
-            f"{unit_ip}:{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT', 'SCRAM-SHA-512'].client}"
+            f"{unit_ip}:{SECURITY_PROTOCOL_PORTS['SASL_SSL', 'SCRAM-SHA-512'].internal}"
         )
 
     output = ""
@@ -96,7 +96,7 @@ def get_topic_offsets(juju: jubilant.Juju, topic: str) -> list[str]:
             continue
 
         bootstrap_servers.append(
-            f"{unit_ip}:{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT', 'SCRAM-SHA-512'].client}"
+            f"{unit_ip}:{SECURITY_PROTOCOL_PORTS['SASL_SSL', 'SCRAM-SHA-512'].internal}"
         )
 
     result = ""
