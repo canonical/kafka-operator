@@ -242,6 +242,8 @@ class ContinuousWrites:
                 time.sleep(0.1)
 
     @staticmethod
-    def _run_async(event: Event, data_queue: Queue, starting_number: int, model: str, produce_rate: float):
+    def _run_async(
+        event: Event, data_queue: Queue, starting_number: int, model: str, produce_rate: float
+    ):
         """Run async code."""
         asyncio.run(ContinuousWrites._run(event, data_queue, starting_number, model, produce_rate))
