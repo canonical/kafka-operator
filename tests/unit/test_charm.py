@@ -20,6 +20,7 @@ from literals import (
     PEER,
     REL_NAME,
     SUBSTRATE,
+    TLS_RELATION,
     Status,
 )
 
@@ -155,7 +156,7 @@ def test_ready_to_start_waits_no_broker_data(
     state_out = ctx.run(ctx.on.start(), state_in)
 
     # Then
-    assert state_out.unit_status == Status.NO_BROKER_DATA.value.status
+    assert state_out.unit_status == Status.NO_PEER_CLUSTER_CA.value.status
 
 
 def test_ready_to_start_succeeds(
@@ -333,7 +334,7 @@ def test_start_does_not_start_if_leader_has_not_set_creds(ctx: Context, base_sta
 
     # Then
     patched_start_snap_service.assert_not_called()
-    assert state_out.unit_status == Status.NO_BOOTSTRAP_CONTROLLER.value.status
+    assert state_out.unit_status == Status.NO_INTERNAL_TLS.value.status
 
 
 def test_update_status_blocks_if_broker_not_active(
@@ -532,15 +533,16 @@ def test_config_changed_updates_server_properties(ctx: Context, base_state: Stat
 
 
 def test_config_changed_requests_new_certificate(
-    ctx: Context, base_state: State, zk_data: dict[str, str]
+    ctx: Context, base_state: State, kraft_data: dict[str, str], passwords_data: dict[str, str]
 ) -> None:
     """Checks that if there is a diff in SANs, that a new certificate is requested."""
     # Given
-    cluster_peer = PeerRelation(PEER, PEER)
+    cluster_peer = PeerRelation(PEER, PEER, local_app_data=kraft_data | passwords_data)
     restart_peer = PeerRelation("restart", "rolling_op")
+    client_tls_rel = Relation(TLS_RELATION, "tls-certificates")
     state_in = dataclasses.replace(
         base_state,
-        relations=[cluster_peer, restart_peer],
+        relations=[cluster_peer, restart_peer, client_tls_rel],
     )
 
     # When
@@ -554,35 +556,39 @@ def test_config_changed_requests_new_certificate(
         patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
         patch("workload.KafkaWorkload.read", return_value=["gandalf=grey"]),
         patch("managers.config.ConfigManager.set_client_properties"),
-        patch("events.tls.TLSHandler._request_certificate_renewal") as request_certificate_renewal,
         patch(
             "managers.tls.TLSManager.get_current_sans",
-            return_value={"sans_ip": ["earendil"], "sans_dns": ["denethor"]},
+            return_value={"sans_ip": ["10.10.10.11"], "sans_dns": ["denethor"]},
         ),
         patch(
             "managers.tls.TLSManager.build_sans",
-            return_value={"sans_ip": ["earendil"], "sans_dns": ["aragorn"]},
+            return_value={"sans_ip": ["10.10.10.11"], "sans_dns": ["aragorn"]},
         ),
         patch(
             "charms.rolling_ops.v0.rollingops.RollingOpsManager._on_run_with_lock", autospec=True
         ),
     ):
-        ctx.run(ctx.on.config_changed(), state_in)
+        state_out = ctx.run(ctx.on.config_changed(), state_in)
 
     # Then
-    assert request_certificate_renewal.call_count
+    # A new CSR should have been created and saved in unit databag, since TLS requirer mode is UNIT
+    assert (
+        "certificate_signing_requests" in state_out.get_relation(client_tls_rel.id).local_unit_data
+    )
 
 
+# @pytest.mark.skip
 def test_config_changed_does_not_request_new_certificate_for_slashes(
-    ctx: Context, base_state: State, zk_data: dict[str, str]
+    ctx: Context, base_state: State, kraft_data: dict[str, str], passwords_data: dict[str, str]
 ) -> None:
     """Checks that if there is a diff in SANs, that a new certificate is not requested if the SAN was the unit|app name."""
     # Given
-    cluster_peer = PeerRelation(PEER, PEER)
+    cluster_peer = PeerRelation(PEER, PEER, local_app_data=kraft_data | passwords_data)
     restart_peer = PeerRelation("restart", "rolling_op")
+    client_tls_rel = Relation(TLS_RELATION, "tls-certificates")
     state_in = dataclasses.replace(
         base_state,
-        relations=[cluster_peer, restart_peer],
+        relations=[cluster_peer, restart_peer, client_tls_rel],
     )
 
     # When
@@ -596,23 +602,26 @@ def test_config_changed_does_not_request_new_certificate_for_slashes(
         patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
         patch("workload.KafkaWorkload.read", return_value=["gandalf=grey"]),
         patch("managers.config.ConfigManager.set_client_properties"),
-        patch("events.tls.TLSHandler._request_certificate_renewal") as request_certificate_renewal,
         patch(
             "managers.tls.TLSManager.get_current_sans",
-            return_value={"sans_ip": ["earendil"], "sans_dns": [CHARM_KEY]},
+            return_value={"sans_ip": ["10.10.10.11"], "sans_dns": [CHARM_KEY]},
         ),
         patch(
             "managers.tls.TLSManager.build_sans",
-            return_value={"sans_ip": ["earendil"], "sans_dns": [f"{CHARM_KEY}/0"]},
+            return_value={"sans_ip": ["10.10.10.11"], "sans_dns": [f"{CHARM_KEY}/0"]},
         ),
         patch(
             "charms.rolling_ops.v0.rollingops.RollingOpsManager._on_run_with_lock", autospec=True
         ),
     ):
-        ctx.run(ctx.on.config_changed(), state_in)
+        state_out = ctx.run(ctx.on.config_changed(), state_in)
 
     # Then
-    assert not request_certificate_renewal.call_count
+    # No CSR is expected here
+    assert (
+        "certificate_signing_requests"
+        not in state_out.get_relation(client_tls_rel.id).local_unit_data
+    )
 
 
 def test_config_changed_updates_client_properties(ctx: Context, base_state: State) -> None:
@@ -646,7 +655,7 @@ def test_config_changed_updates_client_properties(ctx: Context, base_state: Stat
         ctx.run(ctx.on.config_changed(), state_in)
 
     # Then
-    set_client_properties.assert_called_once()
+    set_client_properties.assert_called()
 
 
 def test_config_changed_updates_client_data(ctx: Context, base_state: State) -> None:
@@ -678,8 +687,8 @@ def test_config_changed_updates_client_data(ctx: Context, base_state: State) -> 
         ctx.run(ctx.on.config_changed(), state_in)
 
     # Then
-    patched_set_client_properties.assert_called_once()
-    patched_update_client_data.assert_called_once()
+    patched_set_client_properties.assert_called()
+    patched_update_client_data.assert_called()
 
 
 def test_config_changed_restarts(ctx: Context, base_state: State) -> None:

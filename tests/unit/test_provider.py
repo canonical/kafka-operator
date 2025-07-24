@@ -101,8 +101,10 @@ def test_client_relation_created_adds_user(ctx: Context, base_state: State) -> N
         state_out = ctx.run(ctx.on.relation_changed(client_relation), state_in)
 
     # Then
+    secret_contents = [k for secret in state_out.secrets for k in secret.latest_content]
+
     patched_add_user.assert_called_once()
-    assert f"relation-{client_relation.id}" in next(iter(state_out.secrets)).tracked_content
+    assert f"relation-{client_relation.id}" in secret_contents
 
 
 def test_client_relation_broken_removes_user(ctx: Context, base_state: State) -> None:
@@ -144,7 +146,8 @@ def test_client_relation_broken_removes_user(ctx: Context, base_state: State) ->
     patched_remove_acls.assert_called_once()
     patched_delete_user.assert_called_once()
     # validating username got removed, by removing the full secret
-    assert not state_out.secrets
+    secret_contents = [k for secret in state_out.secrets for k in secret.latest_content]
+    assert f"relation-{client_relation.id}" not in secret_contents
 
 
 def test_client_relation_joined_sets_necessary_relation_data(
@@ -232,7 +235,13 @@ def test_mtls_without_tls_relation(
 
 
 @pytest.mark.parametrize("tls_artifacts", [False, True], indirect=True)
-def test_mtls_setup(ctx: Context, base_state: State, tls_artifacts: TLSArtifacts) -> None:
+def test_mtls_setup(
+    ctx: Context,
+    base_state: State,
+    tls_artifacts: TLSArtifacts,
+    kraft_data: dict[str, str],
+    passwords_data: dict[str, str],
+) -> None:
     # Given
     restart_relation = PeerRelation("restart", "rolling_op")
     client_rel_id = 21
@@ -254,8 +263,10 @@ def test_mtls_setup(ctx: Context, base_state: State, tls_artifacts: TLSArtifacts
     cluster_peer = PeerRelation(
         PEER,
         PEER,
-        local_app_data={f"relation-{client_relation.id}": "password", "tls": "enabled"},
-        local_unit_data={"certificate": "cert", "ca-cert": "ca"},
+        local_app_data={f"relation-{client_relation.id}": "password", "tls": "enabled"}
+        | kraft_data
+        | passwords_data,
+        local_unit_data={"client-certificate": "cert", "client-ca-cert": "ca"},
     )
     state_in = dataclasses.replace(
         base_state,

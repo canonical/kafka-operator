@@ -44,7 +44,7 @@ from integration.helpers.jubilant import (
     kraft_quorum_status,
     produce_and_check_logs,
 )
-from literals import CONTROLLER_PORT, SECURITY_PROTOCOL_PORTS
+from literals import SECURITY_PROTOCOL_PORTS
 
 logger = logging.getLogger(__name__)
 
@@ -238,7 +238,8 @@ def test_freeze_broker_with_topic_leader(
         else 0
     )
     address = get_unit_ipv4_address(juju.model, f"{controller_app}/{controller_unit_num}")
-    bootstrap_controller = f"{address}:{CONTROLLER_PORT}"
+    controller_port = SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].controller
+    bootstrap_controller = f"{address}:{controller_port}"
     controller_unit = f"{controller_app}/{controller_unit_num}"
 
     logger.info(

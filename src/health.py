@@ -69,7 +69,7 @@ class KafkaHealth(Object):
         """Gets the number of partitions and their average size from the log dirs."""
         log_dirs_command = [
             "--describe",
-            f"--bootstrap-server {self.charm.state.bootstrap_server}",
+            f"--bootstrap-server {self.charm.state.bootstrap_server_internal}",
             f"--command-config {self.dependent.workload.paths.client_properties}",
         ]
         try:

@@ -4,6 +4,7 @@
 
 """Objects representing the state of KafkaCharm."""
 
+import json
 import logging
 import os
 from functools import cached_property
@@ -19,6 +20,7 @@ from charms.data_platform_libs.v0.data_interfaces import (
     ProviderData,
     RequirerData,
 )
+from charms.tls_certificates_interface.v4.tls_certificates import Certificate, PrivateKey
 from lightkube.core.exceptions import ApiError as LightKubeApiError
 from ops import Object, Relation
 from ops.model import Unit
@@ -38,8 +40,8 @@ from literals import (
     BROKER,
     CERTIFICATE_TRANSFER_RELATION,
     CONTROLLER,
-    CONTROLLER_PORT,
     CONTROLLER_USER,
+    INTERNAL_TLS_RELATION,
     INTERNAL_USERS,
     KRAFT_NODE_ID_OFFSET,
     MIN_REPLICAS,
@@ -196,7 +198,7 @@ class ClusterState(Object):
                 ),
                 broker_username=ADMIN_USER,
                 broker_password=self.cluster.internal_user_credentials.get(ADMIN_USER, ""),
-                broker_uris=self.bootstrap_server,
+                broker_uris=self.bootstrap_server_internal,
                 cluster_uuid=self.cluster.cluster_uuid,
                 racks=self.racks,
                 broker_capacities=self.broker_capacities,
@@ -355,16 +357,19 @@ class ClusterState(Object):
 
     @property
     def default_auth(self) -> AuthMap:
-        """The current enabled auth.protocol for bootstrap."""
+        """The current enabled auth.protocol for clients."""
         auth_protocol = (
             "SASL_SSL"
-            if self.cluster.tls_enabled and self.unit_broker.certificate
+            if self.cluster.tls_enabled and self.unit_broker.client_certs.certificate
             else "SASL_PLAINTEXT"
         )
 
-        # FIXME: will need updating when we support multiple concurrent security.protocols
-        # as this is what is sent across the relation, currently SASL only
         return AuthMap(auth_protocol, "SCRAM-SHA-512")
+
+    @property
+    def internal_auth(self) -> AuthMap:
+        """The current enabled auth.protocol for internal peer communications."""
+        return AuthMap("SASL_SSL", "SCRAM-SHA-512")
 
     @property
     def enabled_auth(self) -> list[AuthMap]:
@@ -441,7 +446,7 @@ class ClusterState(Object):
         return ",".join(
             sorted(
                 [
-                    f"{broker.internal_address}:{SECURITY_PROTOCOL_PORTS[self.default_auth].internal}"
+                    f"{broker.internal_address}:{SECURITY_PROTOCOL_PORTS[self.internal_auth].internal}"
                     for broker in self.brokers
                 ]
             )
@@ -451,7 +456,7 @@ class ClusterState(Object):
     def bootstrap_controller(self) -> str:
         """Returns the controller listener in the format HOST:PORT."""
         if self.runs_controller:
-            return f"{self.unit_broker.internal_address}:{CONTROLLER_PORT}"
+            return f"{self.unit_broker.internal_address}:{SECURITY_PROTOCOL_PORTS[self.internal_auth].controller}"
         return ""
 
     @property
@@ -509,6 +514,9 @@ class ClusterState(Object):
         if self.runs_broker_only and not self.peer_cluster_orchestrator_relation:
             return Status.MISSING_MODE
 
+        if not self.unit_broker.peer_certs.ready and not self.internal_ca:
+            return Status.NO_INTERNAL_TLS
+
         for status in [self._broker_status, self._controller_status]:
             if status != Status.ACTIVE:
                 return status
@@ -526,6 +534,9 @@ class ClusterState(Object):
 
         if not self.peer_cluster_relation and not self.runs_broker:
             return Status.NO_PEER_CLUSTER_RELATION
+
+        if not self.unit_broker.peer_certs.ready and not self.internal_ca:
+            return Status.NO_INTERNAL_TLS
 
         if not self.peer_cluster.broker_connected:
             return Status.NO_BROKER_DATA
@@ -550,7 +561,10 @@ class ClusterState(Object):
         if not self.cluster.cluster_uuid:
             return Status.NO_CLUSTER_UUID
 
-        if self.cluster.tls_enabled and not self.unit_broker.certificate:
+        if self.runs_broker_only and not self.peer_cluster_ca:
+            return Status.NO_PEER_CLUSTER_CA
+
+        if self.cluster.tls_enabled and not self.unit_broker.client_certs.certificate:
             return Status.NO_CERT
 
         if not self.cluster.internal_user_credentials:
@@ -566,6 +580,12 @@ class ClusterState(Object):
 
         if not self.peer_cluster_relation and not self.runs_broker:
             return Status.NO_PEER_CLUSTER_RELATION
+
+        if not self.peer_cluster.controller_password:
+            return Status.MISSING_CONTROLLER_PASSWORD
+
+        if self.runs_controller_only and not self.peer_cluster_ca:
+            return Status.NO_PEER_CLUSTER_CA
 
         if not self.peer_cluster.broker_connected_kraft_mode:
             return Status.NO_BROKER_DATA
@@ -596,3 +616,89 @@ class ClusterState(Object):
     def runs_controller_only(self) -> bool:
         """Is the charm ONLY running controller in KRaft mode?"""
         return self.runs_controller and not self.runs_broker
+
+    @property
+    def kraft_cluster(self) -> PeerCluster | KafkaCluster:
+        """The appropriate cluster object for read/write actions in KRaft mode."""
+        if self.runs_broker and self.runs_controller:
+            return self.cluster
+
+        return self.peer_cluster
+
+    @property
+    def use_internal_tls(self) -> bool:
+        """Whether internal TLS is being used or not."""
+        return not bool(self.model.get_relation(INTERNAL_TLS_RELATION))
+
+    @property
+    def internal_ca(self) -> Certificate | None:
+        """The internal CA certificate used for the peer relations."""
+        ca = self.cluster.relation_data.get("internal-ca", "")
+        ca_key = self.internal_ca_key
+
+        if not all([ca_key, ca]):
+            return None
+
+        return Certificate.from_string(ca)
+
+    @internal_ca.setter
+    def internal_ca(self, value: str) -> None:
+        self.cluster.update({"internal-ca": value})
+
+    @property
+    def internal_ca_key(self) -> PrivateKey | None:
+        """The private key of internal CA certificate used for the peer relations."""
+        if not (ca_key := self.cluster.relation_data.get("internal-ca-key", "")):
+            return None
+
+        return PrivateKey.from_string(ca_key)
+
+    @internal_ca_key.setter
+    def internal_ca_key(self, value: str) -> None:
+        self.cluster.update({"internal-ca-key": value})
+
+    @property
+    def peer_cluster_ca(self) -> list[str]:
+        """CA certificate chain of the peer-cluster app."""
+        if self.runs_broker_only:
+            return json.loads(self.kraft_cluster.relation_data.get("controller-ca", "null")) or []
+
+        if self.runs_controller_only:
+            return json.loads(self.kraft_cluster.relation_data.get("broker-ca", "null")) or []
+
+        # KRaft single mode
+        return self.unit_broker.peer_certs.bundle
+
+    @peer_cluster_ca.setter
+    def peer_cluster_ca(self, value: str | list[str]) -> None:
+        _value = [value] if isinstance(value, str) else value
+        _value = json.dumps(_value)
+        if self.runs_broker_only:
+            self.kraft_cluster.update({"broker-ca": _value})
+        elif self.runs_controller_only:
+            self.kraft_cluster.update({"controller-ca": _value})
+
+    @property
+    def tls_rotate(self) -> bool:
+        """Returns True if TLS rotation is in progress, False otherwise."""
+        return any(
+            [
+                self.unit_broker.client_certs.rotate,
+                self.unit_broker.peer_certs.rotate,
+            ]
+        )
+
+    @tls_rotate.setter
+    def tls_rotate(self, value: bool) -> None:
+        self.unit_broker.client_certs.rotate = value
+        self.unit_broker.peer_certs.rotate = value
+
+    @property
+    def balancer_tls_rotate(self) -> bool:
+        """Returns True if TLS rotation is in progress, False otherwise."""
+        return bool(self.cluster.relation_data.get("balancer-rotation", ""))
+
+    @balancer_tls_rotate.setter
+    def balancer_tls_rotate(self, value: bool) -> None:
+        _value = "" if not value else "true"
+        self.cluster.update({"balancer-rotation": _value})

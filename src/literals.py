@@ -30,6 +30,7 @@ REL_NAME = "kafka-client"
 OAUTH_REL_NAME = "oauth"
 
 TLS_RELATION = "certificates"
+INTERNAL_TLS_RELATION = "peer-certificates"
 CERTIFICATE_TRANSFER_RELATION = "client-cas"
 PEER_CLUSTER_RELATION = "peer-cluster"
 PEER_CLUSTER_ORCHESTRATOR_RELATION = "peer-cluster-orchestrator"
@@ -42,6 +43,13 @@ MIN_REPLICAS = 3
 KRAFT_VERSION = 1
 
 
+class TLSScope(str, Enum):
+    """Enum for TLS scopes."""
+
+    PEER = "peer"  # for internal communications
+    CLIENT = "client"  # for external/client communications
+
+
 INTER_BROKER_USER = "sync"
 ADMIN_USER = "admin"
 CONTROLLER_USER = "controller"
@@ -50,15 +58,20 @@ BALANCER_WEBSERVER_USER = "balancer"
 BALANCER_WEBSERVER_PORT = 9090
 SECRETS_APP = [
     f"{user}-password" for user in INTERNAL_USERS + [BALANCER_WEBSERVER_USER, CONTROLLER_USER]
-]
+] + ["internal-ca", "internal-ca-key"]
 SECRETS_UNIT = [
-    "ca-cert",
-    "chain",
-    "csr",
-    "certificate",
     "truststore-password",
     "keystore-password",
-    "private-key",
+    "client-ca-cert",
+    "client-certificate",
+    "client-chain",
+    "client-csr",
+    "client-private-key",
+    "peer-ca-cert",
+    "peer-certificate",
+    "peer-chain",
+    "peer-csr",
+    "peer-private-key",
 ]
 
 JMX_EXPORTER_PORT = 9101
@@ -74,24 +87,22 @@ class Ports:
     client: int
     internal: int
     external: int
+    controller: int
     extra: int = 0
 
 
 AuthProtocol = Literal["SASL_PLAINTEXT", "SASL_SSL", "SSL"]
 AuthMechanism = Literal["SCRAM-SHA-512", "OAUTHBEARER", "SSL"]
-Scope = Literal["INTERNAL", "CLIENT", "EXTERNAL", "EXTRA"]
+Scope = Literal["INTERNAL", "CLIENT", "EXTERNAL", "EXTRA", "CONTROLLER"]
 AuthMap = NamedTuple("AuthMap", protocol=AuthProtocol, mechanism=AuthMechanism)
 
 SECURITY_PROTOCOL_PORTS: dict[AuthMap, Ports] = {
-    AuthMap("SASL_PLAINTEXT", "SCRAM-SHA-512"): Ports(9092, 19092, 29092),
-    AuthMap("SASL_SSL", "SCRAM-SHA-512"): Ports(9093, 19093, 29093),
-    AuthMap("SSL", "SSL"): Ports(9094, 19094, 29094),
-    AuthMap("SASL_PLAINTEXT", "OAUTHBEARER"): Ports(9095, 19095, 29095),
-    AuthMap("SASL_SSL", "OAUTHBEARER"): Ports(9096, 19096, 29096),
+    AuthMap("SASL_PLAINTEXT", "SCRAM-SHA-512"): Ports(9092, 19092, 29092, 9097),
+    AuthMap("SASL_SSL", "SCRAM-SHA-512"): Ports(9093, 19093, 29093, 9098),
+    AuthMap("SSL", "SSL"): Ports(9094, 19094, 29094, 19194),
+    AuthMap("SASL_PLAINTEXT", "OAUTHBEARER"): Ports(9095, 19095, 29095, 19195),
+    AuthMap("SASL_SSL", "OAUTHBEARER"): Ports(9096, 19096, 29096, 19196),
 }
-# FIXME this port should exist on the previous abstraction
-CONTROLLER_PORT = 9097
-CONTROLLER_LISTENER_NAME = "INTERNAL_CONTROLLER"
 
 # FIXME: when running broker node.id will be unit-id + 100. If unit is only running
 # the controller node.id == unit-id. This way we can keep a human readable mapping of ids.
@@ -160,6 +171,7 @@ CONTROLLER = Role(
     requested_secrets=[
         "broker-username",
         "broker-password",
+        "controller-password",
     ],
 )
 BALANCER = Role(
@@ -247,18 +259,18 @@ class Status(Enum):
         BlockedStatus("missing required peer-cluster relation"), "DEBUG"
     )
     SNAP_NOT_INSTALLED = StatusLevel(BlockedStatus(f"unable to install {SNAP_NAME} snap"), "ERROR")
-    SERVICE_NOT_RUNNING = StatusLevel(BlockedStatus("Service not running"), "WARNING")
+    SERVICE_NOT_RUNNING = StatusLevel(BlockedStatus("service not running"), "WARNING")
     NOT_ALL_RELATED = StatusLevel(MaintenanceStatus("not all units related"), "DEBUG")
     CC_NOT_RUNNING = StatusLevel(BlockedStatus("Cruise Control not running"), "WARNING")
     MISSING_MODE = StatusLevel(
-        BlockedStatus("Application needs to be related with a KRaft controller"), "DEBUG"
+        BlockedStatus("application needs to be related with a KRaft controller"), "DEBUG"
     )
-    NO_CLUSTER_UUID = StatusLevel(WaitingStatus("Waiting for cluster uuid"), "DEBUG")
+    NO_CLUSTER_UUID = StatusLevel(WaitingStatus("waiting for cluster uuid"), "DEBUG")
     NO_BOOTSTRAP_CONTROLLER = StatusLevel(
-        WaitingStatus("Waiting for bootstrap controller"), "DEBUG"
+        WaitingStatus("waiting for bootstrap controller"), "DEBUG"
     )
     MISSING_CONTROLLER_PASSWORD = StatusLevel(
-        WaitingStatus("Waiting for controller user credentials"), "DEBUG"
+        WaitingStatus("waiting for controller user credentials"), "DEBUG"
     )
     BROKER_NOT_CONNECTED = StatusLevel(
         BlockedStatus("unit not connected to the controller"), "ERROR"
@@ -281,11 +293,13 @@ class Status(Enum):
         WaitingStatus("internal broker credentials not yet added"), "DEBUG"
     )
     NO_CERT = StatusLevel(WaitingStatus("unit waiting for signed certificates"), "INFO")
+    NO_INTERNAL_TLS = StatusLevel(WaitingStatus("waiting for internal TLS setup"), "INFO")
+    NO_PEER_CLUSTER_CA = StatusLevel(WaitingStatus("waiting for peer-cluster TLS setup"), "INFO")
     MTLS_REQUIRES_TLS = StatusLevel(
-        BlockedStatus("Can't setup MTLS client without a TLS relation first."), "ERROR"
+        BlockedStatus("can't setup mTLS client without a TLS relation first."), "ERROR"
     )
     INVALID_CLIENT_CERTIFICATE = StatusLevel(
-        BlockedStatus("MTLS Client's certificate is not a valid leaf certificate."), "ERROR"
+        BlockedStatus("mTLS client's certificate is not a valid leaf certificate."), "ERROR"
     )
     SYSCONF_NOT_OPTIMAL = StatusLevel(
         ActiveStatus("machine system settings are not optimal - see logs for info"),

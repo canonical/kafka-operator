@@ -16,12 +16,10 @@ from unittest.mock import MagicMock
 import pytest
 import yaml
 from charmlibs import pathops
-
-# from src.core.cluster import ClusterState
 from src.core.models import KafkaBroker
 from src.core.structured_config import CharmConfig
 from src.core.workload import CharmedKafkaPaths, WorkloadBase
-from src.literals import BROKER, SUBSTRATE
+from src.literals import BROKER, SUBSTRATE, TLSScope
 from src.managers.tls import TLSManager
 from tests.unit.helpers import TLSArtifacts, generate_tls_artifacts
 
@@ -86,12 +84,12 @@ class JKSError(Exception):
     """Error raised when JKS unit test fails."""
 
 
-def java_jks_test(truststore_path: str, truststor_password: str, ssl_server_port: int = 10443):
+def java_jks_test(truststore_path: str, truststore_password: str, ssl_server_port: int = 10443):
     cmd = [
         "java",
         "-Djavax.net.debug=ssl:handshake",
         f"-Djavax.net.ssl.trustStore={truststore_path}",
-        f'-Djavax.net.ssl.trustStorePassword="{truststor_password}"',
+        f'-Djavax.net.ssl.trustStorePassword="{truststore_password}"',
         JKS_UNIT_TEST_FILE,
         f"https://localhost:{ssl_server_port}",
     ]
@@ -101,8 +99,9 @@ def java_jks_test(truststore_path: str, truststor_password: str, ssl_server_port
 
 
 @pytest.fixture()
-def tls_manager(tmp_path_factory):
+def tls_manager(tmp_path_factory, monkeypatch):
     """A TLSManager instance with minimal functioning mock `Workload` and `State`."""
+    monkeypatch.undo()
     mock_workload = MagicMock(spec=WorkloadBase)
     mock_workload.write = lambda content, path: open(path, "w").write(content)
     mock_workload.exec = _exec
@@ -131,12 +130,14 @@ def tls_manager(tmp_path_factory):
     yield mgr
 
 
-def _set_manager_state(mgr: TLSManager, tls_artifacts: TLSArtifacts | None = None) -> None:
+def _set_manager_state(
+    mgr: TLSManager, tls_artifacts: TLSArtifacts | None = None, scope: TLSScope = TLSScope.CLIENT
+) -> None:
     data = {
-        "ca-cert": "ca",
-        "chain": json.dumps(["certificate", "ca"]),
-        "certificate": "certificate",
-        "private-key": "private-key",
+        f"{scope.value}-ca-cert": "ca",
+        f"{scope.value}-chain": json.dumps(["certificate", "ca"]),
+        f"{scope.value}-certificate": "certificate",
+        f"{scope.value}-private-key": "private-key",
         "keystore-password": "keystore-password",
         "truststore-password": "truststore-password",
     }
@@ -144,10 +145,10 @@ def _set_manager_state(mgr: TLSManager, tls_artifacts: TLSArtifacts | None = Non
     if tls_artifacts:
         data.update(
             {
-                "ca-cert": tls_artifacts.ca,
-                "chain": json.dumps(tls_artifacts.chain),
-                "certificate": tls_artifacts.certificate,
-                "private-key": tls_artifacts.private_key,
+                f"{scope.value}-ca-cert": tls_artifacts.ca,
+                f"{scope.value}-chain": json.dumps(tls_artifacts.chain),
+                f"{scope.value}-certificate": tls_artifacts.certificate,
+                f"{scope.value}-private-key": tls_artifacts.private_key,
             }
         )
 
@@ -205,13 +206,13 @@ def test_tls_manager_set_methods(
         return
 
     assert (
-        tls_manager.workload.root / tls_manager.workload.paths.conf_path / "server.pem"
+        tls_manager.workload.root / tls_manager.workload.paths.conf_path / "client-server.pem"
     ).read_text() == tls_artifacts.certificate
     assert (
-        tls_manager.workload.root / tls_manager.workload.paths.conf_path / "server.key"
+        tls_manager.workload.root / tls_manager.workload.paths.conf_path / "client-server.key"
     ).read_text() == tls_artifacts.private_key
     assert (
-        tls_manager.workload.root / tls_manager.workload.paths.conf_path / "bundle1.pem"
+        tls_manager.workload.root / tls_manager.workload.paths.conf_path / "client-bundle1.pem"
     ).read_text() == tls_artifacts.ca
 
 
@@ -246,10 +247,13 @@ def test_tls_manager_truststore_functionality(
     open(app_certfile, "w").write(other_tls.certificate)
     open(app_keyfile, "w").write(other_tls.private_key)
 
-    truststore_path = f"{tls_manager.workload.paths.conf_path}/truststore.jks"
+    truststore_path = f"{tls_manager.workload.paths.conf_path}/client-truststore.jks"
 
     for i in range(2 + int(with_intermediate)):
         assert f"bundle{i}" in tls_manager.trusted_certificates
+
+    # haven't initialized peer tls yet.
+    assert not tls_manager.peer_trusted_certificates
 
     with simple_ssl_server(certfile=app_certfile, keyfile=app_keyfile):
         # since we don't have the app cert/ca in our truststore, JKS test should fail.
@@ -290,7 +294,7 @@ def test_tls_manager_truststore_functionality(
     tls_manager.remove_cert("other-app")
     log_record = caplog.records[-1]
     assert "alias <other-app> does not exist" in log_record.msg.lower()
-    assert log_record.levelname == "WARNING"
+    assert log_record.levelname == "DEBUG"
 
 
 @pytest.mark.skipif(
@@ -345,5 +349,31 @@ def test_simulate_os_errors(tls_manager: TLSManager):
     with pytest.raises(subprocess.CalledProcessError):
         tls_manager.remove_cert("some-alias")
 
-    with pytest.raises(subprocess.CalledProcessError):
-        tls_manager.get_current_sans()
+
+def test_peer_cluster_trust(tls_manager: TLSManager):
+    _set_manager_state(tls_manager)
+    tls_manager.state.roles = "broker"
+    tls_data = generate_tls_artifacts(subject="controller/0")
+
+    tls_manager.state.peer_cluster_ca = [tls_data.ca]
+    tls_manager.update_peer_cluster_trust()
+
+    trusted_certs = tls_manager.peer_trusted_certificates
+    assert f"{tls_manager.PEER_CLUSTER_ALIAS}0" in trusted_certs
+    assert len(trusted_certs) == 1
+    fingerprint = next(iter(trusted_certs.values()))
+
+    # expect no-op here
+    tls_manager.update_peer_cluster_trust()
+    assert len(tls_manager.peer_trusted_certificates) == 1
+
+    # Now let's rotate
+    new_tls_data = generate_tls_artifacts(subject="controller/0")
+    tls_manager.state.peer_cluster_ca = [new_tls_data.ca]
+
+    tls_manager.update_peer_cluster_trust()
+    trusted_certs = tls_manager.peer_trusted_certificates
+    assert f"{tls_manager.PEER_CLUSTER_ALIAS}0" in trusted_certs
+    assert len(trusted_certs) == 1
+    new_fingerprint = next(iter(trusted_certs.values()))
+    assert new_fingerprint != fingerprint

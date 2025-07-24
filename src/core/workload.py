@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 from charmlibs import pathops
 from ops.pebble import Layer
 
-from literals import BALANCER, BROKER, Role
+from literals import BALANCER, BROKER, Role, TLSScope
 
 
 class CharmedKafkaPaths:
@@ -56,13 +56,23 @@ class CharmedKafkaPaths:
 
     @property
     def keystore(self):
-        """The Java Keystore containing service private-key and signed certificates."""
-        return f"{self.conf_path}/keystore.p12"
+        """The Java Keystore containing service private-key and signed certificates for clients."""
+        return f"{self.conf_path}/{TLSScope.CLIENT.value}-keystore.p12"
 
     @property
     def truststore(self):
-        """The Java Truststore containing trusted CAs + certificates."""
-        return f"{self.conf_path}/truststore.jks"
+        """The Java Truststore containing trusted CAs + certificates for clients."""
+        return f"{self.conf_path}/{TLSScope.CLIENT.value}-truststore.jks"
+
+    @property
+    def peer_keystore(self):
+        """The Java Keystore containing service private-key and signed certificates for internal peer communications."""
+        return f"{self.conf_path}/{TLSScope.PEER.value}-keystore.p12"
+
+    @property
+    def peer_truststore(self):
+        """The Java Truststore containing trusted CAs + certificates for internal peer communications."""
+        return f"{self.conf_path}/{TLSScope.PEER.value}-truststore.jks"
 
     @property
     def log4j_properties(self):

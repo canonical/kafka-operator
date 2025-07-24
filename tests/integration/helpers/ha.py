@@ -17,7 +17,7 @@ from integration.helpers.jubilant import KRaftUnitStatus, all_active_idle, kraft
 from integration.helpers.pytest_operator import check_socket, get_unit_ipv4_address
 from literals import KRAFT_NODE_ID_OFFSET, PATHS, SECURITY_PROTOCOL_PORTS
 
-CONTROLLER_PORT = 9097
+CONTROLLER_PORT = SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].controller
 PROCESS = "kafka.Kafka"
 SERVICE_DEFAULT_PATH = "/etc/systemd/system/snap.charmed-kafka.daemon.service"
 RESTART_DELAY = 60
@@ -57,7 +57,7 @@ def get_topic_description(juju: jubilant.Juju, topic: str) -> TopicDescription:
             continue
 
         bootstrap_servers.append(
-            f"{unit_ip}:{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT', 'SCRAM-SHA-512'].client}"
+            f"{unit_ip}:{SECURITY_PROTOCOL_PORTS['SASL_SSL', 'SCRAM-SHA-512'].internal}"
         )
 
     output = ""
@@ -96,7 +96,7 @@ def get_topic_offsets(juju: jubilant.Juju, topic: str) -> list[str]:
             continue
 
         bootstrap_servers.append(
-            f"{unit_ip}:{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT', 'SCRAM-SHA-512'].client}"
+            f"{unit_ip}:{SECURITY_PROTOCOL_PORTS['SASL_SSL', 'SCRAM-SHA-512'].internal}"
         )
 
     result = ""
