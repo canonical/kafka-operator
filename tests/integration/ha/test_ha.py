@@ -46,11 +46,6 @@ from integration.helpers.jubilant import (
 )
 from literals import SECURITY_PROTOCOL_PORTS
 
-RESTART_DELAY = 60
-CLIENT_TIMEOUT = 30
-REELECTION_TIME = 25
-PRODUCING_MESSAGES = 10
-
 logger = logging.getLogger(__name__)
 
 BROKER_PORT = SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client

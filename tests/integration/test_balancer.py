@@ -27,7 +27,6 @@ from literals import (
     PEER_CLUSTER_RELATION,
 )
 
-
 logger = logging.getLogger(__name__)
 
 pytestmark = pytest.mark.balancer

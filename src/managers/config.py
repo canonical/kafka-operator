@@ -466,17 +466,25 @@ class ConfigManager(CommonConfigManager):
         # Strip CC & TLS properties from KRaft quorum client properties file
         stripped_properties = list(
             set(self.server_properties)
-            - set(KAFKA_CRUISE_CONTROL_OPTIONS.splitlines() + self.metrics_reporter_properties + self.tls_properties)
+            - set(
+                KAFKA_CRUISE_CONTROL_OPTIONS.splitlines()
+                + self.metrics_reporter_properties
+                + self.tls_properties
+            )
         )
         stripped_properties.sort()
 
-        return stripped_properties + [
-            f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{CONTROLLER_USER}" password="{password}";',
-            f"sasl.mechanism={self.internal_listener.mechanism}",
-            "security.protocol=SASL_PLAINTEXT",
-            "default.api.timeout.ms=20000",
-            "request.timeout.ms=10000",
-        ] + self.client_tls_properties
+        return (
+            stripped_properties
+            + [
+                f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{CONTROLLER_USER}" password="{password}";',
+                f"sasl.mechanism={self.internal_listener.mechanism}",
+                "security.protocol=SASL_PLAINTEXT",
+                "default.api.timeout.ms=20000",
+                "request.timeout.ms=10000",
+            ]
+            + self.client_tls_properties
+        )
 
     @property
     def oauth_properties(self) -> list[str]:

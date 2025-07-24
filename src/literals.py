@@ -225,7 +225,6 @@ MODE_REMOVE = "remove"
 PROFILE_TESTING = "testing"
 
 
-<<<<<<< HEAD
 class KRaftUnitStatus(str, Enum):
     """KRaft unit status (also known as role) in KRaft Quorums."""
 
@@ -243,8 +242,6 @@ class KRaftQuorumInfo:
     status: KRaftUnitStatus
 
 
-=======
->>>>>>> cc55e44 (refactor: based on first review)
 @dataclass
 class StatusLevel:
     """Status object helper."""
