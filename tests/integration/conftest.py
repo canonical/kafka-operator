@@ -124,7 +124,7 @@ def juju(request: pytest.FixtureRequest):
     if model is None:
         with jubilant.temp_model(keep=keep_models) as juju:
             juju.wait_timeout = 10 * 60
-            juju.model_config({"update-status-hook-interval": "90s"})
+            juju.model_config({"update-status-hook-interval": "180s"})
             yield juju
 
             log = juju.debug_log(limit=1000)

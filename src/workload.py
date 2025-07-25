@@ -4,10 +4,14 @@
 
 """KafkaSnap class and methods."""
 
+import csv
+import datetime
 import logging
 import os
+import re
 import subprocess
-from typing import Mapping
+from io import StringIO
+from typing import Mapping, cast
 
 from charmlibs import pathops
 from charms.operator_libs_linux.v2 import snap
@@ -86,6 +90,7 @@ class Workload(WorkloadBase):
         command: list[str] | str,
         env: Mapping[str, str] | None = None,
         working_dir: str | None = None,
+        log_on_error: bool = True,
     ) -> str:
         try:
             output = subprocess.check_output(
@@ -99,7 +104,8 @@ class Workload(WorkloadBase):
             logger.debug(f"{output=}")
             return output
         except subprocess.CalledProcessError as e:
-            logger.error(f"cmd failed - cmd={e.cmd}, stdout={e.stdout}, stderr={e.stderr}")
+            if log_on_error:
+                logger.error(f"cmd failed - cmd={e.cmd}, stdout={e.stdout}, stderr={e.stderr}")
             raise e
 
     @override
@@ -115,10 +121,50 @@ class Workload(WorkloadBase):
         except KeyError:
             return False
 
+    @override
+    def modify_time(self, file: str) -> float:
+        path = cast(pathops.LocalPath, self.root / file)
+
+        if not path.exists():
+            return 0.0
+
+        return path.stat().st_mtime
+
     @property
     @override
     def installed(self) -> bool:
         return self.kafka.present
+
+    @property
+    @override
+    def last_restart(self) -> float:
+        raw = self.exec(f"snap changes --abs-time {SNAP_NAME}")
+
+        # convert multiple spaces to tab
+        raw = re.sub(r" {2,}", "\t", raw)
+
+        # Format of snap changes output:
+        # ID  Status  Spawn  Ready  Summary
+        f = StringIO(raw)
+        output = list(iter(csv.DictReader(f, delimiter="\t")))
+
+        # Convert datetime strings to pythonic objects
+        for item in output:
+            item["Spawn"] = datetime.datetime.fromisoformat(item["Spawn"])
+            item["Ready"] = datetime.datetime.fromisoformat(item["Ready"])
+
+        # Changes are ordered ASC by time, so reverse the list
+        service_changes = [
+            item
+            for item in output[::-1]
+            if item["Status"].lower() == "done"
+            and item["Summary"].lower() == "running service command"
+        ]
+
+        if not service_changes:
+            return 0.0
+
+        return cast(datetime.datetime, service_changes[0]["Ready"]).timestamp()
 
     def install(self) -> bool:
         """Loads the Kafka snap from LP.
