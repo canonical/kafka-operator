@@ -255,12 +255,12 @@ class TestKRaft:
         await ops_test.model.applications[self.controller_app].add_units(count=1)
 
         # ensure unit is added to dynamic quorum
-        async with ops_test.fast_forward(fast_interval="60s"):
+        async with ops_test.fast_forward(fast_interval="120s"):
             await ops_test.model.wait_for_idle(
                 apps=list({APP_NAME, self.controller_app}),
                 status="active",
                 timeout=1200,
-                idle_period=40,
+                idle_period=30,
             )
 
         unit_status = kraft_quorum_status(
