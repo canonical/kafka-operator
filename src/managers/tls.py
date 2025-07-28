@@ -648,7 +648,7 @@ class TLSManager:
         return self.get_trusted_certificates(self.workload.paths.peer_truststore)
 
     @property
-    def has_temporary_trust_aliases(self) -> bool:
+    def peer_truststore_has_temporary_aliases(self) -> bool:
         """Returns True if any temporary/TLS rotation-related cert is loaded into the peer (internal) truststore."""
         for alias in self.peer_trusted_certificates:
             if alias.startswith(self.OLD_PREFIX) or alias.startswith(self.NEW_PREFIX):
