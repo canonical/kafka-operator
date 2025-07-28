@@ -342,7 +342,7 @@ class BrokerOperator(Object):
 
         # remove temporary trust aliases if they're no longer needed.
         if (
-            self.tls_manager.has_temporary_trust_aliases
+            self.tls_manager.peer_truststore_has_temporary_aliases
             and self.tls_manager.both_apps_trust_new_bundle()
         ):
             logger.info("Removing decommissioned CA from truststore.")
