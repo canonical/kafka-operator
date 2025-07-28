@@ -328,9 +328,6 @@ class TLSManager:
             scope (TLSScope): TLS scope to use
             alias_prefix (str, optional): an optional prefix to be prepended to the imported aliases. Defaults to "".
         """
-        if not bundle:
-            return
-
         for i, certificate in enumerate(bundle):
 
             alias = f"{alias_prefix}bundle{i}"
