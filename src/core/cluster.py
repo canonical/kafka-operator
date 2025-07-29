@@ -726,3 +726,37 @@ class ClusterState(Object):
     def balancer_tls_rotate(self, value: bool) -> None:
         _value = "" if not value else "true"
         self.cluster.update({"balancer-rotation": _value})
+
+    @property
+    def peer_cluster_tls_rotate(self) -> bool:
+        """Returns True if TLS rotation is in progress on the peer-cluster side."""
+        relation = self.kraft_cluster.relation
+
+        if not relation:
+            return False
+
+        return relation.data[relation.app].get("peer-cluser-rotate") == "true"
+
+    @peer_cluster_tls_rotate.setter
+    def peer_cluster_tls_rotate(self, value: bool) -> None:
+        if not self.unit_broker.unit.is_leader():
+            return
+
+        _value = "true" if value else ""
+        self.kraft_cluster.update({"peer-cluster-rotate": _value})
+        # Non-leader units can't read local app relation data, so write the same on peer app data.
+        self.cluster.update({"peer-cluster-rotate": _value})
+
+    @property
+    def both_sides_rotating(self) -> bool:
+        """Returns True if both sides of the peer-cluster relation are rotating TLS certs, False otherwise."""
+        if self.runs_broker and self.runs_controller:
+            return False
+
+        if not (relation := self.kraft_cluster.relation):
+            return False
+
+        return (
+            relation.data[relation.app].get("peer-cluster-rotate") == "true"
+            and self.cluster.relation_data.get("peer-cluster-rotate") == "true"
+        )

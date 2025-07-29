@@ -254,9 +254,21 @@ class BrokerOperator(Object):
             self.charm.state.tls_rotate
             and not self.tls_manager.peer_cluster_app_trusts_new_bundle()
         ):
-            # we should wait for the other side to finish rolling restart.
-            event.defer()
-            return
+            # Basically we should defer and wait for the other side
+            # to complete its rolling restart and then begin our rolling restart.
+            # However, if both sides are rotating, we should prevent deadlock by
+            # forcing one side (BROKER here) to restart anyway.
+            should_defer = True
+            if self.charm.state.both_sides_rotating and self.charm.state.runs_broker:
+                logger.debug(
+                    "Both sides are rotating TLS certificates, initiating rolling restart..."
+                )
+                logger.info("$$$$$$$$$$$$$$$$ TIE BREAK!")
+                should_defer = False
+
+            if should_defer:
+                event.defer()
+                return
 
         if sans_ip_changed or sans_dns_changed:
             logger.info(
@@ -320,6 +332,7 @@ class BrokerOperator(Object):
 
             # Reset TLS rotation state
             self.charm.state.tls_rotate = False
+            self.charm.state.peer_cluster_tls_rotate = False
 
         if self.charm.unit.is_leader():
             self.update_credentials_cache()

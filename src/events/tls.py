@@ -248,6 +248,10 @@ class TLSHandler(Object):
             # Update peer-cluster CA/chain.
             self.charm.state.peer_cluster_ca = self.charm.state.unit_broker.peer_certs.bundle
 
+            # Inform the peer-cluster app of the rotate
+            if self.requirer_state(self.peer_certificates).rotate:
+                self.charm.state.peer_cluster_tls_rotate = True
+
         self.charm.on.config_changed.emit()
 
     def _on_client_certificate_available(self, event: CertificateAvailableEvent) -> None:
