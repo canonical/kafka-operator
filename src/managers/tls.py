@@ -216,6 +216,7 @@ class TLSManager:
             state = self.get_state(scope)
             self.import_bundle(bundle=state.bundle, scope=scope)
 
+            # Exit early if the bundle was empty and no truststore file is created.
             if not (self.workload.root / self.get_truststore_path(scope)).exists():
                 continue
 
