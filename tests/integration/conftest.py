@@ -113,9 +113,6 @@ async def _build_charm(self, charm_path: typing.Union[str, os.PathLike]) -> path
 # -- Jubilant --
 
 
-logging.getLogger("jubilant.wait").setLevel(logging.WARNING)
-
-
 @pytest.fixture(scope="module")
 def juju(request: pytest.FixtureRequest):
     model = request.config.getoption("--model")
