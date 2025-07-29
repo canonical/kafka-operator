@@ -4,6 +4,8 @@
 import asyncio
 import logging
 import os
+import pathlib
+import tempfile
 import time
 from dataclasses import dataclass
 from multiprocessing import Event, Process, Queue
@@ -177,8 +179,26 @@ class ContinuousWrites:
             servers=relation_data["endpoints"].split(","),
             username=relation_data["username"],
             password=relation_data["password"],
-            security_protocol="SASL_PLAINTEXT",
+            **self.generate_client_security_config(relation_data),
+            replication_factor=3,
         )
+
+    @staticmethod
+    def generate_client_security_config(provider_data: dict) -> dict[str, str]:
+        """Generate security_protocol, cafile_path and certfile_path config for KafkaClient."""
+        _kwargs = {"security_protocol": "SASL_PLAINTEXT"}
+
+        if provider_data.get("tls") == "enabled":
+            broker_ca = provider_data.get("tls-ca", "")
+            _, filename = tempfile.mkstemp()
+            tmp_file = pathlib.Path(filename)
+            tmp_file.write_text(broker_ca)
+            _kwargs = {
+                "security_protocol": "SASL_SSL",
+                "cafile_path": f"{tmp_file}",
+                "certfile_path": f"{tmp_file}",
+            }
+        return _kwargs
 
     @staticmethod
     async def _run(
@@ -197,7 +217,8 @@ class ContinuousWrites:
                 servers=relation_data["endpoints"].split(","),
                 username=relation_data["username"],
                 password=relation_data["password"],
-                security_protocol="SASL_PLAINTEXT",
+                **ContinuousWrites.generate_client_security_config(relation_data),
+                replication_factor=3,
             )
 
         write_value = starting_number
