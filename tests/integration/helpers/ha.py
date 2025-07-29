@@ -18,6 +18,7 @@ from integration.helpers.pytest_operator import check_socket, get_unit_ipv4_addr
 from literals import KRAFT_NODE_ID_OFFSET, PATHS, SECURITY_PROTOCOL_PORTS
 
 CONTROLLER_PORT = SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].controller
+BROKER_PORT = SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
 PROCESS = "kafka.Kafka"
 SERVICE_DEFAULT_PATH = "/etc/systemd/system/snap.charmed-kafka.daemon.service"
 RESTART_DELAY = 60
@@ -275,12 +276,14 @@ def all_listeners_up(
     raise TimeoutError()
 
 
-def assert_all_brokers_up(juju: jubilant.Juju, timeout_seconds: int = 600) -> None:
+def assert_all_brokers_up(
+    juju: jubilant.Juju, timeout_seconds: int = 600, port: int = BROKER_PORT
+) -> None:
     """Waits until client listeners are up on all broker units."""
     return all_listeners_up(
         juju=juju,
         app_name=APP_NAME,
-        listener_port=SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client,
+        listener_port=port,
         timeout_seconds=timeout_seconds,
     )
 
