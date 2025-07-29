@@ -735,7 +735,7 @@ class ClusterState(Object):
         if not relation:
             return False
 
-        return relation.data[relation.app].get("peer-cluser-rotate") == "true"
+        return relation.data[relation.app].get("peer-cluster-rotate") == "true"
 
     @peer_cluster_tls_rotate.setter
     def peer_cluster_tls_rotate(self, value: bool) -> None:

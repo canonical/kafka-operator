@@ -113,7 +113,7 @@ def test_integrate_internal_tls(
     juju.wait(
         lambda status: all_active_idle(status, *kafka_apps, *tls_apps),
         delay=3,
-        successes=10,
+        successes=20,
         timeout=3600,
     )
 
