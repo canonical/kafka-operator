@@ -263,7 +263,6 @@ class BrokerOperator(Object):
                 logger.debug(
                     "Both sides are rotating TLS certificates, initiating rolling restart..."
                 )
-                logger.info("$$$$$$$$$$$$$$$$ TIE BREAK!")
                 should_defer = False
 
             if should_defer:
