@@ -13,9 +13,12 @@ from typing import MutableMapping, TypeAlias, TypedDict
 import requests
 from charms.data_platform_libs.v0.data_interfaces import (
     PROV_SECRET_PREFIX,
+    SECRET_GROUPS,
     Data,
     DataPeerData,
     DataPeerUnitData,
+    ProviderData,
+    RequirerData,
 )
 from lightkube.resources.core_v1 import Node, Pod
 from ops.model import Application, Relation, Unit
@@ -24,6 +27,7 @@ from typing_extensions import override
 from literals import (
     BALANCER,
     BROKER,
+    CONTROLLER,
     INTERNAL_USERS,
     KRAFT_NODE_ID_OFFSET,
     SECRETS_APP,
@@ -45,6 +49,21 @@ BrokerCapacity = TypedDict("BrokerCapacity", {"brokerId": str, "capacity": Capac
 BrokerCapacities = TypedDict(
     "BrokerCapacities", {"brokerCapacities": list[BrokerCapacity]}, total=False
 )
+
+custom_secret_groups = SECRET_GROUPS
+setattr(custom_secret_groups, "BROKER", "broker")
+setattr(custom_secret_groups, "BALANCER", "balancer")
+setattr(custom_secret_groups, "CONTROLLER", "controller")
+
+SECRET_LABEL_MAP = {
+    "broker-username": getattr(custom_secret_groups, "BROKER"),
+    "broker-password": getattr(custom_secret_groups, "BROKER"),
+    "controller-password": getattr(custom_secret_groups, "CONTROLLER"),
+    "broker-uris": getattr(custom_secret_groups, "BROKER"),
+    "balancer-username": getattr(custom_secret_groups, "BALANCER"),
+    "balancer-password": getattr(custom_secret_groups, "BALANCER"),
+    "balancer-uris": getattr(custom_secret_groups, "BALANCER"),
+}
 
 
 @dataclass
@@ -101,6 +120,39 @@ class RelationState:
 
         for field in delete_fields:
             del self.relation_data[field]
+
+        if not self.relation:
+            return
+
+        secret_keys = set(update_content) & set(SECRET_LABEL_MAP)
+        for key in secret_keys:
+            self.data_interface._add_or_update_relation_secrets(
+                self.relation, SECRET_LABEL_MAP[key], {key}, {key: update_content[key]}
+            )
+
+
+class PeerClusterOrchestratorData(ProviderData, RequirerData):
+    """Broker provider data model."""
+
+    SECRET_LABEL_MAP = SECRET_LABEL_MAP
+    SECRET_FIELDS = BROKER.requested_secrets
+
+    # This is to bypass the PrematureDataAccessError, which is irrelevant in this case.
+    def _update_relation_data(self, relation: Relation, data: dict[str, str]) -> None:
+        """Set values for fields not caring whether it's a secret or not."""
+        super(ProviderData, self)._update_relation_data(relation, data)
+
+
+class PeerClusterData(ProviderData, RequirerData):
+    """Broker provider data model."""
+
+    SECRET_LABEL_MAP = SECRET_LABEL_MAP
+    SECRET_FIELDS = list(set(BALANCER.requested_secrets) | set(CONTROLLER.requested_secrets))
+
+    # This is to bypass the PrematureDataAccessError, which is irrelevant in this case.
+    def _update_relation_data(self, relation: Relation, data: dict[str, str]) -> None:
+        """Set values for fields not caring whether it's a secret or not."""
+        super(ProviderData, self)._update_relation_data(relation, data)
 
 
 class PeerCluster(RelationState):

@@ -12,13 +12,10 @@ from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, Any
 
 from charms.data_platform_libs.v0.data_interfaces import (
-    SECRET_GROUPS,
     DataPeerData,
     DataPeerOtherUnitData,
     DataPeerUnitData,
     KafkaProviderData,
-    ProviderData,
-    RequirerData,
 )
 from charms.tls_certificates_interface.v4.tls_certificates import Certificate, PrivateKey
 from lightkube.core.exceptions import ApiError as LightKubeApiError
@@ -33,6 +30,8 @@ from core.models import (
     KafkaCluster,
     OAuth,
     PeerCluster,
+    PeerClusterData,
+    PeerClusterOrchestratorData,
 )
 from literals import (
     ADMIN_USER,
@@ -61,45 +60,6 @@ if TYPE_CHECKING:
     from charm import KafkaCharm
 
 logger = logging.getLogger(__name__)
-
-custom_secret_groups = SECRET_GROUPS
-setattr(custom_secret_groups, "BROKER", "broker")
-setattr(custom_secret_groups, "BALANCER", "balancer")
-setattr(custom_secret_groups, "CONTROLLER", "controller")
-
-SECRET_LABEL_MAP = {
-    "broker-username": getattr(custom_secret_groups, "BROKER"),
-    "broker-password": getattr(custom_secret_groups, "BROKER"),
-    "controller-password": getattr(custom_secret_groups, "CONTROLLER"),
-    "broker-uris": getattr(custom_secret_groups, "BROKER"),
-    "balancer-username": getattr(custom_secret_groups, "BALANCER"),
-    "balancer-password": getattr(custom_secret_groups, "BALANCER"),
-    "balancer-uris": getattr(custom_secret_groups, "BALANCER"),
-}
-
-
-class PeerClusterOrchestratorData(ProviderData, RequirerData):
-    """Broker provider data model."""
-
-    SECRET_LABEL_MAP = SECRET_LABEL_MAP
-    SECRET_FIELDS = BROKER.requested_secrets
-
-    # This is to bypass the PrematureDataAccessError, which is irrelevant in this case.
-    def _update_relation_data(self, relation: Relation, data: dict[str, str]) -> None:
-        """Set values for fields not caring whether it's a secret or not."""
-        super(ProviderData, self)._update_relation_data(relation, data)
-
-
-class PeerClusterData(ProviderData, RequirerData):
-    """Broker provider data model."""
-
-    SECRET_LABEL_MAP = SECRET_LABEL_MAP
-    SECRET_FIELDS = list(set(BALANCER.requested_secrets) | set(CONTROLLER.requested_secrets))
-
-    # This is to bypass the PrematureDataAccessError, which is irrelevant in this case.
-    def _update_relation_data(self, relation: Relation, data: dict[str, str]) -> None:
-        """Set values for fields not caring whether it's a secret or not."""
-        super(ProviderData, self)._update_relation_data(relation, data)
 
 
 class ClusterState(Object):
