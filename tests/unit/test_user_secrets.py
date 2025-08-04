@@ -7,8 +7,9 @@ from unittest.mock import PropertyMock, patch
 import pytest
 import yaml
 from ops.testing import Container, Context, PeerRelation, Secret, State
-from src.charm import KafkaCharm
 from src.literals import CONTAINER, INTERNAL_USERS, PEER, SUBSTRATE
+
+from charm import KafkaCharm
 
 logger = logging.getLogger(__name__)
 AUTH_CONFIG_KEY = "system-users"

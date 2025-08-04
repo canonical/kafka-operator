@@ -41,7 +41,6 @@ class KRaftHandler(Object):
         super().__init__(broker, CONTROLLER.value)
         self.charm: "KafkaCharm" = broker.charm
         self.broker: "BrokerOperator" = broker
-        self.upgrade = self.broker.upgrade
 
         self.workload = KafkaWorkload(
             container=(

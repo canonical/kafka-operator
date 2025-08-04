@@ -84,7 +84,7 @@ jobs:
           - integration-provider
           - integration-password-rotation
           - integration-tls
-          #- integration-upgrade
+          - integration-refresh
           - integration-kraft
           - integration-kraft-tls
           - integration-ha
@@ -136,7 +136,7 @@ jobs:
           - integration-provider
           - integration-password-rotation
           - integration-tls
-          #- integration-upgrade
+          - integration-refresh
           - integration-balancer-single
           - integration-balancer-multi
           - integration-kraft

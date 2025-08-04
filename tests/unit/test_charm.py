@@ -347,7 +347,6 @@ def test_update_status_blocks_if_broker_not_active(
     # When
     with (
         patch("workload.KafkaWorkload.active", return_value=True),
-        patch("events.upgrade.KafkaUpgrade.idle", return_value=True),
         patch(
             "managers.controller.ControllerManager.broker_active", return_value=False
         ) as patched_broker_active,

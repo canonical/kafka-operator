@@ -54,11 +54,10 @@ class KafkaRefresh(charm_refresh.CharmSpecificCommon, abc.ABC):
         """Implement pre-refresh checks after 1 unit refreshed."""
         if (
             self._charm.state.runs_balancer
-            and (not self._charm.state.runs_broker and not self._charm.state.runs_controller)
+            and not self._charm.state.runs_broker
+            and not self._charm.state.runs_controller
         ):
-            raise charm_refresh.PrecheckFailed(
-                "Refresh not supported on balancer-only nodes."
-            )
+            raise charm_refresh.PrecheckFailed("Refresh not supported on balancer-only nodes.")
         if not self._charm.broker.healthy:
             raise charm_refresh.PrecheckFailed("Cluster is not healthy")
 
