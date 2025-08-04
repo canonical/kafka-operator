@@ -70,21 +70,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         self.workload = KafkaWorkload()  # Will be re-instantiated for each role.
         self.restart = RollingOpsManager(self, relation="restart", callback=self._restart_broker)
-        try:
-            self.refresh = charm_refresh.Machines(
-                MachinesKafkaRefresh(workload_name="Kafka", charm_name="kafka", _charm=self)
-            )
-        except (charm_refresh.PeerRelationNotReady, charm_refresh.UnitTearingDown):
-            self.refresh = None
-
-        if (
-            self.refresh
-            and not self.refresh.next_unit_allowed_to_refresh
-            and self.refresh.workload_allowed_to_start
-        ):
-            # Only proceed if snap is installed (avoids KeyError during initial deployment)
-            if self.workload.installed and self.workload.active():
-                self.post_snap_refresh(self.refresh)
 
         self._grafana_agent = COSAgentProvider(
             self,
@@ -113,6 +98,22 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.balancer = BalancerOperator(self)
 
         self.tls = TLSHandler(self)
+
+        try:
+            self.refresh = charm_refresh.Machines(
+                MachinesKafkaRefresh(workload_name="Kafka", charm_name="kafka", _charm=self)
+            )
+        except (charm_refresh.PeerRelationNotReady, charm_refresh.UnitTearingDown):
+            self.refresh = None
+
+        if (
+            self.refresh
+            and not self.refresh.next_unit_allowed_to_refresh
+            and self.refresh.workload_allowed_to_start
+        ):
+            # Only proceed if snap is installed (avoids KeyError during initial deployment)
+            if self.workload.installed and self.workload.active():
+                self.post_snap_refresh(self.refresh)
 
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
