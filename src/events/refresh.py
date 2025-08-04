@@ -52,8 +52,15 @@ class KafkaRefresh(charm_refresh.CharmSpecificCommon, abc.ABC):
 
     def run_pre_refresh_checks_after_1_unit_refreshed(self) -> None:
         """Implement pre-refresh checks after 1 unit refreshed."""
-        # TODO: implement pre-refresh checks & preparations before merging or release
-        pass
+        if (
+            self._charm.state.runs_balancer
+            and (not self._charm.state.runs_broker and not self._charm.state.runs_controller)
+        ):
+            raise charm_refresh.PrecheckFailed(
+                "Refresh not supported on balancer-only nodes."
+            )
+        if not self._charm.broker.healthy:
+            raise charm_refresh.PrecheckFailed("Cluster is not healthy")
 
 
 @dataclasses.dataclass(eq=False)
@@ -69,7 +76,6 @@ class MachinesKafkaRefresh(KafkaRefresh, charm_refresh.CharmSpecificMachines):
     ) -> None:
         """Refresh the snap for the Kafka charm."""
         self._charm.broker.workload.stop()
-        self._charm.balancer.workload.stop()
 
         revision_before_refresh = self._charm.workload.kafka.revision
         assert snap_revision != revision_before_refresh
@@ -78,8 +84,6 @@ class MachinesKafkaRefresh(KafkaRefresh, charm_refresh.CharmSpecificMachines):
 
             if self._charm.workload.kafka.revision == revision_before_refresh:
                 self._charm.broker.workload.start()
-                if self._charm.state.runs_balancer:
-                    self._charm.balancer.workload.start()
             else:
                 refresh.update_snap_revision()
             raise KafkaUpgradeError
@@ -88,13 +92,9 @@ class MachinesKafkaRefresh(KafkaRefresh, charm_refresh.CharmSpecificMachines):
 
         # Post snap refresh logic
         self._charm.broker.config_manager.set_environment()
-        if self._charm.state.runs_balancer:
-            self._charm.balancer.config_manager.set_environment()
 
         logger.info(f"{self._charm.unit.name} upgrading service...")
         self._charm.broker.workload.restart()
-        if self._charm.state.runs_balancer:
-            self._charm.balancer.workload.restart()
 
         # Allow for some time to settle down
         # FIXME: This logic should be improved as part of ticket DPE-3155

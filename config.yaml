@@ -123,7 +123,7 @@ options:
     description: "String to determine how to expose the Apache Kafka cluster externally from the Kubernetes cluster. Possible values: 'nodeport', 'none'"
     type: string
     default: "nodeport"
-  pause_after_unit_refresh:
+  pause-after-unit-refresh:
     description: |
       Wait for manual confirmation to resume refresh after these units refresh
 
