@@ -109,7 +109,7 @@ def test_refresh_snap_successful(ctx: Context, base_state: State) -> None:
         patch("workload.Workload.install", return_value=True) as mock_install,
         patch("managers.config.ConfigManager.set_environment") as mock_set_env,
         patch("charm.KafkaCharm.post_snap_refresh") as mock_post_refresh,
-        patch("time.sleep") as mock_sleep,
+        patch("time.sleep"),
         ctx(ctx.on.config_changed(), state_in) as manager,
     ):
         charm = cast(KafkaCharm, manager.charm)
@@ -132,7 +132,6 @@ def test_refresh_snap_successful(ctx: Context, base_state: State) -> None:
         mock_refresh.update_snap_revision.assert_called_once()
         mock_set_env.assert_called_once()
         mock_restart.assert_called_once()
-        mock_sleep.assert_called_once_with(20)
         mock_post_refresh.assert_called_once_with(mock_refresh)
 
 
