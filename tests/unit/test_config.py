@@ -488,15 +488,17 @@ def test_bootstrap_server(ctx: Context, base_state: State) -> None:
         local_unit_data={"private-address": "treebeard"},
         peers_data={1: {"private-address": "shelob"}},
     )
-    state_in = dataclasses.replace(base_state, relations=[cluster_peer])
+    client_rel = Relation(REL_NAME)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, client_rel])
 
     # When
     with ctx(ctx.on.config_changed(), state_in) as manager:
         charm = cast(KafkaCharm, manager.charm)
 
         # Then
-        assert len(charm.state.bootstrap_server.split(",")) == 2
-        for server in charm.state.bootstrap_server.split(","):
+        bootstrap_servers = charm.state.client_bootstrap_server(client_rel)
+        assert len(bootstrap_servers.split(",")) == 2
+        for server in bootstrap_servers.split(","):
             assert "9092" in server
 
 

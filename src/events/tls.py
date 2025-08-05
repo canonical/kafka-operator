@@ -94,6 +94,7 @@ class TLSHandler(Object):
                     sans_dns=frozenset(self.sans["sans_dns"]),
                 ),
             ],
+            refresh_events=[self.refresh_tls_certificates],
             private_key=peer_private_key,
         )
 

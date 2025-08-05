@@ -40,6 +40,7 @@ from literals import (
     REL_NAME,
     USER_ID,
     Status,
+    TLSScope,
 )
 from managers.auth import AuthManager
 from managers.balancer import BalancerManager
@@ -183,6 +184,8 @@ class BrokerOperator(Object):
 
         self.kraft.format_storages()
         self.update_external_services()
+        self.update_ip_addresses()
+        self.setup_internal_tls()
 
         self.config_manager.set_server_properties()
         self.config_manager.set_client_properties()
@@ -218,29 +221,10 @@ class BrokerOperator(Object):
         properties = self.workload.read(self.workload.paths.server_properties)
         properties_changed = set(properties) ^ set(self.config_manager.server_properties)
 
-        current_sans = self.tls_manager.get_current_sans()
-
         if not properties:
             # Event fired before charm has properly started
             event.defer()
             return
-
-        current_sans_ip = set(current_sans["sans_ip"]) if current_sans else set()
-        expected_sans_ip = set(self.tls_manager.build_sans()["sans_ip"]) if current_sans else set()
-        sans_ip_changed = current_sans_ip ^ expected_sans_ip
-
-        current_sans_dns = set(current_sans["sans_dns"]) if current_sans else set()
-        expected_sans_dns = (
-            set(self.tls_manager.build_sans()["sans_dns"]) if current_sans else set()
-        )
-
-        sans_dns_changed = (current_sans_dns ^ expected_sans_dns) - {
-            # we omit 'kafka/{unit_id}' and 'kafka' here to avoid a bug with Digicert not supporting '/' characters in SANs
-            # Digicert truncates the 'kafka/{unit_id}' to just 'kafka'
-            # i.e don't assume we need new certs if 'diff' includes those value, as these SANs aren't typically used anyway
-            self.charm.state.unit_broker.unit.name,
-            self.charm.state.cluster.app.name,
-        }
 
         # update environment
         self.config_manager.set_environment()
@@ -270,21 +254,18 @@ class BrokerOperator(Object):
                 event.defer()
                 return
 
-        if sans_ip_changed or sans_dns_changed:
-            logger.info(
-                (
-                    f'Broker {self.charm.unit.name.split("/")[1]} updating certificate SANs - '
-                    f"OLD SANs IP = {current_sans_ip - expected_sans_ip}, "
-                    f"NEW SANs IP = {expected_sans_ip - current_sans_ip}, "
-                    f"OLD SANs DNS = {current_sans_dns - expected_sans_dns}, "
-                    f"NEW SANs DNS = {expected_sans_dns - current_sans_dns}"
-                )
-            )
-            self.charm.tls.refresh_tls_certificates.emit()
-            # new cert will eventually be dynamically loaded by the broker
+        # Check for SANs change and revoke the cert if SANs change is detected.
+        # Emitting the refresh_tls_certificates will lead to rotation and restart.
+        if self.tls_manager.sans_changed(TLSScope.CLIENT):
             self.charm.state.unit_broker.client_certs.certificate = ""
+            self.charm.tls.refresh_tls_certificates.emit()
 
-            return  # early return here to ensure new node cert arrives before updating advertised.listeners
+        if self.tls_manager.sans_changed(TLSScope.PEER):
+            self.charm.state.unit_broker.peer_certs.certificate = ""
+            if self.charm.state.use_internal_tls:
+                self.setup_internal_tls()
+            else:
+                self.charm.tls.refresh_tls_certificates.emit()
 
         if properties_changed:
             logger.info(
@@ -337,6 +318,9 @@ class BrokerOperator(Object):
         self.charm.state.peer_cluster_tls_rotate = any(
             unit.peer_certs.rotate for unit in self.charm.state.brokers
         )
+
+        # Update IP addresses based on current network bindings.
+        self.update_ip_addresses()
 
         if self.charm.unit.is_leader():
             self.update_credentials_cache()
@@ -435,6 +419,7 @@ class BrokerOperator(Object):
             return
 
         self.charm.state.unit_broker.peer_certs.set_self_signed(self_signed_cert)
+        self.charm.state.unit_broker.peer_certs.rotate = True
         self.tls_manager.configure()
 
         if self.charm.unit.is_leader():
@@ -583,3 +568,18 @@ class BrokerOperator(Object):
 
         if self.charm.unit.is_leader():
             self.charm.state.refresh_peer_cluster_trust_state()
+
+    def update_ip_addresses(self) -> None:
+        """Update unit databag with current IP addresses associated with this unit.
+
+        This method will add peer and client addresses taking network binds into account.
+        """
+        self.charm.state.unit_broker.update_peer_ip_address()
+
+        for client in self.charm.state.clients:
+            if not client.relation:
+                continue
+
+            self.charm.state.unit_broker.update_relation_ip_address(
+                client.relation, client.get_relation_ip()
+            )
