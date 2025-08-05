@@ -1,7 +1,7 @@
 # Copyright 2025 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-"""Manager for handling Kafka in-place upgrades."""
+"""Manager for handling Apache Kafka in-place upgrades."""
 
 import abc
 import dataclasses
@@ -18,12 +18,12 @@ logger = logging.getLogger(__name__)
 
 
 class KafkaUpgradeError(Exception):
-    """Exception raised when Kafka upgrade fails."""
+    """Exception raised when Apache Kafka upgrade fails."""
 
 
 @dataclasses.dataclass(eq=False)
 class KafkaRefresh(charm_refresh.CharmSpecificCommon, abc.ABC):
-    """Base class for Kafka refresh operations."""
+    """Base class for Apache Kafka refresh operations."""
 
     _charm: "KafkaCharm"
 
@@ -52,6 +52,7 @@ class KafkaRefresh(charm_refresh.CharmSpecificCommon, abc.ABC):
 
     def run_pre_refresh_checks_after_1_unit_refreshed(self) -> None:
         """Implement pre-refresh checks after 1 unit refreshed."""
+        logger.debug("Running pre-refresh checks")
         if (
             self._charm.state.runs_balancer
             and not self._charm.state.runs_broker
@@ -103,10 +104,6 @@ class MachinesKafkaRefresh(KafkaRefresh, charm_refresh.CharmSpecificMachines):
         # Call post_snap_refresh to handle health checks and set next_unit_allowed_to_refresh
         logger.debug("Running post-snap-refresh check...")
         self._charm.post_snap_refresh(refresh)
-
-    def run_pre_refresh_checks_after_1_unit_refreshed(self) -> None:
-        """Implement pre-refresh checks after 1 unit refreshed."""
-        super().run_pre_refresh_checks_after_1_unit_refreshed()
 
 
 def is_workload_compatible(

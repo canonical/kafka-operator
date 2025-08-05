@@ -5,15 +5,18 @@
 import logging
 import time
 
+import jubilant
 import pytest
-from pytest_operator.plugin import OpsTest
 
-from integration.helpers.pytest_operator import (
+from integration.helpers import (
     APP_NAME,
     DUMMY_NAME,
     REL_NAME_ADMIN,
-    SERIES,
-    consume_and_check,
+)
+from integration.helpers.jubilant import (
+    BASE,
+    all_active_idle,
+    check_logs,
     deploy_cluster,
     produce_and_check_logs,
 )
@@ -24,40 +27,35 @@ pytestmark = pytest.mark.broker
 
 
 @pytest.mark.abort_on_fail
-async def test_in_place_upgrade(
-    ops_test: OpsTest, kafka_charm, app_charm, kraft_mode, controller_app
-):
-    await deploy_cluster(
-        ops_test=ops_test,
-        charm=kafka_charm,
-        kraft_mode=kraft_mode,
+def test_in_place_upgrade(juju: jubilant.Juju, kafka_charm, app_charm, kraft_mode, controller_app):
+    deploy_cluster(juju=juju, charm=kafka_charm, kraft_mode=kraft_mode, num_broker=3)
+    juju.deploy(app_charm, app=DUMMY_NAME, num_units=1, base=BASE)
+
+    # Get kafka apps list for waiting
+    kafka_apps = [APP_NAME] if kraft_mode == "single" else [APP_NAME, controller_app]
+
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME),
+        delay=3,
+        successes=10,
+        timeout=1800,
     )
 
-    await ops_test.model.deploy(
-        app_charm,
-        application_name=DUMMY_NAME,
-        num_units=1,
-        series=SERIES,
-    )
+    status = juju.status()
+    assert status.apps[APP_NAME].app_status.current == "active"
+    assert status.apps[controller_app].app_status.current == "active"
 
-    await ops_test.model.wait_for_idle(
-        apps=[APP_NAME, controller_app, DUMMY_NAME], idle_period=30, timeout=1800, status="active"
-    )
-
-    assert ops_test.model.applications[APP_NAME].status == "active"
-    assert ops_test.model.applications[controller_app].status == "active"
-
-    await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
-    await ops_test.model.wait_for_idle(apps=[APP_NAME, controller_app, DUMMY_NAME])
-
-    await ops_test.model.applications[APP_NAME].add_units(count=2)
-    await ops_test.model.wait_for_idle(
-        apps=[APP_NAME], status="active", timeout=600, idle_period=30, wait_for_exact_units=3
+    juju.integrate(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME),
+        delay=3,
+        successes=10,
+        timeout=600,
     )
 
     logger.info("Producing messages before upgrading")
     produce_and_check_logs(
-        ops_test=ops_test,
+        juju=juju,
         kafka_unit_name=f"{APP_NAME}/0",
         provider_unit_name=f"{DUMMY_NAME}/0",
         topic="hot-topic",
@@ -65,36 +63,41 @@ async def test_in_place_upgrade(
         num_partitions=1,
     )
 
+    # Find leader unit
+    status = juju.status()
     leader_unit = None
-    for unit in ops_test.model.applications[APP_NAME].units:
-        if await unit.is_leader_from_status():
-            leader_unit = unit
+    for unit_name, unit in status.apps[APP_NAME].units.items():
+        if unit.leader:
+            leader_unit = unit_name
+            break
     assert leader_unit
 
     logger.info("Calling pre-refresh-check")
-    action = await leader_unit.run_action("pre-refresh-check")
-    await action.wait()
+    juju.run(leader_unit, "pre-refresh-check")
 
     # ensure action completes
     time.sleep(10)
 
     logger.info("Upgrading Kafka...")
-    await ops_test.model.applications[APP_NAME].refresh(path=kafka_charm)
-    await ops_test.model.wait_for_idle(
-        apps=[APP_NAME, controller_app], status="active", timeout=1000, idle_period=120
+    juju.refresh(APP_NAME, path=str(kafka_charm))
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps),
+        delay=3,
+        successes=40,
+        timeout=1000,
     )
 
     logger.info("Check that produced messages can be consumed afterwards")
-    consume_and_check(
-        ops_test=ops_test,
-        provider_unit_name=f"{DUMMY_NAME}/0",
+    check_logs(
+        juju=juju,
+        kafka_unit_name=f"{APP_NAME}/0",
         topic="hot-topic",
     )
 
 
 @pytest.mark.abort_on_fail
-async def test_controller_upgrade_multinode(
-    ops_test: OpsTest, kafka_charm, kraft_mode, controller_app
+def test_controller_upgrade_multinode(
+    juju: jubilant.Juju, kafka_charm, kraft_mode, controller_app
 ):
     """Test upgrading the controller separately in multi-node mode."""
     if kraft_mode != "multi":
@@ -103,7 +106,7 @@ async def test_controller_upgrade_multinode(
 
     logger.info("Producing messages before controller upgrade")
     produce_and_check_logs(
-        ops_test=ops_test,
+        juju=juju,
         kafka_unit_name=f"{APP_NAME}/0",
         provider_unit_name=f"{DUMMY_NAME}/0",
         topic="controller-upgrade-topic",
@@ -112,33 +115,40 @@ async def test_controller_upgrade_multinode(
     )
 
     # Find controller leader unit
+    status = juju.status()
     controller_leader_unit = None
-    for unit in ops_test.model.applications[controller_app].units:
-        if await unit.is_leader_from_status():
-            controller_leader_unit = unit
+    for unit_name, unit in status.apps[controller_app].units.items():
+        if unit.leader:
+            controller_leader_unit = unit_name
+            break
     assert controller_leader_unit
 
     logger.info("Calling pre-refresh-check on controller")
-    action = await controller_leader_unit.run_action("pre-refresh-check")
-    await action.wait()
+    juju.run(controller_leader_unit, "pre-refresh-check")
 
     # ensure action completes
     time.sleep(10)
 
     logger.info("Upgrading Controller...")
-    await ops_test.model.applications[controller_app].refresh(path=kafka_charm)
-    await ops_test.model.wait_for_idle(
-        apps=[controller_app], status="active", timeout=1000, idle_period=120
+    juju.refresh(controller_app, path=str(kafka_charm))
+    juju.wait(
+        lambda status: all_active_idle(status, controller_app),
+        delay=3,
+        successes=40,
+        timeout=1000,
     )
 
     # Ensure brokers are still active after controller upgrade
-    await ops_test.model.wait_for_idle(
-        apps=[APP_NAME], status="active", timeout=600, idle_period=30
+    juju.wait(
+        lambda status: all_active_idle(status, APP_NAME),
+        delay=3,
+        successes=10,
+        timeout=600,
     )
 
     logger.info("Check that produced messages can still be consumed after controller upgrade")
-    consume_and_check(
-        ops_test=ops_test,
-        provider_unit_name=f"{DUMMY_NAME}/0",
+    check_logs(
+        juju=juju,
+        kafka_unit_name=f"{APP_NAME}/0",
         topic="controller-upgrade-topic",
     )

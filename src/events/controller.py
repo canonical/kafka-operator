@@ -91,7 +91,7 @@ class KRaftHandler(Object):
 
     def _on_update_status(self, event: UpdateStatusEvent) -> None:
         """Handler for `update-status` events."""
-        if not self.charm.refresh or self.charm.refresh.in_progress or not self.healthy:
+        if self.charm.refresh_not_ready or not self.healthy:
             return
 
         # Ensure KRaft client properties are set and up-to-date.

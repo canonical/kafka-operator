@@ -325,7 +325,7 @@ class BrokerOperator(Object):
 
     def _on_update_status(self, _: UpdateStatusEvent) -> None:
         """Handler for `update-status` events."""
-        if not self.charm.refresh or self.charm.refresh.in_progress or not self.healthy:
+        if self.charm.refresh_not_ready or not self.healthy:
             return
 
         # NOTE for situations like IP change and late integration with rack-awareness charm.

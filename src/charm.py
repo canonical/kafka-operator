@@ -53,7 +53,6 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
     def __init__(self, *args):
         super().__init__(*args)
-
         # Show logger name (module name) in logs
         root_logger = logging.getLogger()
         for handler in root_logger.handlers:
@@ -221,6 +220,11 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         # Default to active if no other status is set
         return ops.ActiveStatus()
+
+    @property
+    def refresh_not_ready(self) -> bool:
+        """Check if refresh is not available or currently in progress."""
+        return not self.refresh or self.refresh.in_progress
 
     def post_snap_refresh(self, refresh: charm_refresh.Machines) -> None:
         """Handle post-snap refresh health checks and set next_unit_allowed_to_refresh."""
