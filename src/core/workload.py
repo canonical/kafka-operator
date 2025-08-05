@@ -231,6 +231,16 @@ class WorkloadBase(ABC):
         """Flag to check if workload container can connect."""
         ...
 
+    @property
+    def ips(self) -> list[str]:
+        """Return a list of current IPs associated with the workload, using `hostname -I`."""
+        raw = self.exec("hostname -I").strip()
+
+        if not raw:
+            return []
+
+        return re.findall(r"[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}", raw)
+
     @staticmethod
     def generate_password() -> str:
         """Creates randomized string for use as app passwords.

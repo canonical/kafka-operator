@@ -306,7 +306,7 @@ class ClusterState(Object):
                     data_interface=self.client_provider_interface,
                     component=relation.app,
                     local_app=self.cluster.app,
-                    bootstrap_server=self.bootstrap_server,
+                    bootstrap_server=self.client_bootstrap_server(relation),
                     password=self.cluster.client_passwords.get(f"relation-{relation.id}", ""),
                     tls="enabled" if self.cluster.tls_enabled else "disabled",
                 )
@@ -406,9 +406,8 @@ class ClusterState(Object):
             )
         )
 
-    @property
-    def bootstrap_server(self) -> str:
-        """The current Kafka uris formatted for the `bootstrap-server` command flag.
+    def client_bootstrap_server(self, client_relation: Relation) -> str:
+        """The current Kafka uris for a given client relation taking network bindings into account.
 
         Returns:
             List of `bootstrap-server` servers
@@ -427,7 +426,7 @@ class ClusterState(Object):
         return ",".join(
             sorted(
                 [
-                    f"{broker.internal_address}:{SECURITY_PROTOCOL_PORTS[self.default_auth].client}"
+                    f"{broker.relation_ip_address(client_relation)}:{SECURITY_PROTOCOL_PORTS[self.default_auth].client}"
                     for broker in self.brokers
                 ]
             )
