@@ -10,7 +10,6 @@ import subprocess
 import time
 from subprocess import PIPE, check_output
 
-
 import pytest
 import requests
 import toml
