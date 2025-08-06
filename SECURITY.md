@@ -8,7 +8,7 @@ other issues that could lead to unauthorized access to the system or its data.
 ## Reporting a vulnerability
 
 The easiest way to report a security issue is through
-[GitHub](https://github.com/canonical/spark-history-server-k8s-operator/security/advisories/new).
+[GitHub](https://github.com/canonical/kafka-operator/security/advisories/new).
 See
 [Privately reporting a security vulnerability](https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing/privately-reporting-a-security-vulnerability)
 for instructions.
