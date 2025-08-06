@@ -603,11 +603,12 @@ class TLSState:
     @trusted_certificates.setter
     def trusted_certificates(self, value: str | list[str]) -> None:
         _value = [value] if isinstance(value, str) else value
-        _value.sort()
-        _value = json.dumps(_value)
 
         if set(_value) == self.trusted_certificates:
             return
+
+        _value.sort()
+        _value = json.dumps(_value)
 
         self.relation_state.update({f"{self.scope.value}-trust": _value})
 
