@@ -133,7 +133,8 @@ class RelationState:
                 self.relation, SECRET_LABEL_MAP[key], {key}, {key: update_content[key]}
             )
 
-    def get_network_interface(self) -> str:
+    @property
+    def network_interface(self) -> str:
         """Returns the network interface name of the relation based on network bindings."""
         if not self.relation:
             return ""
@@ -148,15 +149,16 @@ class RelationState:
 
         return ""
 
-    def get_relation_ip(self) -> str:
-        """Returns the IP of the unit for the specified relation based on network bindings."""
+    @property
+    def ip(self) -> str:
+        """Returns the IP of the unit on the relation based on network bindings."""
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.settimeout(0)
 
         # use the network interface we're bound to.
-        if network_interface := self.get_network_interface():
+        if self.network_interface:
             s.setsockopt(
-                socket.SOL_SOCKET, socket.SO_BINDTODEVICE, network_interface.encode("utf-8")
+                socket.SOL_SOCKET, socket.SO_BINDTODEVICE, self.network_interface.encode("utf-8")
             )
 
         s.connect(("10.10.10.10", 1))
@@ -764,7 +766,7 @@ class KafkaBroker(RelationState):
 
     def update_peer_ip_address(self) -> None:
         """Update unit's peer IP address."""
-        self.peer_ip_address = self.get_relation_ip() or self.internal_address
+        self.peer_ip_address = self.ip or self.internal_address
 
     def relation_ip_address(self, relation: Relation | None) -> str:
         """Return the IP address for a given relation."""

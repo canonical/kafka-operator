@@ -580,6 +580,4 @@ class BrokerOperator(Object):
             if not client.relation:
                 continue
 
-            self.charm.state.unit_broker.update_relation_ip_address(
-                client.relation, client.get_relation_ip()
-            )
+            self.charm.state.unit_broker.update_relation_ip_address(client.relation, client.ip)

@@ -266,7 +266,7 @@ class ClusterState(Object):
                     data_interface=self.client_provider_interface,
                     component=relation.app,
                     local_app=self.cluster.app,
-                    bootstrap_server=self.client_bootstrap_server(relation),
+                    bootstrap_server=self.bootstrap_server_client(relation),
                     password=self.cluster.client_passwords.get(f"relation-{relation.id}", ""),
                     tls="enabled" if self.cluster.tls_enabled else "disabled",
                 )
@@ -366,7 +366,7 @@ class ClusterState(Object):
             )
         )
 
-    def client_bootstrap_server(self, client_relation: Relation) -> str:
+    def bootstrap_server_client(self, client_relation: Relation) -> str:
         """The current Kafka uris for a given client relation taking network bindings into account.
 
         Returns:
