@@ -588,7 +588,10 @@ class TLSManager:
 
     def rebuild_truststore(self) -> None:
         """Destroys and rebuilds peer (internal) truststore."""
-        (self.workload.root / self.workload.paths.peer_truststore).unlink()
+        try:
+            (self.workload.root / self.workload.paths.peer_truststore).unlink()
+        except FileNotFoundError:
+            pass
         self.set_truststore()
         self.update_peer_cluster_trust()
 
