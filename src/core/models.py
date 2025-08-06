@@ -32,6 +32,7 @@ from literals import (
     KRAFT_NODE_ID_OFFSET,
     SECRETS_APP,
     SECURITY_PROTOCOL_PORTS,
+    TLS_RELATION,
     AuthMap,
     Substrates,
     TLSScope,
@@ -505,16 +506,12 @@ class KafkaCluster(RelationState):
         Returns:
             True if TLS encryption should be active. Otherwise False
         """
-        return self.relation_data.get("tls", "disabled") == "enabled"
+        relation = self.data_interface._model.get_relation(TLS_RELATION)
 
-    @property
-    def mtls_enabled(self) -> bool:
-        """Flag to check if the cluster should run with mTLS.
+        if not relation or not relation.active:
+            return False
 
-        Returns:
-            True if TLS encryption should be active. Otherwise False
-        """
-        return self.relation_data.get("mtls", "disabled") == "enabled"
+        return True
 
     @property
     def balancer_username(self) -> str:

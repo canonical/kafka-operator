@@ -157,6 +157,7 @@ class KafkaProvider(Object):
             self.charm._set_status(Status.INVALID_CLIENT_CERTIFICATE)
             return
 
+<<<<<<< HEAD
         if self.charm.unit.is_leader() and not self.charm.state.cluster.mtls_enabled:
             # Create a "mtls" flag so a new listener (CLIENT_SSL) is created
             self.charm.state.cluster.update({"mtls": "enabled"})
@@ -167,6 +168,8 @@ class KafkaProvider(Object):
             event.defer()
             return
 
+=======
+>>>>>>> 1f344dd (remove tls/mtls flags from relation data)
         distinguished_name = self.dependent.tls_manager.certificate_distinguished_name(
             event.mtls_cert
         )
@@ -240,10 +243,6 @@ class KafkaProvider(Object):
             or not self.charm.state.cluster
         ):
             return
-
-        # Turn off MTLS if no clients are remaining.
-        if not self.charm.state.has_mtls_clients:
-            self.charm.state.cluster.update({"mtls": ""})
 
         if event.relation.app != self.charm.app or not self.charm.app.planned_units() == 0:
             username = f"relation-{event.relation.id}"
