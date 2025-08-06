@@ -76,8 +76,8 @@ def patched_etc_environment():
 
 
 @pytest.fixture(autouse=True)
-def patched_get_relation_ip():
-    with patch("core.models.RelationState.get_relation_ip", return_value="10.5.5.5"):
+def patched_relation_ip():
+    with patch("core.models.RelationState.ip", new_callable=PropertyMock, return_value="10.5.5.5"):
         yield
 
 
