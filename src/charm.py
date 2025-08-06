@@ -108,7 +108,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         if (
             self.refresh
             and not self.refresh.next_unit_allowed_to_refresh
-            and self.refresh.workload_allowed_to_start
+            and self.refresh.in_progress
         ):
             # Only proceed if snap is installed (avoids KeyError during initial deployment)
             if self.workload.installed and self.workload.active():
