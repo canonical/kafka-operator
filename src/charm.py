@@ -105,11 +105,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         except (charm_refresh.PeerRelationNotReady, charm_refresh.UnitTearingDown):
             self.refresh = None
 
-        if (
-            self.refresh
-            and not self.refresh.next_unit_allowed_to_refresh
-            and self.refresh.in_progress
-        ):
+        if self.refresh and not self.refresh.next_unit_allowed_to_refresh:
             # Only proceed if snap is installed (avoids KeyError during initial deployment)
             if self.workload.installed and self.workload.active():
                 self.post_snap_refresh(self.refresh)
