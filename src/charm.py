@@ -14,6 +14,7 @@ from charms.grafana_agent.v0.cos_agent import COSAgentProvider
 from charms.operator_libs_linux.v0 import sysctl
 from charms.rolling_ops.v0.rollingops import RollingOpsManager, RunWithLock
 from ops import (
+    ActiveStatus,
     CollectStatusEvent,
     EventBase,
     StatusBase,
@@ -195,16 +196,26 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
     def _on_collect_status(self, event: CollectStatusEvent):
         status = self._determine_unit_status()
-        event.add_status(status)
+        if isinstance(status, list):
+            for s in status:
+                event.add_status(s.value.status)
+        else:
+            event.add_status(status)
 
-    def _determine_unit_status(self):
+    def _determine_unit_status(self) -> StatusBase | list[Status]:
         """Determine the unit status, respecting refresh higher priority statuses."""
         if self.refresh and self.refresh.unit_status_higher_priority:
             return self.refresh.unit_status_higher_priority
 
         # Check for pending inactive statuses (charm-specific logic)
-        for status in self.pending_inactive_statuses + [self.state.ready_to_start]:
-            return status.value.status
+        # Remove active status if present, will be added as default at the end
+        charm_statuses_to_check = [
+            s
+            for s in self.pending_inactive_statuses + [self.state.ready_to_start]
+            if s != Status.ACTIVE
+        ]
+        if charm_statuses_to_check:
+            return charm_statuses_to_check
 
         # Lower priority status from refresh
         if self.refresh and (
@@ -215,7 +226,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             return refresh_status
 
         # Default to active if no other status is set
-        return ops.ActiveStatus()
+        return ActiveStatus()
 
     @property
     def refresh_not_ready(self) -> bool:
