@@ -154,8 +154,8 @@ async def test_client_properties_makes_admin_connection(ops_test: OpsTest, kafka
         if "SCRAM credential configs for user-principal" in line:
             acls += 1
 
-    # single mode: admin, sync, relation-# => 3
-    # multi mode: admin, relation-# => 2
+    # single mode: operator, replication, relation-# => 3
+    # multi mode: operator, relation-# => 2
     assert acls == 2 + int(kraft_mode == "single")
 
     await ops_test.model.applications[APP_NAME].remove_relation(
@@ -220,7 +220,6 @@ async def test_auxiliary_paths(ops_test: OpsTest):
 
 @pytest.mark.abort_on_fail
 async def test_log_level_change(ops_test: OpsTest, kafka_apps):
-
     for unit in ops_test.model.applications[APP_NAME].units:
         assert (
             count_lines_with(
