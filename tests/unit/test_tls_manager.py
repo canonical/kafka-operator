@@ -94,7 +94,7 @@ def java_jks_test(truststore_path: str, truststore_password: str, ssl_server_por
         f"https://localhost:{ssl_server_port}",
     ]
 
-    if os.system(f'{" ".join(cmd)} >/dev/null 2>&1'):
+    if os.system(f"{' '.join(cmd)} >/dev/null 2>&1"):
         raise JKSError("JKS unit test failed, Check logs for details.")
 
 
@@ -116,7 +116,7 @@ def tls_manager(tmp_path_factory, monkeypatch):
     mock_state.unit_broker = mock_broker_state
 
     raw_config = {
-        k: v.get("default")
+        k.replace("-", "_"): v.get("default", "")
         for k, v in yaml.safe_load(open("config.yaml")).get("options", {}).items()
     }
     mgr = TLSManager(
