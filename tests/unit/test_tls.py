@@ -66,15 +66,15 @@ def ctx() -> Context:
 @pytest.mark.parametrize(
     ["config_option", "extra_sans", "expected"],
     [
-        ("certificate_extra_sans", "", []),
-        ("certificate_extra_sans", "worker{unit}.com", ["worker0.com"]),
+        ("certificate-extra-sans", "", []),
+        ("certificate-extra-sans", "worker{unit}.com", ["worker0.com"]),
         (
-            "certificate_extra_sans",
+            "certificate-extra-sans",
             "worker{unit}.com,{unit}.example",
             ["worker0.com", "0.example"],
         ),
         (
-            "extra_listeners",
+            "extra-listeners",
             "run{unit}.shadowfax:30000,{unit}.proudfoot:40000,fool.ofa.took:45000,no.port.{unit}.com",
             ["run0.shadowfax", "0.proudfoot", "fool.ofa.took", "no.port.0.com"],
         ),
@@ -109,7 +109,7 @@ def test_extra_sans_config(
 
 def test_sans(charm_configuration: dict, base_state: State, patched_node_ip, monkeypatch) -> None:
     # Given
-    charm_configuration["options"]["certificate_extra_sans"]["default"] = "worker{unit}.com"
+    charm_configuration["options"]["certificate-extra-sans"]["default"] = "worker{unit}.com"
     cluster_peer = PeerRelation(
         PEER,
         PEER,
