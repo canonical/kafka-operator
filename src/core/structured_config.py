@@ -3,6 +3,7 @@
 # See LICENSE file for licensing details.
 
 """Structured configuration for the Kafka charm."""
+
 import logging
 import re
 from enum import Enum
@@ -252,6 +253,9 @@ class CharmConfig(BaseConfigModel):
     @classmethod
     def system_users_secret_validator(cls, value: str) -> str:
         """Check validity of `system-users` field which should be a user secret URI."""
+        if not value:
+            return ""
+
         if not SECRET_REGEX.match(value):
             raise ValueError(
                 "Provided value for system-users config is not a valid secret URI, "
