@@ -6,8 +6,10 @@
 
 import re
 import secrets
+import socket
 import string
 from abc import ABC, abstractmethod
+from contextlib import closing
 
 from charmlibs import pathops
 from ops.pebble import Layer
@@ -251,3 +253,24 @@ class WorkloadBase(ABC):
             String of 32 randomized letter+digit characters
         """
         return "".join([secrets.choice(string.ascii_letters + string.digits) for _ in range(32)])
+
+    @staticmethod
+    def ping(bootstrap_nodes: str) -> bool:
+        """Check if any socket in `bootstrap_nodes` is available or not.
+
+        Args:
+            bootstrap_nodes (str): A string representation of bootstrap nodes, in the format: host1:port1,host2:port2,...
+
+        Returns:
+            bool: True if any socket is open.
+        """
+        for host_port in bootstrap_nodes.split(","):
+            if ":" not in host_port:
+                continue
+
+            host, port = host_port.split(":")
+            with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
+                if sock.connect_ex((host, int(port))) == 0:
+                    return True
+
+        return False

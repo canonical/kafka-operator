@@ -506,7 +506,7 @@ class ClusterState(Object):
         """Check for active controller relation and adding of inter-broker auth username.
 
         Returns:
-            True if ZK is related and `sync` user has been added. False otherwise.
+            True if controller is related and `sync` user has been added. False otherwise.
         """
         if not self.peer_relation:
             return Status.NO_PEER_RELATION
@@ -756,7 +756,6 @@ class ClusterState(Object):
         if not (relation := self.kraft_cluster.relation):
             return False
 
-        return (
-            relation.data[relation.app].get("peer-cluster-rotate") == "true"
-            and self.cluster.relation_data.get("peer-cluster-rotate") == "true"
+        return relation.data[relation.app].get("peer-cluster-rotate") == "true" and any(
+            unit.peer_certs.rotate for unit in self.brokers
         )

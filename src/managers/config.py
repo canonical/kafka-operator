@@ -37,6 +37,7 @@ from literals import (
     PATHS,
     PROFILE_TESTING,
     SECURITY_PROTOCOL_PORTS,
+    SUBSTRATE,
     AuthMap,
     Scope,
 )
@@ -284,6 +285,9 @@ class CommonConfigManager:
     @property
     def auxiliary_paths(self) -> list[str]:
         """Auxiliary environment variables for logs, config and other useful base paths."""
+        if SUBSTRATE == "k8s":
+            return []
+
         if self.state.runs_broker or self.state.runs_controller:
             return [f"{key}={path}" for key, path in PATHS["kafka"].items()]
 
