@@ -107,7 +107,7 @@ def test_extra_sans_config(
         assert charm.broker.tls_manager._build_extra_sans() == expected
 
 
-def test_sans(charm_configuration: dict, base_state: State, patched_node_ip) -> None:
+def test_sans(charm_configuration: dict, base_state: State, patched_node_ip, monkeypatch) -> None:
     # Given
     charm_configuration["options"]["certificate_extra_sans"]["default"] = "worker{unit}.com"
     cluster_peer = PeerRelation(
@@ -115,6 +115,7 @@ def test_sans(charm_configuration: dict, base_state: State, patched_node_ip) -> 
         PEER,
         local_unit_data={"private-address": "treebeard"},
     )
+    monkeypatch.setattr("workload.Workload.ips", ["treebeard"])
     state_in = dataclasses.replace(base_state, relations=[cluster_peer])
     ctx = Context(
         KafkaCharm, meta=METADATA, config=charm_configuration, actions=ACTIONS, unit_id=0

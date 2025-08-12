@@ -394,9 +394,7 @@ class TLSManager:
         """Builds a SAN dict of DNS names and IPs for the unit."""
         if self.substrate == "vm":
             return {
-                "sans_ip": [
-                    self.state.unit_broker.internal_address,
-                ],
+                "sans_ip": self.workload.ips,
                 "sans_dns": [self.state.unit_broker.unit.name, socket.getfqdn()]
                 + self._build_extra_sans(),
             }
@@ -543,6 +541,40 @@ class TLSManager:
             match[0]: self.keytool_hash_to_bytes(match[1])
             for match in re.findall("(.+?),.+?trustedCertEntry.*?\n.+?([0-9a-fA-F:]{95})\n", raw)
         }
+
+    def sans_changed(self, scope: TLSScope) -> bool:
+        """Check if a diff is detected between the unit's certificate SANs and current IPs/hostnames of the unit."""
+        if not (current_sans := self.get_current_sans(scope)):
+            return False
+
+        current_sans_ip = set(current_sans["sans_ip"]) if current_sans else set()
+        expected_sans_ip = set(self.build_sans()["sans_ip"]) if current_sans else set()
+        sans_ip_changed = current_sans_ip ^ expected_sans_ip
+
+        current_sans_dns = set(current_sans["sans_dns"]) if current_sans else set()
+        expected_sans_dns = set(self.build_sans()["sans_dns"]) if current_sans else set()
+
+        sans_dns_changed = (current_sans_dns ^ expected_sans_dns) - {
+            # we omit 'kafka/{unit_id}' and 'kafka' here to avoid a bug with Digicert not supporting '/' characters in SANs
+            # Digicert truncates the 'kafka/{unit_id}' to just 'kafka'
+            # i.e don't assume we need new certs if 'diff' includes those value, as these SANs aren't typically used anyway
+            self.state.unit_broker.unit.name,
+            self.state.cluster.app.name,
+        }
+
+        if sans_ip_changed or sans_dns_changed:
+            logger.info(
+                (
+                    f"Certificate SANs changed - "
+                    f"OLD SANs IP = {current_sans_ip - expected_sans_ip}, "
+                    f"NEW SANs IP = {expected_sans_ip - current_sans_ip}, "
+                    f"OLD SANs DNS = {current_sans_dns - expected_sans_dns}, "
+                    f"NEW SANs DNS = {expected_sans_dns - current_sans_dns}"
+                )
+            )
+            return True
+
+        return False
 
     @staticmethod
     def is_valid_leaf_certificate(cert: str) -> bool:
