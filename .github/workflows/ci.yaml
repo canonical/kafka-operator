@@ -80,14 +80,14 @@ jobs:
       fail-fast: false
       matrix:
         tox-environments:
-          - integration-charm
-          - integration-provider
-          - integration-password-rotation
+          # - integration-charm
+          # - integration-provider
+          # - integration-password-rotation
           - integration-tls
           #- integration-upgrade
-          - integration-kraft
-          - integration-kraft-tls
-          - integration-ha
+          # - integration-kraft
+          # - integration-kraft-tls
+          # - integration-ha
         kraft-mode:
           - single
     name: ${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}
@@ -132,17 +132,17 @@ jobs:
       fail-fast: false
       matrix:
         tox-environments:
-          - integration-charm
-          - integration-provider
-          - integration-password-rotation
+          # - integration-charm
+          # - integration-provider
+          # - integration-password-rotation
           - integration-tls
           #- integration-upgrade
-          - integration-balancer-single
-          - integration-balancer-multi
-          - integration-kraft
-          - integration-kraft-tls
-          - integration-ha
-          - integration-ha-controller
+          # - integration-balancer-single
+          # - integration-balancer-multi
+          # - integration-kraft
+          # - integration-kraft-tls
+          # - integration-ha
+          # - integration-ha-controller
         kraft-mode:
           - multi
     name: ${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}

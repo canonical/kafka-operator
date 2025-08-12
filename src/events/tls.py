@@ -20,10 +20,8 @@ from charms.tls_certificates_interface.v4.tls_certificates import (
     CertificateRequestAttributes,
     PrivateKey,
     TLSCertificatesRequiresV4,
-    generate_private_key,
 )
 from ops.charm import (
-    ActionEvent,
     RelationBrokenEvent,
     RelationCreatedEvent,
 )
@@ -109,10 +107,6 @@ class TLSHandler(Object):
         self.framework.observe(
             getattr(self.peer_certificates.on, "certificate_available"),
             self._on_peer_certificate_available,
-        )
-
-        self.framework.observe(
-            getattr(self.charm.on, "set_tls_private_key_action"), self._set_tls_private_key
         )
 
         self.certificate_transfer = CertificateTransferRequires(
@@ -243,19 +237,6 @@ class TLSHandler(Object):
         self.update_truststore()
         self.charm.on.config_changed.emit()
 
-    def _set_tls_private_key(self, event: ActionEvent) -> None:
-        """Handler for `set_tls_private_key` action."""
-        key = event.params.get("internal-key") or generate_private_key().raw
-        private_key = (
-            key
-            if re.match(r"(-+(BEGIN|END) [A-Z ]+-+)", key)
-            else base64.b64decode(key).decode("utf-8")
-        )
-
-        self.charm.state.unit_broker.client_certs.private_key = private_key
-        self.certificates._private_key = PrivateKey.from_string(private_key)
-        self.refresh_tls_certificates.emit()
-
     def _on_mtls_client_certificates_available(self, event: CertificatesAvailableEvent) -> None:
         """Handle the certificates available event on the `certifcate_transfer` interface."""
         relation = self.charm.model.get_relation(CERTIFICATE_TRANSFER_RELATION, event.relation_id)
@@ -292,6 +273,28 @@ class TLSHandler(Object):
         # Turn off MTLS if no clients are remaining.
         if self.charm.unit.is_leader() and not self.charm.state.has_mtls_clients:
             self.charm.state.cluster.update({"mtls": ""})
+
+    def set_tls_private_key(self, secret_private_key: str | None = None) -> None:
+        """Handler for setting tls-private-key from secret."""
+        if secret_private_key == self.charm.state.unit_broker.client_certs.private_key:
+            logger.debug("tls-private-key not changed, exiting")
+            return
+
+        if secret_private_key:  # key got set
+            private_key = (
+                secret_private_key
+                if re.match(r"(-+(BEGIN|END) [A-Z ]+-+)", secret_private_key)
+                else base64.b64decode(secret_private_key).decode("utf-8")
+            )
+        else:  # key got removed
+            private_key = None
+
+        self.charm.state.unit_broker.client_certs.private_key = private_key or ""
+        self.certificates._private_key = (
+            PrivateKey.from_string(private_key) if private_key else None
+        )
+
+        self.refresh_tls_certificates.emit()
 
     def update_truststore(self) -> None:
         """Updates the truststore based on current state of MTLS client relations and certificates available on the `certificate_transfer` interface."""
