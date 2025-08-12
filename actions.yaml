@@ -2,17 +2,6 @@
 # See LICENSE file for licensing details.
 # In Juju 3 this will be easier to copy
 
-set-tls-private-key:
-  description: Sets the private key identifying the target unit, which will be used for certificate signing requests (CSR).
-    When updated, certificates will be reissued to the unit.
-    Run for each unit separately. Requires a valid relation to an application providing the `certificates` relation interface.
-  params:
-    internal-key:
-      type: string
-      description: The content of private key for internal communications with clients.
-        Content will be auto-generated if this option is not specified.
-        Can be raw-string, or base64 encoded.
-
 get-listeners:
   description: Get all active listeners and their port allocations
 
