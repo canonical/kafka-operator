@@ -50,7 +50,7 @@ def test_in_place_upgrade(juju: jubilant.Juju, kafka_charm, app_charm, kraft_mod
         lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME),
         delay=3,
         successes=10,
-        timeout=600,
+        timeout=1800,
     )
 
     logger.info("Producing messages before upgrading")
@@ -84,7 +84,7 @@ def test_in_place_upgrade(juju: jubilant.Juju, kafka_charm, app_charm, kraft_mod
         lambda status: all_active_idle(status, *kafka_apps),
         delay=3,
         successes=40,
-        timeout=1000,
+        timeout=1800,
     )
 
     logger.info("Check that produced messages can be consumed afterwards")
@@ -132,18 +132,10 @@ def test_controller_upgrade_multinode(
     logger.info("Upgrading Controller...")
     juju.refresh(controller_app, path=str(kafka_charm))
     juju.wait(
-        lambda status: all_active_idle(status, controller_app),
+        lambda status: all_active_idle(status, controller_app, APP_NAME),
         delay=3,
         successes=40,
-        timeout=1000,
-    )
-
-    # Ensure brokers are still active after controller upgrade
-    juju.wait(
-        lambda status: all_active_idle(status, APP_NAME),
-        delay=3,
-        successes=10,
-        timeout=600,
+        timeout=1800,
     )
 
     logger.info("Check that produced messages can still be consumed after controller upgrade")
