@@ -37,7 +37,10 @@ class Workload(WorkloadBase):
 
     # FIXME: Paths and constants integrated into WorkloadBase?
     SNAP_NAME = "charmed-kafka"
-    LOG_SLOTS = ["kafka-logs", "cc-logs"]
+    # Slots for the kafka related logs
+    # See https://github.com/canonical/charmed-kafka-snap for details and check
+    # refresh_versions.toml to find out what is the snap revision.
+    LOG_SLOTS = ["kafka-logs", "kraft-logs", "cc-logs", "connect-logs"]
 
     paths: CharmedKafkaPaths
     service: str
