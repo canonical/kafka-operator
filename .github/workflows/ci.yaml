@@ -70,7 +70,7 @@ jobs:
           - .
           - tests/integration/app-charm
     name: Build charm | ${{ matrix.path }}
-    uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v29.0.0
+    uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v32.0.0
     with:
       path-to-charm-directory: ${{ matrix.path }}
       cache: false # TODO: fix after added to the charmcraftcache
@@ -84,7 +84,7 @@ jobs:
           - integration-provider
           - integration-password-rotation
           - integration-tls
-          #- integration-upgrade
+          - integration-refresh
           - integration-kraft
           - integration-kraft-tls
           - integration-ha
@@ -136,7 +136,7 @@ jobs:
           - integration-provider
           - integration-password-rotation
           - integration-tls
-          #- integration-upgrade
+          - integration-refresh
           - integration-balancer-single
           - integration-balancer-multi
           - integration-kraft

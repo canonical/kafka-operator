@@ -4,7 +4,6 @@
 
 """Supporting objects for Kafka charm state."""
 
-import re
 import secrets
 import string
 from abc import ABC, abstractmethod
@@ -197,21 +196,6 @@ class WorkloadBase(ABC):
             String of kafka bin command output
         """
         ...
-
-    def get_version(self) -> str:
-        """Get the workload version.
-
-        Returns:
-            String of kafka version
-        """
-        if not self.active:
-            return ""
-
-        try:
-            version = re.split(r"[\s\-]", self.run_bin_command("topics", ["--version"]))[0]
-        except:  # noqa: E722
-            version = ""
-        return version
 
     @property
     @abstractmethod

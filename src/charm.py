@@ -7,16 +7,19 @@
 import logging
 import time
 
+import charm_refresh
 import ops
 from charms.data_platform_libs.v0.data_models import TypedCharmBase
 from charms.grafana_agent.v0.cos_agent import COSAgentProvider
 from charms.operator_libs_linux.v0 import sysctl
 from charms.rolling_ops.v0.rollingops import RollingOpsManager, RunWithLock
 from ops import (
+    ActiveStatus,
     CollectStatusEvent,
     EventBase,
     StatusBase,
 )
+from ops.log import JujuLogHandler
 
 from core.cluster import ClusterState
 from core.models import Substrates
@@ -24,6 +27,7 @@ from core.structured_config import CharmConfig
 from events.balancer import BalancerOperator
 from events.broker import BrokerOperator
 from events.peer_cluster import PeerClusterEventsHandler
+from events.refresh import MachinesKafkaRefresh
 from events.tls import TLSHandler
 from literals import (
     CHARM_KEY,
@@ -39,6 +43,8 @@ from literals import (
 from workload import KafkaWorkload
 
 logger = logging.getLogger(__name__)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 
 class KafkaCharm(TypedCharmBase[CharmConfig]):
@@ -48,6 +54,12 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
     def __init__(self, *args):
         super().__init__(*args)
+        # Show logger name (module name) in logs
+        root_logger = logging.getLogger()
+        for handler in root_logger.handlers:
+            if isinstance(handler, JujuLogHandler):
+                handler.setFormatter(logging.Formatter("{name}:{message}", style="{"))
+
         self.name = CHARM_KEY
         self.substrate: Substrates = SUBSTRATE
         self.pending_inactive_statuses: list[Status] = []
@@ -86,6 +98,18 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.balancer = BalancerOperator(self)
 
         self.tls = TLSHandler(self)
+
+        try:
+            self.refresh = charm_refresh.Machines(
+                MachinesKafkaRefresh(workload_name="Kafka", charm_name="kafka", _charm=self)
+            )
+        except (charm_refresh.PeerRelationNotReady, charm_refresh.UnitTearingDown):
+            self.refresh = None
+
+        if self.refresh and not self.refresh.next_unit_allowed_to_refresh:
+            # Only proceed if snap is installed (avoids KeyError during initial deployment)
+            if self.workload.installed and self.workload.active():
+                self.post_snap_refresh(self.refresh)
 
     def _on_install(self, _) -> None:
         """Handler for `install` event."""
@@ -171,8 +195,51 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             return
 
     def _on_collect_status(self, event: CollectStatusEvent):
-        for status in self.pending_inactive_statuses + [self.state.ready_to_start]:
-            event.add_status(status.value.status)
+        status = self._determine_unit_status()
+        if isinstance(status, list):
+            for s in status:
+                event.add_status(s.value.status)
+        else:
+            event.add_status(status)
+
+    def _determine_unit_status(self) -> StatusBase | list[Status]:
+        """Determine the unit status, respecting refresh higher priority statuses."""
+        if self.refresh and self.refresh.unit_status_higher_priority:
+            return self.refresh.unit_status_higher_priority
+
+        # Check for pending inactive statuses (charm-specific logic)
+        # Remove active status if present, will be added as default at the end
+        charm_statuses_to_check = [
+            s
+            for s in self.pending_inactive_statuses + [self.state.ready_to_start]
+            if s != Status.ACTIVE
+        ]
+        if charm_statuses_to_check:
+            return charm_statuses_to_check
+
+        # Lower priority status from refresh
+        if self.refresh and (
+            refresh_status := self.refresh.unit_status_lower_priority(
+                workload_is_running=self.workload.active()
+            )
+        ):
+            return refresh_status
+
+        # Default to active if no other status is set
+        return ActiveStatus()
+
+    @property
+    def refresh_not_ready(self) -> bool:
+        """Check if refresh is not available or currently in progress."""
+        return not self.refresh or self.refresh.in_progress
+
+    def post_snap_refresh(self, refresh: charm_refresh.Machines) -> None:
+        """Handle post-snap refresh health checks and set next_unit_allowed_to_refresh."""
+        dependents = [self.broker, self.balancer] if self.state.runs_balancer else [self.broker]
+
+        all_healthy = all(dependent.healthy for dependent in dependents)
+        if all_healthy:
+            refresh.next_unit_allowed_to_refresh = True
 
 
 if __name__ == "__main__":
