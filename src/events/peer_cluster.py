@@ -22,6 +22,7 @@ from ops.charm import (
     RelationCreatedEvent,
     RelationEvent,
     SecretChangedEvent,
+    UpdateStatusEvent,
 )
 from ops.framework import Object
 
@@ -167,7 +168,8 @@ class PeerClusterEventsHandler(Object):
             }
         )
 
-        self.charm.on.config_changed.emit()  # ensure both broker+balancer get a changed event
+        if not isinstance(event, UpdateStatusEvent):
+            self.charm.on.config_changed.emit()  # ensure both broker+balancer get a changed event
 
     def _on_peer_cluster_broken(self, _: RelationBrokenEvent):
         """Handle the required logic to remove."""
