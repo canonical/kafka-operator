@@ -5,7 +5,6 @@ name: Release to Charmhub
 on:
   push:
     branches:
-      - 3/edge
       - main
     paths-ignore:
       - 'docs/**'
@@ -14,9 +13,9 @@ on:
 jobs:
   tag:
     name: Create charm refresh compatibility version git tag
-    uses: canonical/data-platform-workflows/.github/workflows/tag_charm_edge.yaml@v32.0.0
+    uses: canonical/data-platform-workflows/.github/workflows/tag_charm_edge.yaml@v32.2.2
     with:
-      track: 4
+      track: '4'
     permissions:
       contents: write # Needed to create git tag
 
@@ -31,10 +30,11 @@ jobs:
   release:
     name: Release charm
     needs:
+      - tag
       - ci-tests
-    uses: canonical/data-platform-workflows/.github/workflows/release_charm.yaml@v32.0.0
+    uses: canonical/data-platform-workflows/.github/workflows/release_charm_edge.yaml@v32.2.2
     with:
-      channel: ${{ github.ref_name != 'main' && github.ref_name || '4/edge' }}
+      track: ${{ needs.tag.outputs.track }}
       artifact-prefix: ${{ needs.ci-tests.outputs.artifact-prefix }}
     secrets:
       charmhub-token: ${{ secrets.CHARMHUB_TOKEN }}
