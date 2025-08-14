@@ -73,7 +73,6 @@ jobs:
     uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v32.2.2
     with:
       path-to-charm-directory: ${{ matrix.path }}
-      cache: false # TODO: fix after added to the charmcraftcache
 
   integration-test-github:
     strategy:
