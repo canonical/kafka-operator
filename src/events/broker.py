@@ -22,6 +22,7 @@ from ops import (
     StorageEvent,
     UpdateStatusEvent,
 )
+from ops.pebble import ExecError
 
 from events.actions import ActionEvents
 from events.controller import KRaftHandler
@@ -332,9 +333,10 @@ class BrokerOperator(Object):
             # Reset TLS rotation state
             self.charm.state.tls_rotate = False
 
-        # Turn off peer-cluster TLS rotate if all units are done, only run on leader unit
-        if not any(unit.peer_certs.rotate for unit in self.charm.state.brokers):
-            self.charm.state.peer_cluster_tls_rotate = False
+        # Turn on/off peer-cluster TLS rotate if all units are done, only run on leader unit
+        self.charm.state.peer_cluster_tls_rotate = any(
+            unit.peer_certs.rotate for unit in self.charm.state.brokers
+        )
 
         if self.charm.unit.is_leader():
             self.update_credentials_cache()
@@ -509,15 +511,18 @@ class BrokerOperator(Object):
         # Update peer-cluster chain of trust
         self.charm.state.peer_cluster_ca = self.charm.state.unit_broker.peer_certs.bundle
 
+        # Optimization: cache peer_cluster to avoid multiple loadings
+        peer_cluster_state = self.charm.state.peer_cluster
+
         self.charm.state.peer_cluster.update(
             {
                 "roles": self.charm.state.roles,
-                "broker-username": self.charm.state.peer_cluster.broker_username,
-                "broker-password": self.charm.state.peer_cluster.broker_password,
-                "broker-uris": self.charm.state.peer_cluster.broker_uris,
-                "cluster-uuid": self.charm.state.peer_cluster.cluster_uuid,
-                "racks": str(self.charm.state.peer_cluster.racks),
-                "broker-capacities": json.dumps(self.charm.state.peer_cluster.broker_capacities),
+                "broker-username": peer_cluster_state.broker_username,
+                "broker-password": peer_cluster_state.broker_password,
+                "broker-uris": peer_cluster_state.broker_uris,
+                "cluster-uuid": peer_cluster_state.cluster_uuid,
+                "racks": str(peer_cluster_state.racks),
+                "broker-capacities": json.dumps(peer_cluster_state.broker_capacities),
                 "super-users": self.charm.state.super_users,
             }
         )
@@ -527,9 +532,12 @@ class BrokerOperator(Object):
         if not all([self.charm.unit.is_leader(), self.charm.state.runs_broker, self.healthy]):
             return
 
+        if not self.workload.ping(self.charm.state.bootstrap_server_internal):
+            return
+
         try:
             users = self.auth_manager.get_users()
-        except CalledProcessError as e:
+        except (CalledProcessError, ExecError) as e:
             # probably the cluster is not healthy, we'll check in the next update-status
             logger.error(e)
             return

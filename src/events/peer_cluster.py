@@ -114,16 +114,19 @@ class PeerClusterEventsHandler(Object):
         # Update peer-cluster chain of trust
         self.charm.state.peer_cluster_ca = self.charm.state.unit_broker.peer_certs.bundle
 
+        # Optimization: cache peer_cluster to avoid multiple loadings
+        peer_cluster_state = self.charm.state.peer_cluster
+
         # will no-op if relation does not exist
         self.charm.state.peer_cluster.update(
             {
-                "balancer-username": self.charm.state.peer_cluster.balancer_username,
-                "balancer-password": self.charm.state.peer_cluster.balancer_password,
-                "balancer-uris": self.charm.state.peer_cluster.balancer_uris,
-                "controller-password": self.charm.state.peer_cluster.controller_password,
-                "bootstrap-controller": self.charm.state.peer_cluster.bootstrap_controller,
-                "bootstrap-unit-id": self.charm.state.peer_cluster.bootstrap_unit_id,
-                "bootstrap-replica-id": self.charm.state.peer_cluster.bootstrap_replica_id,
+                "balancer-username": peer_cluster_state.balancer_username,
+                "balancer-password": peer_cluster_state.balancer_password,
+                "balancer-uris": peer_cluster_state.balancer_uris,
+                "controller-password": peer_cluster_state.controller_password,
+                "bootstrap-controller": peer_cluster_state.bootstrap_controller,
+                "bootstrap-unit-id": peer_cluster_state.bootstrap_unit_id,
+                "bootstrap-replica-id": peer_cluster_state.bootstrap_replica_id,
             }
         )
 
@@ -147,16 +150,19 @@ class PeerClusterEventsHandler(Object):
         # Update peer-cluster chain of trust
         self.charm.state.peer_cluster_ca = self.charm.state.unit_broker.peer_certs.bundle
 
+        # Optimization: cache peer_cluster to avoid multiple loadings
+        peer_cluster_state = self.charm.state.peer_cluster
+
         # will no-op if relation does not exist
         self.charm.state.peer_cluster.update(
             {
                 "roles": self.charm.state.roles,
-                "broker-username": self.charm.state.peer_cluster.broker_username,
-                "broker-password": self.charm.state.peer_cluster.broker_password,
-                "broker-uris": self.charm.state.peer_cluster.broker_uris,
-                "cluster-uuid": self.charm.state.peer_cluster.cluster_uuid,
-                "racks": str(self.charm.state.peer_cluster.racks),
-                "broker-capacities": json.dumps(self.charm.state.peer_cluster.broker_capacities),
+                "broker-username": peer_cluster_state.broker_username,
+                "broker-password": peer_cluster_state.broker_password,
+                "broker-uris": peer_cluster_state.broker_uris,
+                "cluster-uuid": peer_cluster_state.cluster_uuid,
+                "racks": str(peer_cluster_state.racks),
+                "broker-capacities": json.dumps(peer_cluster_state.broker_capacities),
                 "super-users": self.charm.state.super_users,
             }
         )

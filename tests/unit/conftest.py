@@ -75,6 +75,7 @@ def patched_workload(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("workload.Workload.get_service_pid", lambda _: 1314231)
     monkeypatch.setattr("workload.Workload.last_restart", time.time() - 100.0)
     monkeypatch.setattr("workload.Workload.modify_time", lambda _, file: time.time() - 1000.0)
+    monkeypatch.setattr("workload.Workload.ping", lambda _, nodes: True)
 
 
 @pytest.fixture(autouse=True)
