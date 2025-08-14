@@ -5,7 +5,7 @@ name: Release to Charmhub
 on:
   push:
     branches:
-      - main
+      - 3/edge
     paths-ignore:
       - 'docs/**'
       - '**.md'
