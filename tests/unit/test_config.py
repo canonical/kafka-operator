@@ -18,7 +18,6 @@ from charm import KafkaCharm
 from literals import (
     ADMIN_USER,
     CONTAINER,
-    DEPENDENCIES,
     INTER_BROKER_USER,
     INTERNAL_USERS,
     JMX_CC_PORT,
@@ -586,26 +585,6 @@ def test_rack_properties(ctx: Context, base_state: State) -> None:
 
         # Then
         assert "broker.rack=gondor-west" in charm.broker.config_manager.server_properties
-
-
-def test_inter_broker_protocol_version(ctx: Context, base_state: State) -> None:
-    """Checks that rack properties are added to server properties."""
-    # Given
-    cluster_peer = PeerRelation(PEER, PEER)
-    state_in = dataclasses.replace(base_state, relations=[cluster_peer])
-
-    # When
-    with ctx(ctx.on.config_changed(), state_in) as manager:
-        charm = cast(KafkaCharm, manager.charm)
-
-        # Then
-        kafka_version: str = DEPENDENCIES.get("kafka_service", {}).get("version", "0.0.0")
-        major_minor = ".".join(kafka_version.split(".")[:2])
-        assert (
-            f"inter.broker.protocol.version={major_minor}"
-            in charm.broker.config_manager.server_properties
-        )
-    assert len(DEPENDENCIES["kafka_service"]["version"].split(".")) == 3
 
 
 def test_super_users(ctx: Context, base_state: State) -> None:

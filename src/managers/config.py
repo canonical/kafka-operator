@@ -37,6 +37,7 @@ from literals import (
     PATHS,
     PROFILE_TESTING,
     SECURITY_PROTOCOL_PORTS,
+    SUBSTRATE,
     AuthMap,
     Scope,
 )
@@ -284,6 +285,9 @@ class CommonConfigManager:
     @property
     def auxiliary_paths(self) -> list[str]:
         """Auxiliary environment variables for logs, config and other useful base paths."""
+        if SUBSTRATE == "k8s":
+            return []
+
         if self.state.runs_broker or self.state.runs_controller:
             return [f"{key}={path}" for key, path in PATHS["kafka"].items()]
 
@@ -298,12 +302,10 @@ class ConfigManager(CommonConfigManager):
         state: ClusterState,
         workload: WorkloadBase,
         config: CharmConfig,
-        current_version: str = "",
     ):
         self.state = state
         self.workload = workload
         self.config = config
-        self.current_version = current_version
 
     @property
     @override
@@ -644,17 +646,6 @@ class ConfigManager(CommonConfigManager):
         )
 
     @property
-    def inter_broker_protocol_version(self) -> str:
-        """Creates the protocol version from the kafka version.
-
-        Returns:
-            String with the `major.minor` version
-        """
-        # Remove patch number from full version.
-        major_minor = self.current_version.split(".", maxsplit=2)
-        return ".".join(major_minor[:2])
-
-    @property
     def rack_properties(self) -> list[str]:
         """Builds all properties related to rack awareness configuration.
 
@@ -794,7 +785,6 @@ class ConfigManager(CommonConfigManager):
                 f"listeners={','.join(listeners_repr)}",
                 f"advertised.listeners={','.join(advertised_listeners)}",
                 f"inter.broker.listener.name={self.internal_listener.name}",
-                f"inter.broker.protocol.version={self.inter_broker_protocol_version}",
             ]
             + self.scram_properties
             + self.oauth_properties

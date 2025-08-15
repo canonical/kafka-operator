@@ -42,9 +42,11 @@ cryptography = ">42.0.0"
 pydantic = "^2.11"
 pyyaml = "^6.0.1"
 requests = "^2.32.3"
-lightkube = "0.15.0"
+lightkube = "0.15.4"
 trustme = "^1.2.0"
 charmlibs-pathops = "^1.0.0"
+charm-refresh = "^3.0.0.6"
+toml = "^0.10.2"
 
 [tool.poetry.group.charm-libs.dependencies]
 # data_platform_libs/v0/data_interfaces.py
@@ -100,9 +102,14 @@ requests = ">2.25"
 flaky = ">=3.0"
 jubilant = ">=1.0.0"
 
-
 [tool.poetry.group.format.dependencies]
 pyright = "^1.1.301"
+
+[tool.poetry.group.build-refresh-version]
+optional = true
+
+[tool.poetry.group.build-refresh-version.dependencies]
+charm-refresh-build-version = "^0.2.0"
 
 [tool.ruff]
 line-length = 99

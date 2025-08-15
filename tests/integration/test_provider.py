@@ -229,7 +229,7 @@ async def test_prefixed_topic_creation(ops_test: OpsTest, app_charm, kafka_apps)
 
     async with ops_test.fast_forward(fast_interval="60s"):
         await ops_test.model.wait_for_idle(
-            apps=[*kafka_apps, DUMMY_NAME_3], idle_period=30, status="active"
+            apps=[*kafka_apps, DUMMY_NAME_3], idle_period=30, timeout=1800, status="active"
         )
 
     action = await ops_test.model.units.get(f"{DUMMY_NAME_3}/0").run_action("create-topic")

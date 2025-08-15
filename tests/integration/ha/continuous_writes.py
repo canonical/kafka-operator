@@ -4,6 +4,8 @@
 import asyncio
 import logging
 import os
+import pathlib
+import tempfile
 import time
 from dataclasses import dataclass
 from multiprocessing import Event, Process, Queue
@@ -12,7 +14,7 @@ from types import SimpleNamespace
 from charms.kafka.v0.client import KafkaClient
 from kafka.admin import NewTopic
 from kafka.consumer.fetcher import ConsumerRecord
-from kafka.errors import KafkaError
+from kafka.errors import KafkaError, TopicAlreadyExistsError
 from tenacity import (
     RetryError,
     Retrying,
@@ -42,13 +44,21 @@ class ContinuousWrites:
     TOPIC_NAME = "ha-test-topic"
     LAST_WRITTEN_VAL_PATH = "/tmp/last_written_value"
 
-    def __init__(self, model: str, app: str):
+    def __init__(self, model: str, app: str, produce_rate: float = 10.0):
+        """ContinuousWrites constructor.
+
+        Args:
+            model (str): Juju model name
+            app (str): app name
+            produce_rate (float, optional): Approx. message produce rate per second. Defaults to 10.0.
+        """
         self._model = model
         self._app = app
         self._is_stopped = True
         self._event = None
         self._queue = None
         self._process = None
+        self._rate = produce_rate
 
     @retry(
         wait=wait_fixed(wait=5) + wait_random(0, 5),
@@ -113,7 +123,11 @@ class ContinuousWrites:
             num_partitions=1,
             replication_factor=3,
         )
-        client.create_topic(topic=topic_config)
+        try:
+            client.create_topic(topic=topic_config)
+        except TopicAlreadyExistsError:
+            self.clear()
+            client.create_topic(topic=topic_config)
 
     @retry(
         wait=wait_fixed(wait=5) + wait_random(0, 5),
@@ -145,7 +159,7 @@ class ContinuousWrites:
         self._process = Process(
             target=ContinuousWrites._run_async,
             name="continuous_writes",
-            args=(self._event, self._queue, 0, self._model),
+            args=(self._event, self._queue, 0, self._model, self._rate),
         )
 
     def _stop_process(self):
@@ -165,12 +179,30 @@ class ContinuousWrites:
             servers=relation_data["endpoints"].split(","),
             username=relation_data["username"],
             password=relation_data["password"],
-            security_protocol="SASL_PLAINTEXT",
+            **self.generate_client_security_config(relation_data),
+            replication_factor=3,
         )
 
     @staticmethod
+    def generate_client_security_config(provider_data: dict) -> dict[str, str]:
+        """Generate security_protocol, cafile_path and certfile_path config for KafkaClient."""
+        _kwargs = {"security_protocol": "SASL_PLAINTEXT"}
+
+        if provider_data.get("tls") == "enabled":
+            broker_ca = provider_data.get("tls-ca", "")
+            _, filename = tempfile.mkstemp()
+            tmp_file = pathlib.Path(filename)
+            tmp_file.write_text(broker_ca)
+            _kwargs = {
+                "security_protocol": "SASL_SSL",
+                "cafile_path": f"{tmp_file}",
+                "certfile_path": f"{tmp_file}",
+            }
+        return _kwargs
+
+    @staticmethod
     async def _run(
-        event: Event, data_queue: Queue, starting_number: int, model: str
+        event: Event, data_queue: Queue, starting_number: int, model: str, produce_rate: float
     ) -> None:  # noqa: C901
         """Continuous writing."""
 
@@ -185,11 +217,13 @@ class ContinuousWrites:
                 servers=relation_data["endpoints"].split(","),
                 username=relation_data["username"],
                 password=relation_data["password"],
-                security_protocol="SASL_PLAINTEXT",
+                **ContinuousWrites.generate_client_security_config(relation_data),
+                replication_factor=3,
             )
 
         write_value = starting_number
         client = _client()
+        _sleep_time = 10 / produce_rate
 
         while True:
             if not data_queue.empty():  # currently evaluates to false as we don't make updates
@@ -198,7 +232,7 @@ class ContinuousWrites:
                 client = _client()
 
             ContinuousWrites._produce_message(client=client, write_value=write_value)
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(_sleep_time)
 
             # process termination requested
             if event.is_set():
@@ -229,6 +263,8 @@ class ContinuousWrites:
                 time.sleep(0.1)
 
     @staticmethod
-    def _run_async(event: Event, data_queue: Queue, starting_number: int, model: str):
+    def _run_async(
+        event: Event, data_queue: Queue, starting_number: int, model: str, produce_rate: float
+    ):
         """Run async code."""
-        asyncio.run(ContinuousWrites._run(event, data_queue, starting_number, model))
+        asyncio.run(ContinuousWrites._run(event, data_queue, starting_number, model, produce_rate))

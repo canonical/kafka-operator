@@ -186,7 +186,7 @@ class AuthManager:
                 bin_keyword="configs", bin_args=command, opts=[self.log4j_opts]
             )
         except (subprocess.CalledProcessError, ExecError) as e:
-            if e.stderr and "delete a user credential that does not exist" in e.stderr:
+            if "delete a user credential that does not exist" in f"{e.stdout} {e.stderr}":
                 logger.warning(f"User: {username} can't be deleted, it does not exist")
                 return
             raise

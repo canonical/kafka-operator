@@ -12,6 +12,7 @@ from subprocess import PIPE, check_output
 
 import pytest
 import requests
+import toml
 from pytest_operator.plugin import OpsTest
 
 from integration.helpers.pytest_operator import (
@@ -28,7 +29,6 @@ from integration.helpers.pytest_operator import (
     run_client_properties,
 )
 from literals import (
-    DEPENDENCIES,
     JMX_EXPORTER_PORT,
     PATHS,
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
@@ -60,7 +60,9 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm, kraft_mode, cont
 @pytest.mark.abort_on_fail
 async def test_consistency_between_workload_and_metadata(ops_test: OpsTest):
     application = ops_test.model.applications[APP_NAME]
-    assert application.data.get("workload-version", "") == DEPENDENCIES["kafka_service"]["version"]
+    with open("refresh_versions.toml", "r") as f:
+        data = toml.load(f)
+    assert application.data.get("workload-version", "") == data["workload"]
 
 
 @pytest.mark.abort_on_fail

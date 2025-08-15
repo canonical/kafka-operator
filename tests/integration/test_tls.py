@@ -13,6 +13,7 @@ import pytest
 from charms.tls_certificates_interface.v4.tls_certificates import generate_private_key
 from pytest_operator.plugin import OpsTest
 
+from integration.helpers import sign_manual_certs
 from integration.helpers.pytest_operator import (
     APP_NAME,
     REL_NAME_PRODUCER,
@@ -26,7 +27,6 @@ from integration.helpers.pytest_operator import (
     list_truststore_aliases,
     search_secrets,
     set_tls_private_key,
-    sign_manual_certs,
 )
 from literals import (
     CERTIFICATE_TRANSFER_RELATION,
@@ -348,7 +348,7 @@ async def test_manual_tls_chain(ops_test: OpsTest, kafka_apps):
             raise_on_error=False,
         )
 
-    sign_manual_certs(ops_test)
+    sign_manual_certs(ops_test.model_full_name)
 
     # verifying brokers + servers can communicate with one-another
     await ops_test.model.wait_for_idle(

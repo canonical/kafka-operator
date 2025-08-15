@@ -2,6 +2,7 @@
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 import json
+import time
 from collections import defaultdict
 from unittest.mock import Mock, PropertyMock, patch
 
@@ -67,10 +68,14 @@ def patched_etc_environment():
 @pytest.fixture(autouse=True)
 def patched_workload(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("time.sleep", lambda _: None)
+    monkeypatch.setattr("charmlibs.pathops.LocalPath.exists", lambda _: True)
     monkeypatch.setattr("workload.Workload.active", lambda _: True)
     monkeypatch.setattr("workload.Workload.write", lambda _, content, path: None)
     monkeypatch.setattr("workload.Workload.read", lambda _, path: [])
     monkeypatch.setattr("workload.Workload.get_service_pid", lambda _: 1314231)
+    monkeypatch.setattr("workload.Workload.last_restart", time.time() - 100.0)
+    monkeypatch.setattr("workload.Workload.modify_time", lambda _, file: time.time() - 1000.0)
+    monkeypatch.setattr("workload.Workload.ping", lambda _, nodes: True)
 
 
 @pytest.fixture(autouse=True)
@@ -208,3 +213,20 @@ def patched_snap(monkeypatch):
 @pytest.fixture
 def tls_artifacts(request: pytest.FixtureRequest) -> TLSArtifacts:
     return generate_tls_artifacts(with_intermediate=bool(request.param))
+
+
+@pytest.fixture(autouse=True)
+def mock_refresh():
+    """Fixture to shunt refresh logic and events."""
+    refresh_mock = Mock()
+    refresh_mock.in_progress = False
+    refresh_mock.unit_status_higher_priority = None
+    refresh_mock.unit_status_lower_priority.return_value = None
+    refresh_mock.next_unit_allowed_to_refresh = True
+    refresh_mock.workload_allowed_to_start = True
+
+    with (
+        patch("charm_refresh.Machines", Mock(return_value=refresh_mock)),
+        patch("charm.MachinesKafkaRefresh", Mock(return_value=None)),
+    ):
+        yield

@@ -7,7 +7,6 @@ import logging
 import re
 import socket
 import subprocess
-import tempfile
 from contextlib import closing
 from json.decoder import JSONDecodeError
 from pathlib import Path
@@ -700,43 +699,14 @@ def kraft_quorum_status(
     return unit_status
 
 
-def sign_manual_certs(ops_test: OpsTest, manual_app: str = "manual-tls-certificates") -> None:
-    delim = "-----BEGIN CERTIFICATE REQUEST-----"
-
-    csrs_cmd = f"JUJU_MODEL={ops_test.model_full_name} juju run {manual_app}/0 get-outstanding-certificate-requests --format=json | jq -r '.[\"{manual_app}/0\"].results.result' | jq '.[].csr' | sed 's/\\\\n/\\n/g' | sed 's/\\\"//g'"
-    csrs = check_output(csrs_cmd, stderr=PIPE, universal_newlines=True, shell=True).split(delim)
-
-    for i, csr in enumerate(csrs):
-        if not csr:
-            continue
-
-        with tempfile.TemporaryDirectory() as tmp:
-            tmp_dir = Path(tmp)
-            csr_file = tmp_dir / f"csr{i}"
-            csr_file.write_text(delim + csr)
-
-            cert_file = tmp_dir / f"{i}.pem"
-
-            try:
-                sign_cmd = f"openssl x509 -req -in {csr_file} -CAkey tests/integration/data/int.key -CA tests/integration/data/int.pem -days 100 -CAcreateserial -out {cert_file} -copy_extensions copyall --passin pass:password"
-                provide_cmd = f'JUJU_MODEL={ops_test.model_full_name} juju run {manual_app}/0 provide-certificate ca-certificate="$(base64 -w0 tests/integration/data/int.pem)" ca-chain="$(base64 -w0 tests/integration/data/root.pem)" certificate="$(base64 -w0 {cert_file})" certificate-signing-request="$(base64 -w0 {csr_file})"'
-
-                check_output(sign_cmd, stderr=PIPE, universal_newlines=True, shell=True)
-                response = check_output(
-                    provide_cmd, stderr=PIPE, universal_newlines=True, shell=True
-                )
-                logger.info(f"{response=}")
-            except CalledProcessError as e:
-                logger.error(f"{e.stdout=}, {e.stderr=}, {e.output=}")
-                raise e
-
-
-async def list_truststore_aliases(ops_test: OpsTest, unit: str = f"{APP_NAME}/0") -> list[str]:
+async def list_truststore_aliases(
+    ops_test: OpsTest, unit: str = f"{APP_NAME}/0", scope: Literal["client", "peer"] = "client"
+) -> list[str]:
     truststore_password = extract_truststore_password(ops_test=ops_test, unit_name=unit)
 
     try:
         result = check_output(
-            f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit} sudo -i 'charmed-kafka.keytool -list -keystore /var/snap/charmed-kafka/current/etc/kafka/client-truststore.jks -storepass {truststore_password}'",
+            f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit} sudo -i 'charmed-kafka.keytool -list -keystore /var/snap/charmed-kafka/current/etc/kafka/{scope}-truststore.jks -storepass {truststore_password}'",
             stderr=PIPE,
             shell=True,
             universal_newlines=True,
