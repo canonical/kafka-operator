@@ -2,9 +2,10 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-"""Manager for handling Kafka TLS configuration."""
+"""Handler for TLS/mTLS events."""
 
 import base64
+import copy
 import json
 import logging
 import re
@@ -37,6 +38,7 @@ from literals import (
     Status,
     TLSScope,
 )
+from managers.tls import TLSManager
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -171,6 +173,7 @@ class TLSHandler(Object):
         )
 
         # clear TLS state
+        old_bundle = copy.deepcopy(state.bundle)
         state.csr = ""
         state.certificate = ""
         state.chain = ""
@@ -183,6 +186,12 @@ class TLSHandler(Object):
         if state.scope == TLSScope.PEER:
             # switch back to internal TLS
             self.charm.broker.setup_internal_tls()
+
+            # Keep the old bundle
+            for dependent in ["broker", "balancer"]:
+                getattr(self.charm, dependent).tls_manager.import_bundle(
+                    bundle=old_bundle, scope=state.scope, alias_prefix=TLSManager.OLD_PREFIX
+                )
 
             state.rotate = True
             self.charm.on.config_changed.emit()
@@ -208,6 +217,8 @@ class TLSHandler(Object):
         if state.ca and event.ca.raw != state.ca:
             ca_changed = True
 
+        old_bundle = copy.deepcopy(state.bundle)
+
         state.certificate = event.certificate.raw
         state.ca = event.ca.raw
         state.chain = json.dumps([certificate.raw for certificate in event.chain])
@@ -215,6 +226,12 @@ class TLSHandler(Object):
         for dependent in ["broker", "balancer"]:
             getattr(self.charm, dependent).tls_manager.remove_stores(scope=state.scope)
             getattr(self.charm, dependent).tls_manager.configure()
+
+            if ca_changed:
+                # Keep the old bundle
+                getattr(self.charm, dependent).tls_manager.import_bundle(
+                    bundle=old_bundle, scope=state.scope, alias_prefix=TLSManager.OLD_PREFIX
+                )
 
         if certificate_changed or ca_changed:
             # this will trigger a restart.
@@ -230,6 +247,10 @@ class TLSHandler(Object):
         if self.charm.unit.is_leader():
             # Update peer-cluster CA/chain.
             self.charm.state.peer_cluster_ca = self.charm.state.unit_broker.peer_certs.bundle
+
+            # Inform the peer-cluster app of the rotate
+            if self.requirer_state(self.peer_certificates).rotate:
+                self.charm.state.peer_cluster_tls_rotate = True
 
         self.charm.on.config_changed.emit()
 

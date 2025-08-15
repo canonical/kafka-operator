@@ -506,7 +506,7 @@ class ClusterState(Object):
         """Check for active controller relation and adding of inter-broker auth username.
 
         Returns:
-            True if ZK is related and `sync` user has been added. False otherwise.
+            True if controller is related and `sync` user has been added. False otherwise.
         """
         if not self.peer_relation:
             return Status.NO_PEER_RELATION
@@ -679,6 +679,30 @@ class ClusterState(Object):
             self.kraft_cluster.update({"controller-ca": _value})
 
     @property
+    def trusted_by_our_app(self) -> set[str]:
+        """Returns a set of certificate fingeprints loaded into all units truststores of THIS (LOCAL) app."""
+        trusted_set = self.unit_broker.peer_certs.trusted_certificates
+        for unit in self.brokers:
+            trusted_set &= unit.peer_certs.trusted_certificates
+
+        return trusted_set
+
+    @property
+    def trusted_by_peer_cluster_app(self) -> set[str]:
+        """Returns a set of certificate fingeprints loaded into all units truststores of the REMOTE app."""
+        relation = self.kraft_cluster.relation
+
+        if not relation:
+            return set()
+
+        trust_list = json.loads(relation.data[relation.app].get("trust", "null")) or []
+        return set(trust_list)
+
+    def refresh_peer_cluster_trust_state(self) -> None:
+        """Updates `trusted_by_peer_cluster_app` state variable based on the intersection of certificates trusted by all units."""
+        self.kraft_cluster.update({"trust": json.dumps(sorted(self.trusted_by_our_app))})
+
+    @property
     def tls_rotate(self) -> bool:
         """Returns True if TLS rotation is in progress, False otherwise."""
         return any(
@@ -702,3 +726,36 @@ class ClusterState(Object):
     def balancer_tls_rotate(self, value: bool) -> None:
         _value = "" if not value else "true"
         self.cluster.update({"balancer-rotation": _value})
+
+    @property
+    def peer_cluster_tls_rotate(self) -> bool:
+        """Returns True if TLS rotation is in progress on the peer-cluster side."""
+        relation = self.kraft_cluster.relation
+
+        if not relation:
+            return False
+
+        return relation.data[relation.app].get("peer-cluster-rotate") == "true"
+
+    @peer_cluster_tls_rotate.setter
+    def peer_cluster_tls_rotate(self, value: bool) -> None:
+        if not self.unit_broker.unit.is_leader():
+            return
+
+        _value = "true" if value else ""
+        self.kraft_cluster.update({"peer-cluster-rotate": _value})
+        # Non-leader units can't read local app relation data, so write the same on peer app data.
+        self.cluster.update({"peer-cluster-rotate": _value})
+
+    @property
+    def both_sides_rotating(self) -> bool:
+        """Returns True if both sides of the peer-cluster relation are rotating TLS certs, False otherwise."""
+        if self.runs_broker and self.runs_controller:
+            return False
+
+        if not (relation := self.kraft_cluster.relation):
+            return False
+
+        return relation.data[relation.app].get("peer-cluster-rotate") == "true" and any(
+            unit.peer_certs.rotate for unit in self.brokers
+        )

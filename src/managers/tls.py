@@ -43,7 +43,8 @@ class TLSManager:
 
     DEFAULT_HASH_ALGORITHM: hashes.HashAlgorithm = hashes.SHA256()
     SCOPES = (TLSScope.PEER, TLSScope.CLIENT)
-    TEMP_ALIAS_PREFIX = "new-"
+    OLD_PREFIX = "old-"
+    NEW_PREFIX = "new-"
     PEER_CLUSTER_ALIAS = "cluster-tls"
 
     def __init__(
@@ -210,38 +211,19 @@ class TLSManager:
                 )
 
     def set_truststore(self) -> None:
-        """Adds CA to JKS truststore."""
+        """Adds bundle to JKS truststore."""
         for scope in self.SCOPES:
             state = self.get_state(scope)
+            self.import_bundle(bundle=state.bundle, scope=scope)
 
-            trust_aliases = [f"bundle{i}" for i in range(len(state.bundle))]
-            for alias in trust_aliases:
-                command = [
-                    self.keytool,
-                    "-import",
-                    "-v",
-                    "-alias",
-                    alias,
-                    "-file",
-                    f"{scope.value}-{alias}.pem",
-                    "-keystore",
-                    f"{scope.value}-truststore.jks",
-                    "-storepass",
-                    f"{self.state.unit_broker.truststore_password}",
-                    "-noprompt",
-                ]
-                try:
-                    self.workload.exec(command=command, working_dir=self.workload.paths.conf_path)
-                    self.workload.exec(
-                        f"chown {USER_NAME}:{GROUP} {self.get_truststore_path(scope)}".split()
-                    )
-                    self.workload.exec(f"chmod 770 {self.get_truststore_path(scope)}".split())
-                except (subprocess.CalledProcessError, ExecError) as e:
-                    # in case this reruns and fails
-                    if e.stdout and "already exists" in e.stdout:
-                        continue
-                    logger.error(e.stdout)
-                    raise e
+            # Exit early if the bundle was empty and no truststore file is created.
+            if not (self.workload.root / self.get_truststore_path(scope)).exists():
+                continue
+
+            self.workload.exec(
+                f"chown {USER_NAME}:{GROUP} {self.get_truststore_path(scope)}".split()
+            )
+            self.workload.exec(f"chmod 770 {self.get_truststore_path(scope)}".split())
 
     def set_keystore(self) -> None:
         """Creates and adds unit cert and private-key to the keystore."""
@@ -281,12 +263,8 @@ class TLSManager:
                 raise e
 
     def update_peer_cluster_trust(self) -> None:
-        """Updates peer truststore with current state of peer-cluster certificate chain.
-
-        This method will toggle the TLS rotation state variable if certificate change is detected in the peer-cluster relationship.
-        """
+        """Updates peer truststore with current state of peer-cluster certificate chain."""
         bundle = self.state.peer_cluster_ca
-        state = self.get_state(TLSScope.PEER)
 
         if not bundle:
             return
@@ -297,7 +275,10 @@ class TLSManager:
                 continue
 
             alias = f"{self.PEER_CLUSTER_ALIAS}{i}"
-            state.rotate = True
+
+            if alias in trusted_certs:
+                # we should use the `new-` prefix to keep old and new bundles
+                alias = f"{self.NEW_PREFIX}{alias}"
 
             self.update_cert(alias=alias, cert=cert, scope=TLSScope.PEER)
 
@@ -329,7 +310,9 @@ class TLSManager:
             "-noprompt",
         ]
         try:
-            self.workload.exec(command=command, working_dir=self.workload.paths.conf_path)
+            self.workload.exec(
+                command=command, working_dir=self.workload.paths.conf_path, log_on_error=False
+            )
         except (subprocess.CalledProcessError, ExecError) as e:
             # in case this reruns and fails
             if e.stdout and "already exists" in e.stdout:
@@ -337,6 +320,25 @@ class TLSManager:
                 return
             logger.error(e.stdout)
             raise e
+
+    def import_bundle(self, bundle: list[str], scope: TLSScope, alias_prefix: str = "") -> None:
+        """Add a list (bundle) of certificates to the truststore.
+
+        Args:
+            bundle (list[str]): certificate bundle to import
+            scope (TLSScope): TLS scope to use
+            alias_prefix (str, optional): an optional prefix to be prepended to the imported aliases. Defaults to "".
+        """
+        for i, certificate in enumerate(bundle):
+
+            alias = f"{alias_prefix}bundle{i}"
+            filename = f"{scope.value}-{alias}.pem"
+            file_path = self.workload.root / self.workload.paths.conf_path / filename
+
+            if not file_path.exists():
+                self.workload.write(content=certificate, path=f"{file_path}")
+
+            self.import_cert(alias=alias, filename=filename, scope=scope)
 
     def remove_cert(self, alias: str, scope: TLSScope = TLSScope.CLIENT) -> None:
         """Remove a cert from the truststore."""
@@ -353,7 +355,9 @@ class TLSManager:
                 f"{self.state.unit_broker.truststore_password}",
                 "-noprompt",
             ]
-            self.workload.exec(command=command, working_dir=self.workload.paths.conf_path)
+            self.workload.exec(
+                command=command, working_dir=self.workload.paths.conf_path, log_on_error=False
+            )
             self.workload.exec(
                 f"rm -f {scope.value}-{alias}.pem".split(),
                 working_dir=self.workload.paths.conf_path,
@@ -544,6 +548,53 @@ class TLSManager:
             for match in re.findall("(.+?),.+?trustedCertEntry.*?\n.+?([0-9a-fA-F:]{95})\n", raw)
         }
 
+    def peer_cluster_app_trusts_new_bundle(self) -> bool:
+        """Checks whether the peer-cluster (remote) app has loaded this (local) app's cert bundle or not."""
+        if self.state.runs_broker and self.state.runs_controller:
+            # Not applicable for KRaft single mode
+            return True
+
+        for certificate in self.state.unit_broker.peer_certs.bundle:
+            if self.is_valid_leaf_certificate(certificate):
+                # peer-cluster app does not need to trust leaf certificates,
+                # only chain & CA certs should be trusted.
+                continue
+
+            hash_bytes = self.certificate_fingerprint(certificate)
+            if (
+                self.bytes_to_keytool_hash(hash_bytes)
+                not in self.state.trusted_by_peer_cluster_app
+            ):
+                return False
+
+        return True
+
+    def both_apps_trust_new_bundle(self) -> bool:
+        """During a TLS rotation, checks whether new bundle is added to the truststore and a restart is done."""
+        common_truststore = self.state.trusted_by_our_app & self.state.trusted_by_peer_cluster_app
+        bundles = self.state.unit_broker.peer_certs.bundle + self.state.peer_cluster_ca
+
+        for certificate in bundles:
+            if self.is_valid_leaf_certificate(certificate):
+                # peer-cluster app does not need to trust leaf certificates,
+                # only chain & CA certs should be trusted.
+                continue
+
+            hash_bytes = self.certificate_fingerprint(certificate)
+            if self.bytes_to_keytool_hash(hash_bytes) not in common_truststore:
+                return False
+
+        return True
+
+    def rebuild_truststore(self) -> None:
+        """Destroys and rebuilds peer (internal) truststore."""
+        try:
+            (self.workload.root / self.workload.paths.peer_truststore).unlink()
+        except FileNotFoundError:
+            pass
+        self.set_truststore()
+        self.update_peer_cluster_trust()
+
     @staticmethod
     def is_valid_leaf_certificate(cert: str) -> bool:
         """Validates if `cert` is a valid leaf certificate (not a CA)."""
@@ -585,6 +636,11 @@ class TLSManager:
         """Converts a hash in the keytool format (AB:CD:0F:...) to a bytes object."""
         return bytes([int(s, 16) for s in hash.split(":")])
 
+    @staticmethod
+    def bytes_to_keytool_hash(hash_bytes: bytes, sep: str = "") -> str:
+        """Converts a bytes object to keytool hash format (AB:CD:0F:...), with customizable separator."""
+        return sep.join(hex(b)[2:] for b in hash_bytes).upper()
+
     @property
     def trusted_certificates(self) -> dict[str, bytes]:
         """Returns a mapping of alias to certificate fingerprint (hash) for all the certificates loaded in the CLIENT truststore."""
@@ -594,3 +650,12 @@ class TLSManager:
     def peer_trusted_certificates(self) -> dict[str, bytes]:
         """Returns a mapping of alias to certificate fingerprint (hash) for all the certificates loaded in the PEER truststore."""
         return self.get_trusted_certificates(self.workload.paths.peer_truststore)
+
+    @property
+    def peer_truststore_has_temporary_aliases(self) -> bool:
+        """Returns True if any temporary/TLS rotation-related cert is loaded into the peer (internal) truststore."""
+        for alias in self.peer_trusted_certificates:
+            if alias.startswith(self.OLD_PREFIX) or alias.startswith(self.NEW_PREFIX):
+                return True
+
+        return False

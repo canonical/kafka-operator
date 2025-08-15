@@ -5,18 +5,24 @@
 import asyncio
 import logging
 import os
+from itertools import product
 
 import pytest
 from pytest_operator.plugin import OpsTest
 
+from integration.ha.continuous_writes import ContinuousWrites
+from integration.helpers.ha import assert_continuous_writes_consistency
 from integration.helpers.pytest_operator import (
     APP_NAME,
+    DUMMY_NAME,
+    REL_NAME_ADMIN,
     SERIES,
     KRaftMode,
     check_socket,
     create_test_topic,
     get_address,
     kraft_quorum_status,
+    list_truststore_aliases,
     search_secrets,
 )
 from literals import (
@@ -34,7 +40,6 @@ logger = logging.getLogger(__name__)
 pytestmark = pytest.mark.kraft
 
 CONTROLLER_APP = "controller"
-PRODUCER_APP = "producer"
 TLS_NAME = "self-signed-certificates"
 
 
@@ -92,7 +97,7 @@ class TestKRaft:
 
     @pytest.mark.abort_on_fail
     @pytest.mark.skip_if_deployed
-    async def test_build_and_deploy(self, ops_test: OpsTest, kafka_charm, kraft_mode):
+    async def test_build_and_deploy(self, ops_test: OpsTest, kafka_charm, app_charm, kraft_mode):
 
         await asyncio.gather(
             ops_test.model.deploy(
@@ -107,18 +112,10 @@ class TestKRaft:
                 trust=True,
             ),
             ops_test.model.deploy(
-                "kafka-test-app",
-                application_name=PRODUCER_APP,
-                channel="edge",
+                app_charm,
+                application_name=DUMMY_NAME,
+                series=SERIES,
                 num_units=1,
-                series="jammy",
-                config={
-                    "topic_name": "HOT-TOPIC",
-                    "num_messages": 100000,
-                    "role": "producer",
-                    "partitions": 20,
-                    "replication_factor": "1",
-                },
                 trust=True,
             ),
         )
@@ -146,22 +143,29 @@ class TestKRaft:
         )
 
     @pytest.mark.abort_on_fail
-    async def test_integrate(self, ops_test: OpsTest):
+    async def test_integrate(self, ops_test: OpsTest, kafka_apps):
         if self.controller_app != APP_NAME:
             await ops_test.model.add_relation(
                 f"{APP_NAME}:{PEER_CLUSTER_ORCHESTRATOR_RELATION}",
                 f"{CONTROLLER_APP}:{PEER_CLUSTER_RELATION}",
             )
 
-        await ops_test.model.wait_for_idle(
-            apps=list({APP_NAME, self.controller_app}), idle_period=30
-        )
-
-        async with ops_test.fast_forward(fast_interval="20s"):
-            await asyncio.sleep(240)
+        async with ops_test.fast_forward(fast_interval="60s"):
+            await ops_test.model.wait_for_idle(
+                apps={self.controller_app, APP_NAME},
+                idle_period=40,
+                timeout=1800,
+                status="active",
+            )
 
         assert ops_test.model.applications[APP_NAME].status == "active"
         assert ops_test.model.applications[self.controller_app].status == "active"
+
+        # Relate app with broker.
+        await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
+        await ops_test.model.wait_for_idle(
+            apps=[*kafka_apps, DUMMY_NAME], idle_period=60, status="active"
+        )
 
     @pytest.mark.abort_on_fail
     async def test_listeners(self, ops_test: OpsTest):
@@ -251,12 +255,12 @@ class TestKRaft:
         await ops_test.model.applications[self.controller_app].add_units(count=1)
 
         # ensure unit is added to dynamic quorum
-        async with ops_test.fast_forward(fast_interval="60s"):
+        async with ops_test.fast_forward(fast_interval="120s"):
             await ops_test.model.wait_for_idle(
                 apps=list({APP_NAME, self.controller_app}),
                 status="active",
                 timeout=1200,
-                idle_period=40,
+                idle_period=30,
             )
 
         unit_status = kraft_quorum_status(
@@ -301,6 +305,11 @@ class TestKRaft:
     @pytest.mark.skipif(not tls_enabled, reason="only required when TLS is on.")
     @pytest.mark.abort_on_fail
     async def test_relate_peer_tls(self, ops_test: OpsTest):
+        # This test and the following one are inherently long due to double rolling restarts,
+        # In order not to break on constrained CI, we decrease the produce rate of CW to 2/s.
+        c_writes = ContinuousWrites(model=ops_test.model_full_name, app=DUMMY_NAME, produce_rate=2)
+        c_writes.start()
+
         await ops_test.model.deploy(TLS_NAME, application_name=TLS_NAME, channel="1/stable")
         await ops_test.model.wait_for_idle(
             apps=[TLS_NAME], idle_period=30, timeout=600, status="active"
@@ -309,15 +318,12 @@ class TestKRaft:
         await ops_test.model.add_relation(
             f"{self.controller_app}:{INTERNAL_TLS_RELATION}", TLS_NAME
         )
-        await ops_test.model.wait_for_idle(
-            apps=[self.controller_app, TLS_NAME], idle_period=60, timeout=1200
-        )
 
         async with ops_test.fast_forward(fast_interval="90s"):
             await ops_test.model.wait_for_idle(
                 apps={self.controller_app, APP_NAME, TLS_NAME},
                 idle_period=45,
-                timeout=1200,
+                timeout=2400,
                 status="active",
             )
 
@@ -339,16 +345,23 @@ class TestKRaft:
         # ensure we're not using internal CA
         assert internal_ca != controller_ca
 
+        results = c_writes.stop()
+        assert_continuous_writes_consistency(results)
+
     @pytest.mark.skipif(not tls_enabled, reason="only required when TLS is on.")
     @pytest.mark.abort_on_fail
     async def test_remove_peer_tls_relation(self, ops_test: OpsTest):
+        c_writes = ContinuousWrites(model=ops_test.model_full_name, app=DUMMY_NAME, produce_rate=2)
+        c_writes.start()
+        await asyncio.sleep(60)
+
         await ops_test.juju("remove-relation", self.controller_app, TLS_NAME)
 
         async with ops_test.fast_forward(fast_interval="90s"):
             await ops_test.model.wait_for_idle(
                 apps={self.controller_app, APP_NAME, TLS_NAME},
                 idle_period=60,
-                timeout=1800,
+                timeout=2400,
                 status="active",
             )
 
@@ -369,3 +382,16 @@ class TestKRaft:
         assert controller_ca
         # Now we should be using internal CA
         assert internal_ca == controller_ca
+
+        results = c_writes.stop()
+        assert_continuous_writes_consistency(results)
+
+        async with ops_test.fast_forward(fast_interval="60s"):
+            # Wait for a couple of update-statues
+            await asyncio.sleep(300)
+
+        # We should have no temporary alias in the truststore
+        for i, app in product(range(3), {APP_NAME, self.controller_app}):
+            aliases = await list_truststore_aliases(ops_test, f"{app}/{i}", scope="peer")
+            logger.info(f"Trust aliases in {app}/{i}: {aliases}")
+            assert not ([alias for alias in aliases if "old-" in alias or "new-" in alias])

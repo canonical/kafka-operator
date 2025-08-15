@@ -595,6 +595,24 @@ class TLSState:
         self.relation_state.update({f"{self.scope.value}-rotation": _value})
 
     @property
+    def trusted_certificates(self) -> set[str]:
+        """Returns a list of certificate fingeprints loaded into this unit's truststore."""
+        trust_list = json.loads(self.relation_data.get(f"{self.scope.value}-trust", "null")) or []
+        return set(trust_list)
+
+    @trusted_certificates.setter
+    def trusted_certificates(self, value: str | list[str]) -> None:
+        _value = [value] if isinstance(value, str) else value
+
+        if set(_value) == self.trusted_certificates:
+            return
+
+        _value.sort()
+        _value = json.dumps(_value)
+
+        self.relation_state.update({f"{self.scope.value}-trust": _value})
+
+    @property
     def ready(self) -> bool:
         """Returns True if all the necessary TLS relation data has been set, False otherwise."""
         return all([self.certificate, self.ca, self.private_key])

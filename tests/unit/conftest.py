@@ -2,6 +2,7 @@
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 import json
+import time
 from collections import defaultdict
 from unittest.mock import Mock, PropertyMock, patch
 
@@ -67,10 +68,14 @@ def patched_etc_environment():
 @pytest.fixture(autouse=True)
 def patched_workload(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("time.sleep", lambda _: None)
+    monkeypatch.setattr("charmlibs.pathops.LocalPath.exists", lambda _: True)
     monkeypatch.setattr("workload.Workload.active", lambda _: True)
     monkeypatch.setattr("workload.Workload.write", lambda _, content, path: None)
     monkeypatch.setattr("workload.Workload.read", lambda _, path: [])
     monkeypatch.setattr("workload.Workload.get_service_pid", lambda _: 1314231)
+    monkeypatch.setattr("workload.Workload.last_restart", time.time() - 100.0)
+    monkeypatch.setattr("workload.Workload.modify_time", lambda _, file: time.time() - 1000.0)
+    monkeypatch.setattr("workload.Workload.ping", lambda _, nodes: True)
 
 
 @pytest.fixture(autouse=True)
