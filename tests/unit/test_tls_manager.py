@@ -16,7 +16,7 @@ from unittest.mock import MagicMock
 import pytest
 import yaml
 from charmlibs import pathops
-from src.core.models import KafkaBroker
+from src.core.cluster import KafkaBroker
 from src.core.structured_config import CharmConfig
 from src.core.workload import CharmedKafkaPaths, WorkloadBase
 from src.literals import BROKER, SUBSTRATE, TLSScope
