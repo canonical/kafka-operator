@@ -53,6 +53,9 @@ class SecretsHandler(Object):
 
     def _on_secret_changed(self, event: SecretChangedEvent) -> None:
         """Handle the `secret_changed` event."""
+        self.charm.tls.set_tls_private_key(secret_private_key=self.load_tls_private_key_secret())
+
+        # only the leader should run for system-users
         if not self.model.unit.is_leader():
             return
 
@@ -87,6 +90,29 @@ class SecretsHandler(Object):
 
         # This will update peer-cluster data
         self.charm.on.config_changed.emit()
+
+    def load_tls_private_key_secret(self) -> str | None:
+        """Loads unit-specific new tls-private-key from the secrets."""
+        if not (secret_id := self.charm.config.tls_private_key):
+            return None
+
+        try:
+            secret_content = self.model.get_secret(id=secret_id).get_content(refresh=True)
+        except (SecretNotFoundError, ModelError) as e:
+            logging.error(f"Failed to fetch the secret, details: {e}")
+            return None
+
+        tls_private_key = ""
+        for unit_name, key in secret_content.items():
+            if unit_name == self.charm.state.unit_broker.unit.name.replace("/", "-"):
+                tls_private_key = key
+
+        if not tls_private_key:
+            raise KeyError(
+                f"Missing tls-private-key secret key for {self.charm.state.unit_broker.unit.name.replace('/', '-')}"
+            )
+
+        return tls_private_key
 
     def load_auth_secret(self) -> dict[str, str]:
         """Loads user-defined credentials from the secrets."""

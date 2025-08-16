@@ -7,12 +7,15 @@ from unittest.mock import PropertyMock, patch
 import pytest
 import yaml
 from ops.testing import Container, Context, PeerRelation, Secret, State
-from src.literals import CONTAINER, INTERNAL_USERS, PEER, SUBSTRATE
+from tests.unit.helpers import generate_tls_artifacts
 
 from charm import KafkaCharm
+from literals import CHARM_KEY, CONTAINER, INTERNAL_USERS, PEER, SUBSTRATE
 
 logger = logging.getLogger(__name__)
+
 AUTH_CONFIG_KEY = "system-users"
+TLS_PK_KEY = "tls-private-key"
 CONFIG = yaml.safe_load(Path("./config.yaml").read_text())
 ACTIONS = yaml.safe_load(Path("./actions.yaml").read_text())
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
@@ -41,6 +44,98 @@ def base_state(kraft_data: dict[str, str], passwords_data: dict[str, str]):
 def ctx() -> Context:
     ctx = Context(KafkaCharm, meta=METADATA, config=CONFIG, actions=ACTIONS, unit_id=0)
     return ctx
+
+
+@pytest.mark.parametrize("secret_provided", [True, False])
+@pytest.mark.parametrize("config_provided", [True, False])
+def test_load_tls_private_key_secret(
+    ctx: Context,
+    base_state: State,
+    secret_provided: bool,
+    config_provided: bool,
+) -> None:
+    # Given
+    secret_content = {}
+    for broker_id in range(3):  # verifying multiple units also works
+        tls_artifacts = generate_tls_artifacts(
+            subject=f"{CHARM_KEY}/{broker_id}",
+            sans_ip=["10.10.10.10"],
+            sans_dns=[f"{CHARM_KEY}/{broker_id}"],
+            with_intermediate=False,
+        )
+
+        secret_content.update({f"{CHARM_KEY}-{broker_id}": tls_artifacts.private_key})
+
+    tls_private_key_secret = Secret(label="tls_private_key", tracked_content=secret_content)
+    state_in = dataclasses.replace(
+        base_state,
+        secrets=[tls_private_key_secret] if secret_provided else [],  # simulating missing secret
+        config=(
+            base_state.config | ({TLS_PK_KEY: tls_private_key_secret.id})
+            if config_provided
+            else {}  # simulating missing config
+        ),
+    )
+
+    # When
+    with ctx(ctx.on.config_changed(), state_in) as mgr:
+        charm: KafkaCharm = cast(KafkaCharm, mgr.charm)
+        _ = mgr.run()
+
+    # Then
+    if not config_provided or not secret_provided:
+        assert not charm.broker.secrets.load_tls_private_key_secret()
+        return
+
+    assert charm.broker.secrets.load_tls_private_key_secret()
+
+    # Given
+    del secret_content[f"{CHARM_KEY}-0"]  # simulating a secret-changed with a missing unit
+
+    tls_private_key_secret = Secret(label="tls_private_key", tracked_content=secret_content)
+    state_in = dataclasses.replace(
+        base_state,
+        secrets=[tls_private_key_secret],
+        config=(base_state.config | ({TLS_PK_KEY: tls_private_key_secret.id})),
+    )
+
+    # When
+    # Then
+    with pytest.raises(KeyError):
+        with ctx(ctx.on.config_changed(), state_in) as mgr:
+            _ = mgr.run()
+
+
+def test_secret_changed_set_tls_private_key(
+    ctx: Context,
+    base_state: State,
+) -> None:
+    # Given
+    tls_artifacts = generate_tls_artifacts(
+        subject=f"{CHARM_KEY}/0",
+        sans_ip=["10.10.10.10"],
+        sans_dns=[f"{CHARM_KEY}/0"],
+        with_intermediate=False,
+    )
+
+    secret_content = {f"{CHARM_KEY}-0": tls_artifacts.private_key}
+
+    tls_private_key_secret = Secret(label="tls_private_key", tracked_content=secret_content)
+    state_in = dataclasses.replace(
+        base_state,
+        secrets=[tls_private_key_secret],
+        config=(base_state.config | ({TLS_PK_KEY: tls_private_key_secret.id})),
+    )
+
+    # When
+    with (
+        ctx(ctx.on.secret_changed(tls_private_key_secret), state_in) as mgr,
+        patch("events.tls.TLSHandler.set_tls_private_key") as set_tls_pk,
+    ):
+        _ = mgr.run()
+
+        # Then
+        assert set_tls_pk.call_count
 
 
 @pytest.mark.parametrize("secret_provided", [True, False])
@@ -126,7 +221,7 @@ def test_secret_removed_preserves_credentials(
             "events.broker.BrokerOperator.healthy", new_callable=PropertyMock(return_value=True)
         ),
     ):
-        charm: KafkaCharm = cast(KafkaCharm, mgr.charm)
+        charm = cast(KafkaCharm, mgr.charm)
         new_password = charm.state.cluster.internal_user_credentials.get("admin")
         _ = mgr.run()
 

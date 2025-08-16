@@ -192,7 +192,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.broker.workload.start()
 
         if self.broker.workload.active():
-            logger.info(f'Broker {self.unit.name.split("/")[1]} restarted')
+            logger.info(f"Broker {self.unit.name.split('/')[1]} restarted")
         else:
             logger.error(f"Broker {self.unit.name.split('/')[1]} failed to restart")
             return

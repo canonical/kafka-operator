@@ -68,8 +68,6 @@ class TLSManager:
         elif scope == TLSScope.CLIENT:
             return self.state.unit_broker.client_certs
 
-        raise UnknownScopeError(f"Unknown scope: {scope}")
-
     def get_truststore_path(self, scope: TLSScope) -> str:
         """Returns the truststore path for the given scope."""
         if scope == TLSScope.PEER:
@@ -77,16 +75,12 @@ class TLSManager:
         elif scope == TLSScope.CLIENT:
             return self.workload.paths.truststore
 
-        raise UnknownScopeError(f"Unknown scope: {scope}")
-
     def get_keystore_path(self, scope: TLSScope) -> str:
         """Returns the keystore path for the given scope."""
         if scope == TLSScope.PEER:
             return self.workload.paths.peer_keystore
         elif scope == TLSScope.CLIENT:
             return self.workload.paths.keystore
-
-        raise UnknownScopeError(f"Unknown scope: {scope}")
 
     def generate_internal_ca(self) -> GeneratedCa:
         """Set up internal CA to issue self-signed certificates for internal communications."""
@@ -330,7 +324,6 @@ class TLSManager:
             alias_prefix (str, optional): an optional prefix to be prepended to the imported aliases. Defaults to "".
         """
         for i, certificate in enumerate(bundle):
-
             alias = f"{alias_prefix}bundle{i}"
             filename = f"{scope.value}-{alias}.pem"
             file_path = self.workload.root / self.workload.paths.conf_path / filename
