@@ -231,7 +231,7 @@ async def test_log_level_change(ops_test: OpsTest, kafka_apps):
             == 0
         )
 
-    await ops_test.model.applications[APP_NAME].set_config({"log_level": "DEBUG"})
+    await ops_test.model.applications[APP_NAME].set_config({"log-level": "DEBUG"})
 
     await ops_test.model.wait_for_idle(
         apps=kafka_apps, status="active", timeout=1000, idle_period=30
@@ -248,7 +248,7 @@ async def test_log_level_change(ops_test: OpsTest, kafka_apps):
             > 0
         )
 
-    await ops_test.model.applications[APP_NAME].set_config({"log_level": "INFO"})
+    await ops_test.model.applications[APP_NAME].set_config({"log-level": "INFO"})
 
     await ops_test.model.wait_for_idle(
         apps=kafka_apps, status="active", timeout=1000, idle_period=30
