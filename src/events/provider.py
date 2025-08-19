@@ -60,6 +60,11 @@ class KafkaProvider(Object):
             event.defer()
             return
 
+        if not self.charm.workload.ping(self.charm.state.bootstrap_server_internal):
+            logging.debug("Broker/Controller not up yet...")
+            event.defer()
+            return
+
         # on all unit update the server properties to enable client listener if needed
         self.dependent._on_config_changed(event)
 
@@ -92,11 +97,6 @@ class KafkaProvider(Object):
             requesting_client.alias, requesting_client.mtls_cert
         ):
             logging.debug("Waiting for MTLS setup.")
-            event.defer()
-            return
-
-        if not self.charm.workload.ping(self.charm.state.bootstrap_server_internal):
-            logging.debug("Broker/Controller not up yet...")
             event.defer()
             return
 
