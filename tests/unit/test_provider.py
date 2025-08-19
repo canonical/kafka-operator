@@ -241,6 +241,7 @@ def test_mtls_setup(
     tls_artifacts: TLSArtifacts,
     kraft_data: dict[str, str],
     passwords_data: dict[str, str],
+    unit_peer_tls_data: dict[str, str],
 ) -> None:
     # Given
     restart_relation = PeerRelation("restart", "rolling_op")
@@ -266,7 +267,8 @@ def test_mtls_setup(
         local_app_data={f"relation-{client_relation.id}": "password", "tls": "enabled"}
         | kraft_data
         | passwords_data,
-        local_unit_data={"client-certificate": "cert", "client-ca-cert": "ca"},
+        local_unit_data={"client-certificate": "cert", "client-ca-cert": "ca"}
+        | unit_peer_tls_data,
     )
     state_in = dataclasses.replace(
         base_state,
