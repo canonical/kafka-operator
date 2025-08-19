@@ -199,7 +199,7 @@ class PeerCluster(RelationState):
             f"{PROV_SECRET_PREFIX}{group}"
         ):
             if secret := self.data_interface._model.get_secret(id=secrets_uri):
-                return secret.get_content().get(field, "")
+                return secret.get_content(refresh=True).get(field, "")
 
         return ""
 
