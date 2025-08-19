@@ -95,6 +95,11 @@ class KafkaProvider(Object):
             event.defer()
             return
 
+        if not self.charm.workload.ping(self.charm.state.bootstrap_server_internal):
+            logging.debug("Broker/Controller not up yet...")
+            event.defer()
+            return
+
         password = client.password or self.charm.workload.generate_password()
 
         # catching error here in case listeners not established for bootstrap-server auth
@@ -156,6 +161,11 @@ class KafkaProvider(Object):
             # Create a "mtls" flag so a new listener (CLIENT_SSL) is created
             self.charm.state.cluster.update({"mtls": "enabled"})
             self.charm.on.config_changed.emit()
+
+        if not self.charm.workload.ping(self.charm.state.bootstrap_server_internal):
+            logging.debug("Broker/Controller not up yet...")
+            event.defer()
+            return
 
         distinguished_name = self.dependent.tls_manager.certificate_distinguished_name(
             event.mtls_cert
