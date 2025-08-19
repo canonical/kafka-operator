@@ -26,7 +26,7 @@ from ops.charm import (
 )
 from ops.framework import Object
 
-from core.cluster import custom_secret_groups
+from core.models import custom_secret_groups
 from literals import (
     BALANCER,
     BROKER,
