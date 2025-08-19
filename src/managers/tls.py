@@ -486,6 +486,7 @@ class TLSManager:
                 [
                     (self.workload.root / self.workload.paths.truststore).exists(),
                     (self.workload.root / self.workload.paths.client_properties).exists(),
+                    self.workload.ping(self.state.bootstrap_server_internal),
                 ]
             )
         ):
