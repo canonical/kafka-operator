@@ -171,8 +171,9 @@ class BrokerOperator(Object):
             generated_ca = self.tls_manager.generate_internal_ca()
             self.charm.state.internal_ca = generated_ca.ca
             self.charm.state.internal_ca_key = generated_ca.ca_key
-            # Now generate unit's self-signed certs
-            self.setup_internal_tls()
+
+        # Now generate unit's self-signed certs
+        self.setup_internal_tls()
 
         current_status = self.charm.state.ready_to_start
         if current_status is not Status.ACTIVE:
@@ -182,7 +183,6 @@ class BrokerOperator(Object):
 
         self.kraft.format_storages()
         self.update_external_services()
-        self.setup_internal_tls()
 
         self.config_manager.set_server_properties()
         self.config_manager.set_client_properties()
