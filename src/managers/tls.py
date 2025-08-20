@@ -68,6 +68,8 @@ class TLSManager:
         elif scope == TLSScope.CLIENT:
             return self.state.unit_broker.client_certs
 
+        raise UnknownScopeError(f"Unknown scope: {scope}")
+
     def get_truststore_path(self, scope: TLSScope) -> str:
         """Returns the truststore path for the given scope."""
         if scope == TLSScope.PEER:
@@ -75,12 +77,16 @@ class TLSManager:
         elif scope == TLSScope.CLIENT:
             return self.workload.paths.truststore
 
+        raise UnknownScopeError(f"Unknown scope: {scope}")
+
     def get_keystore_path(self, scope: TLSScope) -> str:
         """Returns the keystore path for the given scope."""
         if scope == TLSScope.PEER:
             return self.workload.paths.peer_keystore
         elif scope == TLSScope.CLIENT:
             return self.workload.paths.keystore
+
+        raise UnknownScopeError(f"Unknown scope: {scope}")
 
     def generate_internal_ca(self) -> GeneratedCa:
         """Set up internal CA to issue self-signed certificates for internal communications."""
