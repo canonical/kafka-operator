@@ -104,12 +104,12 @@ class SecretsHandler(Object):
 
         tls_private_key = ""
         for unit_name, key in secret_content.items():
-            if unit_name == self.charm.state.unit_broker.unit.name.replace("/", "-"):
+            if unit_name == self.charm.state.unit_broker.pod_name:  # replaces / with -
                 tls_private_key = key
 
         if not tls_private_key:
             raise KeyError(
-                f"Missing tls-private-key secret key for {self.charm.state.unit_broker.unit.name.replace('/', '-')}"
+                f"Missing tls-private-key secret key for {self.charm.state.unit_broker.pod_name}"
             )
 
         return tls_private_key
