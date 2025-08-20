@@ -9,8 +9,10 @@ from subprocess import PIPE, CalledProcessError, check_output
 from typing import Literal
 
 import yaml
+from tenacity import Retrying, RetryError, wait_fixed, stop_after_attempt
 
 from literals import KRAFT_NODE_ID_OFFSET
+from core.workload import WorkloadBase
 
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 APP_NAME = METADATA["name"]
@@ -75,3 +77,15 @@ def sign_manual_certs(model: str | None, manual_app: str = "manual-tls-certifica
             except CalledProcessError as e:
                 logger.error(f"{e.stdout=}, {e.stderr=}, {e.output=}")
                 raise e
+
+
+def wait_for_scoket(host: str, port: int, timeout: int = 600) -> None:
+    attempts = timeout // 10
+    try:
+        for attempt in Retrying(stop=stop_after_attempt(attempts), wait=wait_fixed(10)):
+            with attempt:
+                assert WorkloadBase.ping(f"{host}:{port}")
+                return
+    except RetryError:
+        raise TimeoutError(f"{host}:{port} not open after {timeout} seconds.")
+

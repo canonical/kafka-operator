@@ -13,7 +13,7 @@ import pytest
 from charms.tls_certificates_interface.v4.tls_certificates import generate_private_key
 from pytest_operator.plugin import OpsTest
 
-from integration.helpers import sign_manual_certs
+from integration.helpers import sign_manual_certs, wait_for_scoket
 from integration.helpers.pytest_operator import (
     APP_NAME,
     REL_NAME_PRODUCER,
@@ -137,14 +137,14 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm, kafka_apps):
 
 @pytest.mark.abort_on_fail
 async def test_mtls(ops_test: OpsTest, kafka_apps):
+    host = await get_address(ops_test, app_name=APP_NAME, unit_num=0)
+
     # creating the signed external cert on the unit
     action = await ops_test.model.units.get(f"{DUMMY_NAME}/0").run_action("create-certificate")
     response = await action.wait()
 
     async with ops_test.fast_forward(fast_interval="60s"):
-        await ops_test.model.wait_for_idle(
-            apps=[*kafka_apps, DUMMY_NAME], idle_period=30, status="active"
-        )
+        wait_for_scoket(host, SECURITY_PROTOCOL_PORTS["SSL", "SSL"].client, timeout=600)
 
     # run mtls producer
     num_messages = 10
