@@ -99,7 +99,7 @@ class SecretsHandler(Object):
         try:
             secret_content = self.model.get_secret(id=secret_id).get_content(refresh=True)
         except (SecretNotFoundError, ModelError) as e:
-            logging.error(f"Failed to fetch the secret, details: {e}")
+            logger.error(f"Failed to fetch the secret, details: {e}")
             return None
 
         tls_private_key = ""
