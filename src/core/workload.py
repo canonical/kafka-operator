@@ -24,7 +24,6 @@ class CharmedKafkaPaths:
     """Object to store common paths for Kafka."""
 
     def __init__(self, role: Role):
-
         self.conf_path = role.paths["CONF"]
         self.data_path = role.paths["DATA"]
         self.binaries_path = role.paths["BIN"]
