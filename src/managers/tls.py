@@ -330,7 +330,6 @@ class TLSManager:
             alias_prefix (str, optional): an optional prefix to be prepended to the imported aliases. Defaults to "".
         """
         for i, certificate in enumerate(bundle):
-
             alias = f"{alias_prefix}bundle{i}"
             filename = f"{scope.value}-{alias}.pem"
             file_path = self.workload.root / self.workload.paths.conf_path / filename

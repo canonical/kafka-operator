@@ -8,6 +8,13 @@ options:
       This configuration accepts the following roles: 'broker' (standard functionality), 'balancer' (cruise control), 'controller' (KRaft mode).
     type: string
     default: broker
+  tls-private-key:
+    description: |
+      User-provided secret ID which defines internal TLS/SSL private-key to be used by individual brokers in the Apache Kafka cluster.
+      The secret ID format is like "secret:cvh7kruupa1s46bqvuig" and should not be confused with secret name or label.
+      The secret could be defined using `juju add-secret <secret-name> <unit-name>=<tls-private-key>` command, where `<unit-name>` is the Juju unit-id for a specific Kafka unit with a hyphen, e.g `kafka/3` -> `kafka-3`. `tls-private-key` can be raw-string, or base64 encoded.
+      The `juju add-secret` command will output the secret ID, which can then be granted to the charm and configured using `juju config` command.
+    type: string
   system-users:
     description: |
       User-provided secret ID which defines internal username/passwords on the Apache Kafka cluster.

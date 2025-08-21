@@ -11,10 +11,11 @@ from contextlib import closing
 from json.decoder import JSONDecodeError
 from pathlib import Path
 from subprocess import PIPE, CalledProcessError, check_output
-from typing import Any, List, Literal, Optional, Set
+from typing import Any, List, Literal, Set
 
 import yaml
 from charms.kafka.v0.client import KafkaClient
+from charms.tls_certificates_interface.v4.tls_certificates import PrivateKey
 from kafka.admin import NewTopic
 from pytest_operator.plugin import OpsTest
 from tenacity import retry
@@ -41,9 +42,13 @@ CONTROLLER_NAME = "controller"
 DUMMY_NAME = "app"
 REL_NAME_ADMIN = "kafka-client-admin"
 REL_NAME_PRODUCER = "kafka-client-producer"
-AUTH_SECRET_CONFIG_KEY = "system-users"
 TEST_DEFAULT_MESSAGES = 15
-TEST_SECRET_NAME = "auth"
+
+AUTH_SECRET_NAME = "auth"
+AUTH_SECRET_CONFIG_KEY = "system-users"
+
+TLS_SECRET_NAME = "tls-pk"
+TLS_SECRET_CONFIG_KEY = "tls-private-key"
 
 
 KRaftMode = Literal["single", "multi"]
@@ -201,22 +206,50 @@ async def set_password(
     """Use the charm `system-users` config option to start a password rotation."""
     custom_auth = {username: password}
     secret_id = await ops_test.model.add_secret(
-        name=TEST_SECRET_NAME, data_args=[f"{u}={p}" for u, p in custom_auth.items()]
+        name=AUTH_SECRET_NAME, data_args=[f"{u}={p}" for u, p in custom_auth.items()]
     )
+
     # grant access to our app
-    await ops_test.model.grant_secret(secret_name=TEST_SECRET_NAME, application=APP_NAME)
+    await ops_test.model.grant_secret(secret_name=AUTH_SECRET_NAME, application=APP_NAME)
+
     # configure the app to use the secret_id
     await ops_test.model.applications[APP_NAME].set_config({AUTH_SECRET_CONFIG_KEY: secret_id})
 
 
-async def set_tls_private_key(ops_test: OpsTest, key: Optional[str] = None, num_unit=0):
-    """Use the charm action to start a password rotation."""
-    params = {"internal-key": key} if key else {}
-
-    action = await ops_test.model.units.get(f"{APP_NAME}/{num_unit}").run_action(
-        "set-tls-private-key", **params
+async def set_tls_private_key(ops_test: OpsTest, secret: dict[str, PrivateKey]) -> None:
+    """Use the charm `tls-private-key` config option to set a PK."""
+    secret_id = await ops_test.model.add_secret(
+        name=TLS_SECRET_NAME,
+        data_args=[f"{unit_name}={tls_pk}" for unit_name, tls_pk in secret.items()],
     )
-    return (await action.wait()).results
+
+    # grant access to our app
+    await ops_test.model.grant_secret(secret_name=TLS_SECRET_NAME, application=APP_NAME)
+
+    # configure the app to use the secret_id
+    await ops_test.model.applications[APP_NAME].set_config({TLS_SECRET_CONFIG_KEY: secret_id})
+
+
+async def update_tls_private_key(ops_test: OpsTest, secret: dict[str, PrivateKey]) -> None:
+    """Update the `tls-private-key` config option secret to change a PK."""
+    await ops_test.model.update_secret(
+        name=TLS_SECRET_NAME,
+        data_args=[f"{unit_name}={tls_pk}" for unit_name, tls_pk in secret.items()],
+    )
+
+
+async def remove_tls_private_key(ops_test: OpsTest) -> None:
+    """Remove the `tls-private-key` config option secret."""
+    await ops_test.model.applications[APP_NAME].reset_config([TLS_SECRET_CONFIG_KEY])
+
+
+def get_actual_tls_private_key(ops_test: OpsTest, unit_name: str) -> str:
+    return check_output(
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'cat /var/snap/charmed-kafka/current/etc/kafka/client-server.key'",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
 
 
 def extract_private_key(ops_test: OpsTest, unit_name: str) -> str | None:
