@@ -63,6 +63,7 @@ class CharmConfig(BaseConfigModel):
     cruisecontrol_balance_threshold: float = Field(default=1.1, validate_default=False, ge=1)
     cruisecontrol_capacity_threshold: float = Field(default=0.8, validate_default=False, le=1)
     system_users: str | None = None
+    tls_private_key: str | None = None
 
     @validator("*", pre=True)
     @classmethod
@@ -249,16 +250,16 @@ class CharmConfig(BaseConfigModel):
 
         return listeners
 
-    @validator("system_users")
+    @validator("system_users", "tls_private_key")
     @classmethod
-    def system_users_secret_validator(cls, value: str) -> str:
-        """Check validity of `system-users` field which should be a user secret URI."""
+    def secret_validator(cls, value: str) -> str:
+        """Check validity of fields which should be a secret URI."""
         if not value:
             return ""
 
         if not SECRET_REGEX.match(value):
             raise ValueError(
-                "Provided value for system-users config is not a valid secret URI, "
+                "Provided value for secret config is not a valid secret URI, "
                 "accepted values are formatted like 'secret:cvnra0b1c2e3f4g5hi6j'"
             )
 

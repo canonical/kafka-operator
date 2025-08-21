@@ -55,6 +55,8 @@ def _exec(
         )
         return output
     except subprocess.CalledProcessError as e:
+        if kwargs["log_on_error"]:
+            logger.error(f"{e.stdout}, {e.stderr}")
         raise e
 
 

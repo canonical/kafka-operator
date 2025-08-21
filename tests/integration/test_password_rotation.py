@@ -10,8 +10,8 @@ from pytest_operator.plugin import OpsTest
 
 from integration.helpers.pytest_operator import (
     APP_NAME,
+    AUTH_SECRET_NAME,
     SERIES,
-    TEST_SECRET_NAME,
     deploy_cluster,
     get_user,
     set_password,
@@ -74,7 +74,7 @@ async def test_password_rotation(ops_test: OpsTest, kafka_apps):
 
     # Update secret
     await ops_test.model.update_secret(
-        name=TEST_SECRET_NAME, data_args=["replication=updatedpass"]
+        name=AUTH_SECRET_NAME, data_args=["replication=updatedpass"]
     )
 
     await ops_test.model.wait_for_idle(apps=kafka_apps, status="active", idle_period=30)
