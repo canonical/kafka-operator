@@ -60,6 +60,10 @@ class TLSHandler(Object):
         self.sans = self.charm.broker.tls_manager.build_sans()
         self.common_name = f"{self.charm.unit.name}-{self.charm.model.uuid}"
 
+        peer_private_key = None
+        if peer_key := self.charm.state.unit_broker.peer_certs.private_key:
+            peer_private_key = PrivateKey.from_string(peer_key)
+
         client_private_key = None
         if (
             client_key := self.charm.state.unit_broker.client_certs.private_key
@@ -90,6 +94,7 @@ class TLSHandler(Object):
                     sans_dns=frozenset(self.sans["sans_dns"]),
                 ),
             ],
+            private_key=peer_private_key,
         )
 
         self._init_credentials()
