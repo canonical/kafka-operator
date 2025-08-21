@@ -54,12 +54,13 @@ class TLSScope(str, Enum):
     CLIENT = "client"  # for external/client communications
 
 
-INTER_BROKER_USER = "sync"
-ADMIN_USER = "admin"
+INTER_BROKER_USER = "replication"
+ADMIN_USER = "operator"
 CONTROLLER_USER = "controller"
-INTERNAL_USERS = [INTER_BROKER_USER, ADMIN_USER]
 BALANCER_WEBSERVER_USER = "balancer"
+INTERNAL_USERS = [INTER_BROKER_USER, ADMIN_USER]
 BALANCER_WEBSERVER_PORT = 9090
+
 SECRETS_APP = [
     f"{user}-password" for user in INTERNAL_USERS + [BALANCER_WEBSERVER_USER, CONTROLLER_USER]
 ] + ["internal-ca", "internal-ca-key"]

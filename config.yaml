@@ -8,6 +8,13 @@ options:
       This configuration accepts the following roles: 'broker' (standard functionality), 'balancer' (cruise control), 'controller' (KRaft mode).
     type: string
     default: broker
+  tls-private-key:
+    description: |
+      User-provided secret ID which defines internal TLS/SSL private-key to be used by individual brokers in the Apache Kafka cluster.
+      The secret ID format is like "secret:cvh7kruupa1s46bqvuig" and should not be confused with secret name or label.
+      The secret could be defined using `juju add-secret <secret-name> <unit-name>=<tls-private-key>` command, where `<unit-name>` is the Juju unit-id for a specific Kafka unit with a hyphen, e.g `kafka/3` -> `kafka-3`. `tls-private-key` can be raw-string, or base64 encoded.
+      The `juju add-secret` command will output the secret ID, which can then be granted to the charm and configured using `juju config` command.
+    type: string
   system-users:
     description: |
       User-provided secret ID which defines internal username/passwords on the Apache Kafka cluster.
@@ -15,111 +22,107 @@ options:
       The secret could be defined using `juju add-secret <secret-name> <user>=<admin-password>` command, where `<user>` is one of the internal users defined by the charm: `sync` or `admin`.
       The `juju add-secret` command will output the secret ID, which can then be granted to the charm and configured using `juju config` command.
     type: string
-  compression_type:
+  compression-type:
     description: Specify the final compression type for a given topic. This configuration accepts the standard compression codecs ('gzip', 'snappy', 'lz4', 'zstd'). It additionally accepts 'uncompressed' which is equivalent to no compression; and 'producer' which means retain the original compression codec set by the producer.
     type: string
     default: producer
-  log_flush_interval_messages:
+  log-flush-interval-messages:
     description: The number of messages accumulated on a log partition before messages are flushed to disk.
     type: string
     default: "9223372036854775807"
-  log_flush_interval_ms:
+  log-flush-interval-ms:
     description: The maximum time in ms that a message in any topic is kept in memory before flushed to disk.
     type: string
     default: "9223372036854775807"
-  log_flush_offset_checkpoint_interval_ms:
+  log-flush-offset-checkpoint-interval-ms:
     description: The frequency with which we update the persistent record of the last flush which acts as the log recovery point.
     type: int
     default: 60000
-  log_retention_bytes:
+  log-retention-bytes:
     description: The maximum size of the log before deleting it.
     type: string
     default: "-1"
-  log_retention_ms:
+  log-retention-ms:
     description: The number of milliseconds to keep a log file before deleting it (in milliseconds).
     type: string
     default: "-1"
-  log_segment_bytes:
+  log-segment-bytes:
     description: The maximum size of a single log file.
     type: int
     default: 1073741824
-  message_max_bytes:
+  message-max-bytes:
     description: The largest record batch size allowed by Apache Kafka (after compression if compression is enabled). If this is increased and there are consumers older than 0.10.2, the consumers' fetch size must also be increased so that they can fetch record batches this large. In the latest message format version, records are always grouped into batches for efficiency. In previous message format versions, uncompressed records are not grouped into batches and this limit only applies to a single record in that case.This can be set per topic with the topic level max.message.bytes config.
     type: int
     default: 1048588
-  offsets_topic_num_partitions:
+  offsets-topic-num-partitions:
     description: The number of partitions for the offset commit topic (should not change after deployment).
     type: int
     default: 50
-  transaction_state_log_num_partitions:
+  transaction-state-log-num-partitions:
     description: The number of partitions for the transaction topic (should not change after deployment).
     type: int
     default: 50
-  unclean_leader_election_enable:
+  unclean-leader-election-enable:
     description: Indicates whether to enable replicas not in the ISR set to be elected as leader as a last resort, even though doing so may result in data loss.
     type: boolean
     default: false
-  log_cleaner_delete_retention_ms:
+  log-cleaner-delete-retention-ms:
     description: How long are delete records retained.
     type: string
     default: "86400000"
-  log_cleaner_min_compaction_lag_ms:
+  log-cleaner-min-compaction-lag-ms:
     description: The minimum time a message will remain uncompacted in the log. Only applicable for logs that are being compacted.
     type: string
     default: "0"
-  log_cleanup_policy:
+  log-cleanup-policy:
     description: "The default cleanup policy for segments beyond the retention window. A comma separated list of valid policies. Valid policies are: 'delete' and 'compact'"
     type: string
     default: delete
-  log_message_timestamp_type:
+  log-message-timestamp-type:
     description: Define whether the timestamp in the message is message create time or log append time. The value should be either 'CreateTime' or 'LogAppendTime'.
     type: string
     default: CreateTime
-  ssl_cipher_suites:
+  ssl-cipher-suites:
     description: A list of cipher suites. This is a named combination of authentication, encryption, MAC and key exchange algorithm used to negotiate the security settings for a network connection using TLS or SSL network protocol. By default all the available cipher suites are supported.
     type: string
     default: ""
-  ssl_principal_mapping_rules:
+  ssl-principal-mapping-rules:
     description: "A list of rules for mapping from distinguished name from the client certificate to short name. Each rule starts with 'RULE:' and contains an expression as the following. 'RULE:pattern/replacement/[LU]'. A valid set of rules could look something like this 'RULE:^.*[Cc][Nn]=([a-zA-Z0-9.-_@]*).*$/$1/L,DEFAULT'"
     type: string
     default: "DEFAULT"
-  replication_quota_window_num:
+  replication-quota-window-num:
     description: The number of samples to retain in memory for replication quotas.
     type: int
     default: 11
-  zookeeper_ssl_cipher_suites:
-    description: Specifies the enabled cipher suites to be used in Apache ZooKeeper TLS negotiation (csv). Overrides any explicit value set via the zookeeper.ssl.ciphersuites system property (note the single word "ciphersuites"). The default value of null means the list of enabled cipher suites is determined by the Java runtime being used.
-    type: string
-    default: ""
   profile:
     description: "Profile representing the scope of deployment, and used to enable high-level customisation of sysconfigs, resource checks/allocation, warning levels, etc. Allowed values are: “production”, “staging” and “testing”"
     type: string
     default: production
-  certificate_extra_sans:
+  certificate-extra-sans:
     description: Config options to add extra-sans to the ones used when requesting server certificates. The extra-sans are specified by comma-separated names to be added when requesting signed certificates. Use "{unit}" as a placeholder to be filled with the unit number, e.g. "worker-{unit}" will be translated as "worker-0" for unit 0 and "worker-1" for unit 1 when requesting the certificate.
     type: string
     default: ""
-  extra_listeners:
+  extra-listeners:
     description: "Config options to add extra SANs to the ones used when requesting server certificates, and to define custom `advertised.listeners` and ports for clients external to the Juju model. These items are comma-separated. Use '{unit}' as a placeholder to be filled with the unit number if necessary. For port allocations, providing the port for a given listener will offset the generated port number by that amount, with an accepted value range of 20001-50000. For example, a provided value of 'worker-{unit}.domain.com:30000' will generate listeners for unit 0 with name 'worker-0.domain.com', and be allocated ports 39092, 39093 etc for each authentication scheme."
     type: string
     default: ""
-  log_level:
+  log-level:
     description: "Level of logging for the different components operated by the charm. Possible values: ERROR, WARNING, INFO, DEBUG"
     type: string
     default: "INFO"
-  network_bandwidth:
+  network-bandwidth:
     description: The network bandwidth available for the cloud that the charm is deployed to, in KB.
     type: int
     default: 50000
-  cruisecontrol_balance_threshold:
+  cruisecontrol-balance-threshold:
     description: The maximum allowed extent of unbalance between brokers for cpu, disk and network utilization, and replica counts. For example, a value of `1.1` ensures that no broker should have >1.1x average utilization of all the brokers
     type: float
     default: 1.1
-  cruisecontrol_capacity_threshold:
+  cruisecontrol-capacity-threshold:
     description: The maximum percentage of the total cpu, disk and network capacity that is allowed to be used on a broker. For example, a value of `0.8` ensures that no broker should have >80% utilization
     type: float
     default: 0.8
-  expose_external:
+  expose-external:
     description: "String to determine how to expose the Apache Kafka cluster externally from the Kubernetes cluster. Possible values: 'nodeport', 'none'"
     type: string
     default: "nodeport"
