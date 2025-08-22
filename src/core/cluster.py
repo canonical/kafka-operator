@@ -474,7 +474,7 @@ class ClusterState(Object):
         if self.runs_broker_only and not self.peer_cluster_orchestrator_relation:
             return Status.MISSING_MODE
 
-        if not self.unit_broker.peer_certs.ready and not self.internal_ca:
+        if not self.unit_broker.peer_certs.ready:
             return Status.NO_INTERNAL_TLS
 
         for status in [self._broker_status, self._controller_status]:
@@ -495,7 +495,7 @@ class ClusterState(Object):
         if not self.peer_cluster_relation and not self.runs_broker:
             return Status.NO_PEER_CLUSTER_RELATION
 
-        if not self.unit_broker.peer_certs.ready and not self.internal_ca:
+        if not self.unit_broker.peer_certs.ready:
             return Status.NO_INTERNAL_TLS
 
         if not self.peer_cluster.broker_connected:

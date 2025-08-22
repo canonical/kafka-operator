@@ -71,6 +71,11 @@ class SecretsHandler(Object):
 
         logger.info(f"Credentials change detected for {changed}")
 
+        if not self.charm.workload.ping(self.charm.state.bootstrap_server_internal):
+            logging.debug("Broker/Controller not up yet...")
+            event.defer()
+            return
+
         # Store the password on application databag
         for username in changed:
             new_password = credentials[username]

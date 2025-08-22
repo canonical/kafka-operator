@@ -67,6 +67,10 @@ class KafkaHealth(Object):
 
     def _get_partitions_size(self) -> tuple[int, int]:
         """Gets the number of partitions and their average size from the log dirs."""
+        if not self.dependent.workload.ping(self.charm.state.bootstrap_server_internal):
+            logging.debug("get_partitions_size failed: broker/controller not up yet.")
+            return (0, 0)
+
         log_dirs_command = [
             "--describe",
             f"--bootstrap-server {self.charm.state.bootstrap_server_internal}",

@@ -318,7 +318,7 @@ class TLSHandler(Object):
         """Updates the truststore based on current state of MTLS client relations and certificates available on the `certificate_transfer` interface."""
         if not all(
             [
-                self.charm.workload.installed,
+                self.charm.broker.healthy,
                 self.charm.state.cluster.tls_enabled,
                 self.charm.state.unit_broker.client_certs.certificate,
                 self.charm.state.unit_broker.client_certs.ca,

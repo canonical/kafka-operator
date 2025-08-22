@@ -45,6 +45,16 @@ def kraft_data() -> dict[str, str]:
 
 
 @pytest.fixture(scope="module")
+def unit_peer_tls_data() -> dict[str, str]:
+    tls_data = generate_tls_artifacts()
+    return {
+        "peer-ca-cert": tls_data.ca,
+        "peer-certificate": tls_data.certificate,
+        "peer-private-key": tls_data.private_key,
+    }
+
+
+@pytest.fixture(scope="module")
 def peer_cluster_rel() -> Relation:
     return Relation(PEER_CLUSTER_RELATION, "peer_cluster")
 
