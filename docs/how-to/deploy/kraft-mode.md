@@ -1,6 +1,8 @@
 (how-to-deploy-kraft-mode)=
 # How to set up KRaft mode
 
+<!-- TODO: move this useful information somewhere else -->
+
 ```{caution}
 This feature is experimental and not production-ready. UX can change significantly in the upcoming months.
 ```

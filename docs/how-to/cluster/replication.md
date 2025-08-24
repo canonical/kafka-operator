@@ -1,5 +1,5 @@
-(how-to-cluster-replication-cluster-replication)=
-# Set up replication between clusters
+(how-to-cluster-replication)=
+# Set up replication between charmed clusters
 
 This How-To will cover how to set up cluster replication using MirrorMaker through [Kafka Connect](https://kafka.apache.org/documentation/#connect).
 
