@@ -72,7 +72,7 @@ opened by creating appropriate integrations.
 ```
 
 For more information about how listeners are opened based on relations, see the [Listeners](reference-broker-listeners).
-For example, to open a SASL/SCRAM listener, integrate a client application using the data integrator, as described in the [How to manage app guide](how-to-manage-applications).
+For example, to open a SASL/SCRAM listener, integrate a client application using the data integrator, as described in the [How to manage app guide](how-to-client-connections).
 
 To run most of the scripts, you need to provide:
 
