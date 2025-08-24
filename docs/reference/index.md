@@ -14,7 +14,7 @@ Charmhub generated content:
 Charm-specific reference materials:
 
 * {ref}`reference-file-system-paths`
-* {ref}`reference-snap-entrypoints`
+* {ref}`reference-snap-commands`
 * {ref}`reference-statuses`
 * {ref}`reference-requirements`
 

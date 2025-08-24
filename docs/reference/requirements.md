@@ -1,26 +1,32 @@
 (reference-requirements)=
 # Requirements
 
-## Juju version
+## Juju versions
 
-The charm currently runs both on [Juju 2.9 LTS](https://github.com/juju/juju/releases) and [Juju 3.1](https://github.com/juju/juju/releases), although 2.9 is now deprecated and support on this Juju version may be discontinued in future charm release. We therefore advise new deployments to be carried out on Juju 3.
+The charm currently runs on and is tested against on [Juju 3.6 LTS](https://github.com/juju/juju/releases).
 
-For migration of the deployment from a Juju 2.9 to a 3.x controller, please [get in touch](contact) with the product team.
+The minimum supported Juju version is [Juju 3.5+](https://github.com/juju/juju/releases). 
 
-The minimum supported Juju versions are:
+## Recommended hardware
 
-- 2.9.32+ (although deprecated).
-- 3.1.6+ (due to issues with Juju secrets in previous versions, see [#1](https://bugs.launchpad.net/juju/+bug/2029285) and [#2](https://bugs.launchpad.net/juju/+bug/2029282))
+The below requirements are a good baseline upon which to size your Charmed Apache Kafka applications, but will not be appropriate for every use-case, based on device, data, network and cost constraints.
 
-## Minimum requirements
+Note that while these requirements are recommended for a broad-range of production use-cases, every component may run with much lower requirements for use in staging or test environments.
 
-For production environments, it is recommended to deploy at least five nodes for Apache ZooKeeper and three for Apache Kafka. While the following requirements are meant to be for production, the charm can be deployed in much smaller environments.
+|     Component    | Nodes |  External Storage |   Memory  |                                CPU                               |
+|:----------------:|:-----:|:-----------------:|:---------:|:----------------------------------------------------------------:|
+|      Brokers     |   3+  | 12 x 1TB disk/SSD | 64 GB RAM |                             12 cores                             |
+| KRaft controller |  3-5  |    1 x 64GB SSD   |  6 GB RAM |                              4 cores                             |
+|      Connect     |   3   |         -         |  6 GB RAM | Typically not CPU-bound. More cores is better than faster cores. |
+|     Karapace     |   2   |         -         |  6 GB RAM | Typically not CPU-bound. More cores is better than faster cores. |
 
-- 64GB of RAM
-- 24 cores
-- 12 storage devices
-- 10 Gb Ethernet card
+```{note}
+For production deployments, ensure that all nodes are deployed on different physical machines and that each component node is in a separate availability-zone (AZ) for redundancy
+```
 
 ## Supported architectures
 
-The charm is based on the `charmed-kafka` [snap](https://snapcraft.io/charmed-kafka), which is currently available for `amd64` only! The architecture `arm64` support is planned. Please [contact us](contact) if you are interested in new architecture!
+The charm uses the `charmed-kafka` [snap](https://snapcraft.io/charmed-kafka), which is currently available for `amd64` only. The architecture `arm64` support is planned.
+
+Please [contact us](contact) if you are interested in new architecture!
+
