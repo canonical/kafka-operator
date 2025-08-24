@@ -129,4 +129,4 @@ options:
 
       Allowed values: "all", "first", "none"
     type: string
-    default: first
+    default: none
