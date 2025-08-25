@@ -1,7 +1,7 @@
-(how-to-ssl-encryption)=
-# How to enable SSL encryption
+(how-to-tls-encryption)=
+# How to enable TLS encryption
 
-By default, Charmed Apache Kafka uses SSL encryption for all internal communication - inter-broker and broker-controller. This is achieve with self-signed certificates that are generated on each application unit at deploy time.
+By default, Charmed Apache Kafka uses TLS encryption for all internal communication - inter-broker and broker-controller. This is achieve with self-signed certificates that are generated on each application unit at deploy time.
 
 For external client connections, Charmed Apache Kafka operators implement the requirer side of the [`tls-certificates/v4`](https://github.com/canonical/tls-certificates-interface/blob/main/lib/charms/tls_certificates_interface/v4/tls_certificates.py) charm relation. Therefore, any charm implementing the Provider side could be used.
 
@@ -9,12 +9,12 @@ For external client connections, Charmed Apache Kafka operators implement the re
 
 For this guide, we will need an active Charmed Apache Kafka application. Follow the [Deploy Apache Kafka](tutorial-deploy) tutorial to set up the environment.
 
-## Enable SSL encryption for client communication
+## Enable TLS encryption for client communication
 
 To enable external client encryption, you should first deploy a TLS certificates Provider charm. For this guide, we will be using the `self-signed-certificates` charm.
 
 ```{warning}
-Using self-signed certificates is not recommended for production systems. Instead follow your organizations best-practices for managing SSL certificates.
+Using self-signed certificates is not recommended for production systems. Instead follow your organizations best-practices for managing TLS certificates.
 Please refer to [this post](https://charmhub.io/topics/security-with-x-509-certificates) for an overview of the TLS certificates Providers charms and some guidance on how to choose the right charm for your use case. 
 ```
 
@@ -24,7 +24,7 @@ To deploy the `self-signed-certificates` application:
 juju deploy self-signed-certificates --config ca-common-name="Test CA"
 ```
 
-To enable SSL encryption for client connections with Charmed Apache Kafka, integrate the Charmed Apache Kafka applications to the `tls-certificates` provider application via the `certificates` relation interface:
+To enable TLS encryption for client connections with Charmed Apache Kafka, integrate the Charmed Apache Kafka applications to the `tls-certificates` provider application via the `certificates` relation interface:
 
 ```bash
 juju integrate kafka:certificates self-signed-certificates
@@ -86,11 +86,11 @@ Finally, update the Charmed Apache Kafka application configuration to notify it 
 juju config kafka tls-private-key=secret:d2k6hv8co3bs4tge0c8g
 ```
 
-Charmed Apache Kafka will read the new secret, and re-request new SSL certificates using the externally provided private-key created earlier.
+Charmed Apache Kafka will read the new secret, and re-request new TLS certificates using the externally provided private-key created earlier.
 
-## Disable SSL encryption for client communication
+## Disable TLS encryption for client communication
 
-To disable SSL encryption, remove the relation with the `tls-certificates` provider application:
+To disable TLS encryption, remove the relation with the `tls-certificates` provider application:
 
 ```bash
 juju remove-relation kafka <tls-certificates>

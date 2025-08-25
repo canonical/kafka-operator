@@ -74,7 +74,7 @@ To do that, you need to relate Charmed Apache Kafka to one of the TLS certificat
 Please refer to the [Charming Security page](https://charmhub.io/topics/security-with-x-509-certificates) for more information on how to select the right certificate
 provider for your use case. 
 
-For more information on encryption, see the [Cryptography](cryptography) explanation page and the [How to enable client encryption](how-to-ssl-encryption) guide.
+For more information on encryption, see the [Cryptography](cryptography) explanation page and the [How to enable client encryption](how-to-tls-encryption) guide.
 
 ### Authentication
 
