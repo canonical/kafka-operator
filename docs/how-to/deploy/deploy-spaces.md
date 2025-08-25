@@ -9,7 +9,7 @@ The Charmed Apache Kafka operator supports [Juju spaces](https://documentation.u
 
 * Charmed Apache Kafka 4
 * Configured network spaces
-  * See [Juju | How to manage network spaces](https://documentation.ubuntu.com/juju/latest/reference/juju-cli/list-of-juju-cli-commands/add-space/)
+  * See [Juju | `add-space` command reference](https://documentation.ubuntu.com/juju/latest/reference/juju-cli/list-of-juju-cli-commands/add-space/)
 
 ## Deploy
 
@@ -32,11 +32,11 @@ juju deploy kafka --channel 4/edge \
   --bind "cluster=peers kafka-client=clients"
 ```
 
-[note type=caution]
-Currently there's no support for the juju `bind` command. Network space binding must be defined at deploy time only.
-[/note]
+```{caution}
+Currently there's no support for the `juju bind` command. Network space binding must be defined at deploy time only.
+```
 
-In order for a client application to be able to communicate with the deployed Apache Kafka cluster, it must use the `client` space on the model, or a space using the same subnet in another model. For example:
+To communicate with the deployed Apache Kafka cluster, a client application must use the `client` space in the model or a space on the same subnet in another model. For example:
 
 ```bash
 juju deploy kafka-test-app \
@@ -50,4 +50,4 @@ The two application can then be integrated using:
 juju integrate kafka kafka-test-app
 ```
 
-As a result, the client application will receive network endpoints on the `10.0.0.0/24` subnet, while the Apache Kafka cluster will use the `10.10.10.0/24` for internal communications.
+As a result, the client application will receive network endpoints on the subnets prescribed by the Juju space `client`, while the Apache Kafka cluster will use the `peers` space for internal communications. In the previous example, those are `10.0.0.0/24` and `10.10.10.0/24` subnets respectively. 
