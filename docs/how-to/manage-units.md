@@ -64,7 +64,7 @@ Additionally, you can use `--help` argument to print a short summary for a given
 
 The most important commands are also exposed via the [Charmed Apache Kafka snap](https://snapcraft.io/charmed-kafka),
 accessible via `charmed-kafka.<command>`.
-For more information about the mapping between the Apache Kafka bin commands and the snap entrypoints, see the [Snap Entrypoints](reference-snap-entrypoints) reference page.
+For more information about the mapping between the Apache Kafka bin commands and the snap entrypoints, see the [Snap Entrypoints](reference-snap-commands) reference page.
 
 ```{caution}
 Before running bash scripts, make sure that some listeners have been correctly 

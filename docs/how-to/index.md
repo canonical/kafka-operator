@@ -25,7 +25,7 @@ For guidance on managing your deployed Charmed Apache Kafka, see:
 
 We have a series of How-to guides for security-related topics:
 
-* [Enable client encryption](how-to-ssl-encryption)
+* [Enable client encryption](how-to-tls-encryption)
 * [Create mTLS credentials](how-to-create-mtls-client-credentials)
 * [Enable OAuth](how-to-enable-oauth-through-hydra)
 * [Back up and restore](how-to-back-up-and-restore)
