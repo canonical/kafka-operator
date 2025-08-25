@@ -2,110 +2,58 @@
 # 5. Manage passwords
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
+
 ## Manage passwords
 
-Passwords help to secure our cluster and are essential for security. Over time it is a good practice to change the password frequently. Here we will go through setting and changing the password both for the admin user and external Apache Kafka users managed by the data-integrator.
+Passwords help to secure the Apache Kafka cluster and are essential for security. Over time it is a good practice to change the password frequently. Here we will go through setting and changing the password both for the `admin` user and external Charmed Apache Kafka users managed by the `data-integrator`.
 
-### Admin user
+### `admin` user
 
 The admin user password management is handled directly by the charm, by using Juju actions. 
 
-#### Retrieve the admin password
+#### Retrieve the `admin` password
 
-As previously mentioned, the admin password can be retrieved by running the `get-admin-credentials` action on the Charmed Apache Kafka application:
+As a reminder mentioned, the `admin` password is stored in, and can be retrieved from a Juju secret that was created and managed by the Charmed Apache Kafka application.
 
-```shell
-juju run kafka/leader get-admin-credentials
-```
-
-Running the command should output:
-
-```yaml
-unit-kafka-1:
-  UnitId: kafka/1
-  id: "10"
-  results:
-    client-properties: |-
-      security.protocol=SASL_PLAINTEXT
-      sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="admin" password="e2sMfYLQg7sbbBMFTx1qlaZQKTUxr09x";
-      sasl.mechanism=SCRAM-SHA-512
-      bootstrap.servers=10.244.26.6:9092,10.244.26.19:9092,10.244.26.43:9092
-    password: e2sMfYLQg7sbbBMFTx1qlaZQKTUxr09x
-    username: admin
-  status: completed
-  timing:
-    completed: 2023-04-25 12:49:30 +0000 UTC
-    enqueued: 2023-04-25 12:49:27 +0000 UTC
-    started: 2023-04-25 12:49:28 +0000 UTC
-```
-
-The admin password is under the result: `password`.
-
-#### Rotate the admin password
-
-You can change the admin password to a new random password by entering:
+Get the current value of the `admin` user password from the secret with following:
 
 ```shell
-juju run kafka/leader set-password username=admin
+juju show-secret --reveal cluster.kafka.app | yq '.. | ."admin-password"? // empty' | tr -d '"'
 ```
 
-Running the command should output:
+#### Change the `admin` password
 
-```yaml
-unit-kafka-1:
-  UnitId: kafka/1
-  id: "12"
-  results:
-    admin-password: zOLGmA1OENYu4REYYJT0OvC6a00lIodg
-  status: completed
-  timing:
-    completed: 2023-04-25 12:51:57 +0000 UTC
-    enqueued: 2023-04-25 12:51:35 +0000 UTC
-    started: 2023-04-25 12:51:36 +0000 UTC
-```
+You can change the admin password to a new password by creating a new Juju secret, and updating the Charmed Apache Kafka application of the correct secret to use.
 
-The admin password is under the result: `admin-password`. It should be different from your previous password.
-
-```{note}
-When changing the admin password you will also need to update the admin password the in Kafka connection parameters; as the old password will no longer be valid.
-```
-
-#### Set the admin password
-
-You can change the admin password to a specific password by entering:
+First, create the Juju secret with the new password you wish to use:
 
 ```shell
-juju run kafka/leader set-password username=admin password=<password>
+juju add-secret internal-kafka-users admin=mynewpassword
 ```
 
-Running the command should output:
+Note the generated secret ID that you see as a response. It will look something like `secret:d2lkl00co3bs3dacm300`.
 
-```yaml
-unit-kafka-1:
-  UnitId: kafka/1
-  id: "16"
-  results:
-    admin-password: <password>
-  status: completed
-  timing:
-    completed: 2023-04-25 12:57:45 +0000 UTC
-    enqueued: 2023-04-25 12:57:37 +0000 UTC
-    started: 2023-04-25 12:57:38 +0000 UTC
+Now, grant Charmed Apache Kafka access to the new secret:
+
+```shell
+juju grant-secret internal-kafka-users kafka
 ```
 
-The admin password under the result: `admin-password` should match whatever you passed in when you entered the command.
+Finally, inform Charmed Apache Kafka of the new secret to use for it's internal system users using the secret ID saved earlier:
 
-```{note}
-When changing the admin password you will also need to update the admin password in the Kafka connection parameters, as the old password will no longer be valid.
+```shell
+juju config kafka system-users=secret:d2lkl00co3bs3dacm300
 ```
+
+Now, Charmed Apache Kafka will be able to read the new `admin` password from the correct secret, and will proceed to apply the new password on each unit with a rolling-restart of the services with the new configuration.
 
 ### External Apache Kafka users
 
-Unlike Admin management, the password management for external Apache Kafka users is instead managed using relations. Let's see this into play with the Data Integrator charm, that we have deployed in the previous part of the tutorial.
+Unlike internal user management of `admin` users, the password management for external Apache Kafka users is instead managed using relations. Let's see this into play with the Data Integrator charm, that we have deployed in the previous part of the tutorial.
 
 #### Retrieve the password
 
-Similarly to the Charmed Apache Kafka, the `data-integrator` also exposes an action to retrieve the credentials, e.g. 
+The `data-integrator` exposes an action to retrieve the credentials, e.g: 
 
 ```shell
 juju run data-integrator/leader get-credentials
@@ -124,15 +72,15 @@ kafka:
 ok: "True"
 ```
 
-As before, the admin password is under the result: `password`.
-
 #### Rotate the password
 
-The easiest way to rotate user credentials using the `data-integrator` is by removing and then re-relating the `data-integrator` with the `kafka` charm
+The easiest way to rotate user credentials using the `data-integrator` is by removing and then re-integrating the `data-integrator` with the `kafka` charm
 
 ```shell
 juju remove-relation kafka data-integrator
+
 # wait for the relation to be torn down 
+
 juju relate kafka data-integrator
 ```
 
@@ -155,7 +103,7 @@ kafka:
 ok: "True"
 ```
 
-To rotate external passwords with no or limited downtime, please refer to the how-to guide on [app management](how-to-manage-applications).
+To rotate external passwords with no or limited downtime, please refer to the how-to guide on [app management](how-to-client-connections).
 
 #### Remove the user
 
@@ -169,34 +117,30 @@ The output of the Juju model should be something like this:
 
 ```shell
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
-tutorial  overlord    localhost/localhost  3.1.6    unsupported  10:20:59Z
+tutorial  overlord    localhost/localhost  3.6.8    unsupported  23:12:02Z
 
-App              Version  Status   Scale  Charm            Channel      Rev  Exposed  Message
-data-integrator           blocked      1  data-integrator  stable        11  no       Please relate the data-integrator with the desired product
-kafka                     active       3  kafka            3/stable     147  no       
-zookeeper                 active       5  zookeeper        3/stable     114  no       
+App              Version  Status   Scale  Charm            Channel        Rev  Exposed  Message
+data-integrator           blocked      1  data-integrator  latest/stable  180  no       Please relate the data-integrator with the desired product
+kafka            4.0.0    active       3  kafka            4/edge         226  no       
+kraft            4.0.0    active       3  kafka            4/edge         226  no       
 
-Unit                Workload  Agent  Machine  Public address  Ports  Message
-data-integrator/0*  blocked   idle   8        10.244.26.4            Please relate the data-integrator with the desired product
-kafka/0             active    idle   5        10.244.26.43           
-kafka/1*            active    idle   6        10.244.26.6            
-kafka/2             active    idle   7        10.244.26.19           
-zookeeper/0         active    idle   0        10.244.26.251          
-zookeeper/1         active    idle   1        10.244.26.129          
-zookeeper/2         active    idle   2        10.244.26.121          
-zookeeper/3*        active    idle   3        10.244.26.28           
-zookeeper/4         active    idle   4        10.244.26.174          
+Unit                Workload  Agent  Machine  Public address  Ports      Message
+data-integrator/0*  blocked   idle   6        10.233.204.111             Please relate the data-integrator with the desired product
+kafka/0*            active    idle   0        10.233.204.241  19093/tcp  
+kafka/1             active    idle   1        10.233.204.196  19093/tcp  
+kafka/2             active    idle   2        10.233.204.148  19093/tcp  
+kraft/0             active    idle   3        10.233.204.125  9098/tcp   
+kraft/1*            active    idle   4        10.233.204.36   9098/tcp   
+kraft/2             active    idle   5        10.233.204.225  9098/tcp   
 
-Machine  State    Address        Inst id        Series  AZ  Message
-0        started  10.244.26.251  juju-f1a2cd-0  jammy       Running
-1        started  10.244.26.129  juju-f1a2cd-1  jammy       Running
-2        started  10.244.26.121  juju-f1a2cd-2  jammy       Running
-3        started  10.244.26.28   juju-f1a2cd-3  jammy       Running
-4        started  10.244.26.174  juju-f1a2cd-4  jammy       Running
-5        started  10.244.26.43   juju-f1a2cd-5  jammy       Running
-6        started  10.244.26.6    juju-f1a2cd-6  jammy       Running
-7        started  10.244.26.19   juju-f1a2cd-7  jammy       Running
-8        started  10.244.26.4    juju-f1a2cd-8  jammy       Running
+Machine  State    Address         Inst id        Base          AZ  Message
+0        started  10.233.204.241  juju-07a730-0  ubuntu@24.04      Running
+1        started  10.233.204.196  juju-07a730-1  ubuntu@24.04      Running
+2        started  10.233.204.148  juju-07a730-2  ubuntu@24.04      Running
+3        started  10.233.204.125  juju-07a730-3  ubuntu@24.04      Running
+4        started  10.233.204.36   juju-07a730-4  ubuntu@24.04      Running
+5        started  10.233.204.225  juju-07a730-5  ubuntu@24.04      Running
+6        started  10.233.204.111  juju-07a730-6  ubuntu@24.04      Running
 ```
 
 ```{note}

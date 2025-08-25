@@ -6,7 +6,7 @@ This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 (remove-kafka-and-juju)=
 ## Remove Charmed Apache Kafka and Juju
 
-If you're done using Charmed Apache Kafka and Juju and would like to free up resources on your machine, you can remove Charmed Apache Kafka, Charmed Apache Zookeeper and Juju.
+If you're done using Charmed Apache Kafka and Juju and would like to free up resources on your machine, you can safely remove both.
 
 ```{caution}
 Removing Charmed Apache Kafka as shown below will delete all the data in the Apache Kafka. Further, when you remove Juju as shown below you lose access to any other applications you have hosted on Juju.
@@ -37,7 +37,7 @@ You may now keep your Charmed Apache Kafka deployment running or remove it entir
 If you're looking for what to do next you can:
 
 - Run [Charmed Apache Kafka on Kubernetes](https://github.com/canonical/kafka-k8s-operator).
-- Check out our Charmed offerings of [PostgreSQL](https://charmhub.io/postgresql?channel=edge) and [MongoDB](https://charmhub.io/mongodb?channel=5/edge).
+- Check out our other Charmed offerings from [Canonical's Data Platform team](https://canonical.com/data)
 - Read about [High Availability Best Practices](https://canonical.com/blog/database-high-availability)
 - [Report](https://github.com/canonical/kafka-operator/issues) any problems you encountered.
 - [Give us your feedback](https://matrix.to/#/#charmhub-data-platform:ubuntu.com).
