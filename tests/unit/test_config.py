@@ -29,6 +29,7 @@ from literals import (
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
     REL_NAME,
     SUBSTRATE,
+    TLS_RELATION,
 )
 
 pytestmark = pytest.mark.broker
@@ -223,8 +224,10 @@ def test_extra_listeners_in_server_properties(charm_configuration: dict, base_st
         assert len(charm.broker.config_manager.all_listeners) == 5
 
     # Adding SSL
-    cluster_peer = dataclasses.replace(cluster_peer, local_app_data={"tls": "enabled"})
-    state_in = dataclasses.replace(base_state, relations=[cluster_peer, client_relation])
+    tls_relation = Relation(TLS_RELATION)
+    state_in = dataclasses.replace(
+        base_state, relations=[cluster_peer, client_relation, tls_relation]
+    )
 
     # When
     with ctx(ctx.on.config_changed(), state_in) as manager:
@@ -235,8 +238,8 @@ def test_extra_listeners_in_server_properties(charm_configuration: dict, base_st
         assert len(charm.broker.config_manager.all_listeners) == 5
 
     # Adding SSL
-    cluster_peer = dataclasses.replace(
-        cluster_peer, local_app_data={"tls": "enabled", "mtls": "enabled"}
+    client_relation = dataclasses.replace(
+        client_relation, local_app_data={"mtls-cert": "client-cert"}
     )
     state_in = dataclasses.replace(base_state, relations=[cluster_peer, client_relation])
 
@@ -341,17 +344,19 @@ def test_ssl_listeners_in_server_properties(ctx: Context, base_state: State, pat
         PEER,
         PEER,
         local_unit_data={"private-address": "treebeard", "client-certificate": "keepitsecret"},
-        local_app_data={"tls": "enabled", "mtls": "enabled"},
     )
     # Simulate data-integrator relation
     client_relation = Relation(
         REL_NAME, "app", remote_app_data={"extra-user-roles": "admin,producer"}
     )
     client_ii_relation = Relation(
-        REL_NAME, "appii", remote_app_data={"extra-user-roles": "admin,consumer"}
+        REL_NAME,
+        "appii",
+        remote_app_data={"extra-user-roles": "admin,consumer", "mtls-cert": "client-cert"},
     )
+    tls_relation = Relation(TLS_RELATION)
     state_in = dataclasses.replace(
-        base_state, relations=[cluster_peer, client_relation, client_ii_relation]
+        base_state, relations=[cluster_peer, client_relation, client_ii_relation, tls_relation]
     )
 
     host = "treebeard" if SUBSTRATE == "vm" else "kafka-k8s-0.kafka-k8s-endpoints"

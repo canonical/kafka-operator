@@ -157,11 +157,6 @@ class KafkaProvider(Object):
             self.charm._set_status(Status.INVALID_CLIENT_CERTIFICATE)
             return
 
-        if self.charm.unit.is_leader() and not self.charm.state.cluster.mtls_enabled:
-            # Create a "mtls" flag so a new listener (CLIENT_SSL) is created
-            self.charm.state.cluster.update({"mtls": "enabled"})
-            self.charm.on.config_changed.emit()
-
         if not self.charm.workload.ping(self.charm.state.bootstrap_server_internal):
             logging.debug("Broker/Controller not up yet...")
             event.defer()
@@ -197,7 +192,7 @@ class KafkaProvider(Object):
             group=client.consumer_group_prefix,
         )
 
-        self.charm.tls.update_truststore()
+        self.charm.on.config_changed.emit()
 
     def _on_relation_created(self, event: RelationCreatedEvent) -> None:
         """Handler for `kafka-client-relation-created` event."""
@@ -240,10 +235,6 @@ class KafkaProvider(Object):
             or not self.charm.state.cluster
         ):
             return
-
-        # Turn off MTLS if no clients are remaining.
-        if not self.charm.state.has_mtls_clients:
-            self.charm.state.cluster.update({"mtls": ""})
 
         if event.relation.app != self.charm.app or not self.charm.app.planned_units() == 0:
             username = f"relation-{event.relation.id}"

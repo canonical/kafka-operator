@@ -343,7 +343,7 @@ class ClusterState(Object):
             enabled_auth.append(self.default_auth)
         if self.oauth_relation:
             enabled_auth.append(AuthMap(self.default_auth.protocol, "OAUTHBEARER"))
-        if self.cluster.mtls_enabled:
+        if self.has_mtls_clients:
             enabled_auth.append(AuthMap("SSL", "SSL"))
 
         return enabled_auth
