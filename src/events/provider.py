@@ -157,19 +157,11 @@ class KafkaProvider(Object):
             self.charm._set_status(Status.INVALID_CLIENT_CERTIFICATE)
             return
 
-<<<<<<< HEAD
-        if self.charm.unit.is_leader() and not self.charm.state.cluster.mtls_enabled:
-            # Create a "mtls" flag so a new listener (CLIENT_SSL) is created
-            self.charm.state.cluster.update({"mtls": "enabled"})
-            self.charm.on.config_changed.emit()
-
         if not self.charm.workload.ping(self.charm.state.bootstrap_server_internal):
             logging.debug("Broker/Controller not up yet...")
             event.defer()
             return
 
-=======
->>>>>>> 1f344dd (remove tls/mtls flags from relation data)
         distinguished_name = self.dependent.tls_manager.certificate_distinguished_name(
             event.mtls_cert
         )
@@ -200,7 +192,7 @@ class KafkaProvider(Object):
             group=client.consumer_group_prefix,
         )
 
-        self.dependent._on_config_changed(event)
+        self.charm.on.config_changed.emit()
 
     def _on_relation_created(self, event: RelationCreatedEvent) -> None:
         """Handler for `kafka-client-relation-created` event."""
