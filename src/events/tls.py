@@ -178,7 +178,7 @@ class TLSHandler(Object):
             self.charm.kafka.setup_internal_tls()
 
             # Keep the old bundle
-            for dependent in ["broker", "balancer"]:
+            for dependent in ["kafka", "balancer"]:
                 getattr(self.charm, dependent).tls_manager.import_bundle(
                     bundle=old_bundle, scope=state.scope, alias_prefix=TLSManager.OLD_PREFIX
                 )
@@ -207,7 +207,7 @@ class TLSHandler(Object):
         state.ca = event.ca.raw
         state.chain = json.dumps([certificate.raw for certificate in event.chain])
 
-        for dependent in ["broker", "balancer"]:
+        for dependent in ["kafka", "balancer"]:
             getattr(self.charm, dependent).tls_manager.remove_stores(scope=state.scope)
             getattr(self.charm, dependent).tls_manager.configure()
 
