@@ -66,9 +66,7 @@ def test_set_credentials(
 
     with (
         ctx(ctx.on.secret_changed(auth_secret), state_in) as mgr,
-        patch(
-            "events.kafka.KafkaOperator.healthy", new_callable=PropertyMock(return_value=True)
-        ),
+        patch("events.kafka.KafkaOperator.healthy", new_callable=PropertyMock(return_value=True)),
     ):
         charm: KafkaCharm = cast(KafkaCharm, mgr.charm)
         previous_password = charm.state.cluster.internal_user_credentials.get(user)
@@ -107,9 +105,7 @@ def test_secret_removed_preserves_credentials(
 
     with (
         ctx(ctx.on.secret_changed(auth_secret), state_in) as mgr,
-        patch(
-            "events.kafka.KafkaOperator.healthy", new_callable=PropertyMock(return_value=True)
-        ),
+        patch("events.kafka.KafkaOperator.healthy", new_callable=PropertyMock(return_value=True)),
     ):
         charm: KafkaCharm = cast(KafkaCharm, mgr.charm)
         previous_password = charm.state.cluster.internal_user_credentials.get("admin")
@@ -122,9 +118,7 @@ def test_secret_removed_preserves_credentials(
 
     with (
         ctx(ctx.on.config_changed(), state_interim) as mgr,
-        patch(
-            "events.kafka.KafkaOperator.healthy", new_callable=PropertyMock(return_value=True)
-        ),
+        patch("events.kafka.KafkaOperator.healthy", new_callable=PropertyMock(return_value=True)),
     ):
         charm: KafkaCharm = cast(KafkaCharm, mgr.charm)
         new_password = charm.state.cluster.internal_user_credentials.get("admin")
