@@ -69,7 +69,7 @@ def test_client_relation_created_defers_if_not_ready(ctx: Context, base_state: S
     # When
     with (
         patch(
-            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=False
+            "events.kafka.KafkaOperator.healthy", new_callable=PropertyMock, return_value=False
         ),
         patch("managers.auth.AuthManager.add_user") as patched_add_user,
         patch("ops.framework.EventBase.defer") as patched_defer,
@@ -94,7 +94,7 @@ def test_client_relation_created_adds_user(ctx: Context, base_state: State) -> N
     # When
     with (
         patch(
-            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=True
+            "events.kafka.KafkaOperator.healthy", new_callable=PropertyMock, return_value=True
         ),
         patch("managers.auth.AuthManager.add_user") as patched_add_user,
         patch("workload.KafkaWorkload.run_bin_command"),
@@ -129,7 +129,7 @@ def test_client_relation_broken_removes_user(ctx: Context, base_state: State) ->
     # When
     with (
         patch(
-            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=True
+            "events.kafka.KafkaOperator.healthy", new_callable=PropertyMock, return_value=True
         ),
         patch("managers.auth.AuthManager.add_user"),
         patch("managers.auth.AuthManager.delete_user") as patched_delete_user,
@@ -167,7 +167,7 @@ def test_client_relation_joined_sets_necessary_relation_data(
     # When
     with (
         patch(
-            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=True
+            "events.kafka.KafkaOperator.healthy", new_callable=PropertyMock, return_value=True
         ),
         patch("managers.auth.AuthManager.add_user"),
         patch("workload.KafkaWorkload.run_bin_command"),
@@ -224,7 +224,7 @@ def test_mtls_without_tls_relation(
     with (
         patch("workload.KafkaWorkload.read", return_value=["key=value"]),
         patch(
-            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=True
+            "events.kafka.KafkaOperator.healthy", new_callable=PropertyMock, return_value=True
         ),
         # Model props
         patch("core.models.KafkaCluster.internal_user_credentials"),
@@ -280,7 +280,7 @@ def test_mtls_setup(
     with (
         patch("workload.KafkaWorkload.read", return_value=["key=value"]),
         patch(
-            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=True
+            "events.kafka.KafkaOperator.healthy", new_callable=PropertyMock, return_value=True
         ),
         # Model props
         patch("core.models.KafkaCluster.internal_user_credentials"),
@@ -296,7 +296,7 @@ def test_mtls_setup(
     ):
         mock_auth_manager = MagicMock(spec=AuthManager)
         charm = cast(KafkaCharm, mgr.charm)
-        charm.broker.auth_manager = mock_auth_manager
+        charm.kafka.auth_manager = mock_auth_manager
         state_out = mgr.run()
 
     # Then

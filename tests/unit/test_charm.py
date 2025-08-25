@@ -171,7 +171,7 @@ def test_ready_to_start_succeeds(
         patch("workload.KafkaWorkload.active", return_value=True),
         patch("workload.KafkaWorkload.write"),
         patch("workload.KafkaWorkload.start") as patched_start,
-        patch("events.broker.BrokerOperator._on_update_status", autospec=True),
+        patch("events.kafka.KafkaOperator._on_update_status", autospec=True),
     ):
         ctx.run(ctx.on.start(), state_in)
 
@@ -189,7 +189,7 @@ def test_healthy_fails_if_not_ready_to_start(
     # When
     with ctx(ctx.on.start(), state_in) as manager:
         charm = cast(KafkaCharm, manager.charm)
-        assert not charm.broker.healthy
+        assert not charm.kafka.healthy
 
 
 def test_healthy_fails_if_snap_not_active(
@@ -206,7 +206,7 @@ def test_healthy_fails_if_snap_not_active(
         ctx(ctx.on.start(), state_in) as manager,
     ):
         charm = cast(KafkaCharm, manager.charm)
-        assert not charm.broker.healthy
+        assert not charm.kafka.healthy
         state_out = manager.run()
 
     # Then
@@ -224,7 +224,7 @@ def test_healthy_succeeds(ctx: Context, base_state: State, passwords_data: dict[
     ):
         charm = cast(KafkaCharm, manager.charm)
         _ = manager.run()
-        assert charm.broker.healthy
+        assert charm.kafka.healthy
 
 
 def test_start_sets_necessary_config(
@@ -296,7 +296,7 @@ def test_start_sets_pebble_layer(
             },
             "summary": "kafka layer",
         }
-        found_plan = charm.broker.workload.layer.to_dict()
+        found_plan = charm.kafka.workload.layer.to_dict()
 
     # Then
     assert expected_plan == found_plan
@@ -376,7 +376,7 @@ def test_update_status_blocks_if_machine_not_configured(
 
     with (
         patch("health.KafkaHealth.machine_configured", side_effect=SnapError()),
-        patch("events.broker.BrokerOperator.healthy", return_value=True),
+        patch("events.kafka.KafkaOperator.healthy", return_value=True),
     ):
         state_out = ctx.run(ctx.on.update_status(), state_in)
 
@@ -463,7 +463,7 @@ def test_storage_add_defers_if_service_not_healthy(
     # When
     with (
         patch("workload.KafkaWorkload.active", return_value=True),
-        patch("events.broker.BrokerOperator.healthy", return_value=False),
+        patch("events.kafka.KafkaOperator.healthy", return_value=False),
         patch("charm.KafkaCharm._disable_enable_restart_broker") as patched_restart,
         patch("ops.framework.EventBase.defer") as patched_defer,
     ):
@@ -489,7 +489,7 @@ def test_storage_add(
     # When
     with (
         patch("workload.KafkaWorkload.active", return_value=True),
-        patch("events.broker.BrokerOperator.healthy", return_value=True),
+        patch("events.kafka.KafkaOperator.healthy", return_value=True),
         patch("managers.config.ConfigManager.set_server_properties"),
         patch("managers.config.ConfigManager.set_client_properties"),
         patch("managers.config.ConfigManager.set_environment"),
@@ -525,7 +525,7 @@ def test_config_changed_updates_server_properties(ctx: Context, base_state: Stat
             new_callable=PropertyMock,
             return_value=["gandalf=white"],
         ),
-        patch("events.broker.BrokerOperator.healthy", return_value=True),
+        patch("events.kafka.KafkaOperator.healthy", return_value=True),
         patch("workload.KafkaWorkload.read", return_value=["gandalf=grey"]),
         patch("managers.config.ConfigManager.set_server_properties") as set_server_properties,
         patch("managers.config.ConfigManager.set_client_properties"),
@@ -559,7 +559,7 @@ def test_config_changed_requests_new_certificate(
             new_callable=PropertyMock,
             return_value=["gandalf=white"],
         ),
-        patch("events.broker.BrokerOperator.healthy", return_value=True),
+        patch("events.kafka.KafkaOperator.healthy", return_value=True),
         patch("workload.KafkaWorkload.read", return_value=["gandalf=grey"]),
         patch("managers.config.ConfigManager.set_client_properties"),
         patch(
@@ -604,7 +604,7 @@ def test_config_changed_does_not_request_new_certificate_for_slashes(
             new_callable=PropertyMock,
             return_value=["gandalf=white"],
         ),
-        patch("events.broker.BrokerOperator.healthy", return_value=True),
+        patch("events.kafka.KafkaOperator.healthy", return_value=True),
         patch("workload.KafkaWorkload.read", return_value=["gandalf=grey"]),
         patch("managers.config.ConfigManager.set_client_properties"),
         patch(
@@ -648,7 +648,7 @@ def test_config_changed_updates_client_properties(ctx: Context, base_state: Stat
             new_callable=PropertyMock,
             return_value=["sauron=bad"],
         ),
-        patch("events.broker.BrokerOperator.healthy", return_value=True),
+        patch("events.kafka.KafkaOperator.healthy", return_value=True),
         patch("workload.KafkaWorkload.read", return_value=["gandalf=grey"]),
         patch("managers.config.ConfigManager.set_server_properties"),
         patch("managers.config.ConfigManager.set_client_properties") as set_client_properties,
@@ -677,9 +677,9 @@ def test_config_changed_updates_client_data(ctx: Context, base_state: State) -> 
             new_callable=PropertyMock,
             return_value=["gandalf=white"],
         ),
-        patch("events.broker.BrokerOperator.healthy", return_value=True),
+        patch("events.kafka.KafkaOperator.healthy", return_value=True),
         patch("workload.KafkaWorkload.read", return_value=["gandalf=white"]),
-        patch("events.broker.BrokerOperator.update_client_data") as patched_update_client_data,
+        patch("events.kafka.KafkaOperator.update_client_data") as patched_update_client_data,
         patch(
             "managers.config.ConfigManager.set_client_properties"
         ) as patched_set_client_properties,
@@ -707,7 +707,7 @@ def test_config_changed_restarts(ctx: Context, base_state: State) -> None:
             new_callable=PropertyMock,
             return_value=["gandalf=grey"],
         ),
-        patch("events.broker.BrokerOperator.healthy", return_value=True),
+        patch("events.kafka.KafkaOperator.healthy", return_value=True),
         patch("workload.KafkaWorkload.read", return_value=["gandalf=white"]),
         patch("managers.auth.AuthManager.add_user"),
         patch("managers.config.ConfigManager.set_server_properties"),

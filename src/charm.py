@@ -25,7 +25,7 @@ from core.cluster import ClusterState
 from core.models import Substrates
 from core.structured_config import CharmConfig
 from events.balancer import BalancerOperator
-from events.broker import BrokerOperator
+from events.kafka import KafkaOperator
 from events.peer_cluster import PeerClusterEventsHandler
 from events.refresh import MachinesKafkaRefresh
 from events.tls import TLSHandler
@@ -94,7 +94,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.peer_cluster = PeerClusterEventsHandler(self)
 
         # Register roles event handlers after global ones, so that they get the priority.
-        self.broker = BrokerOperator(self)
+        self.kafka = KafkaOperator(self)
         self.balancer = BalancerOperator(self)
 
         self.tls = TLSHandler(self)
@@ -147,9 +147,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         """
         if (
             not (self.state.runs_broker or self.state.runs_controller)
-            and self.broker.workload.active()
+            and self.kafka.workload.active()
         ):
-            self.broker.workload.stop()
+            self.kafka.workload.stop()
 
         if (
             not self.state.runs_balancer
@@ -164,34 +164,34 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         The RollingOpsManager expecting a charm instance, we cannot move this method to the broker logic.
         """
         # only attempt restart if service is already active
-        if not self.broker.healthy:
+        if not self.kafka.healthy:
             event.defer()
             return
 
-        self.broker.workload.restart()
+        self.kafka.workload.restart()
 
         # FIXME: This logic should be improved as part of ticket DPE-3155
         # For more information, please refer to https://warthogs.atlassian.net/browse/DPE-3155
         time.sleep(10.0)
-        self.broker.update_credentials_cache()
+        self.kafka.update_credentials_cache()
 
         # Force update our trusted certs relation data.
-        self.broker.update_peer_truststore_state(force=True)
+        self.kafka.update_peer_truststore_state(force=True)
 
     def _disable_enable_restart_broker(self, event: RunWithLock) -> None:
         """Handler for `rolling_ops` disable_enable restart events.
 
         The RollingOpsManager expecting a charm instance, we cannot move this method to the broker logic.
         """
-        if not self.broker.healthy:
+        if not self.kafka.healthy:
             logger.warning(f"Broker {self.unit.name.split('/')[1]} is not ready restart")
             event.defer()
             return
 
-        self.broker.workload.disable_enable()
-        self.broker.workload.start()
+        self.kafka.workload.disable_enable()
+        self.kafka.workload.start()
 
-        if self.broker.workload.active():
+        if self.kafka.workload.active():
             logger.info(f'Broker {self.unit.name.split("/")[1]} restarted')
         else:
             logger.error(f"Broker {self.unit.name.split('/')[1]} failed to restart")
@@ -238,7 +238,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
     def post_snap_refresh(self, refresh: charm_refresh.Machines) -> None:
         """Handle post-snap refresh health checks and set next_unit_allowed_to_refresh."""
-        dependents = [self.broker, self.balancer] if self.state.runs_balancer else [self.broker]
+        dependents = [self.kafka, self.balancer] if self.state.runs_balancer else [self.kafka]
 
         all_healthy = all(dependent.healthy for dependent in dependents)
         if all_healthy:

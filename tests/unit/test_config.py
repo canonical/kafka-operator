@@ -118,7 +118,7 @@ def test_log_dirs_in_server_properties(ctx: Context, base_state: State) -> None:
     # When
     with (ctx(ctx.on.config_changed(), state_in) as manager,):
         charm = cast(KafkaCharm, manager.charm)
-        for prop in charm.broker.config_manager.server_properties:
+        for prop in charm.kafka.config_manager.server_properties:
             if "log.dirs" in prop:
                 found_log_dirs = True
 
@@ -174,12 +174,12 @@ def test_listeners_in_server_properties(charm_configuration: dict, base_state: S
 
         listeners = [
             prop
-            for prop in charm.broker.config_manager.server_properties
+            for prop in charm.kafka.config_manager.server_properties
             if prop.startswith("listeners=")
         ][0]
         advertised_listeners = [
             prop
-            for prop in charm.broker.config_manager.server_properties
+            for prop in charm.kafka.config_manager.server_properties
             if prop.startswith("advertised.listeners=")
         ][0]
 
@@ -221,7 +221,7 @@ def test_extra_listeners_in_server_properties(charm_configuration: dict, base_st
 
         # Then
         # 3 extra, 1 internal, 1 client
-        assert len(charm.broker.config_manager.all_listeners) == 5
+        assert len(charm.kafka.config_manager.all_listeners) == 5
 
     # Adding SSL
     tls_relation = Relation(TLS_RELATION)
@@ -235,7 +235,7 @@ def test_extra_listeners_in_server_properties(charm_configuration: dict, base_st
 
         # Then
         # 3 extra, 1 internal, 1 client
-        assert len(charm.broker.config_manager.all_listeners) == 5
+        assert len(charm.kafka.config_manager.all_listeners) == 5
 
     # Adding SSL
     client_relation = dataclasses.replace(
@@ -249,10 +249,10 @@ def test_extra_listeners_in_server_properties(charm_configuration: dict, base_st
 
         # Then
         # 3 extra sasl_ssl, 3 extra ssl, 1 internal, 2 client
-        assert len(charm.broker.config_manager.all_listeners) == 9
+        assert len(charm.kafka.config_manager.all_listeners) == 9
 
         advertised_listeners_prop = ""
-        for prop in charm.broker.config_manager.server_properties:
+        for prop in charm.kafka.config_manager.server_properties:
             if "advertised.listener" in prop:
                 advertised_listeners_prop = prop
 
@@ -332,8 +332,8 @@ def test_oauth_client_listeners_in_server_properties(ctx: Context, base_state: S
         charm = cast(KafkaCharm, manager.charm)
 
         # Then
-        assert expected_listeners in charm.broker.config_manager.server_properties
-        assert expected_advertised_listeners in charm.broker.config_manager.server_properties
+        assert expected_listeners in charm.kafka.config_manager.server_properties
+        assert expected_advertised_listeners in charm.kafka.config_manager.server_properties
 
 
 def test_ssl_listeners_in_server_properties(ctx: Context, base_state: State, patched_exec) -> None:
@@ -377,8 +377,8 @@ def test_ssl_listeners_in_server_properties(ctx: Context, base_state: State, pat
         charm = cast(KafkaCharm, manager.charm)
 
         # Then
-        assert expected_listeners in charm.broker.config_manager.server_properties
-        assert expected_advertised_listeners in charm.broker.config_manager.server_properties
+        assert expected_listeners in charm.kafka.config_manager.server_properties
+        assert expected_advertised_listeners in charm.kafka.config_manager.server_properties
 
 
 def test_kafka_opts(ctx: Context, base_state: State) -> None:
@@ -391,7 +391,7 @@ def test_kafka_opts(ctx: Context, base_state: State) -> None:
         charm = cast(KafkaCharm, manager.charm)
 
         # Then
-        args = charm.broker.config_manager.kafka_opts
+        args = charm.kafka.config_manager.kafka_opts
         assert "KAFKA_OPTS" in args
 
 
@@ -414,7 +414,7 @@ def test_heap_opts(
     with ctx(ctx.on.config_changed(), state_in) as manager:
         charm = cast(KafkaCharm, manager.charm)
 
-        args = charm.broker.config_manager.heap_opts
+        args = charm.kafka.config_manager.heap_opts
 
     # Then
     assert f"Xms{expected}G" in args
@@ -430,7 +430,7 @@ def test_kafka_jmx_opts(ctx: Context, base_state: State) -> None:
     # When
     with ctx(ctx.on.config_changed(), state_in) as manager:
         charm = cast(KafkaCharm, manager.charm)
-        args = charm.broker.config_manager.kafka_jmx_opts
+        args = charm.kafka.config_manager.kafka_jmx_opts
 
     # Then
     assert "-javaagent:" in args
@@ -446,7 +446,7 @@ def test_cc_jmx_opts(ctx: Context, base_state: State) -> None:
     # When
     with ctx(ctx.on.config_changed(), state_in) as manager:
         charm = cast(KafkaCharm, manager.charm)
-        args = charm.broker.config_manager.cc_jmx_opts
+        args = charm.kafka.config_manager.cc_jmx_opts
 
     # Then
     assert "-javaagent:" in args
@@ -467,7 +467,7 @@ def test_set_environment(ctx: Context, base_state: State) -> None:
         ctx(ctx.on.config_changed(), state_in) as manager,
     ):
         charm = cast(KafkaCharm, manager.charm)
-        charm.broker.config_manager.set_environment()
+        charm.kafka.config_manager.set_environment()
 
     # Then
     for call in patched_write.call_args_list:
@@ -510,14 +510,12 @@ def test_default_replication_properties_less_than_three(ctx: Context, base_state
         charm = cast(KafkaCharm, manager.charm)
 
         # Then
-        assert "num.partitions=1" in charm.broker.config_manager.default_replication_properties
+        assert "num.partitions=1" in charm.kafka.config_manager.default_replication_properties
         assert (
             "default.replication.factor=1"
-            in charm.broker.config_manager.default_replication_properties
+            in charm.kafka.config_manager.default_replication_properties
         )
-        assert (
-            "min.insync.replicas=1" in charm.broker.config_manager.default_replication_properties
-        )
+        assert "min.insync.replicas=1" in charm.kafka.config_manager.default_replication_properties
 
 
 def test_default_replication_properties_more_than_three(ctx: Context, base_state: State) -> None:
@@ -531,14 +529,12 @@ def test_default_replication_properties_more_than_three(ctx: Context, base_state
         charm = cast(KafkaCharm, manager.charm)
 
         # Then
-        assert "num.partitions=3" in charm.broker.config_manager.default_replication_properties
+        assert "num.partitions=3" in charm.kafka.config_manager.default_replication_properties
         assert (
             "default.replication.factor=3"
-            in charm.broker.config_manager.default_replication_properties
+            in charm.kafka.config_manager.default_replication_properties
         )
-        assert (
-            "min.insync.replicas=2" in charm.broker.config_manager.default_replication_properties
-        )
+        assert "min.insync.replicas=2" in charm.kafka.config_manager.default_replication_properties
 
 
 def test_ssl_principal_mapping_rules(charm_configuration: dict, base_state: State) -> None:
@@ -567,7 +563,7 @@ def test_ssl_principal_mapping_rules(charm_configuration: dict, base_state: Stat
         # Then
         assert (
             "ssl.principal.mapping.rules=RULE:^(erebor)$/$1/,DEFAULT"
-            in charm.broker.config_manager.server_properties
+            in charm.kafka.config_manager.server_properties
         )
 
 
@@ -589,7 +585,7 @@ def test_rack_properties(ctx: Context, base_state: State) -> None:
         charm = cast(KafkaCharm, manager.charm)
 
         # Then
-        assert "broker.rack=gondor-west" in charm.broker.config_manager.server_properties
+        assert "broker.rack=gondor-west" in charm.kafka.config_manager.server_properties
 
 
 def test_super_users(ctx: Context, base_state: State) -> None:
@@ -671,7 +667,7 @@ def test_cruise_control_reporter_only_with_balancer(ctx: Context, base_state: St
 
         # Then
         # Default roles value does not include balancer
-        assert reporters_config_value not in charm.broker.config_manager.server_properties
+        assert reporters_config_value not in charm.kafka.config_manager.server_properties
 
     # Given
 
@@ -686,4 +682,4 @@ def test_cruise_control_reporter_only_with_balancer(ctx: Context, base_state: St
         charm = cast(KafkaCharm, manager.charm)
 
         # Then
-        assert reporters_config_value in charm.broker.config_manager.server_properties
+        assert reporters_config_value in charm.kafka.config_manager.server_properties

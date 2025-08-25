@@ -74,7 +74,7 @@ def test_service_pid(ctx: Context, base_state: State) -> None:
         charm = cast(KafkaCharm, manager.charm)
 
         # Then
-        assert charm.broker.health._service_pid == 1314231
+        assert charm.kafka.health._service_pid == 1314231
 
 
 def test_check_vm_swappiness(ctx: Context, base_state: State) -> None:
@@ -92,8 +92,8 @@ def test_check_vm_swappiness(ctx: Context, base_state: State) -> None:
         charm = cast(KafkaCharm, manager.charm)
 
         # Then
-        assert not charm.broker.health._check_vm_swappiness()
-        assert not charm.broker.health.machine_configured()
+        assert not charm.kafka.health._check_vm_swappiness()
+        assert not charm.kafka.health.machine_configured()
 
 
 @pytest.mark.parametrize("total_mem_kb", [5741156, 65741156])
@@ -119,9 +119,9 @@ def test_check_total_memory_testing_profile(
 
         # Then
         if total_mem_kb / 1000000 <= limit:
-            assert not charm.broker.health._check_total_memory()
+            assert not charm.kafka.health._check_total_memory()
         else:
-            assert charm.broker.health._check_total_memory()
+            assert charm.kafka.health._check_total_memory()
 
 
 def test_get_partitions_size(ctx: Context, base_state: State) -> None:
@@ -137,7 +137,7 @@ def test_get_partitions_size(ctx: Context, base_state: State) -> None:
         charm = cast(KafkaCharm, manager.charm)
 
         # Then
-        assert charm.broker.health._get_partitions_size() == (5, 393)
+        assert charm.kafka.health._get_partitions_size() == (5, 393)
 
 
 def test_check_file_descriptors_no_listeners(ctx: Context, base_state: State) -> None:
@@ -152,7 +152,7 @@ def test_check_file_descriptors_no_listeners(ctx: Context, base_state: State) ->
         charm = cast(KafkaCharm, manager.charm)
 
         # Then
-        assert charm.broker.health._check_file_descriptors()
+        assert charm.kafka.health._check_file_descriptors()
         assert patched_run_bin.call_count == 0
 
 
@@ -178,6 +178,6 @@ def test_machine_configured_succeeds_and_fails(
 
         # Then
         if all([mmap, fd, swap, mem]):
-            assert charm.broker.health.machine_configured()
+            assert charm.kafka.health.machine_configured()
         else:
-            assert not charm.broker.health.machine_configured()
+            assert not charm.kafka.health.machine_configured()

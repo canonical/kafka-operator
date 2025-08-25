@@ -67,7 +67,7 @@ def test_post_snap_refresh_healthy_cluster(ctx: Context, base_state: State) -> N
         mock_refresh.next_unit_allowed_to_refresh = False
 
         with patch(
-            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=True
+            "events.kafka.KafkaOperator.healthy", new_callable=PropertyMock, return_value=True
         ):
             charm.post_snap_refresh(mock_refresh)
 
@@ -87,7 +87,7 @@ def test_post_snap_refresh_unhealthy_cluster(ctx: Context, base_state: State) ->
         mock_refresh.next_unit_allowed_to_refresh = False
 
         with patch(
-            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=False
+            "events.kafka.KafkaOperator.healthy", new_callable=PropertyMock, return_value=False
         ):
             charm.post_snap_refresh(mock_refresh)
 

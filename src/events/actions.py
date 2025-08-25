@@ -12,7 +12,7 @@ from ops.framework import Object
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
-    from events.broker import BrokerOperator
+    from events.kafka import KafkaOperator
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class ActionEvents(Object):
     """Event handlers for Juju Actions."""
 
-    def __init__(self, dependent: "BrokerOperator") -> None:
+    def __init__(self, dependent: "KafkaOperator") -> None:
         super().__init__(dependent, "action_events")
         self.dependent = dependent
         self.charm: "KafkaCharm" = dependent.charm

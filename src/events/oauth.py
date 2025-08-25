@@ -14,7 +14,7 @@ from literals import OAUTH_REL_NAME
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
-    from events.broker import BrokerOperator
+    from events.kafka import KafkaOperator
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 class OAuthHandler(Object):
     """Handler for managing oauth relations."""
 
-    def __init__(self, dependent: "BrokerOperator") -> None:
+    def __init__(self, dependent: "KafkaOperator") -> None:
         super().__init__(dependent, "oauth")
         self.dependent = dependent
         self.charm: "KafkaCharm" = dependent.charm

@@ -16,7 +16,7 @@ from literals import JVM_MEM_MAX_GB, JVM_MEM_MIN_GB
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
-    from events.broker import BrokerOperator
+    from events.kafka import KafkaOperator
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 class KafkaHealth(Object):
     """Manager for handling Kafka machine health."""
 
-    def __init__(self, dependent: "BrokerOperator") -> None:
+    def __init__(self, dependent: "KafkaOperator") -> None:
         super().__init__(dependent, "kafka_health")
         self.dependent = dependent
         self.charm: "KafkaCharm" = dependent.charm

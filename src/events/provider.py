@@ -23,7 +23,7 @@ from managers.ssl_principal_mapper import NoMatchingRuleError, SslPrincipalMappe
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
-    from events.broker import BrokerOperator
+    from events.kafka import KafkaOperator
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 class KafkaProvider(Object):
     """Implements the provider-side logic for client applications relating to Kafka."""
 
-    def __init__(self, dependent: "BrokerOperator") -> None:
+    def __init__(self, dependent: "KafkaOperator") -> None:
         super().__init__(dependent, "kafka_client")
         self.dependent = dependent
         self.charm: "KafkaCharm" = dependent.charm
@@ -130,7 +130,7 @@ class KafkaProvider(Object):
 
     def on_mtls_cert_updated(self, event: KafkaClientMtlsCertUpdatedEvent) -> None:
         """Handler for `kafka-client-mtls-cert-updated` event."""
-        if not self.charm.broker.healthy:
+        if not self.charm.kafka.healthy:
             event.defer()
             return
 

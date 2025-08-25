@@ -59,7 +59,7 @@ class KafkaRefresh(charm_refresh.CharmSpecificCommon, abc.ABC):
             and not self._charm.state.runs_controller
         ):
             raise charm_refresh.PrecheckFailed("Refresh not supported on balancer-only nodes.")
-        if not self._charm.broker.healthy:
+        if not self._charm.kafka.healthy:
             raise charm_refresh.PrecheckFailed("Cluster is not healthy")
 
 
@@ -75,7 +75,7 @@ class MachinesKafkaRefresh(KafkaRefresh, charm_refresh.CharmSpecificMachines):
         refresh: charm_refresh.Machines,
     ) -> None:
         """Refresh the snap for the Kafka charm."""
-        self._charm.broker.workload.stop()
+        self._charm.kafka.workload.stop()
 
         revision_before_refresh = self._charm.workload.kafka.revision
         assert snap_revision != revision_before_refresh
@@ -83,7 +83,7 @@ class MachinesKafkaRefresh(KafkaRefresh, charm_refresh.CharmSpecificMachines):
             logger.exception("Snap refresh failed")
 
             if self._charm.workload.kafka.revision == revision_before_refresh:
-                self._charm.broker.workload.start()
+                self._charm.kafka.workload.start()
             else:
                 refresh.update_snap_revision()
             raise KafkaUpgradeError
@@ -91,10 +91,10 @@ class MachinesKafkaRefresh(KafkaRefresh, charm_refresh.CharmSpecificMachines):
         refresh.update_snap_revision()
 
         # Post snap refresh logic
-        self._charm.broker.config_manager.set_environment()
+        self._charm.kafka.config_manager.set_environment()
 
         logger.info(f"{self._charm.unit.name} upgrading service...")
-        self._charm.broker.workload.restart()
+        self._charm.kafka.workload.restart()
 
         # Allow for some time to settle down
         # FIXME: This logic should be improved as part of ticket DPE-3155
