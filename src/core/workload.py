@@ -230,6 +230,7 @@ class WorkloadBase(ABC):
         """Returns a UNIX timestamp of last time the service was restarted."""
         ...
 
+    @property
     def ips(self) -> list[str]:
         """Return a list of current IPs associated with the workload, using `hostname -I`."""
         raw = self.exec("hostname -I").strip()
