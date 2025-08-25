@@ -185,7 +185,6 @@ class BrokerOperator(Object):
         self.kraft.format_storages()
         self.update_external_services()
         self.update_ip_addresses()
-        self.setup_internal_tls()
 
         self.config_manager.set_server_properties()
         self.config_manager.set_client_properties()
@@ -230,6 +229,7 @@ class BrokerOperator(Object):
         self.config_manager.set_environment()
 
         # Update peer-cluster trusted certs and check for TLS rotation on the other side.
+        self.update_peer_truststore_state()
         old_peer_certs = self.tls_manager.peer_trusted_certificates.values()
         self.tls_manager.update_peer_cluster_trust()
         new_peer_certs = self.tls_manager.peer_trusted_certificates.values()
@@ -303,7 +303,6 @@ class BrokerOperator(Object):
             )
 
         # Update truststore if needed.
-        self.update_peer_truststore_state()
         self.charm.tls.update_truststore()
 
         if self.charm.state.tls_rotate:
