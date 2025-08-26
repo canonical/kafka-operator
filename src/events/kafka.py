@@ -55,7 +55,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class BrokerOperator(Object):
+class KafkaOperator(Object):
     """Charmed Operator for Kafka."""
 
     def __init__(self, charm) -> None:

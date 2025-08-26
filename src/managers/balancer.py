@@ -18,7 +18,7 @@ from literals import BALANCER, BALANCER_TOPICS, MODE_FULL, STORAGE
 if TYPE_CHECKING:
     from charm import KafkaCharm
     from events.balancer import BalancerOperator
-    from events.broker import BrokerOperator
+    from events.kafka import KafkaOperator
 
 
 logger = logging.getLogger(__name__)
@@ -129,7 +129,7 @@ class CruiseControlClient:
 class BalancerManager:
     """Manager for handling Balancer."""
 
-    def __init__(self, dependent: "BrokerOperator | BalancerOperator") -> None:
+    def __init__(self, dependent: "KafkaOperator | BalancerOperator") -> None:
         self.dependent = dependent
         self.charm: "KafkaCharm" = dependent.charm
 

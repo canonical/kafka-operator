@@ -29,7 +29,7 @@ from workload import KafkaWorkload
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
-    from events.broker import BrokerOperator
+    from events.kafka import KafkaOperator
 
 logger = logging.getLogger(__name__)
 
@@ -37,10 +37,10 @@ logger = logging.getLogger(__name__)
 class KRaftHandler(Object):
     """Handler for KRaft specific events."""
 
-    def __init__(self, broker: "BrokerOperator") -> None:
-        super().__init__(broker, CONTROLLER.value)
-        self.charm: "KafkaCharm" = broker.charm
-        self.broker: "BrokerOperator" = broker
+    def __init__(self, kafka: "KafkaOperator") -> None:
+        super().__init__(kafka, CONTROLLER.value)
+        self.charm: "KafkaCharm" = kafka.charm
+        self.kafka: "KafkaOperator" = kafka
 
         self.workload = KafkaWorkload(
             container=(

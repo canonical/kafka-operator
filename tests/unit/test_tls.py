@@ -104,7 +104,7 @@ def test_extra_sans_config(
         charm = cast(KafkaCharm, manager.charm)
 
         # Then
-        assert charm.broker.tls_manager._build_extra_sans() == expected
+        assert charm.kafka.tls_manager._build_extra_sans() == expected
 
 
 def test_sans(charm_configuration: dict, base_state: State, patched_node_ip) -> None:
@@ -125,7 +125,7 @@ def test_sans(charm_configuration: dict, base_state: State, patched_node_ip) -> 
     if SUBSTRATE == "vm":
         with ctx(ctx.on.config_changed(), state_in) as manager:
             charm = cast(KafkaCharm, manager.charm)
-            built_sans = charm.broker.tls_manager.build_sans()
+            built_sans = charm.kafka.tls_manager.build_sans()
 
         # Then
         assert built_sans == {
@@ -145,7 +145,7 @@ def test_sans(charm_configuration: dict, base_state: State, patched_node_ip) -> 
             ctx(ctx.on.config_changed(), state_in) as manager,
         ):
             charm = cast(KafkaCharm, manager.charm)
-            built_sans = charm.broker.tls_manager.build_sans()
+            built_sans = charm.kafka.tls_manager.build_sans()
 
         # Then
         assert sorted(built_sans["sans_dns"]) == sorted(

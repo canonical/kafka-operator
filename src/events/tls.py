@@ -58,7 +58,7 @@ class TLSHandler(Object):
         super().__init__(charm, "tls")
         self.charm: "KafkaCharm" = charm
 
-        self.sans = self.charm.broker.tls_manager.build_sans()
+        self.sans = self.charm.kafka.tls_manager.build_sans()
         self.common_name = f"{self.charm.unit.name}-{self.charm.model.uuid}"
 
         peer_private_key = None
@@ -170,15 +170,15 @@ class TLSHandler(Object):
         state.ca = ""
 
         # remove all existing keystores from the unit so we don't preserve certs
-        self.charm.broker.tls_manager.remove_stores(scope=state.scope)
+        self.charm.kafka.tls_manager.remove_stores(scope=state.scope)
         self.charm.balancer.tls_manager.remove_stores(scope=state.scope)
 
         if state.scope == TLSScope.PEER:
             # switch back to internal TLS
-            self.charm.broker.setup_internal_tls()
+            self.charm.kafka.setup_internal_tls()
 
             # Keep the old bundle
-            for dependent in ["broker", "balancer"]:
+            for dependent in ["kafka", "balancer"]:
                 getattr(self.charm, dependent).tls_manager.import_bundle(
                     bundle=old_bundle, scope=state.scope, alias_prefix=TLSManager.OLD_PREFIX
                 )
@@ -207,7 +207,7 @@ class TLSHandler(Object):
         state.ca = event.ca.raw
         state.chain = json.dumps([certificate.raw for certificate in event.chain])
 
-        for dependent in ["broker", "balancer"]:
+        for dependent in ["kafka", "balancer"]:
             getattr(self.charm, dependent).tls_manager.remove_stores(scope=state.scope)
             getattr(self.charm, dependent).tls_manager.configure()
 
@@ -293,7 +293,7 @@ class TLSHandler(Object):
         """Updates the truststore based on current state of MTLS client relations and certificates available on the `certificate_transfer` interface."""
         if not all(
             [
-                self.charm.broker.healthy,
+                self.charm.kafka.healthy,
                 self.charm.state.cluster.tls_enabled,
                 self.charm.state.unit_broker.client_certs.certificate,
                 self.charm.state.unit_broker.client_certs.ca,
@@ -311,28 +311,28 @@ class TLSHandler(Object):
                 continue
 
             alias = client.alias
-            if not self.charm.broker.tls_manager.alias_needs_update(alias, client.mtls_cert):
+            if not self.charm.kafka.tls_manager.alias_needs_update(alias, client.mtls_cert):
                 continue
 
-            self.charm.broker.tls_manager.update_cert(alias=alias, cert=client.mtls_cert)
+            self.charm.kafka.tls_manager.update_cert(alias=alias, cert=client.mtls_cert)
             live_aliases.add(alias)
             should_reload = True
 
         # Transferred certs
         transferred_certs = self.certificate_transfer.get_all_certificates()
         for cert in transferred_certs:
-            alias = self.charm.broker.tls_manager.certificate_distinguished_name(cert)
+            alias = self.charm.kafka.tls_manager.certificate_distinguished_name(cert)
             live_aliases.add(alias)
 
-            if not self.charm.broker.tls_manager.alias_needs_update(alias, cert):
+            if not self.charm.kafka.tls_manager.alias_needs_update(alias, cert):
                 continue
 
-            self.charm.broker.tls_manager.update_cert(alias=alias, cert=cert)
+            self.charm.kafka.tls_manager.update_cert(alias=alias, cert=cert)
             should_reload = True
 
         logger.debug(f"Following aliases should be in the truststore: {live_aliases}")
         if should_reload:
-            self.charm.broker.tls_manager.reload_truststore()
+            self.charm.kafka.tls_manager.reload_truststore()
 
     @property
     def ready(self) -> bool:
