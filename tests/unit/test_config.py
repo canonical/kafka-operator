@@ -482,22 +482,25 @@ def test_set_environment(ctx: Context, base_state: State) -> None:
 def test_bootstrap_server(ctx: Context, base_state: State) -> None:
     """Checks the bootstrap-server property setting."""
     # Given
+    client_rel = Relation(REL_NAME)
     cluster_peer = PeerRelation(
         PEER,
         PEER,
-        local_unit_data={"private-address": "treebeard"},
-        peers_data={1: {"private-address": "shelob"}},
+        local_unit_data={"private-address": "treebeard", f"ip-{client_rel.id}": "draebeert"},
+        peers_data={1: {"private-address": "shelob", f"ip-{client_rel.id}": "bolehs"}},
     )
-    state_in = dataclasses.replace(base_state, relations=[cluster_peer])
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, client_rel])
 
     # When
     with ctx(ctx.on.config_changed(), state_in) as manager:
         charm = cast(KafkaCharm, manager.charm)
 
         # Then
-        assert len(charm.state.bootstrap_server.split(",")) == 2
-        for server in charm.state.bootstrap_server.split(","):
-            assert "9092" in server
+        bootstrap_servers_internal = charm.state.bootstrap_server_internal
+        bootstrap_servers_client = charm.state.bootstrap_server_client(client_rel)
+        assert bootstrap_servers_client != bootstrap_servers_internal
+        assert set(bootstrap_servers_client.split(",")) == {"draebeert:9092", "bolehs:9092"}
+        assert set(bootstrap_servers_internal.split(",")) == {"treebeard:19093", "shelob:19093"}
 
 
 def test_default_replication_properties_less_than_three(ctx: Context, base_state: State) -> None:

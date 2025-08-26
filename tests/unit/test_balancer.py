@@ -274,6 +274,10 @@ def test_ready_to_start_ok(
             "managers.tls.TLSManager.build_sans",
             return_value={"sans_ip": ["10.10.10.10"], "sans_dns": ["dns"]},
         ),
+        patch(
+            "managers.tls.TLSManager.get_current_sans",
+            return_value={"sans_ip": ["10.10.10.10"], "sans_dns": ["dns"]},
+        ),
         patch("managers.tls.TLSManager.configure"),
         patch("health.KafkaHealth.machine_configured", return_value=True),
         patch("charms.operator_libs_linux.v2.snap.SnapCache"),  # specific VM, works fine on k8s

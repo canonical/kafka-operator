@@ -7,7 +7,7 @@ import logging
 import re
 from pathlib import Path
 from subprocess import PIPE, CalledProcessError, check_output
-from typing import Any
+from typing import Any, Literal, Mapping
 
 import jubilant
 import yaml
@@ -53,6 +53,7 @@ def deploy_cluster(
     storage_broker: dict = {},
     app_name_broker: str = str(APP_NAME),
     app_name_controller: str = CONTROLLER_NAME,
+    bind: Mapping[str, str] = {},
 ):
     """Deploys an Apache Kafka cluster using the Charmed Apache Kafka operator in KRaft mode."""
     logger.info(f"Deploying Kafka cluster in '{kraft_mode}' mode")
@@ -71,6 +72,7 @@ def deploy_cluster(
         }
         | config_broker,
         trust=True,
+        bind=bind,
     )
 
     if kraft_mode == "multi":
@@ -85,6 +87,7 @@ def deploy_cluster(
             }
             | config_controller,
             trust=True,
+            bind=bind,
         )
 
     assert_status_func = jubilant.all_active if kraft_mode == "single" else jubilant.all_blocked
@@ -278,6 +281,20 @@ def check_logs(juju: jubilant.Juju, kafka_unit_name: str, topic: str) -> None:
             break
 
     assert passed, "logs not found"
+
+
+def get_relation_data(
+    juju: jubilant.Juju,
+    unit: str,
+    endpoint: str,
+    key: Literal["application-data", "local-unit"] = "application-data",
+):
+    show_unit = json.loads(juju.cli("show-unit", "--format", "json", unit))
+    d_relations = show_unit[unit]["relation-info"]
+    for relation in d_relations:
+        if relation["endpoint"] == endpoint:
+            return relation[key]
+    raise Exception("No relation found!")
 
 
 @retry(
