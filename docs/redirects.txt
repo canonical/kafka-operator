@@ -15,14 +15,14 @@
 # Tutorial
 
 t-overview/ tutorial/
-t-setup-environment/ environment/
-t-deploy/ deploy/
-t-relate-kafka/ integrate-with-client-applications/
-t-manage-passwords/ manage-passwords/
-t-enable-encryption/ enable-encryption/
-t-kafka-connect/ use-kafka-connect/
-t-reassign-partitions/ rebalance-partitions/
-t-cleanup-environment/ cleanup/
+t-setup-environment/ tutorial/environment/
+t-deploy/ tutorial/deploy/
+t-relate-kafka/ tutorial/integrate-with-client-applications/
+t-manage-passwords/ tutorial/manage-passwords/
+t-enable-encryption/ tutorial/enable-encryption/
+t-kafka-connect/ tutorial/use-kafka-connect/
+t-reassign-partitions/ tutorial/rebalance-partitions/
+t-cleanup-environment/ tutorial/cleanup/
 
 # How-to guides
 
@@ -30,8 +30,8 @@ h-deploy/ how-to/deploy/
 h-deploy-anywhere/ how-to/deploy/
 h-deploy-aws/ how-to/deploy/deploy-aws/
 h-deploy-azure/ how-to/deploy/deploy-azure/
+h-kraft-mode/ how-to/deploy/kraft-mode/
 
-h-kraft-mode/ how-to/kraft-mode/
 h-manage-units/ how-to/manage-units/
 h-manage-app/ how-to/manage-applications/
 h-enable-encryption/ how-to/enable-encryption/
@@ -39,7 +39,7 @@ h-upgrade/ how-to/upgrade/
 
 h-monitoring/ how-to/monitoring/
 h-enable-monitoring/ how-to/monitoring/
-h-integrate-alerts-dashboards/ how-to/monitoring/#alerts-and-dashboards
+h-integrate-alerts-dashboards/ how-to/monitoring/
 
 h-cluster/ how-to/cluster/
 h-cluster-migration/ how-to/cluster/migrate/
@@ -60,9 +60,9 @@ r-rev156_136/ reference/release-notes/revision-156-136/
 r-rev195_149/ reference/release-notes/revision-195-149/
 r-rev205/ reference/release-notes/revision-205/
 
-r-actions/ https://charmhub.io/kafka/actions?channel=3/edge
-r-configurations/ https://charmhub.io/kafka/configure?channel=3/edge
-r-libraries/ https://charmhub.io/kafka/libraries/kafka_libs?channel=3/edge
+# r-actions/ https://charmhub.io/kafka/actions?channel=3/edge
+# r-configurations/ https://charmhub.io/kafka/configure?channel=3/edge
+# r-libraries/ https://charmhub.io/kafka/libraries/kafka_libs?channel=3/edge
 r-file-system-paths/ reference/file-system-paths/
 r-snap-entrypoints/ reference/snap-entrypoints/
 r-listeners/ reference/listeners/
