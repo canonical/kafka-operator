@@ -209,7 +209,7 @@ def validate_params(cls: Type[T]):
     """
 
     def decorator(
-        f: Callable[[CharmBase, ActionEvent, Union[T, ValidationError]], G],
+        f: Callable[[CharmBase, ActionEvent, Union[T, ValidationError]], G]
     ) -> Callable[[CharmBase, ActionEvent], G]:
         @wraps(f)
         def event_wrapper(self: CharmBase, event: ActionEvent):
@@ -287,7 +287,7 @@ def parse_relation_data(
                 Optional[Union[UnitModel, ValidationError]],
             ],
             G,
-        ],
+        ]
     ) -> Callable[[CharmBase, RelationEvent], G]:
         @wraps(f)
         def event_wrapper(self: CharmBase, event: RelationEvent):
