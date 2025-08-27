@@ -26,7 +26,6 @@ from charms.tls_certificates_interface.v4.tls_certificates import (
 from ops.charm import (
     ActionEvent,
     RelationBrokenEvent,
-    RelationCreatedEvent,
 )
 from ops.framework import EventBase, EventSource, Object
 
@@ -95,13 +94,13 @@ class TLSHandler(Object):
                     sans_dns=frozenset(self.sans["sans_dns"]),
                 ),
             ],
+            refresh_events=[self.refresh_tls_certificates],
             private_key=peer_private_key,
         )
 
         self._init_credentials()
 
         for rel in (TLS_RELATION, INTERNAL_TLS_RELATION):
-            self.framework.observe(self.charm.on[rel].relation_created, self._tls_relation_created)
             self.framework.observe(self.charm.on[rel].relation_broken, self._tls_relation_broken)
 
         self.framework.observe(
@@ -156,14 +155,6 @@ class TLSHandler(Object):
                 {"truststore-password": self.charm.workload.generate_password()}
             )
 
-    def _tls_relation_created(self, event: RelationCreatedEvent) -> None:
-        """Handler for `certificates_relation_created` event."""
-        if not self.charm.unit.is_leader() or not self.charm.state.peer_relation:
-            return
-
-        if event.relation.name == TLS_RELATION:
-            self.charm.state.cluster.update({"tls": "enabled"})
-
     def _tls_relation_broken(self, event: RelationBrokenEvent) -> None:
         """Handler for `certificates_relation_broken` event."""
         state = (
@@ -195,12 +186,6 @@ class TLSHandler(Object):
 
             state.rotate = True
             self.charm.on.config_changed.emit()
-
-        if not self.charm.unit.is_leader():
-            return
-
-        if state.scope == TLSScope.CLIENT:
-            self.charm.state.cluster.update({"tls": ""})
 
     def _handle_certificate_available_event(
         self, event: CertificateAvailableEvent, requirer: TLSCertificatesRequiresV4
@@ -296,23 +281,14 @@ class TLSHandler(Object):
 
         transferred_certs = self.certificate_transfer.get_all_certificates()
 
-        if (
-            self.charm.unit.is_leader()
-            and transferred_certs
-            and not self.charm.state.cluster.mtls_enabled
-        ):
-            # Create a "mtls" flag so a new listener (CLIENT_SSL) is created
-            self.charm.state.cluster.update({"mtls": "enabled"})
-            self.charm.on.config_changed.emit()
+        if not transferred_certs:
+            return
 
         self.update_truststore()
 
     def _on_mtls_client_certificates_removed(self, event: CertificatesRemovedEvent) -> None:
         """Handle the certificates removed event."""
         self.update_truststore()
-        # Turn off MTLS if no clients are remaining.
-        if self.charm.unit.is_leader() and not self.charm.state.has_mtls_clients:
-            self.charm.state.cluster.update({"mtls": ""})
 
     def update_truststore(self) -> None:
         """Updates the truststore based on current state of MTLS client relations and certificates available on the `certificate_transfer` interface."""

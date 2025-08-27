@@ -4,6 +4,7 @@
 
 """Supporting objects for Kafka charm state."""
 
+import re
 import secrets
 import socket
 import string
@@ -228,6 +229,16 @@ class WorkloadBase(ABC):
     def last_restart(self) -> float:
         """Returns a UNIX timestamp of last time the service was restarted."""
         ...
+
+    @property
+    def ips(self) -> list[str]:
+        """Return a list of current IPs associated with the workload, using `hostname -I`."""
+        raw = self.exec("hostname -I").strip()
+
+        if not raw:
+            return []
+
+        return re.findall(r"[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}", raw)
 
     @staticmethod
     def generate_password() -> str:

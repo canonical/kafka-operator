@@ -19,6 +19,7 @@ from literals import (
     PEER,
     REL_NAME,
     SUBSTRATE,
+    TLS_RELATION,
     Status,
 )
 from managers.auth import AuthManager
@@ -260,11 +261,11 @@ def test_mtls_setup(
             "secret-mtls": secret.id,
         },
     )
-
+    tls_relation = Relation(TLS_RELATION)
     cluster_peer = PeerRelation(
         PEER,
         PEER,
-        local_app_data={f"relation-{client_relation.id}": "password", "tls": "enabled"}
+        local_app_data={f"relation-{client_relation.id}": "password"}
         | kraft_data
         | passwords_data,
         local_unit_data={"client-certificate": "cert", "client-ca-cert": "ca"}
@@ -272,7 +273,7 @@ def test_mtls_setup(
     )
     state_in = dataclasses.replace(
         base_state,
-        relations=[cluster_peer, client_relation, restart_relation],
+        relations=[cluster_peer, client_relation, restart_relation, tls_relation],
         secrets=[secret],
     )
 

@@ -27,6 +27,8 @@ Rockcraft
 readthedocs
 rst
 sitemapindex
+subnet
+subnets
 subproject
 subprojects
 SVG

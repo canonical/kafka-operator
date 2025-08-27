@@ -319,7 +319,7 @@ class TestKRaft:
             f"{self.controller_app}:{INTERNAL_TLS_RELATION}", TLS_NAME
         )
 
-        async with ops_test.fast_forward(fast_interval="90s"):
+        async with ops_test.fast_forward(fast_interval="120s"):
             await ops_test.model.wait_for_idle(
                 apps={self.controller_app, APP_NAME, TLS_NAME},
                 idle_period=45,
@@ -357,7 +357,7 @@ class TestKRaft:
 
         await ops_test.juju("remove-relation", self.controller_app, TLS_NAME)
 
-        async with ops_test.fast_forward(fast_interval="90s"):
+        async with ops_test.fast_forward(fast_interval="120s"):
             await ops_test.model.wait_for_idle(
                 apps={self.controller_app, APP_NAME, TLS_NAME},
                 idle_period=60,
