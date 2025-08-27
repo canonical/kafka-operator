@@ -47,7 +47,7 @@ The old self-signed certificates will be removed, and new ones will be issued us
 
 ## (Optional) Use external private-keys
 
-By default, Charmed Apache Kafka applications will generate their own internal private-key for identifying brokers for client connections. While this is secure for most production deployments, you may wish to specify your own private-key to use. [Juju secrets](https://documentation.ubuntu.com/juju/3.6/reference/secret/0) can be provided by users to specify external private-keys for certificate signing requests (CSRs) and generated certificates.
+By default, Charmed Apache Kafka applications will generate their own internal private-key for identifying brokers for client connections. While this is secure for most production deployments, you may wish to specify your own private-key to use. [Juju secrets](https://documentation.ubuntu.com/juju/3.6/reference/secret/) can be provided by users to specify external private-keys for certificate signing requests (CSRs) and generated certificates.
 
 First, generate (or otherwise obtain) private-keys for every Charmed Apache Kafka unit. For example, if you have 3 `kafka` units, we can generate external private-keys for each with:
 
