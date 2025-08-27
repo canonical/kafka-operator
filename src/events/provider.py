@@ -56,33 +56,35 @@ class KafkaProvider(Object):
 
     def on_topic_requested(self, event: TopicRequestedEvent):
         """Handle the on topic requested event."""
-        if not self.dependent.healthy:
-            event.defer()
-            return
-
-        if not self.charm.workload.ping(self.charm.state.bootstrap_server_internal):
-            logging.debug("Broker/Controller not up yet...")
-            event.defer()
-            return
-
-        # on all unit update the server properties to enable client listener if needed
-        self.dependent._on_config_changed(event)
-
-        if not self.charm.unit.is_leader() or not self.charm.state.peer_relation:
-            return
-
         requesting_client = None
         for client in self.charm.state.clients:
             if event.relation == client.relation:
                 requesting_client = client
                 break
 
-        if not requesting_client:
-            event.defer()
+        self.handle_topic_requested(requesting_client)
+
+    def handle_topic_requested(self, client: KafkaClient | None):
+        """Handle topic request of the given KafkaClient, if not already done."""
+        if not client or not client.topic:
+            return
+
+        if self.charm.state.cluster.relation_data.get(client.username):
+            # We have setup this client before
+            return
+
+        if not self.charm.workload.ping(self.charm.state.bootstrap_server_internal):
+            logging.debug("Broker/Controller not up yet...")
+            return
+
+        if not self.dependent.healthy:
+            return
+
+        if not self.charm.unit.is_leader() or not self.charm.state.peer_relation:
             return
 
         # We don't want to set credentials for the client before MTLS setup.
-        if requesting_client.mtls_cert and not all(
+        if client.mtls_cert and not all(
             [
                 self.charm.state.cluster.tls_enabled,
                 self.charm.state.unit_broker.client_certs.certificate,
@@ -90,14 +92,12 @@ class KafkaProvider(Object):
         ):
             logger.debug("Missing TLS relation, deferring")
             self.charm._set_status(Status.MTLS_REQUIRES_TLS)
-            event.defer()
             return
 
-        if requesting_client.mtls_cert and self.dependent.tls_manager.alias_needs_update(
-            requesting_client.alias, requesting_client.mtls_cert
+        if client.mtls_cert and self.dependent.tls_manager.alias_needs_update(
+            client.alias, client.mtls_cert
         ):
             logging.debug("Waiting for MTLS setup.")
-            event.defer()
             return
 
         password = client.password or self.charm.workload.generate_password()
@@ -110,11 +110,7 @@ class KafkaProvider(Object):
             )
         except (subprocess.CalledProcessError, ExecError):
             logger.warning(f"unable to create user {client.username} just yet")
-            event.defer()
             return
-
-        # non-leader units need cluster_config_changed event to update their super.users
-        self.charm.state.cluster.update({client.username: password})
 
         self.dependent.auth_manager.update_user_acls(
             username=client.username,
@@ -124,21 +120,22 @@ class KafkaProvider(Object):
         )
 
         # non-leader units need cluster_config_changed event to update their super.users
-        self.charm.state.cluster.update({"super-users": self.charm.state.super_users})
+        self.charm.state.cluster.update({client.username: password})
 
-        self.dependent.update_client_data()
+        # non-leader units need cluster_config_changed event to update their super.users
+        self.charm.state.cluster.update({"super-users": self.charm.state.super_users})
 
     def on_mtls_cert_updated(self, event: KafkaClientMtlsCertUpdatedEvent) -> None:
         """Handler for `kafka-client-mtls-cert-updated` event."""
-        if not self.charm.broker.healthy:
-            event.defer()
-            return
-
         if not event.mtls_cert:
-            logger.info("No MTLS cert provided. skipping MTLS setup.")
+            logger.debug("No MTLS cert provided. skipping MTLS setup.")
             return
 
         if not event.relation or not event.relation.active:
+            return
+
+        if not self.charm.broker.healthy:
+            event.defer()
             return
 
         if not all(
