@@ -50,6 +50,7 @@ juju config kafka pause-after-unit-refresh="first"
 
 This will only pause after the first unit has completed it's upgrade.
 
+(step-2-collect)=
 ### Step 2: Collect
 
 The first step is to record the revisions of the running application, as a safety measure for a rollback action if needed. To accomplish this, simply run the `juju status` command and look for the revisions of the deployed Charmed Apache Kafka applications. You can also retrieve this with the following command (that requires [yq](https://snapcraft.io/install/yq/ubuntu) to be installed):

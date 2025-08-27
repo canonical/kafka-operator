@@ -34,7 +34,7 @@ Actions<https://charmhub.io/kafka/actions?channel=4/edge>
 Configurations<https://charmhub.io/kafka/configure?channel=4/edge>
 Libraries<https://charmhub.io/kafka/libraries/kafka_libs?channel=4/edge>
 file-system-paths.md
-snap-entrypoints.md
+snap-commands.md
 listeners.md
 Statuses<statuses.md>
 requirements.md
