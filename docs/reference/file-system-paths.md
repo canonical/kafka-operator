@@ -37,8 +37,8 @@ juju ssh kafka/0 sudo -i 'ls $LOGS'
 
 - **`$LOGS/server.log`** - the broker service logs
     - Very useful for general debugging
-- **`$LOGS/kafka-authorizer.log`** - Kafka ACL authorization events
-    - Very useful for debugging authorization failures
+- **`$LOGS/kafka-authorizer.log`** - Kafka ACL authorisation events
+    - Very useful for debugging authorisation failures
 - **`$LOGS/controller.log`** - the KRaft controller service logs
 
 ### Apache Kafka binaries

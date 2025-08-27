@@ -14,7 +14,7 @@ For this guide, we will need an active Charmed Apache Kafka application. Follow 
 To enable external client encryption, you should first deploy a TLS certificates Provider charm. For this guide, we will be using the `self-signed-certificates` charm.
 
 ```{warning}
-Using self-signed certificates is not recommended for production systems. Instead follow your organizations best-practices for managing TLS certificates.
+Using self-signed certificates is not recommended for production systems. Instead follow your organisations best-practices for managing TLS certificates.
 Please refer to [this post](https://charmhub.io/topics/security-with-x-509-certificates) for an overview of the TLS certificates Providers charms and some guidance on how to choose the right charm for your use case. 
 ```
 
@@ -64,7 +64,7 @@ juju add-secret external-kafka-pks kafka-0="$(cat kafka-0.key)" kafka-1="$(cat k
 ```
 
 ```{note}
-The Juju secret keys **MUST** follow the naming contstraint of `<kafka-application-name>-<unit-id>`
+The Juju secret keys **MUST** follow the naming constraint of `<kafka-application-name>-<unit-id>`
 ```
 
 Grant the Charmed Apache Kafka application access to the new Juju secret:

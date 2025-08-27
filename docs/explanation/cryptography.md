@@ -72,7 +72,7 @@ In Charmed Apache Kafka, authentication layers can be enabled for:
 
 Authentication between brokers and between brokers and KRaft controllers are based on the SCRAM-SHA-512 protocol. Usernames and passwords are exchanged via Juju secrets.
 
-The Apache Kafka username and password, used by brokers and controllers to authenticate one another, are stored in JAAS configuration files on the Charmed Apache Kafka units in plaintext format.
+The Apache Kafka username and password, used by brokers and controllers to authenticate one another, are stored in JAAS configuration files on the Charmed Apache Kafka units in plain text format.
 
 These files are readable and writable by `root` (as it is created by the charm) and readable by the Snap-internal `_daemon_` user running the Apache Kafka server snap commands.
 
@@ -84,5 +84,5 @@ Clients can authenticate to Apache Kafka using:
 2. client certificates or CA (mTLS)
 3. OAuth Authentication using [Hydra](https://discourse.charmhub.io/t/how-to-connect-to-kafka-using-hydra-as-oidc-provider/14610) or [Google](https://discourse.charmhub.io/t/how-to-connect-to-kafka-using-google-as-oidc-provider/14611)
 
-When using SCRAM, usernames and passwords are stored in the KRaft controller metadata logs, in plaintext in configuration files on the broker and controller units, and in Juju secrets. 
+When using SCRAM, usernames and passwords are stored in the KRaft controller metadata logs, in plain text in configuration files on the broker and controller units, and in Juju secrets. 
 When using mTLS, client certificates provided to the Apache Kafka cluster via Juju secrets by related charms are stored in password-protected JKS truststores.
