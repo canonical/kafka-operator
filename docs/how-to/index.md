@@ -27,7 +27,6 @@ We have a series of How-to guides for security-related topics:
 
 * [Enable client encryption](how-to-tls-encryption)
 * [Create mTLS credentials](how-to-create-mtls-client-credentials)
-* [Enable OAuth](how-to-enable-oauth-through-hydra)
 
 See also: our [security overview](explanation-security) page.
 
@@ -72,7 +71,6 @@ Upgrade<upgrade.md>
 Monitoring<monitoring.md>
 cluster/index.md
 Create mTLS client credentials<create-mtls-client-credentials.md>
-Enable OAuth<oauth.md>
 Manage message schemas<schemas-serialization.md>
 Use Kafka Connect<kafka-connect.md>
 ```
