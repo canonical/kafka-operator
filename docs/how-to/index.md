@@ -50,7 +50,7 @@ See the guides for more details:
 
 Advanced features of Charmed Apache Kafka include:
 
-* [Schemas and serialization](how-to-schemas-serialization)
+* [Schemas and serialisation](how-to-schemas-serialisation)
 * [Kafka Connect usage](how-to-use-kafka-connect-for-etl-workloads)
 
 <!-- Alternative landing page prototype
@@ -71,6 +71,6 @@ Upgrade<upgrade.md>
 Monitoring<monitoring.md>
 cluster/index.md
 Create mTLS client credentials<create-mtls-client-credentials.md>
-Manage message schemas<schemas-serialization.md>
+Manage message schemas<schemas-serialisation.md>
 Use Kafka Connect<kafka-connect.md>
 ```

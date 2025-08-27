@@ -71,7 +71,7 @@ To exit the screen with `juju status --watch 1s`, enter `Ctrl+c`.
 
 ## Access Apache Kafka brokers
 
-To watch the process, `juju status` can be used. Once all the units show as `active|idle`, the credentials are available to be retreived.
+To watch the process, `juju status` can be used. Once all the units show as `active|idle`, the credentials are available to be retrieved.
 
 All sensitive configuration data that Charmed Apache Kafka uses such as passwords and SSL certificates is stored in Juju secrets, you can learn more about [Juju secrets in the documentation](https://documentation.ubuntu.com/juju/3.6/reference/secret/).
 
