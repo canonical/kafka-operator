@@ -4,7 +4,7 @@
 Requirements:
 
 - Charmed Apache Kafka cluster up and running
-- [Encryption enabled](how-to-enable-encryption)
+- [Encryption enabled](how-to-tls-encryption)
 - [{spellexception}`Java Runtime Environment (JRE)`](https://ubuntu.com/tutorials/install-jre#1-overview) installed
 - [`charmed-kafka` snap](https://snapcraft.io/charmed-kafka) installed
 - [jq](https://snapcraft.io/jq) installed
@@ -43,7 +43,7 @@ juju integrate kafka:trusted-certificate mtls-app
 
 ## Retrieve broker's CA certificate
 
-The client needs to trust the broker's certificate. If you have followed the [Enable Encryption](how-to-enable-encryption) tutorial, you are using the `self-signed-certificates` charmed operator and can retrieve the root CA certificate executing the following command:
+The client needs to trust the broker's certificate. If you have followed the [Enable Encryption](how-to-tls-encryption) tutorial, you are using the `self-signed-certificates` charmed operator and can retrieve the root CA certificate executing the following command:
 
 ```bash
 juju run self-signed-certificates/0 get-ca-certifictae

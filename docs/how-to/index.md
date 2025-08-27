@@ -28,7 +28,6 @@ We have a series of How-to guides for security-related topics:
 * [Enable client encryption](how-to-tls-encryption)
 * [Create mTLS credentials](how-to-create-mtls-client-credentials)
 * [Enable OAuth](how-to-enable-oauth-through-hydra)
-* [Back up and restore](how-to-back-up-and-restore)
 
 See also: our [security overview](explanation-security) page.
 
@@ -52,7 +51,7 @@ See the guides for more details:
 
 Advanced features of Charmed Apache Kafka include:
 
-* [Message schemas management](how-to-schemas-serialization)
+* [Schemas and serialization](how-to-schemas-serialization)
 * [Kafka Connect usage](how-to-use-kafka-connect-for-etl-workloads)
 
 <!-- Alternative landing page prototype
@@ -67,14 +66,13 @@ Advanced features of Charmed Apache Kafka include:
 
 Deploy<deploy/index.md>
 Manage units<manage-units.md>
-Manage applications<manage-applications.md>
-Encryption<enable-encryption.md>
+Manage client connections<client-connections.md>
+Encryption<tls-encryption.md>
 Upgrade<upgrade.md>
 Monitoring<monitoring.md>
 cluster/index.md
 Create mTLS client credentials<create-mtls-client-credentials.md>
 Enable OAuth<oauth.md>
-Back up and restore<back-up-and-restore.md>
-Manage message schemas<schemas.md>
+Manage message schemas<schemas-serialization.md>
 Use Kafka Connect<kafka-connect.md>
 ```
