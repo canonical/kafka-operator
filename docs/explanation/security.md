@@ -96,10 +96,13 @@ For instructions, see the [How to integrate the Charmed Apache Kafka deployment 
 
 External user access to Apache Kafka is logged to the `kafka-authorizer.log` that is pushed to a [Loki endpoint](https://charmhub.io/loki-k8s) and exposed via [Grafana](https://charmhub.io/grafana), both components being part of the COS stack.
 
-Access denials are logged at the `INFO` level, whereas allowed accesses are logged at the `DEBUG` level. Depending on the auditing needs,
-customise the logging level either for all logs via the [`log-level`](https://charmhub.io/kafka/configurations?channel=4/stable#log-level) configuration option or
+Access denials are logged at the `INFO` level, whereas allowed accesses are logged at the `DEBUG` level.
+Depending on the auditing needs, customise the logging level either for all logs via the
+[log-level](https://charmhub.io/kafka/configurations) configuration option or
 only tune the logging level of the `authorizerAppender` in the `log4j.properties` file. See
 the [file system paths](reference-file-system-paths) for further information.
+
+<!-- #TODO Add the version to the log-level link, e.g., 4/stable -->
 
 ## Additional resources
 
