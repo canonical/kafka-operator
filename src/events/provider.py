@@ -125,6 +125,18 @@ class KafkaProvider(Object):
         # non-leader units need cluster_config_changed event to update their super.users
         self.charm.state.cluster.update({"super-users": self.charm.state.super_users})
 
+        client.update(
+            {
+                "endpoints": client.bootstrap_server,
+                "consumer-group-prefix": client.consumer_group_prefix,
+                "topic": client.topic,
+                "username": client.username,
+                "password": password,
+                "tls": client.tls,
+                "tls-ca": self.charm.state.unit_broker.client_certs.ca,
+            }
+        )
+
     def on_mtls_cert_updated(self, event: KafkaClientMtlsCertUpdatedEvent) -> None:
         """Handler for `kafka-client-mtls-cert-updated` event."""
         if not event.mtls_cert:
