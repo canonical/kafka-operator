@@ -1,0 +1,80 @@
+# The redirects.txt file stores all the redirects for the published docs
+# If you change a filename, move or delete a file, you need a redirect here.
+# - Comment lines start with a hash (#) and are ignored
+# - Each redirect should appear on its own line
+
+# We are using the dirhtml builder, so files are treated as directories:
+# - A file is built like `filename/index.html`, not `filename.html`
+# - *Do* include a trailing slash at the end of the path
+# - *Do not* include a file extension or you'll get errors
+# - Paths don't need a slash in front of them
+
+# Example:
+# redirect/from/file/ redirect/to/file/
+
+# Tutorial
+
+t-overview/ tutorial/
+t-setup-environment/ tutorial/environment/
+t-deploy/ tutorial/deploy/
+t-relate-kafka/ tutorial/integrate-with-client-applications/
+t-manage-passwords/ tutorial/manage-passwords/
+t-enable-encryption/ tutorial/enable-encryption/
+t-kafka-connect/ tutorial/use-kafka-connect/
+t-reassign-partitions/ tutorial/rebalance-partitions/
+t-cleanup-environment/ tutorial/cleanup/
+
+# How-to guides
+
+h-deploy/ how-to/deploy/
+h-deploy-anywhere/ how-to/deploy/
+h-deploy-aws/ how-to/deploy/deploy-aws/
+h-deploy-azure/ how-to/deploy/deploy-azure/
+h-kraft-mode/ how-to/deploy/kraft-mode/
+
+h-manage-units/ how-to/manage-units/
+h-manage-app/ how-to/manage-applications/
+h-enable-encryption/ how-to/enable-encryption/
+h-upgrade/ how-to/upgrade/
+
+h-monitoring/ how-to/monitoring/
+h-enable-monitoring/ how-to/monitoring/
+h-integrate-alerts-dashboards/ how-to/monitoring/
+
+h-cluster/ how-to/cluster/
+h-cluster-migration/ how-to/cluster/migrate/
+h-cluster-replication/ how-to/cluster/replication/
+
+h-create-mtls-client-credentials/ how-to/create-mtls-client-credentials/
+h-enable-oauth/ how-to/oauth/
+h-backup/ how-to/back-up-and-restore/
+h-manage-message-schemas/ how-to/schemas/
+h-kafka-connect/ how-to/kafka-connect/
+
+# Reference
+
+
+r-releases/ reference/release-notes/
+r-rev156_126/ reference/release-notes/revision-156-126/
+r-rev156_136/ reference/release-notes/revision-156-136/
+r-rev195_149/ reference/release-notes/revision-195-149/
+r-rev205/ reference/release-notes/revision-205/
+
+# r-actions/ https://charmhub.io/kafka/actions?channel=3/edge
+# r-configurations/ https://charmhub.io/kafka/configure?channel=3/edge
+# r-libraries/ https://charmhub.io/kafka/libraries/kafka_libs?channel=3/edge
+r-file-system-paths/ reference/file-system-paths/
+r-snap-entrypoints/ reference/snap-entrypoints/
+r-listeners/ reference/listeners/
+r-statuses/ reference/statuses/
+r-requirements/ reference/requirements/
+r-performance-tuning/ reference/performance-tuning/
+r-contacts/ reference/contact/
+
+# Explanation
+
+e-security/ explanation/security/
+e-cryptography/ explanation/cryptography/
+e-cluster-configuration/ explanation/cluster-configuration/
+e-trademarks/ explanation/trademarks/
+e-mirrormaker/ explanation/mirrormaker2-0/

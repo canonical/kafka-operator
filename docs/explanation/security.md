@@ -22,7 +22,7 @@ Charmed Apache Kafka can be deployed on top of several clouds and virtualisation
 
 ### Juju
 
-Juju is the component responsible for orchestrating the entire lifecycle, from deployment to Day 2 operations. For more information on Juju security hardening, see the [Juju security](https://documentation.ubuntu.com/juju/3.6/explanation/juju-security/) page and the [How to harden your deployment](https://documentation.ubuntu.com/juju/3.6/howto/manage-your-deployment/#harden-your-deployment) guide.
+Juju is the component responsible for orchestrating the entire lifecycle, from deployment to Day 2 operations. For more information on Juju security hardening, see the [Juju security](https://documentation.ubuntu.com/juju/3.6/explanation/juju-security/) page and the [How to harden your deployment](https://documentation.ubuntu.com/juju/latest/howto/manage-your-juju-deployment/harden-your-juju-deployment/) guide.
 
 #### Cloud credentials
 
