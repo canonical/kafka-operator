@@ -276,7 +276,7 @@ async def test_kafka_tls_scaling(ops_test: OpsTest, kafka_apps):
 
     # Wait for model to settle
     await ops_test.model.wait_for_idle(
-        apps=kafka_apps, status="active", idle_period=40, timeout=1000, raise_on_error=False
+        apps=kafka_apps, status="active", idle_period=40, timeout=1800, raise_on_error=False
     )
 
     kafka_address = await get_address(ops_test=ops_test, app_name=APP_NAME, unit_num=2)

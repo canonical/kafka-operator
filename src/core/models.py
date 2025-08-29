@@ -6,6 +6,7 @@
 
 import json
 import logging
+import socket
 from dataclasses import dataclass
 from functools import cached_property
 from typing import MutableMapping, TypeAlias, TypedDict
@@ -21,7 +22,7 @@ from charms.data_platform_libs.v0.data_interfaces import (
     RequirerData,
 )
 from lightkube.resources.core_v1 import Node, Pod
-from ops.model import Application, Relation, Unit
+from ops.model import Application, ModelError, Relation, Unit
 from typing_extensions import override
 
 from literals import (
@@ -32,6 +33,7 @@ from literals import (
     KRAFT_NODE_ID_OFFSET,
     SECRETS_APP,
     SECURITY_PROTOCOL_PORTS,
+    TLS_RELATION,
     AuthMap,
     Substrates,
     TLSScope,
@@ -96,6 +98,7 @@ class RelationState:
     ):
         self.relation = relation
         self.data_interface = data_interface
+        self.model = data_interface._model
         self.component = (
             component  # FIXME: remove, and use _fetch_my_relation_data defaults wheren needed
         )
@@ -129,6 +132,40 @@ class RelationState:
             self.data_interface._add_or_update_relation_secrets(
                 self.relation, SECRET_LABEL_MAP[key], {key}, {key: update_content[key]}
             )
+
+    @property
+    def network_interface(self) -> str:
+        """Returns the network interface name of the relation based on network bindings."""
+        if not self.relation:
+            return ""
+
+        try:
+            if binding := self.model.get_binding(self.relation):
+                if interfaces := binding.network.interfaces:
+                    return interfaces[0].name
+        except ModelError as e:
+            logger.error(f"Can't retrieve network binding data: {e}")
+            pass
+
+        return ""
+
+    @property
+    def ip(self) -> str:
+        """Returns the IP of the unit on the relation based on network bindings."""
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.settimeout(0)
+
+        # use the network interface we're bound to.
+        if self.network_interface:
+            s.setsockopt(
+                socket.SOL_SOCKET, socket.SO_BINDTODEVICE, self.network_interface.encode("utf-8")
+            )
+
+        s.connect(("10.10.10.10", 1))
+        ip = s.getsockname()[0]
+        s.close()
+
+        return ip
 
 
 class PeerClusterOrchestratorData(ProviderData, RequirerData):
@@ -199,7 +236,7 @@ class PeerCluster(RelationState):
             f"{PROV_SECRET_PREFIX}{group}"
         ):
             if secret := self.data_interface._model.get_secret(id=secrets_uri):
-                return secret.get_content().get(field, "")
+                return secret.get_content(refresh=True).get(field, "")
 
         return ""
 
@@ -505,16 +542,12 @@ class KafkaCluster(RelationState):
         Returns:
             True if TLS encryption should be active. Otherwise False
         """
-        return self.relation_data.get("tls", "disabled") == "enabled"
+        relation = self.data_interface._model.get_relation(TLS_RELATION)
 
-    @property
-    def mtls_enabled(self) -> bool:
-        """Flag to check if the cluster should run with mTLS.
+        if not relation or not relation.active:
+            return False
 
-        Returns:
-            True if TLS encryption should be active. Otherwise False
-        """
-        return self.relation_data.get("mtls", "disabled") == "enabled"
+        return True
 
     @property
     def balancer_username(self) -> str:
@@ -721,6 +754,33 @@ class KafkaBroker(RelationState):
             addr = f"{self.unit.name.split('/')[0]}-{self.unit_id}.{self.unit.name.split('/')[0]}-endpoints"
 
         return addr
+
+    @property
+    def peer_ip_address(self) -> str:
+        """The IP address of the unit on the peer relation."""
+        return self.relation_data.get("ip", "")
+
+    @peer_ip_address.setter
+    def peer_ip_address(self, value: str) -> None:
+        return self.update({"ip": value})
+
+    def update_peer_ip_address(self) -> None:
+        """Update unit's peer IP address."""
+        self.peer_ip_address = self.ip or self.internal_address
+
+    def relation_ip_address(self, relation: Relation | None) -> str:
+        """Return the IP address for a given relation."""
+        if not relation:
+            return ""
+
+        return self.relation_data.get(f"ip-{relation.id}", "")
+
+    def update_relation_ip_address(self, relation: Relation, ip_address: str) -> None:
+        """Update the IP address for a given relation."""
+        if not relation:
+            return
+
+        self.relation_data.update({f"ip-{relation.id}": ip_address})
 
     # --- TLS ---
     @property

@@ -395,7 +395,7 @@ class ConfigManager(CommonConfigManager):
         Returns:
             List of properties to be set
         """
-        if not self.state.cluster.mtls_enabled:
+        if not self.state.has_mtls_clients:
             return []
 
         return ["ssl.client.auth=required"]

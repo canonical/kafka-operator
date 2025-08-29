@@ -45,6 +45,16 @@ def kraft_data() -> dict[str, str]:
 
 
 @pytest.fixture(scope="module")
+def unit_peer_tls_data() -> dict[str, str]:
+    tls_data = generate_tls_artifacts()
+    return {
+        "peer-ca-cert": tls_data.ca,
+        "peer-certificate": tls_data.certificate,
+        "peer-private-key": tls_data.private_key,
+    }
+
+
+@pytest.fixture(scope="module")
 def peer_cluster_rel() -> Relation:
     return Relation(PEER_CLUSTER_RELATION, "peer_cluster")
 
@@ -66,6 +76,12 @@ def patched_etc_environment():
 
 
 @pytest.fixture(autouse=True)
+def patched_relation_ip():
+    with patch("core.models.RelationState.ip", new_callable=PropertyMock, return_value="10.5.5.5"):
+        yield
+
+
+@pytest.fixture(autouse=True)
 def patched_workload(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("time.sleep", lambda _: None)
     monkeypatch.setattr("charmlibs.pathops.LocalPath.exists", lambda _: True)
@@ -76,6 +92,7 @@ def patched_workload(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("workload.Workload.last_restart", time.time() - 100.0)
     monkeypatch.setattr("workload.Workload.modify_time", lambda _, file: time.time() - 1000.0)
     monkeypatch.setattr("workload.Workload.ping", lambda _, nodes: True)
+    monkeypatch.setattr("workload.Workload.ips", ["10.10.10.10"])
 
 
 @pytest.fixture(autouse=True)
