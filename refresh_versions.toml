@@ -8,4 +8,4 @@ name = "charmed-kafka"
 
 [snap.revisions]
 # amd64
-x86_64 = "63"
+x86_64 = "64"
