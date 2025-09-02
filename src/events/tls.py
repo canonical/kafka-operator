@@ -347,3 +347,68 @@ class TLSHandler(Object):
             return False
 
         return True
+
+    def _handle_config_changed_rotation(self, event: EventBase) -> tuple[bool, bool]:
+        """Handle TLS certificate rotation logic during config_changed events.
+
+        Returns:
+            Tuple of (should_continue, peer_cluster_tls_rotate)
+        """
+        # Update peer-cluster trusted certs and check for TLS rotation on the other side.
+        self.charm.broker.update_peer_truststore_state()
+        old_peer_certs = self.charm.broker.tls_manager.peer_trusted_certificates.values()
+        self.charm.broker.tls_manager.update_peer_cluster_trust()
+        new_peer_certs = self.charm.broker.tls_manager.peer_trusted_certificates.values()
+        peer_cluster_tls_rotate = set(new_peer_certs) != set(old_peer_certs)
+
+        if (
+            self.charm.state.tls_rotate
+            and not self.charm.broker.tls_manager.peer_cluster_app_trusts_new_bundle()
+        ):
+            # Basically we should defer and wait for the other side
+            # to complete its rolling restart and then begin our rolling restart.
+            # However, if both sides are rotating, we should prevent deadlock by
+            # forcing one side (BROKER here) to restart anyway.
+            should_defer = True
+            if self.charm.state.both_sides_rotating and self.charm.state.runs_broker:
+                logger.debug(
+                    "Both sides are rotating TLS certificates, initiating rolling restart..."
+                )
+                should_defer = False
+
+            if should_defer:
+                event.defer()
+                return False, peer_cluster_tls_rotate
+
+        # Check for SANs change and revoke the cert if SANs change is detected.
+        # Emitting the refresh_tls_certificates will lead to rotation and restart.
+        if self.charm.broker.tls_manager.sans_changed(TLSScope.CLIENT):
+            self.charm.state.unit_broker.client_certs.certificate = ""
+            self.refresh_tls_certificates.emit()
+
+        if self.charm.broker.tls_manager.sans_changed(TLSScope.PEER):
+            self.charm.state.unit_broker.peer_certs.certificate = ""
+            if self.charm.state.use_internal_tls:
+                self.charm.broker.setup_internal_tls()
+            else:
+                self.refresh_tls_certificates.emit()
+
+        return True, peer_cluster_tls_rotate
+
+    def _handle_config_changed_tls_updates(self) -> None:
+        """Handle TLS state updates during config_changed events."""
+        # Update truststore if needed.
+        self.update_truststore()
+
+        if self.charm.state.tls_rotate:
+            # If TLS rotation is needed, inform the balancer.
+            if self.charm.state.runs_balancer:
+                self.charm.state.balancer_tls_rotate = True
+
+            # Reset TLS rotation state
+            self.charm.state.tls_rotate = False
+
+        # Turn on/off peer-cluster TLS rotate if all units are done, only run on leader unit
+        self.charm.state.peer_cluster_tls_rotate = any(
+            unit.peer_certs.rotate for unit in self.charm.state.brokers
+        )
