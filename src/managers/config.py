@@ -763,6 +763,7 @@ class ConfigManager(CommonConfigManager):
                 [
                     f"super.users={self.state.super_users}",
                     f"log.dirs={self.state.log_dirs}",
+                    f"metadata.log.dir={self.state.metadata_log_dir}",
                     f"listeners={','.join(controller_listeners)}",
                     f"listener.security.protocol.map={','.join(controller_protocol_map)}",
                 ]
@@ -781,6 +782,7 @@ class ConfigManager(CommonConfigManager):
             [
                 f"super.users={self.state.super_users}",
                 f"log.dirs={self.state.log_dirs}",
+                f"metadata.log.dir={self.state.metadata_log_dir}",
                 f"listener.security.protocol.map={','.join(protocol_map)}",
                 f"listeners={','.join(listeners_repr)}",
                 f"advertised.listeners={','.join(advertised_listeners)}",

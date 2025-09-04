@@ -84,11 +84,7 @@ class ControllerManager:
         return uuid
 
     def get_metadata_directory_id(self, log_dirs: str) -> str:
-        """Read directory.id from meta.properties file in the logs dir.
-
-        If metadata.log.dir is not set, it will be found in the first log directory declared in
-        log.dirs
-        """
+        """Read directory.id from meta.properties file in the metadata logs dir."""
         raw = self.workload.read(os.path.join(log_dirs, "meta.properties"))
         for line in raw:
             if line.startswith("directory.id"):
@@ -124,7 +120,7 @@ class ControllerManager:
             if "DuplicateVoterException" not in error_details:
                 raise e
 
-        metadata_directory_id = self.get_metadata_directory_id(self.state.log_dirs)
+        metadata_directory_id = self.get_metadata_directory_id(self.state.metadata_log_dir)
         return metadata_directory_id
 
     @retry(
