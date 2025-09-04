@@ -39,6 +39,12 @@ variable "units" {
   default     = 3
 }
 
+variable "storage" {
+  description = "Map of storage used by the application"
+  type        = map(string)
+  default     = {}
+}
+
 # Additional inputs
 variable "base" {
   description = "Application base"

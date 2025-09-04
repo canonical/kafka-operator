@@ -16,6 +16,8 @@ resource "juju_application" "kafka_single" {
   config      = merge(var.config, {
     roles = "broker,controller"
   })
+  storage_directives = var.storage
+
 }
 
 # Split mode: Separate controller
@@ -56,6 +58,8 @@ resource "juju_application" "kafka_broker" {
   config      = merge(var.config, {
     roles = "broker"
   })
+  storage_directives = var.storage
+
 }
 
 # Split mode: Integration between broker and controller
