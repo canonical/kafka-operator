@@ -469,7 +469,9 @@ class BrokerOperator(Object):
             return
 
         for client in self.charm.state.clients:
-            if not client.password:
+            self.provider.handle_topic_requested(client)
+
+            if not all([client.password, client.topic]):
                 logger.debug(
                     f"Skipping update of {client.app.name}, user has not yet been added..."
                 )

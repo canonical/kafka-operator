@@ -93,7 +93,7 @@ async def test_deploy_multiple_charms_same_topic_relate_active(
 
     async with ops_test.fast_forward(fast_interval="60s"):
         await ops_test.model.wait_for_idle(
-            apps=[*kafka_apps, DUMMY_NAME_1], idle_period=60, status="active"
+            apps=[*kafka_apps, DUMMY_NAME_1, DUMMY_NAME_2], idle_period=60, status="active"
         )
 
     usernames.update(get_client_usernames(ops_test))

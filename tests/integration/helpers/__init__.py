@@ -3,6 +3,7 @@
 
 import logging
 import tempfile
+import time
 from enum import Enum
 from pathlib import Path
 from subprocess import PIPE, CalledProcessError, check_output
@@ -75,3 +76,5 @@ def sign_manual_certs(model: str | None, manual_app: str = "manual-tls-certifica
             except CalledProcessError as e:
                 logger.error(f"{e.stdout=}, {e.stderr=}, {e.output=}")
                 raise e
+
+        time.sleep(5)
