@@ -10,3 +10,21 @@ __pycache__/
 .python-version
 last_written_value
 *.srl
+
+# Terraform state files
+*.tfstate
+*.tfstate.*
+
+# Terraform cache directory
+.terraform/
+
+# Terraform CLI configuration files
+.terraformrc
+terraform.rc
+
+# Variable definition files (if sensitive data is present)
+*.tfvars
+*.tfvars.json
+
+# Crash log files
+crash.log
