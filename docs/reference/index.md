@@ -14,7 +14,7 @@ Charmhub generated content:
 Charm-specific reference materials:
 
 * {ref}`reference-file-system-paths`
-* {ref}`reference-snap-entrypoints`
+* {ref}`reference-snap-commands`
 * {ref}`reference-statuses`
 * {ref}`reference-requirements`
 
@@ -34,7 +34,7 @@ Actions<https://charmhub.io/kafka/actions?channel=4/edge>
 Configurations<https://charmhub.io/kafka/configure?channel=4/edge>
 Libraries<https://charmhub.io/kafka/libraries/kafka_libs?channel=4/edge>
 file-system-paths.md
-snap-entrypoints.md
+snap-commands.md
 listeners.md
 Statuses<statuses.md>
 requirements.md
