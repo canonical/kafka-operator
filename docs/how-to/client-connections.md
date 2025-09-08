@@ -3,7 +3,7 @@
 
 Relations to new applications are supported via the "[{spellexception}`kafka_client`](https://github.com/canonical/charm-relation-interfaces/blob/main/interfaces/kafka_client/v0/README.md)" interface.
 
-## Via the `kafka_client` interface
+## Via the `kafka_client` charm relation interface
 
 If the charm supports the `kafka_client` relation interface, just create an integration between the two charms:
 

@@ -45,7 +45,7 @@ If there are no suitable controllers, create a new one:
 juju bootstrap <cloud> <controller>
 ```
 
-where `<cloud>` – the cloud to deploy controller to, e.g. `localhost` if using an LXD cloud. For more information on how to set up a new cloud, see the [How to manage clouds](https://documentation.ubuntu.com/juju/latest/howto/manage-clouds/index.html) guide in Juju documentation.
+where `<cloud>` -- the cloud to deploy controller to, e.g. `localhost` if using an LXD cloud. For more information on how to set up a new cloud, see the [How to manage clouds](https://documentation.ubuntu.com/juju/latest/howto/manage-clouds/index.html) guide in Juju documentation.
 
 For more Juju controller setup guidance, see the [How to manage controllers](https://documentation.ubuntu.com/juju/3.6/howto/manage-controllers/) guide in Juju documentation.
 
@@ -77,7 +77,7 @@ Charmed Apache Kafka is deployed as follows:
 juju deploy kafka -n <kafka-units> --config roles=broker,controller
 ```
 
-where `<kafka-units>` – the number of units to deploy for Charmed Apache Kafka. In order to maintain high-availability of topic partitions, at least `3` units are recommended.
+where `<kafka-units>` -- the number of units to deploy for Charmed Apache Kafka. In order to maintain high-availability of topic partitions, at least `3` units are recommended.
 
 Check the status of the deployment:
 
@@ -90,7 +90,7 @@ The deployment should be complete once all the units show `active` or `idle` sta
 ## (Optional) Create an external admin user
 
 Charmed Apache Kafka aims to follow the _secure by default_ paradigm. As a consequence, after being deployed the Apache Kafka cluster
-won't expose any external listeners - the cluster will be unreachable. Ports are only opened when client applications are integrated.
+won't expose any external listeners -- the cluster will be unreachable. Ports are only opened when client applications are integrated.
 
 ```{note}
 For more information about the available listeners and protocols please refer to [this table](reference-broker-listeners). 

@@ -5,8 +5,6 @@ This How-To guide covers executing a cluster migration from an existing Kafka cl
 
 The MirrorMaker tasks run on a distributed Charmed Apache Kafka Connect cluster of workers. These tasks act as consumer clients reading data from an existing cluster (source), and as producer clients writing data to the Charmed Apache Kafka cluster (target). Data and consumer offsets for specified topics will be synced **one-way** in parallel (one process on each unit) until both clusters are in-sync, with all data replicated across both in real-time.
 
-<!-- TODO: add Kafka Connect docs link here? -->
-
 ```{note}
 For a brief explanation of how MirrorMaker works, see the [MirrorMaker explanation](explanation-mirrormaker2-0) page.
 ```
@@ -18,8 +16,8 @@ To migrate a cluster we need:
 - An "old" existing Kafka cluster to migrate from.
   - The cluster needs to be reachable from/to the new Charmed Apache Kafka Connect cluster. 
 - A bootstrapped Juju VM cloud
-- A Charmed Apache Kafka Connect cluster to run the MirrorMaker tasks
-    - <!-- TODO: add Kafka Connect docs link here? -->
+- A Charmed Apache Kafka Connect cluster to run the MirrorMaker tasks. For guidance on how to deploy a new Charmed Apache Kafka Connect cluster, see:
+    - The [How-to use Kafka Connect for ETL workloads guide](how-to-use-kafka-connect-for-etl-workloads)
 - A Charmed Apache Kafka to migrate data to. For guidance on how to deploy a new Charmed Apache Kafka, see:
   - The [Charmed Apache Kafka Tutorial](tutorial-introduction)
   - The [How to deploy guide](how-to-deploy-deploy-anywhere) for Charmed Apache Kafka
