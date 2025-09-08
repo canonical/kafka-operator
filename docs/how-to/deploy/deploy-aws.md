@@ -130,7 +130,7 @@ And integrate it with the Kafka application:
 juju integrate kafka data-integrator
 ```
 
-For more information on Data Integrator and how to use it, please refer to the [how-to manage applications](how-to-client-connections) guide.
+For more information on Data Integrator and how to use it, please refer to the [how-to manage client connections](how-to-client-connections) guide.
 
 ## Clean up
 

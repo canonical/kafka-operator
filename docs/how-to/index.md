@@ -18,14 +18,14 @@ Deployment follows a broadly similar pattern on all platforms, but due to differ
 For guidance on managing your deployed Charmed Apache Kafka, see:
 
 * [How to manage units](how-to-manage-units)
-* [How to manage related applications](how-to-client-connections)
+* [How to manage client connections](how-to-client-connections)
 * [How to upgrade](how-to-upgrade)
 
 ## Security
 
 We have a series of How-to guides for security-related topics:
 
-* [Enable client encryption](how-to-tls-encryption)
+* [TLS encryption](how-to-tls-encryption)
 * [Create mTLS credentials](how-to-create-mtls-client-credentials)
 
 See also: our [security overview](explanation-security) page.

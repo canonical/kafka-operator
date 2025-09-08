@@ -17,7 +17,7 @@ Every artefact included in the snap is verified against its SHA-256 or SHA-512 c
 Charmed Apache Kafka sources are stored in:
 
 * GitHub repositories for snaps, rocks and charms
-* Launchpad repositories for the Apache Kafka upstream fork for building the source
+* Launchpad repositories for the Apache Kafka upstream fork for building from the source
 
 ### Launchpad
 
@@ -51,7 +51,7 @@ By default, a Charmed Apache Kafka application will always use auto-generated se
 To support encrypted client connections, a Charmed Apache Kafka application needs to be integrated with TLS Certificate Provider charm, e.g. 
 `self-signed-certificates` operator. Certificate Singing Requests (CSRs) are generated for every unit using the `tls_certificates_interface` library that uses the `cryptography` 
 Python library to create X.509 compatible certificates. The CSR is signed by the TLS Certificate Provider, returned to the units, and 
-stored in a password-protected P12 keystore file. The password of the keystore is stored in Juju secrets.
+stored in a password-protected PKCS 12 keystore file. The password of the keystore is stored in Juju secrets.
 The integration also provides the CA certificate, which is loaded into a password-protected JKS truststore file.
 
 When encryption is enabled, hostname verification is turned on for client connections, including both inter-broker and broker-controller communications. The cipher suite can 
@@ -64,17 +64,17 @@ Encryption-at-rest is currently not supported, although it can be provided by th
 
 In Charmed Apache Kafka, authentication layers can be enabled for:
 
-1. Apache Kafka inter-broker communications
-2. Apache Kafka broker-controller communications
-3. Apache Kafka clients
+1. Inter-broker communications
+2. Broker-controller communications
+3. Clients connections
 
-### Apache Kafka inter-broker and broker-controller authentication
+### Inter-broker and broker-controller authentication
 
 Authentication between brokers and between brokers and KRaft controllers are based on the SCRAM-SHA-512 protocol. Usernames and passwords are exchanged via Juju secrets.
 
 The Apache Kafka username and password, used by brokers and controllers to authenticate one another, are stored in JAAS configuration files on the Charmed Apache Kafka units in plain text format.
 
-These files are readable and writable by `root` (as it is created by the charm) and readable by the Snap-internal `_daemon_` user running the Apache Kafka server snap commands.
+These files are readable and writable by `root` (as it is created by the charm) and readable by the snap-internal `_daemon_` user running the Apache Kafka server snap commands.
 
 ### Client authentication to Apache Kafka
 
