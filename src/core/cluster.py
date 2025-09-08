@@ -425,7 +425,9 @@ class ClusterState(Object):
         Returns:
             String of log.dirs property value to be set
         """
-        return ",".join([os.fspath(storage.location) for storage in self.model.storages["data"]])
+        return ",".join(
+            [os.fspath(storage.location / "log") for storage in self.model.storages["data"]]
+        )
 
     @property
     def metadata_log_dir(self) -> str:
@@ -434,7 +436,7 @@ class ClusterState(Object):
         Returns:
             String of metadata.log.dir property value to be set
         """
-        return f"{self.log_dirs.split(',')[0]}/metadata"
+        return f"{self.log_dirs.split(',')[0].rstrip('/log')}/metadata"
 
     @property
     def planned_units(self) -> int:
