@@ -25,7 +25,7 @@ juju ssh kafka/0 sudo -i 'ls $LOGS'
 - **`$CONF/server.properties`** - the full configuration file for the broker and KRaft controller services
 - **`$CONF/client.properties`** - a minimal configuration file for making client connections to brokers with SASL authentication and SSL encryption
     - For internal administrator usage only
-    - `--command-config $CONF/client.properties` is often used as an argument when running Kafka CLI commands either directly, or via the Snap commands
+    - `--command-config $CONF/client.properties` is often used as an argument when running Kafka CLI commands either directly, or via the snap commands
 - **`$CONF/kraft-client.properties`** - the minimal configuration file for making client connections to KRaft controllers with SASL authentication and SSL encryption
     - For internal administrator usage only
 - **`$CONF/peer-keystore.p12` + `$CONF/peer-truststore.jks`** - the Java keystore and truststore used for inter-broker and broker-controller SSL encryption

@@ -41,7 +41,7 @@ You can list all LXD containers by entering the command `lxc list` into the comm
 
 ### Install and prepare Juju
 
-[Juju](https://juju.is/) is an Operator Lifecycle Manager (OLM) for clouds, bare metal, LXD or Kubernetes. We will be using it to deploy and manage Charmed Apache Kafka. As may be true for LXD, Juju is installed from a Snap package:
+[Juju](https://juju.is/) is an Operator Lifecycle Manager (OLM) for clouds, bare metal, LXD or Kubernetes. We will be using it to deploy and manage Charmed Apache Kafka. As may be true for LXD, Juju is installed from a snap package:
 
 ```shell
 sudo snap install juju

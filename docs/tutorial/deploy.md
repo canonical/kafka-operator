@@ -138,7 +138,7 @@ where the printed result will be the output from the `ls \$BIN/bin` command bein
 Charmed Apache Kafka exports (among others) four different environment variables for conveniently referencing various file-system directories relevant to the workload, `$BIN`, `$LOGS`, `$CONF` and `$DATA` - more information on these directories can be found in [File system paths](reference-file-system-paths).
 ```
 
-When the unit has started, the Charmed Apache Kafka Operator installs the [`charmed-kafka`](https://snapcraft.io/charmed-kafka) Snap in the unit that provides a number of Snap commands (that corresponds to the shell-script `bin/kafka-*.sh` commands in the Apache Kafka distribution) for performing various administrative and operational tasks.
+When the unit has started, the Charmed Apache Kafka Operator installs the [`charmed-kafka`](https://snapcraft.io/charmed-kafka) snap in the unit that provides a number of snap commands (that corresponds to the shell-script `bin/kafka-*.sh` commands in the Apache Kafka distribution) for performing various administrative and operational tasks.
 
 Within the machine, Charmed Apache Kafka also creates a `$CONF/client.properties` file that already provides the relevant settings to connect to the cluster using the CLI.
 
@@ -176,7 +176,7 @@ juju ssh kafka/0 sudo -i \
         --command-config \$CONF/client.properties'
 ```
 
-For a full list of the available Charmed Kafka command-line tools, please refer to [Snap commands](reference-snap-commands).
+For a full list of the available Charmed Kafka command-line tools, please refer to [snap commands](reference-snap-commands).
 
 ## What's next?
 

@@ -1,11 +1,11 @@
 (reference-snap-commands)=
 # Snap commands
 
-Charmed Apache Kafka uses the `charmed-kafka` Snap to install and operate the underlying Apache Kafka workload. These charms also wrap the upstream Apache Kafka Bash scripts bundled by upstream, as well as additional extra components selected for the charm to operate and manage, for example [LinkedIn's Cruise Control for Apache Kafka](https://github.com/linkedin/cruise-control).
+Charmed Apache Kafka uses the `charmed-kafka` snap to install and operate the underlying Apache Kafka workload. These charms also wrap the upstream Apache Kafka Bash scripts bundled by upstream, as well as additional extra components selected for the charm to operate and manage, for example [LinkedIn's Cruise Control for Apache Kafka](https://github.com/linkedin/cruise-control).
 
 Snap commands and apps are used to ensure that the underlying executables are always ran with the correct environment settings (configuration files, logging files, etc). 
 
-Below is a reference table for the mapping between Snap commands and apps with their associated executable :
+Below is a reference table for the mapping between snap commands and apps with their associated executable :
 
 |                  Snap Command                   |                         Executable                             |
 |:-----------------------------------------------:|:--------------------------------------------------------------:|
