@@ -45,11 +45,11 @@ juju integrate kafka:peer-certificates self-signed-certificates
 
 The old self-signed certificates will be removed, and new ones will be issued using the certificate authority in the `tls-certificates` provider application.
 
-## (Optional) Use external private-keys
+## (Optional) Use external private keys
 
-By default, Charmed Apache Kafka applications will generate their own internal private-key for identifying brokers for client connections. While this is secure for most production deployments, you may wish to specify your own private-key to use. [Juju secrets](https://documentation.ubuntu.com/juju/3.6/reference/secret/) can be provided by users to specify external private-keys for certificate signing requests (CSRs) and generated certificates.
+By default, Charmed Apache Kafka applications will generate their own internal private key for identifying brokers for client connections. While this is secure for most production deployments, you may wish to specify your own private key to use. [Juju secrets](https://documentation.ubuntu.com/juju/3.6/reference/secret/) can be provided by users to specify external private keys for certificate signing requests (CSRs) and generated certificates.
 
-First, generate (or otherwise obtain) private-keys for every Charmed Apache Kafka unit. For example, if you have 3 `kafka` units, we can generate external private-keys for each with:
+First, generate (or otherwise obtain) a private keys for each Charmed Apache Kafka unit. For example, if you have three `kafka` units, generate external private keys for each one:
 
 ```bash
 openssl genrsa -out kafka-0.key 4096
@@ -57,14 +57,14 @@ openssl genrsa -out kafka-1.key 4096
 openssl genrsa -out kafka-2.key 4096
 ```
 
-Then, add these external private-keys to a new Juju secret:
+Then, add these external private keys to a new Juju secret:
 
 ```bash
 juju add-secret external-kafka-pks kafka-0="$(cat kafka-0.key)" kafka-1="$(cat kafka-1.key)" kafka-2="$(cat kafka-2.key)"
 ```
 
 ```{note}
-The Juju secret keys **MUST** follow the naming constraint of `<kafka-application-name>-<unit-id>`
+The Juju secret keys **MUST** follow the naming constraint of `<kafka-application-name>-<unit-id>`.
 ```
 
 Grant the Charmed Apache Kafka application access to the new Juju secret:
@@ -73,12 +73,17 @@ Grant the Charmed Apache Kafka application access to the new Juju secret:
 juju grant-secret external-kafka-pks
 ```
 
-Take note of the secret-id in the response. An example output may look like:
+Take note of the `secret-id` in the response.
 
-```console
-~ ❯ juju grant-secret external-kafka-pks
+<details> <summary> Output example</summary>
+
+An example output may look like:
+
+```text
 secret:d2k6hv8co3bs4tge0c8g
 ```
+
+</details>
 
 Finally, update the Charmed Apache Kafka application configuration to notify it of the new secret:
 
@@ -86,7 +91,7 @@ Finally, update the Charmed Apache Kafka application configuration to notify it 
 juju config kafka tls-private-key=secret:d2k6hv8co3bs4tge0c8g
 ```
 
-Charmed Apache Kafka will read the new secret, and re-request new TLS certificates using the externally provided private-key created earlier.
+Charmed Apache Kafka will read the new secret, and re-request new TLS certificates using the externally provided private key created earlier.
 
 ## Disable TLS encryption for client communication
 
