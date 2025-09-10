@@ -11,7 +11,7 @@ The minimum supported Juju version is [Juju 3.5+](https://github.com/juju/juju/r
 
 The below requirements are a good baseline upon which to size your Charmed Apache Kafka applications, but will not be appropriate for every use-case, based on device, data, network and cost constraints.
 
-Note that while these requirements are recommended for a broad-range of production use-cases, every component may run with much lower requirements for use in staging or test environments.
+Note that while these requirements are recommended for a broad-range of production use-cases, each component can run with much lower requirements for use in staging or test environments.
 
 |     Component    | Nodes |  External Storage |   Memory  |                                CPU                               |
 |:----------------:|:-----:|:-----------------:|:---------:|:----------------------------------------------------------------:|
@@ -21,12 +21,12 @@ Note that while these requirements are recommended for a broad-range of producti
 |     Karapace     |   2   |         -         |  6 GB RAM | Typically not CPU-bound. More cores is better than faster cores. |
 
 ```{note}
-For production deployments, ensure that all nodes are deployed on different physical machines and that each component node is in a separate availability-zone (AZ) for redundancy
+For production deployments, ensure that all nodes are deployed on separate physical machines and that each component node is in a different availability-zone (AZ) for redundancy.
 ```
 
 ## Supported architectures
 
-The charm uses the `charmed-kafka` [snap](https://snapcraft.io/charmed-kafka), which is currently available for `amd64` only. The architecture `arm64` support is planned.
+The charm uses the `charmed-kafka` [snap](https://snapcraft.io/charmed-kafka), which is currently available for `amd64` only. The `arm64` architecture support is planned for later.
 
-Please [contact us](contact) if you are interested in new architecture!
+Please [contact us](contact) if you are interested in a new architecture to be supported!
 

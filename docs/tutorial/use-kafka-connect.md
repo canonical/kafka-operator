@@ -20,7 +20,7 @@ We will be deploying different charmed data solutions including PostgreSQL and O
 
 ### Check current deployment
 
-Up to this point, we should have 3 units of Charmed Apache Kafka application. That means the `juju status` command should show an output similar to the following:
+Up to this point, we should have three units of Charmed Apache Kafka application. That means the `juju status` command should show an output similar to the following:
 
 ```text
 Model     Controller        Cloud/Region         Version  SLA          Timestamp

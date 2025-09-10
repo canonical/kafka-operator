@@ -11,7 +11,7 @@ Please do NOT file GitHub issues on security topics.
 
 ## Useful links
 
-* [Canonical Data](https://ubuntu.com/data/)
+* [Canonical Data solutions](https://canonical.com/data)
 * [Charmed Apache Kafka](https://charmhub.io/kafka)
 * [Git sources for Charmed Apache Kafka](https://github.com/canonical/kafka-operator)
 * [Canonical Data on Launchpad](https://launchpad.net/~data-platform)

@@ -32,7 +32,7 @@ juju integrate kafka:certificates self-signed-certificates
 
 ## (Optional) Trust external CAs for mTLS authentication
 
-<!-- TODO: link to some mtls doc? Maybe rebase first -->
+See the [mTLS client encryption](how-to-create-mtls-client-credentials) guide.
 <!-- TODO: add detail here -->
 
 ## (Optional) Replace self-signed with provided certificates for internal communication
@@ -40,10 +40,10 @@ juju integrate kafka:certificates self-signed-certificates
 To replace the auto-generated self-signed certificates used for inter-broker and broker-controller communication, integrate the Charmed Apache Kafka applications to the `tls-certificates` provider application via the `peer-certificates` relation interface:
 
 ```bash
-juju integrate kafka:peer-certificates self-signed-certificates
+juju integrate kafka:peer-certificates <TLS-provider-charm>
 ```
 
-The old self-signed certificates will be removed, and new ones will be issued using the certificate authority in the `tls-certificates` provider application.
+The old self-signed certificates will be removed, and new certificates will be issued using the certificate authority in the provider application. See [Security with x.509 certificates](https://charmhub.io/topics/security-with-x-509-certificates) topic for more information and guidance on selecting a TLS provider charm.
 
 ## (Optional) Use external private keys
 

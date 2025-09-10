@@ -17,7 +17,7 @@ relation is present, one of two mutually exclusive types of listeners can be
 opened. 
 
 |    Usage   |                         Driving endpoints                        |    Protocol    |  Port   |     Scope     |
-|:----------:|:----------------------------------------------------------------:|:--------------:|:-------:|:-------------:|
+|:----------:|:----------------------------------------------------------------|:--------------:|:-------:|:-------------:|
 |   Broker   |               `cluster` (+ optional `certificates`)              |    SASL_SSL    | `19093` | internal-only |
 | Controller |               `cluster` (+ optional `certificates`)              |    SASL_SSL    |  `9098` | internal-only |
 |            |                                                                  |                |         |               |

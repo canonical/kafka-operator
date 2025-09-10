@@ -71,9 +71,9 @@ To exit the screen with `juju status --watch 1s`, enter `Ctrl+c`.
 
 ## Access Apache Kafka brokers
 
-To watch the process, `juju status` can be used. Once all the units show as `active|idle`, the credentials are available to be retrieved.
+Once all the units are shown as `active|idle`, the credentials can be retrieved.
 
-All sensitive configuration data that Charmed Apache Kafka uses such as passwords and SSL certificates is stored in Juju secrets, you can learn more about [Juju secrets in the documentation](https://documentation.ubuntu.com/juju/3.6/reference/secret/).
+All sensitive configuration data used by Charmed Apache Kafka, such as passwords and SSL certificates, is stored in Juju secrets. See the [Juju secrets documentation](https://documentation.ubuntu.com/juju/3.6/reference/secret/) for more information.
 
 To reveal the contents of the Juju secret container sensitive cluster data for the Charmed Apache Kafka application, you can run:
 
@@ -112,9 +112,9 @@ juju show-secret --reveal cluster.kafka.app | yq '.. | ."admin-password"? // emp
 When no other application is integrated to Charmed Apache Kafka, the cluster is secured-by-default and external listeners (bound to port `9092`) are disabled, thus preventing any external incoming connection. 
 ```
 
-We will also need a 'bootstrap server' Apache Kafka broker address and port to initially connect to. When any application first connects to a `bootstrap-server`, the client will automatically make a metadata request that returns the full set of Apache Kafka brokers with their addresses and ports.
+We will also need a bootstrap server Apache Kafka broker address and port to initially connect to. When any application connects for the first time to a `bootstrap-server`, the client will automatically make a metadata request that returns the full set of Apache Kafka brokers with their addresses and ports.
 
-To use `kafka/0` as the `bootstrap-server`, retrieve it's IP address and add a port with:
+To use `kafka/0` as the `bootstrap-server`, retrieve its IP address and add a port with:
 
 ```shell
 bootstrap_address=$(juju show-unit kafka/0 | yq '.. | ."public-address"? // empty' | tr -d '"')
@@ -150,7 +150,7 @@ juju ssh kafka/0 sudo -i \
         --create \
         --topic test-topic \
         --bootstrap-server $BOOTSTRAP_SERVER \
-        --command-config \$CONF/client.properties""
+        --command-config \$CONF/client.properties"
 ```
 
 You can similarly then list the topic, using:

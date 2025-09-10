@@ -7,13 +7,13 @@ This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
 Passwords help to secure the Apache Kafka cluster and are essential for security. Over time it is a good practice to change the password frequently. Here we will go through setting and changing the password both for the `admin` user and external Charmed Apache Kafka users managed by the `data-integrator`.
 
-### `admin` user
+### The admin user
 
 The admin user password management is handled directly by the charm, by using Juju actions. 
 
-#### Retrieve the `admin` password
+#### Retrieve the password
 
-As a reminder mentioned, the `admin` password is stored in, and can be retrieved from a Juju secret that was created and managed by the Charmed Apache Kafka application.
+As a reminder, the `admin` password is stored in a Juju secret that was created and managed by the Charmed Apache Kafka application.
 
 Get the current value of the `admin` user password from the secret with following:
 
@@ -21,7 +21,7 @@ Get the current value of the `admin` user password from the secret with followin
 juju show-secret --reveal cluster.kafka.app | yq '.. | ."admin-password"? // empty' | tr -d '"'
 ```
 
-#### Change the `admin` password
+#### Change the password
 
 You can change the admin password to a new password by creating a new Juju secret, and updating the Charmed Apache Kafka application of the correct secret to use.
 
