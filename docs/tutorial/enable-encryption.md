@@ -11,7 +11,7 @@ Juju relations are particularly useful for enabling TLS.
 For example, you can relate Charmed Apache Kafka to the 
 [Self-signed Certificates Charm](https://charmhub.io/self-signed-certificates)
 using the [tls-certificates](https://charmhub.io/integrations/tls-certificates) interface. 
-The `tls-certificates` relation centralizes TLS certificate management, handling certificate provisioning, requests, and renewal. This approach allows you to use different certificate providers, including self-signed certificates or external services such as Let's Encrypt.
+The `tls-certificates` relation centralises TLS certificate management, handling certificate provisioning, requests, and renewal. This approach allows you to use different certificate providers, including self-signed certificates or external services such as Let's Encrypt.
 
 ```{note}
 In this tutorial, we will distribute [self-signed certificates](https://en.wikipedia.org/wiki/Self-signed_certificate) to all charms (Charmed Apache Kafka and client applications) that are signed using a root self-signed CA that is also trusted by all applications. 
