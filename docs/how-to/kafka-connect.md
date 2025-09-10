@@ -195,4 +195,8 @@ While connectors lifecycle management can be done manually using the Kafka Conne
 
 Each integrator charm is designed for a general ETL use case and streamlines the entire process - from loading connector plugins to configuring connectors, managing task execution, and reporting status - significantly reducing administrative overhead.
 
-A curated set of integrators for common ETL use cases on [Canonical Data Platform line of products](https://canonical.com/data) are provided in the [Template Connect Integrator](https://github.com/canonical/template-connect-integrator) repository. These charmed operators support use cases such as loading data to and from MySQL, PostgreSQL, OpenSearch, S3-compatible storage services, and active/passive replication of Apache Kafka topics using MirrorMaker. To learn more about integrator charms, please refer to the tutorial which covers a practical use-case of moving data from MySQL to OpenSearch using integrator charms.
+A curated set of integrators for common ETL use cases on [Canonical Data Platform line of products](https://canonical.com/data) are provided in the [Template Connect Integrator](https://github.com/canonical/template-connect-integrator) repository.
+
+These charmed operators support use cases such as loading data to and from MySQL, PostgreSQL, OpenSearch, S3-compatible storage services, and active/passive replication of Apache Kafka topics using MirrorMaker.
+
+To learn more about integrator charms, please refer to the tutorial [Use Kafka Connect for ETL](tutorial-kafka-connect) which covers a practical use-case of moving data from MySQL to OpenSearch using integrator charms.

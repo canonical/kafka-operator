@@ -26,7 +26,7 @@ Make sure you have a Juju controller accessible from
 your local environment using the [Juju client snap](https://snapcraft.io/juju). 
 
 List available controllers:
-Make sure that the controller's back-end cloud is **not** K8s. 
+Make sure that the controller's back-end cloud is **not** Kubernetes-based.
 The cloud information can be retrieved with the following command
 
 ```shell
@@ -69,15 +69,49 @@ Make sure that the model is of a correct type (not `k8s`):
 juju show-model | yq '.[].type'
 ```
 
-## Deploy Charmed Apache Kafka
+## Deploy Charmed Apache Kafka for production
 
-Charmed Apache Kafka is deployed as follows:
+Charmed Apache Kafka for production use-cases is deployed as follows:
 
 ```shell
-juju deploy kafka -n <kafka-units> --config roles=broker,controller
+juju deploy kafka -n <broker-units> --config roles=broker --channel 4/edge
+juju deploy kafka -n <controller-units> --config roles=controller --channel 4/edge controller
 ```
 
-where `<kafka-units>` -- the number of units to deploy for Charmed Apache Kafka. In order to maintain high-availability of topic partitions, at least `3` units are recommended.
+- `<broker-units>` -- the number of units to deploy for Charmed Apache Kafka brokers
+- `<controller-units>` -- the number of units to deploy for KRaft controllers
+
+To maintain high-availability of topic partitions, `3+` broker units and `3` or `5` controller units are recommended.
+
+To exchange credentials and endpoints between the two clusters, relate the broker and controller applications with:
+
+```shell
+juju integrate kafka:peer-cluster-orchestrator controller:peer-cluster
+```
+
+Check the status of the deployment:
+
+```shell
+juju status
+```
+
+The deployment should be complete once all the units show `active` or `idle` status.
+
+## (Alternative) Deploy Charmed Apache Kafka for testing
+
+In order to save resources for very-small, non-production test and staging clusters, it is possible to co-locate both the KRaft controller services and the broker services in to a single application.
+
+```{warning}
+This is not recommended for any production deployments. Apache Kafka brokers rely on the KRaft controllers to coordinate -- if both services go down at the same time, the risk of cluster instability increases
+```
+
+Charmed Apache Kafka for testing use-cases is deployed as follows:
+
+```shell
+juju deploy kafka -n <kafka-units> --config roles=broker,controller --channel 4/edge
+```
+
+- `<kafka-units>` -- the number of units to deploy for Charmed Apache Kafka
 
 Check the status of the deployment:
 

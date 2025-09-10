@@ -11,7 +11,6 @@ Deployment follows a broadly similar pattern on all platforms, but due to differ
 * Specific deployment guides:
   * [AWS](how-to-deploy-deploy-on-aws)
   * [Azure](how-to-deploy-deploy-on-azure)
-  * [KRaft mode](how-to-deploy-kraft-mode)
 
 ## Management
 
@@ -56,7 +55,7 @@ Advanced features of Charmed Apache Kafka include:
 <!-- Alternative landing page prototype
 | | |
 |--|--|
-| **Deployment** </br> Deployment follows a broadly similar pattern on all platforms, but due to differences in the platforms, configuration and deployment must be approached differently in each case. </br> [Common deployment guide](how-to-deploy-deploy-anywhere), [AWS](how-to-deploy-deploy-on-aws), [Azure](how-to-deploy-deploy-on-azure), [KRaft mode](how-to-deploy-kraft-mode) |**Management** </br> For guidance on managing your deployed Charmed Apache Kafka, see: [How to manage units](how-to-manage-units), [How to manage related applications](how-to-client-connections), [How to Upgrade](how-to-upgrade) | -->
+| **Deployment** </br> Deployment follows a broadly similar pattern on all platforms, but due to differences in the platforms, configuration and deployment must be approached differently in each case. </br> [Common deployment guide](how-to-deploy-deploy-anywhere), [AWS](how-to-deploy-deploy-on-aws), [Azure](how-to-deploy-deploy-on-azure) |**Management** </br> For guidance on managing your deployed Charmed Apache Kafka, see: [How to manage units](how-to-manage-units), [How to manage related applications](how-to-client-connections), [How to Upgrade](how-to-upgrade) | -->
 
 ```{toctree}
 :titlesonly:
@@ -65,12 +64,12 @@ Advanced features of Charmed Apache Kafka include:
 
 Deploy<deploy/index.md>
 Manage units<manage-units.md>
-Manage client connections<client-connections.md>
+Client connections<client-connections.md>
 Encryption<tls-encryption.md>
-Upgrade<upgrade.md>
+Upgrades<upgrade.md>
 Monitoring<monitoring.md>
 cluster/index.md
-Create mTLS client credentials<create-mtls-client-credentials.md>
-Manage message schemas<schemas-serialisation.md>
-Use Kafka Connect<kafka-connect.md>
+Create mTLS credentials<create-mtls-client-credentials.md>
+Schemas and serialisation<schemas-serialisation.md>
+Kafka Connect<kafka-connect.md>
 ```

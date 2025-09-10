@@ -34,7 +34,7 @@ Now that the Database Integrator charm has been set up, we can relate it to Char
 juju relate data-integrator kafka
 ```
 
-Wait for `juju status --watch 1s` to show:
+Wait for `watch -n 1 --color juju status --color` to show:
 
 ```shell
 Model     Controller        Cloud/Region         Version  SLA          Timestamp

@@ -164,7 +164,7 @@ This should produce an output similar to the result seen below, with broker `3` 
 
 ### Removing old brokers
 
-To safely scale-in a Charmed Apache Kafka cluster, we must make sure to carefully move any existing data from units about to be removed, to another unit that will persist.
+To safely scale-in an Apache Kafka cluster, we must make sure to carefully move any existing data from units about to be removed, to another unit that will persist.
 
 In practice, this means running a `rebalance` Juju action as seen above, **BEFORE** scaling down the application. This ensures that data is moved, prior to the unit becoming unreachable and permanently losing the data on it.
 

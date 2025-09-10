@@ -108,7 +108,7 @@ Finally, since we will be using TLS on the Kafka Connect interface, integrate th
 juju integrate kafka-connect self-signed-certificates
 ```
 
-Use the `juju status --watch 2s` command to continuously probe your model's status. After a couple of minutes, all the applications should be in `active|idle` state, and you should see an output like the following, with 7 applications and 13 units:
+Use the `watch -n 1 --color juju status --color` command to continuously probe your model's status. After a couple of minutes, all the applications should be in `active|idle` state, and you should see an output like the following, with 7 applications and 13 units:
 
 ```text
 Model     Controller        Cloud/Region         Version  SLA          Timestamp

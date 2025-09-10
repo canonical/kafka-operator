@@ -19,7 +19,9 @@ Apache Kafka also uses the KRaft consensus protocol for coordinating broker info
 KRaft replaces the dependency on Apache ZooKeeper for metadata management. For more information on the differences between the two solutions, please refer to the [upstream Apache Kafka documentation](https://kafka.apache.org/40/documentation/zk2kraft.html)
 ```
 
-Charmed Apache Kafka can run both with `roles=broker` and/or `roles=controller`. To deploy a cluster of three KRaft controllers, run:
+Charmed Apache Kafka can run both with `roles=broker` and/or `roles=controller`. With this configuration option, the charm can be deployed either as a single application running both Apache Kafka brokers and KRaft controllers, or as multiple applications with a separate controller cluster and broker cluster.
+
+To deploy a cluster of three KRaft controllers, run:
 
 ```shell
 juju deploy kafka -n 3 --channel 4/edge --roles=controller controller
@@ -34,13 +36,13 @@ juju integrate kafka:peer-cluster-orchestrator kraft:peer-cluster
 Juju will now fetch Charmed Apache Kafka and begin deploying both applications to the LXD cloud before connecting them to exchange access credentials and machine endpoints. This process can take several minutes depending on the resources available on your machine. You can track the progress by running:
 
 ```shell
-juju status --watch 1s
+watch -n 1 --color juju status --color
 ```
 
 This command is useful for checking the status of both Charmed Apache Kafka applications, and for gathering information about the machines hosting the two applications. Some of the helpful information it displays includes IP addresses, ports, status etc. 
 The command updates the status of the cluster every second and as the application starts you can watch the status and messages both applications change. 
 
-Wait until the application is ready - when it is ready, `juju status --watch 1s` will show:
+Wait until the application is ready - when it is ready, `watch -n 1 --color juju status --color` will show:
 
 ```shell
 Model     Controller        Cloud/Region         Version  SLA          Timestamp
@@ -67,7 +69,7 @@ Machine  State    Address         Inst id        Base          AZ  Message
 5        started  10.233.204.225  juju-07a730-5  ubuntu@24.04      Running
 ```
 
-To exit the screen with `juju status --watch 1s`, enter `Ctrl+c`.
+To exit the screen with `watch -n 1 --color juju status --color`, enter `Ctrl+c`.
 
 ## Access Apache Kafka brokers
 
