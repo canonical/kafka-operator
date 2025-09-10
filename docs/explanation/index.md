@@ -23,6 +23,7 @@ To read more about our usage of Apache Kafka and other relevant trademarks, see 
 
 security.md
 cryptography.md
+backups.md
 trademarks.md
 mirrormaker2-0.md
 ```
