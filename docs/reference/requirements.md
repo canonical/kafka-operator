@@ -1,7 +1,7 @@
 (reference-requirements)=
 # Requirements
 
-## Juju versions
+## Juju version
 
 The charm currently runs on and is tested against on [Juju 3.6 LTS](https://github.com/juju/juju/releases).
 

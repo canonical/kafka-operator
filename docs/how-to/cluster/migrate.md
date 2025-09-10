@@ -85,6 +85,10 @@ export CONNECT_ENDPOINTS=$(juju show-unit kafka-connect/0 --format json | yq '..
 
 To start the MirrorMaker replication task, make an HTTP request to Charmed Apache Kafka Connect, using the credentials and endpoints for both Kafka clusters:
 
+<details>
+
+<summary>Example HTTP request to Kafka Connect</summary>
+
 ```bash
 curl -u $CONNECT_USERNAME:$CONNECT_PASSWORD \
     -H "Content-Type: application/json" \
@@ -134,6 +138,8 @@ curl -u $CONNECT_USERNAME:$CONNECT_PASSWORD \
             "source.cluster.security.protocol": "SASL_PLAINTEXT"
         }'
 ```
+
+</details>
 
 ## Monitoring and validating data replication
 

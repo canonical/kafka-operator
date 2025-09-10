@@ -10,7 +10,7 @@ To deploy Charmed Apache Kafka, all you need to do is run the following commands
 For example, to deploy a cluster of three Apache Kafka brokers, you can simply run:
 
 ```shell
-$ juju deploy kafka -n 3 --channel 4/edge --roles=broker
+juju deploy kafka -n 3 --channel 4/edge --roles=broker
 ```
 
 Apache Kafka also uses the KRaft consensus protocol for coordinating broker information, topic + partition metadata and Access Control Lists (ACLs), ran as a quorum of controller nodes using the Raft consensus algorithm.
@@ -22,7 +22,7 @@ KRaft replaces the dependency on Apache ZooKeeper for metadata management. For m
 Charmed Apache Kafka can run both with `roles=broker` and/or `roles=controller`. To deploy a cluster of three KRaft controllers, run:
 
 ```shell
-$ juju deploy kafka -n 3 --channel 4/edge --roles=controller controller
+juju deploy kafka -n 3 --channel 4/edge --roles=controller controller
 ```
 
 After this, it is necessary to connect the two clusters, taking care to specify which cluster is the orchestrator:
@@ -157,10 +157,10 @@ You can similarly then list the topic, using:
 
 ```shell
 juju ssh kafka/0 sudo -i \
-    'charmed-kafka.topics \
+    "charmed-kafka.topics \
         --list \
         --bootstrap-server $BOOTSTRAP_SERVER \
-        --command-config \$CONF/client.properties'
+        --command-config \$CONF/client.properties"
 ```
 
 making sure the topic was successfully created.
@@ -169,11 +169,11 @@ You can finally delete the topic, using:
 
 ```shell
 juju ssh kafka/0 sudo -i \
-    'charmed-kafka.topics \
+    "charmed-kafka.topics \
         --delete \
         --topic test-topic \
         --bootstrap-server $BOOTSTRAP_SERVER \
-        --command-config \$CONF/client.properties'
+        --command-config \$CONF/client.properties"
 ```
 
 For a full list of the available Charmed Kafka command-line tools, please refer to [snap commands](reference-snap-commands).

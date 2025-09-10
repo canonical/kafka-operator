@@ -18,9 +18,7 @@ For example, to list the files and directories in the `$LOGS` directory on a par
 juju ssh kafka/0 sudo -i 'ls $LOGS'
 ```
 
-## Important Files
-
-### Configuration
+## Configuration
 
 - **`$CONF/server.properties`** - the full configuration file for the broker and KRaft controller services
 - **`$CONF/client.properties`** - a minimal configuration file for making client connections to brokers with SASL authentication and SSL encryption
@@ -33,7 +31,7 @@ juju ssh kafka/0 sudo -i 'ls $LOGS'
 - **`$CONF/client-keystore.p12` + `$CONF/client-truststore.jks`** - the Java keystore and truststore used for client SSL encryption
     - Passwords to the keystore and truststore are stored in Juju secrets
 
-### System logs
+## System logs
 
 - **`$LOGS/server.log`** - the broker service logs
     - Very useful for general debugging
@@ -41,12 +39,12 @@ juju ssh kafka/0 sudo -i 'ls $LOGS'
     - Very useful for debugging authorisation failures
 - **`$LOGS/controller.log`** - the KRaft controller service logs
 
-### Apache Kafka binaries
+## Apache Kafka binaries
 
 - **`$BIN/bin/*.sh`** - general bash scripts provided from upstream Apache Kafka, with utilities for managing and interacting with the cluster
     - These files are typically accessible directly via Snap commands - e.g, `kafka-topics.sh` can be invoked by running `charmed-kafka.topics`
 
-### Message data and cluster metadata
+## Message data and cluster metadata
 
 - **`$DATA/data/*`** - the `data` storage directory where the raw Apache Kafka message data is persisted to disk
     - Each Juju mounted JBOD storage directory will have an integer identifier that will be describe the subdirectory of `$DATA/data/`
