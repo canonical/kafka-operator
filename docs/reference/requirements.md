@@ -26,7 +26,7 @@ For production deployments, ensure that all nodes are deployed on separate physi
 
 ## Supported architectures
 
-The charm uses the `charmed-kafka` [snap](https://snapcraft.io/charmed-kafka), which is currently available for `amd64` only. The `arm64` architecture support is planned for later.
+The charm uses the `charmed-kafka` [snap](https://snapcraft.io/charmed-kafka), which is currently available for `amd64` only. The `arm64` architecture support is planned.
 
 Please [contact us](contact) if you are interested in a new architecture to be supported!
 

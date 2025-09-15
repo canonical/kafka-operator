@@ -47,5 +47,5 @@ juju ssh kafka/0 sudo -i 'ls $LOGS'
 ## Message data and cluster metadata
 
 - **`$DATA/data/*`** - the `data` storage directory where the raw Apache Kafka message data is persisted to disk
-    - Each Juju mounted JBOD storage directory will have an integer identifier that will be describe the subdirectory of `$DATA/data/`
+    - Each Juju mounted JBOD storage directory will have an integer identifier matching a subdirectory in `$DATA/data/`
     - Find these directories with `juju status --storage kafka | grep data/`
