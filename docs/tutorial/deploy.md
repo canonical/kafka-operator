@@ -24,7 +24,7 @@ Charmed Apache Kafka can run both with `roles=broker` and/or `roles=controller`.
 To deploy a cluster of three KRaft controllers, run:
 
 ```shell
-juju deploy kafka -n 3 --channel 4/edge --roles=controller controller
+juju deploy kafka -n 3 --channel 4/edge --roles=controller kraft
 ```
 
 After this, it is necessary to connect the two clusters, taking care to specify which cluster is the orchestrator:
@@ -77,7 +77,7 @@ Once all the units are shown as `active|idle`, the credentials can be retrieved.
 
 All sensitive configuration data used by Charmed Apache Kafka, such as passwords and SSL certificates, is stored in Juju secrets. See the [Juju secrets documentation](https://documentation.ubuntu.com/juju/3.6/reference/secret/) for more information.
 
-To reveal the contents of the Juju secret container sensitive cluster data for the Charmed Apache Kafka application, you can run:
+To reveal the contents of the Juju secret containing sensitive cluster data for the Charmed Apache Kafka application, you can run:
 
 ```shell
 juju show-secret --reveal cluster.kafka.app

@@ -3,7 +3,7 @@
 
 ## Juju version
 
-The charm currently runs on and is tested against on [Juju 3.6 LTS](https://github.com/juju/juju/releases).
+The charm currently runs on and is tested against [Juju 3.6 LTS](https://github.com/juju/juju/releases).
 
 The minimum supported Juju version is [Juju 3.5+](https://github.com/juju/juju/releases). 
 

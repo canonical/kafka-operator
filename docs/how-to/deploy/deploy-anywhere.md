@@ -83,7 +83,7 @@ juju deploy kafka -n <controller-units> --config roles=controller --channel 4/ed
 
 To maintain high-availability of topic partitions, `3+` broker units and `3` or `5` controller units are recommended.
 
-To exchange credentials and endpoints between the two clusters, relate the broker and controller applications with:
+To exchange credentials and endpoints between the two clusters, integrate the broker and controller applications:
 
 ```shell
 juju integrate kafka:peer-cluster-orchestrator controller:peer-cluster
@@ -95,7 +95,7 @@ Check the status of the deployment:
 juju status
 ```
 
-The deployment should be complete once all the units show `active` or `idle` status.
+The deployment should be complete once all the units show `active` and `idle` status.
 
 ## (Alternative) Deploy Charmed Apache Kafka for testing
 

@@ -5,7 +5,7 @@ This document describes the cryptography used by Charmed Apache Kafka.
 
 ## Resource checksums
 
-Charmed Apache Kafka uses pinned snap to provide reproducible and secure environments.
+Charmed Apache Kafka uses a pinned snap to provide reproducible and secure environments.
 
 The [Charmed Apache Kafka snap](https://snapstore.io/charmed-kafka) packages the Apache Kafka workload along with the necessary dependencies and utilities for operator lifecycle management.
 For details on the contents of the snap, refer to the `snapcraft.yaml` file in the source code: [Charmed Apache Kafka snap contents](https://github.com/canonical/charmed-kafka-snap/blob/4/edge/snap/snapcraft.yaml).
@@ -28,7 +28,7 @@ to also provide the community with the patched source code.
 
 ### GitHub
 
-All Apache Kafka artefacts built by Canonical are published and released programmatically using release pipelines implemented via GitHub Actions. 
+All Apache Kafka artefacts built by Canonical are published and released programmatically using GitHub Actions release pipelines. 
 Distributions are published as both GitHub and Launchpad releases via the [central-uploader repository](https://github.com/canonical/central-uploader), while 
 charms, snaps and rocks are published using the workflows of their respective repositories. 
 

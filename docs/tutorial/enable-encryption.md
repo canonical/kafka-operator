@@ -67,7 +67,7 @@ Make sure that the `kafka-test-app` is not connected to the Charmed Apache Kafka
 juju remove-relation kafka-test-app kafka
 ```
 
-Then, enable encryption on the `kafka-test-app` by relating with the ` self-signed-certificates` charm:
+Then, enable encryption on the `kafka-test-app` by relating with the `self-signed-certificates` charm:
 
 ```shell
 juju integrate kafka-test-app self-signed-certificates
