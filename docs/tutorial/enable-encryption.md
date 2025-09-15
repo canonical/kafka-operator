@@ -70,7 +70,7 @@ juju remove-relation kafka-test-app kafka
 Then, enable encryption on the `kafka-test-app` by relating with the ` self-signed-certificates` charm:
 
 ```shell
-juju relate kafka-test-app self-signed-certificates
+juju integrate kafka-test-app self-signed-certificates
 ```
 
 We can then set up the `kafka-test-app` to produce messages with the usual configuration (note that there is no difference 
@@ -83,7 +83,7 @@ juju config kafka-test-app topic_name=HOT-TOPIC role=producer num_messages=25
 Then relate with the `kafka` cluster:
 
 ```shell
-juju relate kafka kafka-test-app
+juju integrate kafka kafka-test-app
 ```
 
 As before, you can check that the messages are pushed into the Charmed Apache Kafka cluster by inspecting the logs:

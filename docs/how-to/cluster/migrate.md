@@ -38,7 +38,7 @@ When the `data-integrator` charm relates to a `kafka` application on the `kafka_
 Charmed Apache Kafka Connect also needs to be related to the `kafka` application to be granted permissions and endpoints to connect to Charmed Apache Kafka:
 
 ```bash
-juju relate kafka-connect kafka
+juju integrate kafka-connect kafka
 ```
 
 As we will need full access to both Kafka clusters, we will use credentials provided to the `data-integrator`. Get the SASL credentials to connect to the target Charmed Apache Kafka cluster:

@@ -142,7 +142,7 @@ juju deploy data-integrator --config topic-name="__admin-user" --config extra-us
 Now, relate it to the Apache Kafka charm:
 
 ```shell
-juju relate data-integrator kafka
+juju integrate data-integrator kafka
 ```
 
 To retrieve authentication information, such as the username and password, use:

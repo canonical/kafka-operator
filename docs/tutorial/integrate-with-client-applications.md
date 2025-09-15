@@ -31,7 +31,7 @@ Deploying "data-integrator" from charm-hub charm "data-integrator", revision 11 
 Now that the Database Integrator charm has been set up, we can relate it to Charmed Apache Kafka. This will automatically create a username, password, and database for the Database Integrator charm. Relate the two applications with:
 
 ```shell
-juju relate data-integrator kafka
+juju integrate data-integrator kafka
 ```
 
 Wait for `watch -n 1 --color juju status --color` to show:
@@ -196,7 +196,7 @@ juju config kafka-test-app topic_name=TOP-PICK role=producer num_messages=20
 To start producing messages to Apache Kafka, we simply relate the Apache Kafka Test App with Apache Kafka:
 
 ```shell
-juju relate kafka-test-app kafka
+juju integrate kafka-test-app kafka
 ```
 
 ```{note}
