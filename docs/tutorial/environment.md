@@ -5,17 +5,23 @@ This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
 ## Setup the environment
 
-For this tutorial, we will need to set up the environment with two main components:
+For this tutorial, we will need to set up the environment with two main components, and extra command-line tooling:
 
-* LXD that is a simple and lightweight virtual machine provisioner
-* Juju that will help us to deploy and manage Apache Kafka and related applications
+* [LXD](https://github.com/canonical/lxd) - a simple and lightweight virtual machine provisioner
+* [Juju](https://github.com/juju/juju) - enables us to deploy and manage Charmed Apache Kafka and related applications
+* [yq](https://github.com/mikefarah/yq) - a command-line YAML processor
+* [jq](https://github.com/jqlang/jq) - a command-line JSON processor
 
 ### Prepare LXD
 
-The fastest, simplest way to get started with Charmed Apache Kafka is to set up a local LXD cloud. LXD is a system container and virtual machine manager; Apache Kafka will be run in one of these containers and managed by Juju. While this tutorial covers the basics of LXD, you can [explore more LXD here](https://linuxcontainers.org/lxd/getting-started-cli/). LXD comes pre-installed on Ubuntu 20.04 LTS. Verify that LXD is installed by entering the command `which lxd` into the command line, this will output:
+The fastest, simplest way to get started with Charmed Apache Kafka is to set up a local LXD cloud. LXD is a system container and virtual machine manager; Apache Kafka will be run in one of these containers and managed by Juju. While this tutorial covers the basics of LXD, you can [learn more about LXD here](https://documentation.ubuntu.com/lxd/stable-5.21/). LXD comes pre-installed on Ubuntu 24.04 LTS. Verify that LXD is installed by entering the command `which lxd` into the command line, this will output:
 
-```
+```shell
 /snap/bin/lxd
+
+# or for some systems
+
+/usr/sbin/lxd
 ```
 
 Although LXD is already installed, we need to run `lxd init` to perform post-installation tasks. For this tutorial, the default parameters are preferred and the network bridge should be set to have no IPv6 addresses since Juju does not support IPv6 addresses with LXD:
@@ -35,19 +41,19 @@ You can list all LXD containers by entering the command `lxc list` into the comm
 
 ### Install and prepare Juju
 
-[Juju](https://juju.is/) is an Operator Lifecycle Manager (OLM) for clouds, bare metal, LXD or Kubernetes. We will be using it to deploy and manage Apache Kafka. As with LXD, Juju is installed from a snap package:
+[Juju](https://juju.is/) is an Operator Lifecycle Manager (OLM) for clouds, bare metal, LXD or Kubernetes. We will be using it to deploy and manage Charmed Apache Kafka. As may be true for LXD, Juju is installed from a snap package:
 
 ```shell
-sudo snap install juju --channel 3.1/stable
+sudo snap install juju
 ```
 
-Juju already has built-in knowledge of LXD and how it works, so there is no additional setup or configuration needed. A controller will be used to deploy and control Charmed Apache Kafka. All we need to do is run the following command to bootstrap a Juju controller named ‘overlord’ to LXD. This bootstrapping process can take several minutes depending on how provisioned (RAM, CPU, etc.) your machine is:
+Juju already has built-in knowledge of LXD and how it works, so there is no additional setup or configuration needed. A Juju controller will be deployed, which will in turn manage the operations of Charmed Apache Kafka. All we need to do is run the following command to bootstrap a Juju controller named `overlord` to LXD. This bootstrapping process can take several minutes depending on the resources available on your machine:
 
 ```shell
-juju bootstrap localhost overlord --agent-version 3.1.6
+juju bootstrap localhost overlord
 ```
 
-The Juju controller should exist within an LXD container. You can verify this by entering the command `lxc list` and you should see the following:
+The Juju controller exists within an LXD container. You can verify this by entering the command `lxc list` and you should see the following:
 
 ```
 +---------------+---------+-----------------------+------+-----------+-----------+
@@ -69,7 +75,7 @@ You can now view the model you created above by entering the command `juju statu
 
 ```
 Model    Controller  Cloud/Region         Version  SLA          Timestamp
-tutorial overlord    localhost/localhost  3.1.6    unsupported  23:20:53Z
+tutorial overlord    localhost/localhost  3.6.8    unsupported  23:20:53Z
 
 Model "admin/tutorial" is empty.
 ```

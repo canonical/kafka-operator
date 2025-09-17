@@ -5,13 +5,13 @@ This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
 ## Partition rebalancing and reassignment
 
-By default, when adding more brokers to an Apache Kafka cluster, the current allocated partitions on the original brokers are not automatically redistributed across the new brokers. This can lead to inefficient resource usage and over-provisioning. On the other hand, when removing brokers to reduce capacity, partitions assigned to the removed brokers are also not redistributed, which can result in under-replicated data at best and permanent data loss at worst.
+By default, when adding more brokers to a Charmed Apache Kafka cluster, the current allocated partitions on the original brokers are not automatically redistributed across the new brokers. This can lead to inefficient resource usage and over-provisioning. On the other hand, when removing brokers to reduce capacity, partitions assigned to the removed brokers are also not redistributed, which can result in under-replicated data at best and permanent data loss at worst.
 
 To address this, we can make use of [LinkedIn's Cruise Control](https://github.com/linkedin/cruise-control), which is bundled as part of the Charmed Apache Kafka [snap](https://github.com/canonical/charmed-kafka-snap) and [rock](https://github.com/canonical/charmed-kafka-rock).
 
 At a high level, Cruise Control is made up of the following five components:
 
-- **Workload Monitor** - responsible for the metrics collection from Apache Kafka
+- **Workload Monitor** - responsible for the metrics collection from Charmed Apache Kafka
 - **Analyser** - generates allocation proposals based on configured [Goals](https://github.com/linkedin/cruise-control?tab=readme-ov-file#goals)
 - **Anomaly Detector** - detects failures in brokers, disks, metrics or goals and (optionally) self-heals
 - **Web server** - a REST API for user operations
@@ -33,7 +33,7 @@ It is recommended to deploy a separate Juju application for running Cruise Contr
 For the purposes of this tutorial, we will be deploying a single Charmed Apache Kafka unit to serve as the `balancer`:
 
 ```bash
-juju deploy kafka --config roles=balancer -n 1 cruise-control
+juju deploy kafka --config roles=balancer cruise-control
 ```
 
 Earlier in the tutorial, we covered enabling TLS encryption, so we will repeat that step here for the new `cruise-control` application:
@@ -63,7 +63,7 @@ juju ssh kafka/leader sudo -i \
     'charmed-kafka.log-dirs' \
     '--describe' \
     '--bootstrap-server <unit-ip>:9093' \
-    '--command-config /var/snap/charmed-kafka/current/etc/kafka/client.properties' \
+    '--command-config $CONF/client.properties' \
     '2> /dev/null' \
     | tail -1 | jq -c '.brokers[] | select(.broker == 3)' | jq
 ```
@@ -138,7 +138,7 @@ juju ssh kafka/leader sudo -i \
     'charmed-kafka.log-dirs' \
     '--describe' \
     '--bootstrap-server <unit-ip>:9093' \
-    '--command-config /var/snap/charmed-kafka/current/etc/kafka/client.properties' \
+    '--command-config $CONF/client.properties' \
     '2> /dev/null' \
     | tail -1 | jq -c '.brokers[] | select(.broker == 3)' | jq
 ```
@@ -187,7 +187,7 @@ juju ssh kafka/leader sudo -i \
     'charmed-kafka.log-dirs' \
     '--describe' \
     '--bootstrap-server <unit-ip>:9093' \
-    '--command-config /var/snap/charmed-kafka/current/etc/kafka/client.properties' \
+    '--command-config $CONF/client.properties' \
     '2> /dev/null' \
     | tail -1 | jq -c '.brokers[] | select(.broker == 3)' | jq
 ```

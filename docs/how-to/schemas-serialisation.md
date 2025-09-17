@@ -1,5 +1,5 @@
-(how-to-manage-message-schemas)=
-# Manage message schemas
+(how-to-schemas-serialisation)=
+# Schemas and serialisation
 
 Message schemas in Apache Kafka define the structure and format of data exchanged between producers and consumers. This guide provides instructions on managing schemas in Charmed Apache Kafka using Karapace. Karapace is a drop-in replacement, open-source implementation of Confluent's Schema Registry, and supports the storing of schemas in a central repository, which clients can access to serialise and deserialise messages written to Apache Kafka.
 

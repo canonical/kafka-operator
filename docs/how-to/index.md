@@ -11,24 +11,21 @@ Deployment follows a broadly similar pattern on all platforms, but due to differ
 * Specific deployment guides:
   * [AWS](how-to-deploy-deploy-on-aws)
   * [Azure](how-to-deploy-deploy-on-azure)
-  * [KRaft mode](how-to-deploy-kraft-mode)
 
 ## Management
 
 For guidance on managing your deployed Charmed Apache Kafka, see:
 
 * [How to manage units](how-to-manage-units)
-* [How to manage related applications](how-to-manage-applications)
+* [How to manage client connections](how-to-client-connections)
 * [How to upgrade](how-to-upgrade)
 
 ## Security
 
 We have a series of How-to guides for security-related topics:
 
-* [Enable encryption](how-to-enable-encryption)
+* [TLS encryption](how-to-tls-encryption)
 * [Create mTLS credentials](how-to-create-mtls-client-credentials)
-* [Enable OAuth](how-to-enable-oauth-through-hydra)
-* [Back up and restore](how-to-back-up-and-restore)
 
 See also: our [security overview](explanation-security) page.
 
@@ -45,20 +42,20 @@ See our How to set up monitoring guide for the following topics:
 Both migrating and replicating Apache Kafka cluster can be done with MirrorMaker 2.
 See the guides for more details:
 
-* [Cluster migration](how-to-cluster-replication-migrate-a-cluster)
-* [Replication](how-to-cluster-replication-cluster-replication)
+* [Cluster migration](how-to-cluster-migration)
+* [Replication](how-to-cluster-replication)
 
 ## Advanced
 
 Advanced features of Charmed Apache Kafka include:
 
-* [Message schemas management](how-to-manage-message-schemas)
+* [Schemas and serialisation](how-to-schemas-serialisation)
 * [Kafka Connect usage](how-to-use-kafka-connect-for-etl-workloads)
 
 <!-- Alternative landing page prototype
 | | |
 |--|--|
-| **Deployment** </br> Deployment follows a broadly similar pattern on all platforms, but due to differences in the platforms, configuration and deployment must be approached differently in each case. </br> [Common deployment guide](how-to-deploy-deploy-anywhere), [AWS](how-to-deploy-deploy-on-aws), [Azure](how-to-deploy-deploy-on-azure), [KRaft mode](how-to-deploy-kraft-mode) |**Management** </br> For guidance on managing your deployed Charmed Apache Kafka, see: [How to manage units](how-to-manage-units), [How to manage related applications](how-to-manage-applications), [How to Upgrade](how-to-upgrade) | -->
+| **Deployment** </br> Deployment follows a broadly similar pattern on all platforms, but due to differences in the platforms, configuration and deployment must be approached differently in each case. </br> [Common deployment guide](how-to-deploy-deploy-anywhere), [AWS](how-to-deploy-deploy-on-aws), [Azure](how-to-deploy-deploy-on-azure) |**Management** </br> For guidance on managing your deployed Charmed Apache Kafka, see: [How to manage units](how-to-manage-units), [How to manage related applications](how-to-client-connections), [How to Upgrade](how-to-upgrade) | -->
 
 ```{toctree}
 :titlesonly:
@@ -67,14 +64,12 @@ Advanced features of Charmed Apache Kafka include:
 
 Deploy<deploy/index.md>
 Manage units<manage-units.md>
-Manage applications<manage-applications.md>
-Encryption<enable-encryption.md>
-Upgrade<upgrade.md>
+Client connections<client-connections.md>
+Encryption<tls-encryption.md>
+Upgrades<upgrade.md>
 Monitoring<monitoring.md>
 cluster/index.md
-Create mTLS client credentials<create-mtls-client-credentials.md>
-Enable OAuth<oauth.md>
-Back up and restore<back-up-and-restore.md>
-Manage message schemas<schemas.md>
-Use Kafka Connect<kafka-connect.md>
+Create mTLS credentials<create-mtls-client-credentials.md>
+Schemas and serialisation<schemas-serialisation.md>
+Kafka Connect<kafka-connect.md>
 ```
