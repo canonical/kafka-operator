@@ -32,7 +32,7 @@ Now that the Database Integrator charm has been set up, we can integrate it to C
 juju integrate data-integrator kafka
 ```
 
-Wait for `juju status --watch 1s` to show:
+Wait for `watch -c juju status --color` to show:
 
 ```shell
 Model     Controller  Cloud/Region         Version  SLA          Timestamp

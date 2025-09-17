@@ -19,13 +19,13 @@ juju integrate kafka zookeeper
 Juju will now fetch Charmed Apache Kafka and Charmed Apache Zookeeper and begin deploying them to the LXD cloud. This process can take several minutes depending on how provisioned (RAM, CPU, etc) your machine is. You can track the progress by running:
 
 ```shell
-juju status --watch 1s
+watch -c juju status --color
 ```
 
 This command is useful for checking the status of Charmed Apache ZooKeeper and Charmed Apache Kafka and gathering information about the machines hosting the two applications. Some of the helpful information it displays includes IP addresses, ports, state, etc. 
 The command updates the status of the cluster every second and as the application starts you can watch the status and messages of Charmed Apache Kafka and Charmed Apache ZooKeeper change. 
 
-Wait until the application is ready - when it is ready, `juju status --watch 1s` will show:
+Wait until the application is ready - when it is ready, `watch -c juju status --color` will show:
 
 ```shell
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
@@ -56,7 +56,7 @@ Machine  State    Address        Inst id        Series  AZ  Message
 7        started  10.244.26.19   juju-f1a2cd-7  jammy       Running
 ```
 
-To exit the screen with `juju status --watch 1s`, enter `Ctrl+c`.
+To exit the screen with `watch -c juju status --color`, enter `Ctrl+c`.
 
 ## Access Apache Kafka cluster
 
