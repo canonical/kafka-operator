@@ -7,7 +7,7 @@ This document describes the cryptography used by Charmed Apache Kafka.
 
 Charmed Apache Kafka and Charmed Apache ZooKeeper operators use pinned revisions of their respective snaps to provide reproducible and secure environments.
 
-The [Charmed Apache Kafka snap](https://snapstore.io/charmed-kafka) and [Charmed Apache ZooKeeper snap](https://snapstore.io/charmed-zookeeper) package the Apache Kafka and Apache ZooKeeper workloads, respectively, along with the necessary dependencies and utilities for operator lifecycle management.
+The [Charmed Apache Kafka snap](https://snapcraft.io/charmed-zookeeper) and [Charmed Apache ZooKeeper snap](https://snapcraft.io/charmed-zookeeper) package the Apache Kafka and Apache ZooKeeper workloads, respectively, along with the necessary dependencies and utilities for operator lifecycle management.
 For details on the contents of these snaps, refer to the `snapcraft.yaml` file in the source code: [Charmed Apache Kafka snap contents](https://github.com/canonical/charmed-kafka-snap/blob/3/edge/snap/snapcraft.yaml) and [Charmed Apache ZooKeeper snap contents](https://github.com/canonical/charmed-zookeeper-snap/blob/3/edge/snap/snapcraft.yaml).
 
 Every artefact included in the snaps is verified against its SHA-256 or SHA-512 checksum after download.
