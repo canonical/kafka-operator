@@ -240,7 +240,8 @@ linkcheck_ignore = [
     "https://kafka.apache.org/39/documentation.html#georeplication-monitoring",
     "https://launchpad.net/soss",
     "https://cwiki.apache.org/*",
-    "https://archive.apache.org/*"
+    "https://archive.apache.org/*",
+    "https://launchpad.net/zookeeper-releases/3.x/*",
     ]
 
 
@@ -249,7 +250,7 @@ linkcheck_ignore = [
 linkcheck_anchors_ignore_for_url = [r"https://github\.com/.*"]
 
 # give linkcheck multiple tries on failure
-# linkcheck_timeout = 30
+linkcheck_timeout = 60
 linkcheck_retries = 3
 
 ########################
