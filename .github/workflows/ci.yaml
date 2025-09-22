@@ -61,6 +61,7 @@ jobs:
       fail-fast: false
       matrix:
         tox-environments:
+          - integration-auto-balance
           - integration-charm
           - integration-provider
           - integration-password-rotation
@@ -115,6 +116,7 @@ jobs:
       fail-fast: false
       matrix:
         tox-environments:
+          - integration-auto-balance
           - integration-charm
           - integration-provider
           - integration-password-rotation
