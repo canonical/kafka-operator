@@ -61,7 +61,6 @@ jobs:
       fail-fast: false
       matrix:
         tox-environments:
-          - integration-auto-balance
           - integration-charm
           - integration-provider
           - integration-password-rotation
@@ -132,6 +131,10 @@ jobs:
           - integration-spaces
         kraft-mode:
           - multi
+        include:
+          # Large kraft-single tests requiring bigger machines
+          - tox-environments: integration-auto-balance
+            kraft-mode: single
     name: ${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}
     needs:
       - lint
