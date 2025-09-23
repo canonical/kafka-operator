@@ -1,7 +1,7 @@
 (index)=
 
 ```{note}
-This is an **IAAS/VM** charmed operator. To deploy on Kubernetes, see [Charmed Apache Kafka K8s operator](https://charmhub.io/kafka-k8s).
+This is an **IAAS/VM** charmed operator. To deploy on Kubernetes, see [Charmed Apache Kafka K8s operator](https://documentation.ubuntu.com/charmed-kafka-k8s/3/).
 ```
 
 # Charmed Apache Kafka documentation
