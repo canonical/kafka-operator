@@ -8,20 +8,11 @@ output "app_name" {
   )
 }
 
-output "endpoints" {
-  description = "Service access endpoints"
-  value = {
-    # Add actual service URLs here if available
-    # For now, this could include bootstrap servers, etc.
-  }
-}
-
 output "provides_endpoints" {
   description = "Relation endpoints this charm provides"
   value = [
     "kafka-client",
     "cos-agent",
-    "certificates"
   ]
 }
 
