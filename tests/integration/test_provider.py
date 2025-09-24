@@ -176,7 +176,7 @@ async def test_deploy_producer_same_topic(
 async def test_admin_added_to_super_users(ops_test: OpsTest, kafka_apps):
     """Test relation with admin privileges."""
     super_users = load_super_users(model_full_name=ops_test.model_full_name)
-    assert len(super_users) == 3  # controller, sync, admin
+    assert len(super_users) == 3  # controller, replication, operator
 
     app_charm = await ops_test.build_charm("tests/integration/app-charm")
 
