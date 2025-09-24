@@ -10,9 +10,11 @@ For more details, see [Security topic overview](explanation-security) and [Crypt
 
 ## Cluster configuration
 
-See the [Cluster configuration](explanation-cluster-configuration) page for explanation of the Apache ZooKeeper role in Charmed Apache Kafka.
-
 Check the [MirrorMaker explanation](explanation-mirrormaker2-0) page for more context in to how MirrorMaker replicates and migrates Apache Kafka clusters.
+
+## Backups
+
+Read through [Backups explanation](explanation-backups) for information on the why snapshots and backing up Apache Kafka's log data is typically not necessary, and is not supported with Charmed Apache Kafka.
 
 ## Other topics
 
@@ -23,9 +25,9 @@ To read more about our usage of Apache Kafka and other relevant trademarks, see 
 :maxdepth: 2
 :hidden:
 
-security.md
-cryptography.md
-cluster-configuration.md
-trademarks.md
-mirrormaker2-0.md
+Security<security.md>
+Cryptography<cryptography.md>
+Backups<backups.md>
+Trademarks<trademarks.md>
+MirrorMaker2.0<mirrormaker2-0.md>
 ```

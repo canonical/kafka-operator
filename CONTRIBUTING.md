@@ -40,14 +40,8 @@ juju model-config logging-config="<root>=INFO;unit=DEBUG"
 # Build the charm locally
 charmcraft pack
 
-# Deploy the latest Apache ZooKeeper release
-juju deploy zookeeper --channel edge -n 3
-
 # Deploy the charm
-juju deploy ./*.charm -n 3
-
-# After Apache ZooKeeper has initialised, relate the applications
-juju relate kafka zookeeper
+juju deploy ./*.charm -n 3 --config roles=broker,controller
 ```
 
 ## Developing

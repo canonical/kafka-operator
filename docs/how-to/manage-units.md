@@ -64,7 +64,7 @@ Additionally, you can use `--help` argument to print a short summary for a given
 
 The most important commands are also exposed via the [Charmed Apache Kafka snap](https://snapcraft.io/charmed-kafka),
 accessible via `charmed-kafka.<command>`.
-For more information about the mapping between the Apache Kafka bin commands and the snap entrypoints, see the [Snap Entrypoints](reference-snap-entrypoints) reference page.
+For more information about the mapping between the Apache Kafka bin commands and the snap entrypoints, see the [Snap commands](reference-snap-commands) reference page.
 
 ```{caution}
 Before running bash scripts, make sure that some listeners have been correctly 
@@ -72,7 +72,7 @@ opened by creating appropriate integrations.
 ```
 
 For more information about how listeners are opened based on relations, see the [Listeners](reference-broker-listeners).
-For example, to open a SASL/SCRAM listener, integrate a client application using the data integrator, as described in the [How to manage app guide](how-to-manage-applications).
+For example, to open a SASL/SCRAM listener, integrate a client application using the data integrator, as described in the [How to manage client connections](how-to-client-connections) guide.
 
 To run most of the scripts, you need to provide:
 

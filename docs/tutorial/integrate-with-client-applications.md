@@ -5,10 +5,10 @@ This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
 ## Integrate with client applications
 
-As mentioned in the previous section of the Tutorial, the recommended way to create and manage users is by means of another charm: the [Data Integrator Charm](https://charmhub.io/data-integrator). This lets us to encode users directly in the Juju model, and - as shown in the following - rotate user credentials with and without application downtime using Relations.
+As mentioned in the previous section of the Tutorial, the recommended way to create and manage users is by means of another charm: the [Data Integrator Charm](https://charmhub.io/data-integrator). This lets us to encode users directly in the Juju model, and - as shown in the following - rotate user credentials with and without application downtime using relations.
 
 ```{note}
-Relations, or what Juju documentation describes also as [Integrations](https://documentation.ubuntu.com/juju/3.6/reference/relation/), let two charms to exchange information and interact with one another. Creating a relation between Apache Kafka and the Data Integrator will automatically generate a username, password, and assign read/write permissions on a given topic. This is the simplest method to create and manage users in Charmed Apache Kafka.
+Relations, or what Juju documentation describes also as [Integrations](https://documentation.ubuntu.com/juju/3.6/reference/relation/), let two charms to exchange information and interact with one another. Creating a relation between Charmed Apache Kafka and the Data Integrator will automatically generate a username, password, and assign relevant permissions on a given topic. This is the simplest method to create and manage users in Charmed Apache Kafka.
 ```
 
 ### Data Integrator charm
@@ -16,14 +16,14 @@ Relations, or what Juju documentation describes also as [Integrations](https://d
 The [Data Integrator charm](https://charmhub.io/data-integrator) is a bare-bones charm for central management of database users, providing support for different kinds of data platforms (e.g. MongoDB, MySQL, PostgreSQL, Apache Kafka, OpenSearch, etc.) with a consistent, opinionated and robust user experience. To deploy the Data Integrator charm we can use the command `juju deploy` we have learned above:
 
 ```shell
-juju deploy data-integrator --channel stable --config topic-name=test-topic --config extra-user-roles=producer,consumer
+juju deploy data-integrator --config topic-name=test-topic --config extra-user-roles=producer,consumer
 ```
 
 The expected output:
 
 ```shell
 Located charm "data-integrator" in charm-hub, revision 11
-Deploying "data-integrator" from charm-hub charm "data-integrator", revision 11 in channel stable on jammy
+Deploying "data-integrator" from charm-hub charm "data-integrator", revision 11 in channel stable on noble
 ```
 
 ### Relate to Charmed Apache Kafka
@@ -31,41 +31,37 @@ Deploying "data-integrator" from charm-hub charm "data-integrator", revision 11 
 Now that the Database Integrator charm has been set up, we can relate it to Charmed Apache Kafka. This will automatically create a username, password, and database for the Database Integrator charm. Relate the two applications with:
 
 ```shell
-juju relate data-integrator kafka
+juju integrate data-integrator kafka
 ```
 
-Wait for `juju status --watch 1s` to show:
+Wait for `watch -n 1 --color juju status --color` to show:
 
 ```shell
-Model     Controller  Cloud/Region         Version  SLA          Timestamp
-tutorial  overlord    localhost/localhost  3.1.6    unsupported  10:04:50Z
+Model     Controller        Cloud/Region         Version  SLA          Timestamp
+tutorial  overlord          localhost/localhost  3.6.8    unsupported  17:00:08Z
 
-App              Version  Status  Scale  Charm            Channel      Rev  Exposed  Message
-data-integrator           active      1  data-integrator  stable        11  no       
-kafka                     active      3  kafka            3/stable     147  no       
-zookeeper                 active      5  zookeeper        3/stable     114  no       
+App              Version  Status  Scale  Charm            Channel        Rev  Exposed  Message
+data-integrator           active      1  data-integrator  latest/stable  180  no       
+kafka            4.0.0    active      3  kafka            4/edge         226  no       
+kraft            4.0.0    active      3  kafka            4/edge         226  no       
 
-Unit                Workload  Agent  Machine  Public address  Ports  Message
-data-integrator/0*  active    idle   8        10.244.26.4            
-kafka/0             active    idle   5        10.244.26.43           machine system settings are not optimal - see logs for info
-kafka/1*            active    idle   6        10.244.26.6            machine system settings are not optimal - see logs for info
-kafka/2             active    idle   7        10.244.26.19           machine system settings are not optimal - see logs for info
-zookeeper/0         active    idle   0        10.244.26.251          
-zookeeper/1         active    idle   1        10.244.26.129          
-zookeeper/2         active    idle   2        10.244.26.121          
-zookeeper/3*        active    idle   3        10.244.26.28           
-zookeeper/4         active    idle   4        10.244.26.174          
+Unit                Workload  Agent  Machine  Public address  Ports           Message
+data-integrator/0*  active    idle   6        10.233.204.111                  
+kafka/0*            active    idle   0        10.233.204.241  9092,19093/tcp  
+kafka/1             active    idle   1        10.233.204.196  9092,19093/tcp  
+kafka/2             active    idle   2        10.233.204.148  9092,19093/tcp  
+kraft/0             active    idle   3        10.233.204.125  9098/tcp        
+kraft/1*            active    idle   4        10.233.204.36   9098/tcp        
+kraft/2             active    idle   5        10.233.204.225  9098/tcp        
 
-Machine  State    Address        Inst id        Series  AZ  Message
-0        started  10.244.26.251  juju-f1a2cd-0  jammy       Running
-1        started  10.244.26.129  juju-f1a2cd-1  jammy       Running
-2        started  10.244.26.121  juju-f1a2cd-2  jammy       Running
-3        started  10.244.26.28   juju-f1a2cd-3  jammy       Running
-4        started  10.244.26.174  juju-f1a2cd-4  jammy       Running
-5        started  10.244.26.43   juju-f1a2cd-5  jammy       Running
-6        started  10.244.26.6    juju-f1a2cd-6  jammy       Running
-7        started  10.244.26.19   juju-f1a2cd-7  jammy       Running
-8        started  10.244.26.4    juju-f1a2cd-8  jammy       Running
+Machine  State    Address         Inst id        Base          AZ  Message
+0        started  10.233.204.241  juju-07a730-0  ubuntu@24.04      Running
+1        started  10.233.204.196  juju-07a730-1  ubuntu@24.04      Running
+2        started  10.233.204.148  juju-07a730-2  ubuntu@24.04      Running
+3        started  10.233.204.125  juju-07a730-3  ubuntu@24.04      Running
+4        started  10.233.204.36   juju-07a730-4  ubuntu@24.04      Running
+5        started  10.233.204.225  juju-07a730-5  ubuntu@24.04      Running
+6        started  10.233.204.111  juju-07a730-6  ubuntu@24.04      Running
 ```
 
 To retrieve information such as the username, password, and topic. Enter:
@@ -78,24 +74,27 @@ This should output something like:
 
 ```yaml
 kafka:
-  consumer-group-prefix: relation-6-
-  endpoints: 10.244.26.43:9092,10.244.26.6:9092,10.244.26.19:9092
-  password: ILg8C5msYRvqOnGATeFPyw2DKHncritf
+  consumer-group-prefix: relation-9-
+  data: '{"extra-user-roles": "producer,consumer", "provided-secrets": "[\"mtls-cert\"]",
+    "requested-secrets": "[\"username\", \"password\", \"tls\", \"tls-ca\", \"uris\",
+    \"read-only-uris\"]", "topic": "test-topic"}'
+  endpoints: 10.233.204.148:9092,10.233.204.196:9092,10.233.204.241:9092
+  password: JwxZmIgHIkafm0T6nyPIKbF8m29EALoI
   tls: disabled
   topic: test-topic
-  username: relation-6
-  zookeeper-uris: 10.244.26.121:2181,10.244.26.129:2181,10.244.26.174:2181,10.244.26.251:2181,10.244.26.28:2181/kafka
+  username: relation-9
 ok: "True"
 ```
 
-Save the value listed under `bootstrap-server`, `username` and `password`. *(Note: your hostname, usernames, and passwords will likely be different.)*
+Make note of the values for `bootstrap-server`, `username` and `password`, we'll be using them later.
+
 
 ### Produce/consume messages
 
-We will now use the username and password to produce some messages to Apache Kafka. To do so, we will first deploy the [Apache Kafka Test App](https://charmhub.io/kafka-test-app): a test charm that also bundles some python scripts to push data to Apache Kafka, e.g.:
+We will now use the username and password to produce some messages to Apache Kafka. To do so, we will first deploy the [Apache Kafka Test App](https://charmhub.io/kafka-test-app): a simplistic charm meant only for testing, that also bundles some Python scripts to push data to Apache Kafka, e.g:
 
 ```shell
-juju deploy kafka-test-app -n1 --channel edge
+juju deploy kafka-test-app --channel edge
 ```
 
 Once the charm is up and running, you can log into the container
@@ -150,31 +149,39 @@ options:
   --origin ORIGIN
 ```
 
-Using this script, you can therefore start producing messages (change the values of `username`, `password` and `servers`)
+Using this script, you can therefore start producing messages (change the values of `username`, `password` and `bootstrap-servers` to the ones obtained from the `data-integrator` application in the previous section):
 
 ```shell
 python3 -m charms.kafka.v0.client \
-  -u relation-6 -p S4IeRaYaiiq0tsM7m2UZuP2mSI573IGV \
+  -u relation-6 \
+  -p S4IeRaYaiiq0tsM7m2UZuP2mSI573IGV \
   -t test-topic \
   -s "10.244.26.43:9092,10.244.26.6:9092,10.244.26.19:9092" \
-  -n 10 --producer \
-  -r 3 --num-partitions 1
+  -n 10 \
+  -r 3 \
+  --num-partitions 1 \
+  --producer \
 ```
 
-and consume them 
+Let this run for a few seconds, then halt the process with `Ctrl+c`.
+
+Now, consume them with:
 
 ```shell
 python3 -m charms.kafka.v0.client \
-  -u relation-6 -p S4IeRaYaiiq0tsM7m2UZuP2mSI573IGV \
+  -u relation-6 \
+  -p S4IeRaYaiiq0tsM7m2UZuP2mSI573IGV \
   -t test-topic \
   -s "10.244.26.43:9092,10.244.26.6:9092,10.244.26.19:9092" \
+  -c "cg" \
   --consumer \
-  -c "cg"
 ```
+
+Now you know how to use credentials provided by related charms to successfully read/write data from Charmed Apache Kafka!
 
 ### Charm client applications
 
-Actually, the Data Integrator is only a very special client charm, that implements the `kafka_client` relation for exchanging data with Charmed Apache Kafka and user management via relations. 
+Actually, the Data Integrator is only a very special client charm, that implements the `kafka_client` relation interface for exchanging data with Charmed Apache Kafka and user management via relations. 
 
 For example, the steps above for producing and consuming messages to Apache Kafka have also been implemented in the `kafka-test-app` charm (that also implements the `kafka_client` relation) providing a fully integrated charmed user experience, where producing/consuming messages can simply be achieved using relations.  
 
@@ -183,43 +190,43 @@ For example, the steps above for producing and consuming messages to Apache Kafk
 To produce messages to Apache Kafka, we need to configure the `kafka-test-app` to act as a producer, publishing messages to a specific topic:
 
 ```shell
-juju config kafka-test-app topic_name=test_kafka_app_topic role=producer num_messages=20
+juju config kafka-test-app topic_name=TOP-PICK role=producer num_messages=20
 ```
 
-To start producing messages to Apache Kafka, we **JUST** simply relate the Apache Kafka Test App with Apache Kafka
+To start producing messages to Apache Kafka, we simply relate the Apache Kafka Test App with Apache Kafka:
 
 ```shell
-juju relate kafka-test-app kafka
+juju integrate kafka-test-app kafka
 ```
 
 ```{note}
-This will both take care of creating a dedicated user (as much as done for the data-integrator) as well as start a producer process publishing messages to the `test_kafka_app_topic` topic, basically automating what was done before by hand. 
+This will both take care of creating a dedicated user (as was done for the `data-integrator`) as well as start a producer process publishing messages to the `TOP-PICK` topic, basically automating what was done before by hand. 
 ```
 
 After some time, the `juju status` output should show
 
 ```shell
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
-tutorial  overlord    localhost/localhost  3.1.6    unsupported  18:58:47+02:00
+tutorial  overlord    localhost/localhost  3.6.8    unsupported  18:58:47+02:00
 
 App              Version  Status  Scale  Charm            Channel  Rev  Address         Exposed  Message
 ...
-kafka-test-app            active      1  kafka-test-app   edge       8  10.152.183.60   no       Topic test_kafka_app_topic enabled with process producer
+kafka-test-app            active      1  kafka-test-app   edge       8  10.152.183.60   no       Topic TOP-PICK enabled with process producer
 ...
 
 Unit                Workload  Agent  Address     Ports  Message
 ...
-kafka-test-app/0*   active    idle   10.1.36.88         Topic test_kafka_app_topic enabled with process producer
+kafka-test-app/0*   active    idle   10.1.36.88         Topic TOP-PICK enabled with process producer
 ...
 ```
 
-indicating that the process has started. To make sure that this is indeed the case, you can check the logs of the process:
+announcing that the process has started. To make sure that this is indeed the case, you can check the logs of the process:
 
 ```shell
 juju exec --application kafka-test-app "tail /tmp/*.log"
 ```
 
-To stop the process (although it is very likely that the process has already stopped given the low number of messages that were provided) and remove the user,  you can just remove the relation 
+To stop the process (although it is very likely that the process has already stopped given the low number of messages that were provided) and remove the user, you can just remove the relation:
 
 ```shell
 juju remove-relation kafka-test-app kafka
@@ -227,10 +234,10 @@ juju remove-relation kafka-test-app kafka
 
 #### Consuming messages
 
-Note that the `kafka-test-app` charm can also similarly be used to consume messages by changing its configuration to
+Note that the `kafka-test-app` charm can also similarly be used to consume messages by changing its configuration to:
 
 ```shell
-juju config kafka-test-app topic_name=test_kafka_app_topic role=consumer consumer_group_prefix=cg
+juju config kafka-test-app topic_name=TOP-PICK role=consumer consumer_group_prefix=cg
 ```
 
 After configuring the Apache Kafka Test App, just relate it again with the Charmed Apache Kafka. This will again create a new user and start the consumer process. 

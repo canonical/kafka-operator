@@ -8,7 +8,7 @@
 Install Juju via snap:
 
 ```shell
-sudo snap install juju --channel 3.5/stable
+sudo snap install juju
 ```
 
 Follow the [AWS documentation](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) for guidance on how to install the Amazon Web Services CLI.
@@ -104,12 +104,10 @@ juju model-config logging-config='<root>=INFO;unit=DEBUG'
 ```
 ```
 
-Deploy and integrate Kafka and ZooKeeper:
+Deploy Charmed Apache Kafka:
 
 ```shell
-juju deploy zookeeper -n3 --channel 3/stable [--constraints "instance-type=<INSTANCE_TYPE>"] 
-juju deploy kafka -n3 --channel 3/stable [--constraints "instance-type=<INSTANCE_TYPE>"]
-juju integrate kafka zookeeper
+juju deploy kafka -n 3 --config roles=broker,controller [--constraints "instance-type=<INSTANCE_TYPE>"]
 ```
 
 ```{caution}
@@ -121,18 +119,18 @@ For more guidance on sizing production environments, see the [Requirements page]
 We also recommend to deploy a [Data Integrator](https://charmhub.io/data-integrator) for creating an admin user to manage the content of the Kafka cluster:
 
 ```shell
-juju deploy data-integrator admin \
+juju deploy data-integrator \
   --config extra-user-roles=admin \
-  --config topic-name=admin-topic
+  --config topic-name=__admin-user
 ```
 
 And integrate it with the Kafka application:
 
 ```shell
-juju integrate kafka admin
+juju integrate kafka data-integrator
 ```
 
-For more information on Data Integrator and how to use it, please refer to the [how-to manage applications](how-to-manage-applications) guide.
+For more information on Data Integrator and how to use it, please refer to the [how-to manage client connections](how-to-client-connections) guide.
 
 ## Clean up
 

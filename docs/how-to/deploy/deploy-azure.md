@@ -8,10 +8,10 @@
 ```{warning}
 Current limitations:
 
-* Only supported starting Juju 3.6 (currently edge)
+* Only supported starting Juju 3.6
 * Juju CLI should be on Azure VM for it to be able to reach cloud metadata endpoint.
 * Managed Identity and the Juju resources should be on the same Azure subscription
-* The current setup has been tested on Ubuntu 22.04+
+* The current setup has been tested on Ubuntu 22.04 and higher
 ```
 
 ### Juju
@@ -19,7 +19,7 @@ Current limitations:
 Install Juju via snap:
 
 ```shell
-sudo snap install juju --channel 3.6/edge
+sudo snap install juju
 ```
 
 Check that the Juju version is correctly installed:
@@ -151,12 +151,10 @@ juju add-model <MODEL_NAME>
 juju model-config logging-config='<root>=INFO;unit=DEBUG'
 ```
 
-Deploy and integrate Kafka and ZooKeeper:
+Deploy Charmed Apache Kafka:
 
 ```shell
-juju deploy zookeeper -n3 --channel 3/stable [--constraints "instance-type=<INSTANCE_TYPE>"]
-juju deploy kafka -n3 --channel 3/stable [--constraints "instance-type=<INSTANCE_TYPE>"]
-juju integrate kafka zookeeper
+juju deploy kafka -n 3 --config roles=broker,controller [--constraints "instance-type=<INSTANCE_TYPE>"]
 ```
 
 ```{caution}
@@ -169,18 +167,18 @@ You can find more information about the available instance types in the [Azure d
 We also recommend to deploy a [Data Integrator](https://charmhub.io/data-integrator) for creating an admin user to manage the content of the Kafka cluster:
 
 ```shell
-juju deploy data-integrator admin --channel edge \
+juju deploy data-integrator \
   --config extra-user-roles=admin \
-  --config topic-name=admin-topic
+  --config topic-name=__admin-user
 ```
 
 And integrate it with the Kafka application:
 
 ```shell
-juju integrate kafka admin
+juju integrate kafka data-integrator
 ```
 
-For more information on Data Integrator and how to use it, please refer to the [how-to manage applications](how-to-manage-applications) guide.
+For more information on Data Integrator and how to use it, please refer to the [how-to manage applications](how-to-client-connections) guide.
 
 ## Clean up
 

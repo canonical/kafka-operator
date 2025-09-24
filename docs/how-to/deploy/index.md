@@ -11,6 +11,5 @@
 
 AWS<deploy-aws.md>
 Azure<deploy-azure.md>
-KRaft mode<kraft-mode.md>
 Spaces<deploy-spaces.md>
 ```

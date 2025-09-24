@@ -1,14 +1,14 @@
-(how-to-manage-applications)=
-# How to manage related applications
+(how-to-client-connections)=
+# How to manage client connections
 
 Relations to new applications are supported via the "[{spellexception}`kafka_client`](https://github.com/canonical/charm-relation-interfaces/blob/main/interfaces/kafka_client/v0/README.md)" interface.
 
-## Within Juju via `kafka_client` interface
+## Via the `kafka_client` charm relation interface
 
-If the charm supports the `kafka_client` interface, just create a relation between the two charms:
+If the charm supports the `kafka_client` relation interface, just create an integration between the two charms:
 
 ```shell
-juju relate kafka application
+juju integrate kafka application
 ```
 
 To remove a relation:
@@ -17,21 +17,21 @@ To remove a relation:
 juju remove-relation kafka application
 ```
 
-## Outside Juju or for charms not implementing `kafka_client`
+## Non-charmed applications and external clients
 
 The `kafka_client` interface is used with the `data-integrator` charm. This charm automatically creates and manages product credentials needed to authenticate with different kinds of data platform charmed products:
 
 Deploy the Data Integrator charm with the desired `topic-name` and user roles:
 
 ```shell
-juju deploy data-integrator --channel edge
+juju deploy data-integrator
 juju config data-integrator topic-name=test-topic extra-user-roles=producer,consumer
 ```
 
 Relate the two applications with:
 
 ```shell
-juju relate data-integrator kafka
+juju integrate data-integrator kafka
 ```
 
 To retrieve information, enter:
@@ -49,7 +49,6 @@ kafka:
   password: ejMp4SblzxkMCF0yUXjaspneflXqcyXK
   tls: disabled
   username: relation-27
-  zookeeper-uris: 10.123.8.154:2181,10.123.8.181:2181,10.123.8.61:2181/kafka
 ok: "True"
 ```
 
@@ -68,8 +67,9 @@ the application (either a charm supporting the `kafka-client` interface or a `da
 
 ```shell
 juju remove-relation kafka <charm-or-data-integrator>
+
 # wait for the relation to be torn down 
-juju relate kafka <charm-or-data-integrator>
+juju integrate kafka <charm-or-data-integrator>
 ```
 
 The successful credential rotation can be confirmed by retrieving the new password with the action `get-credentials`.
@@ -80,14 +80,15 @@ In some use-cases credentials should be rotated with no or limited application d
 If credentials should be rotated with no or limited downtime, you can deploy a new charm with the same permissions and resource definition, for example:
 
 ```shell
-juju deploy data-integrator rotated-user --channel stable \
-  --config topic-name=test-topic --config extra-user-roles=admin
+juju deploy data-integrator rotated-user \
+  --config topic-name=test-topic \
+  --config extra-user-roles=producer,consumer
 ```
 
 The `data-integrator` charm can then be related to the `kafka` charm to create a new user:
 
 ```shell
-juju relate kafka rotated-user
+juju integrate kafka rotated-user
 ```
 
 At this point, we effectively have two overlapping users, so that applications can swap the password
@@ -99,16 +100,4 @@ Once all applications have rotated their credentials, it is then safe to remove 
 
 ```shell
 juju remove-application data-integrator
-```
-
-## Internal password rotation
-
-The operator user is used internally by the Charmed Apache Kafka Operator, the `set-password` action can be used to rotate its password.
-
-```shell
-# to set a specific password for the operator user
-juju run kafka/leader set-password password=<password>
-
-# to randomly generate a password for the operator user
-juju run kafka/leader set-password
 ```

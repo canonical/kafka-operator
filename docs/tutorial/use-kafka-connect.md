@@ -20,28 +20,27 @@ We will be deploying different charmed data solutions including PostgreSQL and O
 
 ### Check current deployment
 
-Up to this point, we should have a 3-unit Apache Kafka application, related to a 5-unit ZooKeeper application. That means the `juju status` command should show an output similar to the following:
+Up to this point, we should have three units of Charmed Apache Kafka application. That means the `juju status` command should show an output similar to the following:
 
-```bash
-Model     Controller  Cloud/Region         Version  SLA          Timestamp
-tutorial  overlord    localhost/localhost  3.6.4    unsupported  17:06:15+08:00
+```text
+Model     Controller        Cloud/Region         Version  SLA          Timestamp
+tutorial  overlord          localhost/localhost  3.6.8    unsupported  01:02:27Z
 
 App                       Version  Status  Scale  Charm                     Channel        Rev  Exposed  Message
-data-integrator                    active      1  data-integrator           latest/stable   78  no       
-kafka                     3.6.1    active      3  kafka                     3/stable       195  no       
-zookeeper                 3.8.4    active      5  zookeeper                 3/stable       149  no       
+data-integrator                    active      1  data-integrator           latest/stable  180  no       
+kafka                     4.0.0    active      3  kafka                     4/edge         226  no       
+kraft                     4.0.0    active      3  kafka                     4/edge         226  no       
+self-signed-certificates           active      1  self-signed-certificates  1/edge         336  no       
 
-Unit                         Workload  Agent  Machine  Public address  Ports     Message
-data-integrator/0*           active    idle   8        10.38.169.159             
-kafka/0                      active    idle   5        10.38.169.139             
-kafka/1*                     active    idle   6        10.38.169.92              
-kafka/2                      active    idle   7        10.38.169.70
-self-signed-certificates/0*  active    idle   9        10.38.169.82                            
-zookeeper/0*                 active    idle   0        10.38.169.164             
-zookeeper/1                  active    idle   1        10.38.169.81              
-zookeeper/2                  active    idle   2        10.38.169.72              
-zookeeper/3                  active    idle   3        10.38.169.119             
-zookeeper/4                  active    idle   4        10.38.169.215             
+Unit                         Workload  Agent  Machine  Public address  Ports           Message
+data-integrator/0*           active    idle   6        10.233.204.111                  
+kafka/0*                     active    idle   0        10.233.204.241  9093,19093/tcp  
+kafka/1                      active    idle   1        10.233.204.196  9093,19093/tcp  
+kafka/2                      active    idle   2        10.233.204.148  9093,19093/tcp  
+kraft/0                      active    idle   3        10.233.204.125  9098/tcp        
+kraft/1*                     active    idle   4        10.233.204.36   9098/tcp        
+kraft/2                      active    idle   5        10.233.204.225  9098/tcp        
+self-signed-certificates/0*  active    idle   7        10.233.204.134                  
 ```
 
 ### Set the necessary kernel properties for OpenSearch
@@ -109,35 +108,32 @@ Finally, since we will be using TLS on the Kafka Connect interface, integrate th
 juju integrate kafka-connect self-signed-certificates
 ```
 
-Use the `juju status --watch 2s` command to continuously probe your model's status. After a couple of minutes, all the applications should be in `active|idle` state, and you should see an output like the following, with 7 applications and 13 units:
+Use the `watch -n 1 --color juju status --color` command to continuously probe your model's status. After a couple of minutes, all the applications should be in `active|idle` state, and you should see an output like the following, with 7 applications and 13 units:
 
 ```text
-Model     Controller  Cloud/Region         Version  SLA          Timestamp
-tutorial  overlord    localhost/localhost  3.6.4    unsupported  17:09:25+08:00
+Model     Controller        Cloud/Region         Version  SLA          Timestamp
+tutorial  overlord          localhost/localhost  3.6.8    unsupported  01:02:27Z
 
 App                       Version  Status  Scale  Charm                     Channel        Rev  Exposed  Message
-data-integrator                    active      1  data-integrator           latest/stable   78  no       
-kafka                     3.6.1    active      3  kafka                     3/stable       195  no       
-kafka-connect                      active      1  kafka-connect             latest/edge     13  no       
+data-integrator                    active      1  data-integrator           latest/stable  180  no       
+kafka                     4.0.0    active      3  kafka                     4/edge         226  no       
+kraft                     4.0.0    active      3  kafka                     4/edge         226  no       
 opensearch                         active      1  opensearch                2/edge         218  no       
 postgresql                14.15    active      1  postgresql                14/stable      553  no       
-self-signed-certificates           active      1  self-signed-certificates  1/stable       263  no       
-zookeeper                 3.8.4    active      5  zookeeper                 3/stable       149  no       
 
-Unit                         Workload  Agent  Machine  Public address  Ports     Message
-data-integrator/0*           active    idle   8        10.38.169.159             
-kafka-connect/0*             active    idle   10        10.38.169.23    8083/tcp  
-kafka/0                      active    idle   5        10.38.169.139             
-kafka/1*                     active    idle   6        10.38.169.92              
-kafka/2                      active    idle   7        10.38.169.70              
-opensearch/0*                active    idle   11       10.38.169.172   9200/tcp  
-postgresql/0*                active    idle   12       10.38.169.121   5432/tcp  Primary
-self-signed-certificates/0*  active    idle   9       10.38.169.82              
-zookeeper/0*                 active    idle   0        10.38.169.164             
-zookeeper/1                  active    idle   1        10.38.169.81              
-zookeeper/2                  active    idle   2        10.38.169.72              
-zookeeper/3                  active    idle   3        10.38.169.119             
-zookeeper/4                  active    idle   4        10.38.169.215             
+self-signed-certificates           active      1  self-signed-certificates  1/edge         336  no       
+
+Unit                         Workload  Agent  Machine  Public address  Ports           Message
+data-integrator/0*           active    idle   6        10.233.204.111                  
+opensearch/0*                active    idle   11       10.233.204.172  9200/tcp  
+postgresql/0*                active    idle   12       10.233.204.121  5432/tcp        Primary
+kafka/0*                     active    idle   0        10.233.204.241  9093,19093/tcp  
+kafka/1                      active    idle   1        10.233.204.196  9093,19093/tcp  
+kafka/2                      active    idle   2        10.233.204.148  9093,19093/tcp  
+kraft/0                      active    idle   3        10.233.204.125  9098/tcp        
+kraft/1*                     active    idle   4        10.233.204.36   9098/tcp        
+kraft/2                      active    idle   5        10.233.204.225  9098/tcp        
+self-signed-certificates/0*  active    idle   7        10.233.204.134                  
 ```
 
 ### Load test data
