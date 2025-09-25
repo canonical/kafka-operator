@@ -6,7 +6,7 @@ For specific guides, see: [AWS](how-to-deploy-deploy-on-aws), [Azure](how-to-dep
 (how-to-deploy-deploy-anywhere)=
 
 ```{caution}
-For K8s Charmed Apache Kafka, see the [Charmed Apache Kafka K8s documentation](https://charmhub.io/kafka-k8s) instead.
+For K8s Charmed Apache Kafka, see the [Charmed Apache Kafka K8s documentation](https://documentation.ubuntu.com/charmed-kafka-k8s/3/) instead.
 ```
 
 To deploy a Charmed Apache Kafka cluster on a bare environment, it is necessary to:
