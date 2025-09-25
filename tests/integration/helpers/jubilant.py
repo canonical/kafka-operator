@@ -17,6 +17,7 @@ from tenacity import retry
 from tenacity.stop import stop_after_attempt
 from tenacity.wait import wait_fixed
 
+from core.workload import WorkloadBase
 from literals import (
     PATHS,
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
@@ -59,6 +60,7 @@ def deploy_cluster(
     logger.info(f"Deploying Kafka cluster in '{kraft_mode}' mode")
 
     base = "ubuntu@24.04" if series == "noble" else "ubuntu@22.04"
+    _config = {"auto-balance": False} if num_broker < 3 else {}
 
     juju.deploy(
         charm,
@@ -70,6 +72,7 @@ def deploy_cluster(
             "roles": "broker,controller" if kraft_mode == "single" else "broker",
             "profile": "testing",
         }
+        | _config
         | config_broker,
         trust=True,
         bind=bind,
@@ -85,6 +88,7 @@ def deploy_cluster(
                 "roles": "controller",
                 "profile": "testing",
             }
+            | _config
             | config_controller,
             trust=True,
             bind=bind,
@@ -326,3 +330,19 @@ def kraft_quorum_status(
         print(unit_status)
 
     return unit_status
+
+
+def check_log_dirs(model: str | None):
+    bootstrap_server = f"{get_unit_ipv4_address(model, 'kafka/0')}:19093"
+    command = (
+        f"JUJU_MODEL={model} juju ssh kafka/0 sudo -i 'charmed-kafka.log-dirs --command-config {PATHS['kafka']['CONF']}/client.properties --bootstrap-server {bootstrap_server} --describe'",
+    )
+
+    result = check_output(
+        command,
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+
+    return WorkloadBase._parse_log_dirs_output(result)

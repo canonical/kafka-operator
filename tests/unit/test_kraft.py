@@ -6,7 +6,7 @@ import dataclasses
 import json
 import logging
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import PropertyMock, patch
 
 import pytest
 import yaml
@@ -177,6 +177,16 @@ def test_ready_to_start(charm_configuration, base_state: State):
     # When
     with (
         patch("workload.KafkaWorkload.run_bin_command", return_value="cluster-uuid-number"),
+        patch(
+            "core.cluster.ClusterState.broker_capacities",
+            new_callable=PropertyMock,
+            return_value={"brokerCapacities": [{}, {}, {}]},
+        ),
+        patch(
+            "managers.balancer.BalancerManager.config_change_detected",
+            return_value=False,
+        ),
+        patch("managers.tls.TLSManager.configure"),
         patch("health.KafkaHealth.machine_configured", return_value=True),
         patch("workload.KafkaWorkload.start"),
         patch("workload.KafkaWorkload.active", return_value=True),

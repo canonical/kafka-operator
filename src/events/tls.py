@@ -176,7 +176,7 @@ class TLSHandler(Object):
 
         if state.scope == TLSScope.PEER:
             # switch back to internal TLS
-            self.charm.broker.setup_internal_tls()
+            self.charm.broker.setup_internal_tls(event)
 
             # Keep the old bundle
             for dependent in ["broker", "balancer"]:
@@ -295,6 +295,7 @@ class TLSHandler(Object):
         if not all(
             [
                 self.charm.broker.healthy,
+                self.charm.state.has_mtls_clients,
                 self.charm.state.cluster.tls_enabled,
                 self.charm.state.unit_broker.client_certs.certificate,
                 self.charm.state.unit_broker.client_certs.ca,
@@ -303,7 +304,6 @@ class TLSHandler(Object):
             # not ready yet.
             return
 
-        should_reload = False
         live_aliases = set()
 
         # Client MTLS certs
@@ -317,7 +317,6 @@ class TLSHandler(Object):
 
             self.charm.broker.tls_manager.update_cert(alias=alias, cert=client.mtls_cert)
             live_aliases.add(alias)
-            should_reload = True
 
         # Transferred certs
         transferred_certs = self.certificate_transfer.get_all_certificates()
@@ -329,11 +328,9 @@ class TLSHandler(Object):
                 continue
 
             self.charm.broker.tls_manager.update_cert(alias=alias, cert=cert)
-            should_reload = True
 
         logger.debug(f"Following aliases should be in the truststore: {live_aliases}")
-        if should_reload:
-            self.charm.broker.tls_manager.reload_truststore()
+        self.charm.broker.tls_manager.reload_truststore()
 
     @property
     def ready(self) -> bool:

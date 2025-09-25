@@ -325,3 +325,9 @@ class Status(Enum):
     WAITING_FOR_REBALANCE = StatusLevel(
         WaitingStatus("awaiting completion of rebalance task"), "DEBUG"
     )
+    SCALING_WARNING = StatusLevel(
+        MaintenanceStatus(
+            "Apache Kafka cluster is scaling, it is advised to postpone potentially disruptive actions like refresh."
+        ),
+        "WARNING",
+    )

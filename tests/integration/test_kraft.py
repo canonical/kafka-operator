@@ -108,6 +108,7 @@ class TestKRaft:
                 config={
                     "roles": "broker,controller" if self.controller_app == APP_NAME else "broker",
                     "profile": "testing",
+                    "auto-balance": False,
                 },
                 trust=True,
             ),
@@ -129,6 +130,7 @@ class TestKRaft:
                 config={
                     "roles": "controller",
                     "profile": "testing",
+                    "auto-balance": False,
                 },
                 trust=True,
             )

@@ -222,6 +222,7 @@ class ClusterState(Object):
             relation=self.peer_relation,
             data_interface=self.peer_app_interface,
             component=self.model.app,
+            network_bandwidth=self.network_bandwidth,
         )
 
     @property
@@ -452,19 +453,13 @@ class ClusterState(Object):
     def broker_capacities(self) -> BrokerCapacities:
         """The capacities for all Kafka broker."""
         broker_capacities = []
-        for broker in sorted(self.brokers, key=lambda broker: broker.unit_id, reverse=True):
-            if not all([broker.cores, broker.storages]):
-                return {}
-
+        snapshot = self.cluster.broker_capacities_snapshot
+        for broker_id in sorted(snapshot, reverse=True):
+            capacity = snapshot[broker_id]
             broker_capacities.append(
                 {
-                    "brokerId": str(broker.broker_id),
-                    "capacity": {
-                        "DISK": broker.storages,
-                        "CPU": {"num.cores": broker.cores},
-                        "NW_IN": str(self.network_bandwidth),
-                        "NW_OUT": str(self.network_bandwidth),
-                    },
+                    "brokerId": str(broker_id),
+                    "capacity": capacity,
                     "doc": "",
                 }
             )
@@ -565,6 +560,9 @@ class ClusterState(Object):
     @property
     def runs_balancer(self) -> bool:
         """Is the charm enabling the balancer?"""
+        if all([self.config.auto_balance, self.runs_broker]):
+            return True
+
         return BALANCER.value in self.roles
 
     @property

@@ -130,15 +130,15 @@ class KafkaProvider(Object):
 
     def on_mtls_cert_updated(self, event: KafkaClientMtlsCertUpdatedEvent) -> None:
         """Handler for `kafka-client-mtls-cert-updated` event."""
-        if not self.charm.broker.healthy:
-            event.defer()
-            return
-
         if not event.mtls_cert:
             logger.info("No MTLS cert provided. skipping MTLS setup.")
             return
 
         if not event.relation or not event.relation.active:
+            return
+
+        if not self.charm.broker.healthy:
+            event.defer()
             return
 
         if not all(

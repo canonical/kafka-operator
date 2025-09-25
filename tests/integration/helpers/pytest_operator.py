@@ -67,6 +67,8 @@ async def deploy_cluster(
     """Deploys an Apache Kafka cluster using the Charmed Apache Kafka operator in KRaft mode."""
     logger.info(f"Deploying Kafka cluster in '{kraft_mode}' mode")
 
+    _config = {"auto-balance": False} if num_broker < 3 else {}
+
     await ops_test.model.deploy(
         charm,
         application_name=app_name_broker,
@@ -77,6 +79,7 @@ async def deploy_cluster(
             "roles": "broker,controller" if kraft_mode == "single" else "broker",
             "profile": "testing",
         }
+        | _config
         | config_broker,
         trust=True,
     )
@@ -91,6 +94,7 @@ async def deploy_cluster(
                 "roles": "controller",
                 "profile": "testing",
             }
+            | _config
             | config_controller,
             trust=True,
         )

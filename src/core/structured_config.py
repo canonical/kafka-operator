@@ -62,6 +62,7 @@ class CharmConfig(BaseConfigModel):
     cruisecontrol_balance_threshold: float = Field(default=1.1, validate_default=False, ge=1)
     cruisecontrol_capacity_threshold: float = Field(default=0.8, validate_default=False, le=1)
     system_users: str | None = None
+    auto_balance: bool = True
 
     @validator("*", pre=True)
     @classmethod
