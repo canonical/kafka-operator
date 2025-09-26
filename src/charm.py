@@ -5,7 +5,6 @@
 """Charmed Machine Operator for Apache Kafka."""
 
 import logging
-import time
 
 import charm_refresh
 import ops
@@ -170,9 +169,14 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         self.broker.workload.restart()
 
-        # FIXME: This logic should be improved as part of ticket DPE-3155
-        # For more information, please refer to https://warthogs.atlassian.net/browse/DPE-3155
-        time.sleep(10.0)
+        if not self.workload.health_check(
+            host=self.state.unit_broker.internal_address,
+            runs_broker=self.state.runs_broker,
+            runs_controller=self.state.runs_controller,
+        ):
+            event.defer()
+            return
+
         self.broker.update_credentials_cache()
 
         # Force update our trusted certs relation data.
