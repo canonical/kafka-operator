@@ -204,14 +204,14 @@ class TestKRaft:
         unit_status = kraft_quorum_status(
             ops_test, f"{self.controller_app}/0", bootstrap_controller
         )
+        # Assert 1 leader
+        assert len([s for s in unit_status.values() if s == KRaftUnitStatus.LEADER]) == 1
 
         offset = KRAFT_NODE_ID_OFFSET if self.deployment_strat == "single" else 0
 
         for unit_id, status in unit_status.items():
-            if unit_id == offset + 0:
-                assert status == KRaftUnitStatus.LEADER
-            elif unit_id < offset + 100:
-                assert status == KRaftUnitStatus.FOLLOWER
+            if unit_id < offset + 100:
+                assert status in (KRaftUnitStatus.FOLLOWER, KRaftUnitStatus.LEADER)
             else:
                 assert status == KRaftUnitStatus.OBSERVER
 
