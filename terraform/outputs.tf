@@ -1,7 +1,7 @@
 # CC006 mandatory outputs
 output "app_name" {
   description = "Name of the main Kafka application"
-  value = juju_application.kafka.name
+  value       = juju_application.kafka.name
 }
 
 output "provides_endpoints" {
@@ -21,5 +21,5 @@ output "offers" {
 
 output "kafka_client_offer" {
   description = "Kafka client offer URL for external applications"
-  value = juju_offer.kafka_client.url
+  value       = juju_offer.kafka_client.url
 }

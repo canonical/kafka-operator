@@ -2,7 +2,7 @@
 resource "juju_application" "kafka" {
   model = var.model
   name  = var.app_name
-  
+
   charm {
     name     = "kafka"
     channel  = var.channel

@@ -7,7 +7,7 @@ variable "app_name" {
 variable "channel" {
   description = "Charm channel to deploy from"
   type        = string
-  default = "4/edge"
+  default     = "4/edge"
 }
 
 variable "config" {
