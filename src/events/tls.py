@@ -57,6 +57,7 @@ class TLSHandler(Object):
     def __init__(self, charm: "KafkaCharm") -> None:
         super().__init__(charm, "tls")
         self.charm: "KafkaCharm" = charm
+        self._certs_updated = False
 
         self.sans = self.charm.broker.tls_manager.build_sans()
         self.common_name = f"{self.charm.unit.name}-{self.charm.model.uuid}"
@@ -348,19 +349,30 @@ class TLSHandler(Object):
 
         return True
 
-    def _handle_config_changed_rotation(self, event: EventBase) -> tuple[bool, bool]:
-        """Handle TLS certificate rotation logic during config_changed events.
+    @property
+    def certs_updated(self) -> bool:
+        """Returns True if the certificates have been updated, False otherwise."""
+        return self._certs_updated
 
-        Returns:
-            Tuple of (should_continue, peer_cluster_tls_rotate)
-        """
-        # Update peer-cluster trusted certs and check for TLS rotation on the other side.
+    @certs_updated.setter
+    def certs_updated(self, value: bool) -> None:
+        self._certs_updated = value
+
+    def unit_tls_rotate(self) -> None:
+        """Updates the truststore and checks if this unit needs to rotate its TLS certificates."""
         self.charm.broker.update_peer_truststore_state()
         old_peer_certs = self.charm.broker.tls_manager.peer_trusted_certificates.values()
         self.charm.broker.tls_manager.update_peer_cluster_trust()
         new_peer_certs = self.charm.broker.tls_manager.peer_trusted_certificates.values()
-        peer_cluster_tls_rotate = set(new_peer_certs) != set(old_peer_certs)
+        self.certs_updated = set(new_peer_certs) != set(old_peer_certs)
 
+    def config_changed_rotation(self, event: EventBase) -> bool:
+        """Handle TLS certificate rotation logic during config_changed events.
+
+        Returns:
+            bool: should_continue
+        """
+        self.unit_tls_rotate()
         if (
             self.charm.state.tls_rotate
             and not self.charm.broker.tls_manager.peer_cluster_app_trusts_new_bundle()
@@ -378,7 +390,7 @@ class TLSHandler(Object):
 
             if should_defer:
                 event.defer()
-                return False, peer_cluster_tls_rotate
+                return False
 
         # Check for SANs change and revoke the cert if SANs change is detected.
         # Emitting the refresh_tls_certificates will lead to rotation and restart.
@@ -393,9 +405,9 @@ class TLSHandler(Object):
             else:
                 self.refresh_tls_certificates.emit()
 
-        return True, peer_cluster_tls_rotate
+        return True
 
-    def _handle_config_changed_tls_updates(self) -> None:
+    def handle_config_changed_tls_updates(self) -> None:
         """Handle TLS state updates during config_changed events."""
         # Update truststore if needed.
         self.update_truststore()

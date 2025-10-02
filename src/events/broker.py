@@ -208,27 +208,17 @@ class BrokerOperator(Object):
         if not self.charm.pending_inactive_statuses:
             logger.info(f'Broker {self.charm.unit.name.split("/")[1]} connected')
 
-    def _config_changed_checks(self, event: EventBase) -> bool:
-        """Perform initial validation checks for config_changed events.
+    def _handle_configuration_updates(self, event: EventBase) -> None:
+        """Handle configuration property updates and restart if needed.
 
-        Returns:
-            True if processing should continue, False if event should be deferred
+        Helper method to config_changed event.
         """
-        if self.charm.refresh_not_ready or not self.healthy:
-            event.defer()
-            return False
+        if not self.workload.active():
+            # shouldn't happen, but just in case
+            logger.warning("Kafka service not active during config_changed event. Deferring...")
+            return
 
-        properties = self.workload.read(self.workload.paths.server_properties)
-        if not properties:
-            event.defer()
-            return False
-
-        return True
-
-    def _handle_configuration_updates(
-        self, event: EventBase, properties_changed: set[str], peer_cluster_tls_rotate: bool
-    ) -> None:
-        """Handle configuration property updates and restart if needed."""
+        properties_changed = self.config_manager.properties_changed()
         if properties_changed:
             logger.info(
                 f'Broker {self.charm.unit.name.split("/")[1]} updating config - '
@@ -236,7 +226,7 @@ class BrokerOperator(Object):
             )
             self.config_manager.set_server_properties()
 
-        if any([properties_changed, self.charm.state.tls_rotate, peer_cluster_tls_rotate]):
+        if any([properties_changed, self.charm.state.tls_rotate, self.charm.tls.certs_updated]):
             if isinstance(event, StorageEvent):  # to get new storages
                 self.controller_manager.format_storages(
                     uuid=self.charm.state.peer_cluster.cluster_uuid,
@@ -278,21 +268,24 @@ class BrokerOperator(Object):
 
     def _on_config_changed(self, event: EventBase) -> None:
         """Generic handler for most `config_changed` events across relations."""
-        if not self._config_changed_checks(event):
+        if self.charm.refresh_not_ready or not self.healthy:
+            event.defer()
             return
 
-        properties_changed = self.config_manager.properties_changed()
+        properties = self.workload.read(self.workload.paths.server_properties)
+        if not properties:
+            event.defer()
+            return
+
         self.config_manager.set_environment()
 
-        should_continue, peer_cluster_tls_rotate = self.charm.tls._handle_config_changed_rotation(
-            event
-        )
+        should_continue = self.charm.tls.config_changed_rotation(event)
         if not should_continue:
             return
 
-        self._handle_configuration_updates(event, properties_changed, peer_cluster_tls_rotate)
+        self._handle_configuration_updates(event)
         self._handle_broker_service_updates()
-        self.charm.tls._handle_config_changed_tls_updates()
+        self.charm.tls.handle_config_changed_tls_updates()
 
     def _on_update_status(self, _: UpdateStatusEvent) -> None:
         """Handler for `update-status` events."""
