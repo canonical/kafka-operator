@@ -20,5 +20,5 @@ assigned and coordinating the release of the fix.
 
 The
 [Ubuntu Security disclosure and embargo policy](https://ubuntu.com/security/disclosure-policy)
-contains more  information about what you can expect when you contact us,
+contains more information about what you can expect when you contact us,
 and what we expect from you.
