@@ -465,6 +465,7 @@ class BrokerOperator(Object):
 
     def update_client_data(self) -> None:
         """Writes necessary relation data to all related client applications."""
+        # TODO: this method would need to be replaced with a KafkaResponseModel pattern instead
         if not self.charm.unit.is_leader() or not self.healthy or not self.charm.balancer.healthy:
             return
 

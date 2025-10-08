@@ -9,26 +9,24 @@ import logging
 import socket
 from dataclasses import dataclass
 from functools import cached_property
-from typing import MutableMapping, TypeAlias, TypedDict
+from typing import Annotated, MutableMapping, TypeAlias, TypedDict
 
+from pydantic import Field
 import requests
-from charms.data_platform_libs.v0.data_interfaces import (
-    PROV_SECRET_PREFIX,
-    SECRET_GROUPS,
-    Data,
-    DataPeerData,
-    DataPeerUnitData,
-    ProviderData,
-    RequirerData,
+from charms.data_platform_libs.v1.data_interfaces import (
+    OpsRepository,
+    OpsRelationRepository,
+    OpsPeerRepository,
+    OpsOtherPeerUnitRepository,
+    OpsPeerUnitRepository,
+    SecretGroup,
+    OptionalSecretStr
 )
 from lightkube.resources.core_v1 import Node, Pod
 from ops.model import Application, ModelError, Relation, Unit
 from typing_extensions import override
 
 from literals import (
-    BALANCER,
-    BROKER,
-    CONTROLLER,
     INTERNAL_USERS,
     KRAFT_NODE_ID_OFFSET,
     SECRETS_APP,
@@ -52,19 +50,21 @@ BrokerCapacities = TypedDict(
     "BrokerCapacities", {"brokerCapacities": list[BrokerCapacity]}, total=False
 )
 
-custom_secret_groups = SECRET_GROUPS
-setattr(custom_secret_groups, "BROKER", "broker")
-setattr(custom_secret_groups, "BALANCER", "balancer")
-setattr(custom_secret_groups, "CONTROLLER", "controller")
+
+# Define custom secret groups
+# TODO: all secret logic needs updating to new pattern. doesn't work as is.
+BrokerGroupSecretStr = Annotated[OptionalSecretStr, Field(exclude=True, default=None), "broker"]
+ControllerGroupSecretStr = Annotated[OptionalSecretStr, Field(exclude=True, default=None), "controller"]
+BalancerGroupSecretStr = Annotated[OptionalSecretStr, Field(exclude=True, default=None), "balancer"]
 
 SECRET_LABEL_MAP = {
-    "broker-username": getattr(custom_secret_groups, "BROKER"),
-    "broker-password": getattr(custom_secret_groups, "BROKER"),
-    "controller-password": getattr(custom_secret_groups, "CONTROLLER"),
-    "broker-uris": getattr(custom_secret_groups, "BROKER"),
-    "balancer-username": getattr(custom_secret_groups, "BALANCER"),
-    "balancer-password": getattr(custom_secret_groups, "BALANCER"),
-    "balancer-uris": getattr(custom_secret_groups, "BALANCER"),
+    "broker-username": BrokerGroupSecretStr,
+    "broker-password": BrokerGroupSecretStr,
+    "broker-uris": BrokerGroupSecretStr,
+    "controller-password": ControllerGroupSecretStr,
+    "balancer-username": BalancerGroupSecretStr,
+    "balancer-password": BalancerGroupSecretStr,
+    "balancer-uris": BalancerGroupSecretStr,
 }
 
 
@@ -86,26 +86,33 @@ class SelfSignedCertificate:
     private_key: str
 
 
+
+# NOTE: OpsRepository replaces RelationState?
 class RelationState:
     """Relation state object."""
 
     def __init__(
         self,
         relation: Relation | None,
-        data_interface: Data,
+        repository: OpsRepository,
         component: Unit | Application | None,
         substrate: Substrates | None = None,
     ):
         self.relation = relation
-        self.data_interface = data_interface
-        self.model = data_interface._model
+        self.repository = repository
+        self.model = repository.model
         self.component = (
             component  # FIXME: remove, and use _fetch_my_relation_data defaults wheren needed
         )
         self.substrate = substrate
-        self.relation_data = (
-            self.data_interface.as_dict(self.relation.id) if self.relation else {}
-        )  # FIXME: mappingproxytype?
+
+    @property
+    def relation_data(self) -> dict[str, str]:
+        """Access to relation data via repository."""
+        if not self.repository:
+            return {}
+        data = self.repository.get_data()
+        return data if data else {}
 
     def __bool__(self) -> bool:
         """Boolean evaluation based on the existence of self.relation."""
@@ -115,23 +122,25 @@ class RelationState:
             return False
 
     def update(self, items: dict[str, str]) -> None:
-        """Writes to relation_data."""
+        """Writes to relation_data via repository."""
         delete_fields = [key for key in items if not items[key]]
         update_content = {k: items[k] for k in items if k not in delete_fields}
 
-        self.relation_data.update(update_content)
-
-        for field in delete_fields:
-            del self.relation_data[field]
-
-        if not self.relation:
+        if not self.repository:
             return
 
+        # Write regular fields
+        if update_content:
+            self.repository.write_fields(update_content)
+
+        # Delete fields
+        if delete_fields:
+            self.repository.delete_fields(*delete_fields)
+
+        # Handle secret fields
         secret_keys = set(update_content) & set(SECRET_LABEL_MAP)
         for key in secret_keys:
-            self.data_interface._add_or_update_relation_secrets(
-                self.relation, SECRET_LABEL_MAP[key], {key}, {key: update_content[key]}
-            )
+            self.repository.add_secret(key, update_content[key], SECRET_LABEL_MAP[key])
 
     @property
     def network_interface(self) -> str:
@@ -168,28 +177,6 @@ class RelationState:
         return ip
 
 
-class PeerClusterOrchestratorData(ProviderData, RequirerData):
-    """Broker provider data model."""
-
-    SECRET_LABEL_MAP = SECRET_LABEL_MAP
-    SECRET_FIELDS = BROKER.requested_secrets
-
-    # This is to bypass the PrematureDataAccessError, which is irrelevant in this case.
-    def _update_relation_data(self, relation: Relation, data: dict[str, str]) -> None:
-        """Set values for fields not caring whether it's a secret or not."""
-        super(ProviderData, self)._update_relation_data(relation, data)
-
-
-class PeerClusterData(ProviderData, RequirerData):
-    """Broker provider data model."""
-
-    SECRET_LABEL_MAP = SECRET_LABEL_MAP
-    SECRET_FIELDS = list(set(BALANCER.requested_secrets) | set(CONTROLLER.requested_secrets))
-
-    # This is to bypass the PrematureDataAccessError, which is irrelevant in this case.
-    def _update_relation_data(self, relation: Relation, data: dict[str, str]) -> None:
-        """Set values for fields not caring whether it's a secret or not."""
-        super(ProviderData, self)._update_relation_data(relation, data)
 
 
 class PeerCluster(RelationState):
@@ -198,7 +185,7 @@ class PeerCluster(RelationState):
     def __init__(
         self,
         relation: Relation | None,
-        data_interface: Data,
+        repository: OpsRepository,
         broker_username: str = "",
         broker_password: str = "",
         broker_uris: str = "",
@@ -213,7 +200,7 @@ class PeerCluster(RelationState):
         balancer_uris: str = "",
         controller_password: str = "",
     ):
-        super().__init__(relation, data_interface, None, None)
+        super().__init__(relation, repository, None, None)
         self._broker_username = broker_username
         self._broker_password = broker_password
         self._broker_uris = broker_uris
@@ -229,27 +216,19 @@ class PeerCluster(RelationState):
         self._controller_password = controller_password
 
     def _fetch_from_secrets(self, group, field) -> str:
-        if not self.relation:
+        if not self.repository:
             return ""
 
-        if secrets_uri := self.relation.data[self.relation.app].get(
-            f"{PROV_SECRET_PREFIX}{group}"
-        ):
-            if secret := self.data_interface._model.get_secret(id=secrets_uri):
-                return secret.get_content(refresh=True).get(field, "")
-
-        return ""
+        secret_group = SecretGroup(group)
+        return self.repository.get_secret_field(field, secret_group) or ""
 
     @property
     def roles(self) -> str:
         """All the roles pass from the related application."""
-        if not self.relation:
+        if not self.repository:
             return ""
 
-        return (
-            self.data_interface.fetch_relation_field(relation_id=self.relation.id, field="roles")
-            or ""
-        )
+        return self.repository.get_field("roles") or ""
 
     @property
     def broker_username(self) -> str:
@@ -282,12 +261,11 @@ class PeerCluster(RelationState):
         if not self.relation or not self.relation.app:
             return ""
 
-        return self.data_interface._fetch_relation_data_with_secrets(
-            component=self.relation.app,
-            req_secret_fields=BALANCER.requested_secrets,
-            relation=self.relation,
-            fields=BALANCER.requested_secrets,
-        ).get("broker-uris", "")
+        # Try to get from secrets first, then fallback to regular field
+        secret_value = self.repository.get_secret_field("broker-uris", BROKER_SECRET_GROUP)
+        if secret_value:
+            return secret_value
+        return self.repository.get_field("broker-uris") or ""
 
     @property
     def controller_password(self) -> str:
@@ -309,12 +287,7 @@ class PeerCluster(RelationState):
         if not self.relation or not self.relation.app:
             return ""
 
-        return (
-            self.data_interface.fetch_relation_field(
-                relation_id=self.relation.id, field="cluster-uuid"
-            )
-            or ""
-        )
+        return self.repository.get_field("cluster-uuid") or ""
 
     @property
     def bootstrap_controller(self) -> str:
@@ -325,12 +298,7 @@ class PeerCluster(RelationState):
         if not self.relation or not self.relation.app:
             return ""
 
-        return (
-            self.data_interface.fetch_relation_field(
-                relation_id=self.relation.id, field="bootstrap-controller"
-            )
-            or ""
-        )
+        return self.repository.get_field("bootstrap-controller") or ""
 
     @property
     def bootstrap_unit_id(self) -> str:
@@ -341,12 +309,7 @@ class PeerCluster(RelationState):
         if not self.relation or not self.relation.app:
             return ""
 
-        return (
-            self.data_interface.fetch_relation_field(
-                relation_id=self.relation.id, field="bootstrap-unit-id"
-            )
-            or ""
-        )
+        return self.repository.get_field("bootstrap-unit-id") or ""
 
     @property
     def bootstrap_replica_id(self) -> str:
@@ -357,12 +320,7 @@ class PeerCluster(RelationState):
         if not self.relation or not self.relation.app:
             return ""
 
-        return (
-            self.data_interface.fetch_relation_field(
-                relation_id=self.relation.id, field="bootstrap-replica-id"
-            )
-            or ""
-        )
+        return self.repository.get_field("bootstrap-replica-id") or ""
 
     @property
     def racks(self) -> int:
@@ -373,10 +331,7 @@ class PeerCluster(RelationState):
         if not self.relation:
             return 0
 
-        return int(
-            self.data_interface.fetch_relation_field(relation_id=self.relation.id, field="racks")
-            or 0
-        )
+        return int(self.repository.get_field("racks") or 0)
 
     @property
     def broker_capacities(self) -> BrokerCapacities:
@@ -387,12 +342,7 @@ class PeerCluster(RelationState):
         if not self.relation:
             return {}
 
-        return json.loads(
-            self.data_interface.fetch_relation_field(
-                relation_id=self.relation.id, field="broker-capacities"
-            )
-            or "{}"
-        )
+        return json.loads(self.repository.get_field("broker-capacities") or "{}")
 
     @property
     def balancer_username(self) -> str:
@@ -403,12 +353,11 @@ class PeerCluster(RelationState):
         if not self.relation or not self.relation.app:
             return ""
 
-        return self.data_interface._fetch_relation_data_with_secrets(
-            component=self.relation.app,
-            req_secret_fields=BROKER.requested_secrets,
-            relation=self.relation,
-            fields=BALANCER.requested_secrets,
-        ).get("balancer-username", "")
+        # Try to get from secrets first, then fallback to regular field
+        secret_value = self.repository.get_secret_field("balancer-username", BALANCER_SECRET_GROUP)
+        if secret_value:
+            return secret_value
+        return self.repository.get_field("balancer-username") or ""
 
     @property
     def balancer_password(self) -> str:
@@ -419,12 +368,11 @@ class PeerCluster(RelationState):
         if not self.relation or not self.relation.app:
             return ""
 
-        return self.data_interface._fetch_relation_data_with_secrets(
-            component=self.relation.app,
-            req_secret_fields=BROKER.requested_secrets,
-            relation=self.relation,
-            fields=BALANCER.requested_secrets,
-        ).get("balancer-password", "")
+        # Try to get from secrets first, then fallback to regular field
+        secret_value = self.repository.get_secret_field("balancer-password", BALANCER_SECRET_GROUP)
+        if secret_value:
+            return secret_value
+        return self.repository.get_field("balancer-password") or ""
 
     @property
     def balancer_uris(self) -> str:
@@ -435,12 +383,11 @@ class PeerCluster(RelationState):
         if not self.relation or not self.relation.app:
             return ""
 
-        return self.data_interface._fetch_relation_data_with_secrets(
-            component=self.relation.app,
-            req_secret_fields=BROKER.requested_secrets,
-            relation=self.relation,
-            fields=BALANCER.requested_secrets,
-        ).get("balancer-uris", "")
+        # Try to get from secrets first, then fallback to regular field
+        secret_value = self.repository.get_secret_field("balancer-uris", BALANCER_SECRET_GROUP)
+        if secret_value:
+            return secret_value
+        return self.repository.get_field("balancer-uris") or ""
 
     @property
     def broker_connected(self) -> bool:
@@ -482,11 +429,10 @@ class KafkaCluster(RelationState):
     def __init__(
         self,
         relation: Relation | None,
-        data_interface: DataPeerData,
+        repository: OpsPeerRepository,
         component: Application,
     ):
-        super().__init__(relation, data_interface, component, None)
-        self.data_interface = data_interface
+        super().__init__(relation, repository, component, None)
         self.app = component
 
     @override
@@ -499,11 +445,12 @@ class KafkaCluster(RelationState):
             # note: relation- check accounts for dynamically created secrets
             if key in SECRETS_APP or key.startswith("relation-"):
                 if value:
-                    self.data_interface.set_secret(self.relation.id, key, value)
+                    secret_group = SecretGroup("app")
+                    self.repository.add_secret(key, value, secret_group)
                 else:
-                    self.data_interface.delete_secret(self.relation.id, key)
+                    self.repository.delete_secret_field(key, SecretGroup("app"))
             else:
-                self.data_interface.update_relation_data(self.relation.id, {key: value})
+                self.repository.write_field(key, value)
 
     @property
     def internal_user_credentials(self) -> dict[str, str]:
@@ -542,7 +489,7 @@ class KafkaCluster(RelationState):
         Returns:
             True if TLS encryption should be active. Otherwise False
         """
-        relation = self.data_interface._model.get_relation(TLS_RELATION)
+        relation = self.repository.model.get_relation(TLS_RELATION)
 
         if not relation or not relation.active:
             return False
@@ -716,12 +663,11 @@ class KafkaBroker(RelationState):
     def __init__(
         self,
         relation: Relation | None,
-        data_interface: DataPeerUnitData,
+        repository: OpsPeerUnitRepository | OpsOtherPeerUnitRepository,
         component: Unit,
         substrate: Substrates,
     ):
-        super().__init__(relation, data_interface, component, substrate)
-        self.data_interface = data_interface
+        super().__init__(relation, repository, component, substrate)
         self.unit = component
         self.k8s = K8sManager(
             pod_name=self.pod_name,
@@ -871,22 +817,17 @@ class KafkaBroker(RelationState):
         return bool(self.relation_data.get("added-to-quorum", False))
 
 
-class KafkaClient(RelationState):
+class KafkaClient:
     """State collection metadata for a single related client application."""
 
     def __init__(
         self,
-        relation: Relation | None,
-        data_interface: Data,
-        component: Application,
-        local_app: Application | None = None,
+        repository: OpsRelationRepository,
         bootstrap_server: str = "",
         password: str = "",  # nosec: B107
         tls: str = "",
     ):
-        super().__init__(relation, data_interface, component, None)
-        self.app = component
-        self._local_app = local_app
+        self.repository = repository
         self._bootstrap_server = bootstrap_server
         self._password = password
         self._tls = tls
@@ -894,7 +835,7 @@ class KafkaClient(RelationState):
     @property
     def username(self) -> str:
         """The generated username for the client application."""
-        return f"relation-{getattr(self.relation, 'id', '')}"
+        return f"relation-{self.repository.relation.id}"
 
     @property
     def bootstrap_server(self) -> str:
@@ -918,9 +859,9 @@ class KafkaClient(RelationState):
     @property
     def consumer_group_prefix(self) -> str:
         """The assigned consumer group prefix for a client application presenting consumer role."""
-        return self.relation_data.get(
-            "consumer-group-prefix",
-            f"{self.username}-" if "consumer" in self.extra_user_roles else "",
+        return self.repository.get_field(
+            "consumer-group-prefix") or (
+            f"{self.username}-" if "consumer" in self.extra_user_roles else ""
         )
 
     @property
@@ -935,7 +876,7 @@ class KafkaClient(RelationState):
     @property
     def topic(self) -> str:
         """The requested topic for the client."""
-        return self.relation_data.get("topic", "")
+        return self.repository.get_field("topic") or ""
 
     @property
     def extra_user_roles(self) -> str:
@@ -944,20 +885,20 @@ class KafkaClient(RelationState):
         Can be any comma-delimited selection of `producer`, `consumer` and `admin`.
         When `admin` is set, the Kafka charm interprets this as a new super.user.
         """
-        return self.relation_data.get("extra-user-roles", "")
+        return self.repository.get_field("extra-user-roles") or ""
 
     @property
     def mtls_cert(self) -> str:
         """Returns TLS cert of the client."""
-        return self.relation_data.get("mtls-cert", "")
+        return self.repository.get_field("mtls-cert") or ""
 
     @property
     def alias(self) -> str:
         """The alias used to refer to client's MTLS certificate."""
-        if not self.relation:
+        if not self.repository.relation:
             return ""
 
-        return self.generate_alias(self.relation.app.name, self.relation.id)
+        return self.generate_alias(self.repository.relation.app.name, self.repository.relation.id)
 
     @staticmethod
     def generate_alias(app_name: str, relation_id: int) -> str:

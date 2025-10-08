@@ -8,10 +8,12 @@ import logging
 import subprocess  # nosec B404
 from typing import TYPE_CHECKING
 
-from charms.data_platform_libs.v0.data_interfaces import (
-    KafkaClientMtlsCertUpdatedEvent,
-    KafkaProviderEventHandlers,
-    TopicRequestedEvent,
+from charms.data_platform_libs.v1.data_interfaces import (
+    KafkaResponseModel,
+    MtlsCertUpdatedEvent,
+    KafkaRequestModel,
+    ResourceProviderEventHandler,
+    ResourceRequestedEvent,
 )
 from ops.charm import RelationBrokenEvent, RelationCreatedEvent
 from ops.framework import Object
@@ -40,21 +42,25 @@ class KafkaProvider(Object):
             self.charm.config.ssl_principal_mapping_rules
         )
 
-        self.kafka_provider = KafkaProviderEventHandlers(
-            self.charm, self.charm.state.client_provider_interface
+        # TODO add bulk request
+        self.kafka_provider = ResourceProviderEventHandler(
+            self.charm,
+            relation_name=REL_NAME,
+            request_model=KafkaRequestModel,
+            mtls_enabled=True,
         )
 
         self.framework.observe(self.charm.on[REL_NAME].relation_created, self._on_relation_created)
         self.framework.observe(self.charm.on[REL_NAME].relation_broken, self._on_relation_broken)
 
         self.framework.observe(
-            getattr(self.kafka_provider.on, "topic_requested"), self.on_topic_requested
+            getattr(self.kafka_provider.on, "resource_requested"), self.on_topic_requested
         )
         self.framework.observe(
             getattr(self.kafka_provider.on, "mtls_cert_updated"), self.on_mtls_cert_updated
         )
 
-    def on_topic_requested(self, event: TopicRequestedEvent):
+    def on_topic_requested(self, event: ResourceRequestedEvent):
         """Handle the on topic requested event."""
         if not self.dependent.healthy:
             event.defer()
@@ -126,15 +132,30 @@ class KafkaProvider(Object):
         # non-leader units need cluster_config_changed event to update their super.users
         self.charm.state.cluster.update({"super-users": self.charm.state.super_users})
 
-        self.dependent.update_client_data()
+        # Create Kafka response
+        response = KafkaResponseModel(
+            request_id=event.request.request_id,
+            resource=event.request.resource,
+            username=client.username,
+            password=password,
+            endpoints=self.charm.state.bootstrap_server_client(client_relation=client.relation),
+            consumer_group_prefix=client.consumer_group_prefix,
+        )
 
-    def on_mtls_cert_updated(self, event: KafkaClientMtlsCertUpdatedEvent) -> None:
+        # Set the response using v1 API
+        client.repository.relation.id
+        self.kafka_provider.set_response(client.repository.relation.id, response)
+
+        # legacy update
+        # self.dependent.update_client_data()
+
+    def on_mtls_cert_updated(self, event: MtlsCertUpdatedEvent) -> None:
         """Handler for `kafka-client-mtls-cert-updated` event."""
         if not self.charm.broker.healthy:
             event.defer()
             return
 
-        if not event.mtls_cert:
+        if not event.request.mtls_cert:
             logger.info("No MTLS cert provided. skipping MTLS setup.")
             return
 
@@ -153,7 +174,7 @@ class KafkaProvider(Object):
             return
 
         # check for leaf certificate condition
-        if not self.dependent.tls_manager.is_valid_leaf_certificate(event.mtls_cert):
+        if not self.dependent.tls_manager.is_valid_leaf_certificate(event.request.mtls_cert):
             self.charm._set_status(Status.INVALID_CLIENT_CERTIFICATE)
             return
 
@@ -163,7 +184,7 @@ class KafkaProvider(Object):
             return
 
         distinguished_name = self.dependent.tls_manager.certificate_distinguished_name(
-            event.mtls_cert
+            event.request.mtls_cert
         )
         try:
             cert_principal = self.ssl_principal_mapper.get_name(

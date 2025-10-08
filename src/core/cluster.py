@@ -11,11 +11,12 @@ from functools import cached_property
 from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, Any
 
-from charms.data_platform_libs.v0.data_interfaces import (
-    DataPeerData,
-    DataPeerOtherUnitData,
-    DataPeerUnitData,
-    KafkaProviderData,
+from charms.data_platform_libs.v1.data_interfaces import (
+    OpsPeerRepository,
+    OpsPeerUnitRepository,
+    OpsOtherPeerUnitRepository,
+    OpsRelationRepository,
+    OpsRelationRepositoryInterface,
 )
 from charms.tls_certificates_interface.v4.tls_certificates import Certificate, PrivateKey
 from lightkube.core.exceptions import ApiError as LightKubeApiError
@@ -30,8 +31,6 @@ from core.models import (
     KafkaCluster,
     OAuth,
     PeerCluster,
-    PeerClusterData,
-    PeerClusterOrchestratorData,
 )
 from literals import (
     ADMIN_USER,
@@ -49,7 +48,6 @@ from literals import (
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
     PEER_CLUSTER_RELATION,
     REL_NAME,
-    SECRETS_UNIT,
     SECURITY_PROTOCOL_PORTS,
     AuthMap,
     Status,
@@ -72,11 +70,18 @@ class ClusterState(Object):
         self.network_bandwidth = charm.config.network_bandwidth
         self.config = charm.config
 
-        self.peer_app_interface = DataPeerData(self.model, relation_name=PEER)
-        self.peer_unit_interface = DataPeerUnitData(
-            self.model, relation_name=PEER, additional_secret_fields=SECRETS_UNIT
+        # Create repositories for v1 pattern
+        self.peer_app_repository = OpsPeerRepository(
+            self.model, self.peer_relation, self.model.app
         )
-        self.client_provider_interface = KafkaProviderData(self.model, relation_name=REL_NAME)
+        self.peer_unit_repository = OpsPeerUnitRepository(
+            self.model, self.peer_relation, self.model.unit
+        )
+
+        self.peer_repository = OpsRelationRepositoryInterface(charm, self.peer_relation)
+
+        # to be removed
+        # self.client_provider_interface = KafkaProviderData(self.model, relation_name=REL_NAME)
 
     # --- RELATIONS ---
 
@@ -124,9 +129,10 @@ class ClusterState(Object):
                 }
             )
 
+        repository = OpsPeerRepository(self.model, self.peer_cluster_relation, component=self.peer_cluster_relation.app if self.peer_cluster_relation else None)
         return PeerCluster(
             relation=self.peer_cluster_relation,
-            data_interface=PeerClusterData(self.model, PEER_CLUSTER_RELATION),
+            repository=repository,
             **extra_kwargs,
         )
 
@@ -151,11 +157,10 @@ class ClusterState(Object):
         # FIXME: `cluster_manager` check instead of running broker
         # must be providing, initialise with necessary broker data
         if self.runs_broker:
+            repository = OpsPeerRepository(self.model, self.peer_cluster_orchestrator_relation, component=self.peer_cluster_orchestrator_relation.app if self.peer_cluster_orchestrator_relation else None)
             return PeerCluster(
                 relation=self.peer_cluster_orchestrator_relation,  # if same app, this will be None and OK
-                data_interface=PeerClusterOrchestratorData(
-                    self.model, PEER_CLUSTER_ORCHESTRATOR_RELATION
-                ),
+                repository=repository,
                 broker_username=ADMIN_USER,
                 broker_password=self.cluster.internal_user_credentials.get(ADMIN_USER, ""),
                 broker_uris=self.bootstrap_server_internal,
@@ -192,7 +197,7 @@ class ClusterState(Object):
         """The broker state of the current running Unit."""
         return KafkaBroker(
             relation=self.peer_relation,
-            data_interface=self.peer_unit_interface,
+            repository=self.peer_unit_repository,
             component=self.model.unit,
             substrate=self.substrate,
         )
@@ -205,13 +210,13 @@ class ClusterState(Object):
         return self.unit_broker.unit_id
 
     @cached_property
-    def peer_units_data_interfaces(self) -> dict[Unit, DataPeerOtherUnitData]:
-        """The cluster peer relation."""
+    def peer_units_repositories(self) -> dict[Unit, OpsOtherPeerUnitRepositoryInterface]:
+        """The cluster peer relation repositories for other units."""
         if not self.peer_relation or not self.peer_relation.units:
             return {}
 
         return {
-            unit: DataPeerOtherUnitData(model=self.model, unit=unit, relation_name=PEER)
+            unit: OpsOtherPeerUnitRepository(self.model, self.peer_relation, unit)
             for unit in self.peer_relation.units
         }
 
@@ -220,7 +225,7 @@ class ClusterState(Object):
         """The cluster state of the current running App."""
         return KafkaCluster(
             relation=self.peer_relation,
-            data_interface=self.peer_app_interface,
+            repository=self.peer_app_repository,
             component=self.model.app,
         )
 
@@ -232,11 +237,11 @@ class ClusterState(Object):
             Set of KafkaBrokers in the current peer relation, including the running unit server.
         """
         brokers = set()
-        for unit, data_interface in self.peer_units_data_interfaces.items():
+        for unit, repository in self.peer_units_repositories.items():
             brokers.add(
                 KafkaBroker(
                     relation=self.peer_relation,
-                    data_interface=data_interface,
+                    repository=repository,
                     component=unit,
                     substrate=self.substrate,
                 )
@@ -260,12 +265,14 @@ class ClusterState(Object):
             if not relation.app:
                 continue
 
+            # Create a repository for this client relation
+            client_repository = OpsRelationRepository(
+                self.model, relation, relation.app
+            )
+
             clients.add(
                 KafkaClient(
-                    relation=relation,
-                    data_interface=self.client_provider_interface,
-                    component=relation.app,
-                    local_app=self.cluster.app,
+                    repository=client_repository,
                     bootstrap_server=self.bootstrap_server_client(relation),
                     password=self.cluster.client_passwords.get(f"relation-{relation.id}", ""),
                     tls="enabled" if self.cluster.tls_enabled else "disabled",

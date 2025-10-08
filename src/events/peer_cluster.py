@@ -8,13 +8,9 @@ import json
 import logging
 from typing import TYPE_CHECKING
 
-from charms.data_platform_libs.v0.data_interfaces import (
-    PROV_SECRET_PREFIX,
-    REQ_SECRET_FIELDS,
+from charms.data_platform_libs.v1.data_interfaces import (
+    SECRET_PREFIX,
     CachedSecret,
-    Data,
-    diff,
-    set_encoded_field,
 )
 from ops.charm import (
     RelationBrokenEvent,
@@ -26,7 +22,6 @@ from ops.charm import (
 )
 from ops.framework import Object
 
-from core.models import custom_secret_groups
 from literals import (
     BALANCER,
     BROKER,
@@ -39,6 +34,10 @@ if TYPE_CHECKING:
     from charm import KafkaCharm
 
 logger = logging.getLogger(__name__)
+
+
+# FIXME: none of this will work right now. there is no requested_secret_fields anymore.
+REQ_SECRET_FIELDS = "requested-secrets"
 
 
 class PeerClusterEventsHandler(Object):
@@ -93,12 +92,9 @@ class PeerClusterEventsHandler(Object):
             requested_secrets |= set(BROKER.requested_secrets)
 
         # request secrets for the relation
-        set_encoded_field(
-            relation,
-            self.charm.state.cluster.app,
-            REQ_SECRET_FIELDS,
-            list(requested_secrets),
-        )
+        relation.data[self.charm.state.cluster.app].update({
+            REQ_SECRET_FIELDS: json.dumps(list(requested_secrets))
+        })
 
         # explicitly update the roles early, as we can't determine which model to instantiate
         # until both applications have roles set
@@ -204,17 +200,17 @@ class PeerClusterEventsHandler(Object):
         if not isinstance(event, RelationEvent) or not event.relation or not event.relation.app:
             return
 
-        diff_data = diff(event, self.charm.state.cluster.app)
+        current_data = event.relation.data[event.relation.app] if event.relation.app else {}
 
-        if any(newval for newval in diff_data.added if newval.startswith(PROV_SECRET_PREFIX)):
+        if any(key for key in current_data.keys() if key.startswith(SECRET_PREFIX)):
+            # FIXME doesn't work
             for group in custom_secret_groups.groups():
-                secret_field = f"{PROV_SECRET_PREFIX}{group}"
-                if secret_field in diff_data.added and (
+                secret_field = f"{SECRET_PREFIX}{group}"
+                if secret_field in current_data and (
                     secret_uri := event.relation.data[event.relation.app].get(secret_field)
                 ):
-                    label = Data._generate_secret_label(
-                        event.relation.name, event.relation.id, group
-                    )
+                    # Generate secret label (migrated from v0 Data._generate_secret_label)
+                    label = f"{event.relation.name}.{event.relation.id}.{group}.secret"
                     CachedSecret(
                         self.charm.model, self.charm.state.cluster.app, label, secret_uri
                     ).meta
