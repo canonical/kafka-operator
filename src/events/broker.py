@@ -40,7 +40,6 @@ from literals import (
     REL_NAME,
     USER_ID,
     Status,
-    TLSScope,
 )
 from managers.auth import AuthManager
 from managers.balancer import BalancerManager
@@ -209,75 +208,25 @@ class BrokerOperator(Object):
         if not self.charm.pending_inactive_statuses:
             logger.info(f'Broker {self.charm.unit.name.split("/")[1]} connected')
 
-    def _on_config_changed(self, event: EventBase) -> None:  # noqa: C901
-        """Generic handler for most `config_changed` events across relations."""
-        # only overwrite properties if service is already active
-        if self.charm.refresh_not_ready or not self.healthy:
-            event.defer()
+    def _handle_configuration_updates(self, event: EventBase) -> None:
+        """Handle configuration property updates and restart if needed.
+
+        Helper method to config_changed event.
+        """
+        if not self.workload.active():
+            # shouldn't happen, but just in case
+            logger.warning("Kafka service not active during config_changed event. Deferring...")
             return
 
-        # Load current properties set in the charm workload
-        properties = self.workload.read(self.workload.paths.server_properties)
-        properties_changed = set(properties) ^ set(self.config_manager.server_properties)
-
-        if not properties:
-            # Event fired before charm has properly started
-            event.defer()
-            return
-
-        # update environment
-        self.config_manager.set_environment()
-
-        # Update peer-cluster trusted certs and check for TLS rotation on the other side.
-        self.update_peer_truststore_state()
-        old_peer_certs = self.tls_manager.peer_trusted_certificates.values()
-        self.tls_manager.update_peer_cluster_trust()
-        new_peer_certs = self.tls_manager.peer_trusted_certificates.values()
-        peer_cluster_tls_rotate = set(new_peer_certs) - set(old_peer_certs)
-
-        if (
-            self.charm.state.tls_rotate
-            and not self.tls_manager.peer_cluster_app_trusts_new_bundle()
-        ):
-            # Basically we should defer and wait for the other side
-            # to complete its rolling restart and then begin our rolling restart.
-            # However, if both sides are rotating, we should prevent deadlock by
-            # forcing one side (BROKER here) to restart anyway.
-            should_defer = True
-            if self.charm.state.both_sides_rotating and self.charm.state.runs_broker:
-                logger.debug(
-                    "Both sides are rotating TLS certificates, initiating rolling restart..."
-                )
-                should_defer = False
-
-            if should_defer:
-                event.defer()
-                return
-
-        # Check for SANs change and revoke the cert if SANs change is detected.
-        # Emitting the refresh_tls_certificates will lead to rotation and restart.
-        if self.tls_manager.sans_changed(TLSScope.CLIENT):
-            self.charm.state.unit_broker.client_certs.certificate = ""
-            self.charm.tls.refresh_tls_certificates.emit()
-
-        if self.tls_manager.sans_changed(TLSScope.PEER):
-            self.charm.state.unit_broker.peer_certs.certificate = ""
-            if self.charm.state.use_internal_tls:
-                self.setup_internal_tls()
-            else:
-                self.charm.tls.refresh_tls_certificates.emit()
-
+        properties_changed = self.config_manager.properties_changed()
         if properties_changed:
             logger.info(
-                (
-                    f'Broker {self.charm.unit.name.split("/")[1]} updating config - '
-                    f"OLD PROPERTIES = {set(properties) - set(self.config_manager.server_properties)}, "
-                    f"NEW PROPERTIES = {set(self.config_manager.server_properties) - set(properties)}"
-                )
+                f'Broker {self.charm.unit.name.split("/")[1]} updating config - '
+                f"PROPERTIES CHANGED = {len(properties_changed)} properties"
             )
             self.config_manager.set_server_properties()
 
-        if any([properties_changed, self.charm.state.tls_rotate, peer_cluster_tls_rotate]):
+        if any([properties_changed, self.charm.state.tls_rotate, self.charm.tls.certs_updated]):
             if isinstance(event, StorageEvent):  # to get new storages
                 self.controller_manager.format_storages(
                     uuid=self.charm.state.peer_cluster.cluster_uuid,
@@ -290,6 +239,8 @@ class BrokerOperator(Object):
             else:
                 self.charm.on[f"{self.charm.restart.name}"].acquire_lock.emit()
 
+    def _handle_broker_service_updates(self) -> None:
+        """Handle updates to broker services, client data, and other post-configuration tasks."""
         # update these whenever possible
         self.config_manager.set_client_properties()  # to ensure clients have fresh data
         self.update_external_services()  # in case of IP changes or pod reschedules
@@ -301,22 +252,6 @@ class BrokerOperator(Object):
             self.charm.state.unit_broker.unit.set_ports(
                 *[listener.port for listener in self.config_manager.controller_listeners]
             )
-
-        # Update truststore if needed.
-        self.charm.tls.update_truststore()
-
-        if self.charm.state.tls_rotate:
-            # If TLS rotation is needed, inform the balancer.
-            if self.charm.state.runs_balancer:
-                self.charm.state.balancer_tls_rotate = True
-
-            # Reset TLS rotation state
-            self.charm.state.tls_rotate = False
-
-        # Turn on/off peer-cluster TLS rotate if all units are done, only run on leader unit
-        self.charm.state.peer_cluster_tls_rotate = any(
-            unit.peer_certs.rotate for unit in self.charm.state.brokers
-        )
 
         # Update IP addresses based on current network bindings.
         self.update_ip_addresses()
@@ -330,6 +265,27 @@ class BrokerOperator(Object):
 
         if self.charm.state.peer_cluster_orchestrator_relation and self.charm.unit.is_leader():
             self.update_peer_cluster_data()
+
+    def _on_config_changed(self, event: EventBase) -> None:
+        """Generic handler for most `config_changed` events across relations."""
+        if self.charm.refresh_not_ready or not self.healthy:
+            event.defer()
+            return
+
+        properties = self.workload.read(self.workload.paths.server_properties)
+        if not properties:
+            event.defer()
+            return
+
+        self.config_manager.set_environment()
+
+        should_continue = self.charm.tls.config_changed_rotation(event)
+        if not should_continue:
+            return
+
+        self._handle_configuration_updates(event)
+        self._handle_broker_service_updates()
+        self.charm.tls.handle_config_changed_tls_updates()
 
     def _on_update_status(self, _: UpdateStatusEvent) -> None:
         """Handler for `update-status` events."""
