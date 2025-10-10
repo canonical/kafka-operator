@@ -174,25 +174,17 @@ class RelationStateV1:
         delete_fields = [key for key in items if not items[key]]
         update_content = {k: items[k] for k in items if k not in delete_fields}
 
-        # Handle secret fields
-        for key in update_content:
-            if self.is_secret_field(key):
-                self.repository.write_secret_field(key, update_content[key], SecretGroup("extra"))
-                update_content.pop(key)
+        for k, v in update_content.items():
+            if self.is_secret_field(k):
+                self.repository.write_secret_field(k, v, SecretGroup("extra"))
+            else:
+                self.repository.write_field(k, v)
 
-        # Write regular fields
-        if update_content:
-            self.repository.write_fields(update_content)
-
-        delete_secret_keys = set(delete_fields) & set(self.secret_fields)
-        for key in delete_secret_keys:
+        for key in delete_fields:
             if self.is_secret_field(key):
                 self.repository.delete_secret_field(key, SecretGroup("extra"))
-                delete_fields.remove(key)
-
-        # Delete fields
-        if delete_fields:
-            self.repository.delete_fields(*delete_fields)
+            else:
+                self.repository.delete_field(key)
 
 
 class RelationState:
