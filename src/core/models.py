@@ -21,6 +21,20 @@ from charms.data_platform_libs.v0.data_interfaces import (
     ProviderData,
     RequirerData,
 )
+from typing import Annotated, MutableMapping, TypeAlias, TypedDict
+
+from pydantic import Field
+import requests
+from charms.data_platform_libs.v1.data_interfaces import (
+    OpsRepository,
+    OpsRelationRepository,
+    OpsPeerRepository,
+    OpsOtherPeerUnitRepository,
+    OpsPeerUnitRepository,
+    SecretGroup,
+    OptionalSecretStr,
+    PeerModel,
+)
 from lightkube.resources.core_v1 import Node, Pod
 from ops.model import Application, ModelError, Relation, Unit
 from typing_extensions import override
@@ -66,6 +80,23 @@ SECRET_LABEL_MAP = {
     "balancer-password": getattr(custom_secret_groups, "BALANCER"),
     "balancer-uris": getattr(custom_secret_groups, "BALANCER"),
 }
+
+BrokerGroupSecretStr = Annotated[OptionalSecretStr, Field(exclude=True, default=None), "broker"]
+ControllerGroupSecretStr = Annotated[OptionalSecretStr, Field(exclude=True, default=None), "controller"]
+BalancerGroupSecretStr = Annotated[OptionalSecretStr, Field(exclude=True, default=None), "balancer"]
+
+
+class KafkaClusterData(PeerModel):
+    """..."""
+
+    balancer_username: BalancerGroupSecretStr = Field(alias="balancer-username")
+    balancer_password: BalancerGroupSecretStr = Field(alias="balancer-password")
+    balancer_uris: BalancerGroupSecretStr = Field(alias="balancer-uris")
+    bootstrap_replica_id: str = Field(alias="bootstrap-replica-id")
+    bootstrap_controller: str = Field(alias="bootstrap-controller")
+    bootstrap_unit_id: str = Field(alias="bootstrap-unit-id")
+    cluster_uuid: str = Field(alias="cluster-uuid")
+    controller_password: ControllerGroupSecretStr = Field(alias="controller-password")
 
 
 @dataclass
