@@ -917,7 +917,7 @@ class KafkaBroker(RelationStateV1):
         if not relation:
             return
 
-        self.relation_data.update({f"ip-{relation.id}": ip_address})
+        self.update({f"ip-{relation.id}": ip_address})
 
     # --- TLS ---
     @property
@@ -1007,6 +1007,9 @@ class KafkaBroker(RelationStateV1):
     def added_to_quorum(self) -> bool:
         """Whether or not this node is added to dynamic quorum in KRaft mode."""
         return bool(self.relation_data.get("added-to-quorum", False))
+
+
+
 
 
 class KafkaClient(RelationState):
