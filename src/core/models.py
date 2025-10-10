@@ -122,22 +122,51 @@ class RelationStateV1:
 
     def __init__(
         self,
-        repository: OpsRepository,
+        relation: Relation | None,
+        data_interface: Data,
+        component: Unit | Application,
         substrate: Substrates | None = None,
         secret_fields: list[str] = [],
+        is_peer_relation: bool = False,
     ):
-        self.repository = repository
-        self.relation = repository.relation
-        self.model = repository.model
-        self.component = repository.component
+        self.model = data_interface._model
+        if is_peer_relation:
+            self.repository = OpsPeerRepository(self.model, relation, component)
+        else:
+            self.repository = OpsRelationRepository(self.model, relation, component)
+        self.relation = relation
+        self.component = component
         self.substrate = substrate
         self.secret_fields = secret_fields
-    
+        self.is_peer_relation = is_peer_relation
+
+    def _get_secret_group(self, field: str) -> SecretGroup:
+        """..."""
+        if self.is_peer_relation:
+            return SecretGroup("extra")
+        else:
+            return SECRET_LABEL_MAP.get(field)
+
+    def is_secret_field(self, field: str) -> bool:
+        """..."""
+        if self.is_peer_relation and field.startswith("relation-"):
+            return True
+
+        if field in self.secret_fields:
+            return True
+        
+        return False
+
     @property
     def relation_data(self) -> dict:
         """..."""
         _data = self.repository.get_data() or {}
         _data |= {k: self.repository.get_secret_field(k, SecretGroup("extra")) for k in self.secret_fields}
+
+        # Handle dynamic secret keys
+        if self.is_peer_relation and (secret := self.repository.get_secret(SecretGroup("extra"), None)):
+            _data |= {k: v for k, v in secret.get_content().items()}
+
         return _data
 
     def update(self, items: dict[str, str]) -> None:
@@ -146,10 +175,10 @@ class RelationStateV1:
         update_content = {k: items[k] for k in items if k not in delete_fields}
 
         # Handle secret fields
-        update_secret_keys = set(update_content) & set(self.secret_fields)
-        for key in update_secret_keys:
-            self.repository.write_secret_field(key, update_content[key], SecretGroup("extra"))
-            update_content.pop(key)
+        for key in update_content:
+            if self.is_secret_field(key):
+                self.repository.write_secret_field(key, update_content[key], SecretGroup("extra"))
+                update_content.pop(key)
 
         # Write regular fields
         if update_content:
@@ -157,8 +186,9 @@ class RelationStateV1:
 
         delete_secret_keys = set(delete_fields) & set(self.secret_fields)
         for key in delete_secret_keys:
-            self.repository.delete_secret_field(key, SecretGroup("extra"))
-            delete_fields.remove(key)
+            if self.is_secret_field(key):
+                self.repository.delete_secret_field(key, SecretGroup("extra"))
+                delete_fields.remove(key)
 
         # Delete fields
         if delete_fields:
@@ -555,7 +585,7 @@ class PeerCluster(RelationState):
         return self.relation_data.get("super-users", "")
 
 
-class KafkaCluster(RelationState):
+class KafkaCluster(RelationStateV1):
     """State collection metadata for the peer relation."""
 
     def __init__(
@@ -564,25 +594,9 @@ class KafkaCluster(RelationState):
         data_interface: DataPeerData,
         component: Application,
     ):
-        super().__init__(relation, data_interface, component, None)
+        super().__init__(relation, data_interface, component, substrate=None, secret_fields=SECRETS_APP, is_peer_relation=True)
         self.data_interface = data_interface
         self.app = component
-
-    @override
-    def update(self, items: dict[str, str]) -> None:
-        """Overridden update to allow for same interface, but writing to local app bag."""
-        if not self.relation:
-            return
-
-        for key, value in items.items():
-            # note: relation- check accounts for dynamically created secrets
-            if key in SECRETS_APP or key.startswith("relation-"):
-                if value:
-                    self.data_interface.set_secret(self.relation.id, key, value)
-                else:
-                    self.data_interface.delete_secret(self.relation.id, key)
-            else:
-                self.data_interface.update_relation_data(self.relation.id, {key: value})
 
     @property
     def internal_user_credentials(self) -> dict[str, str]:
