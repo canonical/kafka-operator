@@ -781,7 +781,8 @@ class TLSState:
     @property
     def chain(self) -> list[str]:
         """The chain used to sign unit cert."""
-        return json.loads(self.relation_data.get(f"{self.scope.value}-chain", "null")) or []
+        # DI v1 does handle the JSON serailization
+        return self.relation_data.get(f"{self.scope.value}-chain") or []
 
     @chain.setter
     def chain(self, value: str) -> None:
@@ -811,7 +812,7 @@ class TLSState:
     @property
     def trusted_certificates(self) -> set[str]:
         """Returns a list of certificate fingeprints loaded into this unit's truststore."""
-        trust_list = json.loads(self.relation_data.get(f"{self.scope.value}-trust", "null")) or []
+        trust_list = self.relation_data.get(f"{self.scope.value}-trust") or []
         return set(trust_list)
 
     @trusted_certificates.setter
@@ -952,7 +953,8 @@ class KafkaBroker(RelationStateV1):
     @property
     def storages(self) -> JSON:
         """The current Juju storages for the unit."""
-        return json.loads(self.relation_data.get("storages", "{}"))
+        # DI v1 does handle the JSON serialization
+        return self.relation_data.get("storages") or {}
 
     @property
     def cores(self) -> str:
