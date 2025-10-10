@@ -227,13 +227,14 @@ linkcheck_ignore = [
     "https://kafka.apache.org/documentation/#connectconfigs",
     "https://kafka.apache.org/documentation/#kraft",
     "https://kafka.apache.org/documentation/#mirrormakerconfigs",
+    "https://kafka.apache.org/documentation/#security_authz_ssl",
     "https://matrix.to/#/#charmhub-data-platform:ubuntu.com",
     "https://us-east-1.console.aws.amazon.com/ec2/",
     "https://kafka.apache.org/39/documentation.html#georeplication-overview",
     "https://kafka.apache.org/39/documentation.html#georeplication-monitoring",
     "https://launchpad.net/soss",
     "https://cwiki.apache.org/*",
-    "https://archive.apache.org/*"
+    "https://archive.apache.org/*",
     ]
 
 
