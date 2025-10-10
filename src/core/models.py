@@ -9,7 +9,7 @@ import logging
 import socket
 from dataclasses import dataclass
 from functools import cached_property
-from typing import MutableMapping, TypeAlias, TypedDict
+from typing import Annotated, MutableMapping, TypeAlias, TypedDict
 
 import requests
 from charms.data_platform_libs.v0.data_interfaces import (
@@ -21,24 +21,16 @@ from charms.data_platform_libs.v0.data_interfaces import (
     ProviderData,
     RequirerData,
 )
-from typing import Annotated, MutableMapping, TypeAlias, TypedDict
-
-from pydantic import Field
-import requests
 from charms.data_platform_libs.v1.data_interfaces import (
-    AbstractRepository,
-    OpsRepository,
-    OpsRelationRepository,
     OpsPeerRepository,
-    OpsOtherPeerUnitRepository,
-    OpsPeerUnitRepository,
-    SecretGroup,
+    OpsRelationRepository,
     OptionalSecretStr,
     PeerModel,
+    SecretGroup,
 )
 from lightkube.resources.core_v1 import Node, Pod
 from ops.model import Application, ModelError, Relation, Unit
-from typing_extensions import override
+from pydantic import Field
 
 from literals import (
     BALANCER,
@@ -47,6 +39,7 @@ from literals import (
     INTERNAL_USERS,
     KRAFT_NODE_ID_OFFSET,
     SECRETS_APP,
+    SECRETS_UNIT,
     SECURITY_PROTOCOL_PORTS,
     TLS_RELATION,
     AuthMap,
@@ -83,8 +76,12 @@ SECRET_LABEL_MAP = {
 }
 
 BrokerGroupSecretStr = Annotated[OptionalSecretStr, Field(exclude=True, default=None), "broker"]
-ControllerGroupSecretStr = Annotated[OptionalSecretStr, Field(exclude=True, default=None), "controller"]
-BalancerGroupSecretStr = Annotated[OptionalSecretStr, Field(exclude=True, default=None), "balancer"]
+ControllerGroupSecretStr = Annotated[
+    OptionalSecretStr, Field(exclude=True, default=None), "controller"
+]
+BalancerGroupSecretStr = Annotated[
+    OptionalSecretStr, Field(exclude=True, default=None), "balancer"
+]
 
 
 class KafkaClusterData(PeerModel):
@@ -119,6 +116,7 @@ class SelfSignedCertificate:
 
 
 class RelationStateV1:
+    """Relation state object based on Data Interfaces V1."""
 
     def __init__(
         self,
@@ -154,18 +152,23 @@ class RelationStateV1:
 
         if field in self.secret_fields:
             return True
-        
+
         return False
 
     @property
     def relation_data(self) -> dict:
         """..."""
         _data = self.repository.get_data() or {}
-        _data |= {k: self.repository.get_secret_field(k, SecretGroup("extra")) for k in self.secret_fields}
+        _data |= {
+            k: self.repository.get_secret_field(k, SecretGroup("extra"))
+            for k in self.secret_fields
+        }
 
         # Handle dynamic secret keys
-        if self.is_peer_relation and (secret := self.repository.get_secret(SecretGroup("extra"), None)):
-            _data |= {k: v for k, v in secret.get_content().items()}
+        if self.is_peer_relation and (
+            secret := self.repository.get_secret(SecretGroup("extra"), None)
+        ):
+            _data |= secret.get_content()
 
         return _data
 
@@ -185,6 +188,40 @@ class RelationStateV1:
                 self.repository.delete_secret_field(key, SecretGroup("extra"))
             else:
                 self.repository.delete_field(key)
+
+    @property
+    def network_interface(self) -> str:
+        """Returns the network interface name of the relation based on network bindings."""
+        if not self.relation:
+            return ""
+
+        try:
+            if binding := self.model.get_binding(self.relation):
+                if interfaces := binding.network.interfaces:
+                    return interfaces[0].name
+        except ModelError as e:
+            logger.error(f"Can't retrieve network binding data: {e}")
+            pass
+
+        return ""
+
+    @property
+    def ip(self) -> str:
+        """Returns the IP of the unit on the relation based on network bindings."""
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.settimeout(0)
+
+        # use the network interface we're bound to.
+        if self.network_interface:
+            s.setsockopt(
+                socket.SOL_SOCKET, socket.SO_BINDTODEVICE, self.network_interface.encode("utf-8")
+            )
+
+        s.connect(("10.10.10.10", 1))
+        ip = s.getsockname()[0]
+        s.close()
+
+        return ip
 
 
 class RelationState:
@@ -586,7 +623,14 @@ class KafkaCluster(RelationStateV1):
         data_interface: DataPeerData,
         component: Application,
     ):
-        super().__init__(relation, data_interface, component, substrate=None, secret_fields=SECRETS_APP, is_peer_relation=True)
+        super().__init__(
+            relation,
+            data_interface,
+            component,
+            substrate=None,
+            secret_fields=SECRETS_APP,
+            is_peer_relation=True,
+        )
         self.data_interface = data_interface
         self.app = component
 
@@ -673,7 +717,7 @@ class KafkaCluster(RelationStateV1):
 class TLSState:
     """State collection metadata for TLS credentials."""
 
-    def __init__(self, relation_state: RelationState, scope: TLSScope):
+    def __init__(self, relation_state: RelationStateV1, scope: TLSScope):
         self.scope = scope
         self.relation_state = relation_state
         self.relation_data = relation_state.relation_data
@@ -795,7 +839,7 @@ class TLSState:
         self.csr = value.csr
 
 
-class KafkaBroker(RelationState):
+class KafkaBroker(RelationStateV1):
     """State collection metadata for a unit."""
 
     def __init__(
@@ -805,7 +849,14 @@ class KafkaBroker(RelationState):
         component: Unit,
         substrate: Substrates,
     ):
-        super().__init__(relation, data_interface, component, substrate)
+        super().__init__(
+            relation,
+            data_interface,
+            component,
+            substrate=substrate,
+            secret_fields=SECRETS_UNIT,
+            is_peer_relation=True,
+        )
         self.data_interface = data_interface
         self.unit = component
         self.k8s = K8sManager(
