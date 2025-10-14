@@ -973,7 +973,7 @@ class KafkaBroker(RelationStateV1):
     @property
     def cores(self) -> str:
         """The number of CPU cores for the unit machine."""
-        return self.relation_data.get("cores", "")
+        return str(self.relation_data.get("cores", ""))
 
     @property
     def rack(self) -> str:
