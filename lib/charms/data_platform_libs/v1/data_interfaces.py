@@ -1023,7 +1023,7 @@ class KafkaRequestModel(RequirerCommonModel):
 class KafkaResponseModel(ResourceProviderModel):
     """Kafka response model."""
 
-    consumer_group_prefix: ExtraSecretStr = Field(default=None)
+    consumer_group_prefix: str | None = Field(default=None)
     zookeeper_uris: ExtraSecretStr = Field(default=None)
 
 
@@ -2305,7 +2305,7 @@ class ResourceProviderEventHandler(EventHandlers, Generic[TRequirerCommonModel])
             app=relation.app,
             unit=remote_unit,
             request=request,
-            mtls_cert=old_mtls_cert,
+            old_mtls_cert=old_mtls_cert,
         )
 
     @override

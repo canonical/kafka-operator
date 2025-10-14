@@ -679,7 +679,7 @@ def test_config_changed_updates_client_data(ctx: Context, base_state: State) -> 
         ),
         patch("events.broker.BrokerOperator.healthy", return_value=True),
         patch("workload.KafkaWorkload.read", return_value=["gandalf=white"]),
-        patch("events.broker.BrokerOperator.update_client_data") as patched_update_client_data,
+        patch("events.provider.KafkaProvider.update_client_data") as patched_update_client_data,
         patch(
             "managers.config.ConfigManager.set_client_properties"
         ) as patched_set_client_properties,

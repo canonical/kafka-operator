@@ -126,7 +126,7 @@ class PeerClusterEventsHandler(Object):
                 "balancer-uris": peer_cluster_state.balancer_uris,
                 "controller-password": peer_cluster_state.controller_password,
                 "bootstrap-controller": peer_cluster_state.bootstrap_controller,
-                "bootstrap-unit-id": peer_cluster_state.bootstrap_unit_id,
+                "bootstrap-unit-id": str(peer_cluster_state.bootstrap_unit_id),
                 "bootstrap-replica-id": peer_cluster_state.bootstrap_replica_id,
             }
         )
