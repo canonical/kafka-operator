@@ -163,6 +163,10 @@ class KafkaProvider(Object):
                 ]
             )
         )
+
+        if not client.mtls_cert:
+            return
+
         # check for leaf certificate condition
         if not self.dependent.tls_manager.is_valid_leaf_certificate(client.mtls_cert):
             self.charm._set_status(Status.INVALID_CLIENT_CERTIFICATE)
