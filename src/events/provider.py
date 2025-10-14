@@ -8,10 +8,14 @@ import logging
 import subprocess  # nosec B404
 from typing import TYPE_CHECKING
 
-from charms.data_platform_libs.v0.data_interfaces import (
-    KafkaClientMtlsCertUpdatedEvent,
-    KafkaProviderEventHandlers,
-    TopicRequestedEvent,
+from charms.data_platform_libs.v1.data_interfaces import (
+    KafkaRequestModel,
+    KafkaResponseModel,
+    MtlsCertUpdatedEvent,
+    ResourceProviderEventHandler,
+    ResourceRequestedEvent,
+    SecretBool,
+    SecretStr,
 )
 from ops.charm import RelationBrokenEvent, RelationCreatedEvent
 from ops.framework import Object
@@ -40,21 +44,24 @@ class KafkaProvider(Object):
             self.charm.config.ssl_principal_mapping_rules
         )
 
-        self.kafka_provider = KafkaProviderEventHandlers(
-            self.charm, self.charm.state.client_provider_interface
+        self.kafka_provider = ResourceProviderEventHandler(
+            self.charm,
+            relation_name=REL_NAME,
+            request_model=KafkaRequestModel,
+            mtls_enabled=True,
         )
 
         self.framework.observe(self.charm.on[REL_NAME].relation_created, self._on_relation_created)
         self.framework.observe(self.charm.on[REL_NAME].relation_broken, self._on_relation_broken)
 
         self.framework.observe(
-            getattr(self.kafka_provider.on, "topic_requested"), self.on_topic_requested
+            getattr(self.kafka_provider.on, "resource_requested"), self.on_topic_requested
         )
         self.framework.observe(
             getattr(self.kafka_provider.on, "mtls_cert_updated"), self.on_mtls_cert_updated
         )
 
-    def on_topic_requested(self, event: TopicRequestedEvent):
+    def on_topic_requested(self, event: ResourceRequestedEvent):
         """Handle the on topic requested event."""
         if not self.dependent.healthy:
             event.defer()
@@ -113,9 +120,6 @@ class KafkaProvider(Object):
             event.defer()
             return
 
-        # non-leader units need cluster_config_changed event to update their super.users
-        self.charm.state.cluster.update({client.username: password})
-
         self.dependent.auth_manager.update_user_acls(
             username=client.username,
             topic=client.topic,
@@ -124,21 +128,19 @@ class KafkaProvider(Object):
         )
 
         # non-leader units need cluster_config_changed event to update their super.users
-        self.charm.state.cluster.update({"super-users": self.charm.state.super_users})
+        self.charm.state.cluster.update(
+            {"super-users": self.charm.state.super_users, client.username: password}
+        )
 
-        self.dependent.update_client_data()
+        self.update_client_data()
 
-    def on_mtls_cert_updated(self, event: KafkaClientMtlsCertUpdatedEvent) -> None:
+    def on_mtls_cert_updated(self, event: MtlsCertUpdatedEvent) -> None:
         """Handler for `kafka-client-mtls-cert-updated` event."""
+        if not event.relation or not event.relation.active:
+            return
+
         if not self.charm.broker.healthy:
             event.defer()
-            return
-
-        if not event.mtls_cert:
-            logger.info("No MTLS cert provided. skipping MTLS setup.")
-            return
-
-        if not event.relation or not event.relation.active:
             return
 
         if not all(
@@ -152,8 +154,17 @@ class KafkaProvider(Object):
             event.defer()
             return
 
+        client = next(
+            iter(
+                [
+                    client
+                    for client in self.charm.state.clients
+                    if client.relation == event.relation
+                ]
+            )
+        )
         # check for leaf certificate condition
-        if not self.dependent.tls_manager.is_valid_leaf_certificate(event.mtls_cert):
+        if not self.dependent.tls_manager.is_valid_leaf_certificate(client.mtls_cert):
             self.charm._set_status(Status.INVALID_CLIENT_CERTIFICATE)
             return
 
@@ -163,7 +174,7 @@ class KafkaProvider(Object):
             return
 
         distinguished_name = self.dependent.tls_manager.certificate_distinguished_name(
-            event.mtls_cert
+            client.mtls_cert
         )
         try:
             cert_principal = self.ssl_principal_mapper.get_name(
@@ -175,15 +186,6 @@ class KafkaProvider(Object):
             )
             return
 
-        client = next(
-            iter(
-                [
-                    client
-                    for client in self.charm.state.clients
-                    if client.relation == event.relation
-                ]
-            )
-        )
         self.dependent.auth_manager.remove_all_user_acls(client.username)
         self.dependent.auth_manager.update_user_acls(
             username=cert_principal,
@@ -246,4 +248,46 @@ class KafkaProvider(Object):
             # update on the peer relation data will trigger an update of server properties on all units
             self.charm.state.cluster.update({username: ""})
 
-        self.dependent.update_client_data()
+        self.update_client_data()
+
+    def update_client_data(self) -> None:
+        """Writes necessary relation data to all related client applications."""
+        if (
+            not self.charm.unit.is_leader()
+            or not self.dependent.healthy
+            or not self.charm.balancer.healthy
+        ):
+            return
+
+        for client in self.charm.state.clients:
+            for request in client.requests:
+                if not client.relation or not client.relation.active:
+                    continue
+
+                if not client.password:
+                    logger.debug(
+                        f"Skipping update of {client.app.name}, user has not yet been added..."
+                    )
+                    continue
+
+                if not client.needs_update(broker_ca=self.charm.state.unit_broker.client_certs.ca):
+                    logger.info(f"Client {client.app.name} is already up-to-date")
+                    continue
+
+                response = KafkaResponseModel(
+                    request_id=request.request_id,
+                    salt=request.salt,
+                    username=SecretStr(client.username),
+                    password=SecretStr(client.password),
+                    endpoints=client.bootstrap_server,
+                    consumer_group_prefix=client.consumer_group_prefix,
+                    tls=SecretBool(client.tls),  # pyright: ignore
+                    tls_ca=SecretStr(self.charm.state.unit_broker.client_certs.ca),
+                    resource=client.topic or request.resource,
+                    secret_user=client.secret_user,
+                    secret_tls=client.secret_tls,
+                    version=client.version,
+                )
+
+                logger.info(f"Updating client: {client.app.name}")
+                self.kafka_provider.set_response(client.relation.id, response)

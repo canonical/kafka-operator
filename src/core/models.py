@@ -16,20 +16,22 @@ from charms.data_platform_libs.v0.data_interfaces import (
     PROV_SECRET_PREFIX,
     SECRET_GROUPS,
     Data,
-    DataPeerData,
-    DataPeerUnitData,
     ProviderData,
     RequirerData,
 )
 from charms.data_platform_libs.v1.data_interfaces import (
+    SECRET_PREFIX,
+    BaseModel,
+    KafkaRequestModel,
     OpsPeerRepository,
     OpsRelationRepository,
+    OptionalSecrets,
     OptionalSecretStr,
-    PeerModel,
     SecretGroup,
+    SecretNotFoundError,
 )
 from lightkube.resources.core_v1 import Node, Pod
-from ops.model import Application, ModelError, Relation, Unit
+from ops.model import Application, Model, ModelError, Relation, Unit
 from pydantic import Field
 
 from literals import (
@@ -84,19 +86,6 @@ BalancerGroupSecretStr = Annotated[
 ]
 
 
-class KafkaClusterData(PeerModel):
-    """..."""
-
-    balancer_username: BalancerGroupSecretStr = Field(alias="balancer-username")
-    balancer_password: BalancerGroupSecretStr = Field(alias="balancer-password")
-    balancer_uris: BalancerGroupSecretStr = Field(alias="balancer-uris")
-    bootstrap_replica_id: str = Field(alias="bootstrap-replica-id")
-    bootstrap_controller: str = Field(alias="bootstrap-controller")
-    bootstrap_unit_id: str = Field(alias="bootstrap-unit-id")
-    cluster_uuid: str = Field(alias="cluster-uuid")
-    controller_password: ControllerGroupSecretStr = Field(alias="controller-password")
-
-
 @dataclass
 class GeneratedCa:
     """Data class to model generated CA artifacts."""
@@ -121,54 +110,71 @@ class RelationStateV1:
     def __init__(
         self,
         relation: Relation | None,
-        data_interface: Data,
+        model: Model,
         component: Unit | Application,
+        extra_secret_fields: list[str] = [],
+        data_model: BaseModel | None = None,
         substrate: Substrates | None = None,
-        secret_fields: list[str] = [],
         is_peer_relation: bool = False,
     ):
-        self.model = data_interface._model
+        self.model = model
         if is_peer_relation:
             self.repository = OpsPeerRepository(self.model, relation, component)
         else:
             self.repository = OpsRelationRepository(self.model, relation, component)
         self.relation = relation
         self.component = component
+        self.data_model = data_model
         self.substrate = substrate
-        self.secret_fields = secret_fields
         self.is_peer_relation = is_peer_relation
-
-    def _get_secret_group(self, field: str) -> SecretGroup:
-        """..."""
-        if self.is_peer_relation:
-            return SecretGroup("extra")
-        else:
-            return SECRET_LABEL_MAP.get(field)
+        self.secret_fields = set(self.secret_map)
+        if extra_secret_fields:
+            self.secret_fields |= set(extra_secret_fields)
 
     def is_secret_field(self, field: str) -> bool:
-        """..."""
-        if self.is_peer_relation and field.startswith("relation-"):
+        """Determine if a field is secret or not, based on the relation data model."""
+        if field in self.secret_fields:
             return True
 
-        if field in self.secret_fields:
+        # Handle dynamic secret fields
+        if self.is_peer_relation and field.startswith("relation-"):
             return True
 
         return False
 
+    @cached_property
+    def secret_map(self) -> dict[str, SecretGroup]:
+        """Return a mapping of fields to associated secret groups."""
+        if not self.data_model:
+            return {}
+
+        _map = {}
+        for field, field_info in self.data_model.__pydantic_fields__.items():
+            if field_info.annotation in OptionalSecrets and len(field_info.metadata) == 1:
+                if secret_group := SecretGroup(field_info.metadata[0]):
+                    _map[field] = secret_group
+
+        return _map
+
     @property
     def relation_data(self) -> dict:
-        """..."""
+        """Return the data dictionary containing secret and non-secret fields, compatible with V0."""
         _data = self.repository.get_data() or {}
-        _data |= {
-            k: self.repository.get_secret_field(k, SecretGroup("extra"))
-            for k in self.secret_fields
-        }
 
-        # Handle dynamic secret keys
-        if self.is_peer_relation and (
-            secret := self.repository.get_secret(SecretGroup("extra"), None)
-        ):
-            _data |= secret.get_content()
+        for secret_group in set(self.secret_map.values()) | {SecretGroup("extra")}:
+            if secret := self.repository.get_secret(secret_group, None):
+                try:
+                    secret_info = (
+                        secret.meta.get_info()  # pyright: ignore[reportOptionalMemberAccess]
+                    )
+                    _data |= self.model.get_secret(id=secret_info.id).get_content(refresh=True)
+                except (AttributeError, SecretNotFoundError, ValueError):
+                    _data |= secret.get_content()
+
+        secret_fields = [fld for fld in _data if fld.startswith(SECRET_PREFIX)]
+        for secret_field in secret_fields:
+            if secret := self.model.get_secret(id=_data[secret_field]):
+                _data |= secret.get_content(refresh=True)
 
         return _data
 
@@ -179,13 +185,15 @@ class RelationStateV1:
 
         for k, v in update_content.items():
             if self.is_secret_field(k):
-                self.repository.write_secret_field(k, v, SecretGroup("extra"))
+                secret_group = self.secret_map.get(k, SecretGroup("extra"))
+                self.repository.write_secret_field(k, v, secret_group)
             else:
                 self.repository.write_field(k, v)
 
         for key in delete_fields:
             if self.is_secret_field(key):
-                self.repository.delete_secret_field(key, SecretGroup("extra"))
+                secret_group = self.secret_map.get(key, SecretGroup("extra"))
+                self.repository.delete_secret_field(key, secret_group)
             else:
                 self.repository.delete_field(key)
 
@@ -620,18 +628,17 @@ class KafkaCluster(RelationStateV1):
     def __init__(
         self,
         relation: Relation | None,
-        data_interface: DataPeerData,
+        model: Model,
         component: Application,
     ):
         super().__init__(
             relation,
-            data_interface,
+            model,
             component,
             substrate=None,
-            secret_fields=SECRETS_APP,
+            extra_secret_fields=SECRETS_APP,
             is_peer_relation=True,
         )
-        self.data_interface = data_interface
         self.app = component
 
     @property
@@ -671,7 +678,7 @@ class KafkaCluster(RelationStateV1):
         Returns:
             True if TLS encryption should be active. Otherwise False
         """
-        relation = self.data_interface._model.get_relation(TLS_RELATION)
+        relation = self.model.get_relation(TLS_RELATION)
 
         if not relation or not relation.active:
             return False
@@ -781,8 +788,16 @@ class TLSState:
     @property
     def chain(self) -> list[str]:
         """The chain used to sign unit cert."""
-        # DI v1 does handle the JSON serailization
-        return self.relation_data.get(f"{self.scope.value}-chain") or []
+        # DI v1 does handle the JSON serialization
+        raw = self.relation_state.relation_data.get(f"{self.scope.value}-chain")
+
+        if not raw:
+            return []
+
+        if isinstance(raw, list):
+            return raw
+
+        return json.loads(raw)
 
     @chain.setter
     def chain(self, value: str) -> None:
@@ -846,19 +861,18 @@ class KafkaBroker(RelationStateV1):
     def __init__(
         self,
         relation: Relation | None,
-        data_interface: DataPeerUnitData,
+        model: Model,
         component: Unit,
         substrate: Substrates,
     ):
         super().__init__(
             relation,
-            data_interface,
+            model,
             component,
             substrate=substrate,
-            secret_fields=SECRETS_UNIT,
+            extra_secret_fields=SECRETS_UNIT,
             is_peer_relation=True,
         )
-        self.data_interface = data_interface
         self.unit = component
         self.k8s = K8sManager(
             pod_name=self.pod_name,
@@ -1009,23 +1023,25 @@ class KafkaBroker(RelationStateV1):
         return bool(self.relation_data.get("added-to-quorum", False))
 
 
-
-
-
-class KafkaClient(RelationState):
+class KafkaClient(RelationStateV1):
     """State collection metadata for a single related client application."""
 
     def __init__(
         self,
         relation: Relation | None,
-        data_interface: Data,
+        model: Model,
         component: Application,
         local_app: Application | None = None,
         bootstrap_server: str = "",
         password: str = "",  # nosec: B107
         tls: str = "",
     ):
-        super().__init__(relation, data_interface, component, None)
+        super().__init__(
+            relation,
+            model,
+            component,
+            substrate=None,
+        )
         self.app = component
         self._local_app = local_app
         self._bootstrap_server = bootstrap_server
@@ -1099,6 +1115,53 @@ class KafkaClient(RelationState):
             return ""
 
         return self.generate_alias(self.relation.app.name, self.relation.id)
+
+    @property
+    def version(self) -> str:
+        """The Data Interface version of the client."""
+        return self.relation_data.get("version", "v0")
+
+    @property
+    def requests(self) -> list[KafkaRequestModel]:
+        """The serialized list of client requests."""
+        if self.version == "v0":
+            return [KafkaRequestModel(**self.relation_data)]
+
+        return [KafkaRequestModel(**req) for req in self.relation_data.get("requests", [])]
+
+    def needs_update(self, broker_ca: str) -> bool:
+        """Check if written data for this client needs update, based on current Kafka app state."""
+        if not self._local_app:
+            return True
+
+        state = RelationStateV1(self.relation, self.model, self._local_app).relation_data
+        return not all(
+            [
+                self.username == state.get("username"),
+                self.password == state.get("password"),
+                self.bootstrap_server == state.get("endpoints"),
+                self.tls == state.get("tls"),
+                broker_ca == state.get("tls-ca"),
+            ]
+        )
+
+    @property
+    def secret_user(self) -> str | None:
+        """The ID of the secret containing auth information, aka 'secret-user'."""
+        if secret_user := self.repository.get_secret(SecretGroup("user"), None):
+            if secret_info := secret_user.get_info():
+                return secret_info.id
+
+        return None
+
+    @property
+    def secret_tls(self) -> str | None:
+        """The ID of the secret containing tls information, aka 'secret-tls'."""
+        if secret_tls := self.repository.get_secret(SecretGroup("tls"), None):
+            if secret_info := secret_tls.get_info():
+                return secret_info.id
+
+        return None
 
     @staticmethod
     def generate_alias(app_name: str, relation_id: int) -> str:

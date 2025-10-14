@@ -236,19 +236,14 @@ def test_ready_to_start_ok(
     # When
     with (
         patch("workload.BalancerWorkload.write") as patched_writer,
-        patch("workload.BalancerWorkload.read"),
         patch(
-            "json.loads",
-            return_value={"brokerCapacities": [{}, {}, {}]},
+            "workload.BalancerWorkload.read", return_value=['{"brokerCapacities": [{}, {}, {}]}']
         ),
         patch(
             "core.cluster.ClusterState.broker_capacities",
             new_callable=PropertyMock,
             return_value={"brokerCapacities": [{}, {}, {}]},
         ),
-        # The json.loads patch above leads to corrupt data for TLSState.chain
-        # which also relies on json.loads
-        patch("core.models.TLSState.chain", new_callable=PropertyMock, return_value=[]),
         patch("workload.KafkaWorkload.read"),
         patch("workload.BalancerWorkload.exec"),
         patch("workload.BalancerWorkload.restart"),
