@@ -168,7 +168,6 @@ def test_client_relation_joined_sets_necessary_relation_data(
     relation_databag = (
         state_out.get_relation(client_relation.id).local_app_data | shared_secret_contents
     )
-    print(relation_databag)
     assert not {
         "username",
         "password",
