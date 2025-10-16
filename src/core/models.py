@@ -1226,6 +1226,7 @@ class KafkaClient(RelationStateV1):
         try:
             return [KafkaPermissionModel(**p.dict()) for p in self.request.entity_permissions]
         except ValidationError as e:
+            # TODO: propagate the error to the client once DI V1 supports DA-174.
             logger.error(f"Permissions requested by the client is invalid: {e}")
             return []
 
