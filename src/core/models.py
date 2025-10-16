@@ -22,6 +22,7 @@ from charms.data_platform_libs.v0.data_interfaces import (
 from charms.data_platform_libs.v1.data_interfaces import (
     SECRET_PREFIX,
     BaseModel,
+    EntityPermissionModel,
     KafkaRequestModel,
     OpsPeerRepository,
     OpsRelationRepository,
@@ -32,7 +33,7 @@ from charms.data_platform_libs.v1.data_interfaces import (
 )
 from lightkube.resources.core_v1 import Node, Pod
 from ops.model import Application, Model, ModelError, Relation, Unit
-from pydantic import Field
+from pydantic import Field, ValidationError, field_validator
 
 from literals import (
     BALANCER,
@@ -102,6 +103,33 @@ class SelfSignedCertificate:
     csr: str
     certificate: str
     private_key: str
+
+
+RESOURCE_TYPES = {"TOPIC", "GROUP"}
+VALID_OPERATIONS = {"READ", "WRITE", "CREATE", "DELETE", "DESCRIBE", "All"}
+
+
+class KafkaPermissionModel(EntityPermissionModel):
+    """Extended permission request model for Kafka clients."""
+
+    @field_validator("resource_type")
+    @classmethod
+    def validate_resource_type(cls, v: str) -> str:
+        """Checks if resource_type is valid and converts it to uppercase."""
+        if v.upper() not in {"TOPIC", "GROUP"}:
+            raise ValueError(f"resource type should be in {RESOURCE_TYPES}")
+        return v.upper()
+
+    @field_validator("privileges")
+    @classmethod
+    def validate_privileges(cls, v: list) -> list[str]:
+        """Checks if resource_type is valid and converts it to uppercase."""
+        ops = []
+        for op in v:
+            if op not in VALID_OPERATIONS:
+                raise ValueError(f"privilege should be in {VALID_OPERATIONS}")
+            ops.append(op)
+        return ops
 
 
 class RelationStateV1:
@@ -1031,6 +1059,7 @@ class KafkaClient(RelationStateV1):
         relation: Relation | None,
         model: Model,
         component: Application,
+        request: KafkaRequestModel,
         local_app: Application | None = None,
         bootstrap_server: str = "",
         password: str = "",  # nosec: B107
@@ -1047,11 +1076,16 @@ class KafkaClient(RelationStateV1):
         self._bootstrap_server = bootstrap_server
         self._password = password
         self._tls = tls
+        self.request = request
+        self.request_id = request.request_id
 
     @property
     def username(self) -> str:
         """The generated username for the client application."""
-        return f"relation-{getattr(self.relation, 'id', '')}"
+        if not self.relation:
+            return ""
+
+        return self.generate_username(self.relation.id, self.request_id)
 
     @property
     def bootstrap_server(self) -> str:
@@ -1092,7 +1126,7 @@ class KafkaClient(RelationStateV1):
     @property
     def topic(self) -> str:
         """The requested topic for the client."""
-        return self.relation_data.get("topic", "")
+        return self.request.resource
 
     @property
     def extra_user_roles(self) -> str:
@@ -1101,12 +1135,15 @@ class KafkaClient(RelationStateV1):
         Can be any comma-delimited selection of `producer`, `consumer` and `admin`.
         When `admin` is set, the Kafka charm interprets this as a new super.user.
         """
-        return self.relation_data.get("extra-user-roles", "")
+        return self.request.extra_user_roles or ""
 
     @property
     def mtls_cert(self) -> str:
         """Returns TLS cert of the client."""
-        return self.relation_data.get("mtls-cert", "")
+        if not self.request.mtls_cert:
+            return ""
+
+        return self.request.mtls_cert.get_secret_value()
 
     @property
     def alias(self) -> str:
@@ -1122,19 +1159,33 @@ class KafkaClient(RelationStateV1):
         return self.relation_data.get("version", "v0")
 
     @property
-    def requests(self) -> list[KafkaRequestModel]:
-        """The serialized list of client requests."""
-        if self.version == "v0":
-            return [KafkaRequestModel(**self.relation_data)]
+    def written_data(self) -> dict:
+        """The data written for this client."""
+        if not self._local_app:
+            return {}
 
-        return [KafkaRequestModel(**req) for req in self.relation_data.get("requests", [])]
+        _data = RelationStateV1(self.relation, self.model, self._local_app).relation_data
+        if self.version == "v0":
+            return _data
+
+        # Since DI v1 relations could include multiple requests, we need to extract
+        # data for this specific request, both from relation data and secrets.
+        my_data = [r for r in _data["requests"] if r.get("request-id") == self.request_id]
+        if not my_data:
+            return {}
+
+        _data = my_data[0]
+        secret_fields = [fld for fld in _data if fld.startswith(SECRET_PREFIX)]
+        for secret_field in secret_fields:
+            if secret_uri := _data[secret_field]:
+                if secret := self.model.get_secret(id=secret_uri):
+                    _data |= secret.get_content(refresh=True)
+
+        return _data
 
     def needs_update(self, broker_ca: str) -> bool:
         """Check if written data for this client needs update, based on current Kafka app state."""
-        if not self._local_app:
-            return True
-
-        state = RelationStateV1(self.relation, self.model, self._local_app).relation_data
+        state = self.written_data
         return not all(
             [
                 self.username == state.get("username"),
@@ -1148,7 +1199,7 @@ class KafkaClient(RelationStateV1):
     @property
     def secret_user(self) -> str | None:
         """The ID of the secret containing auth information, aka 'secret-user'."""
-        if secret_user := self.repository.get_secret(SecretGroup("user"), None):
+        if secret_user := self.repository.get_secret(SecretGroup("user"), None, self.request_id):
             if secret_info := secret_user.get_info():
                 return secret_info.id
 
@@ -1157,11 +1208,29 @@ class KafkaClient(RelationStateV1):
     @property
     def secret_tls(self) -> str | None:
         """The ID of the secret containing tls information, aka 'secret-tls'."""
-        if secret_tls := self.repository.get_secret(SecretGroup("tls"), None):
+        if secret_tls := self.repository.get_secret(SecretGroup("tls"), None, self.request_id):
             if secret_info := secret_tls.get_info():
                 return secret_info.id
 
         return None
+
+    @property
+    def permissions(self) -> list[KafkaPermissionModel]:
+        """List of permissions requested by the client."""
+        if not self.request.entity_permissions:
+            return []
+
+        try:
+            return [KafkaPermissionModel(**p.dict()) for p in self.request.entity_permissions]
+        except ValidationError as e:
+            logger.error(f"Permissions requested by the client is invalid: {e}")
+            return []
+
+    @staticmethod
+    def generate_username(relation_id: int, request_id: str | None) -> str:
+        """Generate the username for a specific request on a relation."""
+        postfix = f"-{request_id}" if request_id else ""
+        return f"relation-{relation_id}{postfix}"
 
     @staticmethod
     def generate_alias(app_name: str, relation_id: int) -> str:

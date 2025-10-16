@@ -63,33 +63,34 @@ class KafkaProvider(Object):
 
     def on_topic_requested(self, event: ResourceRequestedEvent):
         """Handle the on topic requested event."""
-        if not self.dependent.healthy:
-            event.defer()
+        for client in self.charm.state.clients:
+            # Each relation might have multiple client requests
+            if event.relation == client.relation:
+                self.handle_client_request(client)
+
+        self.dependent._on_config_changed(event)
+
+    def handle_client_request(self, client: KafkaClient | None):
+        """Handle topic request of the given KafkaClient, if not already done."""
+        if not client or not client.topic:
+            return
+
+        if self.charm.state.cluster.relation_data.get(client.username):
+            # We have setup this client before
             return
 
         if not self.charm.workload.ping(self.charm.state.bootstrap_server_internal):
             logging.debug("Broker/Controller not up yet...")
-            event.defer()
             return
 
-        # on all unit update the server properties to enable client listener if needed
-        self.dependent._on_config_changed(event)
+        if not self.dependent.healthy:
+            return
 
         if not self.charm.unit.is_leader() or not self.charm.state.peer_relation:
             return
 
-        requesting_client = None
-        for client in self.charm.state.clients:
-            if event.relation == client.relation:
-                requesting_client = client
-                break
-
-        if not requesting_client:
-            event.defer()
-            return
-
         # We don't want to set credentials for the client before MTLS setup.
-        if requesting_client.mtls_cert and not all(
+        if client.mtls_cert and not all(
             [
                 self.charm.state.cluster.tls_enabled,
                 self.charm.state.unit_broker.client_certs.certificate,
@@ -97,14 +98,12 @@ class KafkaProvider(Object):
         ):
             logger.debug("Missing TLS relation, deferring")
             self.charm._set_status(Status.MTLS_REQUIRES_TLS)
-            event.defer()
             return
 
-        if requesting_client.mtls_cert and self.dependent.tls_manager.alias_needs_update(
-            requesting_client.alias, requesting_client.mtls_cert
+        if client.mtls_cert and self.dependent.tls_manager.alias_needs_update(
+            client.alias, client.mtls_cert
         ):
             logging.debug("Waiting for MTLS setup.")
-            event.defer()
             return
 
         password = client.password or self.charm.workload.generate_password()
@@ -117,7 +116,6 @@ class KafkaProvider(Object):
             )
         except (subprocess.CalledProcessError, ExecError):
             logger.warning(f"unable to create user {client.username} just yet")
-            event.defer()
             return
 
         self.dependent.auth_manager.update_user_acls(
@@ -125,14 +123,13 @@ class KafkaProvider(Object):
             topic=client.topic,
             extra_user_roles=client.extra_user_roles,
             group=client.consumer_group_prefix,
+            permissions=client.permissions,
         )
 
         # non-leader units need cluster_config_changed event to update their super.users
         self.charm.state.cluster.update(
             {"super-users": self.charm.state.super_users, client.username: password}
         )
-
-        self.update_client_data()
 
     def on_mtls_cert_updated(self, event: MtlsCertUpdatedEvent) -> None:
         """Handler for `kafka-client-mtls-cert-updated` event."""
@@ -196,6 +193,7 @@ class KafkaProvider(Object):
             topic=client.topic,
             extra_user_roles=client.extra_user_roles,
             group=client.consumer_group_prefix,
+            permissions=client.permissions,
         )
 
         self.charm.on.config_changed.emit()
@@ -256,42 +254,40 @@ class KafkaProvider(Object):
 
     def update_client_data(self) -> None:
         """Writes necessary relation data to all related client applications."""
-        if (
-            not self.charm.unit.is_leader()
-            or not self.dependent.healthy
-            or not self.charm.balancer.healthy
-        ):
+        if not self.charm.unit.is_leader() or not self.dependent.healthy:
             return
 
         for client in self.charm.state.clients:
-            for request in client.requests:
-                if not client.relation or not client.relation.active:
-                    continue
 
-                if not client.password:
-                    logger.debug(
-                        f"Skipping update of {client.app.name}, user has not yet been added..."
-                    )
-                    continue
+            if not client.relation or not client.relation.active:
+                continue
 
-                if not client.needs_update(broker_ca=self.charm.state.unit_broker.client_certs.ca):
-                    logger.info(f"Client {client.app.name} is already up-to-date")
-                    continue
+            self.handle_client_request(client)
 
-                response = KafkaResponseModel(
-                    request_id=request.request_id,
-                    salt=request.salt,
-                    username=SecretStr(client.username),
-                    password=SecretStr(client.password),
-                    endpoints=client.bootstrap_server,
-                    consumer_group_prefix=client.consumer_group_prefix,
-                    tls=SecretBool(client.tls),  # pyright: ignore
-                    tls_ca=SecretStr(self.charm.state.unit_broker.client_certs.ca),
-                    resource=client.topic or request.resource,
-                    secret_user=client.secret_user,
-                    secret_tls=client.secret_tls,
-                    version=client.version,
+            if not all([client.password, client.topic]):
+                logger.debug(
+                    f"Skipping update of {client.app.name}, user has not yet been added..."
                 )
+                continue
 
-                logger.info(f"Updating client: {client.app.name}")
-                self.kafka_provider.set_response(client.relation.id, response)
+            if not client.needs_update(broker_ca=self.charm.state.unit_broker.client_certs.ca):
+                logger.info(f"Client {client.app.name} is already up-to-date")
+                continue
+
+            response = KafkaResponseModel(
+                request_id=client.request_id,
+                salt=client.request.salt,
+                username=SecretStr(client.username),
+                password=SecretStr(client.password),
+                endpoints=client.bootstrap_server,
+                consumer_group_prefix=client.consumer_group_prefix,
+                tls=SecretBool(client.tls == "enabled"),  # pyright: ignore
+                tls_ca=SecretStr(self.charm.state.unit_broker.client_certs.ca),
+                resource=client.topic,
+                secret_user=client.secret_user,
+                secret_tls=client.secret_tls,
+                version=client.version,
+            )
+
+            logger.info(f"Updating client: {client.app.name}")
+            self.kafka_provider.set_response(client.relation.id, response)
