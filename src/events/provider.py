@@ -136,6 +136,15 @@ class KafkaProvider(Object):
         if not event.relation or not event.relation.active:
             return
 
+        mtls_clients = [
+            client
+            for client in self.charm.state.clients
+            if client.relation == event.relation and client.mtls_cert
+        ]
+
+        if not mtls_clients:
+            return
+
         if not self.charm.broker.healthy:
             event.defer()
             return
@@ -151,50 +160,39 @@ class KafkaProvider(Object):
             event.defer()
             return
 
-        client = next(
-            iter(
-                [
-                    client
-                    for client in self.charm.state.clients
-                    if client.relation == event.relation
-                ]
+        for client in mtls_clients:
+
+            # check for leaf certificate condition
+            if not self.dependent.tls_manager.is_valid_leaf_certificate(client.mtls_cert):
+                self.charm._set_status(Status.INVALID_CLIENT_CERTIFICATE)
+                return
+
+            if not self.charm.workload.ping(self.charm.state.bootstrap_server_internal):
+                logging.debug("Broker/Controller not up yet...")
+                event.defer()
+                return
+
+            distinguished_name = self.dependent.tls_manager.certificate_distinguished_name(
+                client.mtls_cert
             )
-        )
+            try:
+                cert_principal = self.ssl_principal_mapper.get_name(
+                    distinguished_name=distinguished_name
+                )
+            except NoMatchingRuleError:
+                logger.error(
+                    f"Relation {event.relation.id} doesn't have a certificate that can be mapped to the current ssl_principal_mapping_rules"
+                )
+                return
 
-        if not client.mtls_cert:
-            return
-
-        # check for leaf certificate condition
-        if not self.dependent.tls_manager.is_valid_leaf_certificate(client.mtls_cert):
-            self.charm._set_status(Status.INVALID_CLIENT_CERTIFICATE)
-            return
-
-        if not self.charm.workload.ping(self.charm.state.bootstrap_server_internal):
-            logging.debug("Broker/Controller not up yet...")
-            event.defer()
-            return
-
-        distinguished_name = self.dependent.tls_manager.certificate_distinguished_name(
-            client.mtls_cert
-        )
-        try:
-            cert_principal = self.ssl_principal_mapper.get_name(
-                distinguished_name=distinguished_name
+            self.dependent.auth_manager.remove_all_user_acls(client.username)
+            self.dependent.auth_manager.update_user_acls(
+                username=cert_principal,
+                topic=client.topic,
+                extra_user_roles=client.extra_user_roles,
+                group=client.consumer_group_prefix,
+                permissions=client.permissions,
             )
-        except NoMatchingRuleError:
-            logger.error(
-                f"Relation {event.relation.id} doesn't have a certificate that can be mapped to the current ssl_principal_mapping_rules"
-            )
-            return
-
-        self.dependent.auth_manager.remove_all_user_acls(client.username)
-        self.dependent.auth_manager.update_user_acls(
-            username=cert_principal,
-            topic=client.topic,
-            extra_user_roles=client.extra_user_roles,
-            group=client.consumer_group_prefix,
-            permissions=client.permissions,
-        )
 
         self.charm.on.config_changed.emit()
 
@@ -274,6 +272,9 @@ class KafkaProvider(Object):
                 logger.info(f"Client {client.app.name} is already up-to-date")
                 continue
 
+            # In v1, we can't write enabled, because it's not JSON-serializable.
+            _tls_value = client.tls == "enabled" if client.version == "v1" else client.tls
+
             response = KafkaResponseModel(
                 request_id=client.request_id,
                 salt=client.request.salt,
@@ -281,7 +282,7 @@ class KafkaProvider(Object):
                 password=SecretStr(client.password),
                 endpoints=client.bootstrap_server,
                 consumer_group_prefix=client.consumer_group_prefix,
-                tls=SecretBool(client.tls == "enabled"),  # pyright: ignore
+                tls=SecretBool(_tls_value),  # pyright: ignore
                 tls_ca=SecretStr(self.charm.state.unit_broker.client_certs.ca),
                 resource=client.topic,
                 secret_user=client.secret_user,

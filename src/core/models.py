@@ -1168,6 +1168,9 @@ class KafkaClient(RelationStateV1):
         if self.version == "v0":
             return _data
 
+        if "requests" not in _data:
+            return {}
+
         # Since DI v1 relations could include multiple requests, we need to extract
         # data for this specific request, both from relation data and secrets.
         my_data = [r for r in _data["requests"] if r.get("request-id") == self.request_id]
