@@ -256,9 +256,10 @@ class BrokerOperator(Object):
         # Update IP addresses based on current network bindings.
         self.update_ip_addresses()
 
+        # The order is important here, first update the credentials cache,
+        # then the client relation data.
         self.update_credentials_cache()
-
-        self.provider.update_client_data()
+        self.provider.reconcile()
 
         if self.charm.state.peer_cluster_orchestrator_relation and self.charm.unit.is_leader():
             self.update_peer_cluster_data()

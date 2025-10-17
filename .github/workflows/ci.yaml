@@ -65,6 +65,7 @@ jobs:
         tox-environments:
           - integration-charm
           - integration-provider
+          - integration-provider-v1
           - integration-password-rotation
           - integration-tls
           - integration-refresh
@@ -119,6 +120,7 @@ jobs:
         tox-environments:
           - integration-charm
           - integration-provider
+          - integration-provider-v1
           - integration-password-rotation
           - integration-tls
           - integration-refresh
