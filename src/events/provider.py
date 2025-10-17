@@ -230,30 +230,32 @@ class KafkaProvider(Object):
             self.dependent.tls_manager.remove_cert(alias=alias)
             self.dependent.tls_manager.reload_truststore()
 
-        if (
-            # don't remove anything if app is going down
-            self.charm.app.planned_units() == 0
-            or not self.charm.unit.is_leader()
-            or not self.charm.state.cluster
-        ):
-            return
+        # we remove broken clients here:
+        self.reconcile()
 
-        if event.relation.app != self.charm.app or not self.charm.app.planned_units() == 0:
-            username = f"relation-{event.relation.id}"
+    def remove_broken_clients(self) -> None:
+        """Remove all usernames and ACLs associated with the broken client relations."""
+        client_usernames = {
+            u for u in self.charm.state.cluster.relation_data if u.startswith("relation-")
+        }
+        active_clients = {client.username for client in self.charm.state.clients}
+
+        for username in client_usernames - active_clients:
+            logger.info(f"Removing {username}")
 
             self.dependent.auth_manager.remove_all_user_acls(username=username)
             self.dependent.auth_manager.delete_user(username=username)
 
-            # non-leader units need cluster_config_changed event to update their super.users
+            # non-leader units need cluster_relation_changed event to update their super.users
             # update on the peer relation data will trigger an update of server properties on all units
             self.charm.state.cluster.update({username: ""})
 
-        self.update_client_data()
-
-    def update_client_data(self) -> None:
-        """Writes necessary relation data to all related client applications."""
+    def reconcile(self) -> None:
+        """Writes necessary relation data to all related client applications and remove stale clients/ACLs."""
         if not self.charm.unit.is_leader() or not self.dependent.healthy:
             return
+
+        self.remove_broken_clients()
 
         for client in self.charm.state.clients:
 

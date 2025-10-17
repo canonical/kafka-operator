@@ -15,7 +15,7 @@ from integration.helpers.jubilant import (
     get_provider_data,
     get_secret_by_label,
 )
-from integration.helpers.pytest_operator import load_acls
+from integration.helpers.pytest_operator import check_user, load_acls
 from literals import REL_NAME
 from managers.auth import Acl
 
@@ -34,7 +34,7 @@ PASSWORDS = []
 
 @pytest.mark.abort_on_fail
 @pytest.mark.skip_if_deployed
-def test_deploy_active(
+def test_deploy_and_relate(
     juju: jubilant.Juju, kafka_charm, app_charm, kraft_mode, kafka_apps
 ) -> None:
     """Deploys a cluster of Kafka with 3 brokers and a test app, waits for `active|idle`."""
@@ -56,7 +56,7 @@ def test_deploy_active(
         lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME_1),
         delay=3,
         successes=20,
-        timeout=1800,
+        timeout=900,
     )
 
 
@@ -146,3 +146,21 @@ def test_acl_integrity(juju: jubilant.Juju):
         )
         in acls
     )
+
+
+def test_relation_broken(juju: jubilant.Juju, kafka_apps):
+    for username in USERNAMES:
+        check_user(juju.model, username)
+
+    juju.remove_relation(APP_NAME, DUMMY_NAME_1)
+
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME_1),
+        delay=3,
+        successes=20,
+        timeout=900,
+    )
+
+    for username in USERNAMES:
+        with pytest.raises(AssertionError):
+            check_user(juju.model, username)
