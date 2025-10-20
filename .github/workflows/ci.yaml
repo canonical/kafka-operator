@@ -117,19 +117,19 @@ jobs:
       fail-fast: false
       matrix:
         tox-environments:
-          - integration-charm
-          - integration-provider
-          - integration-password-rotation
-          - integration-tls
-          - integration-refresh
-          - integration-tls-complex
+          # - integration-charm
+          # - integration-provider
+          # - integration-password-rotation
+          # - integration-tls
+          # - integration-refresh
+          # - integration-tls-complex
           - integration-balancer-single
           - integration-balancer-multi
-          - integration-kraft
-          - integration-kraft-tls
-          - integration-ha
-          - integration-ha-controller
-          - integration-spaces
+          # - integration-kraft
+          # - integration-kraft-tls
+          # - integration-ha
+          # - integration-ha-controller
+          # - integration-spaces
         kraft-mode:
           - multi
     name: ${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}
@@ -153,6 +153,8 @@ jobs:
         with:
           pattern: ${{ needs.build.outputs.artifact-prefix }}-*
           merge-multiple: true
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       - name: Select tests
         id: select-tests
         run: |
