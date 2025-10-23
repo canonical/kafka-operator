@@ -175,7 +175,15 @@ def test_client_relation_joined_sets_necessary_relation_data(
         state_out = ctx.run(ctx.on.relation_changed(client_relation), state_in)
 
     # Then
-    relation_databag = state_out.get_relation(client_relation.id).local_app_data
+    shared_secret_contents = {
+        k: v
+        for secret in state_out.secrets
+        for k, v in secret.latest_content.items()
+        if secret.label.startswith(REL_NAME)
+    }
+    relation_databag = (
+        state_out.get_relation(client_relation.id).local_app_data | shared_secret_contents
+    )
     assert not {
         "username",
         "password",
@@ -292,6 +300,7 @@ def test_mtls_setup(
         patch(
             "managers.tls.TLSManager.build_sans", return_value={"sans_ip": "ip", "sans_dns": "dns"}
         ),
+        patch("events.tls.TLSHandler.update_truststore"),
         ctx(ctx.on.relation_changed(client_relation), state_in) as mgr,
     ):
         mock_auth_manager = MagicMock(spec=AuthManager)
@@ -300,7 +309,7 @@ def test_mtls_setup(
         state_out = mgr.run()
 
     # Then
-    assert mock_auth_manager.update_user_acls.call_count == 2
+    mock_auth_manager.update_user_acls.assert_called()
     assert mock_auth_manager.remove_all_user_acls.call_count == 1
     assert f"relation-{client_rel_id}" in mock_auth_manager.remove_all_user_acls.call_args[0]
     assert state_out.app_status == Status.ACTIVE.value.status

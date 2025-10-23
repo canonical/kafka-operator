@@ -119,7 +119,7 @@ class ClusterState(Object):
                 {
                     "controller_password": self.cluster.controller_password,
                     "bootstrap_controller": self.cluster.bootstrap_controller,
-                    "bootstrap_unit_id": self.cluster.bootstrap_unit_id,
+                    "bootstrap_unit_id": str(self.cluster.bootstrap_unit_id),
                     "bootstrap_replica_id": self.cluster.bootstrap_replica_id,
                 }
             )
@@ -143,7 +143,7 @@ class ClusterState(Object):
                     "balancer_uris": self.cluster.balancer_uris,
                     "controller_password": self.cluster.controller_password,
                     "bootstrap_controller": self.cluster.bootstrap_controller,
-                    "bootstrap_unit_id": self.cluster.bootstrap_unit_id,
+                    "bootstrap_unit_id": str(self.cluster.bootstrap_unit_id),
                     "bootstrap_replica_id": self.cluster.bootstrap_replica_id,
                 }
             )
@@ -192,7 +192,7 @@ class ClusterState(Object):
         """The broker state of the current running Unit."""
         return KafkaBroker(
             relation=self.peer_relation,
-            data_interface=self.peer_unit_interface,
+            model=self.model,
             component=self.model.unit,
             substrate=self.substrate,
         )
@@ -220,7 +220,7 @@ class ClusterState(Object):
         """The cluster state of the current running App."""
         return KafkaCluster(
             relation=self.peer_relation,
-            data_interface=self.peer_app_interface,
+            model=self.model,
             component=self.model.app,
         )
 
@@ -232,11 +232,11 @@ class ClusterState(Object):
             Set of KafkaBrokers in the current peer relation, including the running unit server.
         """
         brokers = set()
-        for unit, data_interface in self.peer_units_data_interfaces.items():
+        for unit in self.peer_units_data_interfaces:
             brokers.add(
                 KafkaBroker(
                     relation=self.peer_relation,
-                    data_interface=data_interface,
+                    model=self.model,
                     component=unit,
                     substrate=self.substrate,
                 )
@@ -263,7 +263,7 @@ class ClusterState(Object):
             clients.add(
                 KafkaClient(
                     relation=relation,
-                    data_interface=self.client_provider_interface,
+                    model=self.model,
                     component=relation.app,
                     local_app=self.cluster.app,
                     bootstrap_server=self.bootstrap_server_client(relation),

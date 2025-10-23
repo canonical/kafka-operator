@@ -42,7 +42,7 @@ class SecretsHandler(Object):
     """Handler for events related to user-defined secrets."""
 
     def __init__(self, dependent: "BrokerOperator") -> None:
-        super().__init__(dependent.charm, "connect-secrets")
+        super().__init__(dependent.charm, "kafka-secrets")
         self.dependent = dependent
         self.charm: "KafkaCharm" = dependent.charm
         self.state = self.charm.state
@@ -79,7 +79,7 @@ class SecretsHandler(Object):
         # Store the password on application databag
         for username in changed:
             new_password = credentials[username]
-            self.state.cluster.relation_data.update({f"{username}-password": new_password})
+            self.state.cluster.update({f"{username}-password": new_password})
 
         try:
             for username in changed:
