@@ -16,7 +16,7 @@ from integration.helpers.jubilant import (
     get_secret_by_label,
 )
 from integration.helpers.pytest_operator import check_user, load_acls
-from literals import REL_NAME
+from literals import REL_NAME, TLS_RELATION
 from managers.auth import Acl
 
 logger = logging.getLogger(__name__)
