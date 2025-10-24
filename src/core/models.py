@@ -24,12 +24,15 @@ from charms.data_platform_libs.v1.data_interfaces import (
     BaseModel,
     EntityPermissionModel,
     KafkaRequestModel,
+    KafkaResponseModel,
     OpsPeerRepository,
     OpsRelationRepository,
     OptionalSecrets,
     OptionalSecretStr,
     SecretGroup,
     SecretNotFoundError,
+    TlsSecretBool,
+    TlsSecretStr,
 )
 from lightkube.resources.core_v1 import Node, Pod
 from ops.model import Application, Model, ModelError, Relation, Unit
@@ -106,7 +109,7 @@ class SelfSignedCertificate:
 
 
 RESOURCE_TYPES = {"TOPIC", "GROUP"}
-VALID_OPERATIONS = {"READ", "WRITE", "CREATE", "DELETE", "DESCRIBE", "All"}
+VALID_OPERATIONS = {"READ", "WRITE", "CREATE", "DELETE", "DESCRIBE"}
 
 
 class KafkaPermissionModel(EntityPermissionModel):
@@ -130,6 +133,13 @@ class KafkaPermissionModel(EntityPermissionModel):
                 raise ValueError(f"privilege should be in {VALID_OPERATIONS}")
             ops.append(op)
         return ops
+
+
+class KafkaCompatibilityResponseModel(KafkaResponseModel):
+    """Response model compatible with V0."""
+
+    tls: TlsSecretBool | TlsSecretStr = Field(default=None)
+    consumer_group_prefix: str | None = Field(default=None)
 
 
 class RelationStateV1:
@@ -1143,7 +1153,7 @@ class KafkaClient(RelationStateV1):
         if not self.request.mtls_cert:
             return ""
 
-        return self.request.mtls_cert.get_secret_value()
+        return self.request.mtls_cert
 
     @property
     def alias(self) -> str:
