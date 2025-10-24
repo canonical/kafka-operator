@@ -10,18 +10,15 @@ from typing import TYPE_CHECKING
 
 from charms.data_platform_libs.v1.data_interfaces import (
     KafkaRequestModel,
-    KafkaResponseModel,
     MtlsCertUpdatedEvent,
     ResourceProviderEventHandler,
     ResourceRequestedEvent,
-    SecretBool,
-    SecretStr,
 )
 from ops.charm import RelationBrokenEvent, RelationCreatedEvent
 from ops.framework import Object
 from ops.pebble import ExecError
 
-from core.models import KafkaClient
+from core.models import KafkaClient, KafkaCompatibilityResponseModel
 from literals import REL_NAME, Status
 from managers.ssl_principal_mapper import NoMatchingRuleError, SslPrincipalMapper
 
@@ -277,15 +274,15 @@ class KafkaProvider(Object):
             # In v1, we can't write enabled, because it's not JSON-serializable.
             _tls_value = client.tls == "enabled" if client.version == "v1" else client.tls
 
-            response = KafkaResponseModel(
+            response = KafkaCompatibilityResponseModel(
                 request_id=client.request_id,
                 salt=client.request.salt,
-                username=SecretStr(client.username),
-                password=SecretStr(client.password),
+                username=client.username,
+                password=client.password,
                 endpoints=client.bootstrap_server,
                 consumer_group_prefix=client.consumer_group_prefix,
-                tls=SecretBool(_tls_value),  # pyright: ignore
-                tls_ca=SecretStr(self.charm.state.unit_broker.client_certs.ca),
+                tls=_tls_value,  # pyright: ignore
+                tls_ca=self.charm.state.unit_broker.client_certs.ca,
                 resource=client.topic,
                 secret_user=client.secret_user,
                 secret_tls=client.secret_tls,
