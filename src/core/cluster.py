@@ -28,10 +28,12 @@ from core.models import (
     KafkaBroker,
     KafkaClient,
     KafkaCluster,
+    KafkaRequestModel,
     OAuth,
     PeerCluster,
     PeerClusterData,
     PeerClusterOrchestratorData,
+    RelationStateV1,
 )
 from literals import (
     ADMIN_USER,
@@ -260,17 +262,29 @@ class ClusterState(Object):
             if not relation.app:
                 continue
 
-            clients.add(
-                KafkaClient(
-                    relation=relation,
-                    model=self.model,
-                    component=relation.app,
-                    local_app=self.cluster.app,
-                    bootstrap_server=self.bootstrap_server_client(relation),
-                    password=self.cluster.client_passwords.get(f"relation-{relation.id}", ""),
-                    tls="enabled" if self.cluster.tls_enabled else "disabled",
+            state = RelationStateV1(relation, self.model, relation.app)
+            data = state.relation_data
+            version = data.get("version", "v0")
+
+            if version == "v0":
+                requests = [KafkaRequestModel(**state.relation_data)]
+            else:
+                requests = [KafkaRequestModel(**req) for req in data.get("requests", [])]
+
+            for request in requests:
+                username = KafkaClient.generate_username(relation.id, request.request_id)
+                clients.add(
+                    KafkaClient(
+                        relation=relation,
+                        model=self.model,
+                        component=relation.app,
+                        request=request,
+                        local_app=self.cluster.app,
+                        bootstrap_server=self.bootstrap_server_client(relation),
+                        password=self.cluster.client_passwords.get(username, ""),
+                        tls="enabled" if self.cluster.tls_enabled else "disabled",
+                    )
                 )
-            )
 
         return clients
 

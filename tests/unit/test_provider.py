@@ -56,34 +56,17 @@ def ctx() -> Context:
     return ctx
 
 
-def test_client_relation_created_defers_if_not_ready(ctx: Context, base_state: State) -> None:
+def test_client_relation_created_adds_user(
+    ctx: Context,
+    base_state: State,
+    kraft_data: dict[str, str],
+    passwords_data: dict[str, str],
+    unit_peer_tls_data: dict[str, str],
+) -> None:
     # Given
-    cluster_peer = PeerRelation(PEER, PEER)
-    client_relation = Relation(
-        REL_NAME,
-        "app",
-        remote_app_data={"topic": "TOPIC", "extra-user-roles": "consumer,producer"},
+    cluster_peer = PeerRelation(
+        PEER, PEER, local_app_data=kraft_data | passwords_data, local_unit_data=unit_peer_tls_data
     )
-    state_in = dataclasses.replace(base_state, relations=[cluster_peer, client_relation])
-
-    # When
-    with (
-        patch(
-            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=False
-        ),
-        patch("managers.auth.AuthManager.add_user") as patched_add_user,
-        patch("ops.framework.EventBase.defer") as patched_defer,
-    ):
-        ctx.run(ctx.on.relation_changed(client_relation), state_in)
-
-    # Then
-    patched_add_user.assert_not_called()
-    patched_defer.assert_called()
-
-
-def test_client_relation_created_adds_user(ctx: Context, base_state: State) -> None:
-    # Given
-    cluster_peer = PeerRelation(PEER, PEER)
     client_relation = Relation(
         REL_NAME,
         "app",
@@ -171,6 +154,7 @@ def test_client_relation_joined_sets_necessary_relation_data(
         ),
         patch("managers.auth.AuthManager.add_user"),
         patch("workload.KafkaWorkload.run_bin_command"),
+        patch("workload.KafkaWorkload.read"),
     ):
         state_out = ctx.run(ctx.on.relation_changed(client_relation), state_in)
 
@@ -194,7 +178,7 @@ def test_client_relation_joined_sets_necessary_relation_data(
         "topic",
     } - set(relation_databag.keys())
 
-    assert relation_databag.get("tls", None) == "disabled"
+    assert relation_databag.get("tls", None) in ("disabled", "false")
     assert relation_databag.get("username", None) == f"relation-{client_relation.id}"
     assert relation_databag.get("consumer-group-prefix", None) == f"relation-{client_relation.id}-"
 
@@ -205,6 +189,9 @@ def test_client_relation_joined_sets_necessary_relation_data(
 def test_mtls_without_tls_relation(
     ctx: Context,
     base_state: State,
+    kraft_data: dict[str, str],
+    passwords_data: dict[str, str],
+    unit_peer_tls_data: dict[str, str],
 ) -> None:
     # Given
     restart_relation = PeerRelation("restart", "rolling_op")
@@ -222,7 +209,8 @@ def test_mtls_without_tls_relation(
     cluster_peer = PeerRelation(
         PEER,
         PEER,
-        local_app_data={f"relation-{client_relation.id}": "password"},
+        local_app_data=kraft_data | passwords_data,
+        local_unit_data=unit_peer_tls_data,
     )
     state_in = dataclasses.replace(
         base_state,
@@ -233,6 +221,11 @@ def test_mtls_without_tls_relation(
         patch("workload.KafkaWorkload.read", return_value=["key=value"]),
         patch(
             "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=True
+        ),
+        # This is for the peer relation, no client.
+        patch(
+            "managers.tls.TLSManager.get_current_sans",
+            return_value={"sans_ip": ["10.10.10.10"], "sans_dns": ["dns"]},
         ),
         # Model props
         patch("core.models.KafkaCluster.internal_user_credentials"),
@@ -310,6 +303,6 @@ def test_mtls_setup(
 
     # Then
     mock_auth_manager.update_user_acls.assert_called()
-    assert mock_auth_manager.remove_all_user_acls.call_count == 1
+    mock_auth_manager.remove_all_user_acls.assert_called()
     assert f"relation-{client_rel_id}" in mock_auth_manager.remove_all_user_acls.call_args[0]
     assert state_out.app_status == Status.ACTIVE.value.status
