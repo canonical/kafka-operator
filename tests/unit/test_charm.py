@@ -396,9 +396,7 @@ def test_update_status_sets_sysconf_warning(
     cluster_peer = PeerRelation(
         PEER, PEER, local_unit_data=unit_peer_tls_data, local_app_data=passwords_data | kraft_data
     )
-    state_in = dataclasses.replace(
-        base_state, relations=[cluster_peer], config=base_state.config | {"auto-balance": False}
-    )
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer], config=base_state.config)
 
     # When
     with (
@@ -423,9 +421,7 @@ def test_update_status_sets_active(
     cluster_peer = PeerRelation(
         PEER, PEER, local_unit_data=unit_peer_tls_data, local_app_data=passwords_data | kraft_data
     )
-    state_in = dataclasses.replace(
-        base_state, relations=[cluster_peer], config=base_state.config | {"auto-balance": False}
-    )
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer])
 
     # When
     with patch("workload.KafkaWorkload.active", return_value=True):

@@ -682,7 +682,7 @@ def test_super_users(ctx: Context, base_state: State) -> None:
 
 def test_cruise_control_reporter_only_with_balancer(ctx: Context, base_state: State):
     # Given
-    state_in = dataclasses.replace(base_state, config=base_state.config | {"auto-balance": False})
+    state_in = dataclasses.replace(base_state, config=base_state.config)
     reporters_config_value = "metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter"
 
     # When

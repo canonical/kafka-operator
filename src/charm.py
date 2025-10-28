@@ -214,11 +214,11 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         if self.refresh and self.refresh.unit_status_higher_priority:
             return self.refresh.unit_status_higher_priority
 
-        # Scaling warning if auto-balance is set.
+        # Scaling warning if auto balance is enabled.
         if all(
             [
                 self.state.runs_broker,
-                self.config.auto_balance,
+                self.state.runs_balancer,
                 self.broker.kraft.controller_manager.departing_brokers,
             ]
         ):

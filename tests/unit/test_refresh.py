@@ -59,7 +59,7 @@ def test_is_workload_compatible(old_version: str, new_version: str, expected: bo
 @pytest.mark.skipif(SUBSTRATE == "k8s", reason="snap_refresh not applicable in k8s")
 def test_post_snap_refresh_healthy_cluster(ctx: Context, base_state: State) -> None:
     # Given
-    state_in = dataclasses.replace(base_state, config=base_state.config | {"auto-balance": False})
+    state_in = dataclasses.replace(base_state, config=base_state.config)
 
     # When
     with (ctx(ctx.on.config_changed(), state_in) as manager,):

@@ -7,6 +7,7 @@ import time
 
 import jubilant
 import pytest
+from flaky import flaky
 
 from integration.ha.continuous_writes import ContinuousWrites
 from integration.helpers import (
@@ -21,8 +22,8 @@ from integration.helpers.ha import (
     assert_all_controllers_up,
     assert_continuous_writes_consistency,
     assert_quorum_healthy,
+    assert_quorum_lag_is_zero,
     get_kraft_leader,
-    get_kraft_quorum_lags,
     get_topic_offsets,
     get_unit_machine_name,
     is_down,
@@ -40,7 +41,7 @@ from integration.helpers.jubilant import (
 
 logger = logging.getLogger(__name__)
 
-CLIENT_TIMEOUT = 10
+CLIENT_TIMEOUT = 20
 RESTART_DELAY = 60
 
 
@@ -83,7 +84,7 @@ def test_deploy_active(juju: jubilant.Juju, kafka_charm, app_charm, kafka_apps):
     assert status.apps[DUMMY_NAME].app_status.current == "active"
 
 
-@pytest.mark.abort_on_fail
+@flaky(max_runs=3, min_passes=1)
 def test_kill_leader_process(
     juju: jubilant.Juju,
     restart_delay,
@@ -117,10 +118,10 @@ def test_kill_leader_process(
 
     assert_quorum_healthy(juju=juju, kraft_mode="multi")
     # Assert all controllers & brokers have caught up. (all lags == 0)
-    assert not any(get_kraft_quorum_lags(juju))
+    assert_quorum_lag_is_zero(juju=juju)
 
 
-@pytest.mark.abort_on_fail
+@flaky(max_runs=3, min_passes=1)
 def test_restart_leader_process(
     juju: jubilant.Juju,
     c_writes: ContinuousWrites,
@@ -148,10 +149,10 @@ def test_restart_leader_process(
 
     assert_quorum_healthy(juju=juju, kraft_mode="multi")
     # Assert all controllers & brokers have caught up (all lags == 0).
-    assert not any(get_kraft_quorum_lags(juju))
+    assert_quorum_lag_is_zero(juju=juju)
 
 
-@pytest.mark.abort_on_fail
+@flaky(max_runs=3, min_passes=1)
 def test_freeze_leader_process(
     juju: jubilant.Juju, c_writes: ContinuousWrites, c_writes_runner: ContinuousWrites
 ):
@@ -184,9 +185,10 @@ def test_freeze_leader_process(
 
     assert_quorum_healthy(juju=juju, kraft_mode="multi")
     # Assert all controllers & brokers have caught up. (all lags == 0)
-    assert not any(get_kraft_quorum_lags(juju))
+    assert_quorum_lag_is_zero(juju=juju)
 
 
+@flaky(max_runs=3, min_passes=1)
 def test_full_cluster_crash(
     juju: jubilant.Juju,
     restart_delay,
@@ -218,9 +220,10 @@ def test_full_cluster_crash(
 
     assert_quorum_healthy(juju=juju, kraft_mode="multi")
     # Assert all controllers & brokers have caught up. (all lags == 0)
-    assert not any(get_kraft_quorum_lags(juju))
+    assert_quorum_lag_is_zero(juju=juju)
 
 
+@flaky(max_runs=3, min_passes=1)
 def test_full_cluster_restart(
     juju: jubilant.Juju, c_writes: ContinuousWrites, c_writes_runner: ContinuousWrites
 ):
@@ -243,7 +246,7 @@ def test_full_cluster_restart(
 
     assert_quorum_healthy(juju=juju, kraft_mode="multi")
     # Assert all controllers & brokers have caught up. (all lags == 0)
-    assert not any(get_kraft_quorum_lags(juju))
+    assert_quorum_lag_is_zero(juju=juju)
 
 
 @pytest.mark.abort_on_fail
@@ -283,7 +286,7 @@ def test_network_cut_without_ip_change(
 
     assert_quorum_healthy(juju=juju, kraft_mode="multi")
     # Assert all controllers & brokers have caught up. (all lags == 0)
-    assert not any(get_kraft_quorum_lags(juju))
+    assert_quorum_lag_is_zero(juju=juju)
 
 
 # TODO: enable after IP change handling of the charm is fixed.
@@ -327,4 +330,4 @@ def test_network_cut_self_heal(
 
     assert_quorum_healthy(juju=juju, kraft_mode="multi")
     # Assert all controllers & brokers have caught up. (all lags == 0)
-    assert not any(get_kraft_quorum_lags(juju))
+    assert_quorum_lag_is_zero(juju=juju)

@@ -242,6 +242,4 @@ class ControllerManager:
         if not (online_brokers := self.online_brokers):
             return set()
 
-        active_brokers_on_relation = {broker.broker_id for broker in self.state.brokers}
-
-        return online_brokers - active_brokers_on_relation
+        return online_brokers - self.state.active_brokers_on_relation

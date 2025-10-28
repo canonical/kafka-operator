@@ -6,10 +6,13 @@
 
 import json
 import logging
+import re
 import time
+from subprocess import CalledProcessError
 from typing import TYPE_CHECKING, Any, cast
 
 import requests
+from ops.pebble import ExecError
 from tenacity import (
     retry,
     retry_any,
@@ -20,6 +23,7 @@ from tenacity import (
 )
 
 from core.models import JSON, BrokerCapacities, BrokerCapacity
+from core.workload import WorkloadBase
 from literals import BALANCER, BALANCER_TOPICS, MODE_FULL, STORAGE
 from managers.config import BalancerConfigManager
 
@@ -151,9 +155,12 @@ class CruiseControlClient:
 class BalancerManager:
     """Manager for handling Balancer."""
 
-    def __init__(self, dependent: "BrokerOperator | BalancerOperator") -> None:
+    def __init__(
+        self, dependent: "BrokerOperator | BalancerOperator", workload: WorkloadBase
+    ) -> None:
         self.dependent = dependent
         self.charm: "KafkaCharm" = dependent.charm
+        self.workload = workload
         self.config_manager = cast(BalancerConfigManager, dependent.config_manager)
 
     @property
@@ -326,6 +333,81 @@ class BalancerManager:
 
         else:
             return value
+
+    def get_partition_assignment(self, bootstrap_server: str) -> dict[str, list[str]]:
+        """Get the current partition assignment state in the Apache Kafka cluster.
+
+        Args:
+            bootstrap_server (str): A comma-separated list of bootstrap servers.
+
+        Returns:
+            dict[int, list[str]]: A dict mapping of "broker ID/storage no." to the list of assigned partitions.
+        """
+        if not self.workload.ping(bootstrap_server):
+            return {}
+
+        try:
+            raw = self.workload.run_bin_command(
+                "log-dirs",
+                [
+                    "--bootstrap-server",
+                    bootstrap_server,
+                    "--command-config",
+                    self.workload.paths.client_properties,
+                    "--describe",
+                ],
+            )
+        except (CalledProcessError, ExecError) as e:
+            logger.error(f"{e.stdout} {e.stderr}")
+            return {}
+
+        return self._parse_log_dirs_output(raw)
+
+    def all_storages_drained(self, bootstrap_server: str, broker_id: int) -> bool:
+        """Check all storages of a given broker and verify that no partitions remain assigned."""
+        partition_assignment = self.get_partition_assignment(bootstrap_server)
+        if not partition_assignment:
+            # maybe because of network/transient failure
+            return False
+
+        keys = [k for k in partition_assignment if k.startswith(f"{broker_id}")]
+
+        if not keys:
+            return True
+
+        if not any(partition_assignment[k] for k in keys):
+            return True
+
+        logger.info(f"Waiting for partitions to be relocated: {','.join(keys)}")
+        return False
+
+    @staticmethod
+    def _parse_log_dirs_output(raw: str) -> dict[str, list[str]]:
+        """Parse the output of `kafka-log-dirs.sh` command.
+
+        Returns:
+            dict[str, list[str]]: A dict mapping of "broker ID/storage no." to the list of assigned partitions.
+        """
+        json_part = re.findall(r'\{"brokers".+', raw)
+        if not json_part:
+            return {}
+
+        # kafka-log-dirs.sh output schema:
+        #   {brokers: list[Broker]}
+        #     Broker: {broker: int, logDirs: list[LogDir]}
+        #       LogDir: {partitions: list[Partition], error: nullable, logDir: str}
+        #         Partition: {partition: str, size: float, offsetLag: int, isFuture: bool}
+
+        log_dirs_state = json.loads(json_part[0])
+        assignment = {}
+        for _broker in log_dirs_state.get("brokers", []):
+            broker_id = int(_broker["broker"])
+            _log_dirs = _broker.get("logDirs", [])
+            for i, _log_dir in enumerate(_log_dirs):
+                partitions = [p["partition"] for p in _log_dir["partitions"]]
+                assignment[f"{broker_id}/{i}"] = list(partitions)
+
+        return assignment
 
     def compare_capacities_files(
         self, old: BrokerCapacities, new: BrokerCapacities

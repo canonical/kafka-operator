@@ -467,6 +467,23 @@ class ClusterState(Object):
         return {"brokerCapacities": broker_capacities}
 
     @property
+    def active_brokers_on_relation(self) -> set[int]:
+        """Return a set of broker IDs which has joined the relation (either cluster or peer-cluster)."""
+        if self.runs_broker:
+            return {broker.broker_id for broker in self.brokers}
+
+        _set = set()
+        if not self.peer_cluster_relation:
+            return _set
+
+        remote_app = self.peer_cluster_relation.app
+        for c in self.peer_cluster_relation.data:
+            if isinstance(c, Unit) and c.app == remote_app:
+                _set.add(KRAFT_NODE_ID_OFFSET + int(c.name.split("/")[1]))
+
+        return _set
+
+    @property
     def ready_to_start(self) -> Status:  # noqa: C901
         """Check for active controller relation and adding of inter-broker auth username.
 
@@ -560,10 +577,12 @@ class ClusterState(Object):
     @property
     def runs_balancer(self) -> bool:
         """Is the charm enabling the balancer?"""
-        if all([self.config.auto_balance, self.runs_broker]):
-            return True
-
         return BALANCER.value in self.roles
+
+    @property
+    def balancer_exists(self) -> bool:
+        """Is the app or the peer-cluster app running the balancer?"""
+        return any([self.runs_balancer, BALANCER.value in self.peer_cluster.roles])
 
     @property
     def runs_broker(self) -> bool:

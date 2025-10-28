@@ -108,7 +108,7 @@ class BrokerOperator(Object):
         self.k8s_manager = K8sManager(
             pod_name=self.charm.state.unit_broker.pod_name, namespace=self.charm.model.name
         )
-        self.balancer_manager = BalancerManager(self)
+        self.balancer_manager = BalancerManager(self, self.workload)
 
         self.framework.observe(getattr(self.charm.on, "install"), self._on_install)
         self.framework.observe(getattr(self.charm.on, "start"), self._on_start)
@@ -343,10 +343,7 @@ class BrokerOperator(Object):
         if self.charm.state.peer_cluster_orchestrator_relation and self.charm.unit.is_leader():
             self.update_peer_cluster_data()
 
-        if self.charm.unit.is_leader() and self.charm.state.runs_broker:
-            for broker in self.charm.state.brokers:
-                self.charm.state.cluster.add_broker(broker)
-
+        self.update_brokers_state()
         self.reconcile_autobalance()
 
     def _on_update_status(self, _: UpdateStatusEvent) -> None:
@@ -425,10 +422,11 @@ class BrokerOperator(Object):
         self.charm.state.unit_broker.update({"storages": self.balancer_manager.storages})
         self.charm.on.config_changed.emit()
 
-        if not self.charm.config.auto_balance:
+        if not self.charm.state.balancer_exists:
             return
 
-        while not self.workload.all_storages_drained(
+        # NOTE: block further events executions until scaling down is safe
+        while not self.balancer_manager.all_storages_drained(
             self.charm.state.bootstrap_server_internal,
             self.charm.state.unit_broker.broker_id,
         ):
@@ -438,8 +436,7 @@ class BrokerOperator(Object):
         """Reconcile method to handle the cluster auto-balance state and emit rebalance events if required."""
         if not all(
             [
-                self.charm.config.auto_balance,
-                self.charm.state.runs_broker,
+                self.charm.state.runs_balancer,
                 self.charm.unit.is_leader(),
             ]
         ):
@@ -447,15 +444,6 @@ class BrokerOperator(Object):
 
         # brokers waiting to be drained:
         departing_brokers = self.kraft.controller_manager.departing_brokers
-
-        # brokers which have been successfully removed,
-        # we will remove these from the ClusterState, and capacityJBOD.json file
-        removed_brokers = (
-            set(self.charm.state.cluster.broker_capacities_snapshot)
-            - self.kraft.controller_manager.online_brokers
-        )
-        for broker_id in removed_brokers:
-            self.charm.state.cluster.remove_broker(broker_id)
 
         if not departing_brokers:
             return
@@ -646,3 +634,21 @@ class BrokerOperator(Object):
                 continue
 
             self.charm.state.unit_broker.update_relation_ip_address(client.relation, client.ip)
+
+    def update_brokers_state(self) -> None:
+        """Update the current state of online brokers on relation data."""
+        if not all([self.charm.unit.is_leader(), self.charm.state.runs_broker]):
+            return
+
+        for broker in self.charm.state.brokers:
+            self.charm.state.cluster.add_broker(broker)
+
+        # brokers which have been successfully removed,
+        # we will remove these from the ClusterState, and capacityJBOD.json file
+        removed_brokers = (
+            set(self.charm.state.cluster.broker_capacities_snapshot)
+            - self.kraft.controller_manager.online_brokers
+        )
+        for broker_id in removed_brokers:
+            if broker_id not in self.charm.state.active_brokers_on_relation:
+                self.charm.state.cluster.remove_broker(broker_id)

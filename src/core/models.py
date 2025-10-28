@@ -19,11 +19,9 @@ from charms.data_platform_libs.v0.data_interfaces import (
     DataPeerData,
     DataPeerUnitData,
     ProviderData,
-    RelationEvent,
     RequirerData,
 )
 from lightkube.resources.core_v1 import Node, Pod
-from ops import Handle
 from ops.model import Application, ModelError, Relation, Unit
 from typing_extensions import override
 
@@ -86,39 +84,6 @@ class SelfSignedCertificate:
     csr: str
     certificate: str
     private_key: str
-
-
-class RebalanceEvent(RelationEvent):
-    """Base class for rebalance events."""
-
-    def __init__(
-        self,
-        handle: Handle,
-        relation: Relation,
-        mode: str,
-        broker_id: int | None,
-        app: Application | None = None,
-        unit: Unit | None = None,
-    ):
-        super().__init__(handle, relation, app=app, unit=unit)
-        self.mode = mode
-        self.broker_id = broker_id
-
-    def snapshot(self) -> dict:
-        """Return a snapshot of the event."""
-        _broker_id = {"broker_id": str(self.broker_id)} if self.broker_id else {}
-        return super().snapshot() | {"mode": self.mode, **_broker_id}
-
-    def restore(self, snapshot: dict):
-        """Restore the event from a snapshot."""
-        super().restore(snapshot)
-        self.mode = snapshot["mode"]
-        _broker_id = snapshot.get("broker_id")
-        self.broker_id = int(_broker_id) if _broker_id else None
-
-
-class RebalanceError(Exception):
-    """Error raised when a rebalance operation fails."""
 
 
 class RelationState:
@@ -648,6 +613,7 @@ class KafkaCluster(RelationState):
             return
 
         snapshot[broker.broker_id] = dict(updated)
+        # FIXME: not a good place to update relation data, maybe move to handlers
         self.relation_data.update({"broker-capacities-snapshot": json.dumps(snapshot)})
 
     def remove_broker(self, broker_id: int) -> None:
@@ -658,6 +624,7 @@ class KafkaCluster(RelationState):
             return
 
         snapshot.pop(broker_id)
+        # FIXME: not a good place to update relation data, maybe move to handlers
         self.relation_data.update({"broker-capacities-snapshot": json.dumps(snapshot)})
 
 

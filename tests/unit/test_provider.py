@@ -37,7 +37,7 @@ METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 
 @pytest.fixture()
 def base_state():
-    config = {"roles": "broker,controller", "auto-balance": False}
+    config = {"roles": "broker,controller"}
 
     if SUBSTRATE == "k8s":
         state = State(

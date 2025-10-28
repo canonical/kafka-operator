@@ -8,18 +8,22 @@ import logging
 from subprocess import CalledProcessError
 from typing import TYPE_CHECKING, Literal
 
+from charms.data_platform_libs.v0.data_interfaces import RelationEvent
 from ops import (
     ActionEvent,
+    Application,
     CharmEvents,
     EventBase,
     EventSource,
+    Handle,
     InstallEvent,
     Object,
+    Relation,
+    Unit,
 )
 from ops.pebble import ExecError
 from requests import Response
 
-from core.models import RebalanceError, RebalanceEvent
 from core.workload import WorkloadBase
 from literals import (
     BALANCER,
@@ -41,6 +45,39 @@ if TYPE_CHECKING:
     from charm import KafkaCharm
 
 logger = logging.getLogger(__name__)
+
+
+class RebalanceEvent(RelationEvent):
+    """Base class for rebalance events."""
+
+    def __init__(
+        self,
+        handle: Handle,
+        relation: Relation,
+        mode: str,
+        broker_id: int | None,
+        app: Application | None = None,
+        unit: Unit | None = None,
+    ):
+        super().__init__(handle, relation, app=app, unit=unit)
+        self.mode = mode
+        self.broker_id = broker_id
+
+    def snapshot(self) -> dict:
+        """Return a snapshot of the event."""
+        _broker_id = {"broker_id": str(self.broker_id)} if self.broker_id else {}
+        return super().snapshot() | {"mode": self.mode, **_broker_id}
+
+    def restore(self, snapshot: dict):
+        """Restore the event from a snapshot."""
+        super().restore(snapshot)
+        self.mode = snapshot["mode"]
+        _broker_id = snapshot.get("broker_id")
+        self.broker_id = int(_broker_id) if _broker_id else None
+
+
+class RebalanceError(Exception):
+    """Error raised when a rebalance operation fails."""
 
 
 class BalancerEvents(CharmEvents):
@@ -84,7 +121,7 @@ class BalancerOperator(Object):
         self.config_manager = BalancerConfigManager(
             self.charm.state, self.workload, self.charm.config
         )
-        self.balancer_manager = BalancerManager(self)
+        self.balancer_manager = BalancerManager(self, self.workload)
 
         self.framework.observe(self.charm.on.install, self._on_install)
         self.framework.observe(self.charm.on.start, self._on_start)
@@ -169,12 +206,8 @@ class BalancerOperator(Object):
 
             self.charm.on.start.emit()
 
-        # Auto-balance
-        if not self.charm.config.auto_balance:
-            return
-
-        partition_assignment = self.kafka_workload.get_partition_assignment(
-            self.charm.state.bootstrap_server_internal
+        partition_assignment = self.balancer_manager.get_partition_assignment(
+            self.charm.state.peer_cluster.broker_uris
         )
         for _id, partitions in partition_assignment.items():
             broker_id = int(_id.split("/")[0])
@@ -214,8 +247,8 @@ class BalancerOperator(Object):
         if (
             event.mode == "remove"
             and event.broker_id
-            and self.kafka_workload.all_storages_drained(
-                self.charm.state.bootstrap_server_internal, event.broker_id
+            and self.balancer_manager.all_storages_drained(
+                self.charm.state.peer_cluster.broker_uris, event.broker_id
             )
         ):
             # We have nothing to do...
@@ -239,12 +272,8 @@ class BalancerOperator(Object):
                 trigger="event", mode=event.mode, broker_id=event.broker_id, dryrun=False
             )
         except RebalanceError as e:
+            # No need to defer.
             logger.error(f"{e}")
-            event.defer()
-            return
-
-        if event.mode == "remove" and event.broker_id:
-            self.charm.state.cluster.remove_broker(event.broker_id)
 
     def rebalance(
         self,

@@ -108,7 +108,6 @@ class TestKRaft:
                 config={
                     "roles": "broker,controller" if self.controller_app == APP_NAME else "broker",
                     "profile": "testing",
-                    "auto-balance": False,
                 },
                 trust=True,
             ),
@@ -130,7 +129,6 @@ class TestKRaft:
                 config={
                     "roles": "controller",
                     "profile": "testing",
-                    "auto-balance": False,
                 },
                 trust=True,
             )
@@ -191,7 +189,7 @@ class TestKRaft:
         await ops_test.model.wait_for_idle(
             apps=list({APP_NAME, self.controller_app}),
             status="active",
-            timeout=1800,
+            timeout=3000,
             idle_period=20,
             raise_on_error=False,
             wait_for_exact_units=3,

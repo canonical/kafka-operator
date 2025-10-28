@@ -17,12 +17,12 @@ from tenacity import retry
 from tenacity.stop import stop_after_attempt
 from tenacity.wait import wait_fixed
 
-from core.workload import WorkloadBase
 from literals import (
     PATHS,
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
     PEER_CLUSTER_RELATION,
 )
+from managers.balancer import BalancerManager
 
 from . import (
     APP_NAME,
@@ -55,12 +55,12 @@ def deploy_cluster(
     app_name_broker: str = str(APP_NAME),
     app_name_controller: str = CONTROLLER_NAME,
     bind: Mapping[str, str] = {},
+    channel: str | None = None,
 ):
     """Deploys an Apache Kafka cluster using the Charmed Apache Kafka operator in KRaft mode."""
     logger.info(f"Deploying Kafka cluster in '{kraft_mode}' mode")
 
     base = "ubuntu@24.04" if series == "noble" else "ubuntu@22.04"
-    _config = {"auto-balance": False} if num_broker < 3 else {}
 
     juju.deploy(
         charm,
@@ -72,10 +72,10 @@ def deploy_cluster(
             "roles": "broker,controller" if kraft_mode == "single" else "broker",
             "profile": "testing",
         }
-        | _config
         | config_broker,
         trust=True,
         bind=bind,
+        channel=channel if channel else None,
     )
 
     if kraft_mode == "multi":
@@ -88,10 +88,10 @@ def deploy_cluster(
                 "roles": "controller",
                 "profile": "testing",
             }
-            | _config
             | config_controller,
             trust=True,
             bind=bind,
+            channel=channel if channel else None,
         )
 
     assert_status_func = jubilant.all_active if kraft_mode == "single" else jubilant.all_blocked
@@ -345,4 +345,4 @@ def check_log_dirs(model: str | None):
         universal_newlines=True,
     )
 
-    return WorkloadBase._parse_log_dirs_output(result)
+    return BalancerManager._parse_log_dirs_output(result)

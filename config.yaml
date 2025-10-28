@@ -15,10 +15,6 @@ options:
       The secret could be defined using `juju add-secret <secret-name> <user>=<admin-password>` command, where `<user>` is one of the internal users defined by the charm: `sync` or `admin`.
       The `juju add-secret` command will output the secret ID, which can then be granted to the charm and configured using `juju config` command.
     type: string
-  auto-balance:
-    description: Indicates whether to enable automated re-assignment of partitions during scaling operations. WARNING, turning this feature off could lead to potential data loss during scale-in operations. use with caution.
-    type: boolean
-    default: true
   compression_type:
     description: Specify the final compression type for a given topic. This configuration accepts the standard compression codecs ('gzip', 'snappy', 'lz4', 'zstd'). It additionally accepts 'uncompressed' which is equivalent to no compression; and 'producer' which means retain the original compression codec set by the producer.
     type: string
