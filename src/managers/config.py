@@ -855,6 +855,18 @@ class ConfigManager(CommonConfigManager):
         content = "\n".join([f"{key}={value}" for key, value in updated_env.items()])
         self.workload.write(content=content, path="/etc/environment")
 
+    def properties_changed(self) -> set[str]:
+        """Check if server properties have changed since last written.
+
+        Returns:
+            Set of changed properties, empty if no changes
+        """
+        current_properties = self.workload.read(self.workload.paths.server_properties)
+        if not current_properties:
+            return set()
+
+        return set(current_properties) ^ set(self.server_properties)
+
     @staticmethod
     def _translate_config_key(key: str):
         """Format config names into server properties, blacklisted property are commented out.

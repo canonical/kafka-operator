@@ -146,7 +146,7 @@ html_context = {
     "repo_folder": "/docs/",
     # TODO: To enable or disable the Previous / Next buttons at the bottom of pages
     # Valid options: none, prev, next, both
-    # "sequential_nav": "both",
+    "sequential_nav": "both",
     # TODO: To enable listing contributors on individual pages, set to True
     "display_contributors": False,
 
@@ -227,13 +227,14 @@ linkcheck_ignore = [
     "https://kafka.apache.org/documentation/#connectconfigs",
     "https://kafka.apache.org/documentation/#kraft",
     "https://kafka.apache.org/documentation/#mirrormakerconfigs",
+    "https://kafka.apache.org/documentation/#security_authz_ssl",
     "https://matrix.to/#/#charmhub-data-platform:ubuntu.com",
     "https://us-east-1.console.aws.amazon.com/ec2/",
     "https://kafka.apache.org/39/documentation.html#georeplication-overview",
     "https://kafka.apache.org/39/documentation.html#georeplication-monitoring",
     "https://launchpad.net/soss",
     "https://cwiki.apache.org/*",
-    "https://archive.apache.org/*"
+    "https://archive.apache.org/*",
     ]
 
 
