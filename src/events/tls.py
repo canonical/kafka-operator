@@ -398,7 +398,7 @@ class TLSHandler(Object):
         if self.charm.broker.tls_manager.sans_changed(TLSScope.PEER):
             self.charm.state.unit_broker.peer_certs.certificate = ""
             if self.charm.state.use_internal_tls:
-                self.charm.broker.setup_internal_tls()
+                self.charm.broker.setup_internal_tls(event)
             else:
                 self.refresh_tls_certificates.emit()
 
