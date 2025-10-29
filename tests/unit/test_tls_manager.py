@@ -112,7 +112,8 @@ def tls_manager(tmp_path_factory, monkeypatch):
     # Mock State
     mock_state = MagicMock()
     mock_broker_state = KafkaBroker(None, MagicMock(), MagicMock(), SUBSTRATE)
-    mock_broker_state.relation_data = {}
+    mock_broker_state.repository = MagicMock()
+    mock_broker_state.repository.get_data.return_value = {}
     mock_state.unit_broker = mock_broker_state
 
     raw_config = {
@@ -152,7 +153,7 @@ def _set_manager_state(
             }
         )
 
-    mgr.state.unit_broker.relation_data = data
+    mgr.state.unit_broker.repository.get_data.return_value = data
 
 
 def _tls_manager_set_everything(mgr: TLSManager) -> None:
@@ -195,8 +196,10 @@ def test_tls_manager_set_methods(
     _set_manager_state(tls_manager, tls_artifacts=tls_artifacts)
 
     if not tls_initialized:
-        tls_manager.state.unit_broker.relation_data = {}
-        tls_manager.state.peer_cluster.relation_data = {"tls": ""}
+        tls_manager.state.unit_broker.repository = MagicMock()
+        tls_manager.state.unit_broker.repository.get_data.return_value = {}
+        tls_manager.state.cluster.repository = MagicMock()
+        tls_manager.state.cluster.repository.get_data.return_value = {"tls": ""}
 
     caplog.set_level(logging.DEBUG)
     _tls_manager_set_everything(tls_manager)

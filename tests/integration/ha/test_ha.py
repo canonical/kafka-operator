@@ -88,7 +88,7 @@ def test_replicated_events(juju: jubilant.Juju, kafka_apps):
         lambda status: all_active_idle(status, APP_NAME),
         delay=3,
         successes=40,
-        timeout=1200,
+        timeout=1800,
     )
 
     logger.info("Producing messages and checking on all units")

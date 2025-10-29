@@ -21,3 +21,5 @@ requires:
     interface: kafka_client
   kafka-client-admin:
     interface: kafka_client
+  kafka-client-v1:
+    interface: kafka_client
