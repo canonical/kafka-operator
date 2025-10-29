@@ -5,7 +5,6 @@
 """Charmed Machine Operator for Apache Kafka."""
 
 import logging
-import time
 
 import charm_refresh
 import ops
@@ -96,7 +95,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         # Register roles event handlers after global ones, so that they get the priority.
         self.broker = BrokerOperator(self)
-        self.balancer = BalancerOperator(self)
+        self.balancer = BalancerOperator(self, self.workload)
 
         self.tls = TLSHandler(self)
 
@@ -171,9 +170,14 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         self.broker.workload.restart()
 
-        # FIXME: This logic should be improved as part of ticket DPE-3155
-        # For more information, please refer to https://warthogs.atlassian.net/browse/DPE-3155
-        time.sleep(10.0)
+        if not self.workload.health_check(
+            host=self.state.unit_broker.internal_address,
+            runs_broker=self.state.runs_broker,
+            runs_controller=self.state.runs_controller,
+        ):
+            event.defer()
+            return
+
         self.broker.update_credentials_cache()
 
         # Force update our trusted certs relation data.
@@ -210,6 +214,16 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         """Determine the unit status, respecting refresh higher priority statuses."""
         if self.refresh and self.refresh.unit_status_higher_priority:
             return self.refresh.unit_status_higher_priority
+
+        # Scaling warning if auto balance is enabled.
+        if all(
+            [
+                self.state.runs_broker,
+                self.state.runs_balancer,
+                self.broker.kraft.controller_manager.departing_brokers,
+            ]
+        ):
+            return Status.SCALING_WARNING.value.status
 
         # Check for pending inactive statuses (charm-specific logic)
         # Remove active status if present, will be added as default at the end

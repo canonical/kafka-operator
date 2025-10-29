@@ -668,6 +668,7 @@ class KafkaCluster(RelationStateV1):
         relation: Relation | None,
         model: Model,
         component: Application,
+        network_bandwidth: int = 50000,
     ):
         super().__init__(
             relation,
@@ -678,6 +679,7 @@ class KafkaCluster(RelationStateV1):
             is_peer_relation=True,
         )
         self.app = component
+        self.network_bandwidth = network_bandwidth
 
     @property
     def internal_user_credentials(self) -> dict[str, str]:
@@ -757,6 +759,47 @@ class KafkaCluster(RelationStateV1):
     def bootstrap_unit_id(self) -> str:
         """Unit ID of the bootstrap controller."""
         return self.relation_data.get("bootstrap-unit-id", "")
+
+    @property
+    def broker_capacities_snapshot(self) -> dict[int, dict]:
+        """Snapshot of broker capacities."""
+        raw = json.loads(self.relation_data.get("broker-capacities-snapshot", "{}"))
+        # JSON keys can't be int, so convert them back to int here,
+        # as we always treat broker_id as int.
+        return {int(k): v for k, v in raw.items()}
+
+    def add_broker(self, broker) -> None:
+        """Add a given `KafkaBroker` to the broker capacities snapshot."""
+        if not all([broker.cores, broker.storages]):
+            return
+
+        snapshot = self.broker_capacities_snapshot
+
+        updated = {
+            "DISK": broker.storages,
+            "CPU": {"num.cores": broker.cores},
+            "NW_IN": str(self.network_bandwidth),
+            "NW_OUT": str(self.network_bandwidth),
+        }
+        current = snapshot.get(broker.broker_id, {})
+
+        if updated == current:
+            return
+
+        snapshot[broker.broker_id] = dict(updated)
+        # FIXME: not a good place to update relation data, maybe move to handlers
+        self.relation_data.update({"broker-capacities-snapshot": json.dumps(snapshot)})
+
+    def remove_broker(self, broker_id: int) -> None:
+        """Remove a broker ID from the broker capacities snapshot."""
+        snapshot = dict(self.broker_capacities_snapshot)
+
+        if broker_id not in snapshot:
+            return
+
+        snapshot.pop(broker_id)
+        # FIXME: not a good place to update relation data, maybe move to handlers
+        self.relation_data.update({"broker-capacities-snapshot": json.dumps(snapshot)})
 
 
 class TLSState:
@@ -961,6 +1004,9 @@ class KafkaBroker(RelationStateV1):
         """Return the IP address for a given relation."""
         if not relation:
             return ""
+
+        if self.substrate == "k8s":
+            return self.internal_address
 
         return self.relation_data.get(f"ip-{relation.id}", "")
 

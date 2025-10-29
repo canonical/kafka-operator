@@ -153,6 +153,7 @@ def test_check_file_descriptors_no_listeners(ctx: Context, base_state: State) ->
 
         # Then
         assert charm.broker.health._check_file_descriptors()
+        # FIXME: should be called one
         assert patched_run_bin.call_count == 0
 
 

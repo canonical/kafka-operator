@@ -57,7 +57,7 @@ def base_state():
 
 @pytest.fixture()
 def ctx_balancer_only(charm_configuration: dict) -> Context:
-    charm_configuration["options"]["roles"]["default"] = "balancer"
+    charm_configuration["options"]["roles"]["default"] = "controller,balancer"
     ctx = Context(
         KafkaCharm, meta=METADATA, config=charm_configuration, actions=ACTIONS, unit_id=0
     )
@@ -176,25 +176,6 @@ def test_ready_to_start_no_controller(ctx_broker_and_balancer: Context, base_sta
     assert state_out.unit_status == Status.MISSING_MODE.value.status
 
 
-def test_ready_to_start_no_broker_data(
-    ctx_broker_and_balancer: Context,
-    base_state: State,
-    passwords_data: dict[str, str],
-) -> None:
-    # Given
-    ctx = ctx_broker_and_balancer
-    cluster_peer = PeerRelation(PEER, PEER, local_app_data=passwords_data)
-    state_in = dataclasses.replace(
-        base_state, relations=[cluster_peer], config={"roles": "broker,controller,balancer"}
-    )
-
-    # When
-    state_out = ctx.run(ctx.on.start(), state_in)
-
-    # Then
-    assert state_out.unit_status == Status.NO_BROKER_DATA.value.status
-
-
 def test_ready_to_start_ok(
     ctx_broker_and_balancer: Context,
     base_state: State,
@@ -235,9 +216,16 @@ def test_ready_to_start_ok(
 
     # When
     with (
+        patch("managers.balancer.BalancerManager.get_partition_assignment", return_value={}),
         patch("workload.BalancerWorkload.write") as patched_writer,
         patch(
-            "workload.BalancerWorkload.read", return_value=['{"brokerCapacities": [{}, {}, {}]}']
+            "core.cluster.ClusterState.broker_capacities",
+            new_callable=PropertyMock,
+            return_value={"brokerCapacities": [{}, {}, {}]},
+        ),
+        patch(
+            "managers.balancer.BalancerManager.config_change_detected",
+            return_value=False,
         ),
         patch(
             "core.cluster.ClusterState.broker_capacities",

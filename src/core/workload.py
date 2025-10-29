@@ -4,6 +4,7 @@
 
 """Supporting objects for Kafka charm state."""
 
+import logging
 import re
 import secrets
 import socket
@@ -15,6 +16,8 @@ from charmlibs import pathops
 from ops.pebble import Layer
 
 from literals import BALANCER, BROKER, Role, TLSScope
+
+logger = logging.getLogger(__name__)
 
 
 class CharmedKafkaPaths:
@@ -233,7 +236,10 @@ class WorkloadBase(ABC):
     @property
     def ips(self) -> list[str]:
         """Return a list of current IPs associated with the workload, using `hostname -I`."""
-        raw = self.exec("hostname -I").strip()
+        if not self.container_can_connect:
+            return []
+
+        raw = self.exec(["hostname", "-I"]).strip()
 
         if not raw:
             return []

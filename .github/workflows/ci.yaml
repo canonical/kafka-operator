@@ -58,11 +58,12 @@ jobs:
     with:
       path-to-charm-directory: ${{ matrix.path }}
 
-  integration-test-github:
+  integration-test-single:
     strategy:
       fail-fast: false
       matrix:
         tox-environments:
+          - integration-auto-balance
           - integration-charm
           - integration-provider
           - integration-provider-v1
@@ -76,12 +77,12 @@ jobs:
           - integration-spaces
         kraft-mode:
           - single
-    name: ${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}
+    name: "${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}"
     needs:
       - lint
       - unit-test
       - build
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, AMD64, X64, large, noble]
     timeout-minutes: 120
     steps:
       - name: Checkout
@@ -115,11 +116,12 @@ jobs:
         env:
           CI_PACKED_CHARMS: ${{ needs.build.outputs.charms }}
 
-  integration-test-self-hosted:
+  integration-test-multi:
     strategy:
       fail-fast: false
       matrix:
         tox-environments:
+          - integration-auto-balance
           - integration-charm
           - integration-provider
           - integration-provider-v1
@@ -136,7 +138,7 @@ jobs:
           - integration-spaces
         kraft-mode:
           - multi
-    name: ${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}
+    name: "${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}"
     needs:
       - lint
       - unit-test
