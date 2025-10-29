@@ -1109,9 +1109,9 @@ def is_topic_value_acceptable(value: str | None) -> str | None:
 class KafkaRequestModel(RequirerCommonModel):
     """Specialised model for Kafka."""
 
-    consumer_group_prefix: Annotated[str | None, AfterValidator(is_topic_value_acceptable)] = (
-        Field(default=None)
-    )
+    consumer_group_prefix: Annotated[
+        str | None, AfterValidator(is_topic_value_acceptable)
+    ] = Field(default=None)
 
 
 class KafkaResponseModel(ResourceProviderModel):
@@ -1657,7 +1657,8 @@ class RepositoryInterface(Generic[TRepository, TCommon]):
         relation_id: int,
         model: type[TCommonBis],
         component: Unit | Application | None = None,
-    ) -> TCommonBis: ...
+    ) -> TCommonBis:
+        ...
 
     @overload
     def build_model(
@@ -1665,7 +1666,8 @@ class RepositoryInterface(Generic[TRepository, TCommon]):
         relation_id: int,
         model: type[TCommon],
         component: Unit | Application | None = None,
-    ) -> TCommon: ...
+    ) -> TCommon:
+        ...
 
     @overload
     def build_model(
@@ -1673,7 +1675,8 @@ class RepositoryInterface(Generic[TRepository, TCommon]):
         relation_id: int,
         model: TypeAdapter[TCommonBis],
         component: Unit | Application | None = None,
-    ) -> TCommonBis: ...
+    ) -> TCommonBis:
+        ...
 
     @overload
     def build_model(
@@ -1681,7 +1684,8 @@ class RepositoryInterface(Generic[TRepository, TCommon]):
         relation_id: int,
         model: None = None,
         component: Unit | Application | None = None,
-    ) -> TCommon: ...
+    ) -> TCommon:
+        ...
 
     def build_model(
         self,
@@ -2612,9 +2616,9 @@ class ResourceRequirerEventHandler(EventHandlers, Generic[TResourceProviderModel
         self.relation_aliases = relation_aliases
         self._requests = requests
         self.response_model = DataContractV1[response_model]
-        self.interface: OpsRelationRepositoryInterface[DataContractV1[TResourceProviderModel]] = (
-            OpsRelationRepositoryInterface(charm.model, relation_name, self.response_model)
-        )
+        self.interface: OpsRelationRepositoryInterface[
+            DataContractV1[TResourceProviderModel]
+        ] = OpsRelationRepositoryInterface(charm.model, relation_name, self.response_model)
 
         if requests:
             self._request_model = requests[0].__class__

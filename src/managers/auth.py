@@ -12,6 +12,7 @@ from dataclasses import asdict, dataclass
 from ops.pebble import ExecError
 
 from core.cluster import ClusterState
+from core.models import KafkaPermissionModel
 from core.workload import WorkloadBase
 
 logger = logging.getLogger(__name__)
@@ -37,7 +38,6 @@ class AuthManager:
         self.workload = workload
         self.kafka_opts = kafka_opts
         self.log4j_opts = log4j_opts
-        self.new_user_acls: set[Acl] = set()
 
     @property
     def current_acls(self) -> set[Acl]:
@@ -293,7 +293,12 @@ class AuthManager:
             self.remove_acl(**asdict(acl))
 
     def update_user_acls(
-        self, username: str, topic: str, extra_user_roles: str, group: str | None, **_
+        self,
+        username: str,
+        topic: str,
+        extra_user_roles: str,
+        group: str | None,
+        permissions: list[KafkaPermissionModel],
     ) -> None:
         """Compares data passed from the client relation, and updating cluster ACLs to match.
 
@@ -309,25 +314,38 @@ class AuthManager:
             topic: the topic to update ACLs for
             extra_user_roles: the `extra-user-roles` for the user
             group: the consumer group
+            permissions: list of additional permissions requested by the client
 
         Raises:
             `(subprocess.CalledProcessError | ops.pebble.ExecError)`: if the error returned a non-zero exit code
         """
+        computed_user_acls: set[Acl] = set()
         if "producer" in extra_user_roles:
-            self.new_user_acls.update(self._generate_producer_acls(topic=topic, username=username))
+            computed_user_acls.update(self._generate_producer_acls(topic=topic, username=username))
         if "consumer" in extra_user_roles:
-            self.new_user_acls.update(
+            computed_user_acls.update(
                 self._generate_consumer_acls(topic=topic, username=username, group=group)
             )
+        if permissions:
+            for permission in permissions:
+                for operation in permission.privileges:
+                    computed_user_acls.add(
+                        Acl(
+                            resource_type=permission.resource_type,
+                            resource_name=permission.resource_name,
+                            username=username,
+                            operation=operation,
+                        )
+                    )
 
         # getting subset of all cluster ACLs for only the provided user
         current_user_acls = {acl for acl in self.current_acls if acl.username == username}
 
-        acls_to_add = self.new_user_acls - current_user_acls
+        acls_to_add = computed_user_acls - current_user_acls
         for acl in acls_to_add:
             self.add_acl(**asdict(acl))
 
-        acls_to_remove = current_user_acls - self.new_user_acls
+        acls_to_remove = current_user_acls - computed_user_acls
         for acl in acls_to_remove:
             self.remove_acl(**asdict(acl))
 
