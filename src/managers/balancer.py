@@ -6,14 +6,26 @@
 
 import json
 import logging
+import re
 import time
-from typing import TYPE_CHECKING, Any
+from subprocess import CalledProcessError
+from typing import TYPE_CHECKING, Any, cast
 
 import requests
-from tenacity import retry, retry_if_result, stop_after_attempt, wait_fixed
+from ops.pebble import ExecError
+from tenacity import (
+    retry,
+    retry_any,
+    retry_if_exception,
+    retry_if_result,
+    stop_after_attempt,
+    wait_fixed,
+)
 
 from core.models import JSON, BrokerCapacities, BrokerCapacity
+from core.workload import WorkloadBase
 from literals import BALANCER, BALANCER_TOPICS, MODE_FULL, STORAGE
+from managers.config import BalancerConfigManager
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -89,7 +101,9 @@ class CruiseControlClient:
     @retry(
         wait=wait_fixed(5),
         stop=stop_after_attempt(3),
-        retry=retry_if_result(lambda res: res is False),
+        retry=retry_any(
+            retry_if_result(lambda res: res is False), retry_if_exception(lambda _: True)
+        ),
         retry_error_callback=lambda _: False,
     )
     def monitoring(self) -> bool:
@@ -104,6 +118,12 @@ class CruiseControlClient:
         )
 
     @property
+    @retry(
+        wait=wait_fixed(1),
+        stop=stop_after_attempt(3),
+        retry=retry_if_exception(lambda _: True),
+        retry_error_callback=lambda _: False,
+    )
     def executing(self) -> bool:
         """Flag to confirm that the CruiseControl Executor is currently executing a task."""
         return (
@@ -115,6 +135,12 @@ class CruiseControlClient:
         )
 
     @property
+    @retry(
+        wait=wait_fixed(1),
+        stop=stop_after_attempt(3),
+        retry=retry_if_exception(lambda _: True),
+        retry_error_callback=lambda _: False,
+    )
     def ready(self) -> bool:
         """Flag to confirm that the CruiseControl Analyzer is ready to generate proposals."""
         monitor_state = self.get(endpoint="state", verbose="True").json().get("MonitorState", "")
@@ -129,9 +155,13 @@ class CruiseControlClient:
 class BalancerManager:
     """Manager for handling Balancer."""
 
-    def __init__(self, dependent: "BrokerOperator | BalancerOperator") -> None:
+    def __init__(
+        self, dependent: "BrokerOperator | BalancerOperator", workload: WorkloadBase
+    ) -> None:
         self.dependent = dependent
         self.charm: "KafkaCharm" = dependent.charm
+        self.workload = workload
+        self.config_manager = cast(BalancerConfigManager, dependent.config_manager)
 
     @property
     def cruise_control(self) -> CruiseControlClient:
@@ -304,6 +334,81 @@ class BalancerManager:
         else:
             return value
 
+    def get_partition_assignment(self, bootstrap_server: str) -> dict[str, list[str]]:
+        """Get the current partition assignment state in the Apache Kafka cluster.
+
+        Args:
+            bootstrap_server (str): A comma-separated list of bootstrap servers.
+
+        Returns:
+            dict[int, list[str]]: A dict mapping of "broker ID/storage no." to the list of assigned partitions.
+        """
+        if not self.workload.ping(bootstrap_server):
+            return {}
+
+        try:
+            raw = self.workload.run_bin_command(
+                "log-dirs",
+                [
+                    "--bootstrap-server",
+                    bootstrap_server,
+                    "--command-config",
+                    self.workload.paths.client_properties,
+                    "--describe",
+                ],
+            )
+        except (CalledProcessError, ExecError) as e:
+            logger.error(f"{e.stdout} {e.stderr}")
+            return {}
+
+        return self._parse_log_dirs_output(raw)
+
+    def all_storages_drained(self, bootstrap_server: str, broker_id: int) -> bool:
+        """Check all storages of a given broker and verify that no partitions remain assigned."""
+        partition_assignment = self.get_partition_assignment(bootstrap_server)
+        if not partition_assignment:
+            # maybe because of network/transient failure
+            return False
+
+        keys = [k for k in partition_assignment if k.startswith(f"{broker_id}")]
+
+        if not keys:
+            return True
+
+        if not any(partition_assignment[k] for k in keys):
+            return True
+
+        logger.info(f"Waiting for partitions to be relocated: {','.join(keys)}")
+        return False
+
+    @staticmethod
+    def _parse_log_dirs_output(raw: str) -> dict[str, list[str]]:
+        """Parse the output of `kafka-log-dirs.sh` command.
+
+        Returns:
+            dict[str, list[str]]: A dict mapping of "broker ID/storage no." to the list of assigned partitions.
+        """
+        json_part = re.findall(r'\{"brokers".+', raw)
+        if not json_part:
+            return {}
+
+        # kafka-log-dirs.sh output schema:
+        #   {brokers: list[Broker]}
+        #     Broker: {broker: int, logDirs: list[LogDir]}
+        #       LogDir: {partitions: list[Partition], error: nullable, logDir: str}
+        #         Partition: {partition: str, size: float, offsetLag: int, isFuture: bool}
+
+        log_dirs_state = json.loads(json_part[0])
+        assignment = {}
+        for _broker in log_dirs_state.get("brokers", []):
+            broker_id = int(_broker["broker"])
+            _log_dirs = _broker.get("logDirs", [])
+            for i, _log_dir in enumerate(_log_dirs):
+                partitions = [p["partition"] for p in _log_dir["partitions"]]
+                assignment[f"{broker_id}/{i}"] = list(partitions)
+
+        return assignment
+
     def compare_capacities_files(
         self, old: BrokerCapacities, new: BrokerCapacities
     ) -> tuple[list[BrokerCapacity], list[BrokerCapacity]]:
@@ -331,3 +436,46 @@ class BalancerManager:
         ]
 
         return deleted, added
+
+    def config_change_detected(self) -> bool:
+        """Check if written balancer config is different from the current state."""
+        changed_map = [
+            (
+                "properties",
+                self.dependent.workload.paths.cruise_control_properties,
+                self.config_manager.cruise_control_properties,
+            ),
+        ]
+
+        content_changed = False
+        for kind, path, state_content in changed_map:
+            file_content = self.dependent.workload.read(path)
+            if set(file_content) ^ set(state_content):
+                logger.info(
+                    (
+                        f"Balancer {self.charm.unit.name.split('/')[1]} updating config - "
+                        f"OLD {kind.upper()} = {set(map(str.strip, file_content)) - set(map(str.strip, state_content))}, "
+                        f"NEW {kind.upper()} = {set(map(str.strip, state_content)) - set(map(str.strip, file_content))}"
+                    )
+                )
+                content_changed = True
+
+        # On k8s, adding/removing a broker does not change the bootstrap server property if exposed by nodeport
+        broker_capacities = self.charm.state.peer_cluster.broker_capacities
+        if (
+            file_content := json.loads(
+                "".join(
+                    self.dependent.workload.read(self.dependent.workload.paths.capacity_jbod_json)
+                )
+            )
+        ) != broker_capacities:
+            deleted, added = self.compare_capacities_files(file_content, broker_capacities)
+            logger.info(
+                f"Balancer {self.charm.unit.name.split('/')[1]} updating capacity config - "
+                f"ADDED {added}, "
+                f"DELETED {deleted}"
+            )
+
+            content_changed = True
+
+        return content_changed

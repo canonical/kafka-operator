@@ -396,7 +396,7 @@ def test_update_status_sets_sysconf_warning(
     cluster_peer = PeerRelation(
         PEER, PEER, local_unit_data=unit_peer_tls_data, local_app_data=passwords_data | kraft_data
     )
-    state_in = dataclasses.replace(base_state, relations=[cluster_peer])
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer], config=base_state.config)
 
     # When
     with (
@@ -452,7 +452,7 @@ def test_storage_add_does_nothing_if_snap_not_active(
 
 
 @pytest.mark.skipif(SUBSTRATE == "k8s", reason="multiple storage not supported in K8s")
-def test_storage_add_defers_if_service_not_healthy(
+def test_storage_add_when_service_not_healthy(
     ctx: Context, base_state: State, kraft_data: dict[str, str], passwords_data: dict[str, str]
 ) -> None:
     # Given
@@ -465,13 +465,11 @@ def test_storage_add_defers_if_service_not_healthy(
         patch("workload.KafkaWorkload.active", return_value=True),
         patch("events.broker.BrokerOperator.healthy", return_value=False),
         patch("charm.KafkaCharm._disable_enable_restart_broker") as patched_restart,
-        patch("ops.framework.EventBase.defer") as patched_defer,
     ):
         ctx.run(ctx.on.storage_attached(storage), state_in)
 
     # Then
     assert patched_restart.call_count == 0
-    assert patched_defer.call_count == 1
 
 
 @pytest.mark.skipif(SUBSTRATE == "k8s", reason="multiple storage not supported in K8s")

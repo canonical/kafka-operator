@@ -13,7 +13,14 @@ from tenacity import retry, stop_after_attempt, wait_fixed
 
 from core.cluster import ClusterState
 from core.workload import WorkloadBase
-from literals import GROUP, KRAFT_VERSION, USER_ID, KRaftQuorumInfo, KRaftUnitStatus
+from literals import (
+    GROUP,
+    KRAFT_NODE_ID_OFFSET,
+    KRAFT_VERSION,
+    USER_ID,
+    KRaftQuorumInfo,
+    KRaftUnitStatus,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -166,7 +173,9 @@ class ControllerManager:
         if not bootstrap_controller:
             return {}
 
-        if not self.workload.ping(bootstrap_controller):
+        if not all(
+            [self.workload.container_can_connect, self.workload.ping(bootstrap_controller)]
+        ):
             return {}
 
         try:
@@ -221,3 +230,16 @@ class ControllerManager:
                 quorum_status[broker_id].lag >= 0,
             ]
         )
+
+    @property
+    def online_brokers(self) -> set[int]:
+        """Return a set of online broker IDs (if any)."""
+        return {_id for _id in self.quorum_status() if _id >= KRAFT_NODE_ID_OFFSET}
+
+    @property
+    def departing_brokers(self) -> set[int]:
+        """Return a set of departing broker IDs (if any)."""
+        if not (online_brokers := self.online_brokers):
+            return set()
+
+        return online_brokers - self.state.active_brokers_on_relation

@@ -683,7 +683,10 @@ class ConfigManager(CommonConfigManager):
         Returns:
             List of properties to be set on the Kafka broker
         """
-        password = self.state.cluster.internal_user_credentials.get(username, "")
+        if username == ADMIN_USER:
+            password = self.peer_cluster_state.broker_password
+        else:
+            password = self.state.cluster.internal_user_credentials.get(username, "")
 
         properties = [
             f'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{username}" password="{password}";',

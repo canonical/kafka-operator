@@ -6,6 +6,7 @@
 
 import json
 import logging
+import time
 from subprocess import CalledProcessError
 from typing import TYPE_CHECKING
 
@@ -31,6 +32,7 @@ from events.provider import KafkaProvider
 from events.user_secrets import SecretsHandler
 from health import KafkaHealth
 from literals import (
+    BALANCER_WEBSERVER_PORT,
     BROKER,
     CONTAINER,
     CONTROLLER,
@@ -105,7 +107,7 @@ class BrokerOperator(Object):
         self.k8s_manager = K8sManager(
             pod_name=self.charm.state.unit_broker.pod_name, namespace=self.charm.model.name
         )
-        self.balancer_manager = BalancerManager(self)
+        self.balancer_manager = BalancerManager(self, self.workload)
 
         self.framework.observe(getattr(self.charm.on, "install"), self._on_install)
         self.framework.observe(getattr(self.charm.on, "start"), self._on_start)
@@ -173,7 +175,7 @@ class BrokerOperator(Object):
             self.charm.state.internal_ca_key = generated_ca.ca_key
 
         # Now generate unit's self-signed certs
-        self.setup_internal_tls()
+        self.setup_internal_tls(event)
 
         current_status = self.charm.state.ready_to_start
         if current_status is not Status.ACTIVE:
@@ -269,13 +271,23 @@ class BrokerOperator(Object):
     def _on_config_changed(self, event: EventBase) -> None:
         """Generic handler for most `config_changed` events across relations."""
         if self.charm.refresh_not_ready or not self.healthy:
-            event.defer()
             return
 
         properties = self.workload.read(self.workload.paths.server_properties)
         if not properties:
-            event.defer()
             return
+
+        # Start balancer service if everything is in place,
+        # and not started before.
+        if all(
+            [
+                self.charm.unit.is_leader(),
+                self.charm.state.runs_balancer,
+                self.charm.state.balancer_status is Status.ACTIVE,
+                not self.workload.ping(f"localhost:{BALANCER_WEBSERVER_PORT}"),
+            ]
+        ):
+            self.charm.balancer._on_start(event)
 
         self.config_manager.set_environment()
 
@@ -286,6 +298,8 @@ class BrokerOperator(Object):
         self._handle_configuration_updates(event)
         self._handle_broker_service_updates()
         self.charm.tls.handle_config_changed_tls_updates()
+        self.update_brokers_state()
+        self.reconcile_autobalance()
 
     def _on_update_status(self, _: UpdateStatusEvent) -> None:
         """Handler for `update-status` events."""
@@ -363,7 +377,42 @@ class BrokerOperator(Object):
         self.charm.state.unit_broker.update({"storages": self.balancer_manager.storages})
         self.charm.on.config_changed.emit()
 
-    def setup_internal_tls(self) -> None:
+        if not self.charm.state.balancer_exists:
+            return
+
+        # NOTE: block further events executions until scaling down is safe
+        while not self.balancer_manager.all_storages_drained(
+            self.charm.state.bootstrap_server_internal,
+            self.charm.state.unit_broker.broker_id,
+        ):
+            time.sleep(30)
+
+    def reconcile_autobalance(self) -> None:
+        """Reconcile method to handle the cluster auto-balance state and emit rebalance events if required."""
+        if not all(
+            [
+                self.charm.state.runs_balancer,
+                self.charm.unit.is_leader(),
+            ]
+        ):
+            return
+
+        # brokers waiting to be drained:
+        departing_brokers = self.kraft.controller_manager.departing_brokers
+
+        if not departing_brokers:
+            return
+
+        for broker_id in departing_brokers:
+            self.charm.balancer.on.rebalance.emit(
+                self.charm.state.cluster.relation,
+                "remove",
+                broker_id,
+                app=self.charm.app,
+                unit=self.charm.unit,
+            )
+
+    def setup_internal_tls(self, event: EventBase) -> None:
         """Generates a self-signed certificate if required and writes all necessary TLS configuration for internal TLS."""
         if self.charm.state.unit_broker.peer_certs.ready:
             self.tls_manager.configure()
@@ -374,7 +423,11 @@ class BrokerOperator(Object):
             return
 
         self.charm.state.unit_broker.peer_certs.set_self_signed(self_signed_cert)
-        self.charm.state.unit_broker.peer_certs.rotate = True
+
+        # No need to toggle TLS rotate on start.
+        if not any([isinstance(event, StartEvent), isinstance(event, PebbleReadyEvent)]):
+            self.charm.state.unit_broker.peer_certs.rotate = True
+
         self.tls_manager.configure()
 
         if self.charm.unit.is_leader():
@@ -536,3 +589,21 @@ class BrokerOperator(Object):
                 continue
 
             self.charm.state.unit_broker.update_relation_ip_address(client.relation, client.ip)
+
+    def update_brokers_state(self) -> None:
+        """Update the current state of online brokers on relation data."""
+        if not all([self.charm.unit.is_leader(), self.charm.state.runs_broker]):
+            return
+
+        for broker in self.charm.state.brokers:
+            self.charm.state.cluster.add_broker(broker)
+
+        # brokers which have been successfully removed,
+        # we will remove these from the ClusterState, and capacityJBOD.json file
+        removed_brokers = (
+            set(self.charm.state.cluster.broker_capacities_snapshot)
+            - self.kraft.controller_manager.online_brokers
+        )
+        for broker_id in removed_brokers:
+            if broker_id not in self.charm.state.active_brokers_on_relation:
+                self.charm.state.cluster.remove_broker(broker_id)

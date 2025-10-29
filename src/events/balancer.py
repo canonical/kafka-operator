@@ -4,21 +4,27 @@
 
 """Balancer role core charm logic."""
 
-import json
 import logging
 from subprocess import CalledProcessError
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
+from charms.data_platform_libs.v0.data_interfaces import RelationEvent
 from ops import (
     ActionEvent,
+    Application,
+    CharmEvents,
     EventBase,
+    EventSource,
+    Handle,
     InstallEvent,
     Object,
-    PebbleReadyEvent,
-    StartEvent,
+    Relation,
+    Unit,
 )
 from ops.pebble import ExecError
+from requests import Response
 
+from core.workload import WorkloadBase
 from literals import (
     BALANCER,
     BALANCER_WEBSERVER_PORT,
@@ -26,6 +32,7 @@ from literals import (
     CONTAINER,
     MODE_ADD,
     MODE_REMOVE,
+    PEER,
     PROFILE_TESTING,
     Status,
 )
@@ -40,12 +47,54 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class RebalanceEvent(RelationEvent):
+    """Base class for rebalance events."""
+
+    def __init__(
+        self,
+        handle: Handle,
+        relation: Relation,
+        mode: str,
+        broker_id: int | None,
+        app: Application | None = None,
+        unit: Unit | None = None,
+    ):
+        super().__init__(handle, relation, app=app, unit=unit)
+        self.mode = mode
+        self.broker_id = broker_id
+
+    def snapshot(self) -> dict:
+        """Return a snapshot of the event."""
+        _broker_id = {"broker_id": str(self.broker_id)} if self.broker_id else {}
+        return super().snapshot() | {"mode": self.mode, **_broker_id}
+
+    def restore(self, snapshot: dict):
+        """Restore the event from a snapshot."""
+        super().restore(snapshot)
+        self.mode = snapshot["mode"]
+        _broker_id = snapshot.get("broker_id")
+        self.broker_id = int(_broker_id) if _broker_id else None
+
+
+class RebalanceError(Exception):
+    """Error raised when a rebalance operation fails."""
+
+
+class BalancerEvents(CharmEvents):
+    """Base events for balancer."""
+
+    rebalance = EventSource(RebalanceEvent)
+
+
 class BalancerOperator(Object):
     """Implements the logic for the balancer."""
 
-    def __init__(self, charm) -> None:
+    on = BalancerEvents()  # pyright: ignore [reportAssignmentType]
+
+    def __init__(self, charm, kafka_workload: WorkloadBase) -> None:
         super().__init__(charm, BALANCER.value)
         self.charm: "KafkaCharm" = charm
+        self.kafka_workload: WorkloadBase = kafka_workload
 
         self.workload = BalancerWorkload(
             container=(
@@ -61,16 +110,18 @@ class BalancerOperator(Object):
         )
 
         # Before fast exit to avoid silently ignoring the action
-        self.framework.observe(getattr(self.charm.on, "rebalance_action"), self.rebalance)
+        self.framework.observe(
+            getattr(self.charm.on, "rebalance_action"), self._on_rebalance_action
+        )
 
         # Fast exit after workload instantiation, but before any event observer
-        if BALANCER.value not in self.charm.config.roles or not self.charm.unit.is_leader():
+        if not self.charm.state.runs_balancer or not self.charm.unit.is_leader():
             return
 
         self.config_manager = BalancerConfigManager(
             self.charm.state, self.workload, self.charm.config
         )
-        self.balancer_manager = BalancerManager(self)
+        self.balancer_manager = BalancerManager(self, self.workload)
 
         self.framework.observe(self.charm.on.install, self._on_install)
         self.framework.observe(self.charm.on.start, self._on_start)
@@ -83,6 +134,9 @@ class BalancerOperator(Object):
         # ensures data updates, eventually
         self.framework.observe(self.charm.on.update_status, self._on_config_changed)
         self.framework.observe(self.charm.on.config_changed, self._on_config_changed)
+        self.framework.observe(self.charm.on[PEER].relation_changed, self._on_config_changed)
+
+        self.framework.observe(self.on.rebalance, self._on_rebalance_event)
 
     def _on_install(self, event: InstallEvent) -> None:
         """Handler for `install` event."""
@@ -99,12 +153,11 @@ class BalancerOperator(Object):
                 f"{CRUISE_CONTROL_TESTING_OPTIONS}"
             )
 
-    def _on_start(self, event: StartEvent | PebbleReadyEvent) -> None:
+    def _on_start(self, event: EventBase) -> None:
         """Handler for `start` or `pebble-ready` events."""
         current_status = self.charm.state.balancer_status
         if current_status is not Status.ACTIVE:
             self.charm._set_status(current_status)
-            event.defer()
             return
 
         if not self.charm.state.cluster.balancer_password:
@@ -146,55 +199,90 @@ class BalancerOperator(Object):
         if not self.healthy:
             return
 
-        # NOTE: smells like a good abstraction somewhere
-        changed_map = [
-            (
-                "properties",
-                self.workload.paths.cruise_control_properties,
-                self.config_manager.cruise_control_properties,
-            ),
-        ]
-
-        content_changed = False
-        for kind, path, state_content in changed_map:
-            file_content = self.workload.read(path)
-            if set(file_content) ^ set(state_content):
-                logger.info(
-                    (
-                        f"Balancer {self.charm.unit.name.split('/')[1]} updating config - "
-                        f"OLD {kind.upper()} = {set(map(str.strip, file_content)) - set(map(str.strip, state_content))}, "
-                        f"NEW {kind.upper()} = {set(map(str.strip, state_content)) - set(map(str.strip, file_content))}"
-                    )
-                )
-                content_changed = True
-
-        # On k8s, adding/removing a broker does not change the bootstrap server property if exposed by nodeport
-        broker_capacities = self.charm.state.peer_cluster.broker_capacities
-        if (
-            file_content := json.loads(
-                "".join(self.workload.read(self.workload.paths.capacity_jbod_json))
-            )
-        ) != broker_capacities:
-            deleted, added = self.balancer_manager.compare_capacities_files(
-                file_content, broker_capacities
-            )
-            logger.info(
-                f"Balancer {self.charm.unit.name.split('/')[1]} updating capacity config - "
-                f"ADDED {added}, "
-                f"DELETED {deleted}"
-            )
-
-            content_changed = True
-
-        if content_changed or self.charm.state.balancer_tls_rotate:
+        if self.balancer_manager.config_change_detected() or self.charm.state.balancer_tls_rotate:
             # safe to update everything even if it hasn't changed, service will restart anyway
             self.config_manager.set_cruise_control_properties()
             self.config_manager.set_broker_capacities()
 
             self.charm.on.start.emit()
 
-    def rebalance(self, event: ActionEvent) -> None:
-        """Handles the `rebalance` Juju Action."""
+        partition_assignment = self.balancer_manager.get_partition_assignment(
+            self.charm.state.peer_cluster.broker_uris
+        )
+        for _id, partitions in partition_assignment.items():
+            broker_id = int(_id.split("/")[0])
+            if not partitions:
+                getattr(self.on, "rebalance").emit(
+                    self.charm.state.cluster.relation,
+                    "add",
+                    broker_id,
+                    app=self.charm.app,
+                    unit=self.charm.unit,
+                )
+
+    def _on_rebalance_action(self, event: ActionEvent) -> None:
+        """Handle the `rebalance` Juju action."""
+        try:
+            response = self.rebalance(
+                trigger="action",
+                mode=event.params["mode"],
+                broker_id=event.params.get("brokerid"),
+                dryrun=event.params.get("dryrun", True),
+            )
+        except RebalanceError as e:
+            event.set_results({"error": f"{e}"})
+            event.fail(f"{e}")
+            return
+
+        sanitised_response = self.balancer_manager.clean_results(response.json())
+        if not isinstance(sanitised_response, dict):
+            event.set_results({"error": "Unknown error"})
+            event.fail("Unknown error")
+            return
+
+        event.set_results(sanitised_response)
+
+    def _on_rebalance_event(self, event: RebalanceEvent) -> None:
+        """Handle the rebalance event."""
+        if (
+            event.mode == "remove"
+            and event.broker_id
+            and self.balancer_manager.all_storages_drained(
+                self.charm.state.peer_cluster.broker_uris, event.broker_id
+            )
+        ):
+            # We have nothing to do...
+            return
+
+        if any(
+            [
+                not self.balancer_manager.cruise_control.monitoring,
+                self.balancer_manager.cruise_control.executing,
+                not self.balancer_manager.cruise_control.ready,
+            ]
+        ):
+            # No need to defer, we'll retry on the next update-status.
+            logger.info("Cruise Control not ready yet.")
+            return
+
+        logger.debug(f"Reblance event mode={event.mode} broker_id={event.broker_id}")
+
+        try:
+            self.rebalance(
+                trigger="event", mode=event.mode, broker_id=event.broker_id, dryrun=False
+            )
+        except RebalanceError as e:
+            # No need to defer.
+            logger.error(f"{e}")
+
+    def rebalance(
+        self,
+        trigger: Literal["action", "event"],
+        mode: str,
+        broker_id: int | None,
+        dryrun: bool = True,
+    ) -> Response:
+        """Perform a rebalance using Cruise Control."""
         if self.charm.state.runs_broker:
             available_brokers = [broker.broker_id for broker in self.charm.state.brokers]
         else:
@@ -203,16 +291,17 @@ class BalancerOperator(Object):
                 if self.charm.state.peer_cluster.relation
                 else []
             )
+            # FIXME: wrong broker id
             available_brokers = [int(broker.split("/")[1]) for broker in brokers]
 
         failure_conditions = [
             (
                 lambda: not self.charm.state.runs_balancer,
-                "Action must be ran on an application with balancer role",
+                "Action must be run on an application with balancer role",
             ),
             (
                 lambda: not self.charm.unit.is_leader(),
-                "Action must be ran on the application leader",
+                "Action must be run on the application leader",
             ),
             (
                 lambda: not self.balancer_manager.cruise_control.monitoring,
@@ -227,13 +316,13 @@ class BalancerOperator(Object):
                 "CruiseControl balancer service has not yet collected enough data to provide a partition reallocation proposal",
             ),
             (
-                lambda: event.params["mode"] in (MODE_ADD, MODE_REMOVE)
-                and event.params.get("brokerid", None) is None,
+                lambda: mode in (MODE_ADD, MODE_REMOVE) and broker_id is None,
                 "'add' and 'remove' rebalance action require passing the 'brokerid' parameter",
             ),
             (
-                lambda: event.params["mode"] in (MODE_ADD, MODE_REMOVE)
-                and event.params.get("brokerid") not in available_brokers,
+                lambda: trigger == "action"
+                and mode in (MODE_ADD, MODE_REMOVE)
+                and broker_id not in available_brokers,
                 "invalid brokerid",
             ),
         ]
@@ -241,31 +330,24 @@ class BalancerOperator(Object):
         for check, msg in failure_conditions:
             if check():
                 logging.error(msg)
-                event.set_results({"error": msg})
-                event.fail(msg)
-                return
+                raise RebalanceError(msg)
 
-        response, user_task_id = self.balancer_manager.rebalance(**event.params)
+        response, user_task_id = self.balancer_manager.rebalance(
+            mode=mode, brokerid=broker_id, dryrun=dryrun
+        )
         logger.debug(f"rebalance - {vars(response)=}")
 
         if response.status_code != 200 or "errorMessage" in response.json():
-            event.set_results({"error": response.json().get("errorMessage", "")})
-            event.fail(
-                f"'{event.params['mode']}' rebalance failed with status code {response.status_code} - {response.json().get('errorMessage', '')}"
+            msg = response.json().get("errorMessage", "")
+            raise RebalanceError(
+                f"'{mode}' rebalance failed with status code {response.status_code} - {msg}"
             )
-            return
 
         self.charm._set_status(Status.WAITING_FOR_REBALANCE)
 
         self.balancer_manager.wait_for_task(user_task_id)
 
-        sanitised_response = self.balancer_manager.clean_results(response.json())
-        if not isinstance(sanitised_response, dict):
-            event.set_results({"error": "Unknown error"})
-            event.fail("Unknown error")
-            return
-
-        event.set_results(sanitised_response)
+        return response
 
     def setup_internal_tls(self) -> None:
         """Generates a self-signed certificate if required and writes all necessary TLS configuration for internal TLS."""
