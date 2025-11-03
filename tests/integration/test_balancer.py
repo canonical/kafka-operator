@@ -118,7 +118,7 @@ class TestBalancer:
             check_freq=30,
         )
 
-        async with ops_test.fast_forward(fast_interval="20s"):
+        async with ops_test.fast_forward(fast_interval="60s"):
             await asyncio.sleep(300)  # ensure update-status adds broker-capacities if missed
 
         assert ops_test.model.applications[self.balancer_app].status == "waiting"
