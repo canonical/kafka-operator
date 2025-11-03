@@ -218,7 +218,6 @@ def test_ready_to_start_ok(
     with (
         patch("managers.balancer.BalancerManager.get_partition_assignment", return_value={}),
         patch("workload.BalancerWorkload.write") as patched_writer,
-        patch("workload.BalancerWorkload.read"),
         patch(
             "core.cluster.ClusterState.broker_capacities",
             new_callable=PropertyMock,

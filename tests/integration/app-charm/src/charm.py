@@ -15,6 +15,12 @@ import subprocess
 from socket import getfqdn
 
 from charms.data_platform_libs.v0.data_interfaces import KafkaRequires, TopicCreatedEvent
+from charms.data_platform_libs.v1.data_interfaces import (
+    EntityPermissionModel,
+    KafkaRequestModel,
+    KafkaResponseModel,
+    ResourceRequirerEventHandler,
+)
 from charms.operator_libs_linux.v1 import snap
 from ops.charm import ActionEvent, CharmBase, RelationEvent
 from ops.main import main
@@ -64,6 +70,33 @@ class ApplicationCharm(CharmBase):
         self.kafka_requirer_admin = KafkaRequires(
             self, relation_name=REL_NAME_ADMIN, topic=self.topic_name, extra_user_roles="admin"
         )
+
+        # Requirer V1
+        if self.config.get("permissions"):
+            _ = self.config.get("permissions")
+
+        self.kafka_requirer_v1 = ResourceRequirerEventHandler(
+            charm=self,
+            relation_name="kafka-client-v1",
+            requests=[
+                KafkaRequestModel(
+                    resource=self.topic_name,
+                    entity_permissions=[
+                        EntityPermissionModel(
+                            resource_type="TOPIC",
+                            resource_name="other",
+                            privileges=["READ"],
+                        )
+                    ],
+                ),
+                KafkaRequestModel(
+                    resource="other",
+                    extra_user_roles="producer",
+                ),
+            ],
+            response_model=KafkaResponseModel,
+        )
+
         self.framework.observe(
             self.kafka_requirer_consumer.on.topic_created, self.on_topic_created_consumer
         )

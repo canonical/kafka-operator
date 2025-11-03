@@ -25,6 +25,7 @@ from ops import (
 )
 from ops.pebble import ExecError
 
+from core.models import SecretGroup
 from events.actions import ActionEvents
 from events.controller import KRaftHandler
 from events.oauth import OAuthHandler
@@ -39,7 +40,6 @@ from literals import (
     GROUP,
     PEER,
     PROFILE_TESTING,
-    REL_NAME,
     USER_ID,
     Status,
 )
@@ -258,12 +258,10 @@ class BrokerOperator(Object):
         # Update IP addresses based on current network bindings.
         self.update_ip_addresses()
 
-        if self.charm.unit.is_leader():
-            self.update_credentials_cache()
-
-        # If Kafka is related to client charms, update their information.
-        if self.model.relations.get(REL_NAME, None) and self.charm.unit.is_leader():
-            self.update_client_data()
+        # The order is important here, first update the credentials cache,
+        # then the client relation data.
+        self.update_credentials_cache()
+        self.provider.reconcile()
 
         if self.charm.state.peer_cluster_orchestrator_relation and self.charm.unit.is_leader():
             self.update_peer_cluster_data()
@@ -330,15 +328,12 @@ class BrokerOperator(Object):
 
     def _on_secret_changed(self, event: SecretChangedEvent) -> None:
         """Handler for `secret_changed` events."""
-        if not event.secret.label or not self.charm.state.cluster.relation:
+        if not event.secret.label or not self.charm.state.peer_relation:
             return
 
-        if event.secret.label == self.charm.state.cluster.data_interface._generate_secret_label(
-            PEER,
-            self.charm.state.cluster.relation.id,
-            "extra",  # pyright: ignore[reportArgumentType] -- Changes with the https://github.com/canonical/data-platform-libs/issues/124
+        if event.secret.label == self.charm.state.cluster.repository._generate_secret_label(
+            self.charm.state.peer_relation, SecretGroup("extra")
         ):
-            # TODO: figure out why creating internal credentials setting doesn't trigger changed event here
             self.charm.on.config_changed.emit()
 
     def _on_storage_attached(self, event: StorageAttachedEvent) -> None:
@@ -471,30 +466,6 @@ class BrokerOperator(Object):
             for auth in self.charm.state.enabled_auth:
                 listener_service = self.k8s_manager.build_listener_service(auth)
                 self.k8s_manager.apply_service(service=listener_service)
-
-    def update_client_data(self) -> None:
-        """Writes necessary relation data to all related client applications."""
-        if not self.charm.unit.is_leader() or not self.healthy or not self.charm.balancer.healthy:
-            return
-
-        for client in self.charm.state.clients:
-            if not client.password:
-                logger.debug(
-                    f"Skipping update of {client.app.name}, user has not yet been added..."
-                )
-                continue
-
-            client.update(
-                {
-                    "endpoints": client.bootstrap_server,
-                    "consumer-group-prefix": client.consumer_group_prefix,
-                    "topic": client.topic,
-                    "username": client.username,
-                    "password": client.password,
-                    "tls": client.tls,
-                    "tls-ca": self.charm.state.unit_broker.client_certs.ca,
-                }
-            )
 
     def update_peer_cluster_data(self) -> None:
         """Writes updated relation data to other peer_cluster apps."""

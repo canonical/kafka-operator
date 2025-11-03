@@ -4,3 +4,8 @@ options:
       The topic-name to request when relating to the Kafka application
     type: string
     default: test-topic
+  permissions:
+    description: |
+      Requested permissions, only applicable for DI v1 relations
+    type: string
+    default: ""

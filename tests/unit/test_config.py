@@ -12,7 +12,7 @@ from unittest.mock import PropertyMock, mock_open, patch
 import pytest
 import yaml
 from ops import CharmMeta
-from ops.testing import Container, Context, PeerRelation, Relation, State, Storage
+from ops.testing import Container, Context, PeerRelation, Relation, Secret, State, Storage
 
 from charm import KafkaCharm
 from literals import (
@@ -254,11 +254,17 @@ def test_extra_listeners_in_server_properties(charm_configuration: dict, base_st
         # 3 extra, 1 internal, 1 client
         assert len(charm.broker.config_manager.all_listeners) == 5
 
-    # Adding SSL
-    client_relation = dataclasses.replace(
-        client_relation, local_app_data={"mtls-cert": "client-cert"}
+    # Adding SSL (mTLS)
+    mtls_secret = Secret(
+        tracked_content={"mtls-cert": "client-cert"},
+        label=f"kafka-client.{client_relation.id}.mtls.secret",
     )
-    state_in = dataclasses.replace(base_state, relations=[cluster_peer, client_relation])
+    client_relation = dataclasses.replace(
+        client_relation, remote_app_data={"secret-mtls": mtls_secret.id}
+    )
+    state_in = dataclasses.replace(
+        base_state, relations=[cluster_peer, client_relation], secrets=[mtls_secret]
+    )
 
     # When
     with ctx(ctx.on.config_changed(), state_in) as manager:
