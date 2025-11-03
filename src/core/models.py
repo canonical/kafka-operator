@@ -763,7 +763,7 @@ class KafkaCluster(RelationStateV1):
     @property
     def broker_capacities_snapshot(self) -> dict[int, dict]:
         """Snapshot of broker capacities."""
-        raw = json.loads(self.relation_data.get("broker-capacities-snapshot", "{}"))
+        raw = self.relation_data.get("broker-capacities-snapshot") or {}
         # JSON keys can't be int, so convert them back to int here,
         # as we always treat broker_id as int.
         return {int(k): v for k, v in raw.items()}
@@ -787,8 +787,7 @@ class KafkaCluster(RelationStateV1):
             return
 
         snapshot[broker.broker_id] = dict(updated)
-        # FIXME: not a good place to update relation data, maybe move to handlers
-        self.relation_data.update({"broker-capacities-snapshot": json.dumps(snapshot)})
+        self.update({"broker-capacities-snapshot": json.dumps(snapshot)})
 
     def remove_broker(self, broker_id: int) -> None:
         """Remove a broker ID from the broker capacities snapshot."""
@@ -798,8 +797,7 @@ class KafkaCluster(RelationStateV1):
             return
 
         snapshot.pop(broker_id)
-        # FIXME: not a good place to update relation data, maybe move to handlers
-        self.relation_data.update({"broker-capacities-snapshot": json.dumps(snapshot)})
+        self.update({"broker-capacities-snapshot": json.dumps(snapshot)})
 
 
 class TLSState:
