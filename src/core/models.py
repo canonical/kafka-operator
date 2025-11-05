@@ -6,6 +6,7 @@
 
 import json
 import logging
+import socket
 from functools import cached_property
 from typing import MutableMapping, TypeAlias, TypedDict
 
@@ -543,6 +544,7 @@ class KafkaBroker(RelationState):
         data_interface: DataPeerUnitData,
         component: Unit,
         substrate: Substrates,
+        dns: bool = False,
     ):
         super().__init__(relation, data_interface, component, substrate)
         self.data_interface = data_interface
@@ -551,6 +553,7 @@ class KafkaBroker(RelationState):
             pod_name=self.pod_name,
             namespace=self.unit._backend.model_name,
         )
+        self.dns = dns
 
     @property
     def unit_id(self) -> int:
@@ -561,10 +564,17 @@ class KafkaBroker(RelationState):
         return int(self.unit.name.split("/")[1])
 
     @property
+    def internal_dns_address(self) -> str:
+        """The DNS address for the unit."""
+        return socket.getfqdn()
+
+    @property
     def internal_address(self) -> str:
         """The address for internal communication between brokers."""
         addr = ""
         if self.substrate == "vm":
+            if self.dns:
+                return self.internal_dns_address
             for key in ["hostname", "ip", "private-address"]:
                 if addr := self.relation_data.get(key, ""):
                     break

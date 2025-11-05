@@ -8,7 +8,6 @@ import base64
 import json
 import logging
 import re
-import socket
 import warnings
 from typing import TYPE_CHECKING
 
@@ -164,8 +163,6 @@ class TLSHandler(Object):
 
         sans = self.charm.broker.tls_manager.build_sans()
         subject = self.charm.state.unit_broker.internal_address
-        if not self.charm.config.certificate_include_ip_sans:
-            subject = socket.getfqdn()
 
         csr = (
             generate_csr(
@@ -330,9 +327,6 @@ class TLSHandler(Object):
             )
 
         subject = self.charm.state.unit_broker.internal_address
-        if not self.charm.config.certificate_include_ip_sans:
-            subject = socket.getfqdn()
-
         csr = generate_csr(
             private_key=self.charm.state.unit_broker.private_key.encode("utf-8"),
             subject=subject,
@@ -355,8 +349,6 @@ class TLSHandler(Object):
 
         sans = self.charm.broker.tls_manager.build_sans()
         subject = self.charm.state.unit_broker.internal_address
-        if not self.charm.config.certificate_include_ip_sans:
-            subject = socket.getfqdn()
         new_csr = generate_csr(
             private_key=self.charm.state.unit_broker.private_key.encode("utf-8"),
             subject=subject,
