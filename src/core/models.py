@@ -570,7 +570,7 @@ class KafkaBroker(RelationState):
                     break
 
         if self.substrate == "k8s":
-            addr = f"{self.unit.name.split('/')[0]}-{self.unit_id}.{self.unit.name.split('/')[0]}-endpoints"
+            addr = f"{self.unit.name.replace('/', '-')}.{self.unit.app.name}-endpoints"
 
         return addr
 

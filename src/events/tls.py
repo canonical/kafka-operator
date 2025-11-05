@@ -7,8 +7,8 @@
 import base64
 import json
 import logging
-import os
 import re
+import socket
 import warnings
 from typing import TYPE_CHECKING
 
@@ -161,19 +161,19 @@ class TLSHandler(Object):
             app_name=event.app.name,
             relation_id=event.relation.id,
         )
-        subject = (
-            os.uname()[1]
-            if self.charm.substrate == "k8s"
-            else self.charm.state.unit_broker.internal_address
-        )
+
         sans = self.charm.broker.tls_manager.build_sans()
+        subject = self.charm.state.unit_broker.internal_address
+        if not self.charm.config.certificate_include_ip_sans:
+            subject = socket.getfqdn()
+
         csr = (
             generate_csr(
                 add_unique_id_to_subject_name=bool(alias),
                 private_key=self.charm.state.unit_broker.private_key.encode("utf-8"),
                 subject=subject,
-                sans_ip=sans["sans_ip"],
-                sans_dns=sans["sans_dns"],
+                sans_ip=sans["sans_ip"] or None,
+                sans_dns=sans["sans_dns"] or None,
             )
             .decode()
             .strip()
@@ -329,11 +329,15 @@ class TLSHandler(Object):
                 DeprecationWarning,
             )
 
+        subject = self.charm.state.unit_broker.internal_address
+        if not self.charm.config.certificate_include_ip_sans:
+            subject = socket.getfqdn()
+
         csr = generate_csr(
             private_key=self.charm.state.unit_broker.private_key.encode("utf-8"),
-            subject=self.charm.state.unit_broker.relation_data.get("private-address", ""),
-            sans_ip=sans["sans_ip"],
-            sans_dns=sans["sans_dns"],
+            subject=subject,
+            sans_ip=sans["sans_ip"] or None,
+            sans_dns=sans["sans_dns"] or None,
         )
         self.charm.state.unit_broker.update({"csr": csr.decode("utf-8").strip()})
 
@@ -350,11 +354,14 @@ class TLSHandler(Object):
             return
 
         sans = self.charm.broker.tls_manager.build_sans()
+        subject = self.charm.state.unit_broker.internal_address
+        if not self.charm.config.certificate_include_ip_sans:
+            subject = socket.getfqdn()
         new_csr = generate_csr(
             private_key=self.charm.state.unit_broker.private_key.encode("utf-8"),
-            subject=self.charm.state.unit_broker.relation_data.get("private-address", ""),
-            sans_ip=sans["sans_ip"],
-            sans_dns=sans["sans_dns"],
+            subject=subject,
+            sans_ip=sans["sans_ip"] or None,
+            sans_dns=sans["sans_dns"] or None,
         )
 
         self.certificates.request_certificate_renewal(

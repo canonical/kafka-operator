@@ -221,7 +221,7 @@ class BrokerOperator(Object):
         if not self.charm.pending_inactive_statuses:
             logger.info(f'Broker {self.charm.unit.name.split("/")[1]} connected')
 
-    def _on_config_changed(self, event: EventBase) -> None:
+    def _on_config_changed(self, event: EventBase) -> None:  # noqa: C901
         """Generic handler for most `config_changed` events across relations."""
         # only overwrite properties if service is already active
         if not self.upgrade.idle or not self.healthy:
@@ -242,9 +242,15 @@ class BrokerOperator(Object):
             event.defer()
             return
 
-        current_sans_ip = set(current_sans["sans_ip"]) if current_sans else set()
-        expected_sans_ip = set(self.tls_manager.build_sans()["sans_ip"]) if current_sans else set()
-        sans_ip_changed = current_sans_ip ^ expected_sans_ip
+        sans_ip_changed = False
+        current_sans_ip = set()
+        expected_sans_ip = set()
+        if self.charm.config.certificate_include_ip_sans:
+            current_sans_ip = set(current_sans["sans_ip"]) if current_sans else set()
+            expected_sans_ip = (
+                set(self.tls_manager.build_sans()["sans_ip"]) if current_sans else set()
+            )
+            sans_ip_changed = current_sans_ip ^ expected_sans_ip
 
         current_sans_dns = set(current_sans["sans_dns"]) if current_sans else set()
         expected_sans_dns = (

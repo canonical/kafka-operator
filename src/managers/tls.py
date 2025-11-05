@@ -176,7 +176,9 @@ class TLSManager:
             return {
                 "sans_ip": [
                     self.state.unit_broker.internal_address,
-                ],
+                ]
+                if self.config.certificate_include_ip_sans
+                else [],
                 "sans_dns": [self.state.unit_broker.unit.name, socket.getfqdn()]
                 + self._build_extra_sans(),
             }
@@ -187,7 +189,9 @@ class TLSManager:
                         str(self.state.bind_address),
                         self.state.unit_broker.node_ip,
                     ]
-                ),
+                )
+                if self.config.certificate_include_ip_sans
+                else [],
                 "sans_dns": sorted(
                     [
                         self.state.unit_broker.internal_address.split(".")[0],
