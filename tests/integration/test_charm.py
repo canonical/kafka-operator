@@ -218,9 +218,8 @@ async def test_rack_awareness_integration(ops_test: OpsTest):
 
     await ops_test.model.deploy(
         "kafka-broker-rack-awareness",
-        channel="edge",
+        channel="stable",
         application_name="rack",
-        base="ubuntu@22.04",
         to=kafka_machine_id,
         config={"broker-rack": "integration-zone"},
     )
