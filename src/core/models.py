@@ -16,6 +16,8 @@ from charms.data_platform_libs.v0.data_interfaces import (
     PROV_SECRET_PREFIX,
     SECRET_GROUPS,
     Data,
+    DataPeerData,
+    DataPeerUnitData,
     ProviderData,
     RequirerData,
 )
@@ -37,6 +39,7 @@ from charms.data_platform_libs.v1.data_interfaces import (
 from lightkube.resources.core_v1 import Node, Pod
 from ops.model import Application, Model, ModelError, Relation, Unit
 from pydantic import Field, ValidationError, field_validator
+from typing_extensions import override
 
 from literals import (
     BALANCER,
@@ -45,7 +48,6 @@ from literals import (
     INTERNAL_USERS,
     KRAFT_NODE_ID_OFFSET,
     SECRETS_APP,
-    SECRETS_UNIT,
     SECURITY_PROTOCOL_PORTS,
     TLS_RELATION,
     AuthMap,
@@ -660,26 +662,37 @@ class PeerCluster(RelationState):
         return self.relation_data.get("super-users", "")
 
 
-class KafkaCluster(RelationStateV1):
+class KafkaCluster(RelationState):
     """State collection metadata for the peer relation."""
 
     def __init__(
         self,
         relation: Relation | None,
-        model: Model,
+        data_interface: DataPeerData,
         component: Application,
         network_bandwidth: int = 50000,
     ):
-        super().__init__(
-            relation,
-            model,
-            component,
-            substrate=None,
-            extra_secret_fields=SECRETS_APP,
-            is_peer_relation=True,
-        )
+        super().__init__(relation, data_interface, component, None)
+        self.data_interface = data_interface
+        self.model = data_interface._model
         self.app = component
         self.network_bandwidth = network_bandwidth
+
+    @override
+    def update(self, items: dict[str, str]) -> None:
+        """Overridden update to allow for same interface, but writing to local app bag."""
+        if not self.relation:
+            return
+
+        for key, value in items.items():
+            # note: relation- check accounts for dynamically created secrets
+            if key in SECRETS_APP or key.startswith("relation-"):
+                if value:
+                    self.data_interface.set_secret(self.relation.id, key, value)
+                else:
+                    self.data_interface.delete_secret(self.relation.id, key)
+            else:
+                self.data_interface.update_relation_data(self.relation.id, {key: value})
 
     @property
     def internal_user_credentials(self) -> dict[str, str]:
@@ -763,7 +776,7 @@ class KafkaCluster(RelationStateV1):
     @property
     def broker_capacities_snapshot(self) -> dict[int, dict]:
         """Snapshot of broker capacities."""
-        raw = self.relation_data.get("broker-capacities-snapshot") or {}
+        raw = json.loads(self.relation_data.get("broker-capacities-snapshot", "{}"))
         # JSON keys can't be int, so convert them back to int here,
         # as we always treat broker_id as int.
         return {int(k): v for k, v in raw.items()}
@@ -803,7 +816,7 @@ class KafkaCluster(RelationStateV1):
 class TLSState:
     """State collection metadata for TLS credentials."""
 
-    def __init__(self, relation_state: RelationStateV1, scope: TLSScope):
+    def __init__(self, relation_state: RelationState, scope: TLSScope):
         self.scope = scope
         self.relation_state = relation_state
         self.relation_data = relation_state.relation_data
@@ -867,16 +880,7 @@ class TLSState:
     @property
     def chain(self) -> list[str]:
         """The chain used to sign unit cert."""
-        # DI v1 does handle the JSON serialization
-        raw = self.relation_state.relation_data.get(f"{self.scope.value}-chain")
-
-        if not raw:
-            return []
-
-        if isinstance(raw, list):
-            return raw
-
-        return json.loads(raw)
+        return json.loads(self.relation_data.get(f"{self.scope.value}-chain", "null")) or []
 
     @chain.setter
     def chain(self, value: str) -> None:
@@ -906,7 +910,7 @@ class TLSState:
     @property
     def trusted_certificates(self) -> set[str]:
         """Returns a list of certificate fingeprints loaded into this unit's truststore."""
-        trust_list = self.relation_data.get(f"{self.scope.value}-trust") or []
+        trust_list = json.loads(self.relation_data.get(f"{self.scope.value}-trust", "null")) or []
         return set(trust_list)
 
     @trusted_certificates.setter
@@ -934,24 +938,19 @@ class TLSState:
         self.csr = value.csr
 
 
-class KafkaBroker(RelationStateV1):
+class KafkaBroker(RelationState):
     """State collection metadata for a unit."""
 
     def __init__(
         self,
         relation: Relation | None,
-        model: Model,
+        data_interface: DataPeerUnitData,
         component: Unit,
         substrate: Substrates,
     ):
-        super().__init__(
-            relation,
-            model,
-            component,
-            substrate=substrate,
-            extra_secret_fields=SECRETS_UNIT,
-            is_peer_relation=True,
-        )
+        super().__init__(relation, data_interface, component, substrate)
+        self.data_interface = data_interface
+        self.model = data_interface._model
         self.unit = component
         self.k8s = K8sManager(
             pod_name=self.pod_name,
@@ -1049,8 +1048,7 @@ class KafkaBroker(RelationStateV1):
     @property
     def storages(self) -> JSON:
         """The current Juju storages for the unit."""
-        # DI v1 does handle the JSON serialization
-        return self.relation_data.get("storages") or {}
+        return json.loads(self.relation_data.get("storages", "{}"))
 
     @property
     def cores(self) -> str:

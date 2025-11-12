@@ -25,7 +25,6 @@ from ops import (
 )
 from ops.pebble import ExecError
 
-from core.models import SecretGroup
 from events.actions import ActionEvents
 from events.controller import KRaftHandler
 from events.oauth import OAuthHandler
@@ -331,9 +330,12 @@ class BrokerOperator(Object):
         if not event.secret.label or not self.charm.state.peer_relation:
             return
 
-        if event.secret.label == self.charm.state.cluster.repository._generate_secret_label(
-            self.charm.state.peer_relation, SecretGroup("extra")
+        if event.secret.label == self.charm.state.cluster.data_interface._generate_secret_label(
+            PEER,
+            self.charm.state.peer_relation.id,
+            "extra",  # pyright: ignore[reportArgumentType] -- Changes with the https://github.com/canonical/data-platform-libs/issues/124
         ):
+            # TODO: figure out why creating internal credentials setting doesn't trigger changed event here
             self.charm.on.config_changed.emit()
 
     def _on_storage_attached(self, event: StorageAttachedEvent) -> None:
