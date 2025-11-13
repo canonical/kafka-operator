@@ -316,6 +316,9 @@ class BrokerOperator(Object):
             self.tls_manager.rebuild_truststore()
             self.charm.on[f"{self.charm.restart.name}"].acquire_lock.emit()
 
+        if self.charm.state.runs_broker and not self.kraft.controller_manager.broker_active():
+            self.charm._set_status(Status.BROKER_NOT_CONNECTED)
+
         try:
             if self.health and not self.health.machine_configured():
                 self.charm._set_status(Status.SYSCONF_NOT_OPTIMAL)
@@ -448,9 +451,6 @@ class BrokerOperator(Object):
         if not self.workload.active():
             self.charm._set_status(Status.SERVICE_NOT_RUNNING)
             return False
-
-        if self.charm.state.runs_broker and not self.kraft.controller_manager.broker_active():
-            self.charm._set_status(Status.BROKER_NOT_CONNECTED)
 
         return True
 
