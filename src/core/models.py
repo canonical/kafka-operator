@@ -1247,7 +1247,7 @@ class KafkaClient(RelationStateV1):
                 self.password == state.get("password"),
                 self.bootstrap_server == state.get("endpoints"),
                 self.tls == state.get("tls"),
-                broker_ca == state.get("tls-ca"),
+                broker_ca == state.get("tls-ca", ""),
             ]
         )
 
