@@ -19,6 +19,7 @@ For guidance on managing your deployed Charmed Apache Kafka, see:
 * [How to manage units](how-to-manage-units)
 * [How to manage client connections](how-to-client-connections)
 * [How to upgrade](how-to-upgrade)
+* [How to facilitate administrative tasks using Kafbat's Kafka UI](how-to-kafka-ui)
 
 ## Security
 
@@ -60,6 +61,7 @@ Advanced features of Charmed Apache Kafka include:
 Deploy<deploy/index.md>
 Manage units<manage-units.md>
 Client connections<client-connections.md>
+Kafka UI<kafka-ui.md>
 Encryption<tls-encryption.md>
 Upgrades<upgrade.md>
 Monitoring<monitoring.md>
