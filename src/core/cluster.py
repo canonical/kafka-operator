@@ -194,7 +194,7 @@ class ClusterState(Object):
         """The broker state of the current running Unit."""
         return KafkaBroker(
             relation=self.peer_relation,
-            model=self.model,
+            data_interface=self.peer_unit_interface,
             component=self.model.unit,
             substrate=self.substrate,
         )
@@ -222,7 +222,7 @@ class ClusterState(Object):
         """The cluster state of the current running App."""
         return KafkaCluster(
             relation=self.peer_relation,
-            model=self.model,
+            data_interface=self.peer_app_interface,
             component=self.model.app,
             network_bandwidth=self.network_bandwidth,
         )
@@ -235,11 +235,11 @@ class ClusterState(Object):
             Set of KafkaBrokers in the current peer relation, including the running unit server.
         """
         brokers = set()
-        for unit in self.peer_units_data_interfaces:
+        for unit, data_interface in self.peer_units_data_interfaces.items():
             brokers.add(
                 KafkaBroker(
                     relation=self.peer_relation,
-                    model=self.model,
+                    data_interface=data_interface,
                     component=unit,
                     substrate=self.substrate,
                 )
