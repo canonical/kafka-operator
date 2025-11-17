@@ -179,13 +179,13 @@ async def test_mtls(ops_test: OpsTest):
     encoded_client_ca = base64.b64encode(client_ca.encode("utf-8")).decode("utf-8")
 
     # deploying mtls operator with certs
-    TLS_CONFIG = {
+    tls_config = {
         "generate-self-signed-certificates": "false",
         "certificate": encoded_client_certificate,
         "ca-certificate": encoded_client_ca,
     }
     await ops_test.model.deploy(
-        CERTS_NAME, channel="stable", config=TLS_CONFIG, series="jammy", application_name=MTLS_NAME
+        CERTS_NAME, channel="stable", config=tls_config, series="jammy", application_name=MTLS_NAME
     )
     await ops_test.model.wait_for_idle(apps=[MTLS_NAME], timeout=1000, idle_period=15)
     await ops_test.model.add_relation(
