@@ -943,6 +943,7 @@ class KafkaBroker(RelationStateV1):
         model: Model,
         component: Unit,
         substrate: Substrates,
+        dns: bool,
     ):
         super().__init__(
             relation,
@@ -957,6 +958,7 @@ class KafkaBroker(RelationStateV1):
             pod_name=self.pod_name,
             namespace=self.unit._backend.model_name,
         )
+        self.dns = dns
 
     @property
     def unit_id(self) -> int:
@@ -972,16 +974,23 @@ class KafkaBroker(RelationStateV1):
         return KRAFT_NODE_ID_OFFSET + self.unit_id
 
     @property
+    def internal_dns_address(self) -> str:
+        """The DNS address for the unit."""
+        return socket.getfqdn()
+
+    @property
     def internal_address(self) -> str:
         """The address for internal communication between brokers."""
         addr = ""
         if self.substrate == "vm":
+            if self.dns:
+                return self.internal_dns_address
             for key in ["hostname", "ip", "private-address"]:
                 if addr := self.relation_data.get(key, ""):
                     break
 
         if self.substrate == "k8s":
-            addr = f"{self.unit.name.split('/')[0]}-{self.unit_id}.{self.unit.name.split('/')[0]}-endpoints"
+            addr = f"{self.unit.name.replace('/', '-')}.{self.unit.app.name}-endpoints"
 
         return addr
 
