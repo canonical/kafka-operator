@@ -105,7 +105,6 @@ class TLSManager:
         for alias in trust_aliases:
             command = f"{self.keytool} -import -v -alias {alias} -file {alias}.pem -keystore truststore.jks -storepass {self.state.unit_broker.truststore_password} -noprompt"
             try:
-
                 self.workload.exec(
                     command=command.split(), working_dir=self.workload.paths.conf_path
                 )
@@ -174,19 +173,26 @@ class TLSManager:
         """Builds a SAN dict of DNS names and IPs for the unit."""
         if self.substrate == "vm":
             return {
-                "sans_ip": [
-                    self.state.unit_broker.internal_address,
-                ],
-                "sans_dns": [self.state.unit_broker.unit.name, socket.getfqdn()]
-                + self._build_extra_sans(),
+                "sans_ip": (
+                    [
+                        self.state.unit_broker.internal_address,
+                    ]
+                    if self.config.certificate_include_ip_sans
+                    else []
+                ),
+                "sans_dns": [socket.getfqdn()] + self._build_extra_sans(),
             }
         else:
             return {
-                "sans_ip": sorted(
-                    [
-                        str(self.state.bind_address),
-                        self.state.unit_broker.node_ip,
-                    ]
+                "sans_ip": (
+                    sorted(
+                        [
+                            str(self.state.bind_address),
+                            self.state.unit_broker.node_ip,
+                        ]
+                    )
+                    if self.config.certificate_include_ip_sans
+                    else []
                 ),
                 "sans_dns": sorted(
                     [

@@ -25,13 +25,17 @@ from literals import (
 from .helpers import (
     APP_NAME,
     REL_NAME_ADMIN,
+    check_hostname_verification,
     check_tls,
+    copy_file_to_unit,
     create_test_topic,
     extract_ca,
     extract_private_key,
     get_active_brokers,
     get_address,
     get_kafka_zk_relation_data,
+    get_secret_by_label,
+    get_unit_hostname,
     list_truststore_aliases,
     search_secrets,
     set_mtls_client_acls,
@@ -47,17 +51,16 @@ CERTS_NAME = "tls-certificates-operator"
 MTLS_NAME = "mtls"
 TLS_REQUIRER = "tls-certificates-requirer"
 MANUAL_TLS_NAME = "manual-tls-certificates"
+TLS_CONFIG = {"ca-common-name": "kafka"}
 
 
 @pytest.mark.abort_on_fail
 @pytest.mark.skip_if_deployed
 async def test_deploy_tls(ops_test: OpsTest, kafka_charm):
-    tls_config = {"ca-common-name": "kafka"}
-
     await asyncio.gather(
         # FIXME (certs): Unpin the revision once the charm is fixed
         ops_test.model.deploy(
-            TLS_NAME, channel="edge", config=tls_config, series="jammy", revision=163
+            TLS_NAME, channel="edge", config=TLS_CONFIG, series="jammy", revision=163
         ),
         ops_test.model.deploy(ZK, channel="edge", series="jammy", application_name=ZK),
         ops_test.model.deploy(
@@ -408,6 +411,58 @@ async def test_tls_removed(ops_test: OpsTest):
         file_extensions = {f.split(".")[-1] for f in stdout.split() if f}
         logging.info(f"{', '.join(file_extensions)} files found on {unit.name}")
         assert not {"pem", "key", "p12", "jks"} & file_extensions
+
+
+@pytest.mark.abort_on_fail
+async def test_dns_certificate(ops_test: OpsTest):
+    # re-set up TLS with DNS-only certs
+    await ops_test.model.applications[APP_NAME].set_config(
+        {"certificate_include_ip_sans": "false"}
+    )
+
+    await ops_test.model.deploy(
+        TLS_NAME, channel="edge", config=TLS_CONFIG, series="jammy", revision=163
+    )
+
+    async with ops_test.fast_forward(fast_interval="60s"):
+        await ops_test.model.add_relation(ZK, TLS_NAME)
+        await ops_test.model.add_relation(f"{APP_NAME}:{TLS_RELATION}", TLS_NAME)
+        await ops_test.model.wait_for_idle(
+            apps=[ZK], idle_period=15, timeout=1000, status="active"
+        )
+
+    # ensuring at least a few update-status
+    async with ops_test.fast_forward(fast_interval="20s"):
+        await asyncio.sleep(60)
+
+    await ops_test.model.wait_for_idle(
+        apps=[APP_NAME, ZK, TLS_NAME], idle_period=30, timeout=1200, status="active"
+    )
+
+    root_ca = get_secret_by_label(ops_test, label="ca-certificates", owner=TLS_NAME)[
+        "ca-certificate"
+    ]
+
+    test_unit_name = ops_test.model.applications[APP_NAME].units[0].name
+    test_unit_hostname = get_unit_hostname(ops_test=ops_test, unit_name=test_unit_name).strip()
+
+    # copying file to LXD container with DNS
+    copy_file_to_unit(
+        ops_test=ops_test,
+        unit_name=test_unit_name,
+        filename="rootca.pem",
+        content=root_ca,
+    )
+
+    output = check_hostname_verification(
+        ops_test=ops_test,
+        hostname=test_unit_hostname,
+        port=SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].internal,
+        cafile_name="rootca.pem",
+        unit_name=test_unit_name,
+    )
+
+    assert f"Verified peername: {test_unit_hostname}" in output
 
 
 # TODO: this test tends to be really flaky and needs treatment.

@@ -18,7 +18,6 @@ from trustme import CA
 
 from charm import KafkaCharm
 from literals import (
-    CHARM_KEY,
     CONTAINER,
     PEER,
     SUBSTRATE,
@@ -167,7 +166,7 @@ def test_sans(charm_configuration: dict, base_state: State, patched_node_ip) -> 
         # Then
         assert built_sans == {
             "sans_ip": ["treebeard"],
-            "sans_dns": [f"{CHARM_KEY}/0", sock_dns, "worker0.com"],
+            "sans_dns": [sock_dns, "worker0.com"],
         }
 
     elif SUBSTRATE == "k8s":
