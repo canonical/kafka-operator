@@ -127,11 +127,7 @@ By default, charmed Kafka UI uses a self-signed certificate to secure communicat
 - **Google Chrome** - [Set up TLS (or SSL) inspection on Chrome devices](https://support.google.com/chrome/a/answer/3505249?hl=en)
 ```
 
-You should see an authentication page like below, in which you can use the `admin` username and the password configured before to log in.
-
-```
-todo: add pic
-```
+You should see an authentication page prompting for username and password, in which you can use the `admin` username and the password configured before to log in.
 
 Once logged in, you can use the left menu to access the brokers, KRaft controllers, topics, schemas, and connectors configuration along with various monitoring metrics. To familiarise yourself with Kafbat's Kafka UI features, it is advised to consult the product's [official documentation](https://ui.docs.kafbat.io/).
 
