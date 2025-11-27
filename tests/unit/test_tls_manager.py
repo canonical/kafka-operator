@@ -232,7 +232,7 @@ def test_tls_manager_truststore_functionality(
     tmp_path_factory,
 ) -> None:
     tls_artifacts = generate_tls_artifacts(
-        subject=UNIT_NAME,
+        common_name=UNIT_NAME,
         sans_ip=[INTERNAL_ADDRESS],
         sans_dns=[UNIT_NAME],
         with_intermediate=with_intermediate,
@@ -242,7 +242,7 @@ def test_tls_manager_truststore_functionality(
     _tls_manager_set_everything(tls_manager)
 
     # build another cert
-    other_tls = generate_tls_artifacts(subject="some-app/0")
+    other_tls = generate_tls_artifacts(common_name="some-app/0")
 
     tmp_dir = tmp_path_factory.mktemp("someapp")
     app_certfile = f"{tmp_dir}/app.pem"
@@ -313,7 +313,7 @@ def test_tls_manager_sans(
 ) -> None:
     """Tests the lifecycle of adding/removing certs from Java and TLSManager points of view."""
     tls_artifacts = generate_tls_artifacts(
-        subject=UNIT_NAME,
+        common_name=UNIT_NAME,
         sans_ip=[INTERNAL_ADDRESS],
         sans_dns=[UNIT_NAME],
         with_intermediate=with_intermediate,
@@ -357,7 +357,7 @@ def test_simulate_os_errors(tls_manager: TLSManager):
 def test_peer_cluster_trust(tls_manager: TLSManager):
     _set_manager_state(tls_manager)
     tls_manager.state.roles = "broker"
-    tls_data = generate_tls_artifacts(subject="controller/0")
+    tls_data = generate_tls_artifacts(common_name="controller/0")
 
     tls_manager.state.peer_cluster_ca = [tls_data.ca]
     tls_manager.update_peer_cluster_trust()
@@ -372,7 +372,7 @@ def test_peer_cluster_trust(tls_manager: TLSManager):
     assert len(tls_manager.peer_trusted_certificates) == 1
 
     # Now let's rotate
-    new_tls_data = generate_tls_artifacts(subject="controller/0")
+    new_tls_data = generate_tls_artifacts(common_name="controller/0")
     tls_manager.state.peer_cluster_ca = [new_tls_data.ca]
 
     tls_manager.update_peer_cluster_trust()
