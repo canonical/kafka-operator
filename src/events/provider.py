@@ -49,6 +49,7 @@ class KafkaProvider(Object):
         )
 
         self.framework.observe(self.charm.on[REL_NAME].relation_created, self._on_relation_created)
+        self.framework.observe(self.charm.on[REL_NAME].relation_joined, self._on_relation_created)
         self.framework.observe(self.charm.on[REL_NAME].relation_broken, self._on_relation_broken)
 
         self.framework.observe(
@@ -256,7 +257,10 @@ class KafkaProvider(Object):
 
         for client in self.charm.state.clients:
 
-            if not client.relation or not client.relation.active:
+            if not client.relation:
+                continue
+
+            if not all([client.relation.units, client.relation.active]):
                 continue
 
             self.handle_client_request(client)

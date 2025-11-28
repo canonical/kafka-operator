@@ -86,9 +86,6 @@ class KRaftHandler(Object):
 
         self.format_storages()
 
-        # update status to add controller
-        self.charm.on.update_status.emit()
-
     def _on_update_status(self, event: UpdateStatusEvent) -> None:
         """Handler for `update-status` events."""
         if self.charm.refresh_not_ready or not self.healthy:
@@ -152,6 +149,9 @@ class KRaftHandler(Object):
             internal_user_credentials=credentials,
             initial_controllers=f"{self.charm.state.peer_cluster.bootstrap_unit_id}@{self.charm.state.peer_cluster.bootstrap_controller}:{self.charm.state.peer_cluster.bootstrap_replica_id}",
         )
+
+        # update status to add controller
+        self.charm.on.update_status.emit()
 
     def _leader_elected(self, event: LeaderElectedEvent) -> None:
         if (
