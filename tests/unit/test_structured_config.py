@@ -49,31 +49,34 @@ def ctx() -> Context:
 def check_valid_values(field: str, accepted_values: Iterable) -> None:
     """Check the correctness of the passed values for a field."""
     flat_config_options = {
-        option_name: mapping.get("default") for option_name, mapping in CONFIG["options"].items()
+        option_name.replace("-", "_") if option_name else option_name: mapping.get("default", "")
+        for option_name, mapping in CONFIG["options"].items()
     }
     for value in accepted_values:
-        CharmConfig(**{**flat_config_options, **{field: value}})
+        CharmConfig(**{**flat_config_options, **{field.replace("-", "_"): value}})
 
 
 def check_invalid_values(field: str, erroneus_values: Iterable) -> None:
     """Check the incorrectness of the passed values for a field."""
     flat_config_options = {
-        option_name: mapping.get("default") for option_name, mapping in CONFIG["options"].items()
+        option_name.replace("-", "_") if option_name else option_name: mapping.get("default", "")
+        for option_name, mapping in CONFIG["options"].items()
     }
     for value in erroneus_values:
         with pytest.raises(ValidationError) as excinfo:
-            CharmConfig(**{**flat_config_options, **{field: value}})
-        assert field in excinfo.value.errors()[0]["loc"]
+            CharmConfig(**{**flat_config_options, **{field.replace("-", "_"): value}})
+
+        assert field.replace("-", "_") in excinfo.value.errors()[0]["loc"]
 
 
 def test_config_parsing_parameters_integer_values() -> None:
     """Check that integer fields are parsed correctly."""
     integer_fields = [
-        "log_flush_offset_checkpoint_interval_ms",
-        "message_max_bytes",
-        "offsets_topic_num_partitions",
-        "transaction_state_log_num_partitions",
-        "replication_quota_window_num",
+        "log-flush-offset-checkpoint-interval-ms",
+        "message-max-bytes",
+        "offsets-topic-num-partitions",
+        "transaction-state-log-num-partitions",
+        "replication-quota-window-num",
     ]
     erroneus_values = [2147483648, -2147483649]
     valid_values = [42, 1000, 1]
@@ -87,24 +90,24 @@ def test_product_related_values() -> None:
     # log_message_timestamp_type field
     erroneus_values = ["test-value", "CreateTimes", "foo", "bar"]
 
-    check_invalid_values("log_message_timestamp_type", erroneus_values)
+    check_invalid_values("log-message-timestamp-type", erroneus_values)
     accepted_values = ["CreateTime", "LogAppendTime"]
-    check_valid_values("log_message_timestamp_type", accepted_values)
+    check_valid_values("log-message-timestamp-type", accepted_values)
 
     # log_cleanup_policy field
-    check_invalid_values("log_cleanup_policy", erroneus_values)
+    check_invalid_values("log-cleanup-policy", erroneus_values)
     accepted_values = ["compact", "delete"]
-    check_valid_values("log_cleanup_policy", accepted_values)
+    check_valid_values("log-cleanup-policy", accepted_values)
 
     # compression_type field
-    check_invalid_values("compression_type", erroneus_values)
+    check_invalid_values("compression-type", erroneus_values)
     accepted_values = ["gzip", "snappy", "lz4", "zstd", "uncompressed", "producer"]
-    check_valid_values("compression_type", accepted_values)
+    check_valid_values("compression-type", accepted_values)
 
 
 def test_values_gt_zero() -> None:
     """Check fields greater than zero."""
-    gt_zero_fields = ["log_flush_interval_messages", "log_flush_interval_ms"]
+    gt_zero_fields = ["log-flush-interval-messages", "log-flush-interval-ms"]
     erroneus_values = map(str, [0, -2147483649, -34])
     valid_values = map(str, [42, 1000, 1, 9223372036854775807])
     for field in gt_zero_fields:
@@ -114,7 +117,7 @@ def test_values_gt_zero() -> None:
 
 def test_values_gteq_zero() -> None:
     """Check fields greater or equal than zero."""
-    gteq_zero_fields = ["message_max_bytes"]
+    gteq_zero_fields = ["message-max-bytes"]
     erroneus_values = [-2147483649, -34]
     valid_values = [42, 1000, 1, 0]
     for field in gteq_zero_fields:
@@ -126,8 +129,8 @@ def test_values_gt_one_mb() -> None:
     """Check fields greater than 1 MB."""
     erroneus_values = map(str, [0, 1024 * 1024 - 1, -1])
     valid_values = map(str, [1024 * 1024, 2147483647])
-    check_invalid_values("log_segment_bytes", erroneus_values)
-    check_valid_values("log_segment_bytes", valid_values)
+    check_invalid_values("log-segment-bytes", erroneus_values)
+    check_valid_values("log-segment-bytes", valid_values)
 
 
 def test_values_in_specific_intervals() -> None:
@@ -135,18 +138,18 @@ def test_values_in_specific_intervals() -> None:
     # "log_cleaner_delete_retention_ms"
     erroneus_values = map(str, [-1, 0, 1000 * 60 * 60 * 24 * 90 + 1])
     valid_values = map(str, [42, 1000, 10000, 1, 1000 * 60 * 60 * 24 * 90])
-    check_invalid_values("log_cleaner_delete_retention_ms", erroneus_values)
-    check_valid_values("log_cleaner_delete_retention_ms", valid_values)
+    check_invalid_values("log-cleaner-delete-retention-ms", erroneus_values)
+    check_valid_values("log-cleaner-delete-retention-ms", valid_values)
 
     # "log_cleaner_min_compaction_lag_ms"
     erroneus_values = map(str, [-1, 1000 * 60 * 60 * 24 * 7 + 1])
     valid_values = map(str, [42, 1000, 10000, 1, 1000 * 60 * 60 * 24 * 7])
-    check_invalid_values("log_cleaner_min_compaction_lag_ms", erroneus_values)
-    check_valid_values("log_cleaner_min_compaction_lag_ms", valid_values)
+    check_invalid_values("log-cleaner-min-compaction-lag-ms", erroneus_values)
+    check_valid_values("log-cleaner-min-compaction-lag-ms", valid_values)
 
     partititions_fields = [
-        "transaction_state_log_num_partitions",
-        "offsets_topic_num_partitions",
+        "transaction-state-log-num-partitions",
+        "offsets-topic-num-partitions",
     ]
     erroneus_values = [10001, -1]
     valid_values = [42, 1000, 10000, 1]
@@ -158,12 +161,12 @@ def test_values_in_specific_intervals() -> None:
 def test_config_parsing_parameters_long_values() -> None:
     """Check long fields are parsed correctly."""
     long_fields = [
-        "log_flush_interval_messages",
-        "log_flush_interval_ms",
-        "log_retention_bytes",
-        "log_retention_ms",
-        "log_cleaner_delete_retention_ms",
-        "log_cleaner_min_compaction_lag_ms",
+        "log-flush-interval-messages",
+        "log-flush-interval-ms",
+        "log-retention-bytes",
+        "log-retention-ms",
+        "log-cleaner-delete-retention-ms",
+        "log-cleaner-min-compaction-lag-ms",
     ]
     erroneus_values = map(str, [-9223372036854775808, 9223372036854775809])
     valid_values = map(str, [42, 1000, 9223372036854775808])
@@ -173,7 +176,7 @@ def test_config_parsing_parameters_long_values() -> None:
 
 
 def test_incorrect_roles():
-    erroneus_values = ["", "something_else" "broker, something_else" "broker,balancer,"]
+    erroneus_values = ["", "something_elsebroker, something_elsebroker,balancer,"]
     valid_values = ["broker", "balancer", "balancer,broker", "broker, balancer "]
     check_invalid_values("roles", erroneus_values)
     check_valid_values("roles", valid_values)

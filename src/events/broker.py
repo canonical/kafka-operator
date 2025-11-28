@@ -29,7 +29,7 @@ from events.actions import ActionEvents
 from events.controller import KRaftHandler
 from events.oauth import OAuthHandler
 from events.provider import KafkaProvider
-from events.user_secrets import SecretsHandler
+from events.secrets import SecretsHandler
 from health import KafkaHealth
 from literals import (
     BALANCER_WEBSERVER_PORT,
@@ -84,7 +84,7 @@ class BrokerOperator(Object):
         self.health = KafkaHealth(self) if self.charm.substrate == "vm" else None
 
         self.action_events = ActionEvents(self)
-        self.user_secrets = SecretsHandler(self)
+        self.secrets = SecretsHandler(self)
 
         self.provider = KafkaProvider(self)
         self.oauth = OAuthHandler(self)
@@ -207,7 +207,7 @@ class BrokerOperator(Object):
 
         # only log once on successful 'on-start' run
         if not self.charm.pending_inactive_statuses:
-            logger.info(f'Broker {self.charm.unit.name.split("/")[1]} connected')
+            logger.info(f"Broker {self.charm.unit.name.split('/')[1]} connected")
 
     def _handle_configuration_updates(self, event: EventBase) -> None:
         """Handle configuration property updates and restart if needed.
@@ -512,7 +512,6 @@ class BrokerOperator(Object):
         self.config_manager.set_client_properties()
 
         for client in self.charm.state.clients:
-
             if not client.password:
                 # client not setup yet.
                 continue

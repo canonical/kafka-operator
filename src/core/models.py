@@ -9,7 +9,7 @@ import logging
 import socket
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Annotated, MutableMapping, TypeAlias, TypedDict
+from typing import Annotated, Literal, MutableMapping, TypeAlias, TypedDict
 
 import requests
 from charms.data_platform_libs.v0.data_interfaces import (
@@ -59,7 +59,6 @@ from managers.k8s import K8sManager
 logger = logging.getLogger(__name__)
 
 JSON: TypeAlias = dict[str, "JSON"] | list["JSON"] | str | int | float | bool | None
-
 
 CPU = TypedDict("CPU", {"num.cores": str})
 Capacity = TypedDict("Capacity", {"DISK": dict[str, str], "CPU": CPU, "NW_IN": str, "NW_OUT": str})
@@ -1015,6 +1014,7 @@ class KafkaBroker(RelationState):
         self.update({f"ip-{relation.id}": ip_address})
 
     # --- TLS ---
+
     @property
     def peer_certs(self) -> TLSState:
         """TLS state for internal (peer) communications."""
@@ -1024,6 +1024,11 @@ class KafkaBroker(RelationState):
     def client_certs(self) -> TLSState:
         """TLS state for external (client) communications."""
         return TLSState(self, TLSScope.CLIENT)
+
+    @property
+    def private_key_kind(self) -> Literal["secret", "lib"]:
+        """Returns the kind of tls-private-key used for client certs on the unit."""
+        return self.relation_data.get("private-key-kind", "lib")
 
     @property
     def keystore_password(self) -> str:
