@@ -101,8 +101,10 @@ jobs:
       - name: Select tests
         id: select-tests
         run: |
+          # TODO: remove after LXD image issue is fixed
           lxc image copy ubuntu:568f69ff1166 local:
           sudo lxc image alias create "juju/ubuntu@22.04/amd64" 568f69ff1166
+
           if [ "${{ github.event_name }}" == "schedule" ]
           then
             echo Running unstable and stable tests
@@ -136,6 +138,7 @@ jobs:
           - integration-ha
           - integration-ha-controller
           - integration-spaces
+          - integration-oauth
         kraft-mode:
           - multi
     name: "${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}"
@@ -159,11 +162,48 @@ jobs:
         with:
           pattern: ${{ needs.build.outputs.artifact-prefix }}-*
           merge-multiple: true
+      - name: Setup terraform & microk8s controller (for OAuth tests)
+        if: ${{ matrix.tox-environments == 'integration-oauth' }}
+        run: |
+          LXD_CONTROLLER=$(juju models --format json | jq -r '.models[0]."controller-name"')
+          sudo snap install --classic terraform
+
+          # calico has issues with strict confinements, so remove -strict
+          sudo snap install microk8s --channel 1.32 --classic
+
+          sudo usermod -a -G microk8s $USER
+          mkdir -p ~/.kube
+          chmod 0700 ~/.kube
+
+          sudo tee /var/snap/microk8s/current/args/certs.d/docker.io/hosts.toml << EOF
+          server = "$DOCKERHUB_MIRROR"
+          [host."${DOCKERHUB_MIRROR#'https://'}"]
+          capabilities = ["pull", "resolve"]
+          EOF
+
+          sudo microk8s stop
+          sudo microk8s start
+
+          # make juju work with microk8s --classic
+          sudo mkdir -p /var/snap/juju/current/microk8s/credentials
+          sudo microk8s config | sudo tee /var/snap/juju/current/microk8s/credentials/client.config
+          sudo chown -R $USER:$USER /var/snap/juju/current/microk8s/credentials
+
+          IP_ADDR=$(ip -4 -j route get 2.2.2.2 | jq -r '.[] | .prefsrc')
+          sudo microk8s enable dns
+          sudo microk8s enable hostpath-storage
+          sudo microk8s enable metallb:$IP_ADDR-$IP_ADDR
+
+          juju bootstrap microk8s
+          juju switch $LXD_CONTROLLER
+
       - name: Select tests
         id: select-tests
         run: |
+          # TODO: remove after LXD image issue is fixed
           lxc image copy ubuntu:568f69ff1166 local:
           sudo lxc image alias create "juju/ubuntu@22.04/amd64" 568f69ff1166
+
           if [ "${{ github.event_name }}" == "schedule" ]
           then
             echo Running unstable and stable tests
@@ -176,3 +216,4 @@ jobs:
         run: tox run -e ${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kraft-mode ${{ matrix.kraft-mode }}
         env:
           CI_PACKED_CHARMS: ${{ needs.build.outputs.charms }}
+
