@@ -1,7 +1,7 @@
 (how-to-kafka-ui)=
-# How to facilitate administrative tasks using Kafbat's Kafka UI
+# How to use the Kafka UI for administrative tasks
 
-Administration of a Charmed Apache Kafka cluster can be performed using the command line interface (CLI) and the utilities included with the Apache Kafka snap.
+Administration of a Charmed Apache Kafka cluster can be performed using the Juju CLI and the utilities included with the Apache Kafka snap.
 However, some administrators prefer to use a graphical user interface (GUI) to monitor the cluster and perform administrative tasks.
 To support this, the Charmed Apache Kafka solution includes a charmed operator for [Kafbat's Kafka UI](https://github.com/kafbat/kafka-ui), which enables users to:
 
