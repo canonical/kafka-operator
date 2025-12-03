@@ -23,8 +23,8 @@ from tenacity import (
 )
 
 from core.models import JSON, BrokerCapacities, BrokerCapacity
-from core.workload import WorkloadBase
-from literals import BALANCER, BALANCER_TOPICS, MODE_FULL, STORAGE
+from core.workload import CharmedKafkaPaths, WorkloadBase
+from literals import BALANCER, BALANCER_TOPICS, BROKER, MODE_FULL, STORAGE
 from managers.config import BalancerConfigManager
 
 if TYPE_CHECKING:
@@ -353,7 +353,7 @@ class BalancerManager:
                     "--bootstrap-server",
                     bootstrap_server,
                     "--command-config",
-                    self.workload.paths.client_properties,
+                    CharmedKafkaPaths(BROKER).client_properties,
                     "--describe",
                 ],
             )

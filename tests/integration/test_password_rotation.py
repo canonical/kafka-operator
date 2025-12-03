@@ -10,12 +10,13 @@ from pytest_operator.plugin import OpsTest
 
 from integration.helpers.pytest_operator import (
     APP_NAME,
+    AUTH_SECRET_NAME,
     SERIES,
-    TEST_SECRET_NAME,
     deploy_cluster,
     get_user,
     set_password,
 )
+from literals import INTER_BROKER_USER
 
 logger = logging.getLogger(__name__)
 
@@ -54,32 +55,34 @@ async def test_build_and_deploy(ops_test: OpsTest, kraft_mode, kafka_charm, app_
 
 async def test_password_rotation(ops_test: OpsTest, kafka_apps):
     """Check that password stored on cluster has changed after a password rotation."""
-    initial_sync_user = get_user(
-        username="sync",
+    initial_replication_user = get_user(
+        username=INTER_BROKER_USER,
         model_full_name=ops_test.model_full_name,
     )
 
-    await set_password(ops_test, username="sync", password="newpass123")
+    await set_password(ops_test, username=INTER_BROKER_USER, password="newpass123")
 
     await ops_test.model.wait_for_idle(apps=kafka_apps, status="active", idle_period=30)
 
-    new_sync_user = get_user(
-        username="sync",
+    new_replication_user = get_user(
+        username=INTER_BROKER_USER,
         model_full_name=ops_test.model_full_name,
     )
 
-    assert initial_sync_user != new_sync_user
-    assert "newpass123" in new_sync_user
+    assert initial_replication_user != new_replication_user
+    assert "newpass123" in new_replication_user
 
     # Update secret
-    await ops_test.model.update_secret(name=TEST_SECRET_NAME, data_args=["sync=updatedpass"])
+    await ops_test.model.update_secret(
+        name=AUTH_SECRET_NAME, data_args=["replication=updatedpass"]
+    )
 
     await ops_test.model.wait_for_idle(apps=kafka_apps, status="active", idle_period=30)
 
-    updated_sync_user = get_user(
-        username="sync",
+    updated_replication_user = get_user(
+        username=INTER_BROKER_USER,
         model_full_name=ops_test.model_full_name,
     )
 
-    assert new_sync_user != updated_sync_user
-    assert "updatedpass" in updated_sync_user
+    assert new_replication_user != updated_replication_user
+    assert "updatedpass" in updated_replication_user

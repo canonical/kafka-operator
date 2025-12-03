@@ -39,9 +39,11 @@ def _assert_partitions_rebalanced(model: str, num_brokers: int, timeout: int = 1
 
         if len(log_dirs_state) == num_brokers and not empty_storages:
             # all storages have partitions, successful!
-            break
+            return
 
         logger.info(f"Following broker/storages are still empty: {','.join(empty_storages)}")
+
+    raise TimeoutError(f"Partition rebalance assertion failed after {timeout} seconds")
 
 
 @pytest.mark.skip_if_deployed
@@ -53,12 +55,14 @@ def test_build_and_deploy(
     kraft_mode,
     kafka_apps,
 ):
+    roles = "broker,controller,balancer" if kraft_mode == "single" else "broker,balancer"
     deploy_cluster(
         juju=juju,
         charm=kafka_charm,
         kraft_mode=kraft_mode,
         num_broker=3,
         num_controller=1,
+        config_broker={"roles": roles},
     )
     juju.deploy(app_charm, app=DUMMY_NAME, num_units=1)
 

@@ -197,7 +197,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.broker.workload.start()
 
         if self.broker.workload.active():
-            logger.info(f'Broker {self.unit.name.split("/")[1]} restarted')
+            logger.info(f"Broker {self.unit.name.split('/')[1]} restarted")
         else:
             logger.error(f"Broker {self.unit.name.split('/')[1]} failed to restart")
             return
@@ -216,12 +216,10 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             return self.refresh.unit_status_higher_priority
 
         # Scaling warning if auto balance is enabled.
-        if all(
-            [
-                self.state.runs_broker,
-                self.state.runs_balancer,
-                self.broker.kraft.controller_manager.departing_brokers,
-            ]
+        if (
+            self.state.runs_broker
+            and self.state.runs_balancer
+            and self.broker.kraft.controller_manager.departing_brokers
         ):
             return Status.SCALING_WARNING.value.status
 

@@ -53,7 +53,6 @@ class TestBalancer:
                 config={
                     "roles": "broker,balancer" if self.balancer_app == APP_NAME else "broker",
                     "profile": "testing",
-                    "expose_external": "nodeport",
                 },
                 trust=True,
             ),
