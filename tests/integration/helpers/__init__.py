@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import tempfile
+from contextlib import contextmanager
 from enum import Enum
 from pathlib import Path
 from subprocess import PIPE, CalledProcessError, check_output
@@ -80,6 +81,24 @@ def get_controller_name(cloud: Literal["localhost", "microk8s"]) -> str | None:
             return controller
 
     return None
+
+
+def get_current_controller() -> str | None:
+    """Get current Juju controller."""
+    return json.loads(_exec("juju controllers --format json")).get("current-controller")
+
+
+@contextmanager
+def use_controller(controller: str | None):
+    """Decorator/context manager to use a certain Juju Controller."""
+    previous_controller = get_current_controller()
+
+    if controller:
+        os.system(f"juju switch {controller}")
+    yield
+
+    if previous_controller and previous_controller != controller:
+        os.system(f"juju switch {previous_controller}")
 
 
 class KRaftUnitStatus(Enum):
