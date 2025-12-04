@@ -516,7 +516,7 @@ class ConfigManager(CommonConfigManager):
 
         truststore_cfg = ""
         if not self.state.oauth.uses_trusted_ca:
-            truststore_cfg = f'oauth.ssl.truststore.location="{self.workload.paths.truststore}" oauth.ssl.truststore.password="{self.state.unit_broker.truststore_password}" oauth.ssl.truststore.type="JKS";'
+            truststore_cfg = f'oauth.ssl.truststore.location="{self.workload.paths.truststore}" oauth.ssl.truststore.password="{self.state.unit_broker.truststore_password}" oauth.ssl.truststore.type="JKS"'
 
         oauth_properties = [
             " ".join(
@@ -529,9 +529,10 @@ class ConfigManager(CommonConfigManager):
                     f'oauth.fallback.username.claim="{username_fallback_claim}"',
                     'oauth.check.audience="true"',
                     'oauth.check.access.token.type="false"',
-                    'oauth.config.id="{listener.name}"',
+                    f'oauth.config.id="{listener.name}"',
                     'unsecuredLoginStringClaim_sub="unused"',
                     truststore_cfg,
+                    ";",
                 ]
             ),
             f"listener.name.{listener.name.lower()}.{listener.mechanism.lower()}.sasl.server.callback.handler.class=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler",
