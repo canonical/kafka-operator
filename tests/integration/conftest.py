@@ -11,7 +11,6 @@ import jubilant
 import pytest
 from pytest_operator.plugin import OpsTest
 
-from integration.helpers import get_controller_name
 from integration.helpers.pytest_operator import APP_NAME, CONTROLLER_NAME, KRaftMode
 
 
@@ -78,18 +77,6 @@ async def app_charm(ops_test: OpsTest):
     charm_path = "tests/integration/app-charm"
     charm = await ops_test.build_charm(charm_path)
     return charm
-
-
-@pytest.fixture(scope="module")
-def lxd_controller() -> str | None:
-    """Returns the lxd controller name or None if not available."""
-    return get_controller_name("localhost")
-
-
-@pytest.fixture(scope="module")
-def microk8s_controller() -> str | None:
-    """Returns the microk8s controller name or None if not available."""
-    return get_controller_name("microk8s")
 
 
 async def _build_charm(self, charm_path: typing.Union[str, os.PathLike]) -> pathlib.Path:
