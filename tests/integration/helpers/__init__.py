@@ -59,43 +59,13 @@ def _run_script(script: str) -> None:
         _ = os.system(command)
 
 
-def bootstrap_microk8s() -> None:
-    """Bootstrap juju on microk8s cloud."""
-    user_env_var = os.environ.get("USER", "root")
-    os.system("sudo apt install -y jq")
-    ip_addr = _exec("ip -4 -j route get 2.2.2.2 | jq -r '.[] | .prefsrc'").strip()
-
-    _run_script(
-        f"""
-        # install microk8s
-        sudo snap install microk8s --classic --channel=1.32
-        # configure microk8s
-        sudo usermod -a -G microk8s {user_env_var}
-        mkdir -p ~/.kube
-        chmod 0700 ~/.kube
-        # ensure microk8s is up
-        sudo microk8s status --wait-ready
-        # enable required addons
-        sudo microk8s enable dns
-        sudo microk8s enable hostpath-storage
-        sudo microk8s enable metallb:{ip_addr}-{ip_addr}
-        # configure & bootstrap microk8s controller
-        sudo mkdir -p /var/snap/juju/current/microk8s/credentials
-        sudo microk8s config | sudo tee /var/snap/juju/current/microk8s/credentials/client.config
-        sudo chown -R {user_env_var}:{user_env_var} /var/snap/juju/current/microk8s/credentials
-        juju bootstrap microk8s
-        sleep 90
-    """
-    )
-
-
 def deploy_identity_platform(git_tag: str = "v1.0.0") -> None:
     """Deploy the Canonical Identity Platform Terraform bundle."""
     home = os.environ.get("HOME", "/tmp")
     _run_script(
         f"""
         mkdir {home}/iam-bundle
-        git clone https://github.com/canonical/iam-bundle-integration.git {home}/iam-bundle
+        git clone --branch {git_tag} https://github.com/canonical/iam-bundle-integration.git {home}/iam-bundle
         terraform -chdir={home}/iam-bundle/examples/tutorial init
         terraform -chdir={home}/iam-bundle/examples/tutorial apply -auto-approve
     """

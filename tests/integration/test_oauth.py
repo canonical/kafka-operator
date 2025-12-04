@@ -12,9 +12,7 @@ import pytest
 
 from integration.helpers import (
     APP_NAME,
-    bootstrap_microk8s,
     deploy_identity_platform,
-    get_controller_name,
 )
 from integration.helpers.jubilant import (
     all_active_idle,
@@ -61,11 +59,9 @@ def test_deploy_kafka(
 
 @pytest.mark.abort_on_fail
 def test_deploy_identity_platform(microk8s_controller: str | None):
-    if not microk8s_controller:
-        bootstrap_microk8s()
+    assert microk8s_controller, "No K8s controller detected!"
 
-    microk8s = get_controller_name("microk8s")
-    os.system(f"juju switch {microk8s}")
+    os.system(f"juju switch {microk8s_controller}")
     deploy_identity_platform()
 
     _juju = jubilant.Juju(model=IAM_MODEL)
@@ -108,8 +104,7 @@ def test_integrate_oauth(
         elif "oauth-offer" in offer:
             oauth_offer = offer
 
-    if not all([tls_offer, oauth_offer]):
-        raise Exception("Can't find TLS/OAuth offers")
+    assert all([tls_offer, oauth_offer]), "Can't find TLS/OAuth offers"
 
     # Consume the offers
     juju.cli("consume", tls_offer)
