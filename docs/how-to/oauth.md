@@ -162,7 +162,7 @@ sudo charmed-kafka.topics \
   --topic test
 ```
 
-The OAuth user should be able to authenticate, but you should see an `Authorization failed` error
+The OAuth user should be able to authenticate, but you will see an `Authorization failed` error
 since the user does not have the necessary permissions to create a topic.
 
 To resolve the authorisation issue, you can use the `charmed-kafka.acls` command
@@ -195,4 +195,4 @@ Adding ACLs for resource `ResourcePattern(resourceType=TOPIC, name=test, pattern
 	(principal=User:ebb3010e-d0a0-4335-aee6-105cf85ebbc0, host=*, operation=CREATE, permissionType=ALLOW)
 ```
 
-Now repeat the topic creation command, and now it should succeed now.
+Now repeat the topic creation command, and it should succeed now.
