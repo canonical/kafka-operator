@@ -38,8 +38,8 @@ deploy Charmed Apache Kafka following the [Deploy Apache Kafka tutorial](tutoria
 
 ```bash
 juju add-model kafka-oauth
-juju deploy kafka -n 3 --config roles="controller" controller
-juju deploy kafka -n 3 --config roles="broker"
+juju deploy kafka -n 3 --channel 4/edge --config roles="controller" controller
+juju deploy kafka -n 3 --channel 4/edge --config roles="broker"
 juju integrate kafka:peer-cluster-orchestrator controller:peer-cluster
 ```
 
@@ -162,11 +162,37 @@ sudo charmed-kafka.topics \
   --topic test
 ```
 
-The OAuth user should be able to authenticate, but you should see an `Authorization Failed` error
+The OAuth user should be able to authenticate, but you should see an `Authorization failed` error
 since the user does not have the necessary permissions to create a topic.
 
 To resolve the authorisation issue, you can use the `charmed-kafka.acls` command
 to create the necessary ACLs for the OAuth user.
 In this scenario, the username is identified by the value in `$CLIENT_ID` variable.
 For more information on how to manage authorisation in Apache Kafka clusters, please consult the
-[official documentation](https://kafka.apache.org/documentation/#security_authz_cli)
+[official documentation](https://kafka.apache.org/documentation/#security_authz_cli).
+
+Sample command to add ACLs for the OAuth user:
+
+```bash
+juju ssh kafka/0 \
+  sudo charmed-kafka.acls \
+    --bootstrap-server $KAFKA_BROKER_IP:19093 \
+    --command-config /var/snap/charmed-kafka/current/etc/kafka/client.properties \
+    --add \
+    --allow-principal=User:$CLIENT_ID \
+    --operation READ \
+    --operation WRITE \
+    --operation CREATE \
+    --topic test
+```
+
+You should see an output like the following:
+
+```text
+Adding ACLs for resource `ResourcePattern(resourceType=TOPIC, name=test, patternType=LITERAL)`: 
+ 	(principal=User:ebb3010e-d0a0-4335-aee6-105cf85ebbc0, host=*, operation=READ, permissionType=ALLOW)
+	(principal=User:ebb3010e-d0a0-4335-aee6-105cf85ebbc0, host=*, operation=WRITE, permissionType=ALLOW)
+	(principal=User:ebb3010e-d0a0-4335-aee6-105cf85ebbc0, host=*, operation=CREATE, permissionType=ALLOW)
+```
+
+Now repeat the topic creation command, and now it should succeed now.
