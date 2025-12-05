@@ -34,10 +34,12 @@ IAM_APPS = ["hydra", "kratos"]
 TRAEFIK_APP = "traefik-public"
 INTEGRATOR_APP = "data-integrator"
 
-
 LXD_CONTROLLER = get_controller_name("localhost")
 MICROK8S_CONTROLLER = get_controller_name("microk8s")
 assert MICROK8S_CONTROLLER, "No k8s controller detected!"
+
+OAUTH_OFFER = f"{MICROK8S_CONTROLLER}:admin/{IAM_MODEL}.oauth-offer"
+TLS_OFFER = f"{MICROK8S_CONTROLLER}:admin/{CORE_MODEL}.certificates"
 
 
 @pytest.mark.abort_on_fail
@@ -84,35 +86,13 @@ def test_integrate_oauth(juju: jubilant.Juju, kafka_apps):
     address = get_unit_ipv4_address(juju.model, f"{APP_NAME}/0")
     assert not check_socket(address, SECURITY_PROTOCOL_PORTS["SASL_SSL", "OAUTHBEARER"].client)
 
-    # find TLS & OAuth offers
-    offers = json.loads(
-        juju.cli(
-            "find-offers",
-            "-m",
-            f"{MICROK8S_CONTROLLER}:{CORE_MODEL}",
-            "--format",
-            "json",
-            include_model=False,
-        )
-    ).keys()
-
-    tls_offer = None
-    oauth_offer = None
-    for offer in offers:
-        if "certificates" in offer:
-            tls_offer = offer
-        elif "oauth-offer" in offer:
-            oauth_offer = offer
-
-    assert all([tls_offer, oauth_offer]), "Can't find TLS/OAuth offers"
-
     # Consume the offers
-    juju.cli("consume", tls_offer)
-    juju.cli("consume", oauth_offer)
+    juju.cli("consume", TLS_OFFER)
+    juju.cli("consume", OAUTH_OFFER)
 
     # Integrate with the consumed offers
-    juju.integrate(f"{APP_NAME}:{TLS_RELATION}", tls_offer)
-    juju.integrate(APP_NAME, oauth_offer)
+    juju.integrate(f"{APP_NAME}:{TLS_RELATION}", TLS_OFFER)
+    juju.integrate(APP_NAME, OAUTH_OFFER)
 
     juju.wait(
         lambda status: all_active_idle(status, *kafka_apps),
