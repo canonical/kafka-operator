@@ -52,6 +52,7 @@ Advanced features of Charmed Apache Kafka include:
 
 * [Schemas and serialisation](how-to-schemas-serialisation)
 * [Kafka Connect usage](how-to-use-kafka-connect-for-etl-workloads)
+* [Enable OAuth through Canonical Identity Platform](how-to-enable-oauth)
 
 ```{toctree}
 :titlesonly:
@@ -69,4 +70,5 @@ cluster/index.md
 Create mTLS credentials<create-mtls-client-credentials.md>
 Schemas and serialisation<schemas-serialisation.md>
 Kafka Connect<kafka-connect.md>
+Enable OAuth<oauth.md>
 ```
