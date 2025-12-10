@@ -2,12 +2,12 @@
 # Copyright 2025 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-import json
 import logging
-import textwrap
 
 import jubilant
+import kafka
 import pytest
+from kafka.errors import TopicAuthorizationFailedError
 
 from integration.helpers import (
     APP_NAME,
@@ -20,19 +20,22 @@ from integration.helpers.jubilant import (
     deploy_cluster,
     get_unit_ipv4_address,
 )
+from integration.helpers.oauth import (
+    CORE_MODEL,
+    IAM_APPS,
+    IAM_MODEL,
+    SimpleTokenProvider,
+    create_oauth_client,
+    prepare_cli_client,
+)
 from integration.helpers.pytest_operator import check_socket
 from literals import SECURITY_PROTOCOL_PORTS, TLS_RELATION
 
 logger = logging.getLogger(__name__)
 
-pytestmark = pytest.mark.broker
 
-
-CORE_MODEL = "core"
-IAM_MODEL = "iam"
-IAM_APPS = ["hydra", "kratos"]
-TRAEFIK_APP = "traefik-public"
-INTEGRATOR_APP = "data-integrator"
+ADMIN_INTEGRATOR = "di-admin"
+PRODUCER_INTEGRATOR = "di-producer"
 
 LXD_CONTROLLER = get_controller_name("localhost")
 MICROK8S_CONTROLLER = get_controller_name("microk8s")
@@ -40,6 +43,11 @@ assert MICROK8S_CONTROLLER, "No k8s controller detected!"
 
 OAUTH_OFFER = f"{MICROK8S_CONTROLLER}:admin/{IAM_MODEL}.oauth-offer"
 TLS_OFFER = f"{MICROK8S_CONTROLLER}:admin/{CORE_MODEL}.certificates"
+
+
+def _cli_create_topic(conf_path: str, endpoints: str, topic: str):
+    """Generate command to create a topic using the charmed-kafka.topics CLI client."""
+    return f"sudo charmed-kafka.topics --bootstrap-server {endpoints} --command-config {conf_path}/client.properties --create --topic {topic}"
 
 
 @pytest.mark.abort_on_fail
@@ -109,90 +117,187 @@ def test_integrate_oauth(juju: jubilant.Juju, kafka_apps):
 @use_controller(LXD_CONTROLLER)
 def test_deploy_and_integrate_data_integrator(juju: jubilant.Juju, kafka_apps):
     juju.deploy(
-        INTEGRATOR_APP,
-        app=INTEGRATOR_APP,
+        "data-integrator",
+        app=ADMIN_INTEGRATOR,
         config={"topic-name": "__test-admin", "extra-user-roles": "admin"},
     )
-    juju.integrate(INTEGRATOR_APP, APP_NAME)
+    juju.deploy(
+        "data-integrator",
+        app=PRODUCER_INTEGRATOR,
+        config={"topic-name": "test-topic", "extra-user-roles": "producer"},
+    )
+    juju.integrate(ADMIN_INTEGRATOR, APP_NAME)
+    juju.integrate(PRODUCER_INTEGRATOR, APP_NAME)
 
     juju.wait(
-        lambda status: all_active_idle(status, *kafka_apps, INTEGRATOR_APP),
+        lambda status: all_active_idle(status, *kafka_apps, ADMIN_INTEGRATOR, PRODUCER_INTEGRATOR),
         delay=3,
         successes=20,
         timeout=1200,
     )
 
 
-def test_an_oauth_client_on_data_integrator(juju: jubilant.Juju, tmp_path_factory):
-    with use_controller(LXD_CONTROLLER):
-        res = juju.run(f"{INTEGRATOR_APP}/0", "get-credentials")
-        tls_ca = res.results[APP_NAME]["tls-ca"]
-        kafka_endpoints = res.results[APP_NAME]["endpoints"]
-        kafka_oauth_endpoints = kafka_endpoints.replace(
-            f'{SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client}',
-            f'{SECURITY_PROTOCOL_PORTS["SASL_SSL", "OAUTHBEARER"].client}',
-        )
+@pytest.mark.abort_on_fail
+@use_controller(LXD_CONTROLLER)
+def test_admin_client(juju: jubilant.Juju, kafka_apps):
+    unit = f"{ADMIN_INTEGRATOR}/0"
+    res = juju.run(unit, "get-credentials")
 
-    with use_controller(MICROK8S_CONTROLLER):
-        iam_juju = jubilant.Juju(model=IAM_MODEL)
-        res = iam_juju.run(
-            "hydra/0",
-            "create-oauth-client",
-            params={
-                "scope": ["profile", "email", "phone", "offline"],
-                "grant-types": ["client_credentials"],
-                "audience": ["kafka"],
-            },
-        )
-        client_id = res.results["client-id"]
-        client_secret = res.results["client-secret"]
-
-        core_juju = jubilant.Juju(model=CORE_MODEL)
-        res = core_juju.run(f"{TRAEFIK_APP}/0", "show-proxied-endpoints")
-        endpoints = json.loads(res.results["proxied-endpoints"])
-        base_uri = endpoints[TRAEFIK_APP]["url"]
-        token_endpoint_uri = f"{base_uri}/oauth2/token"
-
-    # Generate OAuth client properties for a CLI client
-    truststore_password = "tspass"
-    base_path = "/var/snap/charmed-kafka/current/etc/kafka"
-    truststore_path = f"{base_path}/oauth-client.jks"
-    client_properties = textwrap.dedent(
-        f"""
-        security.protocol=SASL_SSL
-        sasl.mechanism=OAUTHBEARER
-        sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required oauth.client.id="{client_id}" oauth.client.secret="{client_secret}" oauth.token.endpoint.uri="{token_endpoint_uri}" oauth.scope="profile" oauth.ssl.truststore.location="{truststore_path}" oauth.ssl.truststore.password="{truststore_password}" oauth.ssl.truststore.type="JKS" oauth.audience="kafka";
-        sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
-        ssl.truststore.location={truststore_path}
-        ssl.truststore.password={truststore_password}
-    """
+    username = res.results[APP_NAME]["username"]
+    tls_ca = res.results[APP_NAME]["tls-ca"]
+    kafka_endpoints = res.results[APP_NAME]["endpoints"]
+    kafka_oauth_endpoints = kafka_endpoints.replace(
+        f'{SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client}',
+        f'{SECURITY_PROTOCOL_PORTS["SASL_SSL", "OAUTHBEARER"].client}',
     )
 
-    # Save the properties and the CA into temp files
-    client_dir = tmp_path_factory.mktemp("client")
-    with open(f"{client_dir}/client.properties", "w") as f:
-        f.write(client_properties)
+    with use_controller(MICROK8S_CONTROLLER):
+        admin_client = create_oauth_client()
 
-    with open(f"{client_dir}/server.pem", "w") as f:
-        f.write(tls_ca)
+    client_conf_path = prepare_cli_client(
+        juju,
+        host_unit=unit,
+        name="admin",
+        oauth_client=admin_client,
+        broker_ca=tls_ca,
+    )
 
-    with use_controller(LXD_CONTROLLER):
-        # Install charmed-kafka on data-integrator
-        juju.cli("ssh", f"{INTEGRATOR_APP}/0", "sudo snap install charmed-kafka --channel 4/edge")
-        juju.cli("scp", f"{client_dir}/client.properties", f"{INTEGRATOR_APP}/0:/home/ubuntu/")
-        juju.cli("scp", f"{client_dir}/server.pem", f"{INTEGRATOR_APP}/0:/home/ubuntu/")
-
-        truststore_command = f"sudo charmed-kafka.keytool -import -alias ca -file {base_path}/server.pem -keystore {truststore_path} -storepass {truststore_password} -noprompt"
-        juju.cli("ssh", f"{INTEGRATOR_APP}/0", f"sudo cp /home/ubuntu/server.pem {base_path}")
+    # The user should be able to connect, but authorization should fail.
+    with pytest.raises(jubilant.CLIError) as exc_info:
         juju.cli(
-            "ssh", f"{INTEGRATOR_APP}/0", f"sudo cp /home/ubuntu/client.properties {base_path}"
+            "ssh",
+            unit,
+            _cli_create_topic(
+                conf_path=client_conf_path, endpoints=kafka_oauth_endpoints, topic="test-1"
+            ),
         )
-        juju.cli("ssh", f"{INTEGRATOR_APP}/0", truststore_command)
-        juju.cli("ssh", f"{INTEGRATOR_APP}/0", f"sudo chmod a+x {truststore_path}")
+        assert "Authorization failed" in exc_info.value.stdout
 
-        create_topic_command = f"sudo charmed-kafka.topics --bootstrap-server {kafka_oauth_endpoints} --command-config {base_path}/client.properties --create --topic test"
+    # Define the roles-mapping
+    juju.config(
+        APP_NAME, values={"roles-mapping": f'{{"{admin_client.client_id}": "{username}"}}'}
+    )
 
-        # The user should be able to connect, but authorization should fail.
-        with pytest.raises(jubilant.CLIError) as exc_info:
-            juju.cli("ssh", f"{INTEGRATOR_APP}/0", create_topic_command)
-            assert "Authorization failed" in exc_info.value.stdout
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps),
+        delay=3,
+        successes=20,
+        timeout=1200,
+    )
+
+    # Now the command should succeed.
+    juju.cli(
+        "ssh",
+        unit,
+        _cli_create_topic(
+            conf_path=client_conf_path, endpoints=kafka_oauth_endpoints, topic="test-1"
+        ),
+    )
+
+    # Reset roles-mapping
+    juju.config(APP_NAME, values={"roles-mapping": "{}"})
+
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps),
+        delay=3,
+        successes=20,
+        timeout=1200,
+    )
+
+    # Topic creation should fail again.
+    with pytest.raises(jubilant.CLIError) as exc_info:
+        juju.cli(
+            "ssh",
+            unit,
+            _cli_create_topic(
+                conf_path=client_conf_path, endpoints=kafka_oauth_endpoints, topic="test-2"
+            ),
+        )
+        assert "Authorization failed" in exc_info.value.stdout
+
+
+@use_controller(LXD_CONTROLLER)
+def test_producer_client(juju: jubilant.Juju, kafka_apps, tmp_path_factory):
+    unit = f"{PRODUCER_INTEGRATOR}/0"
+    res = juju.run(unit, "get-credentials")
+
+    username = res.results[APP_NAME]["username"]
+    tls_ca = res.results[APP_NAME]["tls-ca"]
+    kafka_endpoints = res.results[APP_NAME]["endpoints"]
+    kafka_internal_endpoints = kafka_endpoints.replace(
+        f'{SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client}',
+        f'{SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].internal}',
+    )
+    kafka_oauth_endpoints = kafka_endpoints.replace(
+        f'{SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client}',
+        f'{SECURITY_PROTOCOL_PORTS["SASL_SSL", "OAUTHBEARER"].client}',
+    )
+
+    with use_controller(MICROK8S_CONTROLLER):
+        client = create_oauth_client()
+
+    client_conf_path = prepare_cli_client(
+        juju,
+        host_unit=unit,
+        name="producer",
+        oauth_client=client,
+        broker_ca=tls_ca,
+    )
+
+    # Define the roles-mapping
+    juju.config(APP_NAME, values={"roles-mapping": f'{{"{client.client_id}": "{username}"}}'})
+
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps),
+        delay=3,
+        successes=20,
+        timeout=1200,
+    )
+
+    # Topic creation should fail regardless, since this is a producer.
+    with pytest.raises(jubilant.CLIError) as exc_info:
+        juju.cli(
+            "ssh",
+            unit,
+            _cli_create_topic(
+                conf_path=client_conf_path, endpoints=kafka_oauth_endpoints, topic="any-topic"
+            ),
+        )
+        assert "Authorization failed" in exc_info.value.stdout
+
+    # Initialize KafkaProducer
+    tmp_dir = tmp_path_factory.mktemp("producer")
+    open(f"{tmp_dir}/ca.pem", "w").write(tls_ca)
+    producer = kafka.KafkaProducer(
+        bootstrap_servers=kafka_oauth_endpoints.split(","),
+        ssl_cafile=f"{tmp_dir}/ca.pem",
+        sasl_mechanism="OAUTHBEARER",
+        security_protocol="SASL_SSL",
+        sasl_oauth_token_provider=SimpleTokenProvider(
+            client_id=client.client_id,
+            client_secret=client.client_secret,
+            token_endpoint=client.token_endpoint_uri,
+        ),
+    )
+
+    # Produce to unauthorized topic
+    future = producer.send("test-1", b"msg1")
+
+    with pytest.raises(TopicAuthorizationFailedError):
+        assert future.get(timeout=10)
+
+    # Create the topic (test-topic) which the producer is authorized to publish
+    juju.cli(
+        "ssh",
+        f"{APP_NAME}/0",
+        _cli_create_topic(
+            conf_path="/var/snap/charmed-kafka/current/etc/kafka/",
+            endpoints=kafka_internal_endpoints,
+            topic="test-topic",
+        ),
+    )
+
+    # Test produce is succeeded
+    future = producer.send("test-topic", b"msg1")
+    future.get()
+    assert future.succeeded()
