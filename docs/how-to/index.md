@@ -19,7 +19,7 @@ For guidance on managing your deployed Charmed Apache Kafka, see:
 * [How to manage units](how-to-manage-units)
 * [How to manage client connections](how-to-client-connections)
 * [How to upgrade](how-to-upgrade)
-* [How to use the Kafka UI for administrative tasks](how-to-kafka-ui)
+* [How to use Kafka UI](how-to-kafka-ui)
 
 ## Security
 
