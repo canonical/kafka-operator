@@ -129,8 +129,8 @@ jobs:
           - integration-tls
           - integration-refresh
           - integration-tls-complex
-          - integration-balancer-single
-          - integration-balancer-multi
+          - integration-balancer-broker
+          - integration-balancer-controller
           - integration-kraft
           - integration-kraft-tls
           - integration-ha
