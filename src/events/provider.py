@@ -233,9 +233,7 @@ class KafkaProvider(Object):
 
     def remove_broken_clients(self) -> None:
         """Remove all usernames and ACLs associated with the broken client relations."""
-        client_usernames = {
-            u for u in self.charm.state.cluster.relation_data if u.startswith("relation-")
-        }
+        client_usernames = set(self.charm.state.cluster.client_passwords)
         active_clients = {client.username for client in self.charm.state.clients}
 
         for username in client_usernames - active_clients:
@@ -248,8 +246,43 @@ class KafkaProvider(Object):
             # update on the peer relation data will trigger an update of server properties on all units
             self.charm.state.cluster.update({username: ""})
 
+    def reconcile_oauth_users(self) -> None:
+        """Reconcile ACLs for users defined via the `roles-mapping` config option."""
+        client_usernames = set(self.charm.state.cluster.client_passwords)
+        for oauth_id, mapped_username in self.charm.config.roles_mapping.items():
+            if mapped_username not in client_usernames:
+                logger.error(f"{mapped_username} is not defined, check data-integrator relations.")
+                continue
+
+            if oauth_id in self.charm.state.cluster.oauth_users:
+                continue
+
+            logger.info(f'Adding ACLs for "{oauth_id}" matching "{mapped_username}"')
+            client = next(
+                iter(
+                    _client
+                    for _client in self.charm.state.clients
+                    if _client.username == mapped_username
+                )
+            )
+            self.dependent.auth_manager.update_user_acls(
+                username=oauth_id,
+                topic=client.topic,
+                extra_user_roles=client.extra_user_roles,
+                group=client.consumer_group_prefix,
+                permissions=client.permissions,
+            )
+            self.charm.state.cluster.add_oauth_user(oauth_id)
+
+        # Remove stale ACLs for OAuth users without a current roles-mapping
+        stale_ids = self.charm.state.cluster.oauth_users - set(self.charm.config.roles_mapping)
+        for oauth_id in stale_ids:
+            logger.info(f'Removing ACLs for OAuth user "{oauth_id}"')
+            self.dependent.auth_manager.remove_all_user_acls(username=oauth_id)
+            self.charm.state.cluster.remove_oauth_user(oauth_id)
+
     def reconcile(self) -> None:
-        """Writes necessary relation data to all related client applications and remove stale clients/ACLs."""
+        """Write necessary relation data to all related client applications and remove stale clients/ACLs."""
         if not self.charm.unit.is_leader() or not self.dependent.healthy:
             return
 
@@ -295,3 +328,5 @@ class KafkaProvider(Object):
 
             logger.info(f"Updating client: {client.app.name}")
             self.kafka_provider.set_response(client.relation.id, response)
+
+        self.reconcile_oauth_users()
