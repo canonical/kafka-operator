@@ -8,6 +8,7 @@ import logging
 import jubilant
 import pytest
 
+from integration.helpers import TLS_CHANNEL, TLS_NAME
 from integration.helpers.jubilant import (
     BASE,
     all_active_idle,
@@ -25,7 +26,6 @@ pytestmark = pytest.mark.broker
 
 APP_NAME = "kafka"
 DUMMY_NAME_1 = "app"
-TLS_NAME = "self-signed-certificates"
 REL_NAME_V1 = "kafka-client-v1"
 
 
@@ -144,7 +144,7 @@ def test_deploy_and_relate(
         num_units=1,
         base=BASE,
     )
-    juju.deploy(TLS_NAME, channel="1/stable")
+    juju.deploy(TLS_NAME, channel=TLS_CHANNEL)
 
     juju.integrate(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_V1}")
 
