@@ -11,7 +11,6 @@ from kafka.errors import TopicAuthorizationFailedError
 
 from integration.helpers import (
     APP_NAME,
-    deploy_identity_platform,
     get_controller_name,
     use_controller,
 )
@@ -26,6 +25,7 @@ from integration.helpers.oauth import (
     IAM_MODEL,
     SimpleTokenProvider,
     create_oauth_client,
+    deploy_identity_platform,
     prepare_cli_client,
 )
 from integration.helpers.pytest_operator import check_socket
@@ -216,6 +216,7 @@ def test_admin_client(juju: jubilant.Juju, kafka_apps):
         assert "Authorization failed" in exc_info.value.stdout
 
 
+@pytest.mark.abort_on_fail
 @use_controller(LXD_CONTROLLER)
 def test_producer_client(juju: jubilant.Juju, kafka_apps, tmp_path_factory):
     unit = f"{PRODUCER_INTEGRATOR}/0"
@@ -284,7 +285,7 @@ def test_producer_client(juju: jubilant.Juju, kafka_apps, tmp_path_factory):
     future = producer.send("test-1", b"msg1")
 
     with pytest.raises(TopicAuthorizationFailedError):
-        assert future.get(timeout=10)
+        future.get(timeout=10)
 
     # Create the topic (test-topic) which the producer is authorized to publish
     juju.cli(
@@ -301,3 +302,37 @@ def test_producer_client(juju: jubilant.Juju, kafka_apps, tmp_path_factory):
     future = producer.send("test-topic", b"msg1")
     future.get()
     assert future.succeeded()
+
+    # Reset roles-mapping
+    juju.config(APP_NAME, values={"roles-mapping": "{}"})
+
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps),
+        delay=3,
+        successes=20,
+        timeout=1200,
+    )
+
+    # Try to produce to the previously authorized topic, should fail now
+    future = producer.send("test-topic", b"msg2")
+
+    with pytest.raises(TopicAuthorizationFailedError):
+        future.get(timeout=10)
+
+
+@pytest.mark.abort_on_fail
+@use_controller(LXD_CONTROLLER)
+def test_remove_oauth_relation(juju: jubilant.Juju, kafka_apps):
+    juju.remove_relation(APP_NAME, "oauth-offer")
+
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps),
+        delay=3,
+        successes=20,
+        timeout=1200,
+        error=jubilant.any_error,
+    )
+
+    # Assert OAuth listener is not set.
+    address = get_unit_ipv4_address(juju.model, f"{APP_NAME}/0")
+    assert not check_socket(address, SECURITY_PROTOCOL_PORTS["SASL_SSL", "OAUTHBEARER"].client)

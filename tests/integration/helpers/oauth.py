@@ -1,11 +1,14 @@
 import dataclasses
 import json
+import os
 import tempfile
 import textwrap
 
 import jubilant
 import requests
 from kafka.sasl.oauth import AbstractTokenProvider
+
+from . import _run_script
 
 CORE_MODEL = "core"
 IAM_MODEL = "iam"
@@ -72,6 +75,19 @@ def create_oauth_client() -> OAuthClient:
 
     return OAuthClient(
         client_id=client_id, client_secret=client_secret, token_endpoint_uri=token_endpoint_uri
+    )
+
+
+def deploy_identity_platform(git_tag: str = "v1.0.0") -> None:
+    """Deploy the Canonical Identity Platform Terraform bundle."""
+    home = os.environ.get("HOME", "/tmp")
+    _run_script(
+        f"""
+        mkdir {home}/iam-bundle
+        git clone --branch {git_tag} https://github.com/canonical/iam-bundle-integration.git {home}/iam-bundle
+        terraform -chdir={home}/iam-bundle/examples/tutorial init
+        terraform -chdir={home}/iam-bundle/examples/tutorial apply -auto-approve
+    """
     )
 
 

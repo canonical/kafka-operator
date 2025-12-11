@@ -254,6 +254,9 @@ class KafkaProvider(Object):
                 logger.error(f"{mapped_username} is not defined, check data-integrator relations.")
                 continue
 
+            if oauth_id in self.charm.state.cluster.oauth_users:
+                continue
+
             logger.info(f'Adding ACLs for "{oauth_id}" matching "{mapped_username}"')
             client = next(
                 iter(
@@ -269,6 +272,14 @@ class KafkaProvider(Object):
                 group=client.consumer_group_prefix,
                 permissions=client.permissions,
             )
+            self.charm.state.cluster.add_oauth_user(oauth_id)
+
+        # Remove stale ACLs for OAuth users without a current roles-mapping
+        stale_ids = self.charm.state.cluster.oauth_users - set(self.charm.config.roles_mapping)
+        for oauth_id in stale_ids:
+            logger.info(f'Removing ACLs for OAuth user "{oauth_id}"')
+            self.dependent.auth_manager.remove_all_user_acls(username=oauth_id)
+            self.charm.state.cluster.remove_oauth_user(oauth_id)
 
     def reconcile(self) -> None:
         """Write necessary relation data to all related client applications and remove stale clients/ACLs."""
