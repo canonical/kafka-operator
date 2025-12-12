@@ -89,6 +89,7 @@ SERVER_PROPERTIES_BLACKLIST = [
     "roles",
     "expose_external",
     "system_users",
+    "tls_private_key",
 ]
 
 
@@ -234,7 +235,7 @@ class CommonConfigManager:
             String of Log4j options
         """
         opts = [
-            f'-Dlog4j.configuration=file:{self.workload.paths.tools_log4j_properties} -Dcharmed.kafka.log.level={self.log_level.split("=")[1]}'
+            f"-Dlog4j.configuration=file:{self.workload.paths.tools_log4j_properties} -Dcharmed.kafka.log.level={self.log_level.split('=')[1]}"
         ]
 
         return f"KAFKA_LOG4J_OPTS='{' '.join(opts)}'"

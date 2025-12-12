@@ -10,7 +10,7 @@ import tempfile
 
 import kafka
 import pytest
-from charms.tls_certificates_interface.v4.tls_certificates import generate_private_key
+from charms.tls_certificates_interface.v4.tls_certificates import PrivateKey, generate_private_key
 from pytest_operator.plugin import OpsTest
 
 from integration.helpers import sign_manual_certs
@@ -24,13 +24,16 @@ from integration.helpers.pytest_operator import (
     create_test_topic,
     deploy_cluster,
     extract_private_key,
+    get_actual_tls_private_key,
     get_address,
     get_provider_data,
     get_secret_by_label,
     get_unit_hostname,
     list_truststore_aliases,
+    remove_tls_private_key,
     search_secrets,
     set_tls_private_key,
+    update_tls_private_key,
 )
 from literals import (
     CERTIFICATE_TRANSFER_RELATION,
@@ -62,7 +65,7 @@ async def test_deploy_tls(ops_test: OpsTest, kafka_charm, kraft_mode, kafka_apps
             charm=kafka_charm,
             kraft_mode=kraft_mode,
             config_broker={
-                "ssl_principal_mapping_rules": "RULE:^.*[Cc][Nn]=([a-zA-Z0-9.]*).*$/$1/L,DEFAULT"
+                "ssl-principal-mapping-rules": "RULE:^.*[Cc][Nn]=([a-zA-Z0-9.]*).*$/$1/L,DEFAULT"
             },
         ),
     )
@@ -74,17 +77,6 @@ async def test_deploy_tls(ops_test: OpsTest, kafka_charm, kraft_mode, kafka_apps
 @pytest.mark.abort_on_fail
 async def test_kafka_tls(ops_test: OpsTest, app_charm, kafka_apps):
     """Tests TLS on Kafka."""
-    # Set a custom private key, by running set-tls-private-key action with no parameters,
-    # as this will generate a random one
-    num_unit = 0
-    await set_tls_private_key(ops_test)
-
-    # Extract the key
-    private_key = extract_private_key(
-        ops_test=ops_test,
-        unit_name=f"{APP_NAME}/{num_unit}",
-    )
-
     # ensuring at least a few update-status
     await ops_test.model.add_relation(f"{APP_NAME}:{TLS_RELATION}", TLS_NAME)
     async with ops_test.fast_forward(fast_interval="20s"):
@@ -120,23 +112,71 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm, kafka_apps):
         ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client
     )
 
-    # Rotate credentials
-    new_private_key = generate_private_key().raw
 
-    await set_tls_private_key(ops_test, key=new_private_key)
+@pytest.mark.abort_on_fail
+async def test_set_tls_private_key(ops_test: OpsTest):
+    # 1. First test the setting of new PKs on an existing cluster
+    old_pks = set()
+    secret: dict[str, PrivateKey] = {}
+    for unit in ops_test.model.applications[APP_NAME].units:
+        old_pks.add(extract_private_key(ops_test, unit.name))
+        secret[unit.name.replace("/", "-")] = generate_private_key()
 
-    # ensuring key event actually runs
-    async with ops_test.fast_forward(fast_interval="10s"):
-        await asyncio.sleep(60)
+    await set_tls_private_key(ops_test, secret=secret)
 
-    # Extract the key
-    private_key_2 = extract_private_key(
-        ops_test=ops_test,
-        unit_name=f"{APP_NAME}/{num_unit}",
+    async with ops_test.fast_forward(fast_interval="60s"):
+        await ops_test.model.wait_for_idle(
+            apps=[APP_NAME, DUMMY_NAME, TLS_NAME], idle_period=30, status="active"
+        )
+
+    new_pks = set()
+    actual_pks = set()
+    for unit in ops_test.model.applications[APP_NAME].units:
+        new_pks.add(extract_private_key(ops_test, unit.name))
+        actual_pks.add(get_actual_tls_private_key(ops_test, unit.name))
+
+    assert new_pks.isdisjoint(old_pks)  # all pks changed in secret data
+    assert new_pks == actual_pks  # all pks actually written to charm
+
+    # 2. Now test the updating a new PK on a single unit
+    removed_secret_unit_name, removed_secret_tls_pk = secret.popitem()  # getting random unit
+    secret.update({removed_secret_unit_name: generate_private_key()})  # replacing cert
+
+    await update_tls_private_key(ops_test, secret=secret)
+
+    async with ops_test.fast_forward(fast_interval="60s"):
+        await ops_test.model.wait_for_idle(
+            apps=[APP_NAME, DUMMY_NAME, TLS_NAME], idle_period=30, status="active"
+        )
+
+    updated_secret_pk = extract_private_key(ops_test, removed_secret_unit_name.replace("-", "/"))
+    updated_actual_pk = get_actual_tls_private_key(
+        ops_test, removed_secret_unit_name.replace("-", "/")
     )
 
-    assert private_key != private_key_2
-    assert private_key_2 == new_private_key.strip()
+    assert updated_secret_pk == updated_actual_pk
+    assert updated_secret_pk != removed_secret_tls_pk
+
+    # 3. Now test the removal of the PK secret config entirely
+    await remove_tls_private_key(ops_test)
+
+    async with ops_test.fast_forward(fast_interval="60s"):
+        await ops_test.model.wait_for_idle(
+            apps=[APP_NAME, DUMMY_NAME, TLS_NAME], idle_period=30, status="active"
+        )
+
+    post_removed_pks = set()
+    post_removed_actual_pks = set()
+    for unit in ops_test.model.applications[APP_NAME].units:
+        post_removed_pks.add(extract_private_key(ops_test, unit.name))
+        post_removed_actual_pks.add(get_actual_tls_private_key(ops_test, unit.name))
+
+    assert post_removed_pks == post_removed_actual_pks
+
+    pre_pks = new_pks | actual_pks | {updated_secret_pk, updated_actual_pk}
+    post_pks = post_removed_pks | post_removed_actual_pks
+
+    assert post_pks.isdisjoint(pre_pks)  # checking every post-secret-removed pk is brand new
 
 
 @pytest.mark.abort_on_fail

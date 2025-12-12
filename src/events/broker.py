@@ -25,12 +25,11 @@ from ops import (
 )
 from ops.pebble import ExecError
 
-from core.models import SecretGroup
 from events.actions import ActionEvents
 from events.controller import KRaftHandler
 from events.oauth import OAuthHandler
 from events.provider import KafkaProvider
-from events.user_secrets import SecretsHandler
+from events.secrets import SecretsHandler
 from health import KafkaHealth
 from literals import (
     BALANCER_WEBSERVER_PORT,
@@ -85,7 +84,7 @@ class BrokerOperator(Object):
         self.health = KafkaHealth(self) if self.charm.substrate == "vm" else None
 
         self.action_events = ActionEvents(self)
-        self.user_secrets = SecretsHandler(self)
+        self.secrets = SecretsHandler(self)
 
         self.provider = KafkaProvider(self)
         self.oauth = OAuthHandler(self)
@@ -208,7 +207,7 @@ class BrokerOperator(Object):
 
         # only log once on successful 'on-start' run
         if not self.charm.pending_inactive_statuses:
-            logger.info(f'Broker {self.charm.unit.name.split("/")[1]} connected')
+            logger.info(f"Broker {self.charm.unit.name.split('/')[1]} connected")
 
     def _handle_configuration_updates(self, event: EventBase) -> None:
         """Handle configuration property updates and restart if needed.
@@ -317,6 +316,9 @@ class BrokerOperator(Object):
             self.tls_manager.rebuild_truststore()
             self.charm.on[f"{self.charm.restart.name}"].acquire_lock.emit()
 
+        if self.charm.state.runs_broker and not self.kraft.controller_manager.broker_active():
+            self.charm._set_status(Status.BROKER_NOT_CONNECTED)
+
         try:
             if self.health and not self.health.machine_configured():
                 self.charm._set_status(Status.SYSCONF_NOT_OPTIMAL)
@@ -331,9 +333,12 @@ class BrokerOperator(Object):
         if not event.secret.label or not self.charm.state.peer_relation:
             return
 
-        if event.secret.label == self.charm.state.cluster.repository._generate_secret_label(
-            self.charm.state.peer_relation, SecretGroup("extra")
+        if event.secret.label == self.charm.state.cluster.data_interface._generate_secret_label(
+            PEER,
+            self.charm.state.peer_relation.id,
+            "extra",  # pyright: ignore[reportArgumentType] -- Changes with the https://github.com/canonical/data-platform-libs/issues/124
         ):
+            # TODO: figure out why creating internal credentials setting doesn't trigger changed event here
             self.charm.on.config_changed.emit()
 
     def _on_storage_attached(self, event: StorageAttachedEvent) -> None:
@@ -447,9 +452,6 @@ class BrokerOperator(Object):
             self.charm._set_status(Status.SERVICE_NOT_RUNNING)
             return False
 
-        if self.charm.state.runs_broker and not self.kraft.controller_manager.broker_active():
-            self.charm._set_status(Status.BROKER_NOT_CONNECTED)
-
         return True
 
     def update_external_services(self) -> None:
@@ -510,7 +512,6 @@ class BrokerOperator(Object):
         self.config_manager.set_client_properties()
 
         for client in self.charm.state.clients:
-
             if not client.password:
                 # client not setup yet.
                 continue

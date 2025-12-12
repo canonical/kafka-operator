@@ -118,12 +118,20 @@ class PeerClusterEventsHandler(Object):
         # Optimization: cache peer_cluster to avoid multiple loadings
         peer_cluster_state = self.charm.state.peer_cluster
 
-        # will no-op if relation does not exist
-        self.charm.state.peer_cluster.update(
+        balancer_data = (
             {
                 "balancer-username": peer_cluster_state.balancer_username,
                 "balancer-password": peer_cluster_state.balancer_password,
                 "balancer-uris": peer_cluster_state.balancer_uris,
+            }
+            if self.charm.state.runs_balancer
+            else {}
+        )
+
+        # will no-op if relation does not exist
+        self.charm.state.peer_cluster.update(
+            {
+                **balancer_data,
                 "controller-password": peer_cluster_state.controller_password,
                 "bootstrap-controller": peer_cluster_state.bootstrap_controller,
                 "bootstrap-unit-id": str(peer_cluster_state.bootstrap_unit_id),
