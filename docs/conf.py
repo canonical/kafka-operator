@@ -151,7 +151,40 @@ html_context = {
     "display_contributors": False,
 
     # Required for feedback button    
-    'github_issues': 'enabled',
+    "feedback": True,
+    "github_issues": "enabled",
+    "default_source_extension": ".md",
+    "default_edit_url": "https://github.com/canonical/ulwazi/edit/main/docs/index.rst",
+    "default_view_url": "https://github.com/canonical/ulwazi/blob/main/docs/index.rst",
+    
+    # Horizontal Nav Menu
+    "company": "Canonical",
+    "link1_URL": "https://snapcraft.io/",
+    "link1_name": "First optional link",
+    "link2_URL": "https://snapcraft.io/",
+    "link2_name": "Second optional link",
+
+    # Canonical Product menu
+    # Uncomment if you need a product menu added on the top of every page
+    "add_product_menu": True,
+    
+    # Main Horizontal menu
+    # "is_docs": False, # Purpose unknown
+    "logo_link_URL": "https://documentation.ubuntu.com",
+    "logo_img_URL": "https://assets.ubuntu.com/v1/82818827-CoF_white.svg",
+    "logo_title": "Canonical",
+
+    # TODO: Customize the footer.
+    "footer": {
+        # Whether to add the product name as the first entry.
+        "product": True,
+        # Whether to add the license as the second entry.
+        "license": True,
+        # List your footer entries. Accepts HTML tags.
+        "entries": [
+            '<a class="js-revoke-cookie-manager" href="#tracker-settings">Manage your tracker settings</a>',
+        ]
+    }
 }
 
 # TODO: To enable the edit button on pages, uncomment and change the link to a
@@ -172,6 +205,9 @@ html_theme_options = {
 
 slug = 'charmed-kafka'
 
+# Limit the number of levels for Table of contents
+localtoc_max_depth = 3
+
 #######################
 # Sitemap configuration: https://sphinx-sitemap.readthedocs.io/
 #######################
@@ -190,6 +226,8 @@ else:
     sitemap_url_scheme = 'MANUAL/{link}'
 
 # Template and asset locations
+
+html_theme = "ulwazi"
 
 html_static_path = [
     ".sphinx/_static",
@@ -275,11 +313,17 @@ linkcheck_retries = 3
 #       - youtube-links
 
 extensions = [
-    "canonical_sphinx",
     "sphinxcontrib.cairosvgconverter",
     "sphinx_last_updated_by_git",
     "sphinx.ext.intersphinx",
     "sphinx_sitemap",
+    "ulwazi",
+    "sphinx_modern_pdf_style",
+    "canonical_sphinx_config",
+    "myst_parser",
+    "sphinxcontrib.jquery",
+    "sphinx_tabs.tabs",
+    "sphinx_design",
 ]
 
 # Excludes files or directories from processing
