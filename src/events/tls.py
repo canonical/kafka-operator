@@ -76,8 +76,8 @@ class TLSHandler(Object):
             certificate_requests=[
                 CertificateRequestAttributes(
                     common_name=self.common_name,
-                    sans_ip=frozenset(self.sans["sans_ip"]),
-                    sans_dns=frozenset(self.sans["sans_dns"]),
+                    sans_ip=frozenset(self.sans["sans_ip"]) or None,
+                    sans_dns=frozenset(self.sans["sans_dns"]) or None,
                 ),
             ],
             refresh_events=[self.refresh_tls_certificates],
@@ -90,8 +90,8 @@ class TLSHandler(Object):
             certificate_requests=[
                 CertificateRequestAttributes(
                     common_name=self.common_name,
-                    sans_ip=frozenset(self.sans["sans_ip"]),
-                    sans_dns=frozenset(self.sans["sans_dns"]),
+                    sans_ip=frozenset(self.sans["sans_ip"]) or None,
+                    sans_dns=frozenset(self.sans["sans_dns"]) or None,
                 ),
             ],
             refresh_events=[self.refresh_tls_certificates],
