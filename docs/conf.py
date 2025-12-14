@@ -242,6 +242,7 @@ linkcheck_ignore = [
     "https://cwiki.apache.org/*",
     "https://archive.apache.org/*",
     "https://launchpad.net/zookeeper-releases/3.x/*",
+    "https://lists.launchpad.net/data-platform/",
     ]
 
 
