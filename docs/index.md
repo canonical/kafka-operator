@@ -16,7 +16,7 @@ The charm helps ops teams and administrators automate Apache Kafka operations fr
 
 |                    |                                                                     |
 |--------------------|---------------------------------------------------------------------|
-| **Basic concepts** | [What is charmed operator (charm)?](https://canonical.com/juju/charms-architecture) 🞄 [What is Juju?](https://canonical.com/juju) 🞄 [Why Juju?](https://canonical.com/juju/why-juju) |
+| **Learn about Juju** | [What is charmed operator (charm)?](https://canonical.com/juju/charms-architecture) 🞄 [What is Juju?](https://canonical.com/juju) 🞄 [Why Juju?](https://canonical.com/juju/why-juju) |
 | **Tutorial** | [Introduction](tutorial-introduction) 🞄 [Step 1: Environment setup](tutorial-environment) |
 | **Deployment** | [Main deployment guide](how-to-deploy-index) 🞄 [AWS](how-to-deploy-deploy-on-aws) 🞄  [Azure](how-to-deploy-deploy-on-azure) 🞄 [KRaft mode](how-to-deploy-kraft-mode) |
 | **Security** | [Overview](explanation-security) 🞄 [Enable encryption](how-to-enable-encryption) 🞄 [OAuth](how-to-enable-oauth-through-hydra) 🞄 [mTLS](how-to-create-mtls-client-credentials) |
