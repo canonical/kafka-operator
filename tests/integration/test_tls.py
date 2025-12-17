@@ -47,6 +47,7 @@ from .test_charm import DUMMY_NAME
 logger = logging.getLogger(__name__)
 
 TLS_NAME = "self-signed-certificates"
+TLS_CHANNEL = "1/stable"
 CERTS_NAME = "tls-certificates-operator"
 TLS_REQUIRER = "tls-certificates-requirer"
 MANUAL_TLS_NAME = "manual-tls-certificates"
@@ -58,8 +59,7 @@ TLS_CONFIG = {"ca-common-name": "kafka"}
 async def test_deploy_tls(ops_test: OpsTest, kafka_charm, kraft_mode, kafka_apps):
 
     await asyncio.gather(
-        # FIXME (certs): Unpin the revision once the charm is fixed
-        ops_test.model.deploy(TLS_NAME, channel="edge", config=TLS_CONFIG, revision=163),
+        ops_test.model.deploy(TLS_NAME, channel=TLS_CHANNEL, config=TLS_CONFIG),
         deploy_cluster(
             ops_test=ops_test,
             charm=kafka_charm,
@@ -232,7 +232,7 @@ async def test_certificate_transfer(ops_test: OpsTest, kafka_apps):
     await ops_test.model.deploy(
         TLS_NAME,
         application_name="other-ca",
-        channel="1/stable",
+        channel=TLS_CHANNEL,
     )
     await ops_test.model.deploy(
         TLS_REQUIRER, channel="stable", application_name="other-req", revision=102
@@ -390,7 +390,7 @@ async def test_dns_certificate(ops_test: OpsTest, kraft_mode, kafka_apps, contro
         await asyncio.sleep(60)
 
     await ops_test.model.deploy(
-        TLS_NAME, channel="edge", config=TLS_CONFIG, series="jammy", revision=163
+        TLS_NAME, channel=TLS_CHANNEL, config=TLS_CONFIG, series="jammy"
     )
 
     async with ops_test.fast_forward(fast_interval="60s"):
