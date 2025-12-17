@@ -126,8 +126,8 @@ class TLSManager:
         csr = generate_csr(
             private_key=private_key,
             common_name=f"{self.state.unit_broker.unit.name}",
-            sans_ip=frozenset(sans["sans_ip"]),
-            sans_dns=frozenset(sans["sans_dns"]),
+            sans_ip=frozenset(sans["sans_ip"]) or None,
+            sans_dns=frozenset(sans["sans_dns"]) or None,
         )
         certificate = generate_certificate(
             csr=csr, ca=ca, ca_private_key=ca_key, validity=timedelta(days=3650)
@@ -397,7 +397,7 @@ class TLSManager:
         """Builds a SAN dict of DNS names and IPs for the unit."""
         if self.substrate == "vm":
             return {
-                "sans_ip": self.workload.ips,
+                "sans_ip": self.workload.ips if self.config.certificate_include_ip_sans else [],
                 "sans_dns": [self.state.unit_broker.unit.name, socket.getfqdn()]
                 + self._build_extra_sans(),
             }
@@ -408,7 +408,9 @@ class TLSManager:
                         str(self.state.bind_address),
                         self.state.unit_broker.node_ip,
                     ]
-                ),
+                )
+                if self.config.certificate_include_ip_sans
+                else [],
                 "sans_dns": sorted(
                     [
                         self.state.unit_broker.internal_address.split(".")[0],

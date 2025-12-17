@@ -57,6 +57,7 @@ class CharmConfig(BaseConfigModel):
     profile: Literal["testing", "staging", "production"]
     certificate_extra_sans: list[str]
     extra_listeners: list[str]
+    certificate_include_ip_sans: bool
     expose_external: str | None
     log_level: str
     network_bandwidth: int = Field(default=50000, validate_default=False, gt=0)

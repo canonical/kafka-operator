@@ -197,6 +197,7 @@ class ClusterState(Object):
             data_interface=self.peer_unit_interface,
             component=self.model.unit,
             substrate=self.substrate,
+            dns=not self.config.certificate_include_ip_sans,
         )
 
     @property
@@ -242,6 +243,7 @@ class ClusterState(Object):
                     data_interface=data_interface,
                     component=unit,
                     substrate=self.substrate,
+                    dns=not self.config.certificate_include_ip_sans,
                 )
             )
         brokers.add(self.unit_broker)

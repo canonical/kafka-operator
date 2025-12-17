@@ -302,6 +302,50 @@ def check_tls(ip: str, port: int) -> bool:
         return False
 
 
+def check_hostname_verification(
+    ops_test: OpsTest, hostname: str, port: str, cafile_name: str, unit_name: str
+) -> str:
+    try:
+        result = check_output(
+            f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'echo | sudo openssl s_client -connect {hostname}:{port} -CAfile /root/{cafile_name} -verify_hostname {hostname}'",
+            stderr=PIPE,
+            shell=True,
+            universal_newlines=True,
+        )
+        return result
+    except subprocess.CalledProcessError as e:
+        logger.error(
+            f"command '{e.cmd}' return with error (code {e.returncode}): {e.output}, {e.stderr}, {e.stdout}"
+        )
+        raise e
+
+
+def get_unit_hostname(ops_test: OpsTest, unit_name: str) -> str:
+    result = check_output(
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'hostname -A'",
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+    return result
+
+
+def copy_file_to_unit(ops_test: OpsTest, unit_name: str, filename: str, content: str) -> None:
+    try:
+        check_output(
+            f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'sudo tee -a {filename}'",
+            stderr=PIPE,
+            shell=True,
+            input=content,
+            universal_newlines=True,
+        )
+    except subprocess.CalledProcessError as e:
+        logger.error(
+            f"command '{e.cmd}' return with error (code {e.returncode}): {e.output}, {e.stderr}, {e.stdout}"
+        )
+        raise e
+
+
 def consume_and_check(ops_test: OpsTest, provider_unit_name: str, topic: str) -> None:
     """Consumes 15 messages created by `produce_and_check_logs` function.
 

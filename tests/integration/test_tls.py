@@ -18,13 +18,17 @@ from integration.helpers.pytest_operator import (
     APP_NAME,
     REL_NAME_PRODUCER,
     SERIES,
+    check_hostname_verification,
     check_tls,
+    copy_file_to_unit,
     create_test_topic,
     deploy_cluster,
     extract_private_key,
     get_actual_tls_private_key,
     get_address,
     get_provider_data,
+    get_secret_by_label,
+    get_unit_hostname,
     list_truststore_aliases,
     remove_tls_private_key,
     search_secrets,
@@ -43,19 +47,19 @@ from .test_charm import DUMMY_NAME
 logger = logging.getLogger(__name__)
 
 TLS_NAME = "self-signed-certificates"
+TLS_CHANNEL = "1/stable"
 CERTS_NAME = "tls-certificates-operator"
 TLS_REQUIRER = "tls-certificates-requirer"
 MANUAL_TLS_NAME = "manual-tls-certificates"
+TLS_CONFIG = {"ca-common-name": "kafka"}
 
 
 @pytest.mark.abort_on_fail
 @pytest.mark.skip_if_deployed
 async def test_deploy_tls(ops_test: OpsTest, kafka_charm, kraft_mode, kafka_apps):
-    tls_config = {"ca-common-name": "kafka"}
 
     await asyncio.gather(
-        # FIXME (certs): Unpin the revision once the charm is fixed
-        ops_test.model.deploy(TLS_NAME, channel="edge", config=tls_config, revision=163),
+        ops_test.model.deploy(TLS_NAME, channel=TLS_CHANNEL, config=TLS_CONFIG),
         deploy_cluster(
             ops_test=ops_test,
             charm=kafka_charm,
@@ -228,7 +232,7 @@ async def test_certificate_transfer(ops_test: OpsTest, kafka_apps):
     await ops_test.model.deploy(
         TLS_NAME,
         application_name="other-ca",
-        channel="1/stable",
+        channel=TLS_CHANNEL,
     )
     await ops_test.model.deploy(
         TLS_REQUIRER, channel="stable", application_name="other-req", revision=102
@@ -368,6 +372,65 @@ async def test_tls_removed(ops_test: OpsTest, kafka_apps):
         file_extensions = {f.split(".")[-1] for f in stdout.split() if f and f.startswith("peer-")}
         logging.info(f"PEER TLS: {', '.join(file_extensions)} files found on {unit.name}")
         assert {"pem", "key", "p12", "jks"} & file_extensions
+
+
+@pytest.mark.abort_on_fail
+async def test_dns_certificate(ops_test: OpsTest, kraft_mode, kafka_apps, controller_app):
+    # re-set up TLS with DNS-only certs
+    await ops_test.model.applications[APP_NAME].set_config(
+        {"certificate_include_ip_sans": "false"}
+    )
+    if controller_app != APP_NAME:
+        await ops_test.model.applications[controller_app].set_config(
+            {"certificate_include_ip_sans": "false"}
+        )
+
+    # ensuring at least a few update-status
+    async with ops_test.fast_forward(fast_interval="20s"):
+        await asyncio.sleep(60)
+
+    await ops_test.model.deploy(
+        TLS_NAME, channel=TLS_CHANNEL, config=TLS_CONFIG, series="jammy"
+    )
+
+    async with ops_test.fast_forward(fast_interval="60s"):
+        await ops_test.model.add_relation(f"{APP_NAME}:{TLS_RELATION}", TLS_NAME)
+        await ops_test.model.wait_for_idle(
+            apps=[*kafka_apps, TLS_NAME], idle_period=15, timeout=1000, status="active"
+        )
+
+    # ensuring at least a few update-status
+    async with ops_test.fast_forward(fast_interval="20s"):
+        await asyncio.sleep(60)
+
+    await ops_test.model.wait_for_idle(
+        apps=[APP_NAME, TLS_NAME], idle_period=30, timeout=1200, status="active"
+    )
+
+    root_ca = get_secret_by_label(ops_test, label="ca-certificates", owner=TLS_NAME)[
+        "ca-certificate"
+    ]
+
+    test_unit_name = ops_test.model.applications[APP_NAME].units[0].name
+    test_unit_hostname = get_unit_hostname(ops_test=ops_test, unit_name=test_unit_name).strip()
+
+    # copying file to LXD container with DNS
+    copy_file_to_unit(
+        ops_test=ops_test,
+        unit_name=test_unit_name,
+        filename="rootca.pem",
+        content=root_ca,
+    )
+
+    output = check_hostname_verification(
+        ops_test=ops_test,
+        hostname=test_unit_hostname,
+        port=SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].internal,
+        cafile_name="rootca.pem",
+        unit_name=test_unit_name,
+    )
+
+    assert f"Verified peername: {test_unit_hostname}" in output
 
 
 @pytest.mark.abort_on_fail

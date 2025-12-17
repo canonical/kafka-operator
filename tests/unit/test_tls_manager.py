@@ -113,7 +113,7 @@ def tls_manager(tmp_path_factory, monkeypatch):
 
     # Mock State
     mock_state = MagicMock()
-    mock_broker_state = KafkaBroker(None, MagicMock(), MagicMock(), SUBSTRATE)
+    mock_broker_state = KafkaBroker(None, MagicMock(), MagicMock(), SUBSTRATE, dns=False)
     mock_broker_state.relation_data = {}
     mock_state.unit_broker = mock_broker_state
 

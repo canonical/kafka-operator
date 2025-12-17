@@ -8,6 +8,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from ops import (
+    ConfigChangedEvent,
     LeaderElectedEvent,
     Object,
     PebbleReadyEvent,
@@ -57,6 +58,7 @@ class KRaftHandler(Object):
 
         self.framework.observe(getattr(self.charm.on, "start"), self._on_start)
         self.framework.observe(getattr(self.charm.on, "leader_elected"), self._leader_elected)
+        self.framework.observe(getattr(self.charm.on, "config_changed"), self._on_config_changed)
 
         if self.charm.substrate == "k8s":
             self.framework.observe(getattr(self.charm.on, "kafka_pebble_ready"), self._on_start)
@@ -152,6 +154,30 @@ class KRaftHandler(Object):
 
         # update status to add controller
         self.charm.on.update_status.emit()
+
+    def _on_config_changed(self, _: ConfigChangedEvent) -> None:
+        """Handle config changes that affect the bootstrap controller address."""
+        if not self.charm.unit.is_leader():
+            return
+
+        # NOTE: This can be triggered by a change in certificate-include-ip-sans config.
+        # That config will switch internal addresses to FQDNs if enabled, so we need to update
+        # internal cluster and peer-cluster relations accordingly.
+        stored_bootstrap = self.charm.state.cluster.bootstrap_controller
+        if not stored_bootstrap:
+            return
+
+        current_bootstrap = self.charm.state.bootstrap_controller
+        if stored_bootstrap != current_bootstrap:
+            logger.info(
+                f"Bootstrap controller address changed from {stored_bootstrap} to {current_bootstrap}"
+            )
+            self.charm.state.cluster.update({"bootstrap-controller": current_bootstrap})
+
+            if self.charm.state.peer_cluster_orchestrator:
+                self.charm.state.peer_cluster_orchestrator.update(
+                    {"bootstrap-controller": current_bootstrap}
+                )
 
     def _leader_elected(self, event: LeaderElectedEvent) -> None:
         if (
