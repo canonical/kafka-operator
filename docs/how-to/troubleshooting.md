@@ -1,3 +1,4 @@
+(troubleshooting)=
 # Troubleshooting guide
 
 This page goes over some recommended tools and approaches to troubleshooting the charm.
