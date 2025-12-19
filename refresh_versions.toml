@@ -1,11 +1,11 @@
 # https://canonical-charm-refresh.readthedocs-hosted.com/latest/refresh-versions-toml/
 
 charm_major = 1
-workload = "4.0.0"
+workload = "4.1.1"
 
 [snap]
 name = "charmed-kafka"
 
 [snap.revisions]
 # amd64
-x86_64 = "64"
+x86_64 = "67"
