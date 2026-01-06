@@ -32,7 +32,7 @@ The charm helps ops teams and administrators automate Apache Kafka operations fr
 
 [Tutorial](tutorial-introduction): For new users needing to learn how to use Charmed Apache Kafka <br>
 [How-to guides](how-to-index): For users needing step-by-step instructions to achieve a practical goal <br>
-[Reference](reference-index): For precise, theorectical, factual information to be used while working with the charm <br>
+[Reference](reference-index): For precise, theoretical, factual information to be used while working with the charm <br>
 [Explanation](explanation-index): For deeper understanding of key Charmed Apache Kafka concepts <br>
 
 ## Project and community
