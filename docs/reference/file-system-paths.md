@@ -22,30 +22,30 @@ juju ssh kafka/0 sudo -i 'ls $LOGS'
 
 - **`$CONF/server.properties`** - the full configuration file for the broker and KRaft controller services
 - **`$CONF/client.properties`** - a minimal configuration file for making client connections to brokers with SASL authentication and SSL encryption
-    - For internal administrator usage only
+  - For internal administrator usage only
     - `--command-config $CONF/client.properties` is often used as an argument when running Kafka CLI commands either directly, or via the snap commands
 - **`$CONF/kraft-client.properties`** - the minimal configuration file for making client connections to KRaft controllers with SASL authentication and SSL encryption
-    - For internal administrator usage only
+  - For internal administrator usage only
 - **`$CONF/peer-keystore.p12` + `$CONF/peer-truststore.jks`** - the Java keystore and truststore used for inter-broker and broker-controller SSL encryption
-    - Passwords to the keystore and truststore are stored in Juju secrets
+  - Passwords to the keystore and truststore are stored in Juju secrets
 - **`$CONF/client-keystore.p12` + `$CONF/client-truststore.jks`** - the Java keystore and truststore used for client SSL encryption
-    - Passwords to the keystore and truststore are stored in Juju secrets
+  - Passwords to the keystore and truststore are stored in Juju secrets
 
 ## System logs
 
 - **`$LOGS/server.log`** - the broker service logs
-    - Very useful for general debugging
+  - Very useful for general debugging
 - **`$LOGS/kafka-authorizer.log`** - Kafka ACL authorisation events
-    - Very useful for debugging authorisation failures
+  - Very useful for debugging authorisation failures
 - **`$LOGS/controller.log`** - the KRaft controller service logs
 
 ## Apache Kafka binaries
 
 - **`$BIN/bin/*.sh`** - general bash scripts provided from upstream Apache Kafka, with utilities for managing and interacting with the cluster
-    - These files are typically accessible directly via Snap commands - e.g, `kafka-topics.sh` can be invoked by running `charmed-kafka.topics`
+  - These files are typically accessible directly via Snap commands - e.g, `kafka-topics.sh` can be invoked by running `charmed-kafka.topics`
 
 ## Message data and cluster metadata
 
 - **`$DATA/data/*`** - the `data` storage directory where the raw Apache Kafka message data is persisted to disk
-    - Each Juju mounted JBOD storage directory will have an integer identifier matching a subdirectory in `$DATA/data/`
-    - Find these directories with `juju status --storage kafka | grep data/`
+  - Each Juju mounted JBOD storage directory will have an integer identifier matching a subdirectory in `$DATA/data/`
+  - Find these directories with `juju status --storage kafka | grep data/`

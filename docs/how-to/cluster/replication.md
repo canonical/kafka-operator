@@ -1,10 +1,12 @@
 (how-to-cluster-replication)=
 # Set up replication between charmed clusters
 
-This How-To will cover how to set up cluster replication using MirrorMaker through [Kafka Connect](https://kafka.apache.org/documentation/#connect).
+This How-To will cover how to set up cluster replication using MirrorMaker through
+[Kafka Connect](https://kafka.apache.org/documentation/#connect).
 
 ```{note}
-For a brief explanation of how MirrorMaker works, see the [MirrorMaker explanation](explanation-mirrormaker2-0) page.
+For a brief explanation of how MirrorMaker works,
+see the [MirrorMaker explanation](explanation-mirrormaker2-0) page.
 ```
 
 ## Prerequisites
@@ -17,18 +19,21 @@ To set up cluster replication we need:
 - A Charmed Kafka Connect cluster to run the MirrorMaker connectors.
 
 ```{note}
-The best practice is to co-locate the Kafka Connect cluster with the target Apache Kafka cluster, for example, in the same cloud region.
+The best practice is to co-locate the Kafka Connect cluster with the target Apache Kafka cluster,
+for example, in the same cloud region.
 ```
 
 For guidance on how to set up Charmed Apache Kafka, please refer to the following resources:
 
 - The [Charmed Apache Kafka Tutorial](tutorial-introduction)
-- The [How to deploy guide](how-to-deploy-deploy-anywhere) for Charmed Apache Kafka
+- The [How to deploy guide](how-to-deploy-anywhere) for Charmed Apache Kafka
 - The [Charmed Kafka Connect Tutorial](tutorial-kafka-connect)
 
 ## Set up active-passive replication
 
-The [MirrorMaker integrator charm](https://charmhub.io/mirrormaker-connect-integrator) manages tasks on a Charmed Kafka Connect cluster that replicates data from an active Apache Kafka cluster to a passive cluster.
+The [MirrorMaker integrator charm](https://charmhub.io/mirrormaker-connect-integrator)
+manages tasks on a Charmed Kafka Connect cluster that replicates data from an active
+Apache Kafka cluster to a passive cluster.
 
 Check the status of deployed applications by running `juju status` command.
 The result should be similar to:
