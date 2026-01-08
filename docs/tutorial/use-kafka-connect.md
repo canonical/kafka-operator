@@ -5,7 +5,7 @@ This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
 ## Using Kafka Connect for ETL
 
-In this part of the tutorial, we are going to use [Kafka Connect](https://kafka.apache.org/documentation/#connect) - an ETL framework on top of Apache Kafka - to seamlessly move data between different charmed database technologies.
+In this part of the tutorial, we are going to use [Kafka Connect](https://kafka.apache.org/41/kafka-connect/overview/) - an ETL framework on top of Apache Kafka - to seamlessly move data between different charmed database technologies.
 
 We will follow a step-by-step process for moving data between [Canonical Data Platform charms](https://canonical.com/data) using Kafka Connect. Specifically, we will showcase a particular use-case of loading data from a relational database, i.e. PostgreSQL, to a document store and search engine, i.e. OpenSearch, entirely using charmed solutions.
 

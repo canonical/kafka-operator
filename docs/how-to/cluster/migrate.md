@@ -69,7 +69,8 @@ MirrorMaker needs full `super.user` permissions on **BOTH** clusters. It support
 - `NEW_SASL_JAAS_CONFIG` -- string of `sasl.jaas.config` property
 
 ```{note}
-For `SSL` or `SASL_SSL` authentication, see the configuration options supported by Kafka Connect in the [Apache Kafka documentation](https://kafka.apache.org/documentation/#connectconfigs).
+For `SSL` or `SASL_SSL` authentication, see the configuration options supported by Kafka Connect in the
+[Apache Kafka documentation](https://kafka.apache.org/41/kafka-connect/user-guide/#configuring-connectors).
 ```
 
 ## Run MirrorMaker cross-cluster replication task
