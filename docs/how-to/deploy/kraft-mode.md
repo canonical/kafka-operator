@@ -6,7 +6,7 @@ This feature is experimental and not production-ready. UX can change significant
 ```
 
 Apache Kafka Raft (KRaft) is a consensus protocol introduced to remove ZooKeeper dependency from a Kafka deployment.
-This guide provides step-by-step instructions to configure Kafka in [KRaft mode](https://kafka.apache.org/documentation/#kraft) introduced in [KIP-500](https://cwiki.apache.org/confluence/display/KAFKA/KIP-500%3A+Replace+ZooKeeper+with+a+Self-Managed+Metadata+Quorum).
+This guide provides step-by-step instructions to configure Kafka in [KRaft mode](https://kafka.apache.org/39/operations/kraft/) introduced in [KIP-500](https://cwiki.apache.org/confluence/display/KAFKA/KIP-500%3A+Replace+ZooKeeper+with+a+Self-Managed+Metadata+Quorum).
 
 ## Prerequisites
 
