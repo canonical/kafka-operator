@@ -2,7 +2,7 @@
 # Set up replication between charmed clusters
 
 This How-To will cover how to set up cluster replication using MirrorMaker through
-[Kafka Connect](https://kafka.apache.org/documentation/#connect).
+[Kafka Connect](https://kafka.apache.org/41/kafka-connect/overview/).
 
 ```{note}
 For a brief explanation of how MirrorMaker works,
