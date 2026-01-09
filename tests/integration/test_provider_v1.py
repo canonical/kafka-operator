@@ -11,11 +11,12 @@ import pytest
 from integration.helpers.jubilant import (
     BASE,
     all_active_idle,
+    check_user,
     deploy_cluster,
     get_provider_data,
     get_secret_by_label,
+    load_acls,
 )
-from integration.helpers.pytest_operator import check_user, load_acls
 from literals import REL_NAME, TLS_RELATION
 from managers.auth import Acl
 
