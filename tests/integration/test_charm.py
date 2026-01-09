@@ -2,7 +2,6 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-import asyncio
 import json
 import logging
 import re
@@ -10,16 +9,15 @@ import subprocess
 import time
 from subprocess import PIPE, check_output
 
+import jubilant
 import pytest
 import requests
 import toml
-from pytest_operator.plugin import OpsTest
 
-from integration.helpers.pytest_operator import (
-    APP_NAME,
-    DUMMY_NAME,
-    REL_NAME_ADMIN,
-    SERIES,
+from integration.helpers import APP_NAME, DUMMY_NAME, REL_NAME_ADMIN
+from integration.helpers.jubilant import (
+    BASE,
+    all_active_idle,
     check_socket,
     count_lines_with,
     deploy_cluster,
@@ -44,62 +42,63 @@ pytestmark = pytest.mark.broker
 
 @pytest.mark.abort_on_fail
 @pytest.mark.skip_if_deployed
-async def test_build_and_deploy(ops_test: OpsTest, kafka_charm, kraft_mode, controller_app):
-    await ops_test.model.create_storage_pool("test_pool", "lxd")
+def test_build_and_deploy(juju: jubilant.Juju, kafka_charm, kraft_mode, controller_app):
+    juju.cli("create-storage-pool", "test_pool", "lxd")
 
-    await deploy_cluster(
-        ops_test=ops_test,
+    deploy_cluster(
+        juju=juju,
         charm=kafka_charm,
         kraft_mode=kraft_mode,
-        storage_broker={"data": {"pool": "test_pool", "size": 1024}},
+        storage_broker={"data": "lxd,1G"},
     )
-    assert ops_test.model.applications[APP_NAME].status == "active"
-    assert ops_test.model.applications[controller_app].status == "active"
+
+    juju.wait(
+        lambda status: all_active_idle(status, APP_NAME, controller_app),
+        delay=3,
+        successes=20,
+        timeout=900,
+    )
 
 
 @pytest.mark.abort_on_fail
-async def test_consistency_between_workload_and_metadata(ops_test: OpsTest):
-    application = ops_test.model.applications[APP_NAME]
+def test_consistency_between_workload_and_metadata(juju: jubilant.Juju):
     with open("refresh_versions.toml", "r") as f:
         data = toml.load(f)
-    assert application.data.get("workload-version", "") == data["workload"]
+    assert juju.status().apps[APP_NAME].version == data["workload"]
 
 
 @pytest.mark.abort_on_fail
-async def test_remove_controller_relation_relate(ops_test: OpsTest, kraft_mode, controller_app):
+def test_remove_controller_relation_relate(juju: jubilant.Juju, kraft_mode, controller_app):
     if kraft_mode == "single":
         logger.info(f"Skipping because we're using {kraft_mode} mode.")
         return
 
-    check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju remove-relation {APP_NAME} {controller_app}",
-        stderr=PIPE,
-        shell=True,
-        universal_newlines=True,
+    juju.remove_relation(APP_NAME, controller_app)
+
+    juju.wait(
+        lambda status: jubilant.all_agents_idle(status, APP_NAME, controller_app)
+        and jubilant.all_blocked(status, APP_NAME, controller_app),
+        delay=3,
+        successes=15,
+        timeout=3600,
     )
 
-    await ops_test.model.wait_for_idle(
-        apps=[APP_NAME, controller_app], idle_period=40, timeout=3600, raise_on_error=False
-    )
-
-    await ops_test.model.add_relation(
+    juju.integrate(
         f"{APP_NAME}:{PEER_CLUSTER_ORCHESTRATOR_RELATION}",
         f"{controller_app}:{PEER_CLUSTER_RELATION}",
     )
 
-    async with ops_test.fast_forward(fast_interval="90s"):
-        await ops_test.model.wait_for_idle(
-            apps=[APP_NAME, controller_app],
-            status="active",
-            idle_period=30,
-            timeout=1000,
-            raise_on_error=False,
-        )
+    juju.wait(
+        lambda status: all_active_idle(status, APP_NAME, controller_app),
+        delay=3,
+        successes=10,
+        timeout=1000,
+    )
 
 
 @pytest.mark.abort_on_fail
-async def test_listeners(ops_test: OpsTest, app_charm, kafka_apps):
-    address = await get_address(ops_test=ops_test)
+def test_listeners(juju: jubilant.Juju, app_charm, kafka_apps):
+    address = get_address(juju=juju)
     assert check_socket(
         address, SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].internal
     )  # Internal listener
@@ -110,27 +109,36 @@ async def test_listeners(ops_test: OpsTest, app_charm, kafka_apps):
     )
 
     # Add relation with dummy app
-    await asyncio.gather(
-        ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series=SERIES),
+    juju.deploy(app_charm, app=DUMMY_NAME, num_units=1)
+
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME),
+        delay=3,
+        successes=10,
+        timeout=600,
     )
-    await ops_test.model.wait_for_idle(apps=[*kafka_apps, DUMMY_NAME])
 
-    await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
+    juju.integrate(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
 
-    assert ops_test.model.applications[APP_NAME].status == "active"
-    assert ops_test.model.applications[DUMMY_NAME].status == "active"
-    await ops_test.model.wait_for_idle(
-        apps=[*kafka_apps, DUMMY_NAME], idle_period=60, status="active"
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME),
+        delay=3,
+        successes=20,
+        timeout=600,
     )
 
     # check that client listener is active
     assert check_socket(address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client)
 
     # remove relation and check that client listener is not active
-    await ops_test.model.applications[APP_NAME].remove_relation(
-        f"{APP_NAME}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_ADMIN}"
+    juju.remove_relation(f"{APP_NAME}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
+
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME),
+        delay=3,
+        successes=20,
+        timeout=600,
     )
-    await ops_test.model.wait_for_idle(apps=kafka_apps, idle_period=60)
 
     assert not check_socket(
         address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
@@ -138,14 +146,17 @@ async def test_listeners(ops_test: OpsTest, app_charm, kafka_apps):
 
 
 @pytest.mark.abort_on_fail
-async def test_client_properties_makes_admin_connection(ops_test: OpsTest, kafka_apps, kraft_mode):
-    await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
-    assert ops_test.model.applications[APP_NAME].status == "active"
-    assert ops_test.model.applications[DUMMY_NAME].status == "active"
-    await ops_test.model.wait_for_idle(
-        apps=[*kafka_apps, DUMMY_NAME], idle_period=60, status="active"
+def test_client_properties_makes_admin_connection(juju: jubilant.Juju, kafka_apps, kraft_mode):
+    juju.integrate(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
+
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME),
+        delay=3,
+        successes=20,
+        timeout=600,
     )
-    result = await run_client_properties(ops_test=ops_test)
+
+    result = run_client_properties(juju=juju)
     assert result
     logger.debug(f"{result=}")
 
@@ -158,55 +169,66 @@ async def test_client_properties_makes_admin_connection(ops_test: OpsTest, kafka
     # multi mode: operator, relation-# => 2
     assert acls == 2 + int(kraft_mode == "single")
 
-    await ops_test.model.applications[APP_NAME].remove_relation(
-        f"{APP_NAME}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_ADMIN}"
+    juju.remove_relation(f"{APP_NAME}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME),
+        delay=3,
+        successes=20,
+        timeout=600,
     )
-    await ops_test.model.wait_for_idle(apps=kafka_apps, idle_period=60)
 
 
 @pytest.mark.abort_on_fail
-async def test_logs_write_to_storage(ops_test: OpsTest, kafka_apps):
-    await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
-    await ops_test.model.wait_for_idle(
-        apps=[*kafka_apps, DUMMY_NAME], idle_period=60, status="active"
+def test_logs_write_to_storage(juju: jubilant.Juju, kafka_apps):
+    juju.integrate(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME),
+        delay=3,
+        successes=20,
+        timeout=600,
     )
 
     produce_and_check_logs(
-        ops_test=ops_test,
+        juju=juju,
         kafka_unit_name=f"{APP_NAME}/0",
         provider_unit_name=f"{DUMMY_NAME}/0",
         topic="warm-topic",
     )
 
 
-async def test_rack_awareness_integration(ops_test: OpsTest):
-    kafka_machine_id = await get_machine(ops_test)
+def test_rack_awareness_integration(juju: jubilant.Juju):
+    kafka_machine_id = get_machine(juju)
 
-    await ops_test.model.deploy(
+    juju.deploy(
         "kafka-broker-rack-awareness",
         channel="edge",
-        application_name="rack",
-        series=SERIES,
+        app="rack",
+        base=BASE,
         to=kafka_machine_id,
         config={"broker-rack": "integration-zone"},
     )
-    await ops_test.model.wait_for_idle(apps=["rack"], idle_period=30, timeout=3600)
-    assert ops_test.model.applications["rack"].status == "active"
+
+    juju.wait(
+        lambda status: all_active_idle(status, "rack"),
+        delay=3,
+        successes=20,
+        timeout=600,
+    )
 
 
 @pytest.mark.abort_on_fail
-async def test_exporter_endpoints(ops_test: OpsTest):
-    unit_address = await get_address(ops_test=ops_test)
+def test_exporter_endpoints(juju: jubilant.Juju):
+    unit_address = get_address(juju=juju)
     jmx_exporter_url = f"http://{unit_address}:{JMX_EXPORTER_PORT}/metrics"
     jmx_resp = requests.get(jmx_exporter_url)
     assert jmx_resp.ok
 
 
 @pytest.mark.abort_on_fail
-async def test_auxiliary_paths(ops_test: OpsTest):
+def test_auxiliary_paths(juju: jubilant.Juju):
     for path in PATHS["kafka"]:
         result = subprocess.check_output(
-            f"JUJU_MODEL={ops_test.model_full_name} juju ssh {APP_NAME}/leader sudo ls -l \\${path}",
+            f"JUJU_MODEL={juju.model} juju ssh {APP_NAME}/leader sudo ls -l \\${path}",
             shell=True,
             stderr=subprocess.PIPE,
             universal_newlines=True,
@@ -219,47 +241,54 @@ async def test_auxiliary_paths(ops_test: OpsTest):
 
 
 @pytest.mark.abort_on_fail
-async def test_log_level_change(ops_test: OpsTest, kafka_apps):
-    for unit in ops_test.model.applications[APP_NAME].units:
+def test_log_level_change(juju: jubilant.Juju, kafka_apps):
+    status = juju.status()
+    for unit in status.apps[APP_NAME].units:
         assert (
             count_lines_with(
-                ops_test.model_full_name,
-                unit.name,
+                juju.model,
+                unit,
                 "/var/snap/charmed-kafka/common/var/log/kafka/server.log",
                 "DEBUG",
             )
             == 0
         )
 
-    await ops_test.model.applications[APP_NAME].set_config({"log-level": "DEBUG"})
+    juju.config(APP_NAME, {"log-level": "DEBUG"})
 
-    await ops_test.model.wait_for_idle(
-        apps=kafka_apps, status="active", timeout=1000, idle_period=30
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps),
+        delay=3,
+        successes=10,
+        timeout=900,
     )
 
-    for unit in ops_test.model.applications[APP_NAME].units:
+    for unit in status.apps[APP_NAME].units:
         assert (
             count_lines_with(
-                ops_test.model_full_name,
-                unit.name,
+                juju.model,
+                unit,
                 "/var/snap/charmed-kafka/common/var/log/kafka/server.log",
                 "DEBUG",
             )
             > 0
         )
 
-    await ops_test.model.applications[APP_NAME].set_config({"log-level": "INFO"})
+    juju.config(APP_NAME, {"log-level": "INFO"})
 
-    await ops_test.model.wait_for_idle(
-        apps=kafka_apps, status="active", timeout=1000, idle_period=30
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps),
+        delay=3,
+        successes=10,
+        timeout=900,
     )
 
 
 @pytest.mark.abort_on_fail
 @pytest.mark.skip(reason="skipping as we can't add storage without losing Juju conn")
-async def test_logs_write_to_new_storage(ops_test: OpsTest):
+def test_logs_write_to_new_storage(juju: jubilant.Juju):
     check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju add-storage kafka/0 log-data",
+        f"JUJU_MODEL={juju.model} juju add-storage kafka/0 log-data",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -267,7 +296,7 @@ async def test_logs_write_to_new_storage(ops_test: OpsTest):
     time.sleep(5)  # to give time for storage to complete
 
     produce_and_check_logs(
-        ops_test=ops_test,
+        juju=juju,
         kafka_unit_name=f"{APP_NAME}/0",
         provider_unit_name=f"{DUMMY_NAME}/0",
         topic="cold-topic",
@@ -277,14 +306,12 @@ async def test_logs_write_to_new_storage(ops_test: OpsTest):
 @pytest.mark.abort_on_fail
 @pytest.mark.fails_in_kafka4
 @pytest.mark.skip(reason="storage format command fails in KRaft mode")
-async def test_deploy_with_existing_storage(ops_test: OpsTest, kafka_apps):
-    unit_to_remove, *_ = await ops_test.model.applications[APP_NAME].add_units(count=1)
-    await ops_test.model.block_until(lambda: len(ops_test.model.applications[APP_NAME].units) == 2)
-    await ops_test.model.wait_for_idle(
-        apps=kafka_apps, status="active", timeout=2000, idle_period=30
-    )
+def test_deploy_with_existing_storage(juju: jubilant.Juju, kafka_apps):
+    unit_to_remove, *_ = juju.model.applications[APP_NAME].add_units(count=1)
+    juju.model.block_until(lambda: len(juju.model.applications[APP_NAME].units) == 2)
+    juju.model.wait_for_idle(apps=kafka_apps, status="active", timeout=2000, idle_period=30)
 
-    _, stdout, _ = await ops_test.juju("storage", "--format", "json")
+    _, stdout, _ = juju.juju("storage", "--format", "json")
     storages = json.loads(stdout)["storage"]
 
     for data_storage_id, content in storages.items():
@@ -293,11 +320,11 @@ async def test_deploy_with_existing_storage(ops_test: OpsTest, kafka_apps):
             continue
         break
 
-    await unit_to_remove.remove(destroy_storage=False)
-    await ops_test.model.block_until(lambda: len(ops_test.model.applications[APP_NAME].units) == 1)
+    unit_to_remove.remove(destroy_storage=False)
+    juju.model.block_until(lambda: len(juju.model.applications[APP_NAME].units) == 1)
 
-    add_unit_cmd = f"add-unit {APP_NAME} --model={ops_test.model.info.name} --attach-storage={data_storage_id}".split()
-    await ops_test.juju(*add_unit_cmd)
-    await ops_test.model.wait_for_idle(
+    add_unit_cmd = f"add-unit {APP_NAME} --model={juju.model.info.name} --attach-storage={data_storage_id}".split()
+    juju.juju(*add_unit_cmd)
+    juju.model.wait_for_idle(
         apps=kafka_apps, status="active", timeout=2000, idle_period=30, raise_on_error=False
     )
