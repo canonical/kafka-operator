@@ -369,7 +369,7 @@ def test_tls_removed(juju: jubilant.Juju, kafka_apps):
     # check proper cleanup of TLS-related files.
     for unit in juju.status().apps[APP_NAME].units:
         ret, stdout, _ = juju.cli(
-            "ssh", unit.name, "sudo ls /var/snap/charmed-kafka/current/etc/kafka"
+            "ssh", unit, "sudo ls /var/snap/charmed-kafka/current/etc/kafka"
         )
         assert not ret
         file_extensions = {
