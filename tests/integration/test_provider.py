@@ -2,14 +2,15 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-import asyncio
 import logging
+import time
 
+import jubilant
 import pytest
-from pytest_operator.plugin import OpsTest
 
-from integration.helpers.pytest_operator import (
-    SERIES,
+from integration.helpers.jubilant import (
+    BASE,
+    all_active_idle,
     check_user,
     deploy_cluster,
     get_client_usernames,
@@ -39,41 +40,36 @@ NON_REL_USERS = set(INTERNAL_USERS + [CONTROLLER_USER])
 
 @pytest.mark.abort_on_fail
 @pytest.mark.skip_if_deployed
-async def test_deploy_charms_relate_active(
-    ops_test: OpsTest, kraft_mode, kafka_charm, app_charm, kafka_apps, usernames: set[str]
+def test_deploy_charms_relate_active(
+    juju: jubilant.Juju, kraft_mode, kafka_charm, app_charm, kafka_apps, usernames: set[str]
 ):
     """Test deploy and relate operations."""
-    await asyncio.gather(
-        deploy_cluster(
-            ops_test=ops_test,
-            charm=kafka_charm,
-            kraft_mode=kraft_mode,
-        ),
-        ops_test.model.deploy(
-            app_charm, application_name=DUMMY_NAME_1, num_units=1, series=SERIES
-        ),
+    deploy_cluster(
+        juju=juju,
+        charm=kafka_charm,
+        kraft_mode=kraft_mode,
+    )
+    juju.deploy(app_charm, app=DUMMY_NAME_1, num_units=1, base=BASE)
+    juju.cli("model-config", "update-status-hook-interval=60s")
+
+    juju.integrate(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_CONSUMER}")
+
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME_1),
+        delay=3,
+        successes=10,
+        timeout=2000,
     )
 
-    await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_CONSUMER}")
-
-    async with ops_test.fast_forward(fast_interval="60s"):
-        await ops_test.model.wait_for_idle(
-            apps=[*kafka_apps, DUMMY_NAME_1],
-            idle_period=30,
-            status="active",
-            timeout=2000,
-            raise_on_error=False,
-        )
-
-    usernames.update(get_client_usernames(ops_test))
+    usernames.update(get_client_usernames(juju))
 
     for username in set(usernames) - NON_REL_USERS:
         check_user(
             username=username,
-            model_full_name=ops_test.model_full_name,
+            model_full_name=juju.model,
         )
 
-    for acl in load_acls(model_full_name=ops_test.model_full_name):
+    for acl in load_acls(model_full_name=juju.model):
         assert acl.username in usernames
         assert acl.operation in ["READ", "DESCRIBE"]
         assert acl.resource_type in ["GROUP", "TOPIC"]
@@ -84,26 +80,28 @@ async def test_deploy_charms_relate_active(
 
 
 @pytest.mark.abort_on_fail
-async def test_deploy_multiple_charms_same_topic_relate_active(
-    ops_test: OpsTest, app_charm, kafka_apps, usernames: set[str]
+def test_deploy_multiple_charms_same_topic_relate_active(
+    juju: jubilant.Juju, app_charm, kafka_apps, usernames: set[str]
 ):
     """Test relation with multiple applications."""
-    await ops_test.model.deploy(app_charm, application_name=DUMMY_NAME_2, num_units=1)
-    await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_2}:{REL_NAME_CONSUMER}")
+    juju.deploy(app_charm, app=DUMMY_NAME_2, num_units=1)
+    juju.integrate(APP_NAME, f"{DUMMY_NAME_2}:{REL_NAME_CONSUMER}")
 
-    async with ops_test.fast_forward(fast_interval="60s"):
-        await ops_test.model.wait_for_idle(
-            apps=[*kafka_apps, DUMMY_NAME_1], idle_period=60, status="active"
-        )
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME_2),
+        delay=3,
+        successes=20,
+        timeout=900,
+    )
 
-    usernames.update(get_client_usernames(ops_test))
+    usernames.update(get_client_usernames(juju))
     for username in set(usernames) - NON_REL_USERS:
         check_user(
             username=username,
-            model_full_name=ops_test.model_full_name,
+            model_full_name=juju.model,
         )
 
-    for acl in load_acls(model_full_name=ops_test.model_full_name):
+    for acl in load_acls(model_full_name=juju.model):
         assert acl.username in usernames
         assert acl.operation in ["READ", "DESCRIBE"]
         assert acl.resource_type in ["GROUP", "TOPIC"]
@@ -112,17 +110,22 @@ async def test_deploy_multiple_charms_same_topic_relate_active(
 
 
 @pytest.mark.abort_on_fail
-async def test_remove_application_removes_user_and_acls(
-    ops_test: OpsTest, kafka_apps, usernames: set[str]
+def test_remove_application_removes_user_and_acls(
+    juju: jubilant.Juju, kafka_apps, usernames: set[str]
 ):
     """Test the correct removal of user and permission after relation removal."""
-    await ops_test.model.remove_application(DUMMY_NAME_1, block_until_done=True)
+    juju.remove_application(DUMMY_NAME_1)
+    time.sleep(60)
 
-    async with ops_test.fast_forward(fast_interval="60s"):
-        await ops_test.model.wait_for_idle(apps=kafka_apps, idle_period=60, status="active")
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME_2),
+        delay=3,
+        successes=20,
+        timeout=900,
+    )
 
     # checks that old users are removed from active cluster ACLs
-    acls = load_acls(model_full_name=ops_test.model_full_name)
+    acls = load_acls(model_full_name=juju.model)
     acl_usernames = set()
     for acl in acls:
         acl_usernames.add(acl.username)
@@ -134,31 +137,31 @@ async def test_remove_application_removes_user_and_acls(
         for username in usernames:
             check_user(
                 username=username,
-                model_full_name=ops_test.model_full_name,
+                model_full_name=juju.model,
             )
 
 
 @pytest.mark.abort_on_fail
-async def test_deploy_producer_same_topic(
-    ops_test: OpsTest, app_charm, kafka_apps, usernames: set[str]
+def test_deploy_producer_same_topic(
+    juju: jubilant.Juju, app_charm, kafka_apps, usernames: set[str]
 ):
     """Test the correct deployment and relation with role producer."""
-    await asyncio.gather(
-        ops_test.model.deploy(app_charm, application_name=DUMMY_NAME_1, num_units=1, series=SERIES)
+    juju.deploy(app_charm, app=DUMMY_NAME_1, num_units=1, base=BASE)
+    juju.integrate(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_PRODUCER}")
+
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME_1),
+        delay=3,
+        successes=20,
+        timeout=900,
     )
-    await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_PRODUCER}")
 
-    async with ops_test.fast_forward(fast_interval="60s"):
-        await ops_test.model.wait_for_idle(
-            apps=[*kafka_apps, DUMMY_NAME_1], idle_period=60, status="active"
-        )
-
-    acls = load_acls(model_full_name=ops_test.model_full_name)
+    acls = load_acls(model_full_name=juju.model)
     acl_usernames = set()
     for acl in acls:
         acl_usernames.add(acl.username)
 
-    usernames.update(get_client_usernames(ops_test))
+    usernames.update(get_client_usernames(juju))
 
     for acl in acls:
         assert acl.username in usernames
@@ -168,112 +171,122 @@ async def test_deploy_producer_same_topic(
             assert acl.resource_name == "test-topic"
 
     # remove application
-    await ops_test.model.remove_application(DUMMY_NAME_1, block_until_done=True)
-    await ops_test.model.wait_for_idle(apps=kafka_apps, idle_period=30, status="active")
+    juju.remove_application(DUMMY_NAME_1)
+    time.sleep(60)
+
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps),
+        delay=3,
+        successes=10,
+        timeout=900,
+    )
 
 
 @pytest.mark.abort_on_fail
-async def test_admin_added_to_super_users(ops_test: OpsTest, kafka_apps):
+def test_admin_added_to_super_users(juju: jubilant.Juju, app_charm, kafka_apps):
     """Test relation with admin privileges."""
-    super_users = load_super_users(model_full_name=ops_test.model_full_name)
+    super_users = load_super_users(model_full_name=juju.model)
     assert len(super_users) == 3  # controller, replication, operator
 
-    app_charm = await ops_test.build_charm("tests/integration/app-charm")
+    juju.deploy(app_charm, app=DUMMY_NAME_1, num_units=1, base=BASE)
+    juju.integrate(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_ADMIN}")
 
-    await asyncio.gather(
-        ops_test.model.deploy(app_charm, application_name=DUMMY_NAME_1, num_units=1, series=SERIES)
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME_1),
+        delay=3,
+        successes=20,
+        timeout=900,
     )
-    await ops_test.model.wait_for_idle(apps=[*kafka_apps, DUMMY_NAME_1])
-    await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_ADMIN}")
-    await ops_test.model.wait_for_idle(
-        apps=[*kafka_apps, DUMMY_NAME_1], status="active", idle_period=60
-    )
-
-    assert ops_test.model.applications[APP_NAME].status == "active"
-    assert ops_test.model.applications[DUMMY_NAME_1].status == "active"
 
     # check the correct addition of super-users
-    super_users = load_super_users(model_full_name=ops_test.model_full_name)
+    super_users = load_super_users(model_full_name=juju.model)
     assert len(super_users) == 4
 
 
 @pytest.mark.abort_on_fail
-async def test_admin_removed_from_super_users(ops_test: OpsTest, kafka_apps):
+def test_admin_removed_from_super_users(juju: jubilant.Juju, kafka_apps):
     """Test that removal of the relation with admin privileges."""
-    await ops_test.model.remove_application(DUMMY_NAME_1, block_until_done=True)
-    await ops_test.model.wait_for_idle(apps=kafka_apps)
-    assert ops_test.model.applications[APP_NAME].status == "active"
+    juju.remove_application(DUMMY_NAME_1)
+    time.sleep(60)
 
-    await ops_test.model.wait_for_idle(apps=[*kafka_apps, DUMMY_NAME_2])
-    assert ops_test.model.applications[APP_NAME].status == "active"
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME_2),
+        delay=3,
+        successes=20,
+        timeout=900,
+    )
 
-    super_users = load_super_users(model_full_name=ops_test.model_full_name)
+    super_users = load_super_users(model_full_name=juju.model)
     assert len(super_users) == 3
 
     # adding cleanup to save memory
-    await ops_test.model.remove_application(DUMMY_NAME_2, block_until_done=True)
+    juju.remove_application(DUMMY_NAME_2)
+    time.sleep(30)
 
 
 @pytest.mark.abort_on_fail
-async def test_prefixed_topic_creation(ops_test: OpsTest, app_charm, kafka_apps):
-    await asyncio.gather(
-        ops_test.model.deploy(
-            app_charm,
-            application_name=DUMMY_NAME_3,
-            num_units=1,
-            series=SERIES,
-            config={"topic-name": "test-*"},
-        )
+def test_prefixed_topic_creation(juju: jubilant.Juju, app_charm, kafka_apps):
+    juju.deploy(
+        app_charm,
+        app=DUMMY_NAME_3,
+        num_units=1,
+        base=BASE,
+        config={"topic-name": "test-*"},
     )
-    await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_3}:{REL_NAME_PRODUCER}")
+    juju.integrate(APP_NAME, f"{DUMMY_NAME_3}:{REL_NAME_PRODUCER}")
 
-    async with ops_test.fast_forward(fast_interval="60s"):
-        await ops_test.model.wait_for_idle(
-            apps=[*kafka_apps, DUMMY_NAME_3], idle_period=30, timeout=1800, status="active"
-        )
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME_3),
+        delay=3,
+        successes=20,
+        timeout=1800,
+    )
 
-    action = await ops_test.model.units.get(f"{DUMMY_NAME_3}/0").run_action("create-topic")
-    response = await action.wait()
-
+    response = juju.run(f"{DUMMY_NAME_3}/0", "create-topic")
     assert response.results.get("success", None) == "TRUE"
 
 
 @pytest.mark.abort_on_fail
-async def test_connection_updated_on_tls_enabled(ops_test: OpsTest, app_charm, kafka_apps):
+def test_connection_updated_on_tls_enabled(juju: jubilant.Juju, app_charm, kafka_apps):
     """Test relation when TLS is enabled."""
     # adding new app unit to validate
-    await ops_test.model.deploy(app_charm, application_name=DUMMY_NAME_1, num_units=1)
-    await ops_test.model.wait_for_idle(apps=[DUMMY_NAME_1])
-    await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_CONSUMER}")
-    await ops_test.model.wait_for_idle(
-        apps=[*kafka_apps, DUMMY_NAME_1], status="active", idle_period=60
+    juju.deploy(app_charm, app=DUMMY_NAME_1, num_units=1)
+    juju.integrate(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_CONSUMER}")
+
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME_1),
+        delay=3,
+        successes=20,
+        timeout=1200,
     )
 
     # deploying tls
     tls_config = {"ca-common-name": "kafka"}
-    # FIXME (certs): Unpin the revision once the charm is fixed
-    await ops_test.model.deploy(TLS_NAME, channel="edge", config=tls_config, revision=163)
-    await ops_test.model.wait_for_idle(
-        apps=[TLS_NAME], idle_period=30, timeout=1800, status="active"
+    juju.deploy(TLS_NAME, channel="1/stable", config=tls_config)
+
+    juju.wait(
+        lambda status: all_active_idle(status, TLS_NAME),
+        delay=3,
+        successes=10,
+        timeout=900,
     )
 
     # relating tls with kafka
-    await ops_test.model.add_relation(TLS_NAME, f"{APP_NAME}:{REL_NAME_CERTIFICATES}")
-    await ops_test.model.wait_for_idle(
-        apps=[*kafka_apps, TLS_NAME, DUMMY_NAME_1],
+    juju.integrate(TLS_NAME, f"{APP_NAME}:{REL_NAME_CERTIFICATES}")
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME_1, TLS_NAME),
+        delay=3,
+        successes=20,
         timeout=1800,
-        idle_period=60,
-        status="active",
     )
 
     # ensure at least one update-status run
-    async with ops_test.fast_forward(fast_interval="30s"):
-        await asyncio.sleep(60)
+    time.sleep(120)
 
     # Check that related application has updated information
     provider_data = get_provider_data(
-        ops_test=ops_test,
-        unit_name=ops_test.model.applications[DUMMY_NAME_1].units[0].name,
+        model=juju.model,
+        unit_name=next(iter(juju.status().apps[DUMMY_NAME_1].units)),
         relation_interface="kafka-client-consumer",
         owner=APP_NAME,
     )

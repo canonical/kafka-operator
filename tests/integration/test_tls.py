@@ -201,7 +201,7 @@ def test_mtls(juju: jubilant.Juju):
     assert response.results.get("success", None) == "TRUE"
 
     provider_data = get_provider_data(
-        juju,
+        juju.model,
         owner=DUMMY_NAME,
         unit_name=f"{DUMMY_NAME}/0",
         relation_interface=REL_NAME_PRODUCER,

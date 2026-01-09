@@ -16,6 +16,7 @@ from integration.helpers.ha import assert_continuous_writes_consistency
 from integration.helpers.jubilant import (
     BASE,
     KRaftMode,
+    KRaftUnitStatus,
     all_active_idle,
     check_socket,
     create_test_topic,
@@ -31,7 +32,6 @@ from literals import (
     PEER_CLUSTER_RELATION,
     SECURITY_PROTOCOL_PORTS,
     AuthMap,
-    KRaftUnitStatus,
 )
 
 logger = logging.getLogger(__name__)
