@@ -51,8 +51,6 @@ def raise_if_not_kraft_multi(kraft_mode: KRaftMode):
         raise Exception("Controller HA tests should only run with --kraft-mode=multi")
 
 
-@pytest.mark.skip_if_deployed
-@pytest.mark.abort_on_fail
 def test_deploy_active(juju: jubilant.Juju, kafka_charm, app_charm, kafka_apps):
     deploy_cluster(
         juju=juju,
@@ -249,7 +247,6 @@ def test_full_cluster_restart(
     assert_quorum_lag_is_zero(juju=juju)
 
 
-@pytest.mark.abort_on_fail
 def test_network_cut_without_ip_change(
     juju: jubilant.Juju,
     c_writes: ContinuousWrites,

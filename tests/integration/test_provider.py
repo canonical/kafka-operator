@@ -38,8 +38,6 @@ REL_NAME_CERTIFICATES = "certificates"
 NON_REL_USERS = set(INTERNAL_USERS + [CONTROLLER_USER])
 
 
-@pytest.mark.abort_on_fail
-@pytest.mark.skip_if_deployed
 def test_deploy_charms_relate_active(
     juju: jubilant.Juju, kraft_mode, kafka_charm, app_charm, kafka_apps, usernames: set[str]
 ):
@@ -79,7 +77,6 @@ def test_deploy_charms_relate_active(
             assert acl.resource_name == "test-prefix"
 
 
-@pytest.mark.abort_on_fail
 def test_deploy_multiple_charms_same_topic_relate_active(
     juju: jubilant.Juju, app_charm, kafka_apps, usernames: set[str]
 ):
@@ -109,7 +106,6 @@ def test_deploy_multiple_charms_same_topic_relate_active(
             assert acl.resource_name == "test-topic"
 
 
-@pytest.mark.abort_on_fail
 def test_remove_application_removes_user_and_acls(
     juju: jubilant.Juju, kafka_apps, usernames: set[str]
 ):
@@ -141,7 +137,6 @@ def test_remove_application_removes_user_and_acls(
             )
 
 
-@pytest.mark.abort_on_fail
 def test_deploy_producer_same_topic(
     juju: jubilant.Juju, app_charm, kafka_apps, usernames: set[str]
 ):
@@ -182,7 +177,6 @@ def test_deploy_producer_same_topic(
     )
 
 
-@pytest.mark.abort_on_fail
 def test_admin_added_to_super_users(juju: jubilant.Juju, app_charm, kafka_apps):
     """Test relation with admin privileges."""
     super_users = load_super_users(model_full_name=juju.model)
@@ -203,7 +197,6 @@ def test_admin_added_to_super_users(juju: jubilant.Juju, app_charm, kafka_apps):
     assert len(super_users) == 4
 
 
-@pytest.mark.abort_on_fail
 def test_admin_removed_from_super_users(juju: jubilant.Juju, kafka_apps):
     """Test that removal of the relation with admin privileges."""
     juju.remove_application(DUMMY_NAME_1)
@@ -224,7 +217,6 @@ def test_admin_removed_from_super_users(juju: jubilant.Juju, kafka_apps):
     time.sleep(30)
 
 
-@pytest.mark.abort_on_fail
 def test_prefixed_topic_creation(juju: jubilant.Juju, app_charm, kafka_apps):
     juju.deploy(
         app_charm,
@@ -246,7 +238,6 @@ def test_prefixed_topic_creation(juju: jubilant.Juju, app_charm, kafka_apps):
     assert response.results.get("success", None) == "TRUE"
 
 
-@pytest.mark.abort_on_fail
 def test_connection_updated_on_tls_enabled(juju: jubilant.Juju, app_charm, kafka_apps):
     """Test relation when TLS is enabled."""
     # adding new app unit to validate

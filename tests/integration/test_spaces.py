@@ -83,7 +83,6 @@ def other_network() -> Generator[str, None, None]:
         logger.info(f"Try deleting the network manually using `lxc network delete {name}`")
 
 
-@pytest.mark.abort_on_fail
 def test_add_space(juju: jubilant.Juju, other_network: str) -> None:
     """Adds `OTHER_SPACE` juju space."""
     # reload subnets and move `OTHER_NETWORK_CIDR` subnet to the `OTHER_SPACE`
@@ -91,8 +90,6 @@ def test_add_space(juju: jubilant.Juju, other_network: str) -> None:
     juju.cli("add-space", OTHER_SPACE, OTHER_NETWORK_CIDR)
 
 
-@pytest.mark.abort_on_fail
-@pytest.mark.skip_if_deployed
 def test_deploy_active(
     juju: jubilant.Juju, kafka_charm, app_charm, kraft_mode, kafka_apps
 ) -> None:
@@ -122,7 +119,6 @@ def test_deploy_active(
     )
 
 
-@pytest.mark.abort_on_fail
 def test_endpoints_are_set_based_on_network_binds(juju: jubilant.Juju, kafka_apps) -> None:
     assert juju.model
     # We should have set client's IP from the `OTHER_NETWORK`

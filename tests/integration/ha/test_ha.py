@@ -51,8 +51,6 @@ logger = logging.getLogger(__name__)
 BROKER_PORT = SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
 
 
-@pytest.mark.skip_if_deployed
-@pytest.mark.abort_on_fail
 def test_build_and_deploy(juju: jubilant.Juju, kafka_charm, app_charm, kraft_mode, kafka_apps):
     deploy_cluster(
         juju=juju,

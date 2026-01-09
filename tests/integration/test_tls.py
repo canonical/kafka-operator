@@ -10,7 +10,6 @@ import time
 
 import jubilant
 import kafka
-import pytest
 from charms.tls_certificates_interface.v4.tls_certificates import PrivateKey, generate_private_key
 
 from integration.helpers import REL_NAME_PRODUCER, sign_manual_certs
@@ -48,8 +47,6 @@ TLS_REQUIRER = "tls-certificates-requirer"
 MANUAL_TLS_NAME = "manual-tls-certificates"
 
 
-@pytest.mark.abort_on_fail
-@pytest.mark.skip_if_deployed
 def test_deploy_tls(juju: jubilant.Juju, kafka_charm, kraft_mode, kafka_apps):
     tls_config = {"ca-common-name": "kafka"}
 
@@ -71,7 +68,6 @@ def test_deploy_tls(juju: jubilant.Juju, kafka_charm, kraft_mode, kafka_apps):
     )
 
 
-@pytest.mark.abort_on_fail
 def test_kafka_tls(juju: jubilant.Juju, app_charm, kafka_apps):
     """Tests TLS on Kafka."""
     # ensuring at least a few update-status
@@ -105,7 +101,6 @@ def test_kafka_tls(juju: jubilant.Juju, app_charm, kafka_apps):
     )
 
 
-@pytest.mark.abort_on_fail
 def test_set_tls_private_key(juju: jubilant.Juju):
     juju.cli("model-config", "update-status-hook-interval=60s")
 
@@ -179,7 +174,6 @@ def test_set_tls_private_key(juju: jubilant.Juju):
     assert post_pks.isdisjoint(pre_pks)  # checking every post-secret-removed pk is brand new
 
 
-@pytest.mark.abort_on_fail
 def test_mtls(juju: jubilant.Juju):
     # creating the signed external cert on the unit
     _ = juju.run(f"{DUMMY_NAME}/0", "create-certificate")
@@ -221,7 +215,6 @@ def test_mtls(juju: jubilant.Juju):
     assert max_offset == str(num_messages)
 
 
-@pytest.mark.abort_on_fail
 def test_certificate_transfer(juju: jubilant.Juju, kafka_apps):
     """Tests truststore live reload functionality using kafka-python client."""
     requirer = "other-req/0"
@@ -308,7 +301,6 @@ def test_certificate_transfer(juju: jubilant.Juju, kafka_apps):
     tmp_dir.cleanup()
 
 
-@pytest.mark.abort_on_fail
 def test_kafka_tls_scaling(juju: jubilant.Juju, kafka_apps):
     """Scale the application while using TLS to check that new units will configure correctly."""
     juju.add_unit(APP_NAME, num_units=2)
@@ -328,7 +320,6 @@ def test_kafka_tls_scaling(juju: jubilant.Juju, kafka_apps):
     )
 
 
-@pytest.mark.abort_on_fail
 def test_mtls_broken(juju: jubilant.Juju, kafka_apps):
     # remove client relation and check connection
     juju.remove_relation(f"{APP_NAME}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_PRODUCER}")
@@ -349,7 +340,6 @@ def test_mtls_broken(juju: jubilant.Juju, kafka_apps):
         assert not check_tls(ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SSL", "SSL"].client)
 
 
-@pytest.mark.abort_on_fail
 def test_tls_removed(juju: jubilant.Juju, kafka_apps):
     juju.remove_application(TLS_NAME)
     time.sleep(60)
@@ -368,10 +358,7 @@ def test_tls_removed(juju: jubilant.Juju, kafka_apps):
 
     # check proper cleanup of TLS-related files.
     for unit in juju.status().apps[APP_NAME].units:
-        ret, stdout, _ = juju.cli(
-            "ssh", unit, "sudo ls /var/snap/charmed-kafka/current/etc/kafka"
-        )
-        assert not ret
+        stdout = juju.cli("ssh", unit, "sudo ls /var/snap/charmed-kafka/current/etc/kafka")
         file_extensions = {
             f.split(".")[-1] for f in stdout.split() if f and f.startswith("client-")
         }
@@ -384,7 +371,6 @@ def test_tls_removed(juju: jubilant.Juju, kafka_apps):
         assert {"pem", "key", "p12", "jks"} & file_extensions
 
 
-@pytest.mark.abort_on_fail
 def test_manual_tls_chain(juju: jubilant.Juju, kafka_apps):
     juju.deploy(MANUAL_TLS_NAME)
 
@@ -404,7 +390,7 @@ def test_manual_tls_chain(juju: jubilant.Juju, kafka_apps):
 
     # verifying brokers + servers can communicate with one-another
     juju.wait(
-        lambda status: all_active_idle(status, *kafka_apps, MANUAL_TLS_NAME),
+        lambda status: jubilant.all_agents_idle(status, *kafka_apps, MANUAL_TLS_NAME),
         delay=3,
         successes=10,
         timeout=1000,

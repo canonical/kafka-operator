@@ -128,8 +128,6 @@ def _assert_acl_integrity(juju: jubilant.Juju):
     )
 
 
-@pytest.mark.abort_on_fail
-@pytest.mark.skip_if_deployed
 def test_deploy_and_relate(
     juju: jubilant.Juju, kafka_charm, app_charm, kraft_mode, kafka_apps
 ) -> None:

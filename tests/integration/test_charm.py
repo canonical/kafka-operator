@@ -40,8 +40,6 @@ logger = logging.getLogger(__name__)
 pytestmark = pytest.mark.broker
 
 
-@pytest.mark.abort_on_fail
-@pytest.mark.skip_if_deployed
 def test_build_and_deploy(juju: jubilant.Juju, kafka_charm, kraft_mode, controller_app):
     juju.cli("create-storage-pool", "test_pool", "lxd")
 
@@ -60,14 +58,12 @@ def test_build_and_deploy(juju: jubilant.Juju, kafka_charm, kraft_mode, controll
     )
 
 
-@pytest.mark.abort_on_fail
 def test_consistency_between_workload_and_metadata(juju: jubilant.Juju):
     with open("refresh_versions.toml", "r") as f:
         data = toml.load(f)
     assert juju.status().apps[APP_NAME].version == data["workload"]
 
 
-@pytest.mark.abort_on_fail
 def test_remove_controller_relation_relate(juju: jubilant.Juju, kraft_mode, controller_app):
     if kraft_mode == "single":
         logger.info(f"Skipping because we're using {kraft_mode} mode.")
@@ -96,7 +92,6 @@ def test_remove_controller_relation_relate(juju: jubilant.Juju, kraft_mode, cont
     )
 
 
-@pytest.mark.abort_on_fail
 def test_listeners(juju: jubilant.Juju, app_charm, kafka_apps):
     address = get_address(juju=juju)
     assert check_socket(
@@ -145,7 +140,6 @@ def test_listeners(juju: jubilant.Juju, app_charm, kafka_apps):
     )
 
 
-@pytest.mark.abort_on_fail
 def test_client_properties_makes_admin_connection(juju: jubilant.Juju, kafka_apps, kraft_mode):
     juju.integrate(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
 
@@ -178,7 +172,6 @@ def test_client_properties_makes_admin_connection(juju: jubilant.Juju, kafka_app
     )
 
 
-@pytest.mark.abort_on_fail
 def test_logs_write_to_storage(juju: jubilant.Juju, kafka_apps):
     juju.integrate(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
     juju.wait(
@@ -216,7 +209,6 @@ def test_rack_awareness_integration(juju: jubilant.Juju):
     )
 
 
-@pytest.mark.abort_on_fail
 def test_exporter_endpoints(juju: jubilant.Juju):
     unit_address = get_address(juju=juju)
     jmx_exporter_url = f"http://{unit_address}:{JMX_EXPORTER_PORT}/metrics"
@@ -224,7 +216,6 @@ def test_exporter_endpoints(juju: jubilant.Juju):
     assert jmx_resp.ok
 
 
-@pytest.mark.abort_on_fail
 def test_auxiliary_paths(juju: jubilant.Juju):
     for path in PATHS["kafka"]:
         result = subprocess.check_output(
@@ -240,7 +231,6 @@ def test_auxiliary_paths(juju: jubilant.Juju):
         assert int(match.group(1)) > 0
 
 
-@pytest.mark.abort_on_fail
 def test_log_level_change(juju: jubilant.Juju, kafka_apps):
     status = juju.status()
     for unit in status.apps[APP_NAME].units:
@@ -284,7 +274,6 @@ def test_log_level_change(juju: jubilant.Juju, kafka_apps):
     )
 
 
-@pytest.mark.abort_on_fail
 @pytest.mark.skip(reason="skipping as we can't add storage without losing Juju conn")
 def test_logs_write_to_new_storage(juju: jubilant.Juju):
     check_output(
@@ -303,7 +292,6 @@ def test_logs_write_to_new_storage(juju: jubilant.Juju):
     )
 
 
-@pytest.mark.abort_on_fail
 @pytest.mark.fails_in_kafka4
 @pytest.mark.skip(reason="storage format command fails in KRaft mode")
 def test_deploy_with_existing_storage(juju: jubilant.Juju, kafka_apps):

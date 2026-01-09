@@ -92,8 +92,6 @@ class TestKRaft:
             else:
                 assert status == KRaftUnitStatus.OBSERVER
 
-    @pytest.mark.abort_on_fail
-    @pytest.mark.skip_if_deployed
     def test_build_and_deploy(self, juju: jubilant.Juju, kafka_charm, app_charm, kraft_mode):
 
         juju.deploy(
@@ -140,7 +138,6 @@ class TestKRaft:
             timeout=1800,
         )
 
-    @pytest.mark.abort_on_fail
     def test_integrate(self, juju: jubilant.Juju, kafka_apps):
         if self.controller_app != APP_NAME:
             juju.integrate(
@@ -165,11 +162,9 @@ class TestKRaft:
             timeout=900,
         )
 
-    @pytest.mark.abort_on_fail
     def test_listeners(self, juju: jubilant.Juju):
         self._assert_listeners_accessible(juju)
 
-    @pytest.mark.abort_on_fail
     def test_authorizer(self, juju: jubilant.Juju):
 
         address = get_address(juju=juju)
@@ -177,7 +172,6 @@ class TestKRaft:
 
         create_test_topic(juju, f"{address}:{port}")
 
-    @pytest.mark.abort_on_fail
     def test_scale_out(self, juju: jubilant.Juju):
         juju.add_unit(self.controller_app, num_units=2)
 
@@ -213,7 +207,6 @@ class TestKRaft:
                 juju, broker_unit_num=unit_num, controller_unit_num=unit_num
             )
 
-    @pytest.mark.abort_on_fail
     @pytest.mark.skipif(tls_enabled, reason="Not required with TLS test.")
     def test_leader_change(self, juju: jubilant.Juju):
         juju.remove_unit(f"{self.controller_app}/0")
@@ -257,7 +250,6 @@ class TestKRaft:
         assert (offset + 3) in unit_status
         assert unit_status[offset + 3] == KRaftUnitStatus.FOLLOWER
 
-    @pytest.mark.abort_on_fail
     @pytest.mark.skipif(tls_enabled, reason="Not required with TLS test.")
     def test_scale_in(self, juju: jubilant.Juju):
         for unit_id in (1, 2):
@@ -286,7 +278,6 @@ class TestKRaft:
         )
 
     @pytest.mark.skipif(not tls_enabled, reason="only required when TLS is on.")
-    @pytest.mark.abort_on_fail
     def test_relate_peer_tls(self, juju: jubilant.Juju):
         # This test and the following one are inherently long due to double rolling restarts,
         # In order not to break on constrained CI, we decrease the produce rate of CW to 2/s.
@@ -332,7 +323,6 @@ class TestKRaft:
         assert_continuous_writes_consistency(results)
 
     @pytest.mark.skipif(not tls_enabled, reason="only required when TLS is on.")
-    @pytest.mark.abort_on_fail
     def test_remove_peer_tls_relation(self, juju: jubilant.Juju):
         c_writes = ContinuousWrites(model=juju.model, app=DUMMY_NAME, produce_rate=2)
         c_writes.start()

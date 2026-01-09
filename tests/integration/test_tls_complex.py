@@ -41,8 +41,6 @@ def tls_apps(kraft_mode):
     return apps if kraft_mode == "single" else apps + [TLS_APP_CONTROLLER]
 
 
-@pytest.mark.skip_if_deployed
-@pytest.mark.abort_on_fail
 def test_build_and_deploy(
     juju: jubilant.Juju, kafka_charm, app_charm, kraft_mode, kafka_apps, tls_apps
 ):
