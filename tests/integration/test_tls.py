@@ -362,12 +362,12 @@ def test_tls_removed(juju: jubilant.Juju, kafka_apps):
         file_extensions = {
             f.split(".")[-1] for f in stdout.split() if f and f.startswith("client-")
         }
-        logging.info(f"CLIENT TLS: {', '.join(file_extensions)} files found on {unit.name}")
+        logging.info(f"CLIENT TLS: {', '.join(file_extensions)} files found on {unit}")
         assert not {"pem", "key", "p12", "jks"} & file_extensions
 
         # peer TLS artifacts should remain intact.
         file_extensions = {f.split(".")[-1] for f in stdout.split() if f and f.startswith("peer-")}
-        logging.info(f"PEER TLS: {', '.join(file_extensions)} files found on {unit.name}")
+        logging.info(f"PEER TLS: {', '.join(file_extensions)} files found on {unit}")
         assert {"pem", "key", "p12", "jks"} & file_extensions
 
 
@@ -380,7 +380,7 @@ def test_manual_tls_chain(juju: jubilant.Juju, kafka_apps):
     time.sleep(180)
 
     juju.wait(
-        lambda status: all_active_idle(status, *kafka_apps, MANUAL_TLS_NAME),
+        lambda status: jubilant.all_agents_idle(status, *kafka_apps, MANUAL_TLS_NAME),
         delay=3,
         successes=10,
         timeout=1000,
@@ -390,7 +390,7 @@ def test_manual_tls_chain(juju: jubilant.Juju, kafka_apps):
 
     # verifying brokers + servers can communicate with one-another
     juju.wait(
-        lambda status: jubilant.all_agents_idle(status, *kafka_apps, MANUAL_TLS_NAME),
+        lambda status: all_active_idle(status, *kafka_apps, MANUAL_TLS_NAME),
         delay=3,
         successes=10,
         timeout=1000,
