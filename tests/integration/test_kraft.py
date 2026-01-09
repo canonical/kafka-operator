@@ -242,7 +242,7 @@ class TestKRaft:
         )
 
         # test cluster stability by adding a new controller
-        juju.add_units(self.controller_app, num_units=1)
+        juju.add_unit(self.controller_app, num_units=1)
         time.sleep(60)
 
         # ensure unit is added to dynamic quorum

@@ -109,7 +109,7 @@ class TestBalancer:
         juju.integrate(PRODUCER_APP, APP_NAME)
 
         juju.wait(
-            lambda status: all_active_idle(
+            lambda status: jubilant.all_agents_idle(
                 status, *list({APP_NAME, CONTROLLER_NAME, self.balancer_app})
             ),
             delay=3,
