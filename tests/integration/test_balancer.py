@@ -126,7 +126,7 @@ class TestBalancer:
 
     @pytest.mark.abort_on_fail
     def test_minimum_brokers_balancer_starts(self, juju: jubilant.Juju):
-        juju.add_units(APP_NAME, num_units=2)
+        juju.add_unit(APP_NAME, num_units=2)
         time.sleep(60)
 
         juju.wait(
@@ -154,7 +154,7 @@ class TestBalancer:
         deployment_strat == "single", reason="Testing full rebalance on large deployment"
     )
     def test_add_unit_full_rebalance(self, juju: jubilant.Juju):
-        juju.add_units(APP_NAME, num_units=1)  # up to 4, new unit won't have any partitions
+        juju.add_unit(APP_NAME, num_units=1)  # up to 4, new unit won't have any partitions
         time.sleep(60)
 
         juju.wait(
@@ -191,7 +191,7 @@ class TestBalancer:
     )
     def test_add_unit_targeted_rebalance(self, juju: jubilant.Juju):
         assert balancer_is_ready(juju=juju, app_name=self.balancer_app)
-        juju.add_units(APP_NAME, num_units=1)  # up to 4, new unit won't have any partitions
+        juju.add_unit(APP_NAME, num_units=1)  # up to 4, new unit won't have any partitions
         time.sleep(60)
 
         juju.wait(
@@ -292,9 +292,7 @@ class TestBalancer:
             juju.integrate(TLS_NAME, f"{self.balancer_app}:{INTERNAL_TLS_RELATION}")
 
         juju.wait(
-            lambda status: all_active_idle(
-                status, *list({APP_NAME, CONTROLLER_NAME, TLS_NAME})
-            ),
+            lambda status: all_active_idle(status, *list({APP_NAME, CONTROLLER_NAME, TLS_NAME})),
             delay=3,
             successes=10,
             timeout=3600,

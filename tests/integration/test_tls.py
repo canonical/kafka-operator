@@ -311,7 +311,7 @@ def test_certificate_transfer(juju: jubilant.Juju, kafka_apps):
 @pytest.mark.abort_on_fail
 def test_kafka_tls_scaling(juju: jubilant.Juju, kafka_apps):
     """Scale the application while using TLS to check that new units will configure correctly."""
-    juju.add_units(APP_NAME, num_units=2)
+    juju.add_unit(APP_NAME, num_units=2)
     time.sleep(60)
 
     # Wait for model to settle
