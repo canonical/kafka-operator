@@ -16,6 +16,17 @@ from integration.helpers import APP_NAME, CONTROLLER_NAME, KRaftMode
 def pytest_addoption(parser):
     """Defines pytest parsers."""
     parser.addoption(
+        "--model",
+        action="store",
+        help="Juju model to use; if not provided, a new model "
+        "will be created for each test which requires one",
+    )
+    parser.addoption(
+        "--keep-models",
+        action="store_true",
+        help="Keep models handled by opstest, can be overridden in track_model",
+    )
+    parser.addoption(
         "--kraft-mode", action="store", help="KRaft mode to run the tests", default="single"
     )
 
