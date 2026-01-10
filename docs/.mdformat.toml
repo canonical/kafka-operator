@@ -1,0 +1,4 @@
+wrap = "keep"        # keep your existing line breaks (good for semantic line breaks)
+number = false
+end_of_line = "lf"
+validate = true
