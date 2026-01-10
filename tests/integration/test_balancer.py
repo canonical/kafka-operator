@@ -209,7 +209,11 @@ class TestBalancer:
 
         time.sleep(120)  # Give CC some room to breathe before making other API calls
         assert balancer_is_ready(juju=juju, app_name=self.balancer_app)
-        response = juju.run(leader_unit, "rebalance", params={"mode": "add", "dryrun": False})
+        response = juju.run(
+            leader_unit,
+            "rebalance",
+            params={"mode": "add", "brokerid": new_broker_id, "dryrun": False},
+        )
 
         assert not response.results.get("error", "")
 
