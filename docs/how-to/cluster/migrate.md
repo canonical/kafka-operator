@@ -5,6 +5,7 @@ myst:
 ---
 
 (how-to-cluster-migration)=
+
 # Migrate from a non-charmed Kafka clusters
 
 This How-To guide covers executing a cluster migration from an existing Kafka cluster, to a Charmed Apache Kafka deployment using MirrorMaker 2.0.
