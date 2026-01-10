@@ -5,6 +5,7 @@ myst:
 ---
 
 (how-to-client-connections)=
+
 # How to manage client connections
 
 Relations to new applications are supported via the "[{spellexception}`kafka_client`](https://github.com/canonical/charm-relation-interfaces/blob/main/interfaces/kafka_client/v0/README.md)" interface.
@@ -68,7 +69,7 @@ There are two ways to rotate credentials of an external client. One is simply to
 
 #### With client application downtime
 
-The easiest way to rotate user credentials of client applications is by removing and then re-relating 
+The easiest way to rotate user credentials of client applications is by removing and then re-relating
 the application (either a charm supporting the `kafka-client` interface or a `data-integrator`) with the `kafka` charm:
 
 ```shell

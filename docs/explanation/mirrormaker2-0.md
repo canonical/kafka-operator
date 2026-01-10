@@ -5,6 +5,7 @@ myst:
 ---
 
 (explanation-mirrormaker2-0)=
+
 # MirrorMaker 2.0 overview
 
 Under the hood, MirrorMaker uses Kafka Connect source connectors to replicate data. These include:

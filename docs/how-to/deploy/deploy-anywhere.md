@@ -15,9 +15,9 @@ Platform-specific steps are available for [AWS](how-to-deploy-on-aws) and [Azure
 To deploy a Charmed Apache Kafka cluster on a bare environment, it is necessary to:
 
 1. Set up a Juju Controller
-2. Set up a Juju Model
-3. Deploy Charmed Apache Kafka
-4. Create an external admin user
+1. Set up a Juju Model
+1. Deploy Charmed Apache Kafka
+1. Create an external admin user
 
 In the next subsections, we will cover these steps separately by referring to
 relevant Juju documentation and providing details on the Charmed Apache Kafka specifics.

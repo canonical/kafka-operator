@@ -5,6 +5,7 @@ myst:
 ---
 
 (how-to-cluster-replication)=
+
 # Set up replication between charmed clusters
 
 This How-To will cover how to set up cluster replication using MirrorMaker through
@@ -121,7 +122,7 @@ With this, the deployment is complete. The Charmed Kafka Connect cluster will no
 
 MirrorMaker allows for a deployment where both clusters are active. This means that data can be replicated from both clusters to each other. This is done by creating a MirrorMaker connector for each cluster. Two flows are needed in this scenario, one from cluster A to cluster B and one from cluster B to cluster A.
 
-In essence, it is equivalent to do two active-passive deployments, one for each direction. 
+In essence, it is equivalent to do two active-passive deployments, one for each direction.
 
 We recommend having two Kafka Connect deployments ready, one on each end of the replication.
 
