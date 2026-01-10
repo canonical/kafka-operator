@@ -5,6 +5,7 @@ myst:
 ---
 
 (how-to-create-mtls-client-credentials)=
+
 # Use mTLS for clients
 
 Requirements:
@@ -232,4 +233,3 @@ sudo charmed-kafka.topics --bootstrap-server $KAFKA_SERVERS_MTLS --command-confi
 ```
 
 You should see: `Created topic TEST` in the output.
-
