@@ -1,4 +1,5 @@
 (how-to-manage-units)=
+
 # How to manage units
 
 For general Juju unit management process, see the [Juju documentation](https://juju.is/docs/juju/manage-units).
@@ -41,12 +42,12 @@ When brokers are added or removed, Apache Kafka does not automatically rebalance
 
 Without reassignment or rebalancing:
 
-* New storages and new brokers will be used only when new topics and new partitions are created. 
-* Removing a broker can result in permanent data loss if the partitions are not replicated on another broker.
+- New storages and new brokers will be used only when new topics and new partitions are created.
+- Removing a broker can result in permanent data loss if the partitions are not replicated on another broker.
 
-Partition reassignment can still be done manually by the admin user by using the 
-`charmed-kafka.reassign-partitions` Charmed Apache Kafka bin utility script. 
-For more information on the script usage, refer to [Apache Kafka documentation](https://kafka.apache.org/documentation/#basic_ops_partitionassignment). 
+Partition reassignment can still be done manually by the admin user by using the
+`charmed-kafka.reassign-partitions` Charmed Apache Kafka bin utility script.
+For more information on the script usage, refer to [Apache Kafka documentation](https://kafka.apache.org/documentation/#basic_ops_partitionassignment).
 
 [LinkedIn’s Cruise Control](https://github.com/linkedin/cruise-control) can be used for semi-automatic rebalancing. For guidance on how to use it with Charmed Apache Kafka, see our [Tutorial](tutorial-rebalance-partitions).
 
@@ -54,9 +55,9 @@ For more information on the script usage, refer to [Apache Kafka documentation](
 
 Apache Kafka ships with `bin/*.sh` commands to do various administrative tasks such as:
 
-* `bin/kafka-config.sh` to update cluster configuration
-* `bin/kafka-topics.sh` for topic management
-* `bin/kafka-acls.sh` for management of ACLs of Apache Kafka users
+- `bin/kafka-config.sh` to update cluster configuration
+- `bin/kafka-topics.sh` for topic management
+- `bin/kafka-acls.sh` for management of ACLs of Apache Kafka users
 
 Please refer to the upstream [Apache Kafka project](https://github.com/apache/kafka/tree/trunk/bin) and its [documentation](https://kafka.apache.org/documentation/#basic_ops),
 for a full list of the bash commands available in Apache Kafka distributions.
@@ -77,7 +78,7 @@ For example, to open a SASL/SCRAM listener, integrate a client application using
 To run most of the scripts, you need to provide:
 
 1. the Apache Kafka service endpoints, generally referred to as *bootstrap servers*
-2. authentication information
+1. authentication information
 
 ### Endpoints and credentials
 

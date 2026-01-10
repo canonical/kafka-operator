@@ -1,4 +1,5 @@
 (how-to-deploy-deploy-on-azure)=
+
 # How to deploy on Azure
 
 [Azure](https://azure.com/) is the cloud computing platform developed by Microsoft. It has management, access and development of applications and services to individuals, companies, and governments through its global infrastructure. Access the Azure web console at [portal.azure.com](https://portal.azure.com/).
@@ -108,12 +109,12 @@ juju add-credentials azure
 
 This will start a script that will help you set up the credentials, where you will be asked:
 
-* `credential-name` — a sensible name that will help you identify the credential set, say `<CREDENTIAL_NAME>`
-* `region` — a default region that is most convenient to deploy your controller and applications. Note that credentials are not region-specific
-* `auth type` — authentication type. Select `interactive`, which is the recommended way to authenticate to Azure using Juju
-* `subscription_id` — the value `<subscription_id>` taken in the previous step
-* `application_name` — any unique string to avoid collision with other users or applications
-* `role-definition-name` — any unique string to avoid collision with other users or applications, and store it as `<AZURE_ROLE>`
+- `credential-name` — a sensible name that will help you identify the credential set, say `<CREDENTIAL_NAME>`
+- `region` — a default region that is most convenient to deploy your controller and applications. Note that credentials are not region-specific
+- `auth type` — authentication type. Select `interactive`, which is the recommended way to authenticate to Azure using Juju
+- `subscription_id` — the value `<subscription_id>` taken in the previous step
+- `application_name` — any unique string to avoid collision with other users or applications
+- `role-definition-name` — any unique string to avoid collision with other users or applications, and store it as `<AZURE_ROLE>`
 
 Next, you will be asked to authenticate the requests via your web browser with the following message:
 
@@ -121,7 +122,7 @@ Next, you will be asked to authenticate the requests via your web browser with t
 To sign in, use a web browser to open the page https://microsoft.com/devicelogin and enter the code <YOUR_CODE> to authenticate.
 ```
 
-In the browser, open the [authentication page](https://microsoft.com/devicelogin) and enter the code `<YOUR_CODE>` provided in the output. 
+In the browser, open the [authentication page](https://microsoft.com/devicelogin) and enter the code `<YOUR_CODE>` provided in the output.
 
 You will be asked to authenticate twice, for allowing the creation of two different resources in Azure.
 
@@ -194,11 +195,11 @@ To destroy the Juju controller and remove the Azure instance (Warning: all your 
 juju destroy-controller <CONTROLLER_NAME> --destroy-all-models --destroy-storage --force
 ```
 
-Should the destroying process take a long time or be seemingly stuck, proceed to delete VM resources also manually 
-via the Azure portal. See [Azure documentation](https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/manage-resources-portal) for more information 
-on how to remove active resources no longer needed. 
+Should the destroying process take a long time or be seemingly stuck, proceed to delete VM resources also manually
+via the Azure portal. See [Azure documentation](https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/manage-resources-portal) for more information
+on how to remove active resources no longer needed.
 
-Next, check and manually delete all unnecessary Azure VM instances, to show the list of all your Azure VMs run the following command (make sure to use the correct region): 
+Next, check and manually delete all unnecessary Azure VM instances, to show the list of all your Azure VMs run the following command (make sure to use the correct region):
 
 ```shell
 az resource list
@@ -224,16 +225,16 @@ Remove Azure CLI credentials from Juju:
 juju remove-credential azure NAME_OF_YOUR_CREDENTIAL
 ```
 
-After deleting the credentials, the `interactive` process may still leave the role resource and its assignment hanging around. 
+After deleting the credentials, the `interactive` process may still leave the role resource and its assignment hanging around.
 We recommend checking if these are still present by running:
 
 ```shell
 az role definition list --name <AZURE_ROLE>
 ```
 
-To get the full list, use it without specifying the `--name` argument. 
+To get the full list, use it without specifying the `--name` argument.
 
-You can check whether you still have a 
+You can check whether you still have a
 role assignment bound to `<AZURE_ROLE>` registered by using:
 
 ```shell

@@ -1,4 +1,5 @@
 (tutorial-kafka-connect)=
+
 # 7. Use Kafka Connect for ETL
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
@@ -228,7 +229,7 @@ psql --host $(hostname -i) --username operator --password --dbname tutorial \
     -c 'SELECT COUNT(*) FROM posts'
 ```
 
-The output should indicate that the `posts` table has five rows now: 
+The output should indicate that the `posts` table has five rows now:
 
 ```text
  count 
@@ -241,7 +242,7 @@ Log out from the PostgreSQL unit using `exit` command or the `Ctrl+D` keyboard s
 
 ### Deploy and integrate the `postgresql-connect-integrator` charm
 
-Now that you have sample data loaded into PostgreSQL, it is time to deploy the `postgresql-connect-integrator` charm to enable integration of PostgreSQL and Kafka Connect applications. 
+Now that you have sample data loaded into PostgreSQL, it is time to deploy the `postgresql-connect-integrator` charm to enable integration of PostgreSQL and Kafka Connect applications.
 First, deploy the charm in `source` mode using the `juju deploy` command and provide the minimum necessary configurations:
 
 ```bash
@@ -252,10 +253,10 @@ juju deploy postgresql-connect-integrator \
     --config topic_prefix=etl_
 ```
 
-Each Kafka Connect integrator application needs at least two relations: 
+Each Kafka Connect integrator application needs at least two relations:
 
-* with the Kafka Connect 
-* with a Database charm (e.g. MySQL, PostgreSQL, OpenSearch, etc.)
+- with the Kafka Connect
+- with a Database charm (e.g. MySQL, PostgreSQL, OpenSearch, etc.)
 
 Integrate both Kafka Connect and PostgreSQL with the `postgresql-connect-integrator` charm:
 
@@ -272,12 +273,12 @@ postgresql-connect-integrator/0*  active    idle   13       10.38.169.83    8080
 ...
 ```
 
-This means that the integrator application is actively copying data from the source database (named `tutorial`) into Apache Kafka topics prefixed with `etl_`. 
+This means that the integrator application is actively copying data from the source database (named `tutorial`) into Apache Kafka topics prefixed with `etl_`.
 For example, rows in the `posts` table will be published into the Apache Kafka topic named `etl_posts`.
 
 ### Deploy and integrate the `opensearch-connect-integrator` charm
 
-You are almost done with the ETL task, the only remaining part is to move data from Apache Kafka to OpenSearch. 
+You are almost done with the ETL task, the only remaining part is to move data from Apache Kafka to OpenSearch.
 To do that, deploy another Kafka Connect integrator named `opensearch-connect-integrator` in the `sink` mode:
 
 ```bash
@@ -287,7 +288,7 @@ juju deploy opensearch-connect-integrator \
     --config topics="etl_posts"
 ```
 
-The above command deploys an integrator application to move messages from the `etl_posts` topic to the index in OpenSearch named `etl_posts`. 
+The above command deploys an integrator application to move messages from the `etl_posts` topic to the index in OpenSearch named `etl_posts`.
 And the `etl_posts` topic is filled by the `postgresql-connect-integrator` charm we deployed earlier.
 
 To activate the `opensearch-connect-integrator`, make the necessary integrations:
@@ -308,7 +309,7 @@ postgresql-connect-integrator/0*  active    idle   13       10.38.169.83    8080
 
 ### Verify data transfer
 
-Now it's time to verify that the data is being copied from the PostgreSQL database to the OpenSearch index. 
+Now it's time to verify that the data is being copied from the PostgreSQL database to the OpenSearch index.
 We can use the OpenSearch REST API for that purpose.
 
 First, retrieve the admin user credentials for OpenSearch using `get-password` action:
@@ -337,7 +338,7 @@ Now, using the password obtained above, send a request to the topic's `_search` 
 curl -u admin:<admin-password> -k -X GET https://$OPENSEARCH_IP:9200/etl_posts/_search
 ```
 
-As a result you get a JSON response containing the search results, which should have five documents. 
+As a result you get a JSON response containing the search results, which should have five documents.
 The `hits.total` value should be `5`, as shown in the output example below:
 
 ```text
@@ -400,4 +401,3 @@ Which now should have six hits (output is truncated):
 ```
 
 Congratulations! You have successfully completed an ETL job that continuously moves data from PostgreSQL to OpenSearch, using entirely charmed solutions.
-

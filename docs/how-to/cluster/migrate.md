@@ -1,4 +1,5 @@
 (how-to-cluster-migration)=
+
 # Migrate from a non-charmed Kafka clusters
 
 This How-To guide covers executing a cluster migration from an existing Kafka cluster, to a Charmed Apache Kafka deployment using MirrorMaker 2.0.
@@ -14,10 +15,10 @@ For a brief explanation of how MirrorMaker works, see the [MirrorMaker explanati
 To migrate a cluster we need:
 
 - An "old" existing Kafka cluster to migrate from.
-  - The cluster needs to be reachable from/to the new Charmed Apache Kafka Connect cluster. 
+  - The cluster needs to be reachable from/to the new Charmed Apache Kafka Connect cluster.
 - A bootstrapped Juju VM cloud
 - A Charmed Apache Kafka Connect cluster to run the MirrorMaker tasks. For guidance on how to deploy a new Charmed Apache Kafka Connect cluster, see:
-    - The [How-to use Kafka Connect for ETL workloads guide](how-to-use-kafka-connect-for-etl-workloads)
+  - The [How-to use Kafka Connect for ETL workloads guide](how-to-use-kafka-connect-for-etl-workloads)
 - A Charmed Apache Kafka to migrate data to. For guidance on how to deploy a new Charmed Apache Kafka, see:
   - The [Charmed Apache Kafka Tutorial](tutorial-introduction)
   - The [How to deploy guide](how-to-deploy-deploy-anywhere) for Charmed Apache Kafka

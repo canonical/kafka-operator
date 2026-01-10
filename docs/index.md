@@ -23,10 +23,10 @@ easy-to-use application integration, and monitoring.
 
 ## In this documentation
 
-| | |
-|--|--|
-|  [Tutorial](tutorial-introduction)</br>  Learn how to deploy, configure, and use the charm with our step-by-step guidance. Get started from [step one](tutorial-environment). </br> |  [How-to guides](how-to-index) </br> Practical instructions for key tasks, like [deploy](how-to-deploy-index) on different platforms, [manage](how-to-manage-units) Juju units, [Monitor](how-to-monitoring-enable-monitoring) metrics, use [Kafka Connect](how-to-use-kafka-connect-for-etl-workloads). |
-| [Reference](reference-index) </br> Technical information, for example: charm's [actions](https://charmhub.io/kafka/actions?channel=3/edge), [configuration parameters](https://charmhub.io/kafka/configure?channel=3/edge), [libraries](https://charmhub.io/kafka/libraries/kafka_libs?channel=3/edge), [statuses](reference-statuses), as well as [requirements](reference-requirements), and [file system paths](reference-file-system-paths). | [Explanation](explanation-index) </br> Explore and grow your understanding of key topics, such as: [security](explanation-security), [cryptography](explanation-cryptography), and [MirrorMaker usage](explanation-mirrormaker2-0). |
+|                                                                                                                                                                                                                                                                                                                                                                                                                                                  |                                                                                                                                                                                                                                                                                                         |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Tutorial](tutorial-introduction)</br> Learn how to deploy, configure, and use the charm with our step-by-step guidance. Get started from [step one](tutorial-environment). </br>                                                                                                                                                                                                                                                                | [How-to guides](how-to-index) </br> Practical instructions for key tasks, like [deploy](how-to-deploy-index) on different platforms, [manage](how-to-manage-units) Juju units, [Monitor](how-to-monitoring-enable-monitoring) metrics, use [Kafka Connect](how-to-use-kafka-connect-for-etl-workloads). |
+| [Reference](reference-index) </br> Technical information, for example: charm's [actions](https://charmhub.io/kafka/actions?channel=3/edge), [configuration parameters](https://charmhub.io/kafka/configure?channel=3/edge), [libraries](https://charmhub.io/kafka/libraries/kafka_libs?channel=3/edge), [statuses](reference-statuses), as well as [requirements](reference-requirements), and [file system paths](reference-file-system-paths). | [Explanation](explanation-index) </br> Explore and grow your understanding of key topics, such as: [security](explanation-security), [cryptography](explanation-cryptography), and [MirrorMaker usage](explanation-mirrormaker2-0).                                                                     |
 
 ## Project and community
 
@@ -50,10 +50,11 @@ version 2.0.
 See [LICENSE](https://github.com/canonical/kafka-operator/blob/main/LICENSE) for more information.
 
 ```{toctree}
-:titlesonly:
-:maxdepth: 2
-:hidden:
-
+---
+titlesonly:
+maxdepth: 2
+hidden:
+---
 Home <self>
 tutorial/index
 how-to/index

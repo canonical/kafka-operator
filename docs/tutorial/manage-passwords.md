@@ -1,4 +1,5 @@
 (tutorial-manage-passwords)=
+
 # 5. Manage passwords
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
@@ -9,7 +10,7 @@ Passwords help to secure the Apache Kafka cluster and are essential for security
 
 ### The admin user
 
-The admin user password management is handled directly by the charm, by using Juju actions. 
+The admin user password management is handled directly by the charm, by using Juju actions.
 
 #### Retrieve the password
 
@@ -53,7 +54,7 @@ Unlike internal user management of `admin` users, the password management for ex
 
 #### Retrieve the password
 
-The `data-integrator` exposes an action to retrieve the credentials, e.g: 
+The `data-integrator` exposes an action to retrieve the credentials, e.g:
 
 ```shell
 juju run data-integrator/leader get-credentials
@@ -61,7 +62,7 @@ juju run data-integrator/leader get-credentials
 
 Running the command should output:
 
-```shell 
+```shell
 kafka:
   endpoints: 10.244.26.43:9092,10.244.26.6:9092,10.244.26.19:9092
   password: S4IeRaYaiiq0tsM7m2UZuP2mSI573IGV
@@ -92,7 +93,7 @@ juju run data-integrator/leader get-credentials
 
 Running the command should now output a different password:
 
-```shell 
+```shell
 kafka:
   endpoints: 10.244.26.43:9092,10.244.26.6:9092,10.244.26.19:9092
   password: ToVfqYQ7tWmNmjy2tJTqulZHmJxJqQ22
@@ -150,4 +151,3 @@ The operations above would also apply to charmed applications that implement the
 ## What's next?
 
 In the next part, we will now see how easy it is to enable encryption across the board, to make sure no one is eavesdropping, sniffing or snooping your traffic by enabling TLS.
-

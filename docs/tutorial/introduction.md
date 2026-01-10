@@ -1,4 +1,5 @@
 # Tutorial
+
 <!-- # Charmed Apache Kafka tutorial -->
 
 The Charmed Apache Kafka Operator delivers automated operations management from [Day 0 to Day 2](https://codilime.com/blog/day-0-day-1-day-2-the-software-lifecycle-in-the-cloud-age/) on the [Apache Kafka](https://kafka.apache.org/) event streaming platform.

@@ -1,9 +1,11 @@
 (tutorial-cleanup)=
+
 # 9. Cleanup your environment
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
 (remove-kafka-and-juju)=
+
 ## Remove Charmed Apache Kafka and Juju
 
 If you're done using Charmed Apache Kafka and Juju and would like to free up resources on your machine, you can safely remove both.
@@ -42,4 +44,3 @@ If you're looking for what to do next you can:
 - [Report](https://github.com/canonical/kafka-operator/issues) any problems you encountered.
 - [Give us your feedback](https://matrix.to/#/#charmhub-data-platform:ubuntu.com).
 - [Contribute to the code base](https://github.com/canonical/kafka-operator)
-

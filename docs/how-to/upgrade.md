@@ -1,4 +1,5 @@
 (how-to-upgrade)=
+
 # How to upgrade between versions
 
 This guide applies for in-place upgrades that involve (at most) minor version upgrade of Apache Kafka workload, e.g. between Apache Kafka 4.0.x to 4.1.x.
@@ -13,9 +14,9 @@ Since the charm's code pins a specific workload version, upgrading the charm's r
 When upgrading a Charmed Apache Kafka cluster, ensure that no other major operations are performed until the upgrade is complete. This includes, but is not limited to, the following:
 
 1. Adding or removing units
-2. Creating or destroying new relations
-3. Changes in workload configuration
-4. Upgrading other connected applications
+1. Creating or destroying new relations
+1. Changes in workload configuration
+1. Upgrading other connected applications
 
 The concurrency with other operations is not supported, and it can lead the cluster into inconsistent states.
 
@@ -24,9 +25,9 @@ The concurrency with other operations is not supported, and it can lead the clus
 When performing an in-place upgrade process, the full process is composed of the following high-level steps:
 
 1. **Configure** desired refresh behavior with `pause-after-unit-refresh`
-2. **Collect** all necessary pre-upgrade information, necessary for a rollback (if ever needed)
-3. **Prepare** the charm for the in-place upgrade, by running some preparatory tasks 
-4. **Upgrade** the charm and/or the workload. Once started, all units in a cluster will refresh the charm code and undergo a workload restart/update. The upgrade will be halted if the unit upgrade has failed, requiring the admin user to roll back.
+1. **Collect** all necessary pre-upgrade information, necessary for a rollback (if ever needed)
+1. **Prepare** the charm for the in-place upgrade, by running some preparatory tasks
+1. **Upgrade** the charm and/or the workload. Once started, all units in a cluster will refresh the charm code and undergo a workload restart/update. The upgrade will be halted if the unit upgrade has failed, requiring the admin user to roll back.
 
 ### Step 1. Configure
 
@@ -51,6 +52,7 @@ juju config kafka pause-after-unit-refresh="first"
 This will only pause after the first unit has completed it's upgrade.
 
 (step-2-collect)=
+
 ### Step 2: Collect
 
 The second step is to record the revisions of the running application as a safety measure in case a rollback is needed. To check the revisions, run the `juju status` command and find the required Charmed Apache Kafka application. Alternatively, you can retrieve this information with the following command using [yq](https://snapcraft.io/install/yq/ubuntu):
@@ -80,23 +82,25 @@ Although optional, this action should always be run before Charmed Apache Kafka 
 Use the [`juju refresh`](https://juju.is/docs/juju/juju-refresh) command to trigger the charm upgrade process.
 Note that the upgrade can be performed against:
 
-* selected channel/track, therefore upgrading to the latest revision published on that track:
+- selected channel/track, therefore upgrading to the latest revision published on that track:
 
   ```shell
   juju refresh kafka --channel 4/edge
   ```
-* selected revision:
+
+- selected revision:
 
   ```shell
   juju refresh kafka --revision=<REVISION>
   ```
-* a local charm file:
+
+- a local charm file:
 
   ```shell
   juju refresh kafka --path ./kafka_ubuntu-24.04-amd64.charm
   ```
 
-When issuing the commands, all units will refresh (i.e. receive new charm content), and the upgrade charm event will be fired. The charm will take care of executing an update (if required) and a restart of the workload one unit at a time to not lose high availability. 
+When issuing the commands, all units will refresh (i.e. receive new charm content), and the upgrade charm event will be fired. The charm will take care of executing an update (if required) and a restart of the workload one unit at a time to not lose high availability.
 
 If the `pause-after-unit-refresh` configuration is either `all` or `first`, at some point during the refresh, human intervention will be needed in order to resume the upgrade.
 
@@ -110,7 +114,7 @@ juju run kafka/<unit-id> resume-refresh
 Run this action on the next unit scheduled for refresh, as indicated in the application status.
 ```
 
-The upgrade process can be monitored using `juju status` command, where the message of the units will provide information about which units have been upgraded already, which unit is currently upgrading and which units are waiting for the upgrade to be triggered, as shown below: 
+The upgrade process can be monitored using `juju status` command, where the message of the units will provide information about which units have been upgraded already, which unit is currently upgrading and which units are waiting for the upgrade to be triggered, as shown below:
 
 ```shell
 App        Version  Status  Scale  Charm      Channel   Rev  Exposed  Message

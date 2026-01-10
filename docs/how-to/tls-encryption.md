@@ -1,4 +1,5 @@
 (how-to-tls-encryption)=
+
 # How to enable TLS encryption
 
 By default, Charmed Apache Kafka uses TLS encryption for all internal communication - inter-broker and broker-controller. This is achieved with self-signed certificates that are generated on each application unit at deploy time.
@@ -33,6 +34,7 @@ juju integrate kafka:certificates self-signed-certificates
 ## (Optional) Trust external CAs for mTLS authentication
 
 See the [mTLS client encryption](how-to-create-mtls-client-credentials) guide.
+
 <!-- TODO: add detail here -->
 
 ## (Optional) Replace self-signed with provided certificates for internal communication

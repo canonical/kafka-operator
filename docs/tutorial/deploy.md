@@ -1,4 +1,5 @@
 (tutorial-deploy)=
+
 # 3. Deploy Apache Kafka
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
@@ -39,8 +40,8 @@ Juju will now fetch Charmed Apache Kafka and begin deploying both applications t
 watch -n 1 --color juju status --color
 ```
 
-This command is useful for checking the status of both Charmed Apache Kafka applications, and for gathering information about the machines hosting the two applications. Some of the helpful information it displays includes IP addresses, ports, status etc. 
-The command updates the status of the cluster every second and as the application starts you can watch the status and messages both applications change. 
+This command is useful for checking the status of both Charmed Apache Kafka applications, and for gathering information about the machines hosting the two applications. Some of the helpful information it displays includes IP addresses, ports, status etc.
+The command updates the status of the cluster every second and as the application starts you can watch the status and messages both applications change.
 
 Wait until the application is ready - when it is ready, `watch -n 1 --color juju status --color` will show:
 
@@ -182,6 +183,5 @@ For a full list of the available Charmed Kafka command-line tools, please refer 
 
 ## What's next?
 
-Although the commands above can run within the cluster, it is generally recommended during operations to enable external listeners and use these for running the admin commands from outside the cluster. 
+Although the commands above can run within the cluster, it is generally recommended during operations to enable external listeners and use these for running the admin commands from outside the cluster.
 To do so, as we will see in the next section, we will deploy a [data-integrator](https://charmhub.io/data-integrator) charm and relate it to Charmed Apache Kafka.
-

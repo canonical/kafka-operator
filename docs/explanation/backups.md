@@ -1,4 +1,5 @@
 (explanation-backups)=
+
 # Backups
 
 Apache Kafka is a distributed data streaming platform.

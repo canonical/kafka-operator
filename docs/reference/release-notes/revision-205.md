@@ -1,4 +1,5 @@
 (reference-release-notes-revision-205)=
+
 # Revision 205
 
 ## Charmed Apache Kafka
@@ -10,17 +11,17 @@ New revisions of [Charmed Apache Kafka](http://charmhub.io/kafka) and [Charmed A
 ### Highlights
 
 - **Upgraded Apache Kafka version from 3.6.1 → 3.9.0**
-    - Check the official Apache Kafka [Version 3.7.0 release notes](https://archive.apache.org/dist/kafka/3.7.0/RELEASE_NOTES.html)
-    - Check the official Apache Kafka [Version 3.8.0 release notes](https://archive.apache.org/dist/kafka/3.8.0/RELEASE_NOTES.html)
-    - Check the official Apache Kafka [Version 3.9.0 release notes](https://archive.apache.org/dist/kafka/3.9.0/RELEASE_NOTES.html)
+  - Check the official Apache Kafka [Version 3.7.0 release notes](https://archive.apache.org/dist/kafka/3.7.0/RELEASE_NOTES.html)
+  - Check the official Apache Kafka [Version 3.8.0 release notes](https://archive.apache.org/dist/kafka/3.8.0/RELEASE_NOTES.html)
+  - Check the official Apache Kafka [Version 3.9.0 release notes](https://archive.apache.org/dist/kafka/3.9.0/RELEASE_NOTES.html)
 - **Added support for the KRaft consensus protocol, removing the need for Apache ZooKeeper**
-    - Check the [documentation](https://charmhub.io/kafka/docs/h-kraft-mode) for a guide on setting up a KRaft cluster
+  - Check the [documentation](https://charmhub.io/kafka/docs/h-kraft-mode) for a guide on setting up a KRaft cluster
 - **Added support for partition rebalancing using Cruise Control**
-    - Check the [documentation](https://charmhub.io/kafka/docs/t-reassign-partitions) for a tutorial on partition rebalancing and reassignment using [Cruise Control](https://github.com/linkedin/cruise-control)
+  - Check the [documentation](https://charmhub.io/kafka/docs/t-reassign-partitions) for a tutorial on partition rebalancing and reassignment using [Cruise Control](https://github.com/linkedin/cruise-control)
 - **Created the `karapace` and `karapace-k8s` charms as a drop-in replacement for Schema Registry**
-    - Check the [documentation](https://charmhub.io/kafka/docs/h-manage-message-schemas) on how to manage message schemas using [Karapace](https://www.karapace.io/)
+  - Check the [documentation](https://charmhub.io/kafka/docs/h-manage-message-schemas) on how to manage message schemas using [Karapace](https://www.karapace.io/)
 - **Upgraded Apache ZooKeeper version from 3.8.2 → 3.9.2**
-    - Check the official Apache ZooKeeper [Version 3.9.0 release notes](https://zookeeper.apache.org/doc/r3.9.0/releasenotes.html)
+  - Check the official Apache ZooKeeper [Version 3.9.0 release notes](https://zookeeper.apache.org/doc/r3.9.0/releasenotes.html)
 - **Adding backup/restore support using S3**
 
 ### Features
@@ -33,7 +34,7 @@ New revisions of [Charmed Apache Kafka](http://charmhub.io/kafka) and [Charmed A
 
 ### Improvements
 
-- [DPE-4956](https://warthogs.atlassian.net/browse/DPE-4956) - test: stabilise integration tests  [#229](https://github.com/canonical/kafka-operator/pull/229)
+- [DPE-4956](https://warthogs.atlassian.net/browse/DPE-4956) - test: stabilise integration tests [#229](https://github.com/canonical/kafka-operator/pull/229)
 - [DPE-5226](https://warthogs.atlassian.net/browse/DPE-5226) - refactor: make 'broker' the central relation [#244](https://github.com/canonical/kafka-operator/pull/244)
 - [DPE-5591](https://warthogs.atlassian.net/browse/DPE-5591) - refactor: rework status handling [#254](https://github.com/canonical/kafka-operator/pull/254)
 - [DPE-5945](https://warthogs.atlassian.net/browse/DPE-5945) - chore: rename expose_external configuration option [#274](https://github.com/canonical/kafka-operator/pull/274)
@@ -84,4 +85,3 @@ New revisions of [Charmed Apache ZooKeeper](http://charmhub.io/zookeeper) and [C
 - [DPE-5463](https://warthogs.atlassian.net/browse/DPE-5463);[DPE-5462](https://warthogs.atlassian.net/browse/DPE-5462) - fix: quote SERVER_JVMFLAGS, safe rm tls files [#160](https://github.com/canonical/zookeeper-operator/pull/160)
 - [DPE-5462](https://warthogs.atlassian.net/browse/DPE-5462) - fix: handle NoNodeError during relation-broken [#168](https://github.com/canonical/zookeeper-operator/pull/168)
 - [DPE-6157](https://warthogs.atlassian.net/browse/DPE-6157) - fix: don't erase previous records from /etc/hosts [#175](https://github.com/canonical/zookeeper-operator/pull/175)
-

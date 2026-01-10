@@ -1,4 +1,5 @@
 (tutorial-rebalance-partitions)=
+
 # 8. Rebalance and Reassign Partitions
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
@@ -23,6 +24,7 @@ The Charmed Apache Kafka charm has a configuration option `roles`, which takes a
 Different roles can be configured to run on the same machine, or as separate Juju applications.
 
 The two necessary roles for cluster rebalancing are:
+
 - `broker` - running Apache Kafka
 - `balancer` - running Cruise Control
 
@@ -240,4 +242,3 @@ To implement the proposed changes, run the same command but with `dryrun=false`:
 ```bash
 juju run cruise-control/0 rebalance mode=full dryrun=false --wait=10m
 ```
-

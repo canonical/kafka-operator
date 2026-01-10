@@ -1,4 +1,5 @@
 (tutorial-environment)=
+
 # 2. Set up the environment
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
@@ -7,10 +8,10 @@ This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
 For this tutorial, we will need to set up the environment with two main components, and extra command-line tooling:
 
-* [LXD](https://github.com/canonical/lxd) - a simple and lightweight virtual machine provisioner
-* [Juju](https://github.com/juju/juju) - enables us to deploy and manage Charmed Apache Kafka and related applications
-* [yq](https://github.com/mikefarah/yq) - a command-line YAML processor
-* [jq](https://github.com/jqlang/jq) - a command-line JSON processor
+- [LXD](https://github.com/canonical/lxd) - a simple and lightweight virtual machine provisioner
+- [Juju](https://github.com/juju/juju) - enables us to deploy and manage Charmed Apache Kafka and related applications
+- [yq](https://github.com/mikefarah/yq) - a command-line YAML processor
+- [jq](https://github.com/jqlang/jq) - a command-line JSON processor
 
 ### Prepare LXD
 
@@ -79,4 +80,3 @@ tutorial overlord    localhost/localhost  3.6.8    unsupported  23:20:53Z
 
 Model "admin/tutorial" is empty.
 ```
-

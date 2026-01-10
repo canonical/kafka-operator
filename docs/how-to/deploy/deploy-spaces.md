@@ -7,9 +7,9 @@ The Charmed Apache Kafka operator supports [Juju spaces](https://documentation.u
 
 ## Prerequisites
 
-* Charmed Apache Kafka 4
-* Configured network spaces
-  * See [Juju | `add-space` command reference](https://documentation.ubuntu.com/juju/latest/reference/juju-cli/list-of-juju-cli-commands/add-space/)
+- Charmed Apache Kafka 4
+- Configured network spaces
+  - See [Juju | `add-space` command reference](https://documentation.ubuntu.com/juju/latest/reference/juju-cli/list-of-juju-cli-commands/add-space/)
 
 ## Deploy
 
@@ -50,4 +50,4 @@ The two application can then be integrated using:
 juju integrate kafka kafka-test-app
 ```
 
-As a result, the client application will receive network endpoints on the subnets prescribed by the Juju space `client`, while the Apache Kafka cluster will use the `peers` space for internal communications. In the previous example, those are `10.0.0.0/24` and `10.10.10.0/24` subnets respectively. 
+As a result, the client application will receive network endpoints on the subnets prescribed by the Juju space `client`, while the Apache Kafka cluster will use the `peers` space for internal communications. In the previous example, those are `10.0.0.0/24` and `10.10.10.0/24` subnets respectively.

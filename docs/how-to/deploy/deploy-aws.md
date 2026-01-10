@@ -1,4 +1,5 @@
 (how-to-deploy-deploy-on-aws)=
+
 # How to deploy on AWS
 
 [Amazon Web Services](https://aws.amazon.com/) is a popular subsidiary of Amazon that provides on-demand cloud computing platforms on a metered pay-as-you-go basis. Access the AWS web console at [{spellexception}`console.aws.amazon.com`](https://console.aws.amazon.com/).
@@ -97,18 +98,19 @@ Create a new Juju model, if needed:
 juju add-model <MODEL_NAME>
 ```
 
-```{caution}
+````{caution}
 (Optional) Increase the debug level if you are troubleshooting charms:
 ```shell
 juju model-config logging-config='<root>=INFO;unit=DEBUG'
-```
-```
+````
+
+````
 
 Deploy Charmed Apache Kafka:
 
 ```shell
 juju deploy kafka -n 3 --config roles=broker,controller [--constraints "instance-type=<INSTANCE_TYPE>"]
-```
+````
 
 ```{caution}
 The smallest AWS instance types may not provide sufficient resources to host an Apache Kafka broker. We recommend choosing an instance type with a minimum of `8` GB of RAM and `4` CPU cores, such as `m7i.xlarge`.
@@ -146,8 +148,8 @@ To destroy the Juju controller and remove AWS instance (**Warning**: all your da
 juju destroy-controller <CONTROLLER_NAME> --destroy-all-models --destroy-storage --force
 ```
 
-Should the destroying process take a long time or be seemingly stuck, proceed to delete EC2 resources also manually 
-via the AWS portal. See [Amazon AWS documentation](https://repost.aws/knowledge-center/terminate-resources-account-closure) for more information 
+Should the destroying process take a long time or be seemingly stuck, proceed to delete EC2 resources also manually
+via the AWS portal. See [Amazon AWS documentation](https://repost.aws/knowledge-center/terminate-resources-account-closure) for more information
 on how to remove active resources no longer needed.
 
 After destroying the controller, check and manually delete all unnecessary AWS EC2 instances, to show the list of all your EC2 instances run the following command (make sure to use the correct region):

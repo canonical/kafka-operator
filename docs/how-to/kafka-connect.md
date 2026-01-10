@@ -1,4 +1,5 @@
 (how-to-use-kafka-connect-for-etl-workloads)=
+
 # How to use Kafka Connect for ETL workloads
 
 [Kafka Connect](https://kafka.apache.org/documentation/#connect) is a framework for easy deployment of Apache Kafka clients for common ETL tasks on different data sources and sinks, managed through multiple jobs running on a distributed cluster of workers.
@@ -100,7 +101,7 @@ This triggers a restart of Charmed Kafka Connect application. Once all units sho
 curl -u admin:<secure-password> -X GET http://<kafka-connect-unit-ip>:8083/connector-plugins
 ```
 
-The output will have  `{"class":"io.aiven.kafka.connect.s3.source.S3SourceConnector","type":"source","version":"3.2.0"}`.
+The output will have `{"class":"io.aiven.kafka.connect.s3.source.S3SourceConnector","type":"source","version":"3.2.0"}`.
 
 ## Start connector/task
 

@@ -1,4 +1,5 @@
 (tutorial-integrate-with-client-applications)=
+
 # 4. Integrate with client applications
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
@@ -88,7 +89,6 @@ ok: "True"
 
 Make note of the values for `bootstrap-server`, `username` and `password`, we'll be using them later.
 
-
 ### Produce/consume messages
 
 We will now use the username and password to produce some messages to Apache Kafka. To do so, we will first deploy the [Apache Kafka Test App](https://charmhub.io/kafka-test-app): a simplistic charm meant only for testing, that also bundles some Python scripts to push data to Apache Kafka, e.g:
@@ -109,7 +109,7 @@ and make sure that the Python virtual environment libraries are visible:
 export PYTHONPATH="/var/lib/juju/agents/unit-kafka-test-app-0/charm/venv:/var/lib/juju/agents/unit-kafka-test-app-0/charm/lib"
 ```
 
-Once this is set up, you should be able to use the `client.py` script that exposes some functionality to produce and consume messages. 
+Once this is set up, you should be able to use the `client.py` script that exposes some functionality to produce and consume messages.
 You can explore the usage of the script
 
 ```shell
@@ -181,9 +181,9 @@ Now you know how to use credentials provided by related charms to successfully r
 
 ### Charm client applications
 
-Actually, the Data Integrator is only a very special client charm, that implements the `kafka_client` relation interface for exchanging data with Charmed Apache Kafka and user management via relations. 
+Actually, the Data Integrator is only a very special client charm, that implements the `kafka_client` relation interface for exchanging data with Charmed Apache Kafka and user management via relations.
 
-For example, the steps above for producing and consuming messages to Apache Kafka have also been implemented in the `kafka-test-app` charm (that also implements the `kafka_client` relation) providing a fully integrated charmed user experience, where producing/consuming messages can simply be achieved using relations.  
+For example, the steps above for producing and consuming messages to Apache Kafka have also been implemented in the `kafka-test-app` charm (that also implements the `kafka_client` relation) providing a fully integrated charmed user experience, where producing/consuming messages can simply be achieved using relations.
 
 #### Producing messages
 
@@ -240,9 +240,8 @@ Note that the `kafka-test-app` charm can also similarly be used to consume messa
 juju config kafka-test-app topic_name=TOP-PICK role=consumer consumer_group_prefix=cg
 ```
 
-After configuring the Apache Kafka Test App, just relate it again with the Charmed Apache Kafka. This will again create a new user and start the consumer process. 
+After configuring the Apache Kafka Test App, just relate it again with the Charmed Apache Kafka. This will again create a new user and start the consumer process.
 
 ## What's next?
 
 In the next section, we will learn how to rotate and manage the passwords for the Apache Kafka users, both the admin one and the ones managed by the Data Integrator.
-

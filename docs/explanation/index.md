@@ -1,4 +1,5 @@
 (explanation-index)=
+
 # Explanation
 
 The pages in this section aim to provide additional context and deeper understanding of foundational topics and concepts relevant to Charmed Apache Kafka.
@@ -21,10 +22,11 @@ Read through [Backups explanation](explanation-backups) for information on the w
 To read more about our usage of Apache Kafka and other relevant trademarks, see the [Trademarks](explanation-trademarks) explanation page.
 
 ```{toctree}
-:titlesonly:
-:maxdepth: 2
-:hidden:
-
+---
+titlesonly:
+maxdepth: 2
+hidden:
+---
 Security<security.md>
 Cryptography<cryptography.md>
 Backups<backups.md>
