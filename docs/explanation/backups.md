@@ -1,5 +1,4 @@
 (explanation-backups)=
-
 # Backups
 
 Apache Kafka is a distributed data streaming platform. It is not designed to serve as a long-term
