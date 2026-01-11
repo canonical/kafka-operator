@@ -6,12 +6,16 @@
 
 Dear community,
 
-We are pleased to report that we have just released a new updated version for the Charmed Apache Kafka bundles on the `3/stable` channel,
-upgrading Charmed Apache ZooKeeper revision from 136 to 149, and Charmed Apache Kafka from 156 to 195.
+We are pleased to report that we have just released a new updated version for the Charmed Apache
+Kafka bundles on the `3/stable` channel, upgrading Charmed Apache ZooKeeper revision from 136 to
+149, and Charmed Apache Kafka from 156 to 195.
 
-The new release comes with a number of new features from the charms, from Juju secrets support, OAuth/OIDC authentication support, various improvements in the UI/UX and dependencies upgrades.
+The new release comes with a number of new features from the charms, from Juju secrets support,
+OAuth/OIDC authentication support, various improvements in the UI/UX and dependencies upgrades.
 
-Please reach out should you have any question, comment, feedback or information. You can find us here in [Matrix](https://matrix.to/#/#charmhub-data-platform:ubuntu.com) or also on [Discourse](https://discourse.charmhub.io/).
+Please reach out should you have any question, comment, feedback or information. You can find us
+here in [Matrix](https://matrix.to/#/#charmhub-data-platform:ubuntu.com) or also on
+[Discourse](https://discourse.charmhub.io/).
 
 ## Charmed Apache Kafka bundle
 
@@ -83,15 +87,24 @@ New features and bug fixes in the Charmed Apache ZooKeeper bundle:
 - [DPE-3932] Update information in metadata.yaml
 - [MISC] Update cryptography to 42.0.5
 
-Canonical Data issues are now public on both [Jira](https://warthogs.atlassian.net/jira/software/c/projects/DPE/issues/)
-and [GitHub](https://github.com/canonical/kafka-operator/issues) platforms.
+Canonical Data issues are now public on both
+[Jira](https://warthogs.atlassian.net/jira/software/c/projects/DPE/issues/) and
+[GitHub](https://github.com/canonical/kafka-operator/issues) platforms.
 
 ## Inside the charms
 
 Contents of the Charmed Apache Kafka and Charmed Apache ZooKeeper include:
 
-- Charmed Apache ZooKeeper is based on the [charmed-zookeeper snap](https://snapcraft.io/charmed-zookeeper) of the `3/stable` channel (Ubuntu LTS “22.04” - core22-based) that ships the Apache ZooKeeper [3.8.4-ubuntu0](https://launchpad.net/zookeeper-releases/3.x/3.8.4-ubuntu0), built and supported by Canonical
-- Charmed Apache Kafka is based on the [{spellexception}`charmed-kafka` snap](https://snapcraft.io/charmed-kafka) of the `3/stable` channel (Ubuntu LTS “22.04” - core22-based) that ships the Apache Kafka [3.6.1-ubuntu0](https://launchpad.net/kafka-releases/3.x/3.6.1-ubuntu0), built and supported by Canonical
+- Charmed Apache ZooKeeper is based on the
+  [charmed-zookeeper snap](https://snapcraft.io/charmed-zookeeper) of the `3/stable` channel (Ubuntu
+  LTS “22.04” - core22-based) that ships the Apache ZooKeeper
+  [3.8.4-ubuntu0](https://launchpad.net/zookeeper-releases/3.x/3.8.4-ubuntu0), built and supported
+  by Canonical
+- Charmed Apache Kafka is based on the
+  [{spellexception}`charmed-kafka` snap](https://snapcraft.io/charmed-kafka) of the `3/stable`
+  channel (Ubuntu LTS “22.04” - core22-based) that ships the Apache Kafka
+  [3.6.1-ubuntu0](https://launchpad.net/kafka-releases/3.x/3.6.1-ubuntu0), built and supported by
+  Canonical
 - Principal charms support the latest LTS series “22.04” only.
 
 More information about the artefacts are provided by the following table:
@@ -107,5 +120,7 @@ More information about the artefacts are provided by the following table:
 
 ## Technical notes
 
-- [GitHub Releases](https://github.com/canonical/kafka-operator/releases) provide a detailed list of bug fixes, PRs, and commits for each revision.
-- Upgrades from previous stable versions can be done with the standard upgrading process, as outlined in the [documentation](how-to-upgrade)
+- [GitHub Releases](https://github.com/canonical/kafka-operator/releases) provide a detailed list of
+  bug fixes, PRs, and commits for each revision.
+- Upgrades from previous stable versions can be done with the standard upgrading process, as
+  outlined in the [documentation](how-to-upgrade)

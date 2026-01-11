@@ -4,15 +4,19 @@
 
 ## Juju version
 
-The charm currently runs on and is tested against [Juju 3.6 LTS](https://github.com/juju/juju/releases).
+The charm currently runs on and is tested against
+[Juju 3.6 LTS](https://github.com/juju/juju/releases).
 
 The minimum supported Juju version is [Juju 3.5+](https://github.com/juju/juju/releases).
 
 ## Recommended hardware
 
-The below requirements are a good baseline upon which to size your Charmed Apache Kafka applications, but will not be appropriate for every use-case, based on device, data, network and cost constraints.
+The below requirements are a good baseline upon which to size your Charmed Apache Kafka
+applications, but will not be appropriate for every use-case, based on device, data, network and
+cost constraints.
 
-Note that while these requirements are recommended for a broad-range of production use-cases, each component can run with much lower requirements for use in staging or test environments.
+Note that while these requirements are recommended for a broad-range of production use-cases, each
+component can run with much lower requirements for use in staging or test environments.
 
 |    Component     | Nodes | External Storage  |  Memory   |                               CPU                                |
 | :--------------: | :---: | :---------------: | :-------: | :--------------------------------------------------------------: |
@@ -27,6 +31,7 @@ For production deployments, ensure that all nodes are deployed on separate physi
 
 ## Supported architectures
 
-The charm uses the `charmed-kafka` [snap](https://snapcraft.io/charmed-kafka), which is currently available for `amd64` only. The `arm64` architecture support is planned.
+The charm uses the `charmed-kafka` [snap](https://snapcraft.io/charmed-kafka), which is currently
+available for `amd64` only. The `arm64` architecture support is planned.
 
 Please [contact us](contact) if you are interested in a new architecture to be supported!

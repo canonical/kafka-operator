@@ -2,11 +2,14 @@
 
 # How to manage client connections
 
-Relations to new applications are supported via the "[{spellexception}`kafka_client`](https://github.com/canonical/charm-relation-interfaces/blob/main/interfaces/kafka_client/v0/README.md)" interface.
+Relations to new applications are supported via the
+"[{spellexception}`kafka_client`](https://github.com/canonical/charm-relation-interfaces/blob/main/interfaces/kafka_client/v0/README.md)"
+interface.
 
 ## Via the `kafka_client` charm relation interface
 
-If the charm supports the `kafka_client` relation interface, just create an integration between the two charms:
+If the charm supports the `kafka_client` relation interface, just create an integration between the
+two charms:
 
 ```shell
 juju integrate kafka application
@@ -20,7 +23,9 @@ juju remove-relation kafka application
 
 ## Non-charmed applications and external clients
 
-The `kafka_client` interface is used with the `data-integrator` charm. This charm automatically creates and manages product credentials needed to authenticate with different kinds of data platform charmed products:
+The `kafka_client` interface is used with the `data-integrator` charm. This charm automatically
+creates and manages product credentials needed to authenticate with different kinds of data platform
+charmed products:
 
 Deploy the Data Integrator charm with the desired `topic-name` and user roles:
 
@@ -59,12 +64,14 @@ Password rotation can be performed in multiple ways, depending on the requiremen
 
 ### External clients
 
-There are two ways to rotate credentials of an external client. One is simply to delete and re-create the relation, the other one can be performed without any downtime.
+There are two ways to rotate credentials of an external client. One is simply to delete and
+re-create the relation, the other one can be performed without any downtime.
 
 #### With client application downtime
 
-The easiest way to rotate user credentials of client applications is by removing and then re-relating
-the application (either a charm supporting the `kafka-client` interface or a `data-integrator`) with the `kafka` charm:
+The easiest way to rotate user credentials of client applications is by removing and then
+re-relating the application (either a charm supporting the `kafka-client` interface or a
+`data-integrator`) with the `kafka` charm:
 
 ```shell
 juju remove-relation kafka <charm-or-data-integrator>
@@ -73,12 +80,14 @@ juju remove-relation kafka <charm-or-data-integrator>
 juju integrate kafka <charm-or-data-integrator>
 ```
 
-The successful credential rotation can be confirmed by retrieving the new password with the action `get-credentials`.
+The successful credential rotation can be confirmed by retrieving the new password with the action
+`get-credentials`.
 
 #### Without client application downtime
 
-In some use-cases credentials should be rotated with no or limited application downtime.
-If credentials should be rotated with no or limited downtime, you can deploy a new charm with the same permissions and resource definition, for example:
+In some use-cases credentials should be rotated with no or limited application downtime. If
+credentials should be rotated with no or limited downtime, you can deploy a new charm with the same
+permissions and resource definition, for example:
 
 ```shell
 juju deploy data-integrator rotated-user \
@@ -93,11 +102,12 @@ juju integrate kafka rotated-user
 ```
 
 At this point, we effectively have two overlapping users, so that applications can swap the password
-from one to another.
-If the applications consist of fleets of independent producers and consumers, user credentials can be rotated
-progressively across fleets, such that no effective downtime is achieved.
+from one to another. If the applications consist of fleets of independent producers and consumers,
+user credentials can be rotated progressively across fleets, such that no effective downtime is
+achieved.
 
-Once all applications have rotated their credentials, it is then safe to remove data first `data-integrator` charm
+Once all applications have rotated their credentials, it is then safe to remove data first
+`data-integrator` charm
 
 ```shell
 juju remove-application data-integrator

@@ -8,7 +8,8 @@
 
 ## Step-by-step guide
 
-Here’s an overview of the steps required with links to our separate tutorials that deal with each individual step:
+Here’s an overview of the steps required with links to our separate tutorials that deal with each
+individual step:
 
 - [Set up the environment](tutorial-environment)
 - [Deploy Charmed Apache Kafka](tutorial-deploy)

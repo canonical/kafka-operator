@@ -8,18 +8,17 @@ To deploy on Kubernetes, see [Charmed Apache Kafka K8s operator](https://documen
 # Charmed Apache Kafka documentation
 
 Charmed Apache Kafka is an open-source software operator, packaged as a
-[Juju charm](https://documentation.ubuntu.com/juju/3.6/reference/charm/),
-that simplifies the deployment, scaling, and management of Apache Kafka clusters
-on physical hardware, Virtual Machines, as well as cloud and cloud-like environments
-including AWS, Azure, OpenStack, and VMware.
+[Juju charm](https://documentation.ubuntu.com/juju/3.6/reference/charm/), that simplifies the
+deployment, scaling, and management of Apache Kafka clusters on physical hardware, Virtual Machines,
+as well as cloud and cloud-like environments including AWS, Azure, OpenStack, and VMware.
 
-[Apache Kafka](https://kafka.apache.org) is a free, open-source software project
-by the Apache Software Foundation.
+[Apache Kafka](https://kafka.apache.org) is a free, open-source software project by the Apache
+Software Foundation.
 
 The charm helps ops teams and administrators automate Apache Kafka operations from
 [Day 0 to Day 2](https://codilime.com/blog/day-0-day-1-day-2-the-software-lifecycle-in-the-cloud-age/)
-with additional capabilities, such as: replication, TLS encryption, password rotation,
-easy-to-use application integration, and monitoring.
+with additional capabilities, such as: replication, TLS encryption, password rotation, easy-to-use
+application integration, and monitoring.
 
 ## In this documentation
 
@@ -30,24 +29,28 @@ easy-to-use application integration, and monitoring.
 
 ## Project and community
 
-Charmed Apache Kafka is part of the [Juju](https://juju.is/) ecosystem of open-source, self-driving deployment tools. It can be integrated with multiple other Juju charms, also available on [Charmhub](https://charmhub.io/).
+Charmed Apache Kafka is part of the [Juju](https://juju.is/) ecosystem of open-source, self-driving
+deployment tools. It can be integrated with multiple other Juju charms, also available on
+[Charmhub](https://charmhub.io/).
 
-It’s an open-source project developed and supported by [Canonical](https://canonical.com/) that welcomes community contributions, suggestions, fixes and constructive feedback.
+It’s an open-source project developed and supported by [Canonical](https://canonical.com/) that
+welcomes community contributions, suggestions, fixes and constructive feedback.
 
 - [Read our Code of Conduct](https://ubuntu.com/community/code-of-conduct)
 - [Join the Discourse forum](https://discourse.charmhub.io/tag/kafka)
-- [Contribute](https://github.com/canonical/kafka-operator/blob/main/CONTRIBUTING.md) and report [issues](https://github.com/canonical/kafka-operator/issues/new)
+- [Contribute](https://github.com/canonical/kafka-operator/blob/main/CONTRIBUTING.md) and report
+  [issues](https://github.com/canonical/kafka-operator/issues/new)
 - Explore [Canonical Data Fabric solutions](https://canonical.com/data)
 - [Contact us](reference-contact) for all further questions
 
 ## License and trademarks
 
-Apache®, Apache Kafka, Kafka®, and the Apache Kafka logo are either registered trademarks
-or trademarks of the Apache Software Foundation in the United States and/or other countries.
+Apache®, Apache Kafka, Kafka®, and the Apache Kafka logo are either registered trademarks or
+trademarks of the Apache Software Foundation in the United States and/or other countries.
 
 The Charmed Apache Kafka Operator is free software, distributed under the Apache Software License,
-version 2.0.
-See [LICENSE](https://github.com/canonical/kafka-operator/blob/main/LICENSE) for more information.
+version 2.0. See [LICENSE](https://github.com/canonical/kafka-operator/blob/main/LICENSE) for more
+information.
 
 ```{toctree}
 ---

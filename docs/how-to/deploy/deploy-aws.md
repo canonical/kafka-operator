@@ -2,7 +2,9 @@
 
 # How to deploy on AWS
 
-[Amazon Web Services](https://aws.amazon.com/) is a popular subsidiary of Amazon that provides on-demand cloud computing platforms on a metered pay-as-you-go basis. Access the AWS web console at [{spellexception}`console.aws.amazon.com`](https://console.aws.amazon.com/).
+[Amazon Web Services](https://aws.amazon.com/) is a popular subsidiary of Amazon that provides
+on-demand cloud computing platforms on a metered pay-as-you-go basis. Access the AWS web console at
+[{spellexception}`console.aws.amazon.com`](https://console.aws.amazon.com/).
 
 ## Install AWS and Juju tooling
 
@@ -12,9 +14,12 @@ Install Juju via snap:
 sudo snap install juju
 ```
 
-Follow the [AWS documentation](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) for guidance on how to install the Amazon Web Services CLI.
+Follow the
+[AWS documentation](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+for guidance on how to install the Amazon Web Services CLI.
 
-To check whether both Juju and AWS CLI are correctly installed, run commands to display their versions:
+To check whether both Juju and AWS CLI are correctly installed, run commands to display their
+versions:
 
 ```shell
 juju version
@@ -34,7 +39,8 @@ aws-cli/2.13.25 Python/3.11.5 Linux/6.2.0-33-generic exe/x86_64.ubuntu.23 prompt
 
 ### Authenticate
 
-[Create an IAM account](https://docs.aws.amazon.com/eks/latest/userguide/getting-started-console.html) or use legacy user access keys and secret key to operate AWS EC2:
+[Create an IAM account](https://docs.aws.amazon.com/eks/latest/userguide/getting-started-console.html)
+or use legacy user access keys and secret key to operate AWS EC2:
 
 ```shell
 mkdir -p ~/.aws && cat <<- EOF >  ~/.aws/credentials.yaml
@@ -55,7 +61,8 @@ Add AWS credentials to Juju:
 juju add-credential aws -f ~/.aws/credentials.yaml
 ```
 
-Bootstrap Juju controller ([check all supported configuration options](https://juju.is/docs/juju/amazon-ec2)):
+Bootstrap Juju controller
+([check all supported configuration options](https://juju.is/docs/juju/amazon-ec2)):
 
 ```shell
 juju bootstrap aws <CONTROLLER_NAME>
@@ -118,7 +125,8 @@ The smallest AWS instance types may not provide sufficient resources to host an 
 For more guidance on sizing production environments, see the [Requirements page](reference-requirements). Additional information about AWS instance types is available in the [AWS documentation](https://us-east-1.console.aws.amazon.com/ec2/home?region=us-east-1#Instances:instanceState=running).
 ```
 
-We also recommend to deploy a [Data Integrator](https://charmhub.io/data-integrator) for creating an admin user to manage the content of the Kafka cluster:
+We also recommend to deploy a [Data Integrator](https://charmhub.io/data-integrator) for creating an
+admin user to manage the content of the Kafka cluster:
 
 ```shell
 juju deploy data-integrator \
@@ -132,7 +140,8 @@ And integrate it with the Kafka application:
 juju integrate kafka data-integrator
 ```
 
-For more information on Data Integrator and how to use it, please refer to the [how-to manage client connections](how-to-client-connections) guide.
+For more information on Data Integrator and how to use it, please refer to the
+[how-to manage client connections](how-to-client-connections) guide.
 
 ## Clean up
 
@@ -140,19 +149,24 @@ For more information on Data Integrator and how to use it, please refer to the [
 Always clean AWS resources that are no longer necessary! Abandoned resources are tricky to detect and they can become expensive over time.
 ```
 
-To list all controllers that have been registered to your local client, use the `juju controllers` command.
+To list all controllers that have been registered to your local client, use the `juju controllers`
+command.
 
-To destroy the Juju controller and remove AWS instance (**Warning**: all your data will be permanently deleted):
+To destroy the Juju controller and remove AWS instance (**Warning**: all your data will be
+permanently deleted):
 
 ```shell
 juju destroy-controller <CONTROLLER_NAME> --destroy-all-models --destroy-storage --force
 ```
 
-Should the destroying process take a long time or be seemingly stuck, proceed to delete EC2 resources also manually
-via the AWS portal. See [Amazon AWS documentation](https://repost.aws/knowledge-center/terminate-resources-account-closure) for more information
-on how to remove active resources no longer needed.
+Should the destroying process take a long time or be seemingly stuck, proceed to delete EC2
+resources also manually via the AWS portal. See
+[Amazon AWS documentation](https://repost.aws/knowledge-center/terminate-resources-account-closure)
+for more information on how to remove active resources no longer needed.
 
-After destroying the controller, check and manually delete all unnecessary AWS EC2 instances, to show the list of all your EC2 instances run the following command (make sure to use the correct region):
+After destroying the controller, check and manually delete all unnecessary AWS EC2 instances, to
+show the list of all your EC2 instances run the following command (make sure to use the correct
+region):
 
 ```shell
 aws ec2 describe-instances --region us-east-1 --query "Reservations[].Instances[*].{InstanceType: InstanceType, InstanceId: InstanceId, State: State.Name}" --output table

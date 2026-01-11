@@ -6,11 +6,15 @@
 
 Dear community,
 
-We are glad to report that we have just released a new updated version for Charmed Apache ZooKeeper on the `3/stable` channel, upgrading its revision from 126 to 136.
-The release of a new version was promoted by the need of backporting some features that
-should provide increased robustness and resilience during operation as well as smaller workload upgrades and fixes. See the technical notes for further information.
+We are glad to report that we have just released a new updated version for Charmed Apache ZooKeeper
+on the `3/stable` channel, upgrading its revision from 126 to 136. The release of a new version was
+promoted by the need of backporting some features that should provide increased robustness and
+resilience during operation as well as smaller workload upgrades and fixes. See the technical notes
+for further information.
 
-Please reach out should you have any question, comment, feedback or information. You can find us here in [Matrix](https://matrix.to/#/#charmhub-data-platform:ubuntu.com) or also on [Discourse](https://discourse.charmhub.io/).
+Please reach out should you have any question, comment, feedback or information. You can find us
+here in [Matrix](https://matrix.to/#/#charmhub-data-platform:ubuntu.com) or also on
+[Discourse](https://discourse.charmhub.io/).
 
 ## Features
 
@@ -21,17 +25,27 @@ Please reach out should you have any question, comment, feedback or information.
 - [DPE-4183] (backport) fix: only handle quorum removal on relation-departed
 - [DPE-4362] (backport) add alive check fix
 
-Canonical Data issues are now public on both [Jira](https://warthogs.atlassian.net/jira/software/c/projects/DPE/issues/)
-and [GitHub](https://github.com/canonical/kafka-operator/issues) platforms.
+Canonical Data issues are now public on both
+[Jira](https://warthogs.atlassian.net/jira/software/c/projects/DPE/issues/) and
+[GitHub](https://github.com/canonical/kafka-operator/issues) platforms.
 
-[GitHub Releases](https://github.com/canonical/kafka-operator/releases) provide a detailed list of bug fixes, PRs, and commits for each revision.
+[GitHub Releases](https://github.com/canonical/kafka-operator/releases) provide a detailed list of
+bug fixes, PRs, and commits for each revision.
 
 ## Inside the charms
 
-- Charmed Apache ZooKeeper charm ships the ZooKeeper [3.8.4-ubuntu0](https://launchpad.net/zookeeper-releases/3.x/3.8.4-ubuntu0), built and supported by Canonical
-- Charmed Apache Kafka charm ships the Apache Kafka [3.6.0-ubuntu0](https://launchpad.net/kafka-releases/3.x/3.6.0-ubuntu0), built and supported by Canonical
-- Charmed Apache ZooKeeper charm is based on [charmed-zookeeper snap](https://snapcraft.io/charmed-zookeeper) on the `3/stable` (Ubuntu LTS “22.04” - core22-based)
-- Charmed Apache Kafka charm is based on [{spellexception}`charmed-kafka` snap](https://snapcraft.io/charmed-kafka) on the `3/stable` channel (Ubuntu LTS “22.04” - core22-based)
+- Charmed Apache ZooKeeper charm ships the ZooKeeper
+  [3.8.4-ubuntu0](https://launchpad.net/zookeeper-releases/3.x/3.8.4-ubuntu0), built and supported
+  by Canonical
+- Charmed Apache Kafka charm ships the Apache Kafka
+  [3.6.0-ubuntu0](https://launchpad.net/kafka-releases/3.x/3.6.0-ubuntu0), built and supported by
+  Canonical
+- Charmed Apache ZooKeeper charm is based on
+  [charmed-zookeeper snap](https://snapcraft.io/charmed-zookeeper) on the `3/stable` (Ubuntu LTS
+  “22.04” - core22-based)
+- Charmed Apache Kafka charm is based on
+  [{spellexception}`charmed-kafka` snap](https://snapcraft.io/charmed-kafka) on the `3/stable`
+  channel (Ubuntu LTS “22.04” - core22-based)
 - Principal charms support the latest LTS series “22.04” only.
 
 More information about the artefacts is provided by the following table:
@@ -47,9 +61,14 @@ More information about the artefacts is provided by the following table:
 
 ## Technical notes
 
-- Rev126 on Charmed Apache ZooKeeper was observed to sporadically trigger Apache ZooKeeper reconfiguration of the clusters by removing all servers but the Juju leader from the Apache ZooKeeper quorum. This leads to a
-  non-highly available cluster, that it is however still up and running.
-  The reconfiguration generally resulted from some glitch and connection drop with the Juju controller that resulted in transient inconsistent
-  databag of Juju events. This was once observed during a controller upgrade (see reported [bug](https://bugs.launchpad.net/juju/+bug/2053055) on Juju), but its occurrence is not limited to it.
-  The current revision provides more robust logic (ticket [DPE-4183](https://warthogs.atlassian.net/browse/DPE-4183)) to avoid dynamic reconfiguration in such cases.
-- Upgrades from previous stable versions can be done with the standard upgrading process, as outlined in the [documentation](how-to-upgrade)
+- Rev126 on Charmed Apache ZooKeeper was observed to sporadically trigger Apache ZooKeeper
+  reconfiguration of the clusters by removing all servers but the Juju leader from the Apache
+  ZooKeeper quorum. This leads to a non-highly available cluster, that it is however still up and
+  running. The reconfiguration generally resulted from some glitch and connection drop with the Juju
+  controller that resulted in transient inconsistent databag of Juju events. This was once observed
+  during a controller upgrade (see reported [bug](https://bugs.launchpad.net/juju/+bug/2053055) on
+  Juju), but its occurrence is not limited to it. The current revision provides more robust logic
+  (ticket [DPE-4183](https://warthogs.atlassian.net/browse/DPE-4183)) to avoid dynamic
+  reconfiguration in such cases.
+- Upgrades from previous stable versions can be done with the standard upgrading process, as
+  outlined in the [documentation](how-to-upgrade)

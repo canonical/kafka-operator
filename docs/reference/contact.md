@@ -2,11 +2,13 @@
 
 # Contacts
 
-Contact Canonical Data Platform team in [Matrix](https://matrix.to/#/#charmhub-data-platform:ubuntu.com).
+Contact Canonical Data Platform team in
+[Matrix](https://matrix.to/#/#charmhub-data-platform:ubuntu.com).
 
 Report your ideas/issues on [GitHub](https://github.com/canonical/kafka-operator/issues/new).
 
-Security issues should be reported through [Launchpad](https://wiki.ubuntu.com/DebuggingSecurity#How_to_File).
+Security issues should be reported through
+[Launchpad](https://wiki.ubuntu.com/DebuggingSecurity#How_to_File).
 
 Please do NOT file GitHub issues on security topics.
 

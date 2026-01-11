@@ -2,11 +2,14 @@
 
 # How-to guides
 
-The following guides cover key processes and common tasks for Charmed Apache Kafka. If you are missing a particular how-to guide, feel free to leave us feedback via button above, or [contact](reference-contact) directly.
+The following guides cover key processes and common tasks for Charmed Apache Kafka. If you are
+missing a particular how-to guide, feel free to leave us feedback via button above, or
+[contact](reference-contact) directly.
 
 ## Deployment
 
-Deployment follows a broadly similar pattern on all platforms, but due to differences in the platforms, configuration and deployment must be approached differently in each case.
+Deployment follows a broadly similar pattern on all platforms, but due to differences in the
+platforms, configuration and deployment must be approached differently in each case.
 
 - Common [deployment guide](how-to-deploy-deploy-anywhere)
 - Specific deployment guides:
@@ -32,16 +35,17 @@ See also: our [security overview](explanation-security) page.
 
 ## Monitoring
 
-Monitoring Charmed Apache Kafka is typically done with the [Canonical Observability Stack](https://charmhub.io/topics/canonical-observability-stack).
-See our How to set up monitoring guide for the following topics:
+Monitoring Charmed Apache Kafka is typically done with the
+[Canonical Observability Stack](https://charmhub.io/topics/canonical-observability-stack). See our
+How to set up monitoring guide for the following topics:
 
 - [Enable monitoring](how-to-monitoring-enable-monitoring)
 - [Add custom alerts and dashboards](how-to-monitoring-integrate-alerts-and-dashboards)
 
 ## Cluster replication and migration
 
-Both migrating and replicating Apache Kafka cluster can be done with MirrorMaker 2.
-See the guides for more details:
+Both migrating and replicating Apache Kafka cluster can be done with MirrorMaker 2. See the guides
+for more details:
 
 - [Cluster migration](how-to-cluster-migration)
 - [Replication](how-to-cluster-replication)

@@ -2,20 +2,19 @@
 
 # Apache Kafka listeners
 
-Charmed Apache Kafka comes with a set of listeners that can be enabled for
-inter-broker and broker-controller communication, and for client communication.
+Charmed Apache Kafka comes with a set of listeners that can be enabled for inter-broker and
+broker-controller communication, and for client communication.
 
-*Internal listeners* are used for internal traffic and exchange of information
-between Apache Kafka brokers and controllers. These will be created by default.
+*Internal listeners* are used for internal traffic and exchange of information between Apache Kafka
+brokers and controllers. These will be created by default.
 
-*Client listeners* are used for external clients, and are optionally enabled
-based on the relations created on particular charm endpoints.
-Each listener is characterised by a specific port, scope and protocol.
+*Client listeners* are used for external clients, and are optionally enabled based on the relations
+created on particular charm endpoints. Each listener is characterised by a specific port, scope and
+protocol.
 
-In the following table, we summarise the protocols, the port and
-the relation that each listener is bound to. Note that based on whether a `certificates`
-relation is present, one of two mutually exclusive types of listeners can be
-opened.
+In the following table, we summarise the protocols, the port and the relation that each listener is
+bound to. Note that based on whether a `certificates` relation is present, one of two mutually
+exclusive types of listeners can be opened.
 
 |   Usage    | Driving endpoints                                                |    Protocol    |  Port   |     Scope     |
 | :--------: | :--------------------------------------------------------------- | :------------: | :-----: | :-----------: |
