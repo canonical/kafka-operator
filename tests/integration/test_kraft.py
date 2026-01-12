@@ -295,7 +295,7 @@ class TestKRaft:
         juju.integrate(f"{self.controller_app}:{INTERNAL_TLS_RELATION}", TLS_NAME)
 
         juju.wait(
-            lambda status: all_active_idle(status, self.controller_app, TLS_NAME),
+            lambda status: all_active_idle(status, APP_NAME, self.controller_app, TLS_NAME),
             delay=3,
             successes=15,
             timeout=2400,
@@ -331,7 +331,7 @@ class TestKRaft:
         juju.remove_relation(self.controller_app, TLS_NAME)
 
         juju.wait(
-            lambda status: all_active_idle(status, self.controller_app, TLS_NAME),
+            lambda status: all_active_idle(status, APP_NAME, self.controller_app, TLS_NAME),
             delay=3,
             successes=20,
             timeout=2400,
