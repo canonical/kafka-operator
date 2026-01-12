@@ -13,8 +13,13 @@ from tenacity import RetryError, Retrying, retry, retry_if_result, stop_after_at
 
 from integration.ha.continuous_writes import ContinuousWritesResult
 from integration.helpers import APP_NAME, CONTROLLER_NAME, KRaftMode
-from integration.helpers.jubilant import KRaftUnitStatus, all_active_idle, kraft_quorum_status
-from integration.helpers.pytest_operator import check_socket, get_unit_ipv4_address
+from integration.helpers.jubilant import (
+    KRaftUnitStatus,
+    all_active_idle,
+    check_socket,
+    get_unit_ipv4_address,
+    kraft_quorum_status,
+)
 from literals import KRAFT_NODE_ID_OFFSET, PATHS, SECURITY_PROTOCOL_PORTS
 
 CONTROLLER_PORT = SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].controller

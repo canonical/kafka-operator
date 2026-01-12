@@ -2,22 +2,21 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-import asyncio
 import json
 import logging
 import os
 import tempfile
+import time
 
+import jubilant
 import kafka
-import pytest
 from charms.tls_certificates_interface.v4.tls_certificates import PrivateKey, generate_private_key
-from pytest_operator.plugin import OpsTest
 
-from integration.helpers import sign_manual_certs
-from integration.helpers.pytest_operator import (
+from integration.helpers import REL_NAME_PRODUCER, sign_manual_certs
+from integration.helpers.jubilant import (
     APP_NAME,
-    REL_NAME_PRODUCER,
-    SERIES,
+    BASE,
+    all_active_idle,
     check_tls,
     create_test_topic,
     deploy_cluster,
@@ -48,60 +47,53 @@ TLS_REQUIRER = "tls-certificates-requirer"
 MANUAL_TLS_NAME = "manual-tls-certificates"
 
 
-@pytest.mark.abort_on_fail
-@pytest.mark.skip_if_deployed
-async def test_deploy_tls(ops_test: OpsTest, kafka_charm, kraft_mode, kafka_apps):
+def test_deploy_tls(juju: jubilant.Juju, kafka_charm, kraft_mode, kafka_apps):
     tls_config = {"ca-common-name": "kafka"}
 
-    await asyncio.gather(
-        # FIXME (certs): Unpin the revision once the charm is fixed
-        ops_test.model.deploy(TLS_NAME, channel="edge", config=tls_config, revision=163),
-        deploy_cluster(
-            ops_test=ops_test,
-            charm=kafka_charm,
-            kraft_mode=kraft_mode,
-            config_broker={
-                "ssl-principal-mapping-rules": "RULE:^.*[Cc][Nn]=([a-zA-Z0-9.]*).*$/$1/L,DEFAULT"
-            },
-        ),
+    juju.deploy(TLS_NAME, channel="1/stable", config=tls_config)
+    deploy_cluster(
+        juju=juju,
+        charm=kafka_charm,
+        kraft_mode=kraft_mode,
+        config_broker={
+            "ssl-principal-mapping-rules": "RULE:^.*[Cc][Nn]=([a-zA-Z0-9.]*).*$/$1/L,DEFAULT"
+        },
     )
-    await ops_test.model.wait_for_idle(apps=[*kafka_apps, TLS_NAME], idle_period=15, timeout=1800)
 
-    assert ops_test.model.applications[TLS_NAME].status == "active"
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps, TLS_NAME),
+        delay=3,
+        successes=10,
+        timeout=1800,
+    )
 
 
-@pytest.mark.abort_on_fail
-async def test_kafka_tls(ops_test: OpsTest, app_charm, kafka_apps):
+def test_kafka_tls(juju: jubilant.Juju, app_charm, kafka_apps):
     """Tests TLS on Kafka."""
     # ensuring at least a few update-status
-    await ops_test.model.add_relation(f"{APP_NAME}:{TLS_RELATION}", TLS_NAME)
-    async with ops_test.fast_forward(fast_interval="20s"):
-        await asyncio.sleep(60)
+    juju.integrate(f"{APP_NAME}:{TLS_RELATION}", TLS_NAME)
 
-    await ops_test.model.wait_for_idle(
-        apps=[*kafka_apps, TLS_NAME], idle_period=30, timeout=1200, status="active"
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps, TLS_NAME),
+        delay=3,
+        successes=20,
+        timeout=900,
     )
 
-    kafka_address = await get_address(ops_test=ops_test, app_name=APP_NAME)
+    kafka_address = get_address(juju=juju, app_name=APP_NAME)
 
     assert not check_tls(
         ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client
     )
 
-    await asyncio.gather(
-        ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series=SERIES),
-    )
-    await ops_test.model.wait_for_idle(
-        apps=[*kafka_apps, DUMMY_NAME], timeout=1000, idle_period=30
-    )
+    juju.deploy(app_charm, app=DUMMY_NAME, num_units=1, base=BASE)
+    juju.integrate(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_PRODUCER}")
 
-    # ensuring at least a few update-status
-    await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_PRODUCER}")
-    async with ops_test.fast_forward(fast_interval="20s"):
-        await asyncio.sleep(60)
-
-    await ops_test.model.wait_for_idle(
-        apps=[*kafka_apps, DUMMY_NAME], idle_period=30, status="active"
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME),
+        delay=3,
+        successes=20,
+        timeout=1000,
     )
 
     assert check_tls(
@@ -109,27 +101,30 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm, kafka_apps):
     )
 
 
-@pytest.mark.abort_on_fail
-async def test_set_tls_private_key(ops_test: OpsTest):
+def test_set_tls_private_key(juju: jubilant.Juju):
+    juju.cli("model-config", "update-status-hook-interval=60s")
+
     # 1. First test the setting of new PKs on an existing cluster
     old_pks = set()
     secret: dict[str, PrivateKey] = {}
-    for unit in ops_test.model.applications[APP_NAME].units:
-        old_pks.add(extract_private_key(ops_test, unit.name))
-        secret[unit.name.replace("/", "-")] = generate_private_key()
+    for unit in juju.status().apps[APP_NAME].units:
+        old_pks.add(extract_private_key(juju, unit))
+        secret[unit.replace("/", "-")] = generate_private_key()
 
-    await set_tls_private_key(ops_test, secret=secret)
+    set_tls_private_key(juju, secret=secret)
 
-    async with ops_test.fast_forward(fast_interval="60s"):
-        await ops_test.model.wait_for_idle(
-            apps=[APP_NAME, DUMMY_NAME, TLS_NAME], idle_period=30, status="active"
-        )
+    juju.wait(
+        lambda status: all_active_idle(status, APP_NAME, DUMMY_NAME, TLS_NAME),
+        delay=3,
+        successes=10,
+        timeout=900,
+    )
 
     new_pks = set()
     actual_pks = set()
-    for unit in ops_test.model.applications[APP_NAME].units:
-        new_pks.add(extract_private_key(ops_test, unit.name))
-        actual_pks.add(get_actual_tls_private_key(ops_test, unit.name))
+    for unit in juju.status().apps[APP_NAME].units:
+        new_pks.add(extract_private_key(juju, unit))
+        actual_pks.add(get_actual_tls_private_key(juju, unit))
 
     assert new_pks.isdisjoint(old_pks)  # all pks changed in secret data
     assert new_pks == actual_pks  # all pks actually written to charm
@@ -138,34 +133,38 @@ async def test_set_tls_private_key(ops_test: OpsTest):
     removed_secret_unit_name, removed_secret_tls_pk = secret.popitem()  # getting random unit
     secret.update({removed_secret_unit_name: generate_private_key()})  # replacing cert
 
-    await update_tls_private_key(ops_test, secret=secret)
+    update_tls_private_key(juju, secret=secret)
 
-    async with ops_test.fast_forward(fast_interval="60s"):
-        await ops_test.model.wait_for_idle(
-            apps=[APP_NAME, DUMMY_NAME, TLS_NAME], idle_period=30, status="active"
-        )
+    juju.wait(
+        lambda status: all_active_idle(status, APP_NAME, DUMMY_NAME, TLS_NAME),
+        delay=3,
+        successes=10,
+        timeout=900,
+    )
 
-    updated_secret_pk = extract_private_key(ops_test, removed_secret_unit_name.replace("-", "/"))
+    updated_secret_pk = extract_private_key(juju, removed_secret_unit_name.replace("-", "/"))
     updated_actual_pk = get_actual_tls_private_key(
-        ops_test, removed_secret_unit_name.replace("-", "/")
+        juju, removed_secret_unit_name.replace("-", "/")
     )
 
     assert updated_secret_pk == updated_actual_pk
     assert updated_secret_pk != removed_secret_tls_pk
 
     # 3. Now test the removal of the PK secret config entirely
-    await remove_tls_private_key(ops_test)
+    remove_tls_private_key(juju)
 
-    async with ops_test.fast_forward(fast_interval="60s"):
-        await ops_test.model.wait_for_idle(
-            apps=[APP_NAME, DUMMY_NAME, TLS_NAME], idle_period=30, status="active"
-        )
+    juju.wait(
+        lambda status: all_active_idle(status, APP_NAME, DUMMY_NAME, TLS_NAME),
+        delay=3,
+        successes=10,
+        timeout=900,
+    )
 
     post_removed_pks = set()
     post_removed_actual_pks = set()
-    for unit in ops_test.model.applications[APP_NAME].units:
-        post_removed_pks.add(extract_private_key(ops_test, unit.name))
-        post_removed_actual_pks.add(get_actual_tls_private_key(ops_test, unit.name))
+    for unit in juju.status().apps[APP_NAME].units:
+        post_removed_pks.add(extract_private_key(juju, unit))
+        post_removed_actual_pks.add(get_actual_tls_private_key(juju, unit))
 
     assert post_removed_pks == post_removed_actual_pks
 
@@ -175,43 +174,40 @@ async def test_set_tls_private_key(ops_test: OpsTest):
     assert post_pks.isdisjoint(pre_pks)  # checking every post-secret-removed pk is brand new
 
 
-@pytest.mark.abort_on_fail
-async def test_mtls(ops_test: OpsTest, kafka_apps):
+def test_mtls(juju: jubilant.Juju):
     # creating the signed external cert on the unit
-    action = await ops_test.model.units.get(f"{DUMMY_NAME}/0").run_action("create-certificate")
-    response = await action.wait()
+    _ = juju.run(f"{DUMMY_NAME}/0", "create-certificate")
 
-    async with ops_test.fast_forward(fast_interval="60s"):
-        await ops_test.model.wait_for_idle(
-            apps=[*kafka_apps, DUMMY_NAME], idle_period=30, status="active"
-        )
+    juju.wait(
+        lambda status: all_active_idle(status, APP_NAME, DUMMY_NAME),
+        delay=3,
+        successes=10,
+        timeout=900,
+    )
 
     # run mtls producer
     num_messages = 10
-    action = await ops_test.model.units.get(f"{DUMMY_NAME}/0").run_action(
+    response = juju.run(
+        f"{DUMMY_NAME}/0",
         "run-mtls-producer",
-        **{"num-messages": num_messages},
+        params={"num-messages": num_messages},
     )
-
-    response = await action.wait()
     assert response.results.get("success", None) == "TRUE"
 
     provider_data = get_provider_data(
-        ops_test,
+        juju.model,
         owner=DUMMY_NAME,
         unit_name=f"{DUMMY_NAME}/0",
         relation_interface=REL_NAME_PRODUCER,
     )
 
-    offsets_action = await ops_test.model.units.get(f"{DUMMY_NAME}/0").run_action(
+    response = juju.run(
+        f"{DUMMY_NAME}/0",
         "get-offsets",
-        **{
+        params={
             "bootstrap-server": provider_data["endpoints"],
         },
     )
-
-    response = await offsets_action.wait()
-
     topic_name, min_offset, max_offset = response.results["output"].strip().split(":")
 
     assert topic_name == "test-topic"
@@ -219,55 +215,53 @@ async def test_mtls(ops_test: OpsTest, kafka_apps):
     assert max_offset == str(num_messages)
 
 
-@pytest.mark.abort_on_fail
-async def test_certificate_transfer(ops_test: OpsTest, kafka_apps):
+def test_certificate_transfer(juju: jubilant.Juju, kafka_apps):
     """Tests truststore live reload functionality using kafka-python client."""
     requirer = "other-req/0"
     test_msg = {"test": 123456}
 
-    await ops_test.model.deploy(
+    juju.deploy(
         TLS_NAME,
-        application_name="other-ca",
+        app="other-ca",
         channel="1/stable",
     )
-    await ops_test.model.deploy(
-        TLS_REQUIRER, channel="stable", application_name="other-req", revision=102
-    )
+    juju.deploy(TLS_REQUIRER, channel="stable", app="other-req", revision=102)
+    juju.integrate("other-ca", "other-req")
 
-    await ops_test.model.add_relation("other-ca", "other-req")
-
-    await ops_test.model.wait_for_idle(
-        apps=["other-ca", "other-req"], idle_period=60, timeout=2000, status="active"
+    juju.wait(
+        lambda status: all_active_idle(status, "other-ca", "other-req"),
+        delay=3,
+        successes=10,
+        timeout=900,
     )
 
     # retrieve required certificates and private key from secrets
     local_store = {
-        "private_key": search_secrets(ops_test=ops_test, owner=requirer, search_key="private-key"),
-        "cert": search_secrets(ops_test=ops_test, owner=requirer, search_key="certificate"),
-        "ca_cert": search_secrets(ops_test=ops_test, owner=requirer, search_key="ca-certificate"),
-        "broker_ca": search_secrets(
-            ops_test=ops_test, owner=f"{APP_NAME}/0", search_key="client-ca-cert"
-        ),
+        "private_key": search_secrets(juju=juju, owner=requirer, search_key="private-key"),
+        "cert": search_secrets(juju=juju, owner=requirer, search_key="certificate"),
+        "ca_cert": search_secrets(juju=juju, owner=requirer, search_key="ca-certificate"),
+        "broker_ca": search_secrets(juju=juju, owner=f"{APP_NAME}/0", search_key="client-ca-cert"),
     }
 
     # Transfer other-ca's CA certificate via the client-cas relation
     # We don't expect a broker restart here because of truststore live reload
-    await ops_test.model.add_relation(
-        f"{APP_NAME}:{CERTIFICATE_TRANSFER_RELATION}", "other-ca:send-ca-cert"
+    juju.integrate(f"{APP_NAME}:{CERTIFICATE_TRANSFER_RELATION}", "other-ca:send-ca-cert")
+
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps),
+        delay=3,
+        successes=20,
+        timeout=2000,
     )
 
-    await ops_test.model.wait_for_idle(
-        apps=kafka_apps, idle_period=60, timeout=2000, status="active"
-    )
-
-    address = await get_address(ops_test, app_name=APP_NAME, unit_num=0)
+    address = get_address(juju, app_name=APP_NAME, unit_num=0)
     ssl_port = SECURITY_PROTOCOL_PORTS["SSL", "SSL"].client
     ssl_bootstrap_server = f"{address}:{ssl_port}"
     sasl_port = SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].internal
     sasl_bootstrap_server = f"{address}:{sasl_port}"
 
     # create `test` topic and set ACLs
-    await create_test_topic(ops_test, bootstrap_server=sasl_bootstrap_server)
+    create_test_topic(juju, bootstrap_server=sasl_bootstrap_server)
 
     # quickly test the producer and consumer side authentication & authorization
     tmp_dir = tempfile.TemporaryDirectory()
@@ -301,111 +295,114 @@ async def test_certificate_transfer(ops_test: OpsTest, kafka_apps):
     assert json.loads(msg.value) == test_msg
 
     # cleanup
-    await ops_test.model.remove_application("other-ca", block_until_done=True)
-    await ops_test.model.remove_application("other-req", block_until_done=True)
+    juju.remove_application("other-ca")
+    juju.remove_application("other-req")
+    time.sleep(180)
     tmp_dir.cleanup()
 
 
-@pytest.mark.abort_on_fail
-async def test_kafka_tls_scaling(ops_test: OpsTest, kafka_apps):
+def test_kafka_tls_scaling(juju: jubilant.Juju, kafka_apps):
     """Scale the application while using TLS to check that new units will configure correctly."""
-    await ops_test.model.applications[APP_NAME].add_units(count=2)
-    await ops_test.model.block_until(
-        lambda: len(ops_test.model.applications[APP_NAME].units) == 3, timeout=1000
-    )
+    juju.add_unit(APP_NAME, num_units=2)
+    time.sleep(60)
 
     # Wait for model to settle
-    await ops_test.model.wait_for_idle(
-        apps=kafka_apps, status="active", idle_period=40, timeout=1800, raise_on_error=False
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps),
+        delay=2,
+        successes=20,
+        timeout=1800,
     )
 
-    kafka_address = await get_address(ops_test=ops_test, app_name=APP_NAME, unit_num=2)
+    kafka_address = get_address(juju=juju, app_name=APP_NAME, unit_num=2)
     assert check_tls(
         ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client
     )
 
 
-@pytest.mark.abort_on_fail
-async def test_mtls_broken(ops_test: OpsTest, kafka_apps):
+def test_mtls_broken(juju: jubilant.Juju, kafka_apps):
     # remove client relation and check connection
-    await ops_test.model.applications[APP_NAME].remove_relation(
-        f"{APP_NAME}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_PRODUCER}"
+    juju.remove_relation(f"{APP_NAME}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_PRODUCER}")
+
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps),
+        delay=3,
+        successes=20,
+        timeout=900,
     )
-    await ops_test.model.wait_for_idle(apps=kafka_apps, idle_period=60, status="active")
-    for unit_num in range(len(ops_test.model.applications[APP_NAME].units)):
-        kafka_address = await get_address(ops_test=ops_test, app_name=APP_NAME, unit_num=unit_num)
+
+    for unit in juju.status().apps[APP_NAME].units:
+        unit_num = int(unit.split("/")[1])
+        kafka_address = get_address(juju=juju, app_name=APP_NAME, unit_num=unit_num)
         assert not check_tls(
             ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client
         )
         assert not check_tls(ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SSL", "SSL"].client)
 
 
-@pytest.mark.abort_on_fail
-async def test_tls_removed(ops_test: OpsTest, kafka_apps):
-    await ops_test.model.remove_application(TLS_NAME, block_until_done=True)
-    await ops_test.model.wait_for_idle(
-        apps=kafka_apps, timeout=3600, idle_period=30, status="active", raise_on_error=False
+def test_tls_removed(juju: jubilant.Juju, kafka_apps):
+    juju.remove_application(TLS_NAME)
+    time.sleep(60)
+
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps),
+        delay=3,
+        successes=10,
+        timeout=3600,
     )
 
-    kafka_address = await get_address(ops_test=ops_test, app_name=APP_NAME)
+    kafka_address = get_address(juju=juju, app_name=APP_NAME)
     assert not check_tls(
         ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client
     )
 
     # check proper cleanup of TLS-related files.
-    for unit in ops_test.model.applications[APP_NAME].units:
-        ret, stdout, _ = await ops_test.juju(
-            "ssh", unit.name, "sudo ls /var/snap/charmed-kafka/current/etc/kafka"
-        )
-        assert not ret
+    for unit in juju.status().apps[APP_NAME].units:
+        stdout = juju.cli("ssh", unit, "sudo ls /var/snap/charmed-kafka/current/etc/kafka")
         file_extensions = {
             f.split(".")[-1] for f in stdout.split() if f and f.startswith("client-")
         }
-        logging.info(f"CLIENT TLS: {', '.join(file_extensions)} files found on {unit.name}")
+        logging.info(f"CLIENT TLS: {', '.join(file_extensions)} files found on {unit}")
         assert not {"pem", "key", "p12", "jks"} & file_extensions
 
         # peer TLS artifacts should remain intact.
         file_extensions = {f.split(".")[-1] for f in stdout.split() if f and f.startswith("peer-")}
-        logging.info(f"PEER TLS: {', '.join(file_extensions)} files found on {unit.name}")
+        logging.info(f"PEER TLS: {', '.join(file_extensions)} files found on {unit}")
         assert {"pem", "key", "p12", "jks"} & file_extensions
 
 
-@pytest.mark.abort_on_fail
-async def test_manual_tls_chain(ops_test: OpsTest, kafka_apps):
-    await ops_test.model.deploy(MANUAL_TLS_NAME)
+def test_manual_tls_chain(juju: jubilant.Juju, kafka_apps):
+    juju.deploy(MANUAL_TLS_NAME)
 
-    await ops_test.model.add_relation(f"{APP_NAME}:{TLS_RELATION}", MANUAL_TLS_NAME)
+    juju.integrate(f"{APP_NAME}:{TLS_RELATION}", MANUAL_TLS_NAME)
 
     # ensuring enough time for multiple rolling-restart with update-status
-    async with ops_test.fast_forward(fast_interval="30s"):
-        await asyncio.sleep(180)
+    time.sleep(180)
 
-    async with ops_test.fast_forward(fast_interval="60s"):
-        await ops_test.model.wait_for_idle(
-            apps=[*kafka_apps, MANUAL_TLS_NAME],
-            idle_period=30,
-            timeout=1000,
-            raise_on_error=False,
-        )
+    juju.wait(
+        lambda status: jubilant.all_agents_idle(status, *kafka_apps, MANUAL_TLS_NAME),
+        delay=3,
+        successes=10,
+        timeout=1000,
+    )
 
-    sign_manual_certs(ops_test.model_full_name)
+    sign_manual_certs(juju.model)
 
     # verifying brokers + servers can communicate with one-another
-    await ops_test.model.wait_for_idle(
-        apps=[*kafka_apps, MANUAL_TLS_NAME],
-        idle_period=30,
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps, MANUAL_TLS_NAME),
+        delay=3,
+        successes=10,
         timeout=1000,
-        raise_on_error=False,
-        status="active",
     )
 
     # verifying the chain is in there
-    trusted_aliases = await list_truststore_aliases(ops_test)
+    trusted_aliases = list_truststore_aliases(juju)
 
     assert len(trusted_aliases) == 3  # cert, intermediate, rootca
 
     # verifying TLS is enabled and working
-    kafka_address = await get_address(ops_test=ops_test, app_name=APP_NAME)
+    kafka_address = get_address(juju=juju, app_name=APP_NAME)
     assert check_tls(
         ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].internal
     )

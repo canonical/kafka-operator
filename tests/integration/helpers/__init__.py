@@ -19,9 +19,13 @@ CONTROLLER_NAME = "controller"
 DUMMY_NAME = "app"
 REL_NAME_ADMIN = "kafka-client-admin"
 REL_NAME_PRODUCER = "kafka-client-producer"
-AUTH_SECRET_CONFIG_KEY = "system-users"
 TEST_DEFAULT_MESSAGES = 15
-TEST_SECRET_NAME = "auth"
+
+AUTH_SECRET_NAME = "auth"
+AUTH_SECRET_CONFIG_KEY = "system-users"
+
+TLS_SECRET_NAME = "tls-pk"
+TLS_SECRET_CONFIG_KEY = "tls-private-key"
 
 
 KRaftMode = Literal["single", "multi"]

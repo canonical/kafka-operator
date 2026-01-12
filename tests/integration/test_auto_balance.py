@@ -2,7 +2,6 @@ import logging
 import time
 
 import jubilant
-import pytest
 
 from integration.ha.continuous_writes import ContinuousWrites
 from integration.helpers import (
@@ -46,8 +45,6 @@ def _assert_partitions_rebalanced(model: str, num_brokers: int, timeout: int = 1
     raise TimeoutError(f"Partition rebalance assertion failed after {timeout} seconds")
 
 
-@pytest.mark.skip_if_deployed
-@pytest.mark.abort_on_fail
 def test_build_and_deploy(
     juju: jubilant.Juju,
     kafka_charm,

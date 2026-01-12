@@ -11,6 +11,9 @@ import jubilant
 import pytest
 
 from integration.ha.continuous_writes import ContinuousWrites
+from integration.helpers import (
+    APP_NAME,
+)
 from integration.helpers.ha import (
     RESTART_DELAY,
     assert_all_brokers_up,
@@ -19,9 +22,6 @@ from integration.helpers.ha import (
     patch_restart_delay,
     remove_restart_delay,
     reset_kafka_service,
-)
-from integration.helpers.pytest_operator import (
-    APP_NAME,
 )
 
 logger = logging.getLogger(__name__)

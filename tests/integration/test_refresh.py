@@ -26,7 +26,6 @@ logger = logging.getLogger(__name__)
 pytestmark = pytest.mark.broker
 
 
-@pytest.mark.abort_on_fail
 def test_in_place_upgrade(juju: jubilant.Juju, kafka_charm, app_charm, kraft_mode, controller_app):
     deploy_cluster(juju=juju, charm=kafka_charm, kraft_mode=kraft_mode, num_broker=3)
     juju.deploy(app_charm, app=DUMMY_NAME, num_units=1, base=BASE)
@@ -95,7 +94,6 @@ def test_in_place_upgrade(juju: jubilant.Juju, kafka_charm, app_charm, kraft_mod
     )
 
 
-@pytest.mark.abort_on_fail
 def test_controller_upgrade_multinode(
     juju: jubilant.Juju, kafka_charm, kraft_mode, controller_app
 ):
