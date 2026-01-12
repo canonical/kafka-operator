@@ -503,7 +503,9 @@ def test_set_environment(ctx: Context, base_state: State) -> None:
         assert "/etc/environment" == call.kwargs.get("path", "")
 
 
-@pytest.mark.skip(reason="In Juju 4 we always use RelationState.ip and the private-address doesn't exist.")
+@pytest.mark.skip(
+    reason="In Juju 4 we always use RelationState.ip and the private-address doesn't exist."
+)
 def test_bootstrap_server(ctx: Context, base_state: State) -> None:
     """Checks the bootstrap-server property setting."""
     # Given
