@@ -154,7 +154,7 @@ def test_listeners_in_server_properties(charm_configuration: dict, base_state: S
         KafkaCharm, meta=METADATA, config=charm_configuration, actions=ACTIONS, unit_id=0
     )
 
-    host = "treebeard" if SUBSTRATE == "vm" else "kafka-k8s-0.kafka-k8s-endpoints"
+    host = "10.5.5.5" if SUBSTRATE == "vm" else "kafka-k8s-0.kafka-k8s-endpoints"
     sasl_pm = "SASL_PLAINTEXT_SCRAM_SHA_512"
     ssl_pm = "SASL_SSL_SCRAM_SHA_512"
 
@@ -335,7 +335,7 @@ def test_oauth_client_listeners_in_server_properties(ctx: Context, base_state: S
         base_state, relations=[cluster_peer, oauth_relation, client_relation]
     )
 
-    host = "treebeard" if SUBSTRATE == "vm" else "kafka-k8s-0.kafka-k8s-endpoints"
+    host = "10.5.5.5" if SUBSTRATE == "vm" else "kafka-k8s-0.kafka-k8s-endpoints"
     internal_protocol, internal_port = "INTERNAL_SASL_SSL_SCRAM_SHA_512", "19093"
     scram_client_protocol, scram_client_port = "CLIENT_SASL_PLAINTEXT_SCRAM_SHA_512", "9092"
     oauth_client_protocol, oauth_client_port = "CLIENT_SASL_PLAINTEXT_OAUTHBEARER", "9095"
@@ -383,7 +383,7 @@ def test_ssl_listeners_in_server_properties(ctx: Context, base_state: State, pat
         base_state, relations=[cluster_peer, client_relation, client_ii_relation, tls_relation]
     )
 
-    host = "treebeard" if SUBSTRATE == "vm" else "kafka-k8s-0.kafka-k8s-endpoints"
+    host = "10.5.5.5" if SUBSTRATE == "vm" else "kafka-k8s-0.kafka-k8s-endpoints"
     sasl_pm = "SASL_SSL_SCRAM_SHA_512"
     ssl_pm = "SSL_SSL"
     expected_listeners = f"listeners=INTERNAL_{sasl_pm}://0.0.0.0:19093,CLIENT_{sasl_pm}://0.0.0.0:9093,CLIENT_{ssl_pm}://0.0.0.0:9094"
@@ -503,6 +503,7 @@ def test_set_environment(ctx: Context, base_state: State) -> None:
         assert "/etc/environment" == call.kwargs.get("path", "")
 
 
+@pytest.mark.skip(reason="In Juju 4 we always use RelationState.ip and the private-address doesn't exist.")
 def test_bootstrap_server(ctx: Context, base_state: State) -> None:
     """Checks the bootstrap-server property setting."""
     # Given
