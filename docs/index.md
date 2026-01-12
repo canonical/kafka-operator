@@ -16,12 +16,12 @@ The charm helps ops teams and administrators automate Apache Kafka operations fr
 
 |                    |                                                                     |
 |--------------------|---------------------------------------------------------------------|
-| **Tutorial** | [Introduction](tutorial-introduction) 🞄 [Step 1: Environment setup](tutorial-environment) |
-| **Deployment** | [Main deployment guide](how-to-deploy-index) 🞄 [AWS](how-to-deploy-deploy-on-aws) 🞄  [Azure](how-to-deploy-deploy-on-azure) 🞄 [KRaft mode](how-to-deploy-kraft-mode) 🞄 [Apache ZooKeeper configuration](explanation-cluster-configuration)  🞄  [Requirements](reference-requirements) |
-| **Operations** | [Application management](how-to-manage-applications) 🞄 [Unit management](how-to-manage-units) 🞄 [Monitoring](how-to-monitoring) 🞄 [Snap entrypoints](reference-snap-entrypoints) 🞄 [File system paths](reference-file-system-paths) 🞄 [Broker listeners](reference-broker-listeners) 🞄 [Status reference](reference-statuses) 🞄 [Performance overview](reference-performance-tuning) 🞄 [Troubleshooting](troubleshooting) |
-| **Maintenance** | [Version upgrade](how-to-upgrade) 🞄 [Migration](how-to-cluster-replication-migrate-a-cluster) 🞄 [Replication](how-to-cluster-replication-cluster-replication) 🞄 [MirrorMaker](explanation-mirrormaker2-0)  🞄 [Backups](how-to-back-up-and-restore) |
-| **Security** | [Overview](explanation-security) 🞄 [Enable encryption](how-to-enable-encryption) 🞄 [OAuth](how-to-enable-oauth-through-hydra) 🞄 [mTLS](how-to-create-mtls-client-credentials) 🞄 [Cryptography](explanation-cryptography) |
-| **Extensions** | [Kafka Connect](how-to-use-kafka-connect-for-etl-workloads) 🞄 [Schema registry](how-to-manage-message-schemas) |
+| **Tutorial** | [Introduction](tutorial-introduction) • [Step 1: Environment setup](tutorial-environment) |
+| **Deployment** | [Main deployment guide](how-to-deploy-index) • [AWS](how-to-deploy-deploy-on-aws) •  [Azure](how-to-deploy-deploy-on-azure) • [KRaft mode](how-to-deploy-kraft-mode) • [Apache ZooKeeper configuration](explanation-cluster-configuration)  •  [Requirements](reference-requirements) |
+| **Operations** | [Application management](how-to-manage-applications) • [Unit management](how-to-manage-units) • [Monitoring](how-to-monitoring) • [Snap entrypoints](reference-snap-entrypoints) • [File system paths](reference-file-system-paths) • [Broker listeners](reference-broker-listeners) • [Status reference](reference-statuses) • [Performance overview](reference-performance-tuning) • [Troubleshooting](troubleshooting) |
+| **Maintenance** | [Version upgrade](how-to-upgrade) • [Migration](how-to-cluster-replication-migrate-a-cluster) • [Replication](how-to-cluster-replication-cluster-replication) • [MirrorMaker](explanation-mirrormaker2-0)  • [Backups](how-to-back-up-and-restore) |
+| **Security** | [Overview](explanation-security) • [Enable encryption](how-to-enable-encryption) • [OAuth](how-to-enable-oauth-through-hydra) • [mTLS](how-to-create-mtls-client-credentials) • [Cryptography](explanation-cryptography) |
+| **Extensions** | [Kafka Connect](how-to-use-kafka-connect-for-etl-workloads) • [Schema registry](how-to-manage-message-schemas) |
 
 ## How the documentation is organised
 
