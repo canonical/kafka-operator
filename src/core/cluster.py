@@ -6,7 +6,6 @@
 
 import json
 import logging
-import os
 from functools import cached_property
 from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, Any
@@ -53,6 +52,8 @@ from literals import (
     REL_NAME,
     SECRETS_UNIT,
     SECURITY_PROTOCOL_PORTS,
+    TMP_DATA_PATH,
+    TMP_METADATA_PATH,
     AuthMap,
     Status,
     Substrates,
@@ -440,9 +441,7 @@ class ClusterState(Object):
         Returns:
             String of log.dirs property value to be set
         """
-        return ",".join(
-            [os.fspath(storage.location / "log") for storage in self.model.storages["data"]]
-        )
+        return TMP_DATA_PATH
 
     @property
     def metadata_log_dir(self) -> str:
@@ -451,7 +450,7 @@ class ClusterState(Object):
         Returns:
             String of metadata.log.dir property value to be set
         """
-        return f"{self.log_dirs.split(',')[0].rstrip('/log')}/metadata"
+        return TMP_METADATA_PATH
 
     @property
     def planned_units(self) -> int:
