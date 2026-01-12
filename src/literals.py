@@ -3,6 +3,7 @@
 # See LICENSE file for licensing details.
 
 """Collection of globals common to the KafkaCharm."""
+
 from dataclasses import dataclass
 from enum import Enum
 from typing import Literal, NamedTuple
@@ -141,6 +142,9 @@ PATHS = {
         "BIN": f"/snap/{SNAP_NAME}/current/opt/cruise-control",
     },
 }
+
+TMP_DATA_PATH = f'{PATHS["kafka"]["DATA"]}/tmp_data'
+TMP_METADATA_PATH = f'{PATHS["kafka"]["DATA"]}/tmp_metadata'
 
 
 @dataclass

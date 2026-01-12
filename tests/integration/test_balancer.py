@@ -15,6 +15,7 @@ from integration.helpers.jubilant import (
     APP_NAME,
     BASE,
     CONTROLLER_NAME,
+    add_ssh_keys,
     all_active_idle,
     balancer_exporter_is_up,
     balancer_is_ready,
@@ -90,6 +91,7 @@ class TestBalancer:
         )
 
         # ensuring update-status fires
+        add_ssh_keys(juju)
         juju.cli("model-config", "update-status-hook-interval=60s")
         time.sleep(90)
 

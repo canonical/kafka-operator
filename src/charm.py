@@ -5,6 +5,7 @@
 """Charmed Machine Operator for Apache Kafka."""
 
 import logging
+import os
 
 import charm_refresh
 import ops
@@ -36,6 +37,8 @@ from literals import (
     METRICS_RULES_DIR,
     OS_REQUIREMENTS,
     SUBSTRATE,
+    TMP_DATA_PATH,
+    TMP_METADATA_PATH,
     DebugLevel,
     Status,
 )
@@ -116,6 +119,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         if not self.workload.install():
             self._set_status(Status.SNAP_NOT_INSTALLED)
             return
+
+        for path in (TMP_DATA_PATH, TMP_METADATA_PATH):
+            os.makedirs(path, exist_ok=True)
 
         self._set_os_config()
 

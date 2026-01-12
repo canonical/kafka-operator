@@ -4,6 +4,7 @@
 
 import json
 import logging
+import os
 import re
 import socket
 from contextlib import closing
@@ -52,6 +53,16 @@ BASE = "ubuntu@24.04"
 def all_active_idle(status: jubilant.Status, *apps: str):
     """Helper function for jubilant all units active|idle checks."""
     return jubilant.all_agents_idle(status, *apps) and jubilant.all_active(status, *apps)
+
+
+def add_ssh_keys(juju: jubilant.Juju) -> None:
+    """Create (if not already existing) and add SSH keys of the host to Juju. Required in Juju 4."""
+    pub_key_path = os.path.expanduser("~/.ssh/id_rsa.pub")
+    if not os.path.exists(pub_key_path):
+        os.system(f'ssh-keygen -t rsa -b 4096 -f {pub_key_path.rstrip(".pub")} -q -N ""')
+
+    pub_key = open(pub_key_path, "r").read()
+    juju.add_ssh_key(pub_key)
 
 
 def deploy_cluster(
@@ -129,6 +140,8 @@ def deploy_cluster(
         successes=10,
         timeout=1800,
     )
+
+    add_ssh_keys(juju)
 
 
 def get_unit_ipv4_address(model_full_name: str | None, unit_name: str) -> str | None:
