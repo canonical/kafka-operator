@@ -10,7 +10,7 @@ To deploy Charmed Apache Kafka, all you need to do is run the following commands
 For example, to deploy a cluster of three Apache Kafka brokers, you can simply run:
 
 ```shell
-juju deploy kafka -n 3 --channel 4/edge --roles=broker
+juju deploy kafka -n 3 --channel 4/edge --config roles=broker
 ```
 
 Apache Kafka also uses the KRaft consensus protocol for coordinating broker information, topic + partition metadata and Access Control Lists (ACLs), ran as a quorum of controller nodes using the Raft consensus algorithm.
@@ -24,7 +24,7 @@ Charmed Apache Kafka can run both with `roles=broker` and/or `roles=controller`.
 To deploy a cluster of three KRaft controllers, run:
 
 ```shell
-juju deploy kafka -n 3 --channel 4/edge --roles=controller kraft
+juju deploy kafka -n 3 --channel 4/edge --config roles=controller kraft
 ```
 
 After this, it is necessary to connect the two clusters, taking care to specify which cluster is the orchestrator:
@@ -46,7 +46,7 @@ Wait until the application is ready - when it is ready, `watch -n 1 --color juju
 
 ```shell
 Model     Controller        Cloud/Region         Version  SLA          Timestamp
-tutorial  overlord          localhost/localhost  3.6.8    unsupported  15:53:00Z
+tutorial  overlord          localhost/localhost  3.6.12   unsupported  15:53:00Z
 
 App    Version  Status  Scale  Charm  Channel  Rev  Exposed  Message
 kafka  4.0.0    active      3  kafka  4/edge   226  no       

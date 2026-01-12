@@ -33,7 +33,7 @@ lxc network set lxdbr0 ipv6.address none
 
 You can list all LXD containers by entering the command `lxc list` into the command line. However, at this point of the tutorial, none should exist and you'll only see this as output:
 
-```
+```text
 +------+-------+------+------+------+-----------+
 | NAME | STATE | IPV4 | IPV6 | TYPE | SNAPSHOTS |
 +------+-------+------+------+------+-----------+
@@ -55,7 +55,7 @@ juju bootstrap localhost overlord
 
 The Juju controller exists within an LXD container. You can verify this by entering the command `lxc list` and you should see the following:
 
-```
+```text
 +---------------+---------+-----------------------+------+-----------+-----------+
 |     NAME      |  STATE  |         IPV4          | IPV6 |   TYPE    | SNAPSHOTS |
 +---------------+---------+-----------------------+------+-----------+-----------+
@@ -73,9 +73,9 @@ juju add-model tutorial
 
 You can now view the model you created above by entering the command `juju status` into the command line. You should see the following:
 
-```
-Model    Controller  Cloud/Region         Version  SLA          Timestamp
-tutorial overlord    localhost/localhost  3.6.8    unsupported  23:20:53Z
+```text
+Model     Controller  Cloud/Region         Version  SLA          Timestamp
+tutorial  overlord    localhost/localhost  3.6.12   unsupported  11:29:27Z
 
 Model "admin/tutorial" is empty.
 ```
