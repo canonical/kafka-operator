@@ -18,7 +18,7 @@ Apache Kafka also uses the KRaft consensus protocol for coordinating broker info
 ```{note}
 KRaft replaces the dependency on Apache ZooKeeper for metadata management.
 For more information on the differences between the two solutions, please refer to the
-[upstream Apache Kafka documentation](https://kafka.apache.org/40/getting-started/zk2kraft/).
+[upstream Apache Kafka documentation](https://kafka.apache.org/41/getting-started/zk2kraft/).
 ```
 
 Charmed Apache Kafka can run both with `roles=broker` and/or `roles=controller`. With this configuration option, the charm can be deployed either as a single application running both Apache Kafka brokers and KRaft controllers, or as multiple applications with a separate controller cluster and broker cluster.
