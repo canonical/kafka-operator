@@ -91,7 +91,7 @@ jobs:
         uses: charmed-kubernetes/actions-operator@main
         with:
           provider: lxd
-          juju-channel: 4.0/stable
+          juju-channel: 4.1/edge
       - name: Download packed charm(s)
         uses: actions/download-artifact@v4
         with:
@@ -151,7 +151,7 @@ jobs:
         uses: charmed-kubernetes/actions-operator@main
         with:
           provider: lxd
-          juju-channel: 4.0/stable
+          juju-channel: 4.1/edge
       - name: Download packed charm(s)
         uses: actions/download-artifact@v4
         with:
