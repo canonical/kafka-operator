@@ -1,12 +1,15 @@
 (tutorial-introduction)=
+
 ```{include} introduction.md
 
 ```
 
 (tutorial-index)=
+
 ## Step-by-step guide
 
-Here’s an overview of the steps required with links to our separate tutorials that deal with each individual step:
+Here’s an overview of the steps required with links to our separate tutorials that deal with each
+individual step:
 
 - [Set up the environment](tutorial-environment)
 - [Deploy Charmed Apache Kafka](tutorial-deploy)
@@ -18,10 +21,11 @@ Here’s an overview of the steps required with links to our separate tutorials 
 - [Cleanup your environment](tutorial-cleanup)
 
 ```{toctree}
-:titlesonly:
-:maxdepth: 2
-:hidden:
-
+---
+titlesonly:
+maxdepth: 2
+hidden:
+---
 1. Set up the environment<environment.md>
 2. Deploy Apache Kafka<deploy.md>
 3. Integrate with client apps<integrate-with-client-applications.md>

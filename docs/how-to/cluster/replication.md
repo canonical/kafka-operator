@@ -1,7 +1,9 @@
 (how-to-cluster-replication)=
+
 # Set up replication between charmed clusters
 
-This How-To will cover how to set up cluster replication using MirrorMaker through [Kafka Connect](https://kafka.apache.org/documentation/#connect).
+This How-To will cover how to set up cluster replication using MirrorMaker through
+[Kafka Connect](https://kafka.apache.org/documentation/#connect).
 
 ```{note}
 For a brief explanation of how MirrorMaker works, see the [MirrorMaker explanation](explanation-mirrormaker2-0) page.
@@ -28,10 +30,12 @@ For guidance on how to set up Charmed Apache Kafka, please refer to the followin
 
 ## Set up active-passive replication
 
-The [MirrorMaker integrator charm](https://charmhub.io/mirrormaker-connect-integrator) manages tasks on a Charmed Kafka Connect cluster that replicates data from an active Apache Kafka cluster to a passive cluster.
+The [MirrorMaker integrator charm](https://charmhub.io/mirrormaker-connect-integrator) manages tasks
+on a Charmed Kafka Connect cluster that replicates data from an active Apache Kafka cluster to a
+passive cluster.
 
-Check the status of deployed applications by running `juju status` command.
-The result should be similar to:
+Check the status of deployed applications by running `juju status` command. The result should be
+similar to:
 
 ```text
 Model  Controller  Cloud/Region         Version  SLA          Timestamp
@@ -104,26 +108,32 @@ If the active Kafka cluster is idle, this is expected.
 The task status will change to `RUNNING` once the replication tasks are created and started.
 ```
 
-With this, the deployment is complete. The Charmed Kafka Connect cluster will now start tasks to replicate data from the active cluster to the passive cluster.
+With this, the deployment is complete. The Charmed Kafka Connect cluster will now start tasks to
+replicate data from the active cluster to the passive cluster.
 
 ## Set up active-active replication
 
-MirrorMaker allows for a deployment where both clusters are active. This means that data can be replicated from both clusters to each other. This is done by creating a MirrorMaker connector for each cluster. Two flows are needed in this scenario, one from cluster A to cluster B and one from cluster B to cluster A.
+MirrorMaker allows for a deployment where both clusters are active. This means that data can be
+replicated from both clusters to each other. This is done by creating a MirrorMaker connector for
+each cluster. Two flows are needed in this scenario, one from cluster A to cluster B and one from
+cluster B to cluster A.
 
-In essence, it is equivalent to do two active-passive deployments, one for each direction. 
+In essence, it is equivalent to do two active-passive deployments, one for each direction.
 
 We recommend having two Kafka Connect deployments ready, one on each end of the replication.
 
 ### Deployment
 
-To ensure that the topics are prefixed with the cluster name and do not collide with each other, deploy two different MirrorMaker integrators with the configuration option `prefix_topics=true`:
+To ensure that the topics are prefixed with the cluster name and do not collide with each other,
+deploy two different MirrorMaker integrators with the configuration option `prefix_topics=true`:
 
 ```bash
 juju deploy mirrormaker-connect-integrator --config prefix_topics=true mirrormaker-a-b
 juju deploy mirrormaker-connect-integrator --config prefix_topics=true mirrormaker-b-a
 ```
 
-Check the status of deployed applications by running `juju status` command. The result should be similar to:
+Check the status of deployed applications by running `juju status` command. The result should be
+similar to:
 
 ```text
 Model  Controller  Cloud/Region         Version  SLA          Timestamp
@@ -162,5 +172,7 @@ juju integrate mirrormaker-b-a:source kafka-b
 juju integrate mirrormaker-b-a:target kafka-a
 ```
 
-With this, the deployment is complete. There will be two bi-directional replication flows between `kafka-a` and `kafka-b`. The topics will be prefixed with the cluster name, so that they do not collide with each other.
-For example, a topic called `demo` created on `kafka-a` will be replicated as a new topic on `kafka-b` named `kafka-a.replica.demo`, and vice versa.
+With this, the deployment is complete. There will be two bi-directional replication flows between
+`kafka-a` and `kafka-b`. The topics will be prefixed with the cluster name, so that they do not
+collide with each other. For example, a topic called `demo` created on `kafka-a` will be replicated
+as a new topic on `kafka-b` named `kafka-a.replica.demo`, and vice versa.

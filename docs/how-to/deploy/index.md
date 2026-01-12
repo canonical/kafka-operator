@@ -5,10 +5,11 @@
 ```
 
 ```{toctree}
-:titlesonly:
-:maxdepth: 2
-:hidden:
-
+---
+titlesonly:
+maxdepth: 2
+hidden:
+---
 AWS<deploy-aws.md>
 Azure<deploy-azure.md>
 Spaces<deploy-spaces.md>
