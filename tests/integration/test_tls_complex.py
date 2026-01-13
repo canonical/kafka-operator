@@ -9,6 +9,8 @@ from integration.helpers import (
     CONTROLLER_NAME,
     DUMMY_NAME,
     REL_NAME_ADMIN,
+    TLS_CHANNEL,
+    TLS_NAME,
     sign_manual_certs,
 )
 from integration.helpers.ha import (
@@ -27,8 +29,8 @@ from literals import INTERNAL_TLS_RELATION, SECURITY_PROTOCOL_PORTS, TLS_RELATIO
 logger = logging.getLogger(__name__)
 
 
-TLS_NAME = "self-signed-certificates"
 MANUAL_TLS_NAME = "manual-tls-certificates"
+MANUAL_TLS_CHANNEL = "1/stable"
 
 TLS_APP_CLIENT = "ca"
 TLS_APP_BROKER = "ca-two"
@@ -54,8 +56,8 @@ def test_build_and_deploy(
         num_controller=3,
     )
     juju.deploy(app_charm, app=DUMMY_NAME, num_units=1, base=BASE)
-    juju.deploy(TLS_NAME, app=TLS_APP_CLIENT, to="0")
-    juju.deploy(MANUAL_TLS_NAME, app=TLS_APP_BROKER, to="1", channel="1/stable")
+    juju.deploy(TLS_NAME, app=TLS_APP_CLIENT, to="0", channel=TLS_CHANNEL)
+    juju.deploy(MANUAL_TLS_NAME, app=TLS_APP_BROKER, to="1", channel=MANUAL_TLS_CHANNEL)
     juju.deploy(TLS_NAME, app=TLS_APP_CONTROLLER, to="2")
 
     juju.wait(
