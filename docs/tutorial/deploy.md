@@ -7,19 +7,43 @@ This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
 To deploy Charmed Apache Kafka, all you need to do is run the following commands, which will automatically fetch [Apache Kafka](https://charmhub.io/kafka?channel=4/edge) from [Charmhub](https://charmhub.io/) and deploy it to your model.
 
-For example, to deploy a cluster of three Apache Kafka brokers, you can simply run:
+Charmed Apache Kafka can run both with `roles=broker` and/or `roles=controller`. With this configuration option, the charm can be deployed either as a single application running both Apache Kafka brokers and KRaft controllers, or as multiple applications with a separate controller cluster and broker cluster.
+
+For this tutorial, we will deploy brokers separately.
+To deploy a cluster of three Apache Kafka brokers:
 
 ```shell
 juju deploy kafka -n 3 --channel 4/edge --config roles=broker
 ```
 
-Apache Kafka also uses the KRaft consensus protocol for coordinating broker information, topic + partition metadata and Access Control Lists (ACLs), ran as a quorum of controller nodes using the Raft consensus algorithm.
+Now check the Juju model status:
 
-```{note}
-KRaft replaces the dependency on Apache ZooKeeper for metadata management. For more information on the differences between the two solutions, please refer to the [upstream Apache Kafka documentation](https://kafka.apache.org/40/documentation/zk2kraft.html)
+```shell
+juju status
 ```
 
-Charmed Apache Kafka can run both with `roles=broker` and/or `roles=controller`. With this configuration option, the charm can be deployed either as a single application running both Apache Kafka brokers and KRaft controllers, or as multiple applications with a separate controller cluster and broker cluster.
+````{warning}
+If you encounter the following error message: 
+
+```text
+cannot get available image metadata: failed getting published images metadata from default ubuntu cloud images: cannot read index data, attempt count exceeded: cannot access URL "http://cloud-images.ubuntu.com/releases/streams/v1/index.sjson"`
+```
+
+Force Juju to use HTTPS (and stop using the default HTTP sources):
+
+```shell
+juju model-config \
+  container-image-metadata-defaults-disabled=true \
+  container-image-metadata-url=https://cloud-images.ubuntu.com/releases/ \
+  image-metadata-defaults-disabled=true \
+  image-metadata-url=https://cloud-images.ubuntu.com/releases/
+
+juju retry-provisioning --all
+```
+
+````
+
+Apache Kafka also uses the KRaft consensus protocol for coordinating broker information, topic + partition metadata and Access Control Lists (ACLs), ran as a quorum of controller nodes using the Raft consensus algorithm. KRaft replaces the dependency on Apache ZooKeeper for metadata management. For more information on the differences between the two solutions, please refer to the [upstream Apache Kafka documentation](https://kafka.apache.org/40/documentation/zk2kraft.html)
 
 To deploy a cluster of three KRaft controllers, run:
 
@@ -45,31 +69,31 @@ The command updates the status of the cluster every second and as the applicatio
 Wait until the application is ready - when it is ready, `watch -n 1 --color juju status --color` will show:
 
 ```shell
-Model     Controller        Cloud/Region         Version  SLA          Timestamp
-tutorial  overlord          localhost/localhost  3.6.12   unsupported  15:53:00Z
+Model     Controller  Cloud/Region         Version  SLA          Timestamp
+tutorial  overlord    localhost/localhost  3.6.12   unsupported  00:49:46Z
 
 App    Version  Status  Scale  Charm  Channel  Rev  Exposed  Message
-kafka  4.0.0    active      3  kafka  4/edge   226  no       
-kraft  4.0.0    active      3  kafka  4/edge   226  no       
+kafka  4.0.0    active      3  kafka  4/edge   244  no       
+kraft  4.0.0    active      3  kafka  4/edge   244  no       
 
 Unit      Workload  Agent  Machine  Public address  Ports      Message
-kafka/0*  active    idle   0        10.233.204.241  19093/tcp  
-kafka/1   active    idle   1        10.233.204.196  19093/tcp  
-kafka/2   active    idle   2        10.233.204.148  19093/tcp  
-kraft/0   active    idle   3        10.233.204.125  9098/tcp   
-kraft/1*  active    idle   4        10.233.204.36   9098/tcp   
-kraft/2   active    idle   5        10.233.204.225  9098/tcp   
+kafka/0*  active    idle   0        10.160.139.193  19093/tcp  
+kafka/1   active    idle   1        10.160.139.127  19093/tcp  
+kafka/2   active    idle   2        10.160.139.2    19093/tcp  
+kraft/0*  active    idle   3        10.160.139.44   9098/tcp   
+kraft/1   active    idle   4        10.160.139.126  9098/tcp   
+kraft/2   active    idle   5        10.160.139.170  9098/tcp   
 
-Machine  State    Address         Inst id        Base          AZ  Message
-0        started  10.233.204.241  juju-07a730-0  ubuntu@24.04      Running
-1        started  10.233.204.196  juju-07a730-1  ubuntu@24.04      Running
-2        started  10.233.204.148  juju-07a730-2  ubuntu@24.04      Running
-3        started  10.233.204.125  juju-07a730-3  ubuntu@24.04      Running
-4        started  10.233.204.36   juju-07a730-4  ubuntu@24.04      Running
-5        started  10.233.204.225  juju-07a730-5  ubuntu@24.04      Running
+Machine  State    Address         Inst id        Base          AZ                    Message
+0        started  10.160.139.193  juju-73091a-0  ubuntu@24.04  Lenovo-Fortress-Lin2  Running
+1        started  10.160.139.127  juju-73091a-1  ubuntu@24.04  Lenovo-Fortress-Lin2  Running
+2        started  10.160.139.2    juju-73091a-2  ubuntu@24.04  Lenovo-Fortress-Lin2  Running
+3        started  10.160.139.44   juju-73091a-3  ubuntu@24.04  Lenovo-Fortress-Lin2  Running
+4        started  10.160.139.126  juju-73091a-4  ubuntu@24.04  Lenovo-Fortress-Lin2  Running
+5        started  10.160.139.170  juju-73091a-5  ubuntu@24.04  Lenovo-Fortress-Lin2  Running
 ```
 
-To exit the screen with `watch -n 1 --color juju status --color`, enter `Ctrl+c`.
+To exit the screen, push `Ctrl+C`.
 
 ## Access Apache Kafka brokers
 
@@ -86,28 +110,32 @@ juju show-secret --reveal cluster.kafka.app
 The output of the previous command will look something like this:
 
 ```shell
-d2lj5jgco3bs3dacm2tg:
+d5ipahpdormt02antvpg:
   revision: 1
-  checksum: a6517abdd5e22038bfafe988e6253bb03c0462067b50475789eb6bc658ee0b11
+  checksum: f84bf383e76ddda391543d57a8b76dbef4e95813b820a466fb4815b098bda3b2
   owner: kafka
   label: cluster.kafka.app
-  created: 2025-08-24T15:42:13Z
-  updated: 2025-08-24T15:42:13Z
+  created: 2026-01-13T00:43:58Z
+  updated: 2026-01-13T00:43:58Z
   content:
-    admin-password: dxpex3Uc1sWIBna83gELtJOhAuW2awji
-    sync-password: eqI0RLV1lRSaIIiDKf3yz0W66ajICmDT
     internal-ca: |-
-      <multi-line-certificate>
+      -----BEGIN CERTIFICATE-----
+        ...
+      -----END CERTIFICATE-----
     internal-ca-key: |-
-      <multi-line-private-key>
+      -----BEGIN RSA PRIVATE KEY-----
+        ...
+      -----END RSA PRIVATE KEY-----
+    operator-password: 0g7010iwtBrChk00Ad1pznzaZW0i2Pdt
+    replication-password: tatsvzFV3de4Ce2NEL2HVQWAlSpx7gyv
 ```
 
-The important line here for accessing the Apache Kafka cluster itself is `admin-password`, which tells us that `username=admin` and `password=dxpex3Uc1sWIBna83gELtJOhAuW2awji`. These are the credentials to use to successfully authenticate to the cluster.
+The important line here for accessing the Apache Kafka cluster itself is `operator-password`, which tells us that `username=admin` and `password=0g7010iwtBrChk00Ad1pznzaZW0i2Pdt`. These are the credentials to use to successfully authenticate to the cluster.
 
 For simplicity, the password can also be directly retrieved by parsing the YAML response from the previous command directly using `yq`:
 
 ```shell
-juju show-secret --reveal cluster.kafka.app | yq '.. | ."admin-password"? // empty' | tr -d '"'
+juju show-secret --reveal cluster.kafka.app | yq '.. | ."operator-password"? // ""' | tr -d '"'
 ```
 
 ```{caution}
@@ -119,9 +147,9 @@ We will also need a bootstrap server Apache Kafka broker address and port to ini
 To use `kafka/0` as the `bootstrap-server`, retrieve its IP address and add a port with:
 
 ```shell
-bootstrap_address=$(juju show-unit kafka/0 | yq '.. | ."public-address"? // empty' | tr -d '"')
+bootstrap_address=$(juju show-unit kafka/0 | yq '.. | ."public-address"? // ""' | tr -d '"' | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
 
-export BOOTSTRAP_SERVER=$bootstrap_address:19093
+export BOOTSTRAP_SERVER="${bootstrap_address}:19093"
 ```
 
 where `19093` refers to the available open internal port on the broker unit.
