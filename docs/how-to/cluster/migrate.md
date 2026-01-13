@@ -60,7 +60,7 @@ MirrorMaker needs full `super.user` permissions on **BOTH** clusters. It support
 - `OLD_SASL_USERNAME` -- string of `sasl.jaas.config` property
 
 ```{note}
-For `SSL` or `SASL_SSL` authentication, see the configuration options supported by Kafka Connect in the [Apache Kafka documentation](https://kafka.apache.org/documentation/#connectconfigs).
+For `SSL` or `SASL_SSL` authentication, see the configuration options supported by Kafka Connect in the [Apache Kafka documentation](https://kafka.apache.org/39/configuration/kafka-connect-configs/).
 ```
 
 ## Creating `mm2.properties` file on the Apache Kafka cluster
@@ -166,7 +166,7 @@ admin-group-1   NEW-TOPIC           2          89              90              1
 admin-group-1   NEW-TOPIC           4          103             104             1               kafka-python-2.0.2-a95b3f90-75e9-4a16-b63e-5e021b7344c5 /10.248.204.1   kafka-python-2.0.2
 ```
 
-There is also a [range of different metrics](https://kafka.apache.org/39/documentation.html#georeplication-monitoring) made available by MirrorMaker during the migration. To check the metrics, send a request to the `/metrics` endpoint:
+There is also a [range of different metrics](https://kafka.apache.org/39/operations/geo-replication-cross-cluster-data-mirroring/#monitoring-geo-replication) made available by MirrorMaker during the migration. To check the metrics, send a request to the `/metrics` endpoint:
 
 ```shell
 curl 10.248.204.198:9099/metrics | grep records_count

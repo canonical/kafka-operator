@@ -1,7 +1,7 @@
 (how-to-cluster-replication-cluster-replication)=
 # Set up replication between clusters
 
-This How-To will cover how to set up cluster replication using MirrorMaker through [Kafka Connect](https://kafka.apache.org/documentation/#connect).
+This How-To will cover how to set up cluster replication using MirrorMaker through [Kafka Connect](https://kafka.apache.org/39/kafka-connect/overview/).
 
 ```{note}
 For a brief explanation of how MirrorMaker works, see the [MirrorMaker explanation](explanation-mirrormaker2-0) page.

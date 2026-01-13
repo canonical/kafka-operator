@@ -9,11 +9,11 @@ Under the hood, MirrorMaker uses Kafka Connect source connectors to replicate da
 
 - **MirrorHeartbeatConnector** - periodically checks connectivity between the original and new clusters
 
-Together, they are used for cluster -> cluster replication of topics, consumer groups, topic configuration and ACLs, while preserving partitioning and consumer offsets. For more detail on MirrorMaker internals, consult the [Apache Kafka documentation on replication](https://kafka.apache.org/39/documentation.html#georeplication-overview) and the [MirrorMaker 2.0 KIP](https://cwiki.apache.org/confluence/display/KAFKA/KIP-382%3A+MirrorMaker+2.0). In practice, it enables the one-way syncing of data between two Apache Kafka clusters with minimal impact on the ongoing production service.
+Together, they are used for cluster -> cluster replication of topics, consumer groups, topic configuration and ACLs, while preserving partitioning and consumer offsets. For more detail on MirrorMaker internals, consult the [Apache Kafka documentation on replication](https://kafka.apache.org/39/operations/geo-replication-cross-cluster-data-mirroring/) and the [MirrorMaker 2.0 KIP](https://cwiki.apache.org/confluence/display/KAFKA/KIP-382%3A+MirrorMaker+2.0). In practice, it enables the one-way syncing of data between two Apache Kafka clusters with minimal impact on the ongoing production service.
 
 MirrorMaker runs as a distributed service on the target cluster. It can consume all or a subset of topics, groups, and offsets from the source (called `active`) cluster and replicate them one-way to the target (`passive`) cluster, which may not yet be serving external clients.
 
-In addition to the [MirrorMaker-specific configuration](https://kafka.apache.org/documentation/#mirrormakerconfigs), the MirrorMaker service can also be configured using many of the same settings as [Kafka Connect](https://kafka.apache.org/documentation/#connectconfigs).
+In addition to the [MirrorMaker-specific configuration](https://kafka.apache.org/39/configuration/mirrormaker-configs/), the MirrorMaker service can also be configured using many of the same settings as [Kafka Connect](https://kafka.apache.org/39/configuration/kafka-connect-configs/).
 
 ## Charmed MirrorMaker integrator
 

@@ -14,10 +14,21 @@ The charm helps ops teams and administrators automate Apache Kafka operations fr
 
 ## In this documentation
 
-| | |
-|--|--|
-|  [Tutorial](tutorial-introduction)</br>  Learn how to deploy, configure, and use the charm with our step-by-step guidance. Get started from [step one](tutorial-environment). </br> |  [How-to guides](how-to-index) </br> Practical instructions for key tasks, like [deploy](how-to-deploy-index) on different platforms, [manage](how-to-manage-units) Juju units, [Monitor](how-to-monitoring-enable-monitoring) metrics, [back up and restore](how-to-back-up-and-restore), use [Kafka Connect](how-to-use-kafka-connect-for-etl-workloads). |
-| [Reference](reference-index) </br> Technical information, for example: charm's [actions](https://charmhub.io/kafka/actions?channel=3/edge), [configuration parameters](https://charmhub.io/kafka/configure?channel=3/edge), [libraries](https://charmhub.io/kafka/libraries/kafka_libs?channel=3/edge), [statuses](reference-statuses), as well as [requirements](reference-requirements), and [file system paths](reference-file-system-paths). | [Explanation](explanation-index) </br> Explore and grow your understanding of key topics, such as: [security](explanation-security) and [cryptography](explanation-cryptography), [Apache ZooKeeper](explanation-cluster-configuration) and [MirrorMaker](explanation-mirrormaker2-0) usage. |
+|                    |                                                                     |
+|--------------------|---------------------------------------------------------------------|
+| **Tutorial** | [Introduction](tutorial-introduction) • [Step 1: Environment setup](tutorial-environment) |
+| **Deployment** | [Main deployment guide](how-to-deploy-index) • [AWS](how-to-deploy-deploy-on-aws) •  [Azure](how-to-deploy-deploy-on-azure) • [KRaft mode](how-to-deploy-kraft-mode) • [Apache ZooKeeper configuration](explanation-cluster-configuration)  •  [Requirements](reference-requirements) |
+| **Operations** | [Application management](how-to-manage-applications) • [Unit management](how-to-manage-units) • [Monitoring](how-to-monitoring) • [Snap entrypoints](reference-snap-entrypoints) • [File system paths](reference-file-system-paths) • [Broker listeners](reference-broker-listeners) • [Status reference](reference-statuses) • [Performance overview](reference-performance-tuning) • [Troubleshooting](troubleshooting) |
+| **Maintenance** | [Version upgrade](how-to-upgrade) • [Migration](how-to-cluster-replication-migrate-a-cluster) • [Replication](how-to-cluster-replication-cluster-replication) • [MirrorMaker](explanation-mirrormaker2-0)  • [Backups](how-to-back-up-and-restore) |
+| **Security** | [Overview](explanation-security) • [Enable encryption](how-to-enable-encryption) • [OAuth](how-to-enable-oauth-through-hydra) • [mTLS](how-to-create-mtls-client-credentials) • [Cryptography](explanation-cryptography) |
+| **Extensions** | [Kafka Connect](how-to-use-kafka-connect-for-etl-workloads) • [Schema registry](how-to-manage-message-schemas) |
+
+## How the documentation is organised
+
+[Tutorial](tutorial-introduction): For new users needing to learn how to use Charmed Apache Kafka <br>
+[How-to guides](how-to-index): For users needing step-by-step instructions to achieve a practical goal <br>
+[Reference](reference-index): For precise, theoretical, factual information to be used while working with the charm <br>
+[Explanation](explanation-index): For deeper understanding of key Charmed Apache Kafka concepts <br>
 
 ## Project and community
 
