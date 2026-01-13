@@ -1,11 +1,11 @@
 (tutorial-kafka-connect)=
-# 7. Use Kafka Connect for ETL
+# 6. Use Kafka Connect for ETL
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
 ## Using Kafka Connect for ETL
 
-In this part of the tutorial, we are going to use [Kafka Connect](https://kafka.apache.org/documentation/#connect) - an ETL framework on top of Apache Kafka - to seamlessly move data between different charmed database technologies.
+In this part of the tutorial, we are going to use [Kafka Connect](https://kafka.apache.org/41/kafka-connect/overview/) - an ETL framework on top of Apache Kafka - to seamlessly move data between different charmed database technologies.
 
 We will follow a step-by-step process for moving data between [Canonical Data Platform charms](https://canonical.com/data) using Kafka Connect. Specifically, we will showcase a particular use-case of loading data from a relational database, i.e. PostgreSQL, to a document store and search engine, i.e. OpenSearch, entirely using charmed solutions.
 
@@ -16,7 +16,7 @@ By the end, you should be able to use Kafka Connect integrator and Kafka Connect
 We will be deploying different charmed data solutions including PostgreSQL and OpenSearch. If you require more information or face issues deploying any of the mentioned products, you should consult the respective documentations:
 
 - For PostgreSQL, refer to [Charmed PostgreSQL tutorial](https://canonical-charmed-postgresql.readthedocs-hosted.com/14/tutorial/).
-- For OpenSearch, refer to [Charmed OpenSearch tutorial](https://charmhub.io/opensearch/docs/tutorial).
+- For OpenSearch, refer to [Charmed OpenSearch tutorial](https://canonical-charmed-opensearch.readthedocs-hosted.com/2/tutorial/).
 
 ### Check current deployment
 
@@ -45,7 +45,10 @@ self-signed-certificates/0*  active    idle   7        10.233.204.134
 
 ### Set the necessary kernel properties for OpenSearch
 
-Since we will be deploying the OpenSearch charm, we need to make necessary kernel configurations required for OpenSearch charm to function properly, [described in detail here](https://charmhub.io/opensearch/docs/t-set-up#p-24545-set-kernel-parameters). This basically means running the following commands:
+Since we will be deploying the OpenSearch charm, we need to make necessary kernel configurations
+required for OpenSearch charm to function properly,
+[described in detail here](https://canonical-charmed-opensearch.readthedocs-hosted.com/2/tutorial/1-set-up-the-environment/#set-kernel-parameters).
+This basically means running the following commands:
 
 ```bash
 sudo tee -a /etc/sysctl.conf > /dev/null <<EOT

@@ -1,5 +1,5 @@
 (tutorial-cleanup)=
-# 9. Cleanup your environment
+# 8. Cleanup your environment
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 

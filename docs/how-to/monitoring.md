@@ -1,4 +1,4 @@
-(how-to-set-up-monitoring)=
+(how-to-monitoring)=
 # How to set up monitoring
 
 Charmed Apache Kafka and Charmed Apache ZooKeeper come with the [JMX exporter](https://github.com/prometheus/jmx_exporter/).
