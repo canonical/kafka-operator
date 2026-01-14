@@ -248,13 +248,17 @@ juju remove-relation kafka-test-app kafka
 
 #### Consuming messages
 
-Note that the `kafka-test-app` charm can also similarly be used to consume messages by changing its configuration to:
+The `kafka-test-app` charm can be used to consume messages by changing its configuration:
 
 ```shell
 juju config kafka-test-app topic_name=TOP-PICK role=consumer consumer_group_prefix=cg
 ```
 
-After configuring the Apache Kafka Test App, just relate it again with the Charmed Apache Kafka. This will again create a new user and start the consumer process. 
+After configuring the Apache Kafka Test App, just relate it again with the Charmed Apache Kafka. This will again create a new user and start the consumer process.
+
+```shell
+juju integrate kafka-test-app kafka
+```
 
 ## What's next?
 
