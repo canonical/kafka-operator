@@ -115,12 +115,16 @@ Make sure that the Python virtual environment libraries are visible:
 export PYTHONPATH="/var/lib/juju/agents/unit-kafka-test-app-0/charm/venv:/var/lib/juju/agents/unit-kafka-test-app-0/charm/lib"
 ```
 
-Once this is set up, you should be able to use the `client.py` script that exposes some functionality to produce and consume messages. 
-You can explore the usage of the script
+Once this is set up, you can use the `client.py` script that exposes some functionality to produce and consume messages.
 
+Let's try that script runs:
 ```shell
 python3 -m charms.kafka.v0.client --help
+```
 
+<details> <summary> Output example</summary>
+
+```text
 usage: client.py [-h] [-t TOPIC] [-u USERNAME] [-p PASSWORD] [-c CONSUMER_GROUP_PREFIX] [-s SERVERS] [-x SECURITY_PROTOCOL] [-n NUM_MESSAGES] [-r REPLICATION_FACTOR] [--num-partitions NUM_PARTITIONS]
                  [--producer] [--consumer] [--cafile-path CAFILE_PATH] [--certfile-path CERTFILE_PATH] [--keyfile-path KEYFILE_PATH] [--mongo-uri MONGO_URI] [--origin ORIGIN]
 
@@ -155,32 +159,36 @@ options:
   --origin ORIGIN
 ```
 
-Using this script, you can therefore start producing messages (change the values of `username`, `password` and `bootstrap-servers` to the ones obtained from the `data-integrator` application in the previous section):
+</details>
+
+Now let's try producing and then consuming some messages.
+Change the values of `username`, `password` and `endpoints` to the ones obtained
+from the `data-integrator` application in the previous section and run the script
+to produce message:
 
 ```shell
 python3 -m charms.kafka.v0.client \
-  -u relation-6 \
-  -p S4IeRaYaiiq0tsM7m2UZuP2mSI573IGV \
+  -u <username> \
+  -p <password> \
   -t test-topic \
-  -s "10.244.26.43:9092,10.244.26.6:9092,10.244.26.19:9092" \
+  -s "<endpoints>" \
   -n 10 \
   -r 3 \
   --num-partitions 1 \
-  --producer \
+  --producer
 ```
 
-Let this run for a few seconds, then halt the process with `Ctrl+c`.
+Let this run for a few seconds, then halt the process by pushing `Ctrl+C`.
 
 Now, consume them with:
 
 ```shell
 python3 -m charms.kafka.v0.client \
-  -u relation-6 \
-  -p S4IeRaYaiiq0tsM7m2UZuP2mSI573IGV \
+  -u <username> \
+  -p <password> \
   -t test-topic \
-  -s "10.244.26.43:9092,10.244.26.6:9092,10.244.26.19:9092" \
-  -c "cg" \
-  --consumer \
+  -s "<endpoints>" \
+  --consumer
 ```
 
 Now you know how to use credentials provided by related charms to successfully read/write data from Charmed Apache Kafka!
