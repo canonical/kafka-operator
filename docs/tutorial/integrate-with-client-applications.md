@@ -26,42 +26,42 @@ Located charm "data-integrator" in charm-hub, revision 11
 Deploying "data-integrator" from charm-hub charm "data-integrator", revision 11 in channel stable on noble
 ```
 
-### Relate to Charmed Apache Kafka
-
-Now that the Database Integrator charm has been set up, we can relate it to Charmed Apache Kafka. This will automatically create a username, password, and database for the Database Integrator charm. Relate the two applications with:
+To automatically create a username, password, and database for the Database Integrator charm,
+relate it to the Charmed Apache Kafka:
 
 ```shell
 juju integrate data-integrator kafka
 ```
 
-Wait for `watch -n 1 --color juju status --color` to show:
+Wait for the status to become `active`/`idle` with the
+`watch -n 1 --color juju status --color` command:
 
 ```shell
-Model     Controller        Cloud/Region         Version  SLA          Timestamp
-tutorial  overlord          localhost/localhost  3.6.8    unsupported  17:00:08Z
+Model     Controller  Cloud/Region         Version  SLA          Timestamp
+tutorial  overlord    localhost/localhost  3.6.12   unsupported  19:46:05Z
 
 App              Version  Status  Scale  Charm            Channel        Rev  Exposed  Message
 data-integrator           active      1  data-integrator  latest/stable  180  no       
-kafka            4.0.0    active      3  kafka            4/edge         226  no       
-kraft            4.0.0    active      3  kafka            4/edge         226  no       
+kafka            4.0.0    active      3  kafka            4/edge         244  no       
+kraft            4.0.0    active      3  kafka            4/edge         244  no       
 
 Unit                Workload  Agent  Machine  Public address  Ports           Message
-data-integrator/0*  active    idle   6        10.233.204.111                  
-kafka/0*            active    idle   0        10.233.204.241  9092,19093/tcp  
-kafka/1             active    idle   1        10.233.204.196  9092,19093/tcp  
-kafka/2             active    idle   2        10.233.204.148  9092,19093/tcp  
-kraft/0             active    idle   3        10.233.204.125  9098/tcp        
-kraft/1*            active    idle   4        10.233.204.36   9098/tcp        
-kraft/2             active    idle   5        10.233.204.225  9098/tcp        
+data-integrator/0*  active    idle   6        10.160.139.97                   
+kafka/0             active    idle   0        10.160.139.193  9092,19093/tcp  
+kafka/1*            active    idle   1        10.160.139.127  9092,19093/tcp  
+kafka/2             active    idle   2        10.160.139.2    9092,19093/tcp  
+kraft/0             active    idle   3        10.160.139.44   9098/tcp        
+kraft/1             active    idle   4        10.160.139.126  9098/tcp        
+kraft/2*            active    idle   5        10.160.139.170  9098/tcp        
 
-Machine  State    Address         Inst id        Base          AZ  Message
-0        started  10.233.204.241  juju-07a730-0  ubuntu@24.04      Running
-1        started  10.233.204.196  juju-07a730-1  ubuntu@24.04      Running
-2        started  10.233.204.148  juju-07a730-2  ubuntu@24.04      Running
-3        started  10.233.204.125  juju-07a730-3  ubuntu@24.04      Running
-4        started  10.233.204.36   juju-07a730-4  ubuntu@24.04      Running
-5        started  10.233.204.225  juju-07a730-5  ubuntu@24.04      Running
-6        started  10.233.204.111  juju-07a730-6  ubuntu@24.04      Running
+Machine  State    Address         Inst id        Base          AZ                    Message
+0        started  10.160.139.193  juju-73091a-0  ubuntu@24.04  Lenovo-Fortress-Lin2  Running
+1        started  10.160.139.127  juju-73091a-1  ubuntu@24.04  Lenovo-Fortress-Lin2  Running
+2        started  10.160.139.2    juju-73091a-2  ubuntu@24.04  Lenovo-Fortress-Lin2  Running
+3        started  10.160.139.44   juju-73091a-3  ubuntu@24.04  Lenovo-Fortress-Lin2  Running
+4        started  10.160.139.126  juju-73091a-4  ubuntu@24.04  Lenovo-Fortress-Lin2  Running
+5        started  10.160.139.170  juju-73091a-5  ubuntu@24.04  Lenovo-Fortress-Lin2  Running
+6        started  10.160.139.97   juju-73091a-6  ubuntu@24.04  Lenovo-Fortress-Lin2  Running
 ```
 
 To retrieve information such as the username, password, and topic. Enter:
@@ -73,21 +73,27 @@ juju run data-integrator/leader get-credentials
 This should output something like:
 
 ```yaml
+Running operation 7 with 1 task
+  - task 8 on unit-data-integrator-0
+
+Waiting for task 8...
 kafka:
-  consumer-group-prefix: relation-9-
-  data: '{"extra-user-roles": "producer,consumer", "provided-secrets": "[\"mtls-cert\"]",
-    "requested-secrets": "[\"username\", \"password\", \"tls\", \"tls-ca\", \"uris\",
-    \"read-only-uris\"]", "topic": "test-topic"}'
-  endpoints: 10.233.204.148:9092,10.233.204.196:9092,10.233.204.241:9092
-  password: JwxZmIgHIkafm0T6nyPIKbF8m29EALoI
+  consumer-group-prefix: relation-8-
+  data: '{"resource": "test-topic", "salt": "uDVvX72EYMgdmdA5", "extra-user-roles":
+    "producer,consumer", "provided-secrets": ["mtls-cert"], "requested-secrets": ["username",
+    "password", "tls", "tls-ca", "uris", "read-only-uris"]}'
+  endpoints: 10.160.139.127:9092,10.160.139.193:9092,10.160.139.2:9092
+  password: uS76LoW8aEGTGgrlASKLrdqt8JPFuPB6
+  resource: test-topic
+  salt: 8Eo9dLL1dtUhwxRn
   tls: disabled
   topic: test-topic
-  username: relation-9
+  username: relation-8
+  version: v0
 ok: "True"
 ```
 
-Make note of the values for `bootstrap-server`, `username` and `password`, we'll be using them later.
-
+Make note of the values for `endpoints`, `username` and `password`, we'll be using them later.
 
 ### Produce/consume messages
 
@@ -97,13 +103,13 @@ We will now use the username and password to produce some messages to Apache Kaf
 juju deploy kafka-test-app --channel edge
 ```
 
-Once the charm is up and running, you can log into the container
+Wait for the charm to become `active`/`idle`, and log into the container:
 
 ```shell
 juju ssh kafka-test-app/0 /bin/bash
 ```
 
-and make sure that the Python virtual environment libraries are visible:
+Make sure that the Python virtual environment libraries are visible:
 
 ```shell
 export PYTHONPATH="/var/lib/juju/agents/unit-kafka-test-app-0/charm/venv:/var/lib/juju/agents/unit-kafka-test-app-0/charm/lib"
