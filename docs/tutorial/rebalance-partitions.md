@@ -1,5 +1,5 @@
 (tutorial-rebalance-partitions)=
-# 7. Rebalance and reassign Partitions
+# 7. Rebalance and reassign partitions
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
