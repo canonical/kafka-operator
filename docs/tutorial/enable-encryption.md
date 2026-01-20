@@ -156,3 +156,13 @@ juju remove-relation kafka self-signed-certificates
 ```
 
 The Charmed Apache Kafka application is not using TLS anymore for client connections.
+
+## Clean up
+
+Before proceeding further, let's remove the `kafka-test-app` application:
+
+```shell
+juju remove-relation kafka-test-app kafka
+juju remove-relation kafka-test-app self-signed-certificates
+juju remove-application kafka-test-app --destroy-storage
+```
