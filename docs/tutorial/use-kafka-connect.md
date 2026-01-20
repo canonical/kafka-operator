@@ -5,43 +5,64 @@ This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
 ## Using Kafka Connect for ETL
 
-In this part of the tutorial, we are going to use [Kafka Connect](https://kafka.apache.org/documentation/#connect) - an ETL framework on top of Apache Kafka - to seamlessly move data between different charmed database technologies.
+In this part of the tutorial, we are going to use
+[Kafka Connect](https://kafka.apache.org/documentation/#connect), an ETL framework on top of
+Apache Kafka, to seamlessly move data between different charmed database technologies.
 
-We will follow a step-by-step process for moving data between [Canonical Data Platform charms](https://canonical.com/data) using Kafka Connect. Specifically, we will showcase a particular use-case of loading data from a relational database, i.e. PostgreSQL, to a document store and search engine, i.e. OpenSearch, entirely using charmed solutions.
+We will follow a step-by-step process for moving data between
+[Canonical Data Platform charms](https://canonical.com/data) using Kafka Connect.
+Specifically, we will showcase a particular use-case of loading data from a relational database,
+(PostgreSQL), to a document store and search engine (OpenSearch), entirely using charmed solutions.
 
 By the end, you should be able to use Kafka Connect integrator and Kafka Connect charms to streamline data ETL tasks on Canonical Data Platform charmed solutions.
 
 ### Prerequisites
 
-We will be deploying different charmed data solutions including PostgreSQL and OpenSearch. If you require more information or face issues deploying any of the mentioned products, you should consult the respective documentations:
+We will be deploying different charmed data solutions including PostgreSQL and OpenSearch.
+If you require more information or face issues deploying any of the mentioned products,
+you should consult the respective documentations:
 
 - For PostgreSQL, refer to [Charmed PostgreSQL tutorial](https://canonical-charmed-postgresql.readthedocs-hosted.com/14/tutorial/).
 - For OpenSearch, refer to [Charmed OpenSearch tutorial](https://charmhub.io/opensearch/docs/tutorial).
 
 ### Check current deployment
 
-Up to this point, we should have three units of Charmed Apache Kafka application. That means the `juju status` command should show an output similar to the following:
+Up to this point, we should have three units of Charmed Apache Kafka application.
+Check the current status of the Juju model:
+
+```shell
+juju status
+```
+
+<details> <summary> Output example</summary>
 
 ```text
-Model     Controller        Cloud/Region         Version  SLA          Timestamp
-tutorial  overlord          localhost/localhost  3.6.8    unsupported  01:02:27Z
+Model     Controller  Cloud/Region         Version  SLA          Timestamp
+tutorial  overlord    localhost/localhost  3.6.12   unsupported  11:19:22Z
 
-App                       Version  Status  Scale  Charm                     Channel        Rev  Exposed  Message
-data-integrator                    active      1  data-integrator           latest/stable  180  no       
-kafka                     4.0.0    active      3  kafka                     4/edge         226  no       
-kraft                     4.0.0    active      3  kafka                     4/edge         226  no       
-self-signed-certificates           active      1  self-signed-certificates  1/edge         336  no       
+App                       Version  Status   Scale  Charm                     Channel        Rev  Exposed  Message
+data-integrator                    blocked      1  data-integrator           latest/stable  180  no       Please relate the data-integrator with the desired product
+kafka                     4.0.0    active       3  kafka                     4/edge         245  no       
+kafka-test-app                     active       1  kafka-test-app            latest/edge     15  no       Topic HOT-TOPIC enabled with process producer
+kraft                     4.0.0    active       3  kafka                     4/edge         245  no       
+self-signed-certificates           active       1  self-signed-certificates  1/stable       317  no       
 
 Unit                         Workload  Agent  Machine  Public address  Ports           Message
-data-integrator/0*           active    idle   6        10.233.204.111                  
-kafka/0*                     active    idle   0        10.233.204.241  9093,19093/tcp  
-kafka/1                      active    idle   1        10.233.204.196  9093,19093/tcp  
-kafka/2                      active    idle   2        10.233.204.148  9093,19093/tcp  
-kraft/0                      active    idle   3        10.233.204.125  9098/tcp        
-kraft/1*                     active    idle   4        10.233.204.36   9098/tcp        
-kraft/2                      active    idle   5        10.233.204.225  9098/tcp        
-self-signed-certificates/0*  active    idle   7        10.233.204.134                  
+data-integrator/0*           blocked   idle   6        10.168.161.107                  Please relate the data-integrator with the desired product
+kafka-test-app/0*            active    idle   7        10.168.161.157                  Topic HOT-TOPIC enabled with process producer
+kafka/0                      active    idle   0        10.168.161.221  9092,19093/tcp  
+kafka/1*                     active    idle   1        10.168.161.6    9092,19093/tcp  
+kafka/2                      active    idle   2        10.168.161.12   9092,19093/tcp  
+kraft/0                      active    idle   3        10.168.161.5    9098/tcp        
+kraft/1*                     active    idle   4        10.168.161.212  9098/tcp        
+kraft/2                      active    idle   5        10.168.161.33   9098/tcp        
+self-signed-certificates/0*  active    idle   8        10.168.161.210                  
 ```
+
+</details>
+
+The `data-integrator` shows a missing relation message since we deleted the relation at the end
+of the [](tutorial-manage-passwords) page when deleted a user.
 
 ### Set the necessary kernel properties for OpenSearch
 
