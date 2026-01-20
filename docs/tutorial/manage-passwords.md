@@ -128,7 +128,8 @@ To rotate external passwords with no or limited downtime, please refer to the ho
 
 #### Remove the user
 
-To remove the user, remove the relation. Removing the relation automatically removes the user that was created when the relation was created. Enter the following to remove the relation:
+Removing the relation automatically removes the user that was created when the relation was created.
+To remove the user, remove the relation:
 
 ```shell
 juju remove-relation kafka data-integrator
