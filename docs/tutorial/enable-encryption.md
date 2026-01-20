@@ -24,42 +24,39 @@ Before enabling TLS on Charmed Apache Kafka we must first deploy the `self-signe
 juju deploy self-signed-certificates --config ca-common-name="Tutorial CA"
 ```
 
-Wait for the charm to settle into an `active/idle` state, as shown by the `juju status`.
+Wait for the charm to settle into an `active`/`idle` state, as shown by the `juju status` command.
 
 <details> <summary> Output example</summary>
 
 ```shell
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
-tutorial  overlord    localhost/localhost  3.6.12   unsupported  00:25:23Z
+tutorial  overlord    localhost/localhost  3.6.13   unsupported  17:56:56Z
 
 App                       Version  Status   Scale  Charm                     Channel        Rev  Exposed  Message
 data-integrator                    blocked      1  data-integrator           latest/stable  180  no       Please relate the data-integrator with the desired product
 kafka                     4.0.0    active       3  kafka                     4/edge         245  no       
-kafka-test-app                     active       1  kafka-test-app            latest/edge     15  no       Topic TOP-PICK enabled with process consumer
 kraft                     4.0.0    active       3  kafka                     4/edge         245  no       
 self-signed-certificates           active       1  self-signed-certificates  1/stable       317  no       
 
-Unit                         Workload  Agent  Machine  Public address  Ports           Message
-data-integrator/0*           blocked   idle   6        10.168.161.107                  Please relate the data-integrator with the desired product
-kafka-test-app/0*            active    idle   7        10.168.161.157                  Topic TOP-PICK enabled with process consumer
-kafka/0                      active    idle   0        10.168.161.221  9092,19093/tcp  
-kafka/1*                     active    idle   1        10.168.161.6    9092,19093/tcp  
-kafka/2                      active    idle   2        10.168.161.12   9092,19093/tcp  
-kraft/0                      active    idle   3        10.168.161.5    9098/tcp        
-kraft/1                      active    idle   4        10.168.161.212  9098/tcp        
-kraft/2*                     active    idle   5        10.168.161.33   9098/tcp        
-self-signed-certificates/0*  active    idle   8        10.168.161.210                  
+Unit                         Workload  Agent  Machine  Public address  Ports      Message
+data-integrator/0*           blocked   idle   6        10.109.154.254             Please relate the data-integrator with the desired product
+kafka/0*                     active    idle   0        10.109.154.47   19093/tcp  
+kafka/1                      active    idle   1        10.109.154.171  19093/tcp  
+kafka/2                      active    idle   2        10.109.154.82   19093/tcp  
+kraft/0*                     active    idle   3        10.109.154.49   9098/tcp   
+kraft/1                      active    idle   4        10.109.154.148  9098/tcp   
+kraft/2                      active    idle   5        10.109.154.50   9098/tcp   
+self-signed-certificates/0*  active    idle   8        10.109.154.248             
 
-Machine  State    Address         Inst id         Base          AZ   Message
-0        started  10.168.161.221  juju-67d727-0   ubuntu@24.04  dev  Running
-1        started  10.168.161.6    juju-67d727-1   ubuntu@24.04  dev  Running
-2        started  10.168.161.12   juju-67d727-2   ubuntu@24.04  dev  Running
-3        started  10.168.161.5    juju-67d727-3   ubuntu@24.04  dev  Running
-4        started  10.168.161.212  juju-67d727-4   ubuntu@24.04  dev  Running
-5        started  10.168.161.33   juju-67d727-5   ubuntu@24.04  dev  Running
-6        started  10.168.161.107  juju-67d727-6   ubuntu@24.04  dev  Running
-7        started  10.168.161.157  juju-67d727-7   ubuntu@22.04  dev  Running
-8        started  10.168.161.210  juju-67d727-8   ubuntu@24.04  dev  Running
+Machine  State    Address         Inst id        Base          AZ   Message
+0        started  10.109.154.47   juju-030538-0  ubuntu@24.04  dev  Running
+1        started  10.109.154.171  juju-030538-1  ubuntu@24.04  dev  Running
+2        started  10.109.154.82   juju-030538-2  ubuntu@24.04  dev  Running
+3        started  10.109.154.49   juju-030538-3  ubuntu@24.04  dev  Running
+4        started  10.109.154.148  juju-030538-4  ubuntu@24.04  dev  Running
+5        started  10.109.154.50   juju-030538-5  ubuntu@24.04  dev  Running
+6        started  10.109.154.254  juju-030538-6  ubuntu@24.04  dev  Running
+8        started  10.109.154.248  juju-030538-8  ubuntu@24.04  dev  Running
 ```
 
 </details>
@@ -70,8 +67,9 @@ To enable TLS on Charmed Apache Kafka, integrate with `self-signed-certificates`
 juju integrate kafka:certificates self-signed-certificates
 ```
 
-After the charms settle into `active/idle` states, the Apache Kafka listeners should now have been swapped to the
-default encrypted port `9093`. This can be tested by testing whether the ports are open/closed with `telnet`:
+After the charms settle into `active`/`idle` states, the Apache Kafka listeners
+should now have been swapped to the default encrypted port `9093`.
+This can be tested by testing whether the ports are open/closed with `telnet`:
 
 ```shell
 telnet <Public IP address> 9092 
@@ -80,52 +78,78 @@ telnet <Public IP address> 9093
 
 where `Public IP address` is the IP of any Charmed Apache Kafka application units.
 
+Both commands will be **unable to connect** now, as our Apache Kafka cluster
+has no active listeners fue to absence of integrated applications.
+
+```{caution}
+When no other application is integrated to Charmed Apache Kafka,
+the cluster is secured-by-default and external listeners (bound to port `9092`) are disabled,
+thus preventing any external incoming connection. 
+```
+
+Let's integrate the `data-integrator` application to the Apache Kafka cluster:
+
+```shell
+juju integrate data-integrator kafka
+```
+
+After all units are back to `active`/`idle`, you will see the new ports in the `juju status` output.
+Now try connecting with `telnet` again:
+
+```shell
+telnet <Public IP address> 9092 
+telnet <Public IP address> 9093
+```
+
 The `9092` port connection now should show a connection error,
-while `9093` port should establish connection.
+while the `9093` port should establish a connection.
 
 ## Enable TLS encrypted connection
 
-Once TLS is configured on the cluster side, client applications should be configured as well to connect to
-the correct port and trust the self-signed CA provided by the `self-signed-certificates` charm.
+Once TLS is configured on the cluster side, client applications should be configured as well
+to connect to the correct port and trust the self-signed CA provided by
+the `self-signed-certificates` charm.
 
-Make sure that the `kafka-test-app` is not connected to the Charmed Apache Kafka, by removing the relation if it exists:
+Let's deploy our [Apache Kafka Test App](https://charmhub.io/kafka-test-app) again:
 
 ```shell
-juju remove-relation kafka-test-app kafka
+juju deploy kafka-test-app --channel edge
 ```
 
-Then, enable encryption on the `kafka-test-app` by relating with the `self-signed-certificates` charm:
+Then, enable encryption on the `kafka-test-app` by integrating with
+the `self-signed-certificates` charm:
 
 ```shell
 juju integrate kafka-test-app self-signed-certificates
 ```
 
-We can then set up the `kafka-test-app` to produce messages with the usual configuration (note that there is no difference 
-here with the unencrypted workflow):
+We can then set up the `kafka-test-app` to produce messages with the usual configuration
+(note that that the process here is the same as with the unencrypted workflow):
 
 ```shell
-juju config kafka-test-app topic_name=HOT-TOPIC role=producer num_messages=25
+juju config kafka-test-app topic_name=HOT-TOPIC role=producer num_messages=20
 ```
 
-Then relate with the `kafka` cluster:
+Finally, relate with the `kafka` cluster:
 
 ```shell
 juju integrate kafka kafka-test-app
 ```
 
-As before, you can check that the messages are pushed into the Charmed Apache Kafka cluster by inspecting the logs:
+Wait for `active`/`idle` status in `juju status` and check that the messages are pushed into
+the Charmed Apache Kafka cluster by inspecting the logs:
 
 ```shell
 juju exec --application kafka-test-app "tail /tmp/*.log"
 ```
 
-Note that if the `kafka-test-app` was running before, there may be multiple logs related to the different
-runs. Refer to the latest logs produced and also check that in the logs the connection is indeed established
-with the encrypted port `9093`.
+Refer to the latest logs produced and also check that in the logs the connection
+is indeed established with the encrypted port `9093`.
 
 ## Remove external TLS certificate
 
-To remove the external TLS and return to the locally generated one, remove relation with certificates provider:
+To remove the external TLS and return to the locally generated one,
+remove relation with certificates provider:
 
 ```shell
 juju remove-relation kafka self-signed-certificates

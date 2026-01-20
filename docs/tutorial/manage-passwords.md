@@ -78,7 +78,7 @@ kafka:
   data: '{"resource": "test-topic", "salt": "yOIRb9uVUuJuKFVc", "extra-user-roles":
     "producer,consumer", "provided-secrets": ["mtls-cert"], "requested-secrets": ["username",
     "password", "tls", "tls-ca", "uris", "read-only-uris"]}'
-  endpoints: 10.168.161.12:9092,10.168.161.221:9092,10.168.161.6:9092
+  endpoints: 10.109.154.171:9092,10.109.154.47:9092,10.109.154.82:9092
   password: RdRjZkXUC3dAb5VRFw2470fnoKrsRIXU
   resource: test-topic
   salt: W34UoIPzckdMJ6DU
@@ -110,7 +110,7 @@ The successful credential rotation can be confirmed by retrieving the new passwo
 with the action `get-credentials`:
 
 ```shell
-juju run data-integrator/leader get-credentials 
+juju run data-integrator/leader get-credentials
 ```
 
 <details> <summary> Output example</summary>
@@ -119,17 +119,17 @@ Running the command should now output a different password:
 
 ```shell
 kafka:
-  consumer-group-prefix: relation-8-
-  data: '{"resource": "test-topic", "salt": "yOIRb9uVUuJuKFVc", "extra-user-roles":
+  consumer-group-prefix: relation-9-
+  data: '{"resource": "test-topic", "salt": "iGWWWoUwCy39ou6f", "extra-user-roles":
     "producer,consumer", "provided-secrets": ["mtls-cert"], "requested-secrets": ["username",
     "password", "tls", "tls-ca", "uris", "read-only-uris"]}'
-  endpoints: 10.168.161.12:9092,10.168.161.221:9092,10.168.161.6:9092
-  password: Pw5UJtv1dcOkQzN47qVQNYNSsajeMD5Q
+  endpoints: 10.109.154.171:9092,10.109.154.47:9092,10.109.154.82:9092
+  password: EEiI2gboTp2dF0NOcogtbrOWBTxkd5YB
   resource: test-topic
-  salt: W34UoIPzckdMJ6DU
+  salt: 7WqLjlZjeUvlEWrA
   tls: disabled
   topic: test-topic
-  username: relation-8
+  username: relation-9
   version: v0
 ok: "True"
 ```
