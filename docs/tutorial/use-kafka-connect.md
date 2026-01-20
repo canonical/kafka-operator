@@ -460,7 +460,8 @@ SSH to the PostgreSQL leader unit:
 juju ssh postgresql/leader
 ```
 
-Then, insert a new post using following command and the password for the `operator` user on the PostgreSQL:
+Then, insert a new post using following command and the password for the `operator` user
+on the PostgreSQL:
 
 ```bash
 psql --host $(hostname -i) --username operator --password --dbname tutorial -c \

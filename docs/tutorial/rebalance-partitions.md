@@ -3,9 +3,17 @@
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
-By default, when adding more brokers to a Charmed Apache Kafka cluster, the current allocated partitions on the original brokers are not automatically redistributed across the new brokers. This can lead to inefficient resource usage and over-provisioning. On the other hand, when removing brokers to reduce capacity, partitions assigned to the removed brokers are also not redistributed, which can result in under-replicated data at best and permanent data loss at worst.
+By default, when adding more brokers to a Charmed Apache Kafka cluster, the current
+allocated partitions on the original brokers are not automatically redistributed across
+the new brokers. This can lead to inefficient resource usage and over-provisioning.
+On the other hand, when removing brokers to reduce capacity, partitions assigned
+to the removed brokers are also not redistributed, which can result in under-replicated data
+at best and permanent data loss at worst.
 
-To address this, we can make use of [LinkedIn's Cruise Control](https://github.com/linkedin/cruise-control), which is bundled as part of the Charmed Apache Kafka [snap](https://github.com/canonical/charmed-kafka-snap) and [rock](https://github.com/canonical/charmed-kafka-rock).
+To address this, we can make use of
+[LinkedIn's Cruise Control](https://github.com/linkedin/cruise-control), which is bundled as part
+of the Charmed Apache Kafka [snap](https://github.com/canonical/charmed-kafka-snap)
+and [rock](https://github.com/canonical/charmed-kafka-rock).
 
 At a high level, Cruise Control is made up of the following five components:
 
@@ -17,8 +25,9 @@ At a high level, Cruise Control is made up of the following five components:
 
 ## Deploying partition balancer
 
-The Charmed Apache Kafka charm has a configuration option `roles`, which takes a list of possible values.
-Different roles can be configured to run on the same machine, or as separate Juju applications.
+The Charmed Apache Kafka charm has a configuration option `roles`, which takes
+a list of possible values. Different roles can be configured to run on the same machine,
+or as separate Juju applications.
 
 The two necessary roles for cluster rebalancing are:
 
@@ -26,22 +35,28 @@ The two necessary roles for cluster rebalancing are:
 - `balancer` - running Cruise Control
 
 ```{note}
-It is recommended to deploy a separate Juju application for running Cruise Control in production environments.
+It is recommended to deploy a separate Juju application for running Cruise Control
+in production environments.
 ```
 
-For the purposes of this tutorial, we will be deploying a single Charmed Apache Kafka unit to serve as the `balancer`:
+For the purposes of this tutorial, we will be deploying a single Charmed Apache Kafka
+unit to serve as the `balancer`:
 
 ```bash
 juju deploy kafka --config roles=balancer cruise-control
 ```
 
-Earlier in the tutorial, we covered enabling TLS encryption, so we will repeat that step here for the new `cruise-control` application:
+Earlier in the tutorial, we covered enabling TLS encryption, so we will repeat that step here
+for the new `cruise-control` application:
 
 ```bash
 juju integrate cruise-control:certificates self-signed-certificates
 ```
 
-Now, to make the new `cruise-control` application aware of the existing Apache Kafka cluster, we will integrate the two applications using the `peer_cluster` relation interface, ensuring that the `broker` cluster is using the `peer-cluster` relation-endpoint, and the `balancer` cluster is using the `peer-cluster-orchestrator` relation-endpoint:
+Now, to make the new `cruise-control` application aware of the existing Apache Kafka cluster,
+we will integrate the two applications using the `peer_cluster` relation interface,
+ensuring that the `broker` cluster is using the `peer-cluster` relation-endpoint,
+and the `balancer` cluster is using the `peer-cluster-orchestrator` relation-endpoint:
 
 ```bash
 juju integrate kafka:peer-cluster-orchestrator cruise-control:peer-cluster
@@ -49,10 +64,13 @@ juju integrate kafka:peer-cluster-orchestrator cruise-control:peer-cluster
 
 ## Adding new brokers
 
-After completing the steps in the [Integrate with client applications](integrate-with-client-applications) tutorial page, you should have three `kafka` units and a client application actively writing messages to an existing topic. Let's scale-out the `kafka` application to four units:
+After completing the steps in the
+[Integrate with client applications](integrate-with-client-applications) tutorial page,
+you should have three `kafka` units and a client application actively writing messages
+to an existing topic. Let's scale-out the `kafka` application to four units (add one more):
 
 ```bash
-juju add-unit kafka 4
+juju add-unit kafka
 ```
 
 By default, no partitions are allocated for the new unit `3`. You can see that by checking the log directory assignment:
