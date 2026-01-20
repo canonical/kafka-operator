@@ -118,6 +118,7 @@ export PYTHONPATH="/var/lib/juju/agents/unit-kafka-test-app-0/charm/venv:/var/li
 Once this is set up, you can use the `client.py` script that exposes some functionality to produce and consume messages.
 
 Let's try that script runs:
+
 ```shell
 python3 -m charms.kafka.v0.client --help
 ```
@@ -195,7 +196,7 @@ Now you know how to use credentials provided by related charms to successfully r
 
 ### Charm client applications
 
-Actually, the Data Integrator is only a very special client charm, that implements the `kafka_client` relation interface for exchanging data with Charmed Apache Kafka and user management via relations. 
+Actually, the Data Integrator is only a very special client charm, that implements the `kafka_client` relation interface for exchanging data with Charmed Apache Kafka and user management via relations.
 
 For example, the steps above for producing and consuming messages to Apache Kafka have also been implemented in the `kafka-test-app` charm (that also implements the `kafka_client` relation) providing a fully integrated charmed user experience, where producing/consuming messages can simply be achieved using relations.  
 
@@ -221,16 +222,16 @@ After some time, the `juju status` output should show
 
 ```shell
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
-tutorial  overlord    localhost/localhost  3.6.8    unsupported  18:58:47+02:00
+tutorial  overlord    localhost/localhost  3.6.12   unsupported  21:26:28Z
 
-App              Version  Status  Scale  Charm            Channel  Rev  Address         Exposed  Message
+App              Version  Status  Scale  Charm            Channel        Rev  Exposed  Message
 ...
-kafka-test-app            active      1  kafka-test-app   edge       8  10.152.183.60   no       Topic TOP-PICK enabled with process producer
+kafka-test-app            active      1  kafka-test-app   latest/edge     15  no       Topic TOP-PICK enabled with process producer
 ...
 
-Unit                Workload  Agent  Address     Ports  Message
+Unit                Workload  Agent  Machine  Public address  Ports           Message
 ...
-kafka-test-app/0*   active    idle   10.1.36.88         Topic TOP-PICK enabled with process producer
+kafka-test-app/0*   active    idle   7        10.168.161.157  
 ...
 ```
 
@@ -263,4 +264,3 @@ juju integrate kafka-test-app kafka
 ## What's next?
 
 In the next section, we will learn how to rotate and manage the passwords for the Apache Kafka users, both the admin one and the ones managed by the Data Integrator.
-

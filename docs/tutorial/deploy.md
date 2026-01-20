@@ -135,7 +135,7 @@ The important line here for accessing the Apache Kafka cluster itself is `operat
 For simplicity, the password can also be directly retrieved by parsing the YAML response from the previous command directly using `yq`:
 
 ```shell
-juju show-secret --reveal cluster.kafka.app | yq '.. | ."operator-password"? // ""' | tr -d '"'
+juju show-secret --reveal cluster.kafka.app | yq -r '.[].content["operator-password"]'
 ```
 
 ```{caution}
