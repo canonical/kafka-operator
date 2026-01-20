@@ -1,5 +1,5 @@
 (tutorial-kafka-connect)=
-# 7. Use Kafka Connect for ETL
+# 6. Use Kafka Connect for ETL
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
@@ -23,7 +23,7 @@ If you require more information or face issues deploying any of the mentioned pr
 you should consult the respective documentations:
 
 - For PostgreSQL, refer to [Charmed PostgreSQL tutorial](https://canonical-charmed-postgresql.readthedocs-hosted.com/14/tutorial/).
-- For OpenSearch, refer to [Charmed OpenSearch tutorial](https://charmhub.io/opensearch/docs/tutorial).
+- For OpenSearch, refer to [Charmed OpenSearch tutorial](https://canonical-charmed-opensearch.readthedocs-hosted.com/2/tutorial/).
 
 ### Check current deployment
 
@@ -66,7 +66,10 @@ of the [](tutorial-manage-passwords) page when deleted a user.
 
 ### Set the necessary kernel properties for OpenSearch
 
-Since we will be deploying the OpenSearch charm, we need to make necessary kernel configurations required for OpenSearch charm to function properly, [described in detail here](https://charmhub.io/opensearch/docs/t-set-up#p-24545-set-kernel-parameters). This basically means running the following commands:
+Since we will be deploying the OpenSearch charm, we need to make necessary kernel configurations
+required for OpenSearch charm to function properly,
+[described in detail here](https://canonical-charmed-opensearch.readthedocs-hosted.com/2/tutorial/1-set-up-the-environment/#set-kernel-parameters).
+This basically means running the following commands:
 
 ```bash
 sudo tee -a /etc/sysctl.conf > /dev/null <<EOT

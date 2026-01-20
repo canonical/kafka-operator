@@ -11,6 +11,7 @@ import pytest
 from pytest_operator.plugin import OpsTest
 
 from integration.ha.continuous_writes import ContinuousWrites
+from integration.helpers import TLS_CHANNEL, TLS_NAME
 from integration.helpers.ha import assert_continuous_writes_consistency
 from integration.helpers.pytest_operator import (
     APP_NAME,
@@ -40,7 +41,6 @@ logger = logging.getLogger(__name__)
 pytestmark = pytest.mark.kraft
 
 CONTROLLER_APP = "controller"
-TLS_NAME = "self-signed-certificates"
 
 
 class TestKRaft:
@@ -310,7 +310,7 @@ class TestKRaft:
         c_writes = ContinuousWrites(model=ops_test.model_full_name, app=DUMMY_NAME, produce_rate=2)
         c_writes.start()
 
-        await ops_test.model.deploy(TLS_NAME, application_name=TLS_NAME, channel="1/stable")
+        await ops_test.model.deploy(TLS_NAME, application_name=TLS_NAME, channel=TLS_CHANNEL)
         await ops_test.model.wait_for_idle(
             apps=[TLS_NAME], idle_period=30, timeout=600, status="active"
         )
