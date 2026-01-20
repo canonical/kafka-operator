@@ -3,18 +3,16 @@
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
-## Manage passwords
-
 Passwords help to secure the Apache Kafka cluster and are essential for security.
 Over time it is a good practice to change the password frequently.
 Here we will go through setting and changing the password both for the built-in user
 and external Charmed Apache Kafka users managed by the `data-integrator`.
 
-### The admin user
+## The built-in user
 
 The admin user password management is handled directly by the charm, by using Juju actions.
 
-#### Retrieve the password
+### Retrieve the password
 
 As a reminder, the admin password is stored in a Juju secret that was created and managed by
 the Charmed Apache Kafka application. The password in in the `operator-password` field.
@@ -25,7 +23,7 @@ Get the current value of the admin user password from the secret:
 juju show-secret --reveal cluster.kafka.app | yq -r '.[].content["operator-password"]'
 ```
 
-#### Change the password
+### Change the password
 
 You can change the admin password to a new password by creating a new Juju secret,
 and updating the Charmed Apache Kafka application of the correct secret to use.
@@ -56,13 +54,13 @@ Now, Charmed Apache Kafka will be able to read the new admin password from the c
 and will proceed to apply the new password on each unit with a rolling-restart of the services
 with the new configuration.
 
-### External Apache Kafka users
+## External Apache Kafka users
 
 Unlike internal user management of `admin` users, the password management for external
 Apache Kafka users is instead managed using relations. Let's see this into play with
 the Data Integrator charm, that we have deployed in the previous part of the tutorial.
 
-#### Retrieve the password
+### Retrieve the password
 
 The `data-integrator` exposes an action to retrieve the credentials:
 
@@ -93,7 +91,7 @@ ok: "True"
 
 </details>
 
-#### Rotate the password
+### Rotate the password
 
 The easiest way to rotate user credentials using the `data-integrator` is by removing
 and then re-integrating the `data-integrator` with the `kafka` charm:
@@ -141,7 +139,7 @@ ok: "True"
 To rotate external passwords with no or limited downtime,
 see the how-to guide on [app management](how-to-client-connections).
 
-#### Remove the user
+### Remove the user
 
 Removing the relation automatically removes the user that was created when the relation was created.
 To remove the user, remove the relation:

@@ -3,8 +3,6 @@
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
-## Transport Layer Security (TLS)
-
 [TLS](https://en.wikipedia.org/wiki/Transport_Layer_Security) is used to encrypt data exchanged between two applications; it secures data transmitted over the network. Typically, enabling TLS within a highly available database, and between a highly available database and client/server applications, requires domain-specific knowledge and a high level of expertise. Fortunately, the domain-specific knowledge has been encoded into Charmed Apache Kafka. This means (re-)configuring TLS on Charmed Apache Kafka is readily available and requires minimal effort on your end.
 
 Juju relations are particularly useful for enabling TLS. 
@@ -18,7 +16,7 @@ In this tutorial, we will distribute [self-signed certificates](https://en.wikip
 This setup is only for testing and demonstrating purposes and self-signed certificates are not recommended in a production cluster. For more information about which charm may better suit your use-case, please see the [Security with X.509 certificates](https://charmhub.io/topics/security-with-x-509-certificates) page.
 ```
 
-### Configure TLS
+## Configure TLS
 
 Before enabling TLS on Charmed Apache Kafka we must first deploy the `self-signed-certificates` charm:
 
@@ -85,7 +83,7 @@ where `Public IP address` is the IP of any Charmed Apache Kafka application unit
 The `9092` port connection now should show a connection error,
 while `9093` port should establish connection.
 
-### Enable TLS encrypted connection
+## Enable TLS encrypted connection
 
 Once TLS is configured on the cluster side, client applications should be configured as well to connect to
 the correct port and trust the self-signed CA provided by the `self-signed-certificates` charm.
@@ -125,7 +123,7 @@ Note that if the `kafka-test-app` was running before, there may be multiple logs
 runs. Refer to the latest logs produced and also check that in the logs the connection is indeed established
 with the encrypted port `9093`.
 
-### Remove external TLS certificate
+## Remove external TLS certificate
 
 To remove the external TLS and return to the locally generated one, remove relation with certificates provider:
 

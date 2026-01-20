@@ -3,8 +3,6 @@
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
-## Deploy Charmed Apache Kafka
-
 To deploy Charmed Apache Kafka, all you need to do is run the following commands, which will automatically fetch [Apache Kafka](https://charmhub.io/kafka?channel=4/edge) from [Charmhub](https://charmhub.io/) and deploy it to your model.
 
 Charmed Apache Kafka can run both with `roles=broker` and/or `roles=controller`. With this configuration option, the charm can be deployed either as a single application running both Apache Kafka brokers and KRaft controllers, or as multiple applications with a separate controller cluster and broker cluster.

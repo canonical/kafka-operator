@@ -3,8 +3,6 @@
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
-## Using Kafka Connect for ETL
-
 In this part of the tutorial, we are going to use
 [Kafka Connect](https://kafka.apache.org/documentation/#connect), an ETL framework on top of
 Apache Kafka, to seamlessly move data between different charmed database technologies.
@@ -16,7 +14,7 @@ Specifically, we will showcase a particular use-case of loading data from a rela
 
 By the end, you should be able to use Kafka Connect integrator and Kafka Connect charms to streamline data ETL tasks on Canonical Data Platform charmed solutions.
 
-### Prerequisites
+## Prerequisites
 
 We will be deploying different charmed data solutions including PostgreSQL and OpenSearch.
 If you require more information or face issues deploying any of the mentioned products,
@@ -25,7 +23,7 @@ you should consult the respective documentations:
 - For PostgreSQL, refer to [Charmed PostgreSQL tutorial](https://canonical-charmed-postgresql.readthedocs-hosted.com/14/tutorial/).
 - For OpenSearch, refer to [Charmed OpenSearch tutorial](https://canonical-charmed-opensearch.readthedocs-hosted.com/2/tutorial/).
 
-### Check current deployment
+## Check current deployment
 
 Up to this point, we should have three units of Charmed Apache Kafka application.
 Check the current status of the Juju model:
@@ -64,7 +62,7 @@ self-signed-certificates/0*  active    idle   8        10.168.161.210
 The `data-integrator` shows a missing relation message since we deleted the relation at the end
 of the [](tutorial-manage-passwords) page when deleted a user.
 
-### Set the necessary kernel properties for OpenSearch
+## Set the necessary kernel properties for OpenSearch
 
 Since we will be deploying the OpenSearch charm, we need to make necessary kernel configurations
 required for OpenSearch charm to function properly,
@@ -98,7 +96,7 @@ EOF
 juju model-config --file=./cloudinit-userdata.yaml
 ```
 
-### Deploy the databases and Kafka Connect charms
+## Deploy the databases and Kafka Connect charms
 
 Deploy the PostgreSQL, OpenSearch, and Kafka Connect charms:
 
@@ -110,7 +108,7 @@ juju deploy opensearch --channel 2/stable --config profile=testing
 
 OpenSearch charm requires a TLS relation to become active. We will use the [`self-signed-certificates` charm](https://charmhub.io/self-signed-certificates) that was deployed earlier in the [Enable Encryption](https://charmhub.io/kafka/docs/t-enable-encryption) part of this Tutorial.
 
-### Enable TLS
+## Enable TLS
 
 Using the `juju status` command, you should see that the Kafka Connect and OpenSearch applications are in `blocked` state. In order to activate them, we need to make necessary integrations using the `juju integrate` command.
 
@@ -160,7 +158,7 @@ kraft/2                      active    idle   5        10.233.204.225  9098/tcp
 self-signed-certificates/0*  active    idle   7        10.233.204.134                  
 ```
 
-### Load test data
+## Load test data
 
 In a real-world scenario, an application would typically write data to a PostgreSQL database. However, for the purposes of this tutorial, we’ll generate test data using a simple SQL script and load it into a PostgreSQL database using the `psql` command-line tool included with the PostgreSQL charm.
 
@@ -263,7 +261,7 @@ The output should indicate that the `posts` table has five rows now:
 
 Log out from the PostgreSQL unit using `exit` command or the `Ctrl+D` keyboard shortcut.
 
-### Deploy and integrate the `postgresql-connect-integrator` charm
+## Deploy and integrate the `postgresql-connect-integrator` charm
 
 Now that you have sample data loaded into PostgreSQL, it is time to deploy the `postgresql-connect-integrator` charm to enable integration of PostgreSQL and Kafka Connect applications. 
 First, deploy the charm in `source` mode using the `juju deploy` command and provide the minimum necessary configurations:
@@ -299,7 +297,7 @@ postgresql-connect-integrator/0*  active    idle   13       10.38.169.83    8080
 This means that the integrator application is actively copying data from the source database (named `tutorial`) into Apache Kafka topics prefixed with `etl_`. 
 For example, rows in the `posts` table will be published into the Apache Kafka topic named `etl_posts`.
 
-### Deploy and integrate the `opensearch-connect-integrator` charm
+## Deploy and integrate the `opensearch-connect-integrator` charm
 
 You are almost done with the ETL task, the only remaining part is to move data from Apache Kafka to OpenSearch. 
 To do that, deploy another Kafka Connect integrator named `opensearch-connect-integrator` in the `sink` mode:
@@ -330,7 +328,7 @@ postgresql-connect-integrator/0*  active    idle   13       10.38.169.83    8080
 ...
 ```
 
-### Verify data transfer
+## Verify data transfer
 
 Now it's time to verify that the data is being copied from the PostgreSQL database to the OpenSearch index. 
 We can use the OpenSearch REST API for that purpose.
@@ -418,10 +416,11 @@ Which now should have six hits (output is truncated):
     "total": {
       "value": 6,
       "relation": "eq"
-    },
+    }
+  }
 ...
 }
 ```
 
-Congratulations! You have successfully completed an ETL job that continuously moves data from PostgreSQL to OpenSearch, using entirely charmed solutions.
-
+Congratulations! You have successfully completed an ETL job that continuously
+moves data from PostgreSQL to OpenSearch, using entirely charmed solutions.
