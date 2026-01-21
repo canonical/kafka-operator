@@ -1,5 +1,5 @@
 (tutorial-deploy)=
-# 3. Deploy Apache Kafka
+# 2. Deploy Apache Kafka
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
@@ -16,7 +16,9 @@ juju deploy kafka -n 3 --channel 4/edge --roles=broker
 Apache Kafka also uses the KRaft consensus protocol for coordinating broker information, topic + partition metadata and Access Control Lists (ACLs), ran as a quorum of controller nodes using the Raft consensus algorithm.
 
 ```{note}
-KRaft replaces the dependency on Apache ZooKeeper for metadata management. For more information on the differences between the two solutions, please refer to the [upstream Apache Kafka documentation](https://kafka.apache.org/40/documentation/zk2kraft.html)
+KRaft replaces the dependency on Apache ZooKeeper for metadata management.
+For more information on the differences between the two solutions, please refer to the
+[upstream Apache Kafka documentation](https://kafka.apache.org/41/getting-started/zk2kraft/).
 ```
 
 Charmed Apache Kafka can run both with `roles=broker` and/or `roles=controller`. With this configuration option, the charm can be deployed either as a single application running both Apache Kafka brokers and KRaft controllers, or as multiple applications with a separate controller cluster and broker cluster.

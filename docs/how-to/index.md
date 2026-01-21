@@ -7,10 +7,10 @@ The following guides cover key processes and common tasks for Charmed Apache Kaf
 
 Deployment follows a broadly similar pattern on all platforms, but due to differences in the platforms, configuration and deployment must be approached differently in each case.
 
-* Common [deployment guide](how-to-deploy-deploy-anywhere)
+* Common [deployment guide](how-to-deploy-anywhere)
 * Specific deployment guides:
-  * [AWS](how-to-deploy-deploy-on-aws)
-  * [Azure](how-to-deploy-deploy-on-azure)
+  * [AWS](how-to-deploy-on-aws)
+  * [Azure](how-to-deploy-on-azure)
 
 ## Management
 
@@ -51,11 +51,6 @@ Advanced features of Charmed Apache Kafka include:
 
 * [Schemas and serialisation](how-to-schemas-serialisation)
 * [Kafka Connect usage](how-to-use-kafka-connect-for-etl-workloads)
-
-<!-- Alternative landing page prototype
-| | |
-|--|--|
-| **Deployment** </br> Deployment follows a broadly similar pattern on all platforms, but due to differences in the platforms, configuration and deployment must be approached differently in each case. </br> [Common deployment guide](how-to-deploy-deploy-anywhere), [AWS](how-to-deploy-deploy-on-aws), [Azure](how-to-deploy-deploy-on-azure) |**Management** </br> For guidance on managing your deployed Charmed Apache Kafka, see: [How to manage units](how-to-manage-units), [How to manage related applications](how-to-client-connections), [How to Upgrade](how-to-upgrade) | -->
 
 ```{toctree}
 :titlesonly:

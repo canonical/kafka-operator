@@ -1,3 +1,4 @@
+(how-to-deploy-spaces)=
 # Deploy on Juju spaces
 
 The Charmed Apache Kafka operator supports [Juju spaces](https://documentation.ubuntu.com/juju/latest/reference/space/index.html) to separate network traffic for:
