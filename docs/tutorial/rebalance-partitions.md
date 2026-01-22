@@ -15,15 +15,13 @@ To address this, we can make use of
 of the Charmed Apache Kafka [snap](https://github.com/canonical/charmed-kafka-snap)
 and [rock](https://github.com/canonical/charmed-kafka-rock).
 
-At a high level, Cruise Control is made up of the following five components:
+<!-- At a high level, Cruise Control is made up of the following five components:
 
 - **Workload Monitor** - responsible for the metrics collection from Charmed Apache Kafka
 - **Analyser** - generates allocation proposals based on configured [Goals](https://github.com/linkedin/cruise-control?tab=readme-ov-file#goals)
 - **Anomaly Detector** - detects failures in brokers, disks, metrics or goals and (optionally) self-heals
 - **Web server** - a REST API for user operations
-- **Executor** - issues re-allocation commands to Apache Kafka
-
-## Deploying partition balancer
+- **Executor** - issues re-allocation commands to Apache Kafka -->
 
 The Charmed Apache Kafka charm has a configuration option `roles`, which takes
 a list of possible values. Different roles can be configured to run on the same machine,
@@ -34,58 +32,93 @@ The two necessary roles for cluster rebalancing are:
 - `broker` - running Apache Kafka
 - `balancer` - running Cruise Control
 
+The `controller` role is needed for KRaft protocol.
+
+## Preparing environment
+
 ```{note}
 It is recommended to deploy a separate Juju application for running Cruise Control
 in production environments.
 ```
 
-For the purposes of this tutorial, we will be deploying a single Charmed Apache Kafka
-unit to serve as the `balancer`:
+We can't add Cruise Control to the Apache Kafka cluster we deployed earlier,
+as we need to have the `balancer` role for one of the Charmed Apache Kafka application.
 
-```bash
-juju deploy kafka --config roles=balancer cruise-control
+For the purposes of this tutorial, we will be deploying a new set of applications
+to a new Juju model.
+
+Create a new model:
+
+```shell
+juju add-model cruise
 ```
 
-Earlier in the tutorial, we covered enabling TLS encryption, so we will repeat that step here
-for the new `cruise-control` application:
+## Deploying
 
-```bash
-juju integrate cruise-control:certificates self-signed-certificates
+Now, deploy Apache Kafka cluster with the `broker` role:
+
+```shell
+juju deploy kafka -n 3 --channel 4/edge --config roles=broker
 ```
 
-Now, to make the new `cruise-control` application aware of the existing Apache Kafka cluster,
-we will integrate the two applications using the `peer_cluster` relation interface,
-ensuring that the `broker` cluster is using the `peer-cluster` relation-endpoint,
-and the `balancer` cluster is using the `peer-cluster-orchestrator` relation-endpoint:
+Then, deploy a cluster of Charmed Apache Kafka with the `controller` and `balancer` roles together:
 
-```bash
-juju integrate kafka:peer-cluster-orchestrator cruise-control:peer-cluster
+```shell
+juju deploy kafka -n 3 --channel 4/edge --config roles=controller,balancer controller
+```
+
+After that, deploy `self-signed-certificates charm:
+
+```shell
+juju deploy self-signed-certificates --config ca-common-name="Tutorial-cruise CA"
+```
+
+And finally, integrate the `controller` application to both
+`self-signed-certificates` and `kafka` applications:
+
+```shell
+juju integrate controller:certificates self-signed-certificates
+juju integrate kafka:peer-cluster-orchestrator controller:peer-cluster
+```
+
+Wait for the status to become `active`/`idle`:
+
+```shell
+watch juju status --color
 ```
 
 ## Adding new brokers
 
-After completing the steps in the
-[Integrate with client applications](integrate-with-client-applications) tutorial page,
-you should have three `kafka` units and a client application actively writing messages
-to an existing topic. Let's scale-out the `kafka` application to four units (add one more):
+Let's scale-out the `kafka` application to four units (add one more):
 
 ```bash
 juju add-unit kafka
 ```
 
-By default, no partitions are allocated for the new unit `3`. You can see that by checking the log directory assignment:
+By default, no partitions are allocated for the new unit `3`.
+You can see that by checking the log directory assignment:
 
 ```bash
+juju ssh kafka/leader sudo -i charmed-kafka.log-dirs --describe \
+  --bootstrap-server <unit-ip>:19093 \
+  --command-config '$CONF/client.properties' \
+  2>/dev/null \
+  | sed -n '/^{/p' \
+  | jq '.brokers[] | select(.broker == 103)'
+
+
+
 juju ssh kafka/leader sudo -i \
     'charmed-kafka.log-dirs' \
     '--describe' \
-    '--bootstrap-server <unit-ip>:9093' \
+    '--bootstrap-server <unit-ip>:19093' \
     '--command-config $CONF/client.properties' \
     '2> /dev/null' \
     | tail -1 | jq -c '.brokers[] | select(.broker == 3)' | jq
 ```
 
-This should produce output similar to the result seen below, with no partitions allocated by default:
+This should produce output similar to the result seen below,
+with no partitions allocated by default:
 
 ```json
 {
