@@ -79,7 +79,7 @@ telnet <Public IP address> 9093
 where `Public IP address` is the IP of any Charmed Apache Kafka application units.
 
 Both commands will be **unable to connect** now, as our Apache Kafka cluster
-has no active listeners fue to absence of integrated applications.
+has no active listeners due to absence of integrated applications.
 
 ```{caution}
 When no other application is integrated to Charmed Apache Kafka,
