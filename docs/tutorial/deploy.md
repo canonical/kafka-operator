@@ -50,7 +50,7 @@ topic + partition metadata and Access Control Lists (ACLs), ran as a quorum of
 controller nodes using the Raft consensus algorithm. KRaft replaces the dependency on
 Apache ZooKeeper for metadata management. For more information on the differences
 between the two solutions, please refer to the
-[upstream Apache Kafka documentation](https://kafka.apache.org/40/documentation/zk2kraft.html).
+[upstream Apache Kafka documentation](https://kafka.apache.org/41/getting-started/zk2kraft/).
 
 To deploy a cluster of three KRaft controllers, run:
 

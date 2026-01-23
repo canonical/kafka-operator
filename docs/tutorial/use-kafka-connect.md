@@ -4,7 +4,7 @@
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
 In this part of the tutorial, we are going to use
-[Kafka Connect](https://kafka.apache.org/documentation/#connect), an ETL framework on top of
+[Kafka Connect](https://kafka.apache.org/41/kafka-connect/overview/), an ETL framework on top of
 Apache Kafka, to seamlessly move data between different charmed database technologies.
 
 We will follow a step-by-step process for moving data between
