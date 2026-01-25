@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Enable TLS encryption for Apache Kafka using self-signed certificates - secure data transmission across your cluster."
+---
+
 (tutorial-enable-encryption)=
 # 5. Enable encryption
 

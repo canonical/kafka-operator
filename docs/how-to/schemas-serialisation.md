@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Manage Apache Kafka message schemas with Karapace - schema registry for data serialization and deserialization."
+---
+
 (how-to-schemas-serialisation)=
 # Schemas and serialisation
 

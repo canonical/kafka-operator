@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Charmed Apache Kafka revision 195/149 release notes - Juju secrets support, OAuth authentication, and dependency upgrades."
+---
+
 (reference-release-notes-revision-195-149)=
 # Revision 195/149
 <sub>Wed, Dec 18th, 2024</sub>

@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Charmed Apache Kafka revision 156/136 release notes - ZooKeeper 3.8.4 upgrade, robustness improvements, and bug fixes."
+---
+
 (reference-release-notes-revision-156-136)=
 # Revision 156/136
 <sub>Thursday, July 4, 2024</sub>

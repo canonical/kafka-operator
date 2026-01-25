@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Manage Apache Kafka client connections using kafka_client interface and data-integrator charm for credential management."
+---
+
 (how-to-client-connections)=
 # How to manage client connections
 

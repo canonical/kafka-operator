@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Comprehensive how-to guides for Charmed Apache Kafka - deployment, management, security, monitoring, and cluster replication."
+---
+
 (how-to-index)=
 # How-to guides
 

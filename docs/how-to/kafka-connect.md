@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Use Kafka Connect for ETL workloads - deploy connectors, manage plugins, and configure REST API authentication."
+---
+
 (how-to-use-kafka-connect-for-etl-workloads)=
 # How to use Kafka Connect for ETL workloads
 
