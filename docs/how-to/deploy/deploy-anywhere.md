@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Platform-independent guide to deploy Charmed Apache Kafka - set up Juju controller, model, and create admin users."
+---
+
 # How to deploy Charmed Apache Kafka
 
 This guide provides platform-independent deployment instructions.

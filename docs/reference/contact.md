@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Contact Canonical Data Platform team - Matrix, GitHub issues, security reporting, and useful Apache Kafka links."
+---
+
 (reference-contact)=
 # Contacts
 

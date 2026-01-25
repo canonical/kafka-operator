@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Apache Kafka backups explained - why traditional backups aren't needed with replication, retention, and KRaft metadata."
+---
+
 (explanation-backups)=
 # Backups
 

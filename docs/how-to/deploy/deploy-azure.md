@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Deploy Charmed Apache Kafka on Microsoft Azure - installation, authentication, and managed identity configuration."
+---
+
 (how-to-deploy-on-azure)=
 # How to deploy on Azure
 

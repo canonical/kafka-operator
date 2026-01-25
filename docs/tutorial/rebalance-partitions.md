@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Rebalance Apache Kafka partitions using Cruise Control - optimize resource distribution when scaling brokers."
+---
+
 (tutorial-rebalance-partitions)=
 # 7. Rebalance and Reassign Partitions
 

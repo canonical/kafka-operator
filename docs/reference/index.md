@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Apache Kafka reference materials - release notes, actions, configurations, file paths, snap commands, and status reference."
+---
+
 (reference-index)=
 # Reference
 

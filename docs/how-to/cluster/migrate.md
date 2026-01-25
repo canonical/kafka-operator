@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Migrate from non-charmed Kafka clusters using MirrorMaker 2.0 - one-way data and offset synchronization."
+---
+
 (how-to-cluster-migration)=
 # Migrate from a non-charmed Kafka clusters
 

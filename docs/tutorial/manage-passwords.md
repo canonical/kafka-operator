@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Manage and rotate passwords for Apache Kafka admin users and external users using Juju secrets and actions."
+---
+
 (tutorial-manage-passwords)=
 # 4. Manage passwords
 
