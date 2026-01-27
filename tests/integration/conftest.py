@@ -2,6 +2,7 @@
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import json
 import os
 import pathlib
 import subprocess
@@ -131,3 +132,16 @@ def juju(request: pytest.FixtureRequest):
 
     if request.session.testsfailed:
         print(log, end="")
+
+
+@pytest.fixture(scope="module")
+def model_uuid(juju: jubilant.Juju) -> str:
+    return next(
+        iter(
+            mdl["model-uuid"]
+            for mdl in json.loads(juju.cli("models", "--format", "json", include_model=False))[
+                "models"
+            ]
+            if mdl["short-name"] == juju.model
+        )
+    )
