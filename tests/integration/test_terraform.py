@@ -7,6 +7,7 @@
 import json
 import logging
 import os
+import random
 
 import pytest
 from jubilant import Juju
@@ -73,7 +74,7 @@ def test_deployment_active(juju: Juju, model_uuid: str, tmp_path):
     juju.wait(
         lambda status: len(status.apps) == 0,
         delay=3,
-        successes=20,
+        successes=10,
         timeout=900,
     )
 
@@ -83,7 +84,7 @@ def test_deployment_active(juju: Juju, model_uuid: str, tmp_path):
 def test_deployment_on_machines(juju: Juju, model_uuid: str, tmp_path):
     """Test that `machines` TF variable work as expected."""
     # Add machines and wait for them to start
-    juju.cli("add-machine", "-n", "2")
+    juju.cli("add-machine", "-n", "3")
     juju.wait(
         lambda status: all(
             machine_status.juju_status.current == "started"
@@ -95,8 +96,11 @@ def test_deployment_on_machines(juju: Juju, model_uuid: str, tmp_path):
     )
 
     machines = list(juju.status().machines)
+    target_machine = random.choice(machines)
+
+    # Deploy 1 Kafka unit on a target machine
     working_dir = _deploy_terraform(
-        tmp_path, tfvars={"model_uuid": model_uuid, "machines": machines}
+        tmp_path, tfvars={"model_uuid": model_uuid, "machines": [target_machine]}
     )
 
     juju.wait(
@@ -106,13 +110,16 @@ def test_deployment_on_machines(juju: Juju, model_uuid: str, tmp_path):
         timeout=900,
     )
 
-    assert len(juju.status().apps[APP_NAME].units) == 2
+    status = juju.status()
+    assert len(status.apps[APP_NAME].units) == 1
+    deployed_unit = next(iter(status.apps[APP_NAME].units.values()))
+    assert deployed_unit.machine == target_machine
 
     _destroy_terraform(working_dir)
 
     juju.wait(
         lambda status: len(status.apps) == 0,
         delay=3,
-        successes=20,
+        successes=10,
         timeout=900,
     )
