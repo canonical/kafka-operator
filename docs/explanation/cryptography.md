@@ -75,7 +75,7 @@ username and password and implemented both for client-server (with Apache Kafka)
 Username and passwords are exchanged using peer relations among Apache ZooKeeper units and using normal relations between Apache Kafka and Apache ZooKeeper.
 Juju secrets are used for exchanging credentials starting from revision 168 of Charmed Apache Kafka and revision 130 of Charmed Apache ZooKeeper.
 
-Usernames and passwords for different users are stored in Apache ZooKeeper servers in a [JAAS](https://docs.oracle.com/en/java/javase/11/security/java-authentication-and-authorization-service-jaas-reference-guide.html) configuration file in plain text format. 
+Usernames and passwords for different users are stored in Apache ZooKeeper servers in a [JAAS](https://docs.oracle.com/en/java/javase/11/security/java-authentication-authorization-service-jaas-reference-guide.html) configuration file in plain text format. 
 Permissions on the file are restricted to the root user only. 
 
 ### Apache Kafka interbroker authentication
