@@ -75,6 +75,7 @@ jobs:
           - integration-kraft-tls
           - integration-ha
           - integration-spaces
+          - integration-terraform
         kraft-mode:
           - single
     name: "${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}"
@@ -98,6 +99,10 @@ jobs:
         with:
           pattern: ${{ needs.build.outputs.artifact-prefix }}-*
           merge-multiple: true
+      - name: Setup terraform if needed
+        if: ${{ matrix.tox-environments == 'integration-terraform' }}
+        run: |
+          sudo snap install --classic terraform
       - name: Select tests
         id: select-tests
         run: |
