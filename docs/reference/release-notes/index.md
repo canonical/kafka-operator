@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Charmed Apache Kafka release notes - stable revisions, version history, and feature updates."
+---
+
 (reference-release-notes-index)=
 # Releases
 

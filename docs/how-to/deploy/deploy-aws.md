@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Deploy Charmed Apache Kafka on AWS EC2 - complete guide with Juju setup, authentication, and cluster deployment."
+---
+
 (how-to-deploy-on-aws)=
 # How to deploy on AWS
 

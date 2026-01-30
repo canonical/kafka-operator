@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Charmed Apache Kafka revision 205 release notes - Apache Kafka 3.9.0, KRaft support, Cruise Control, and Karapace."
+---
+
 (reference-release-notes-revision-205)=
 # Revision 205
 

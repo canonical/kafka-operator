@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Use Kafka Connect for ETL workloads - move data between PostgreSQL and OpenSearch using charmed Apache Kafka."
+---
+
 (tutorial-kafka-connect)=
 # 6. Use Kafka Connect for ETL
 

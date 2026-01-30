@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "MirrorMaker 2.0 overview - Kafka Connect connectors for cluster replication, topic mirroring, and offset synchronization."
+---
+
 (explanation-mirrormaker2-0)=
 # MirrorMaker 2.0 overview
 
