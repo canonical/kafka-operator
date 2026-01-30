@@ -22,6 +22,9 @@ on:
         description: build_charm.yaml `artifact-prefix` output
         value: ${{ jobs.build.outputs.artifact-prefix }}
 
+env:
+  JUJU_CHANNEL: "4.0/stable"
+
 jobs:
   lint:
     name: Lint
@@ -91,7 +94,7 @@ jobs:
         uses: charmed-kubernetes/actions-operator@main
         with:
           provider: lxd
-          juju-channel: 4.1/edge
+          juju-channel: ${{ env.JUJU_CHANNEL }}
       - name: Download packed charm(s)
         uses: actions/download-artifact@v4
         with:
@@ -151,7 +154,7 @@ jobs:
         uses: charmed-kubernetes/actions-operator@main
         with:
           provider: lxd
-          juju-channel: 4.1/edge
+          juju-channel: ${{ env.JUJU_CHANNEL }}
       - name: Download packed charm(s)
         uses: actions/download-artifact@v4
         with:
