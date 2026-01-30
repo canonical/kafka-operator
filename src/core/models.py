@@ -974,9 +974,7 @@ class KafkaBroker(RelationState):
         """The address for internal communication between brokers."""
         addr = ""
         if self.substrate == "vm":
-            for key in ["hostname", "ip", "private-address"]:
-                if addr := self.relation_data.get(key, ""):
-                    break
+            addr = self.ip
 
         if self.substrate == "k8s":
             addr = f"{self.unit.name.split('/')[0]}-{self.unit_id}.{self.unit.name.split('/')[0]}-endpoints"

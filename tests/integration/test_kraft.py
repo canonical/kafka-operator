@@ -17,6 +17,7 @@ from integration.helpers.jubilant import (
     BASE,
     KRaftMode,
     KRaftUnitStatus,
+    add_ssh_keys,
     all_active_idle,
     check_socket,
     create_test_topic,
@@ -137,6 +138,8 @@ class TestKRaft:
             successes=10,
             timeout=1800,
         )
+
+        add_ssh_keys(juju)
 
     def test_integrate(self, juju: jubilant.Juju, kafka_apps):
         if self.controller_app != APP_NAME:

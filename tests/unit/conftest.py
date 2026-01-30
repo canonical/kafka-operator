@@ -84,7 +84,8 @@ def patched_relation_ip():
 @pytest.fixture(autouse=True)
 def patched_workload(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("time.sleep", lambda _: None)
-    monkeypatch.setattr("charmlibs.pathops.LocalPath.exists", lambda _: True)
+    monkeypatch.setattr("os.makedirs", lambda *args, **kwargs: None)
+    monkeypatch.setattr("charmlibs.pathops.LocalPath.exists", lambda _,: True)
     monkeypatch.setattr("workload.Workload.active", lambda _: True)
     monkeypatch.setattr("workload.Workload.write", lambda _, content, path: None)
     monkeypatch.setattr("workload.Workload.read", lambda _, path: [])
