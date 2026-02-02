@@ -62,9 +62,13 @@ And wait a couple of minutes for the applications to settle to `active|idle` sta
 ## Test OAuth on Apache Kafka
 
 To test the OAuth setup, we will use the CLI client shipped with the Charmed Apache Kafka snap.
-It is assumed that you have the Charmed Apache Kafka 4 snap installed on your system.
+You need to install the Charmed Apache Kafka 4 snap on your system:
 
-First, create an OAuth client using the `hydra` application's `create-oauth-client` action:
+```bash
+snap install charmed-kafka --channel 4/edge
+```
+
+Then, create an OAuth client using the `hydra` application's `create-oauth-client` action:
 
 ```bash
 CLIENT_CREDS=$(juju run \
@@ -169,7 +173,7 @@ To resolve the authorisation issue, you can use the `charmed-kafka.acls` command
 to create the necessary ACLs for the OAuth user.
 In this scenario, the username is identified by the value in `$CLIENT_ID` variable.
 For more information on how to manage authorisation in Apache Kafka clusters, please consult the
-[official documentation](https://kafka.apache.org/documentation/#security_authz_cli).
+[official documentation](https://kafka.apache.org/41/security/authorization-and-acls/).
 
 Sample command to add ACLs for the OAuth user:
 
