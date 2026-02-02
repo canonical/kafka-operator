@@ -13,7 +13,7 @@ import pytest
 from charms.tls_certificates_interface.v4.tls_certificates import PrivateKey, generate_private_key
 from pytest_operator.plugin import OpsTest
 
-from integration.helpers import sign_manual_certs
+from integration.helpers import TLS_CHANNEL, TLS_NAME, sign_manual_certs
 from integration.helpers.pytest_operator import (
     APP_NAME,
     REL_NAME_PRODUCER,
@@ -42,10 +42,10 @@ from .test_charm import DUMMY_NAME
 
 logger = logging.getLogger(__name__)
 
-TLS_NAME = "self-signed-certificates"
 CERTS_NAME = "tls-certificates-operator"
 TLS_REQUIRER = "tls-certificates-requirer"
 MANUAL_TLS_NAME = "manual-tls-certificates"
+MANUAL_TLS_CHANNEL = "1/stable"
 
 
 @pytest.mark.abort_on_fail
@@ -55,7 +55,7 @@ async def test_deploy_tls(ops_test: OpsTest, kafka_charm, kraft_mode, kafka_apps
 
     await asyncio.gather(
         # FIXME (certs): Unpin the revision once the charm is fixed
-        ops_test.model.deploy(TLS_NAME, channel="edge", config=tls_config, revision=163),
+        ops_test.model.deploy(TLS_NAME, channel=TLS_CHANNEL, config=tls_config),
         deploy_cluster(
             ops_test=ops_test,
             charm=kafka_charm,
@@ -228,7 +228,7 @@ async def test_certificate_transfer(ops_test: OpsTest, kafka_apps):
     await ops_test.model.deploy(
         TLS_NAME,
         application_name="other-ca",
-        channel="1/stable",
+        channel=TLS_CHANNEL,
     )
     await ops_test.model.deploy(
         TLS_REQUIRER, channel="stable", application_name="other-req", revision=102
@@ -372,7 +372,7 @@ async def test_tls_removed(ops_test: OpsTest, kafka_apps):
 
 @pytest.mark.abort_on_fail
 async def test_manual_tls_chain(ops_test: OpsTest, kafka_apps):
-    await ops_test.model.deploy(MANUAL_TLS_NAME)
+    await ops_test.model.deploy(MANUAL_TLS_NAME, channel=MANUAL_TLS_CHANNEL)
 
     await ops_test.model.add_relation(f"{APP_NAME}:{TLS_RELATION}", MANUAL_TLS_NAME)
 

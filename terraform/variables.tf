@@ -22,8 +22,8 @@ variable "constraints" {
   default     = "arch=amd64"
 }
 
-variable "model" {
-  description = "Juju model to deploy to"
+variable "model_uuid" {
+  description = "Juju model UUID to deploy to"
   type        = string
 }
 
@@ -52,3 +52,8 @@ variable "base" {
   default     = "ubuntu@24.04"
 }
 
+variable "machines" {
+  description = "List of juju_machine resources to use for deployment"
+  type        = set(string)
+  default     = []
+}

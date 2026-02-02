@@ -1,7 +1,7 @@
 # Single mode: Combined broker+controller
 resource "juju_application" "kafka" {
-  model = var.model
-  name  = var.app_name
+  model_uuid = var.model_uuid
+  name       = var.app_name
 
   charm {
     name     = "kafka"
@@ -10,7 +10,8 @@ resource "juju_application" "kafka" {
     base     = var.base
   }
 
-  units       = var.units
+  units       = length(var.machines) == 0 ? var.units : null
+  machines    = length(var.machines) > 0 ? var.machines : null
   constraints = var.constraints
   config      = var.config
 
@@ -20,7 +21,7 @@ resource "juju_application" "kafka" {
 
 # Kafka client offer - Single mode
 resource "juju_offer" "kafka_client" {
-  model            = var.model
+  model_uuid       = var.model_uuid
   application_name = juju_application.kafka.name
   endpoints        = ["kafka-client"]
 }

@@ -11,6 +11,7 @@ import pytest
 from pytest_operator.plugin import OpsTest
 from tenacity import Retrying, stop_after_attempt, wait_fixed
 
+from integration.helpers import TLS_CHANNEL, TLS_NAME
 from integration.helpers.pytest_operator import (
     APP_NAME,
     CONTROLLER_NAME,
@@ -32,7 +33,6 @@ logger = logging.getLogger(__name__)
 pytestmark = pytest.mark.balancer
 
 PRODUCER_APP = "producer"
-TLS_NAME = "self-signed-certificates"
 
 
 class TestBalancer:
@@ -291,7 +291,7 @@ class TestBalancer:
         tls_config = {"ca-common-name": "kafka"}
 
         # FIXME (certs): Unpin the revision once the charm is fixed
-        await ops_test.model.deploy(TLS_NAME, channel="edge", config=tls_config, revision=163)
+        await ops_test.model.deploy(TLS_NAME, channel=TLS_CHANNEL, config=tls_config)
         await ops_test.model.wait_for_idle(apps=[TLS_NAME], idle_period=15)
         assert ops_test.model.applications[TLS_NAME].status == "active"
 
