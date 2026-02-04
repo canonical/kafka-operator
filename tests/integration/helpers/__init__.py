@@ -1,8 +1,11 @@
 # Copyright 2025 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import json
 import logging
+import os
 import tempfile
+from contextlib import contextmanager
 from enum import Enum
 from pathlib import Path
 from subprocess import PIPE, CalledProcessError, check_output
@@ -27,6 +30,75 @@ TLS_CHANNEL = "1/stable"
 
 
 KRaftMode = Literal["single", "multi"]
+
+
+def _exec(cmd: str) -> str:
+    """Executes a command on shell and returns the result."""
+    return check_output(
+        cmd,
+        stderr=PIPE,
+        shell=True,
+        universal_newlines=True,
+    )
+
+
+def _run_script(script: str) -> None:
+    """Runs a script on Linux OS.
+
+    Args:
+        script (str): Bash script
+    Raises:
+        OSError: If the script run fails.
+    """
+    for line in script.split("\n"):
+        command = line.strip()
+
+        if not command or command.startswith("#"):
+            continue
+
+        print(command)
+        _ = os.system(command)
+
+
+def deploy_identity_platform(git_tag: str = "v1.0.0") -> None:
+    """Deploy the Canonical Identity Platform Terraform bundle."""
+    home = os.environ.get("HOME", "/tmp")
+    _run_script(
+        f"""
+        mkdir {home}/iam-bundle
+        git clone --branch {git_tag} https://github.com/canonical/iam-bundle-integration.git {home}/iam-bundle
+        terraform -chdir={home}/iam-bundle/examples/tutorial init
+        terraform -chdir={home}/iam-bundle/examples/tutorial apply -auto-approve
+    """
+    )
+
+
+def get_controller_name(cloud: Literal["localhost", "microk8s"]) -> str | None:
+    """Gets controller name for specified cloud, i.e. localhost, microk8s."""
+    res = json.loads(_exec("juju controllers --format json"))
+    for controller in res.get("controllers", {}):
+        if res["controllers"][controller].get("cloud") == cloud:
+            return controller
+
+    return None
+
+
+def get_current_controller() -> str | None:
+    """Get current Juju controller."""
+    return json.loads(_exec("juju controllers --format json")).get("current-controller")
+
+
+@contextmanager
+def use_controller(controller: str | None):
+    """Decorator/context manager to use a certain Juju Controller."""
+    previous_controller = get_current_controller()
+
+    if controller:
+        os.system(f"juju switch {controller}")
+    yield
+
+    if previous_controller and previous_controller != controller:
+        os.system(f"juju switch {previous_controller}")
 
 
 class KRaftUnitStatus(Enum):
