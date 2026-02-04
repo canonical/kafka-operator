@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Upgrade Apache Kafka between versions - in-place minor upgrades with rolling restart and rollback procedures."
+    description: "Upgrade Charmed Apache Kafka between versions - in-place minor upgrades with rolling restart and rollback procedures."
 ---
 
 (how-to-upgrade)=

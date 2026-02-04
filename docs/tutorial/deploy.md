@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Deploy Apache Kafka clusters with KRaft controllers using Juju - complete guide for broker and controller deployment."
+    description: "Deploy Charmed Apache Kafka clusters with KRaft controllers using Juju - complete guide for broker and controller deployment."
 ---
 
 (tutorial-deploy)=

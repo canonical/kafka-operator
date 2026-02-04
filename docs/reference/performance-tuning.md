@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Apache Kafka performance tuning - virtual memory handling, memory maps, file descriptors, and networking optimizations."
+    description: "Charmed Apache Kafka performance tuning - virtual memory handling, memory maps, file descriptors, and networking optimizations."
 ---
 
 (reference-performance-tuning)=

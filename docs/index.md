@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Complete documentation for Charmed Apache Kafka operator - deploy, manage, and scale Apache Kafka clusters on VMs, AWS, Azure, and OpenStack."
+    description: "Complete documentation for Charmed Apache Kafka operator - deploy, manage, and scale Charmed Apache Kafka clusters on VMs, AWS, Azure, and OpenStack."
 ---
 
 (index)=

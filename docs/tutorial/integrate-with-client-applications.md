@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Connect client applications to Apache Kafka using Data Integrator charm - automatic user management and credential rotation."
+    description: "Connect client applications to Charmed Apache Kafka using Data Integrator charm - automatic user management and credential rotation."
 ---
 
 (tutorial-integrate-with-client-applications)=

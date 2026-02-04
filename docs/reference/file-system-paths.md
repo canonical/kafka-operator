@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Apache Kafka file system paths reference - binary, configuration, logs, and data directory locations in Charmed Apache Kafka."
+    description: "Charmed Apache Kafka file system paths reference - binary, configuration, logs, and data directory locations in Charmed Apache Kafka."
 ---
 
 (reference-file-system-paths)=

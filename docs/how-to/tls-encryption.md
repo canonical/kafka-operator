@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Enable TLS encryption for Apache Kafka - secure client and internal communications with certificate management."
+    description: "Enable TLS encryption for Charmed Apache Kafka - secure client and internal communications with certificate management."
 ---
 
 (how-to-tls-encryption)=

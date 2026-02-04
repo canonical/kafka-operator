@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Manage and rotate passwords for Apache Kafka admin users and external users using Juju secrets and actions."
+    description: "Manage and rotate passwords for Charmed Apache Kafka admin users and external users using Juju secrets and actions."
 ---
 
 (tutorial-manage-passwords)=

@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Set up Apache Kafka monitoring with Canonical Observability Stack - integrate Grafana, Prometheus, and Loki for metrics."
+    description: "Set up Charmed Apache Kafka monitoring with Canonical Observability Stack - integrate Grafana, Prometheus, and Loki for metrics."
 ---
 
 (how-to-monitoring)=

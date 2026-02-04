@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Apache Kafka cluster operations with MirrorMaker 2 - migration and replication guides for charmed clusters."
+    description: "Charmed Apache Kafka cluster operations with MirrorMaker 2 - migration and replication guides for charmed clusters."
 ---
 
 (how-to-cluster-replication-index)=

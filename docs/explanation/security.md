@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Security overview for Apache Kafka deployments - environment hardening, Juju security, cloud credentials, and authentication."
+    description: "Security overview for Charmed Apache Kafka deployments - environment hardening, Juju security, cloud credentials, and authentication."
 ---
 
 (explanation-security)=

@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Set up Apache Kafka cluster replication with MirrorMaker - active-passive replication using Kafka Connect."
+    description: "Set up Charmed Apache Kafka cluster replication with MirrorMaker - active-passive replication using Kafka Connect."
 ---
 
 (how-to-cluster-replication)=

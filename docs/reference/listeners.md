@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Apache Kafka listeners reference - internal and client listener protocols, ports, and endpoint configurations."
+    description: "Charmed Apache Kafka listeners reference - internal and client listener protocols, ports, and endpoint configurations."
 ---
 
 (reference-broker-listeners)=

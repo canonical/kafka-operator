@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Manage Apache Kafka message schemas with Karapace - schema registry for data serialization and deserialization."
+    description: "Manage Charmed Apache Kafka message schemas with Karapace - schema registry for data serialization and deserialization."
 ---
 
 (how-to-schemas-serialisation)=

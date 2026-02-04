@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Apache Kafka system requirements - Juju version, recommended hardware, storage, memory, CPU, and supported architectures."
+    description: "Charmed Apache Kafka system requirements - Juju version, recommended hardware, storage, memory, CPU, and supported architectures."
 ---
 
 (reference-requirements)=
