@@ -25,6 +25,7 @@ For guidance on managing your deployed Charmed Apache Kafka, see:
 * [How to manage units](how-to-manage-units)
 * [How to manage client connections](how-to-client-connections)
 * [How to upgrade](how-to-upgrade)
+* [How to use Kafka UI](how-to-kafka-ui)
 
 ## Security
 
@@ -57,6 +58,7 @@ Advanced features of Charmed Apache Kafka include:
 
 * [Schemas and serialisation](how-to-schemas-serialisation)
 * [Kafka Connect usage](how-to-use-kafka-connect-for-etl-workloads)
+* [Enable OAuth through Canonical Identity Platform](how-to-enable-oauth)
 
 ```{toctree}
 :titlesonly:
@@ -66,6 +68,7 @@ Advanced features of Charmed Apache Kafka include:
 Deploy<deploy/index.md>
 Manage units<manage-units.md>
 Client connections<client-connections.md>
+Kafka UI<kafka-ui.md>
 Encryption<tls-encryption.md>
 Upgrades<upgrade.md>
 Monitoring<monitoring.md>
@@ -73,4 +76,5 @@ cluster/index.md
 Create mTLS credentials<create-mtls-client-credentials.md>
 Schemas and serialisation<schemas-serialisation.md>
 Kafka Connect<kafka-connect.md>
+Enable OAuth<oauth.md>
 ```
