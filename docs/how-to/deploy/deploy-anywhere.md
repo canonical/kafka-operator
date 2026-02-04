@@ -129,8 +129,10 @@ The deployment should be complete once all the units show `active` or `idle` sta
 
 ## (Optional) Create an external admin user
 
-Charmed Apache Kafka aims to follow the _secure by default_ paradigm. As a consequence, after being deployed the Apache Kafka cluster
-won't expose any external listeners -- the cluster will be unreachable. Ports are only opened when client applications are integrated.
+Charmed Apache Kafka aims to follow the _secure by default_ paradigm.
+As a consequence, after being deployed the Apache Kafka cluster
+won't expose any external listeners -- the cluster will be unreachable.
+Ports are only opened when client applications are integrated.
 
 ```{note}
 For more information about the available listeners and protocols please refer to [this table](reference-broker-listeners). 
