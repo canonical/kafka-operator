@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Create mTLS client credentials for Apache Kafka - set up mutual TLS authentication with certificate generation and trust."
+    description: "Create mTLS client credentials for Charmed Apache Kafka - set up mutual TLS authentication with certificate generation and trust."
 ---
 
 (how-to-create-mtls-client-credentials)=
