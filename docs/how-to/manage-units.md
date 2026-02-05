@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Scale Charmed Apache Kafka clusters - add or remove broker units and reassign partitions for optimal resource utilization."
+---
+
 (how-to-manage-units)=
 # How to manage units
 

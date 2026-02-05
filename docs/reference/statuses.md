@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Charmed Apache Kafka charm statuses reference - complete guide to Juju application statuses, messages, and troubleshooting actions."
+---
+
 (reference-statuses)=
 # Charm statuses
 
