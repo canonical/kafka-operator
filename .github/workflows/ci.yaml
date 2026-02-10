@@ -105,9 +105,9 @@ jobs:
       - name: Select tests
         id: select-tests
         run: |
-          lxc image copy ubuntu:40cd8be9d79e local:
+          lxc image copy ubuntu:ad33d28f277c local:
           sudo lxc image alias delete "juju/ubuntu@24.04/amd64"
-          sudo lxc image alias create "juju/ubuntu@24.04/amd64" 40cd8be9d79e
+          sudo lxc image alias create "juju/ubuntu@24.04/amd64" ad33d28f277c
 
           if [ "${{ github.event_name }}" == "schedule" ]
           then
@@ -203,9 +203,9 @@ jobs:
       - name: Select tests
         id: select-tests
         run: |
-          lxc image copy ubuntu:40cd8be9d79e local:
+          lxc image copy ubuntu:ad33d28f277c local:
           sudo lxc image alias delete "juju/ubuntu@24.04/amd64"
-          sudo lxc image alias create "juju/ubuntu@24.04/amd64" 40cd8be9d79e
+          sudo lxc image alias create "juju/ubuntu@24.04/amd64" ad33d28f277c
 
           if [ "${{ github.event_name }}" == "schedule" ]
           then
