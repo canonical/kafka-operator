@@ -83,7 +83,7 @@ jobs:
       - lint
       - unit-test
       - build
-    runs-on: [self-hosted, linux, AMD64, X64, large, noble]
+    runs-on: ubuntu-22.04
     timeout-minutes: 120
     steps:
       - name: Checkout
@@ -216,5 +216,4 @@ jobs:
           CI_PACKED_CHARMS: ${{ needs.build.outputs.charms }}
       - name: Setup tmate session
         if: ${{ failure() }}
-        uses: mxschmitt/action-tmate@v3
-
+        uses: canonical/action-tmate@main
