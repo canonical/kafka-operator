@@ -24,27 +24,6 @@ juju status
 Wait for the `blocked` status with the message
 `application needs to be related with a KRaft controller`.
 
-````{warning}
-If you encounter the following error message: 
-
-```text
-cannot get available image metadata: failed getting published images metadata from default ubuntu cloud images: cannot read index data, attempt count exceeded: cannot access URL "http://cloud-images.ubuntu.com/releases/streams/v1/index.sjson"`
-```
-
-Force Juju to use HTTPS (and stop using the default HTTP sources):
-
-```shell
-juju model-config \
-  container-image-metadata-defaults-disabled=true \
-  container-image-metadata-url=https://cloud-images.ubuntu.com/releases/ \
-  image-metadata-defaults-disabled=true \
-  image-metadata-url=https://cloud-images.ubuntu.com/releases/
-
-juju retry-provisioning --all
-```
-
-````
-
 Apache Kafka uses the KRaft consensus protocol for coordinating broker information,
 topic + partition metadata and Access Control Lists (ACLs), ran as a quorum of
 controller nodes using the Raft consensus algorithm. KRaft replaces the dependency on
