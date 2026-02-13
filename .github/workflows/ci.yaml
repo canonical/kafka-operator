@@ -93,7 +93,6 @@ jobs:
         with:
           provider: lxd
           juju-channel: 3.6/stable
-          bootstrap-options: "--agent-version 3.6.6"
       - name: Download packed charm(s)
         uses: actions/download-artifact@v4
         with:
@@ -106,11 +105,6 @@ jobs:
       - name: Select tests
         id: select-tests
         run: |
-          # TODO: remove after LXD image issue is fixed:
-          # https://bugs.launchpad.net/snapd/+bug/2127244
-          lxc image copy ubuntu:568f69ff1166 local:
-          sudo lxc image alias create "juju/ubuntu@22.04/amd64" 568f69ff1166
-
           if [ "${{ github.event_name }}" == "schedule" ]
           then
             echo Running unstable and stable tests
@@ -162,7 +156,6 @@ jobs:
         with:
           provider: lxd
           juju-channel: 3.6/stable
-          bootstrap-options: "--agent-version 3.6.6"
       - name: Download packed charm(s)
         uses: actions/download-artifact@v4
         with:
@@ -206,11 +199,6 @@ jobs:
       - name: Select tests
         id: select-tests
         run: |
-          # TODO: remove after LXD image issue is fixed:
-          # https://bugs.launchpad.net/snapd/+bug/2127244
-          lxc image copy ubuntu:568f69ff1166 local:
-          sudo lxc image alias create "juju/ubuntu@22.04/amd64" 568f69ff1166
-
           if [ "${{ github.event_name }}" == "schedule" ]
           then
             echo Running unstable and stable tests
