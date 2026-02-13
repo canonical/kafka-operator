@@ -10,7 +10,8 @@ and external Charmed Apache Kafka users managed by the `data-integrator`.
 
 ## The built-in user
 
-The admin user password management is handled directly by the charm, by using Juju actions.
+The built-in admin user (`operator`) password management is handled directly by the charm,
+by using Juju actions.
 
 ### Retrieve the password
 
@@ -56,7 +57,7 @@ with the new configuration.
 
 ## External Apache Kafka users
 
-Unlike internal user management of `admin` users, the password management for external
+Unlike internal user management of the built-in admin user, the password management for external
 Apache Kafka users is instead managed using relations. Let's see this into play with
 the Data Integrator charm, that we have deployed in the previous part of the tutorial.
 

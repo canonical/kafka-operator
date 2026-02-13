@@ -329,4 +329,4 @@ juju remove-application kafka-test-app --destroy-storage
 
 ## What's next?
 
-In the next section, we will learn how to rotate and manage the passwords for the Apache Kafka users, both the admin one and the ones managed by the Data Integrator.
+In the next section, we will learn how to rotate and manage the passwords for the Apache Kafka users, both the admin user and the ones managed by the Data Integrator.

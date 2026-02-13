@@ -127,7 +127,7 @@ d5ipahpdormt02antvpg:
 ```
 
 The important line here for accessing the Apache Kafka cluster itself is `operator-password`,
-which tells us that `username=admin` and `password=0g7010iwtBrChk00Ad1pznzaZW0i2Pdt`.
+which tells us that `username=operator` and `password=0g7010iwtBrChk00Ad1pznzaZW0i2Pdt`.
 These are the credentials to use to successfully authenticate to the cluster.
 
 For simplicity, the password can also be directly retrieved by parsing the YAML response from the previous command directly using `yq`:
