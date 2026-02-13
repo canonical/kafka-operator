@@ -204,7 +204,7 @@ of the Charmed PostgreSQL tutorial.
 First, create a SQL script by running the following command:
 
 ```bash
-cat <<EOF > ~/populate.sql
+cat <<EOF > /tmp/populate.sql
 CREATE TABLE posts (
   id serial not null primary key,
   content text not null,
@@ -240,7 +240,7 @@ EOF
 Next, copy the `populate.sql` script to the PostgreSQL unit using the `juju scp` command:
 
 ```bash
-juju scp ~/populate.sql postgresql/0:/home/ubuntu/populate.sql
+juju scp /tmp/populate.sql postgresql/0:/home/ubuntu/populate.sql
 ```
 
 Then, retrieve the password for the `operator` user on the PostgreSQL database using
