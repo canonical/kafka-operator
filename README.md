@@ -1,6 +1,6 @@
 # Charmed Apache Kafka Operator
 
-[![CharmHub Badge](https://charmhub.io/kafka/badge.svg)](https://charmhub.io/kafka)
+[![CharmHub Badge](https://charmhub.io/kจafka/badge.svg)](https://charmhub.io/kafka)
 [![Release](https://github.com/canonical/kafka-operator/actions/workflows/release.yaml/badge.svg)](https://github.com/canonical/kafka-operator/actions/workflows/release.yaml)
 [![Tests](https://github.com/canonical/kafka-operator/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/canonical/kafka-operator/actions/workflows/ci.yaml?query=branch%3Amain)
 [![Docs](https://readthedocs.com/projects/canonical-charmed-kafka/badge/?version=4&style=plastic)](https://app.readthedocs.com/projects/canonical-charmed-kafka/builds/?version__slug=4)
