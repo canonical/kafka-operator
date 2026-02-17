@@ -1,5 +1,11 @@
+---
+myst:
+  html_meta:
+    description: "Manage and rotate passwords for Charmed Apache Kafka admin users and external users using Juju secrets and actions."
+---
+
 (tutorial-manage-passwords)=
-# 5. Manage passwords
+# 4. Manage passwords
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 

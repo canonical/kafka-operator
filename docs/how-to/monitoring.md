@@ -1,4 +1,10 @@
-(how-to-set-up-monitoring)=
+---
+myst:
+  html_meta:
+    description: "Set up Charmed Apache Kafka monitoring with Canonical Observability Stack - integrate Grafana, Prometheus, and Loki for metrics."
+---
+
+(how-to-monitoring)=
 # How to set up monitoring
 
 Charmed Apache Kafka and Charmed Apache ZooKeeper come with the [JMX exporter](https://github.com/prometheus/jmx_exporter/).

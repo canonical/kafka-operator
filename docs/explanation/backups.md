@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Apache Kafka backups explained - why traditional backups aren't needed with replication, retention, and KRaft metadata."
+---
+
 (explanation-backups)=
 # Backups
 
@@ -26,7 +32,7 @@ cluster metadata was managed in Apache ZooKeeper.
 Backing up Apache ZooKeeper was an important operational concern.
 
 With Kafka 4.x, Apache Kafka uses
-[KRaft mode](https://kafka.apache.org/documentation/#kraft),
+[KRaft mode](https://kafka.apache.org/41/operations/kraft/),
 where metadata is stored Kafka’s KRaft quorum.
 This metadata is replicated and fault-tolerant by design.
 As a result, there is no need to back up metadata separately or use Apache ZooKeeper.

@@ -25,6 +25,8 @@ REL_NAME_PRODUCER = "kafka-client-producer"
 AUTH_SECRET_CONFIG_KEY = "system-users"
 TEST_DEFAULT_MESSAGES = 15
 TEST_SECRET_NAME = "auth"
+TLS_NAME = "self-signed-certificates"
+TLS_CHANNEL = "1/stable"
 
 
 KRaftMode = Literal["single", "multi"]
@@ -56,6 +58,19 @@ def _run_script(script: str) -> None:
 
         print(command)
         _ = os.system(command)
+
+
+def deploy_identity_platform(git_tag: str = "v1.0.0") -> None:
+    """Deploy the Canonical Identity Platform Terraform bundle."""
+    home = os.environ.get("HOME", "/tmp")
+    _run_script(
+        f"""
+        mkdir {home}/iam-bundle
+        git clone --branch {git_tag} https://github.com/canonical/iam-bundle-integration.git {home}/iam-bundle
+        terraform -chdir={home}/iam-bundle/examples/tutorial init
+        terraform -chdir={home}/iam-bundle/examples/tutorial apply -auto-approve
+    """
+    )
 
 
 def get_controller_name(cloud: Literal["localhost", "microk8s"]) -> str | None:

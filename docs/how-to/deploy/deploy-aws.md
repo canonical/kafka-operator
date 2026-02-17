@@ -1,4 +1,10 @@
-(how-to-deploy-deploy-on-aws)=
+---
+myst:
+  html_meta:
+    description: "Deploy Charmed Apache Kafka on AWS EC2 - complete guide with Juju setup, authentication, and cluster deployment."
+---
+
+(how-to-deploy-on-aws)=
 # How to deploy on AWS
 
 [Amazon Web Services](https://aws.amazon.com/) is a popular subsidiary of Amazon that provides on-demand cloud computing platforms on a metered pay-as-you-go basis. Access the AWS web console at [{spellexception}`console.aws.amazon.com`](https://console.aws.amazon.com/).

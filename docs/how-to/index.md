@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Comprehensive how-to guides for Charmed Apache Kafka - deployment, management, security, monitoring, and cluster replication."
+---
+
 (how-to-index)=
 # How-to guides
 
@@ -7,10 +13,10 @@ The following guides cover key processes and common tasks for Charmed Apache Kaf
 
 Deployment follows a broadly similar pattern on all platforms, but due to differences in the platforms, configuration and deployment must be approached differently in each case.
 
-* Common [deployment guide](how-to-deploy-deploy-anywhere)
+* Common [deployment guide](how-to-deploy-anywhere)
 * Specific deployment guides:
-  * [AWS](how-to-deploy-deploy-on-aws)
-  * [Azure](how-to-deploy-deploy-on-azure)
+  * [AWS](how-to-deploy-on-aws)
+  * [Azure](how-to-deploy-on-azure)
 
 ## Management
 
@@ -19,6 +25,7 @@ For guidance on managing your deployed Charmed Apache Kafka, see:
 * [How to manage units](how-to-manage-units)
 * [How to manage client connections](how-to-client-connections)
 * [How to upgrade](how-to-upgrade)
+* [How to use Kafka UI](how-to-kafka-ui)
 
 ## Security
 
@@ -53,11 +60,6 @@ Advanced features of Charmed Apache Kafka include:
 * [Kafka Connect usage](how-to-use-kafka-connect-for-etl-workloads)
 * [Enable OAuth through Canonical Identity Platform](how-to-enable-oauth)
 
-<!-- Alternative landing page prototype
-| | |
-|--|--|
-| **Deployment** </br> Deployment follows a broadly similar pattern on all platforms, but due to differences in the platforms, configuration and deployment must be approached differently in each case. </br> [Common deployment guide](how-to-deploy-deploy-anywhere), [AWS](how-to-deploy-deploy-on-aws), [Azure](how-to-deploy-deploy-on-azure) |**Management** </br> For guidance on managing your deployed Charmed Apache Kafka, see: [How to manage units](how-to-manage-units), [How to manage related applications](how-to-client-connections), [How to Upgrade](how-to-upgrade) | -->
-
 ```{toctree}
 :titlesonly:
 :maxdepth: 2
@@ -66,6 +68,7 @@ Advanced features of Charmed Apache Kafka include:
 Deploy<deploy/index.md>
 Manage units<manage-units.md>
 Client connections<client-connections.md>
+Kafka UI<kafka-ui.md>
 Encryption<tls-encryption.md>
 Upgrades<upgrade.md>
 Monitoring<monitoring.md>

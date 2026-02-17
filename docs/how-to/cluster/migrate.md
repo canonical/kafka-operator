@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Migrate from non-charmed Kafka clusters using MirrorMaker 2.0 - one-way data and offset synchronization."
+---
+
 (how-to-cluster-migration)=
 # Migrate from a non-charmed Kafka clusters
 
@@ -14,13 +20,13 @@ For a brief explanation of how MirrorMaker works, see the [MirrorMaker explanati
 To migrate a cluster we need:
 
 - An "old" existing Kafka cluster to migrate from.
-  - The cluster needs to be reachable from/to the new Charmed Apache Kafka Connect cluster. 
+  - The cluster needs to be reachable from/to the new Charmed Apache Kafka Connect cluster.
 - A bootstrapped Juju VM cloud
 - A Charmed Apache Kafka Connect cluster to run the MirrorMaker tasks. For guidance on how to deploy a new Charmed Apache Kafka Connect cluster, see:
-    - The [How-to use Kafka Connect for ETL workloads guide](how-to-use-kafka-connect-for-etl-workloads)
+  - The [How-to use Kafka Connect for ETL workloads guide](how-to-use-kafka-connect-for-etl-workloads)
 - A Charmed Apache Kafka to migrate data to. For guidance on how to deploy a new Charmed Apache Kafka, see:
   - The [Charmed Apache Kafka Tutorial](tutorial-introduction)
-  - The [How to deploy guide](how-to-deploy-deploy-anywhere) for Charmed Apache Kafka
+  - The [How to deploy guide](how-to-deploy-anywhere) for Charmed Apache Kafka
 - The CLI tool `yq` - [GitHub repository](https://github.com/mikefarah/yq)
   - `snap install yq --channel=v3/stable`
 
@@ -69,7 +75,8 @@ MirrorMaker needs full `super.user` permissions on **BOTH** clusters. It support
 - `NEW_SASL_JAAS_CONFIG` -- string of `sasl.jaas.config` property
 
 ```{note}
-For `SSL` or `SASL_SSL` authentication, see the configuration options supported by Kafka Connect in the [Apache Kafka documentation](https://kafka.apache.org/documentation/#connectconfigs).
+For `SSL` or `SASL_SSL` authentication, see the configuration options supported by Kafka Connect in the
+[Apache Kafka documentation](https://kafka.apache.org/41/kafka-connect/user-guide/#configuring-connectors).
 ```
 
 ## Run MirrorMaker cross-cluster replication task
@@ -161,4 +168,6 @@ mm2-connect-cluster  source.topic.A  2          1505            1505            
 mm2-connect-cluster  source.topic.B  0          875             875             0          connector-consumer-MirrorSourceConnector-1-def...
 ```
 
-To monitor the produced data flowing in to the target Charmed Apache Kafka cluster, you can query the Prometheus metrics collected - see [How to set up monitoring](how-to-set-up-monitoring) for more information.
+To monitor the produced data flowing in to the target Charmed Apache Kafka cluster,
+you can query the Prometheus metrics collected - see
+[How to set up monitoring](how-to-monitoring) for more information.

@@ -1,5 +1,11 @@
+---
+myst:
+  html_meta:
+    description: "Set up your development environment for Charmed Apache Kafka using LXD, Juju, and command-line tools on Ubuntu."
+---
+
 (tutorial-environment)=
-# 2. Set up the environment
+# 1. Set up the environment
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 

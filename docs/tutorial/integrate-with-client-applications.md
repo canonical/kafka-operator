@@ -1,5 +1,11 @@
+---
+myst:
+  html_meta:
+    description: "Connect client applications to Charmed Apache Kafka using Data Integrator charm - automatic user management and credential rotation."
+---
+
 (tutorial-integrate-with-client-applications)=
-# 4. Integrate with client applications
+# 3. Integrate with client applications
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 

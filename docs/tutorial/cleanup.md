@@ -1,5 +1,11 @@
+---
+myst:
+  html_meta:
+    description: "Clean up your Charmed Apache Kafka tutorial environment - remove deployments, Juju controllers, and free system resources."
+---
+
 (tutorial-cleanup)=
-# 9. Cleanup your environment
+# 8. Cleanup your environment
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
