@@ -8,7 +8,6 @@ import json
 import logging
 import os
 import re
-import textwrap
 from abc import abstractmethod
 from functools import cached_property
 from typing import Iterable, cast
@@ -520,19 +519,21 @@ class ConfigManager(CommonConfigManager):
             truststore_cfg = f'oauth.ssl.truststore.location="{self.workload.paths.truststore}" oauth.ssl.truststore.password="{self.state.unit_broker.truststore_password}" oauth.ssl.truststore.type="JKS"'
 
         oauth_properties = [
-            textwrap.dedent(
-                f"""\
-                listener.name.{listener.name.lower()}.{listener.mechanism.lower()}.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \\
-                    oauth.client.id="kafka" \\
-                    oauth.valid.issuer.uri="{self.state.oauth.issuer_url}" \\
-                    {validation_cfg} \\
-                    oauth.username.claim="{username_claim}" \\
-                    oauth.fallback.username.claim="{username_fallback_claim}" \\
-                    oauth.check.audience="true" \\
-                    oauth.check.access.token.type="false" \\
-                    oauth.config.id="{listener.name}" \\
-                    unsecuredLoginStringClaim_sub="unused" \\
-                    {truststore_cfg};"""
+            " ".join(
+                [
+                    f"listener.name.{listener.name.lower()}.{listener.mechanism.lower()}.sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required",
+                    'oauth.client.id="kafka"',
+                    f'oauth.valid.issuer.uri="{self.state.oauth.issuer_url}"',
+                    validation_cfg,
+                    f'oauth.username.claim="{username_claim}"',
+                    f'oauth.fallback.username.claim="{username_fallback_claim}"',
+                    'oauth.check.audience="true"',
+                    'oauth.check.access.token.type="false"',
+                    f'oauth.config.id="{listener.name}"',
+                    'unsecuredLoginStringClaim_sub="unused"',
+                    truststore_cfg,
+                    ";",
+                ]
             ),
             f"listener.name.{listener.name.lower()}.{listener.mechanism.lower()}.sasl.server.callback.handler.class=io.strimzi.kafka.oauth.server.JaasServerOauthValidatorCallbackHandler",
             f"listener.name.{listener.name.lower()}.sasl.enabled.mechanisms={listener.mechanism}",

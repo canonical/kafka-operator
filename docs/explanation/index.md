@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Understand Charmed Apache Kafka concepts - security, cryptography, backups, MirrorMaker replication, and architectural explanations."
+---
+
 (explanation-index)=
 # Explanation
 

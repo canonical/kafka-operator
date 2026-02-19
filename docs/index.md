@@ -1,3 +1,9 @@
+---
+myst:
+  html_meta:
+    description: "Complete documentation for Charmed Apache Kafka operator - deploy, manage, and scale Charmed Apache Kafka clusters on VMs, AWS, Azure, and OpenStack."
+---
+
 (index)=
 
 ```{note}
@@ -41,9 +47,12 @@ easy-to-use application integration, and monitoring.
 
 ## Project and community
 
-Charmed Apache Kafka is part of the [Juju](https://juju.is/) ecosystem of open-source, self-driving deployment tools. It can be integrated with multiple other Juju charms, also available on [Charmhub](https://charmhub.io/).
+Charmed Apache Kafka is part of the [Juju](https://juju.is/) ecosystem of open-source,
+self-driving deployment tools. It can be integrated with multiple other Juju charms,
+also available on [Charmhub](https://charmhub.io/).
 
-It’s an open-source project developed and supported by [Canonical](https://canonical.com/) that welcomes community contributions, suggestions, fixes and constructive feedback.
+It’s an open-source project developed and supported by [Canonical](https://canonical.com/)
+that welcomes community contributions, suggestions, fixes and constructive feedback.
 
 - [Read our Code of Conduct](https://ubuntu.com/community/code-of-conduct)
 - [Join the Discourse forum](https://discourse.charmhub.io/tag/kafka)

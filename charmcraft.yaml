@@ -57,7 +57,7 @@ parts:
       - pkg-config  # Needed to build Python dependencies with Rust from source
       - rustup      # Needed to build Python dependencies with Rust from source
     override-build: |
-      rustup default 1.87.0
+      rustup default 1.93.1
       craftctl default
       # Include requirements.txt in *.charm artifact for easier debugging
       cp requirements.txt "$CRAFT_PART_INSTALL/requirements.txt"

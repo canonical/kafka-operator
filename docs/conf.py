@@ -118,7 +118,7 @@ html_context = {
     #
     # NOTE: If set, adding ':discourse: 123' to an .rst file
     #       will add a link to Discourse topic 123 at the bottom of the page.
-    "discourse": "discourse.charmhub.io",
+    "discourse": "https://discourse.charmhub.io",
     # Your Mattermost channel URL
     #
     # TODO: Change to your Mattermost channel URL or leave empty.
@@ -170,7 +170,7 @@ html_theme_options = {
 # TODO: If your documentation is hosted on https://docs.ubuntu.com/,
 #       uncomment and update as needed.
 
-# slug = ''
+slug = 'charmed-kafka'
 
 #######################
 # Sitemap configuration: https://sphinx-sitemap.readthedocs.io/
@@ -178,7 +178,7 @@ html_theme_options = {
 
 # Base URL of RTD hosted project
 
-html_baseurl = 'https://canonical-charmed-kafka.readthedocs-hosted.com/'
+html_baseurl = 'https://documentation.ubuntu.com/charmed-kafka/'
 
 # URL scheme. Add language and version scheme elements.
 # When configured with RTD variables, check for RTD environment so manual runs succeed:
@@ -191,8 +191,13 @@ else:
 
 # Template and asset locations
 
-#html_static_path = ["_static"]
-#templates_path = ["_templates"]
+html_static_path = [
+    ".sphinx/_static",
+]
+
+templates_path = [
+    ".sphinx/_templates",
+]
 
 
 #############
@@ -285,12 +290,16 @@ exclude_patterns = [
 
 # Adds custom CSS files, located under 'html_static_path'
 
-# html_css_files = []
+html_css_files = [
+    "cookie-banner.css",
+]
 
 
 # Adds custom JavaScript files, located under 'html_static_path'
 
-# html_js_files = []
+html_js_files = [
+    "bundle.js",
+]
 
 
 # Specifies a reST snippet to be appended to each .rst file

@@ -10,7 +10,8 @@ resource "juju_application" "kafka" {
     base     = var.base
   }
 
-  units       = var.units
+  units       = length(var.machines) == 0 ? var.units : null
+  machines    = length(var.machines) > 0 ? var.machines : null
   constraints = var.constraints
   config      = var.config
 
