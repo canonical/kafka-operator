@@ -124,7 +124,7 @@ juju integrate kafka-test-app self-signed-certificates
 ```
 
 We can then set up the `kafka-test-app` to produce messages with the usual configuration
-(note that that the process here is the same as with the unencrypted workflow):
+(note that the process here is the same as with the unencrypted workflow):
 
 ```shell
 juju config kafka-test-app topic_name=HOT-TOPIC role=producer num_messages=20
