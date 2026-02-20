@@ -7,6 +7,7 @@
 import json
 import logging
 import os
+from collections import defaultdict
 from functools import cached_property
 from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, Any
@@ -316,15 +317,24 @@ class ClusterState(Object):
         super_users = set(INTERNAL_USERS)
         super_users.add(CONTROLLER_USER)
 
+        reverse_roles_mapping = defaultdict(list)
+        for oauth_id, mapped in self.config.roles_mapping.items():
+            reverse_roles_mapping[mapped].append(oauth_id)
+
         for relation in self.client_relations:
             if not relation or not relation.app:
                 continue
 
+            username = f"relation-{relation.id}"
             extra_user_roles = relation.data[relation.app].get("extra-user-roles", "")
-            password = self.cluster.relation_data.get(f"relation-{relation.id}", None)
+            password = self.cluster.relation_data.get(username, None)
             # if passwords are set for client admins, they're good to load
             if "admin" in extra_user_roles and password is not None:
-                super_users.add(f"relation-{relation.id}")
+                super_users.add(username)
+
+                # OAuth ids mapped to this username should also be superuser.
+                for u in reverse_roles_mapping[username]:
+                    super_users.add(u)
 
         super_users_arg = sorted([f"User:{user}" for user in super_users])
 
