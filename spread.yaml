@@ -9,6 +9,9 @@ backends:
     allocate: |
       instance_name="kafka-tutorial-vm"
 
+      # Clean up any leftover VM from a previous interrupted run.
+      multipass delete --purge "$instance_name" 2>/dev/null || true
+
       # 8 CPUs / 16 GB RAM / 50 GB disk – sized for a 6-unit Juju/LXD cluster.
       # Adjust SPREAD_VM_CPUS, SPREAD_VM_MEM, SPREAD_VM_DISK to override.
       cpus="${SPREAD_VM_CPUS:-8}"
@@ -22,10 +25,22 @@ backends:
       multipass exec "$instance_name" -- \
         sudo sh -c "echo 'DNS=8.8.8.8 8.8.4.4' >> /etc/systemd/resolved.conf && systemctl restart systemd-resolved"
 
-      # Fix MTU: upstream path MTU is 1492 (PPPoE); set the VM NIC to match so
-      # large TCP packets (snap downloads, LXD traffic) are not silently dropped.
-      multipass exec "$instance_name" -- \
-        sudo ip link set ens3 mtu 1492
+      # Fix MTU: detect the outbound interface and path MTU dynamically so this
+      # works on any host (PPPoE, corporate VPNs, etc. often have MTU < 1500).
+      multipass exec "$instance_name" -- sudo sh -c '
+        iface=$(ip route show default | awk "/default/ {print \$5; exit}")
+        # tracepath reports the minimum PMTU along the path; fall back to 1500.
+        path_mtu=$(tracepath -n 1.1.1.1 2>/dev/null \
+          | grep -oP "pmtu \K[0-9]+" | sort -n | head -1)
+        path_mtu=${path_mtu:-1500}
+        current_mtu=$(cat /sys/class/net/"$iface"/mtu 2>/dev/null || echo 1500)
+        if [ "$path_mtu" -lt "$current_mtu" ]; then
+          echo "Setting MTU on $iface: $current_mtu -> $path_mtu"
+          ip link set "$iface" mtu "$path_mtu"
+        else
+          echo "MTU on $iface is $current_mtu, path MTU $path_mtu – no change needed"
+        fi
+      '
 
       # Pre-install snaps while MTU is correct and we are still in the allocate
       # phase.  On Ubuntu 24.04, /usr/sbin/lxd is a stub that triggers a snap
