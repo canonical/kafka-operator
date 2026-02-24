@@ -1,0 +1,33 @@
+summary: Charmed Apache Kafka tutorial
+
+# Sized for the full tutorial (6 LXD units: 3 brokers + 3 controllers).
+# Adjust if only testing early pages.
+kill-timeout: 90m
+
+prepare: |
+  # Nothing to prepare globally – individual scripts are self-contained.
+  # Add system-level setup here if needed (e.g. apt packages, snaps).
+
+execute: |
+  # shellcheck source=tests/tutorial/helpers.sh
+  . "$SPREAD_PATH/tests/tutorial/helpers.sh"
+
+  # -----------------------------------------------------------------------
+  # 01 – Environment setup (environment.md)
+  # -----------------------------------------------------------------------
+  bash "$SPREAD_PATH/tests/tutorial/01_environment.sh"
+
+  # -----------------------------------------------------------------------
+  # Future pages – uncomment as they are added:
+  # -----------------------------------------------------------------------
+  # bash "$SPREAD_PATH/tests/tutorial/02_deploy.sh"
+  # bash "$SPREAD_PATH/tests/tutorial/03_passwords.sh"
+  # bash "$SPREAD_PATH/tests/tutorial/04_client.sh"
+  # bash "$SPREAD_PATH/tests/tutorial/05_encryption.sh"
+  # bash "$SPREAD_PATH/tests/tutorial/06_rebalance.sh"
+  # bash "$SPREAD_PATH/tests/tutorial/07_kafka_connect.sh"
+  # bash "$SPREAD_PATH/tests/tutorial/08_cleanup.sh"
+
+restore: |
+  # Best-effort cleanup inside the VM (the VM itself is discarded by spread).
+  juju destroy-model tutorial --destroy-storage --no-prompt 2>/dev/null || true

@@ -1,0 +1,51 @@
+project: charmed-kafka-docs-tutorial
+
+# The project root is mirrored to this path inside the test VM.
+path: /charmed-kafka
+
+backends:
+  multipass:
+    type: adhoc
+    allocate: |
+      instance_name="kafka-tutorial-vm"
+
+      # 8 CPUs / 16 GB RAM / 50 GB disk – sized for a 6-unit Juju/LXD cluster.
+      # Adjust SPREAD_VM_CPUS, SPREAD_VM_MEM, SPREAD_VM_DISK to override.
+      cpus="${SPREAD_VM_CPUS:-8}"
+      mem="${SPREAD_VM_MEM:-16G}"
+      disk="${SPREAD_VM_DISK:-50G}"
+
+      multipass launch --cpus "$cpus" --disk "$disk" --memory "$mem" \
+        --name "$instance_name" 24.04
+
+      # Allow root SSH login so Spread can connect.
+      multipass exec "$instance_name" -- \
+        sudo sh -c "echo root:${SPREAD_PASSWORD} | chpasswd"
+      multipass exec "$instance_name" -- \
+        sudo sh -c \
+        "if [ -d /etc/ssh/sshd_config.d/ ]; then
+           echo 'PasswordAuthentication yes' > /etc/ssh/sshd_config.d/10-spread.conf
+           echo 'PermitRootLogin yes'       >> /etc/ssh/sshd_config.d/10-spread.conf
+         else
+           sed -i /etc/ssh/sshd_config -E \
+             -e 's/^#?PasswordAuthentication.*/PasswordAuthentication yes/' \
+             -e 's/^#?PermitRootLogin.*/PermitRootLogin yes/'
+         fi"
+      multipass exec "$instance_name" -- sudo systemctl restart ssh
+
+      ip=$(multipass info --format csv "$instance_name" | tail -1 | cut -d, -f3)
+      ADDRESS "$ip"
+
+    discard: |
+      instance_name="kafka-tutorial-vm"
+      multipass delete --purge "$instance_name"
+
+    systems:
+      - ubuntu-24.04-64:
+          workers: 1
+
+suites:
+  tests/tutorial/:
+    summary: Charmed Apache Kafka documentation tutorial
+    systems:
+      - ubuntu-24.04-64
