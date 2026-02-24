@@ -11,9 +11,16 @@
 set -euo pipefail
 
 lxd init --auto
-lxc network set lxdbr0 ipv6.address none
 
-sudo snap install juju
+# Ensure the default bridge exists with a path-MTU-safe MTU (1492 for PPPoE
+# upstreams) and without IPv6 (Juju doesn't support LXD+IPv6).
+if ! lxc network show lxdbr0 > /dev/null 2>&1; then
+  lxc network create lxdbr0
+fi
+lxc network set lxdbr0 ipv6.address none
+lxc network set lxdbr0 bridge.mtu 1492
+
+sudo snap install juju || snap list juju
 
 juju bootstrap localhost overlord
 

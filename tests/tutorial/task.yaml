@@ -7,6 +7,9 @@ kill-timeout: 90m
 prepare: |
   # Nothing to prepare globally – individual scripts are self-contained.
   # Add system-level setup here if needed (e.g. apt packages, snaps).
+  true
+  # Juju's strictly-confined snap requires ~/.local/share/juju to exist when run as root.
+  mkdir -p /root/.local/share/juju
 
 execute: |
   # shellcheck source=tests/tutorial/helpers.sh

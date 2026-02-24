@@ -18,6 +18,23 @@ backends:
       multipass launch --cpus "$cpus" --disk "$disk" --memory "$mem" \
         --name "$instance_name" 24.04
 
+      # Fix DNS inside the VM (systemd-resolved can mis-configure on Multipass).
+      multipass exec "$instance_name" -- \
+        sudo sh -c "echo 'DNS=8.8.8.8 8.8.4.4' >> /etc/systemd/resolved.conf && systemctl restart systemd-resolved"
+
+      # Fix MTU: upstream path MTU is 1492 (PPPoE); set the VM NIC to match so
+      # large TCP packets (snap downloads, LXD traffic) are not silently dropped.
+      multipass exec "$instance_name" -- \
+        sudo ip link set ens3 mtu 1492
+
+      # Pre-install snaps while MTU is correct and we are still in the allocate
+      # phase.  On Ubuntu 24.04, /usr/sbin/lxd is a stub that triggers a snap
+      # install when first invoked; doing it here avoids races inside the test.
+      multipass exec "$instance_name" -- \
+        sudo snap install lxd --channel=5.21/stable
+      multipass exec "$instance_name" -- \
+        sudo snap install juju --channel=3/stable
+
       # Allow root SSH login so Spread can connect.
       multipass exec "$instance_name" -- \
         sudo sh -c "echo root:${SPREAD_PASSWORD} | chpasswd"
@@ -45,7 +62,7 @@ backends:
           workers: 1
 
 suites:
-  tests/tutorial/:
+  tests/:
     summary: Charmed Apache Kafka documentation tutorial
     systems:
       - ubuntu-24.04-64
