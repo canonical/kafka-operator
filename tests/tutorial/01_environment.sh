@@ -23,6 +23,10 @@ if ! lxc network show lxdbr0 > /dev/null 2>&1; then
 fi
 lxc network set lxdbr0 ipv6.address none
 lxc network set lxdbr0 bridge.mtu "$_mtu"
+# Tell LXD's dnsmasq on lxdbr0 to forward all queries to Google's resolvers
+# so that containers (including the Juju controller) get reliable DNS
+# regardless of the state of systemd-resolved on the outer VM.
+lxc network set lxdbr0 raw.dnsmasq $'server=8.8.8.8\nserver=8.8.4.4'
 
 # Pin the LXD default profile to lxdbr0 with an explicit MTU.
 # This prevents Juju's bootstrap from switching containers to the ubuntu-fan
@@ -38,5 +42,11 @@ juju bootstrap localhost overlord
 lxc list
 
 juju add-model tutorial
+
+# Disable apt update/upgrade during machine provisioning to avoid a known
+# apt pipe deadlock bug in Ubuntu 24.04 LXD containers (apt bug #1042290).
+juju model-config \
+    enable-os-refresh-update=false \
+    enable-os-upgrade=false
 
 juju status

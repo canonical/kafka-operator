@@ -23,6 +23,7 @@ juju deploy kafka -n 3 --channel 4/edge --config roles=broker
 Juju will now fetch Charmed Apache Kafka and begin deploying it to the LXD cloud.
 Now check the Juju model status:
 
+<!-- test:skip -->
 ```shell
 juju status
 ```
@@ -54,6 +55,7 @@ Juju will now connect applications to exchange access credentials and machine en
 This process can take several minutes depending on the resources available on your machine.
 You can track the progress by running:
 
+<!-- test:skip -->
 ```shell
 watch juju status --color
 ```
@@ -66,6 +68,7 @@ you can watch the status and messages both applications change.
 
 Wait until the applications are `active` and all units show `active`/`idle` status:
 
+<!-- test:skip -->
 ```shell
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
 tutorial  overlord    localhost/localhost  3.6.13   unsupported  12:33:46Z
@@ -111,6 +114,7 @@ juju show-secret --reveal cluster.kafka.app
 
 The output of the previous command will look something like this:
 
+<!-- test:skip -->
 ```shell
 d5ipahpdormt02antvpg:
   revision: 1

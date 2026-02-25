@@ -47,6 +47,13 @@ backends:
       # install when first invoked; doing it here avoids races inside the test.
       multipass exec "$instance_name" -- \
         sudo snap install lxd --channel=5.21/stable
+
+      # LXD's snap install triggers a snapd restart and sets up network bridges
+      # (lxdbr0) that can disrupt systemd-resolved.  Re-apply DNS before the
+      # next snap download to avoid lookup timeouts.
+      multipass exec "$instance_name" -- \
+        sudo systemctl restart systemd-resolved
+
       multipass exec "$instance_name" -- \
         sudo snap install juju --channel=3/stable
 

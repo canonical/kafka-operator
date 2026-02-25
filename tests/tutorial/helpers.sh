@@ -4,6 +4,10 @@
 # Source this file at the top of every task execute/prepare block:
 #   . "$SPREAD_PATH/tests/tutorial/helpers.sh"
 
+# Spread SSHs in as root but does not always set HOME=/root, which causes the
+# Juju client to fail looking up its config in $HOME/.local/share/juju.
+export HOME=/root
+
 # ---------------------------------------------------------------------------
 # juju_wait – poll until every Juju unit in the model is active/idle.
 #
@@ -33,7 +37,11 @@ juju_wait() {
 
     while [[ "$elapsed" -lt "$timeout" ]]; do
         local not_ready
+        # Run the poll pipeline with pipefail disabled so a non-zero exit from
+        # "juju status" (common while machines are still provisioning) does not
+        # abort a calling script that has  set -euo pipefail  active.
         not_ready=$(
+            set +o pipefail
             juju status --format=json 2>/dev/null | python3 - <<'PYEOF'
 import json, sys
 try:
@@ -49,7 +57,7 @@ try:
 except Exception:
     print("error")
 PYEOF
-        )
+        ) || not_ready="error"
 
         if [[ "$not_ready" == "0" ]]; then
             echo "All units active/idle after ${elapsed}s."
