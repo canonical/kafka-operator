@@ -3,7 +3,7 @@ build
 sphinx-autobuild
 canonical-sphinx-config @ git+https://github.com/Canonical/canonical-sphinx-config.git@main
 sphinx-modern-pdf-style
-myst-parser
+myst-parser~=4.0
 sphinx-basic-ng
 sphinxcontrib-jquery
 beautifulsoup4
@@ -14,4 +14,4 @@ sphinx-last-updated-by-git
 sphinx-design
 sphinx-sitemap
 sphinx-tabs
-
+ulwazi
