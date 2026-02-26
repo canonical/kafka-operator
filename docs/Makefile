@@ -61,9 +61,10 @@ $(VENVDIR):
 	. $(VENV); pip install $(PIPOPTS) --require-virtualenv \
 	    --upgrade -r requirements.txt \
             --log $(VENVDIR)/pip_install.log
-	@test ! -f $(VENVDIR)/pip_list.txt || \
-            mv $(VENVDIR)/pip_list.txt $(VENVDIR)/pip_list.txt.bak
-	@. $(VENV); pip list --local --format=freeze > $(VENVDIR)/pip_list.txt
+# 	. $(VENV); pip install dist/ulwazi-0.1.tar.gz
+# 	@test ! -f $(VENVDIR)/pip_list.txt || \
+#             mv $(VENVDIR)/pip_list.txt $(VENVDIR)/pip_list.txt.bak
+# 	@. $(VENV); pip list --local --format=freeze > $(VENVDIR)/pip_list.txt
 	@touch $(VENVDIR)
 
 spellcheck-install:
