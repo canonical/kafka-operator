@@ -436,11 +436,6 @@ rst_prolog = """
     :class: spellexception
 """
 
-myst_rst_prolog = """
-.. role:: spellexception
-    :class: spellexception
-"""
-
 # Workaround for https://github.com/canonical/canonical-sphinx/issues/34
 
 if "discourse_prefix" not in html_context and "discourse" in html_context:
@@ -459,3 +454,17 @@ intersphinx_mapping = {}
 # PDF
 
 set_modern_pdf_config = True
+
+# The :spellexception: role is used in .md files but MyST-parser does not process
+# ``.. role::`` directives from rst_prolog, so the role must be registered directly
+# with docutils to be available in both RST and MyST sources.
+
+def setup(app):
+    from docutils import nodes
+    from docutils.parsers.rst import roles
+
+    def spellexception_role(role, rawtext, text, lineno, inliner, options={}, content=[]):
+        node = nodes.inline(rawtext, text, classes=["spellexception"])
+        return [node], []
+
+    roles.register_canonical_role("spellexception", spellexception_role)
