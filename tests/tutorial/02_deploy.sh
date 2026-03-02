@@ -22,9 +22,12 @@ juju integrate kafka:peer-cluster-orchestrator kraft:peer-cluster
 # Wait for all 6 units (3 brokers + 3 controllers) to reach active/idle.
 juju_wait --timeout 900
 
-# juju show-secret --reveal cluster.kafka.app
+juju show-secret --reveal cluster.kafka.app
 
-# juju show-secret --reveal cluster.kafka.app | yq -r '.[].content["operator-password"]'
+juju show-secret --reveal cluster.kafka.app | yq -r '.[].content["operator-password"]'
+
+operator_password=$(juju show-secret --reveal cluster.kafka.app | yq -r '.[].content["operator-password"]')
+echo "DEBUG: operator-password=${operator_password}"
 
 # bootstrap_address=$(juju show-unit kafka/0 | yq '.. | ."public-address"? // ""' | tr -d '"' | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
 
