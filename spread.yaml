@@ -84,8 +84,8 @@ backends:
           workers: 1
 
 suites:
-  tests/:
-    summary: Charmed Apache Kafka documentation tutorial
+  tests/tutorial/:
+    summary: Charmed Apache Kafka tutorial
     systems:
       - ubuntu-24.04-64
     prepare: |
