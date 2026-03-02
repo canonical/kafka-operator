@@ -42,7 +42,7 @@ juju_wait() {
         # abort a calling script that has  set -euo pipefail  active.
         not_ready=$(
             set +o pipefail
-            juju status --format=json 2>/dev/null | python3 - <<'PYEOF'
+            juju status --format=json 2>/dev/null | python3 -c '
 import json, sys
 try:
     data = json.load(sys.stdin)
@@ -56,16 +56,18 @@ try:
     print(not_ready)
 except Exception:
     print("error")
-PYEOF
+'
         ) || not_ready="error"
 
         if [[ "$not_ready" == "0" ]]; then
             echo "All units active/idle after ${elapsed}s."
             juju status
             return 0
+        elif [[ "$not_ready" == "error" ]]; then
+            echo "[${elapsed}s elapsed] status not yet available (still provisioning) – rechecking in ${interval}s…"
+        else
+            echo "[${elapsed}s elapsed] ${not_ready} unit(s) not yet active/idle – rechecking in ${interval}s…"
         fi
-
-        echo "[${elapsed}s elapsed] ${not_ready} unit(s) not in active/idle – rechecking in ${interval}s…"
         sleep "$interval"
         elapsed=$(( elapsed + interval ))
     done
