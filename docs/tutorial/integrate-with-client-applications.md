@@ -25,6 +25,7 @@ juju deploy data-integrator --config topic-name=test-topic --config extra-user-r
 
 <details> <summary> Output example</summary>
 
+<!-- test:skip -->
 ```shell
 Deployed "data-integrator" from charm-hub charm "data-integrator", revision 180 in channel latest/stable on ubuntu@24.04/stable
 ```
@@ -43,6 +44,7 @@ Wait for the status to become `active`/`idle` with the
 
 <details> <summary> Output example</summary>
 
+<!-- test:skip -->
 ```shell
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
 tutorial  overlord    localhost/localhost  3.6.13   unsupported  12:50:51Z
@@ -118,12 +120,14 @@ juju deploy kafka-test-app --channel edge
 
 Wait for the charm to become `active`/`idle`, and log into the container:
 
+<!-- test:skip -->
 ```shell
 juju ssh kafka-test-app/0 /bin/bash
 ```
 
 Make sure that the Python virtual environment libraries are visible:
 
+<!-- test:skip -->
 ```shell
 export PYTHONPATH="/var/lib/juju/agents/unit-kafka-test-app-0/charm/venv:/var/lib/juju/agents/unit-kafka-test-app-0/charm/lib"
 ```
@@ -132,6 +136,7 @@ Once this is set up, you can use the `client.py` script that exposes some functi
 
 Let's try that script runs:
 
+<!-- test:skip -->
 ```shell
 python3 -m charms.kafka.v0.client --help
 ```
@@ -181,6 +186,7 @@ Change the values of `username`, `password` and `endpoints` to the ones obtained
 from the `data-integrator` application in the previous section and run the script
 to produce message:
 
+<!-- test:skip -->
 ```shell
 python3 -m charms.kafka.v0.client \
   -u <username> \
@@ -197,6 +203,7 @@ Let this run for a few seconds, then halt the process by pushing `Ctrl+C`.
 
 Now, consume them with:
 
+<!-- test:skip -->
 ```shell
 python3 -m charms.kafka.v0.client \
   -u <username> \
@@ -254,6 +261,7 @@ juju status
 
 <details> <summary> Output example</summary>
 
+<!-- test:skip -->
 ```shell
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
 tutorial  overlord    localhost/localhost  3.6.13   unsupported  14:27:10Z

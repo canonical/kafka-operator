@@ -1,0 +1,6 @@
+summary: "Tutorial stage 3 – Integrate with client applications (integrate-with-client-applications.md)"
+
+kill-timeout: 40m
+
+execute: |
+  bash "$SPREAD_PATH/tests/tutorial/03_client.sh"
