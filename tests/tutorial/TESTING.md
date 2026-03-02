@@ -90,6 +90,27 @@ Resource defaults (override with env vars):
    The block is wrapped with `timeout N bash << '...'` and the exit code is
    discarded, so a `SIGTERM` from `timeout` does not abort the test script.
 
+6. **Run a command and store fields into shell variables** for shell blocks that
+   use placeholder values like `<username>` or `<endpoints>`.  Add a
+   `<!-- test:set-variables ... -->` block at the point where the values become
+   available:
+
+   ````markdown
+   <!-- test:set-variables
+   command: juju run data-integrator/leader get-credentials
+   KAFKA_USERNAME: username
+   KAFKA_PASSWORD: password
+   KAFKA_ENDPOINTS: endpoints
+   -->
+   ````
+
+   The `command:` line is the shell command to run.  Every other `VARNAME: field`
+   line greps the output for `field:` and stores the value in `$VARNAME`.  From
+   that point onward, all extracted `shell` blocks have their matching literal
+   placeholders (e.g. `<username>`) automatically replaced with the corresponding
+   shell-variable references (e.g. `${KAFKA_USERNAME}`), so the Markdown source
+   stays human-readable while the test script uses real values.
+
 ## Regenerating an existing script
 
 Re-run the extraction command whenever the tutorial Markdown changes:

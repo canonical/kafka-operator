@@ -59,6 +59,30 @@ consumer scripts):
 The block is wrapped in a bash heredoc so multi-line commands work correctly,
 and the exit code is discarded (``|| true``) so a ``SIGTERM`` from ``timeout``
 does not abort the test script.
+
+Running a command and storing fields into shell variables
+---------------------------------------------------------
+Add a ``<!-- test:set-variables ... -->`` block on its own lines to run an
+arbitrary command and parse named fields from its output into shell variables::
+
+    <!-- test:set-variables
+    command: juju run data-integrator/leader get-credentials
+    KAFKA_USERNAME: username
+    KAFKA_PASSWORD: password
+    KAFKA_ENDPOINTS: endpoints
+    -->
+
+The ``command:`` line specifies the shell command to run.  Every other
+``VARNAME: field`` line instructs the extractor to grep the command output for
+``field:`` and store the value (second whitespace-delimited token on that line)
+into ``$VARNAME``.
+
+From that point onward, any extracted shell block that contains a literal
+placeholder matching one of the declared field names (e.g. ``<username>``,
+``<endpoints>``) will have it automatically replaced with the corresponding
+shell-variable reference (e.g. ``${KAFKA_USERNAME}``), so the Markdown source
+keeps its human-readable placeholders while the generated test script uses real
+values.
 """
 
 import re
@@ -69,8 +93,52 @@ SKIP_MARKER = "<!-- test:skip -->"
 _SLEEP_PATTERN = re.compile(r"<!--\s*test:wait\s+--seconds\s+(\d+)\s*-->")
 _JUJU_WAIT_PATTERN = re.compile(r"<!--\s*test:juju-wait(?:\s+(--timeout\s+\d+))?\s*-->")
 _RUN_WITH_TIMEOUT_PATTERN = re.compile(r"<!--\s*test:run-with-timeout\s+--seconds\s+(\d+)\s*-->")
+_SET_VARIABLES_START = re.compile(r"<!--\s*test:set-variables\s*$")
 _SHELL_OPEN = re.compile(r"^```shell\s*$")
 _FENCE_CLOSE = re.compile(r"^```\s*$")
+
+
+def _parse_set_variables_block(
+    lines: list[str], start: int
+) -> tuple[str, list[tuple[str, str]], int]:
+    """Parse a <!-- test:set-variables ... --> block starting at line `start`.
+
+    Returns (bash_snippet, substitutions, next_index) where:
+      - bash_snippet     is the generated variable-assignment bash code
+      - substitutions    is [(placeholder, shell_var_ref), ...] for later replacement
+      - next_index       is the index of the first line after the closing -->
+    """
+    i = start + 1
+    command = ""
+    mappings: list[tuple[str, str]] = []  # [(var_name, field_name), ...]
+
+    while i < len(lines):
+        raw = lines[i]
+        if "-->" in raw:
+            i += 1
+            break
+        stripped = raw.strip()
+        if stripped and ":" in stripped:
+            key, _, value = stripped.partition(":")
+            key, value = key.strip(), value.strip()
+            if key == "command":
+                command = value
+            elif key and value:
+                mappings.append((key, value))
+        i += 1
+
+    if not command:
+        return "", [], i
+
+    snippet_lines = [f"_CMD_OUTPUT=$({command})"]
+    substitutions: list[tuple[str, str]] = []
+    for var_name, field_name in mappings:
+        snippet_lines.append(
+            f"{var_name}=$(echo \"$_CMD_OUTPUT\" | grep '{field_name}:' | awk '{{print $2}}')"
+        )
+        substitutions.append((f"<{field_name}>", f"${{{var_name}}}"))
+
+    return "\n".join(snippet_lines), substitutions, i
 
 
 def extract_shell_blocks(source: str) -> list[str]:
@@ -86,6 +154,7 @@ def extract_shell_blocks(source: str) -> list[str]:
     i = 0
     skip_next = False
     run_with_timeout_seconds: int | None = None
+    active_substitutions: list[tuple[str, str]] = []
 
     while i < len(lines):
         line = lines[i]
@@ -118,6 +187,14 @@ def extract_shell_blocks(source: str) -> list[str]:
             i += 1
             continue
 
+        # Detect set-variables block; emit a variable-extraction snippet.
+        if _SET_VARIABLES_START.match(line.strip()):
+            snippet, substitutions, i = _parse_set_variables_block(lines, i)
+            if snippet:
+                blocks.append(snippet)
+                active_substitutions.extend(substitutions)
+            continue
+
         # Opening fence for a shell block.
         if _SHELL_OPEN.match(line):
             i += 1
@@ -129,6 +206,8 @@ def extract_shell_blocks(source: str) -> list[str]:
 
             if not skip_next and block_lines:
                 content = "\n".join(block_lines)
+                for placeholder, variable in active_substitutions:
+                    content = content.replace(placeholder, variable)
                 if run_with_timeout_seconds is not None:
                     # Wrap in a bash heredoc with timeout so multi-line commands
                     # work and SIGTERM from timeout does not abort the script.

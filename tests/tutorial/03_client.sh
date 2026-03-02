@@ -21,6 +21,11 @@ juju_wait --timeout 300
 
 juju run data-integrator/leader get-credentials
 
+_CMD_OUTPUT=$(juju run data-integrator/leader get-credentials)
+KAFKA_USERNAME=$(echo "$_CMD_OUTPUT" | grep 'username:' | awk '{print $2}')
+KAFKA_PASSWORD=$(echo "$_CMD_OUTPUT" | grep 'password:' | awk '{print $2}')
+KAFKA_ENDPOINTS=$(echo "$_CMD_OUTPUT" | grep 'endpoints:' | awk '{print $2}')
+
 juju deploy kafka-test-app --channel edge
 
 juju_wait --timeout 300
@@ -32,10 +37,10 @@ export PYTHONPATH="/var/lib/juju/agents/unit-kafka-test-app-0/charm/venv:/var/li
 python3 -m charms.kafka.v0.client --help
 
 python3 -m charms.kafka.v0.client \
-  -u <username> \
-  -p <password> \
+  -u ${KAFKA_USERNAME} \
+  -p ${KAFKA_PASSWORD} \
   -t test-topic \
-  -s "<endpoints>" \
+  -s "${KAFKA_ENDPOINTS}" \
   -n 10 \
   -r 3 \
   --num-partitions 1 \
@@ -43,10 +48,10 @@ python3 -m charms.kafka.v0.client \
 
 ( timeout 30 bash << 'TUTORIAL_TIMEOUT_EOF'
 python3 -m charms.kafka.v0.client \
-  -u <username> \
-  -p <password> \
+  -u ${KAFKA_USERNAME} \
+  -p ${KAFKA_PASSWORD} \
   -t test-topic \
-  -s "<endpoints>" \
+  -s "${KAFKA_ENDPOINTS}" \
   --consumer
 TUTORIAL_TIMEOUT_EOF
 ) || true
