@@ -43,6 +43,22 @@ that polls the Juju model until all units are active/idle.  An optional
 
     <!-- test:juju-wait -->
     <!-- test:juju-wait --timeout 900 -->
+
+Running a block with a timeout (kill after N seconds)
+-----------------------------------------------------
+Add ``<!-- test:run-with-timeout --seconds N -->`` on the line immediately
+before the opening fence to run that block inside ``timeout N`` and ignore the
+result.  Useful for commands that run indefinitely until interrupted (e.g.
+consumer scripts):
+
+    <!-- test:run-with-timeout --seconds 30 -->
+    ```shell
+    python3 -m charms.kafka.v0.client ... --consumer
+    ```
+
+The block is wrapped in a bash heredoc so multi-line commands work correctly,
+and the exit code is discarded (``|| true``) so a ``SIGTERM`` from ``timeout``
+does not abort the test script.
 """
 
 import re
@@ -52,6 +68,7 @@ from pathlib import Path
 SKIP_MARKER = "<!-- test:skip -->"
 _SLEEP_PATTERN = re.compile(r"<!--\s*test:wait\s+--seconds\s+(\d+)\s*-->")
 _JUJU_WAIT_PATTERN = re.compile(r"<!--\s*test:juju-wait(?:\s+(--timeout\s+\d+))?\s*-->")
+_RUN_WITH_TIMEOUT_PATTERN = re.compile(r"<!--\s*test:run-with-timeout\s+--seconds\s+(\d+)\s*-->")
 _SHELL_OPEN = re.compile(r"^```shell\s*$")
 _FENCE_CLOSE = re.compile(r"^```\s*$")
 
@@ -68,6 +85,7 @@ def extract_shell_blocks(source: str) -> list[str]:
     blocks: list[str] = []
     i = 0
     skip_next = False
+    run_with_timeout_seconds: int | None = None
 
     while i < len(lines):
         line = lines[i]
@@ -93,6 +111,13 @@ def extract_shell_blocks(source: str) -> list[str]:
             i += 1
             continue
 
+        # Detect run-with-timeout marker; remember the timeout for the next block.
+        timeout_match = _RUN_WITH_TIMEOUT_PATTERN.match(line.strip())
+        if timeout_match:
+            run_with_timeout_seconds = int(timeout_match.group(1))
+            i += 1
+            continue
+
         # Opening fence for a shell block.
         if _SHELL_OPEN.match(line):
             i += 1
@@ -103,8 +128,19 @@ def extract_shell_blocks(source: str) -> list[str]:
             i += 1  # consume closing fence
 
             if not skip_next and block_lines:
-                blocks.append("\n".join(block_lines))
+                content = "\n".join(block_lines)
+                if run_with_timeout_seconds is not None:
+                    # Wrap in a bash heredoc with timeout so multi-line commands
+                    # work and SIGTERM from timeout does not abort the script.
+                    blocks.append(
+                        f"( timeout {run_with_timeout_seconds} bash << 'TUTORIAL_TIMEOUT_EOF'\n"
+                        f"{content}\n"
+                        f"TUTORIAL_TIMEOUT_EOF\n) || true"
+                    )
+                else:
+                    blocks.append(content)
             skip_next = False
+            run_with_timeout_seconds = None
             continue
 
         # Non-empty, non-marker line resets the skip flag.

@@ -75,6 +75,21 @@ Resource defaults (override with env vars):
    juju_wait --timeout 900   # 15 min; default is 10 min
    ```
 
+5. **Run a block with a timeout** for commands that run indefinitely until
+   interrupted (e.g. consumer scripts).  Add
+   `<!-- test:run-with-timeout --seconds N -->` on the line immediately before
+   the opening fence:
+
+   ````markdown
+   <!-- test:run-with-timeout --seconds 30 -->
+   ```shell
+   python3 -m charms.kafka.v0.client ... --consumer
+   ```
+   ````
+
+   The block is wrapped with `timeout N bash << '...'` and the exit code is
+   discarded, so a `SIGTERM` from `timeout` does not abort the test script.
+
 ## Regenerating an existing script
 
 Re-run the extraction command whenever the tutorial Markdown changes:
