@@ -19,7 +19,6 @@ juju deploy kafka -n 3 --channel 4/edge --config roles=controller kraft
 
 juju integrate kafka:peer-cluster-orchestrator kraft:peer-cluster
 
-# Wait for all 6 units (3 brokers + 3 controllers) to reach active/idle.
 juju_wait --timeout 900
 
 juju show-secret --reveal cluster.kafka.app

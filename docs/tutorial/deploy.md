@@ -51,6 +51,8 @@ taking care to specify which cluster is the orchestrator by selecting the specif
 juju integrate kafka:peer-cluster-orchestrator kraft:peer-cluster
 ```
 
+<!-- test:juju-wait --timeout 900 -->
+
 Juju will now connect applications to exchange access credentials and machine endpoints.
 This process can take several minutes depending on the resources available on your machine.
 You can track the progress by running:
