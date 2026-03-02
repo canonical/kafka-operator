@@ -1,5 +1,7 @@
 summary: "Tutorial stage 1 – Environment setup (environment.md)"
 
+priority: 300
+
 kill-timeout: 15m
 
 execute: |
