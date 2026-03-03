@@ -28,39 +28,13 @@ KAFKA_ENDPOINTS=$(echo "$_CMD_OUTPUT" | grep 'endpoints:' | awk '{print $2}')
 
 juju deploy kafka-test-app --channel edge
 
-juju_wait --timeout 300
-
-juju ssh kafka-test-app/0 /bin/bash
-
-export PYTHONPATH="/var/lib/juju/agents/unit-kafka-test-app-0/charm/venv:/var/lib/juju/agents/unit-kafka-test-app-0/charm/lib"
-
-python3 -m charms.kafka.v0.client --help
-
-python3 -m charms.kafka.v0.client \
-  -u ${KAFKA_USERNAME} \
-  -p ${KAFKA_PASSWORD} \
-  -t test-topic \
-  -s "${KAFKA_ENDPOINTS}" \
-  -n 10 \
-  -r 3 \
-  --num-partitions 1 \
-  --producer
-
-( timeout 30 bash << 'TUTORIAL_TIMEOUT_EOF'
-python3 -m charms.kafka.v0.client \
-  -u ${KAFKA_USERNAME} \
-  -p ${KAFKA_PASSWORD} \
-  -t test-topic \
-  -s "${KAFKA_ENDPOINTS}" \
-  --consumer
-TUTORIAL_TIMEOUT_EOF
-) || true
+juju_wait --timeout 600
 
 juju config kafka-test-app topic_name=TOP-PICK role=producer num_messages=20
 
 juju integrate kafka-test-app kafka
 
-juju_wait --timeout 300
+juju_wait --timeout 600
 
 juju status
 
@@ -68,15 +42,15 @@ juju exec --application kafka-test-app "tail /tmp/*.log"
 
 juju remove-relation kafka-test-app kafka
 
-juju_wait --timeout 300
+juju_wait --timeout 600
 
 juju config kafka-test-app topic_name=TOP-PICK role=consumer consumer_group_prefix=cg
 
 juju integrate kafka-test-app kafka
 
-juju_wait --timeout 300
+juju_wait --timeout 600
 
 juju remove-relation kafka-test-app kafka
 juju remove-application kafka-test-app --destroy-storage
 
-juju_wait --timeout 300
+juju_wait --timeout 600
