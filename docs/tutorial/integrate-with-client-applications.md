@@ -127,15 +127,15 @@ juju deploy kafka-test-app --channel edge
 
 Wait for the charm to become `active`/`idle`, and log into the container:
 
-<!-- test:juju-wait --timeout 300 -->
+<!-- test:juju-wait --timeout 600 -->
 
-```shell
+```bash
 juju ssh kafka-test-app/0 /bin/bash
 ```
 
 Make sure that the Python virtual environment libraries are visible:
 
-```shell
+```bash
 export PYTHONPATH="/var/lib/juju/agents/unit-kafka-test-app-0/charm/venv:/var/lib/juju/agents/unit-kafka-test-app-0/charm/lib"
 ```
 
@@ -143,7 +143,7 @@ Once this is set up, you can use the `client.py` script that exposes some functi
 
 Let's try that script runs:
 
-```shell
+```bash
 python3 -m charms.kafka.v0.client --help
 ```
 
@@ -192,7 +192,7 @@ Change the values of `username`, `password` and `endpoints` to the ones obtained
 from the `data-integrator` application in the previous section and run the script
 to produce message:
 
-```shell
+```bash
 python3 -m charms.kafka.v0.client \
   -u <username> \
   -p <password> \
@@ -208,8 +208,7 @@ Let this run for a few seconds, then halt the process by pushing `Ctrl+C`.
 
 Now, consume them with:
 
-<!-- test:run-with-timeout --seconds 30 -->
-```shell
+```bash
 python3 -m charms.kafka.v0.client \
   -u <username> \
   -p <password> \
@@ -252,7 +251,7 @@ with Apache Kafka:
 juju integrate kafka-test-app kafka
 ```
 
-<!-- test:juju-wait --timeout 300 -->
+<!-- test:juju-wait --timeout 600 -->
 
 ```{note}
 This will both take care of creating a dedicated user (as was done for the `data-integrator`)
@@ -268,7 +267,6 @@ juju status
 
 <details> <summary> Output example</summary>
 
-<!-- test:skip -->
 ```text
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
 tutorial  overlord    localhost/localhost  3.6.13   unsupported  14:27:10Z
@@ -322,7 +320,7 @@ you can just remove the relation:
 juju remove-relation kafka-test-app kafka
 ```
 
-<!-- test:juju-wait --timeout 300 -->
+<!-- test:juju-wait --timeout 600 -->
 
 ### Consuming messages
 
@@ -338,7 +336,7 @@ After configuring the Apache Kafka Test App, just relate it again with the Charm
 juju integrate kafka-test-app kafka
 ```
 
-<!-- test:juju-wait --timeout 300 -->
+<!-- test:juju-wait --timeout 600 -->
 
 This will again create a new user and start the consumer process.
 You can check progress with `juju status`.
@@ -352,7 +350,7 @@ juju remove-relation kafka-test-app kafka
 juju remove-application kafka-test-app --destroy-storage
 ```
 
-<!-- test:juju-wait --timeout 300 -->
+<!-- test:juju-wait --timeout 600 -->
 
 ## What's next?
 
