@@ -346,7 +346,6 @@ Now you can remove the relation and the entire `kafka-test-app` application enti
 as we won't need them anymore.
 
 ```shell
-juju remove-relation kafka-test-app kafka
 juju remove-application kafka-test-app --destroy-storage --no-prompt
 ```
 
