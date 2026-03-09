@@ -1,0 +1,17 @@
+# Copyright 2026 Canonical Ltd.
+# See LICENSE file for licensing details.
+name: Check pull request
+
+on:
+  pull_request:
+    types:
+      - opened
+      - labeled
+      - unlabeled
+    branches:
+      - main
+
+jobs:
+  check-pr:
+    name: Check pull request
+    uses: canonical/data-platform-workflows/.github/workflows/check_charm_pr.yaml@v42.0.0
