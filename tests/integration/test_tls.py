@@ -245,11 +245,12 @@ async def test_certificate_transfer(ops_test: OpsTest, kafka_apps):
         "private_key": search_secrets(ops_test=ops_test, owner=requirer, search_key="private-key"),
         "cert": search_secrets(ops_test=ops_test, owner=requirer, search_key="certificate"),
         "ca_cert": search_secrets(ops_test=ops_test, owner=requirer, search_key="ca-certificate"),
-        "broker_ca": search_secrets(
-            ops_test=ops_test, owner=f"{APP_NAME}/0", search_key="client-ca-cert"
+        "broker_ca": "\n".join(
+            json.loads(
+                search_secrets(ops_test=ops_test, owner=f"{APP_NAME}/0", search_key="client-chain")
+            )
         ),
     }
-
     # Transfer other-ca's CA certificate via the client-cas relation
     # We don't expect a broker restart here because of truststore live reload
     await ops_test.model.add_relation(
