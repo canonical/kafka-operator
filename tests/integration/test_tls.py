@@ -12,6 +12,7 @@ import kafka
 import pytest
 from charms.tls_certificates_interface.v4.tls_certificates import PrivateKey, generate_private_key
 from pytest_operator.plugin import OpsTest
+from tenacity import Retrying, stop_after_attempt, wait_fixed
 
 from integration.helpers import TLS_CHANNEL, TLS_NAME, sign_manual_certs
 from integration.helpers.pytest_operator import (
@@ -41,6 +42,7 @@ from literals import (
 from .test_charm import DUMMY_NAME
 
 logger = logging.getLogger(__name__)
+logging.getLogger("kafka.conn").setLevel(logging.CRITICAL)
 
 CERTS_NAME = "tls-certificates-operator"
 TLS_REQUIRER = "tls-certificates-requirer"
@@ -222,7 +224,6 @@ async def test_mtls(ops_test: OpsTest, kafka_apps):
 @pytest.mark.abort_on_fail
 async def test_certificate_transfer(ops_test: OpsTest, kafka_apps):
     """Tests truststore live reload functionality using kafka-python client."""
-    requirer = "other-req/0"
     test_msg = {"test": 123456}
 
     await ops_test.model.deploy(
@@ -241,16 +242,22 @@ async def test_certificate_transfer(ops_test: OpsTest, kafka_apps):
     )
 
     # retrieve required certificates and private key from secrets
+    requirer = ops_test.model.applications["other-req"].units[0].name
+    broker_cert = search_secrets(
+        ops_test=ops_test, owner=f"{APP_NAME}/0", search_key="client-certificate"
+    )
     local_store = {
         "private_key": search_secrets(ops_test=ops_test, owner=requirer, search_key="private-key"),
         "cert": search_secrets(ops_test=ops_test, owner=requirer, search_key="certificate"),
         "ca_cert": search_secrets(ops_test=ops_test, owner=requirer, search_key="ca-certificate"),
         "broker_ca": "\n".join(
-            json.loads(
+            [broker_cert]
+            + json.loads(
                 search_secrets(ops_test=ops_test, owner=f"{APP_NAME}/0", search_key="client-chain")
             )
         ),
     }
+
     # Transfer other-ca's CA certificate via the client-cas relation
     # We don't expect a broker restart here because of truststore live reload
     await ops_test.model.add_relation(
@@ -288,18 +295,21 @@ async def test_certificate_transfer(ops_test: OpsTest, kafka_apps):
         "ssl_check_hostname": False,
     }
 
-    producer = kafka.KafkaProducer(
-        **client_config,
-        value_serializer=lambda v: json.dumps(v).encode("utf-8"),
-    )
+    for attempt in Retrying(stop=stop_after_attempt(5), wait=wait_fixed(60), reraise=True):
+        with attempt:
 
-    producer.send("test", test_msg)
+            producer = kafka.KafkaProducer(
+                **client_config,
+                value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+            )
 
-    consumer = kafka.KafkaConsumer("test", **client_config, auto_offset_reset="earliest")
+            producer.send("test", test_msg)
 
-    msg = next(consumer)
+            consumer = kafka.KafkaConsumer("test", **client_config, auto_offset_reset="earliest")
 
-    assert json.loads(msg.value) == test_msg
+            msg = next(consumer)
+
+            assert json.loads(msg.value) == test_msg
 
     # cleanup
     await ops_test.model.remove_application("other-ca", block_until_done=True)
