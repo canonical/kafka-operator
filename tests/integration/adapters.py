@@ -188,7 +188,7 @@ class UnitAdapter:
         """Run an action on this unit."""
         failed = False
         try:
-            task = self._juju.run(self.name, action=action_name, params=dict(params))
+            task = self._juju.run(self.name, action=action_name, params=dict(params), wait=600.0)
         except TaskError as e:
             task = e.task
             failed = True
