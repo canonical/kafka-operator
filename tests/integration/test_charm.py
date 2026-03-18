@@ -80,7 +80,6 @@ def test_build_and_deploy_same_machine(juju: JujuFixture, kafka_charm):
 
 
 @pytest.mark.abort_on_fail
-@pytest.mark.skip
 def test_build_and_deploy(juju: JujuFixture, kafka_charm):
     juju.cli("create-storage-pool", "testing", "lxd")
 

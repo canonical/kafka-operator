@@ -272,6 +272,27 @@ class ApplicationAdapter:
 
     destroy_units = destroy_unit
 
+    def refresh(
+        self,
+        channel: str | None = None,
+        force: bool = False,
+        force_series: bool = False,
+        force_units: bool = False,
+        path: Path | str | None = None,
+        resources: dict[str, str] | None = None,
+        revision: int | None = None,
+        switch: str | None = None,
+    ):
+        """Refresh the charm for this application."""
+        self._juju.refresh(
+            self.name,
+            channel=channel,
+            force=force,
+            path=path,
+            resources=resources,
+            revision=revision,
+        )
+
     def remove_relation(
         self, local_relation: str, remote_relation: str, block_until_done: bool = False
     ) -> None:
@@ -614,6 +635,18 @@ class ModelAdapter:
             delay=delay,
             timeout=timeout,
             successes=int((idle_period) / delay),
+        )
+
+        if not wait_for_exact_units:
+            return
+
+        self._juju.wait(
+            lambda status: sum(len(status.apps[app].units) for app in _apps)
+            == wait_for_exact_units,
+            error=error_func,
+            delay=delay,
+            timeout=timeout,
+            successes=1,
         )
 
     @property
