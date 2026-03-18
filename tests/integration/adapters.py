@@ -823,7 +823,7 @@ class JujuFixture(Juju):
         """python-libjuju extensions."""
         return LibjujuExtensions(self)
 
-    def old_cli(self, *cmd: str) -> tuple[int, str, str]:
+    def old_cli(self, *cmd: str, **kwargs: Any) -> tuple[int, str, str]:
         """Old method signature compatible with `ops_test.juju`."""
         try:
             stdout = self.cli(*cmd)

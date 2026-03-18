@@ -7,8 +7,6 @@ import subprocess
 from dataclasses import dataclass
 from subprocess import PIPE, check_output
 
-from pytest_operator.plugin import OpsTest
-
 from integration.ha.continuous_writes import ContinuousWritesResult
 from integration.helpers import (
     APP_NAME,
@@ -17,6 +15,8 @@ from integration.helpers import (
     get_kafka_zk_relation_data,
 )
 from literals import PATHS, SECURITY_PROTOCOL_PORTS
+
+from ..adapters import JujuFixture
 
 PROCESS = "kafka.Kafka"
 SERVICE_DEFAULT_PATH = "/etc/systemd/system/snap.charmed-kafka.daemon.service"
@@ -40,26 +40,26 @@ class ProcessRunningError(Exception):
     """Raised when a process is running when it is not expected to be."""
 
 
-async def get_topic_description(
-    ops_test: OpsTest, topic: str, unit_name: str | None = None
+def get_topic_description(
+    juju: JujuFixture, topic: str, unit_name: str | None = None
 ) -> TopicDescription:
     """Get the broker with the topic leader.
 
     Args:
-        ops_test: OpsTest utility class
+        juju: JujuFixture utility class
         topic: the desired topic to check
         unit_name: unit to run the command on
     """
     bootstrap_servers = []
-    for unit in ops_test.model.applications[APP_NAME].units:
+    for unit in juju.ext.model.applications[APP_NAME].units:
         bootstrap_servers.append(
-            await get_address(ops_test=ops_test, unit_num=unit.name.split("/")[-1])
+            get_address(juju=juju, unit_num=unit.name.split("/")[-1])
             + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT', 'SCRAM-SHA-512'].client}"
         )
-    unit_name = unit_name or ops_test.model.applications[APP_NAME].units[0].name
+    unit_name = unit_name or juju.ext.model.applications[APP_NAME].units[0].name
 
     output = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.topics --bootstrap-server {','.join(bootstrap_servers)} --command-config {PATHS['kafka']['CONF']}/client.properties --describe --topic {topic}'",
+        f"JUJU_MODEL={juju.ext.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.topics --bootstrap-server {','.join(bootstrap_servers)} --command-config {PATHS['kafka']['CONF']}/client.properties --describe --topic {topic}'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -71,27 +71,25 @@ async def get_topic_description(
     return TopicDescription(leader, in_sync_replicas)
 
 
-async def get_topic_offsets(
-    ops_test: OpsTest, topic: str, unit_name: str | None = None
-) -> list[str]:
+def get_topic_offsets(juju: JujuFixture, topic: str, unit_name: str | None = None) -> list[str]:
     """Get the offsets of a topic on a unit.
 
     Args:
-        ops_test: OpsTest utility class
+        juju: JujuFixture utility class
         topic: the desired topic to check
         unit_name: unit to run the command on
     """
     bootstrap_servers = []
-    for unit in ops_test.model.applications[APP_NAME].units:
+    for unit in juju.ext.model.applications[APP_NAME].units:
         bootstrap_servers.append(
-            await get_address(ops_test=ops_test, unit_num=unit.name.split("/")[-1])
+            get_address(juju=juju, unit_num=unit.name.split("/")[-1])
             + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT', 'SCRAM-SHA-512'].client}"
         )
-    unit_name = unit_name or ops_test.model.applications[APP_NAME].units[0].name
+    unit_name = unit_name or juju.ext.model.applications[APP_NAME].units[0].name
 
     # example of topic offset output: 'test-topic:0:10'
     result = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.get-offsets --bootstrap-server {','.join(bootstrap_servers)} --command-config {PATHS['kafka']['CONF']}/client.properties --topic {topic}'",
+        f"JUJU_MODEL={juju.ext.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.get-offsets --bootstrap-server {','.join(bootstrap_servers)} --command-config {PATHS['kafka']['CONF']}/client.properties --topic {topic}'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -100,15 +98,15 @@ async def get_topic_offsets(
     return re.search(rf"{topic}:(\d+:\d+)", result)[1].split(":")
 
 
-async def send_control_signal(
-    ops_test: OpsTest, unit_name: str, signal: str, app_name: str = APP_NAME
+def send_control_signal(
+    juju: JujuFixture, unit_name: str, signal: str, app_name: str = APP_NAME
 ) -> None:
-    if len(ops_test.model.applications[app_name].units) < 3:
-        await ops_test.model.applications[app_name].add_unit(count=1)
-        await ops_test.model.wait_for_idle(apps=[app_name], status="active", timeout=1000)
+    if len(juju.ext.model.applications[app_name].units) < 3:
+        juju.ext.model.applications[app_name].add_unit(count=1)
+        juju.ext.model.wait_for_idle(apps=[app_name], status="active", timeout=1000)
 
     kill_cmd = f"exec --unit {unit_name} -- pkill --signal {signal} -f {PROCESS}"
-    return_code, stdout, stderr = await ops_test.juju(*kill_cmd.split())
+    return_code, stdout, stderr = juju.old_cli(*kill_cmd.split())
 
     if return_code != 0:
         raise Exception(
@@ -116,7 +114,7 @@ async def send_control_signal(
         )
 
 
-async def patch_restart_delay(ops_test: OpsTest, unit_name: str, delay: int) -> None:
+def patch_restart_delay(juju: JujuFixture, unit_name: str, delay: int) -> None:
     """Adds a restart delay in the DB service file.
 
     When the DB service fails it will now wait for `delay` number of seconds.
@@ -126,37 +124,37 @@ async def patch_restart_delay(ops_test: OpsTest, unit_name: str, delay: int) -> 
         f"sudo sed -i -e '/^[Service]/a RestartSec={delay}' "
         f"{SERVICE_DEFAULT_PATH}"
     )
-    await ops_test.juju(*add_delay_cmd.split(), check=True)
+    juju.old_cli(*add_delay_cmd.split(), check=True)
 
     # reload the daemon for systemd to reflect changes
     reload_cmd = f"exec --unit {unit_name} -- sudo systemctl daemon-reload"
-    await ops_test.juju(*reload_cmd.split(), check=True)
+    juju.old_cli(*reload_cmd.split(), check=True)
 
 
-async def remove_restart_delay(ops_test: OpsTest, unit_name: str) -> None:
+def remove_restart_delay(juju: JujuFixture, unit_name: str) -> None:
     """Removes the restart delay from the service."""
     remove_delay_cmd = (
         f"exec --unit {unit_name} -- sed -i -e '/^RestartSec=.*/d' {SERVICE_DEFAULT_PATH}"
     )
-    await ops_test.juju(*remove_delay_cmd.split(), check=True)
+    juju.old_cli(*remove_delay_cmd.split(), check=True)
 
     # reload the daemon for systemd to reflect changes
     reload_cmd = f"exec --unit {unit_name} -- sudo systemctl daemon-reload"
-    await ops_test.juju(*reload_cmd.split(), check=True)
+    juju.old_cli(*reload_cmd.split(), check=True)
 
 
-async def get_unit_machine_name(ops_test: OpsTest, unit_name: str) -> str:
+def get_unit_machine_name(juju: JujuFixture, unit_name: str) -> str:
     """Gets current LXD machine name for a given unit name.
 
     Args:
-        ops_test: OpsTest
+        juju: JujuFixture
         unit_name: the Juju unit name to get from
 
     Returns:
         String of LXD machine name
             e.g juju-123456-0
     """
-    _, raw_hostname, _ = await ops_test.juju("ssh", unit_name, "hostname")
+    _, raw_hostname, _ = juju.old_cli("ssh", unit_name, "hostname")
     return raw_hostname.strip()
 
 
@@ -216,10 +214,10 @@ def network_restore(machine_name: str) -> None:
     subprocess.check_call(restore_network_command.split())
 
 
-def is_up(ops_test: OpsTest, broker_id: int) -> bool:
+def is_up(juju: JujuFixture, broker_id: int) -> bool:
     """Return if node up."""
     kafka_zk_relation_data = get_kafka_zk_relation_data(
-        ops_test=ops_test, owner=ZK, unit_name=f"{APP_NAME}/0"
+        juju=juju, owner=ZK, unit_name=f"{APP_NAME}/0"
     )
     active_brokers = get_active_brokers(config=kafka_zk_relation_data)
     chroot = kafka_zk_relation_data.get("database", kafka_zk_relation_data.get("chroot", ""))
