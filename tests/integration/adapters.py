@@ -180,24 +180,25 @@ class UnitAdapter:
         """Update unit status."""
         self.status = self._juju.status().apps[self.app].units[self.name]
 
+    def destroy(
+        self,
+        destroy_storage: bool = False,
+        dry_run: bool = False,
+        force: bool = False,
+        max_wait: float | None = None,
+    ):
+        """Destroy this unit."""
+        if dry_run:
+            return
+
+        if max_wait:
+            logger.warning("UnitAdapter::destroy does not support max_wait arg.")
+
+        self._juju.remove_unit(self.name, destroy_storage=destroy_storage, force=force)
+
     def is_leader_from_status(self) -> bool:
         """Check to see if this unit is the leader."""
         return self.status.leader
-
-    def run_action(self, action_name: str, **params) -> ActionAdapter:
-        """Run an action on this unit."""
-        failed = False
-        try:
-            task = self._juju.run(self.name, action=action_name, params=dict(params), wait=600.0)
-        except TaskError as e:
-            task = e.task
-            failed = True
-        return ActionAdapter(task, failed=failed)
-
-    def show(self) -> ShowUnitOutput:
-        """Return the parsed `show-unit` command."""
-        raw = self._juju.cli("show-unit", "--format", "json", self.name)
-        return json.loads(raw).get(self.name, {})
 
     def relation_info(self) -> dict[int, RelationInfo]:
         """Return the unit `relation-info` for `juju show-unit` output."""
@@ -214,6 +215,23 @@ class UnitAdapter:
             )
 
         return ret
+
+    remove = destroy
+
+    def run_action(self, action_name: str, **params) -> ActionAdapter:
+        """Run an action on this unit."""
+        failed = False
+        try:
+            task = self._juju.run(self.name, action=action_name, params=dict(params), wait=600.0)
+        except TaskError as e:
+            task = e.task
+            failed = True
+        return ActionAdapter(task, failed=failed)
+
+    def show(self) -> ShowUnitOutput:
+        """Return the parsed `show-unit` command."""
+        raw = self._juju.cli("show-unit", "--format", "json", self.name)
+        return json.loads(raw).get(self.name, {})
 
     @property
     def public_address(self) -> str:
@@ -245,10 +263,19 @@ class ApplicationAdapter:
         count: int = 1,
         to: str | Iterable[str] | None = None,
         attach_storage: Iterable[str] = [],
-    ) -> None:
+    ) -> Iterable[UnitAdapter]:
         """Add one or more units to this application."""
         _attach_storage = attach_storage if attach_storage else None
+        units_pre = set(self._juju.status().apps[self.name].units)
         self._juju.add_unit(self.name, num_units=count, to=to, attach_storage=_attach_storage)
+        self._juju.wait(lambda status: len(status.apps[self.name].units) == len(units_pre) + count)
+        status_post = self._juju.status()
+        units_post = set(status_post.apps[self.name].units)
+        added_units = units_post - units_pre
+        return [
+            UnitAdapter(u, self.name, status_post.apps[self.name].units[u], self._juju)
+            for u in added_units
+        ]
 
     add_units = add_unit
 
