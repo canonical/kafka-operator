@@ -101,6 +101,7 @@ requests = ">2.25"
 
 pytest-operator-cache = { git = "https://github.com/canonical/data-platform-workflows", tag = "v29.0.0", subdirectory = "python/pytest_plugins/pytest_operator_cache" }
 # To be enabled if we are using groups on integration tests
+jubilant = "^1.7.0"
 
 [tool.poetry.group.format.dependencies]
 pyright = "^1.1.301"

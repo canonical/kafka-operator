@@ -4,7 +4,8 @@
 
 
 import pytest
-from pytest_operator.plugin import OpsTest
+
+from .adapters import JujuFixture, temp_model_fixture
 
 
 @pytest.fixture(scope="module")
@@ -13,15 +14,32 @@ def usernames():
 
 
 @pytest.fixture(scope="module")
-async def kafka_charm(ops_test: OpsTest):
+def kafka_charm(juju: JujuFixture):
     """Kafka charm used for integration testing."""
-    charm = await ops_test.build_charm(".")
+    charm = juju.ext.build_charm(".")
     return charm
 
 
 @pytest.fixture(scope="module")
-async def app_charm(ops_test: OpsTest):
+def app_charm(juju: JujuFixture):
     """Build the application charm."""
     charm_path = "tests/integration/app-charm"
-    charm = await ops_test.build_charm(charm_path)
+    charm = juju.ext.build_charm(charm_path)
     return charm
+
+
+@pytest.fixture(scope="module")
+def juju(request: pytest.FixtureRequest):
+    """Pytest fixture that wraps :meth:`jubilant.with_model`.
+
+    This adds command line parameter ``--keep-models`` (see help for details).
+    """
+    model = request.config.getoption("--model")
+    keep_models = bool(request.config.getoption("--keep-models"))
+
+    if model:
+        juju = JujuFixture(model=model)
+        yield juju
+    else:
+        with temp_model_fixture(keep=keep_models) as juju:
+            yield juju
