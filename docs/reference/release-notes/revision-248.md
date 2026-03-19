@@ -8,8 +8,8 @@ myst:
 # Revision 248
 
 - **New major version release of Apache Kafka version from 3.9 -> 4.1**
-    - Check the official Apache Kafka [Version 4.0 release notes](https://downloads.apache.org/kafka/4.0.0/RELEASE_NOTES.html)
-    - Check the official Apache Kafka [Version 4.1 release notes](https://downloads.apache.org/kafka/4.1.0/RELEASE_NOTES.html)
+    - Check the official Apache Kafka [Version 4.0 release notes](https://archive.apache.org/dist/kafka/4.0.0/RELEASE_NOTES.html)
+    - Check the official Apache Kafka [Version 4.1 release notes](https://archive.apache.org/dist/kafka/4.1.0/RELEASE_NOTES.html)
 - **Apache ZooKeeper fully removed as a dependency**
     - Check the [documentation](https://documentation.ubuntu.com/charmed-kafka/4/how-to/deploy/#deploy-charmed-apache-kafka-for-production) for a guide on how to deploy for production
 - **Stable release of Cruise Control for partition rebalancing**

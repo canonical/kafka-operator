@@ -14,7 +14,6 @@ New features and bug fixes in the Charmed Apache Kafka bundle:
 - [[DPE-2872](https://warthogs.atlassian.net/browse/DPE-2872)] - feat: partition rebalancing with Cruise Control ([#219](https://github.com/canonical/kafka-operator/pull/219))
   - See the [tutorial](tutorial-rebalance-partitions) on partition rebalancing and reassignment using [Cruise Control](https://github.com/linkedin/cruise-control)
 - [[DPE-4328](https://warthogs.atlassian.net/browse/DPE-4328)] - feat: support KRaft ([#232](https://github.com/canonical/kafka-operator/pull/232))
-  - See the [How-to guide](how-to-deploy-kraft-mode) on setting up a KRaft cluster
 - [[DPE-6574](https://warthogs.atlassian.net/browse/DPE-6574)] - feat: support cross-model K8s relations with juju expose ([#309](https://github.com/canonical/kafka-operator/pull/309))
 - [[DPE-6260](https://warthogs.atlassian.net/browse/DPE-6260)] - feat: trust multi-certificate ca-chains ([#297](https://github.com/canonical/kafka-operator/pull/297))
 - [[DPE-6636](https://warthogs.atlassian.net/browse/DPE-6636)] - feat: support non-unit/port extra_listeners ([#315](https://github.com/canonical/kafka-operator/pull/315))
