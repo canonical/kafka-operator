@@ -5,6 +5,7 @@
 
 import json
 import logging
+import os
 import re
 import secrets
 import subprocess
@@ -731,14 +732,39 @@ class LibjujuExtensions:
         """Return model name."""
         return f"{self._juju.model}"
 
+    def _get_cached_build(self, charm_path: str | os.PathLike) -> Path:
+        charm_path = Path(charm_path)
+        architecture = subprocess.run(
+            ["dpkg", "--print-architecture"],
+            capture_output=True,
+            check=True,
+            encoding="utf-8",
+        ).stdout.strip()
+        assert architecture in ("amd64", "arm64")
+        packed_charms = list(charm_path.glob(f"*{architecture}.charm"))
+        if len(packed_charms) == 1:
+            # python-libjuju's model.deploy(), juju deploy, and juju bundle files expect local charms
+            # to begin with `./` or `/` to distinguish them from Charmhub charms.
+            return packed_charms[0].resolve(strict=True)
+        elif len(packed_charms) > 1:
+            raise ValueError(
+                f"More than one matching .charm file found at {charm_path=} for {architecture=}: {packed_charms}."
+            )
+        else:
+            raise ValueError(f"Unable to find .charm file for {architecture=} at {charm_path=}")
+
     def build_charm(  # noqa: C901
         self,
         charm_path: str | Path,
         bases_index: int | None = None,
         verbosity: Literal["quiet", "brief", "verbose", "debug", "trace"] | None = None,
         return_all: bool = False,
+        use_cache: bool = False,
     ) -> Path | list[Path]:
         """Builds a single charm."""
+        if use_cache:
+            return self._get_cached_build(charm_path)
+
         charms_dst_dir = Path(tempfile.mkdtemp())
         charms_dst_dir.mkdir(exist_ok=True)
         charm_path = Path(charm_path)

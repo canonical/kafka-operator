@@ -3,6 +3,8 @@
 # See LICENSE file for licensing details.
 
 
+import os
+
 import pytest
 
 from .adapters import JujuFixture, temp_model_fixture
@@ -16,7 +18,7 @@ def usernames():
 @pytest.fixture(scope="module")
 def kafka_charm(juju: JujuFixture):
     """Kafka charm used for integration testing."""
-    charm = juju.ext.build_charm(".")
+    charm = juju.ext.build_charm(".", use_cache=bool(os.environ.get("CI", False)))
     return charm
 
 
@@ -24,7 +26,7 @@ def kafka_charm(juju: JujuFixture):
 def app_charm(juju: JujuFixture):
     """Build the application charm."""
     charm_path = "tests/integration/app-charm"
-    charm = juju.ext.build_charm(charm_path)
+    charm = juju.ext.build_charm(charm_path, use_cache=bool(os.environ.get("CI", False)))
     return charm
 
 
