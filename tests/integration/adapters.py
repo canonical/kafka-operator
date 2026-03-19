@@ -815,8 +815,12 @@ class LibjujuExtensions:
         bases_index: int | None = None,
         verbosity: Literal["quiet", "brief", "verbose", "debug", "trace"] | None = None,
         return_all: bool = False,
+        use_cache: bool = False,
     ) -> Path | list[Path]:
         """Builds a single charm."""
+        if use_cache:
+            return self._get_cached_build(charm_path)
+
         charms_dst_dir = Path(tempfile.mkdtemp())
         charms_dst_dir.mkdir(exist_ok=True)
         charm_path = Path(charm_path)
