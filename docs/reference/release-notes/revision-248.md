@@ -35,7 +35,7 @@ This is a major version release, and in-place upgrades from Charmed Apache Kafka
 See the documentation for how to migrate data between Charmed Apache Kafka clusters using [MirrorMaker](https://documentation.ubuntu.com/charmed-kafka/4/how-to/cluster/migrate/#how-to-cluster-migration).
 ```
 
-### Features
+## Features
 
 - [DPE-7363](https://warthogs.atlassian.net/browse/DPE-7363) - feat: remove zookeeper & use Kafka 4 snap [#339](https://github.com/canonical/kafka-operator/pull/339)
 - [DPE-7147](https://warthogs.atlassian.net/browse/DPE-7147) - feat: adapt MTLS support to DA150 spec [#344](https://github.com/canonical/kafka-operator/pull/344)
@@ -52,7 +52,7 @@ See the documentation for how to migrate data between Charmed Apache Kafka clust
 - [DPE-8312](https://warthogs.atlassian.net/browse/DPE-8312) - feat: auto-balance [#414](https://github.com/canonical/kafka-operator/pull/414)
 - [DPE-9107](https://warthogs.atlassian.net/browse/DPE-9107) - feat: add machines support to TF module [#463](https://github.com/canonical/kafka-operator/pull/463)
 
-### Improvements
+## Improvements
 
 - [DPE-7616](https://warthogs.atlassian.net/browse/DPE-7616) - ci: add HA tests for controller [#371](https://github.com/canonical/kafka-operator/pull/371)
 - [DPE-7150](https://warthogs.atlassian.net/browse/DPE-7150) - chore: refresh v3 [#380](https://github.com/canonical/kafka-operator/pull/380)
@@ -65,7 +65,7 @@ See the documentation for how to migrate data between Charmed Apache Kafka clust
 - [DPE-9033](https://warthogs.atlassian.net/browse/DPE-9033) - chore: update TF provider to v1.0+ and TLS to 1/stable [#442](https://github.com/canonical/kafka-operator/pull/442)
 - [DPE-8940](https://warthogs.atlassian.net/browse/DPE-8940) - chore: add OAuth integration tests and docs [#439](https://github.com/canonical/kafka-operator/pull/439)
 
-### Bug fixes
+## Bug fixes
 
 - [DPE-5702](https://warthogs.atlassian.net/browse/DPE-5702) - chore: Active Controllers set to == 0 [#325](https://github.com/canonical/kafka-operator/pull/325)
 - [DPE-6987](https://warthogs.atlassian.net/browse/DPE-6987) - fix: add readiness check for TLS handler [#335](https://github.com/canonical/kafka-operator/pull/335)
