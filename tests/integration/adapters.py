@@ -5,7 +5,6 @@
 
 import json
 import logging
-import os
 import re
 import secrets
 import subprocess
@@ -15,6 +14,7 @@ from collections.abc import Callable, Generator, Iterable, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import cached_property
+from os import PathLike
 from pathlib import Path
 from typing import Any, Literal, TypedDict
 
@@ -124,7 +124,7 @@ def all_active_idle(status: Status, *apps: str) -> bool:
 
 
 def gather(*calls: Any) -> None:
-    """Placeholder function to replace asyncio.gather function."""
+    """Placeholder function to replace asyncio.gather calls."""
     pass
 
 
@@ -166,6 +166,45 @@ class ActionAdapter:
     def wait(self) -> "ActionAdapter":
         """Mock wait, since jubilant actions are sync."""
         return self
+
+
+class MachineAdapter:
+    """Machine model adapter for libjuju."""
+
+    def __init__(self, id_: str, juju: Juju):
+        self.id = id_
+        self._juju = juju
+
+    def destroy(self, force=False):
+        """Remove this machine from the model."""
+        cmd_args = ["remove-machine", self.id]
+        if force:
+            cmd_args.append("--force")
+        self._juju.cli(*cmd_args)
+
+    remove = destroy
+
+    def ssh(
+        self,
+        command,
+        user="ubuntu",
+        proxy=False,
+        ssh_opts=None,
+        wait_for_active=False,
+        timeout=None,
+    ):
+        """Execute a command over SSH on this machine."""
+        raise NotImplementedError("ssh method is not implemented yet.")
+
+    @property
+    def dns_name(self) -> str | None:
+        """Get the DNS name for this machine."""
+        return self._juju.status().machines[self.id].dns_name
+
+    @property
+    def hostname(self) -> str | None:
+        """Get the hostname for this machine, e.g. juju-8149c9-2."""
+        return self._juju.status().machines[self.id].hostname
 
 
 class UnitAdapter:
@@ -233,6 +272,12 @@ class UnitAdapter:
         """Return the parsed `show-unit` command."""
         raw = self._juju.cli("show-unit", "--format", "json", self.name)
         return json.loads(raw).get(self.name, {})
+
+    @property
+    def machine(self) -> MachineAdapter:
+        """Return the machine which hosts this unit."""
+        self._update_status()
+        return MachineAdapter(self.status.machine, self._juju)
 
     @property
     def public_address(self) -> str:
@@ -513,6 +558,10 @@ class ModelAdapter:
         """Destroy units by name."""
         self._juju.remove_unit(unit_id, destroy_storage=destroy_storage, force=force)
 
+    def get_machines(self) -> list[str]:
+        """Return list of machines in this model."""
+        return list(self.machines.keys())
+
     def get_status(self, filters=None, utc: bool = False) -> LibjujuStatusDict:
         """Return the status of the model.
 
@@ -669,8 +718,9 @@ class ModelAdapter:
             return
 
         self._juju.wait(
-            lambda status: sum(len(status.apps[app].units) for app in _apps)
-            == wait_for_exact_units,
+            lambda status: (
+                sum(len(status.apps[app].units) for app in _apps) == wait_for_exact_units
+            ),
             error=error_func,
             delay=delay,
             timeout=timeout,
@@ -682,6 +732,12 @@ class ModelAdapter:
         """Return a mapping of application name: Application objects."""
         apps = self._juju.status().apps
         return {app: ApplicationAdapter(app, self._juju) for app in apps}
+
+    @property
+    def machines(self) -> dict[str, MachineAdapter]:
+        """Return a mapping of machine id: Machine objects."""
+        machines = self._juju.status().machines
+        return {machine: MachineAdapter(machine, self._juju) for machine in machines}
 
     @property
     def relations(self) -> Iterable[RelationInfo]:
@@ -732,7 +788,7 @@ class LibjujuExtensions:
         """Return model name."""
         return f"{self._juju.model}"
 
-    def _get_cached_build(self, charm_path: str | os.PathLike) -> Path:
+    def _get_cached_build(self, charm_path: str | PathLike) -> Path:
         charm_path = Path(charm_path)
         architecture = subprocess.run(
             ["dpkg", "--print-architecture"],
@@ -743,15 +799,15 @@ class LibjujuExtensions:
         assert architecture in ("amd64", "arm64")
         packed_charms = list(charm_path.glob(f"*{architecture}.charm"))
         if len(packed_charms) == 1:
-            # python-libjuju's model.deploy(), juju deploy, and juju bundle files expect local charms
+            # python-libjuju's model.deploy() & juju deploy files expect local charms
             # to begin with `./` or `/` to distinguish them from Charmhub charms.
             return packed_charms[0].resolve(strict=True)
-        elif len(packed_charms) > 1:
+        if len(packed_charms) > 1:
             raise ValueError(
-                f"More than one matching .charm file found at {charm_path=} for {architecture=}: {packed_charms}."
+                f"More than one matching .charm file found "
+                f"at {charm_path=} for {architecture=}: {packed_charms}."
             )
-        else:
-            raise ValueError(f"Unable to find .charm file for {architecture=} at {charm_path=}")
+        raise ValueError(f"Unable to find .charm file for {architecture=} at {charm_path=}")
 
     def build_charm(  # noqa: C901
         self,
@@ -759,12 +815,8 @@ class LibjujuExtensions:
         bases_index: int | None = None,
         verbosity: Literal["quiet", "brief", "verbose", "debug", "trace"] | None = None,
         return_all: bool = False,
-        use_cache: bool = False,
     ) -> Path | list[Path]:
         """Builds a single charm."""
-        if use_cache:
-            return self._get_cached_build(charm_path)
-
         charms_dst_dir = Path(tempfile.mkdtemp())
         charms_dst_dir.mkdir(exist_ok=True)
         charm_path = Path(charm_path)
@@ -804,8 +856,7 @@ class LibjujuExtensions:
             logger.info(f"Built charm {charm_name}")
         else:
             logger.info(
-                f"Charm build for {charm_name} completed with errors (return "
-                f"code={returncode})"
+                f"Charm build for {charm_name} completed with errors (return code={returncode})"
             )
 
         if returncode != 0:
