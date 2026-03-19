@@ -7,24 +7,6 @@ myst:
 (reference-release-notes-revision-248)=
 # Revision 248
 
-## Charmed Apache Kafka
-
-New revisions of [Charmed Apache Kafka](http://charmhub.io/kafka) and [Charmed Apache Kafka K8s](http://charmhub.io/kafka-k8s) have been published to their `4/stable` channels.
-
-```{warning}
-This is a Major version release and in-place upgrades are NOT supported from Charmed Kafka applications on the `3/stable` channel.
-
-Check the documentation on how to migrate data between Charmed Apache Kafka clusters using [MirrorMaker](https://documentation.ubuntu.com/charmed-kafka/4/how-to/cluster/migrate/#how-to-cluster-migration)
-```
-
-New revisions of [Charmed Apache Kafka Connect](http://charmhub.io/kafka-connect) and [Charmed Apache Kafka Connect K8s](http://charmhub.io/kafka-connect-k8s) have been published to their `4/stable` channels.
-
-New revisions of [Karapace](http://charmhub.io/karapace) and [Karapace K8s](http://charmhub.io/karapace-k8s) have been published to their `4/stable` channels.
-
-New revisions of [Kafka UI](http://charmhub.io/kafka-ui) and [Kafka UI K8s](http://charmhub.io/kafka-ui) have been published to their `4/stable` channels.
-
-### Highlights
-
 - **New major version release of Apache Kafka version from 3.9 -> 4.1**
     - Check the official Apache Kafka [Version 4.0 release notes](https://downloads.apache.org/kafka/4.0.0/RELEASE_NOTES.html)
     - Check the official Apache Kafka [Version 4.1 release notes](https://downloads.apache.org/kafka/4.1.0/RELEASE_NOTES.html)
@@ -44,6 +26,14 @@ New revisions of [Kafka UI](http://charmhub.io/kafka-ui) and [Kafka UI K8s](http
     - Check the [documentation](https://documentation.ubuntu.com/charmed-kafka/4/how-to/kafka-ui/) for a guide on using the Kafka UI for cluster administration
 - **OAuth support and Canonical Identity Platform integration**
     - Check the [documentation](https://documentation.ubuntu.com/charmed-kafka/4/how-to/oauth/) for a guide on enabling OAuth with Canonical Identity platform
+
+[Charmhub](https://charmhub.io/kafka) | [Deploy guide](how-to-deploy-index) | [Upgrade instructions](how-to-upgrade) | [System requirements](reference-requirements)
+
+```{warning}
+This is a major version release, and in-place upgrades from Charmed Apache Kafka applications are not supported across major versions.
+
+See the documentation for how to migrate data between Charmed Apache Kafka clusters using [MirrorMaker](https://documentation.ubuntu.com/charmed-kafka/4/how-to/cluster/migrate/#how-to-cluster-migration).
+```
 
 ### Features
 
@@ -80,6 +70,19 @@ New revisions of [Kafka UI](http://charmhub.io/kafka-ui) and [Kafka UI K8s](http
 - [DPE-5702](https://warthogs.atlassian.net/browse/DPE-5702) - chore: Active Controllers set to == 0 [#325](https://github.com/canonical/kafka-operator/pull/325)
 - [DPE-6987](https://warthogs.atlassian.net/browse/DPE-6987) - fix: add readiness check for TLS handler [#335](https://github.com/canonical/kafka-operator/pull/335)
 - [DPE-6436](https://warthogs.atlassian.net/browse/DPE-6436) - fix: use pathops for proper cleanup of TLS artifacts [#334](https://github.com/canonical/kafka-operator/pull/334)
-- [DPE-7846](https://warthogs.atlassian.net/browse/DPE-7846) - fix: secrets not set issue in RelationState.update [#387](https://github.com/canonical/kafka-operator/pull/387)
+- [DPE-7846](https://warthogs.atlassian.net/browse/DPE-7846) - fix: secrets not set issue in RelationState update [#387](https://github.com/canonical/kafka-operator/pull/387)
 - [DPE-7987](https://warthogs.atlassian.net/browse/DPE-7987) - fix: race condition in internal TLS setup [#399](https://github.com/canonical/kafka-operator/pull/399)
 - [DPE-4546](https://warthogs.atlassian.net/browse/DPE-4546) - fix: juju remove-unit app/leader breaks TLS [#400](https://github.com/canonical/kafka-operator/pull/400)
+
+## Compatibility
+
+Principal charms support the latest LTS series `24.04` only.
+
+| Charm | Revision | Hardware architecture | Juju version | Artefacts |
+|---|---|---|---|---|
+| Charmed Apache Kafka | [248](https://github.com/canonical/kafka-operator/releases/tag/rev248) | AMD64 | Juju 3.6+ | Distribution: [4.1.1-ubuntu4](https://launchpad.net/kafka-releases/4.x/4.1.1-ubuntu4). <br> Snap: [revision 67](https://snapcraft.io/charmed-kafka). |
+| Charmed Apache Kafka Connect | [33](https://github.com/canonical/kafka-connect-operator/releases/tag/rev33) | AMD64 | Juju 3.6+ | Distribution: [4.1.1-ubuntu4](https://launchpad.net/kafka-releases/4.x/4.1.1-ubuntu4). <br> Snap: [revision 48](https://snapcraft.io/charmed-kafka). |
+| Charmed Karapace | [21](https://github.com/canonical/karapace-operator/releases/tag/rev21) | AMD64 | Juju 3.6+ | Snap: [revision 16](https://snapcraft.io/charmed-kafka). |
+| Charmed Kafka UI | [6](https://github.com/canonical/kafka-ui-operator/releases/tag/rev6) | AMD64 | Juju 3.6+ | Snap: [revision 3](https://snapcraft.io/charmed-kafka-ui). |
+
+Apache Kafka release notes: [4.0.0](https://archive.apache.org/dist/kafka/4.0.0/RELEASE_NOTES.html), [4.1.0](https://archive.apache.org/dist/kafka/4.1.0/RELEASE_NOTES.html)
