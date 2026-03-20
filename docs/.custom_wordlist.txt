@@ -182,3 +182,15 @@ truststores
 unhandled
 Kafbat
 Kafbat's
+configs
+CONF
+env
+TF
+ci
+kafka
+dir
+dirs
+config
+artifacts
+pathops
+RelationState
