@@ -1,0 +1,8 @@
+summary: "Tutorial stage 5 – Enable encryption (enable-encryption.md)"
+
+priority: -100
+
+kill-timeout: 40m
+
+execute: |
+  bash "$SPREAD_PATH/tests/tutorial/05_encryption.sh"

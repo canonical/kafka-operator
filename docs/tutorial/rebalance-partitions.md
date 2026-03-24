@@ -48,8 +48,11 @@ Let's add the role `balancer` to the existing `kraft` Juju application:
 juju config kraft roles=balancer,controller
 ```
 
+<!-- test:juju-wait --timeout 900 -->
+
 Wait for the status to become `active`/`idle`:
 
+<!-- test:skip -->
 ```shell
 watch juju status --color
 ```
@@ -58,21 +61,29 @@ watch juju status --color
 
 Let's scale-out the `kafka` application to four units (add one more):
 
-```bash
+```shell
 juju add-unit kafka
 ```
 
+<!-- test:juju-wait --timeout 900 -->
+
 Wait for the additional unit to be fully deployed and active:
 
+<!-- test:skip -->
 ```shell
 watch juju status --color
 ```
+
+<!-- test:set-variables
+command: juju show-unit kafka/0 --format json | jq -r '."kafka/0"."public-address"' | awk '{print "unit-ip: " $1}'
+KAFKA_UNIT_IP: unit-ip
+-->
 
 By default, no partitions are allocated for the new unit `3`,
 that should have broker id `103`.
 Check that via the log directory assignment:
 
-```bash
+```shell
 juju ssh kafka/leader sudo -i charmed-kafka.log-dirs --describe \
   --bootstrap-server <unit-ip>:19093 \
   --command-config '$CONF/client.properties' \
@@ -100,7 +111,10 @@ with no partitions allocated by default:
 Now, let's run the `rebalance` action to allocate some existing partitions
 from other brokers (`0`, `1` and `2`) to broker `3`:
 
-```bash
+<!-- test:wait --seconds 1200 -->
+
+<!-- test:run-with-timeout --seconds 180 -->
+```shell
 juju run cruise-control/0 rebalance mode=add brokerid=103 --wait=2m
 ```
 
@@ -139,9 +153,11 @@ summary:
 If we are happy with this proposal, we can re-run the action,
 but this time instructing the charm to actually execute the proposal:
 
-```bash
+```shell
 juju run cruise-control/0 rebalance mode=add dryrun=false brokerid=103 --wait=10m
 ```
+
+<!-- test:juju-wait --timeout 900 -->
 
 Partition rebalancing can take significant time.
 To monitor the progress, in a separate terminal session, check the `juju debug-log` command output
@@ -158,7 +174,7 @@ unit-cruise-control-0: 22:19:12 INFO unit.cruise-control/0.juju-log Waiting for 
 Once the action is complete, verify the partitions on the newly added unit
 using the same commands as before:
 
-```bash
+```shell
 juju ssh kafka/leader sudo -i charmed-kafka.log-dirs --describe \
   --bootstrap-server <unit-ip>:19093 \
   --command-config '$CONF/client.properties' \
@@ -206,16 +222,18 @@ replicas for a given partition.
 To remove the most recent broker unit `3` from the previous example,
 re-run the `rebalance` action with `mode=remove`:
 
-```bash
+```shell
 juju run cruise-control/0 rebalance mode=remove dryrun=false brokerid=3 --wait=10m
 ```
+
+<!-- test:juju-wait --timeout 600 -->
 
 This does not remove the unit, but moves the partitions from the broker on unit number `3`
 to other brokers within the cluster.
 
 Once the action has been completed, verify that broker `3` no longer has any assigned partitions:
 
-```bash
+```shell
 juju ssh kafka/leader sudo -i charmed-kafka.log-dirs --describe \
   --bootstrap-server <unit-ip>:19093 \
   --command-config '$CONF/client.properties' \
@@ -241,9 +259,11 @@ Make sure that the broker has no partitions assigned, for example:
 
 Now, it is safe to scale-in the cluster by removing the broker number `3` completely:
 
-```bash
+```shell
 juju remove-unit kafka/3
 ```
+
+<!-- test:juju-wait --timeout 600 -->
 
 ## Full cluster rebalancing
 
@@ -260,7 +280,8 @@ of partition allocation across all currently live broker units.
 To achieve this, re-run the `rebalance` action with the `mode=full`.
 You can do it in the "dryrun" mode (by default) for now:
 
-```bash
+<!-- test:run-with-timeout --seconds 660 -->
+```shell
 juju run cruise-control/0 rebalance mode=full --wait=10m
 ```
 
@@ -277,6 +298,6 @@ summary:
 
 To implement the proposed changes, run the same command but with `dryrun=false`:
 
-```bash
+```shell
 juju run cruise-control/0 rebalance mode=full dryrun=false --wait=10m
 ```

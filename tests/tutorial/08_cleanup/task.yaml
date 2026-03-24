@@ -1,0 +1,8 @@
+summary: "Tutorial stage 8 – Cleanup your environment (cleanup.md)"
+
+priority: -400
+
+kill-timeout: 15m
+
+execute: |
+  bash "$SPREAD_PATH/tests/tutorial/08_cleanup.sh"

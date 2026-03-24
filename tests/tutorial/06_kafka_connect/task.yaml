@@ -1,0 +1,8 @@
+summary: "Tutorial stage 6 – Use Kafka Connect for ETL (use-kafka-connect.md)"
+
+priority: -200
+
+kill-timeout: 60m
+
+execute: |
+  bash "$SPREAD_PATH/tests/tutorial/06_kafka_connect.sh"
