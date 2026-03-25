@@ -37,6 +37,7 @@ and updating the Charmed Apache Kafka application of the correct secret to use.
 
 First, create the Juju secret with the new password you wish to use:
 
+<!-- test:skip -->
 ```shell
 juju add-secret internal-kafka-users admin=mynewpassword
 ```
@@ -45,7 +46,7 @@ Note the generated secret ID that you see as a response.
 It will look something like `secret:d5nc29hlshbc45lnf07g`.
 
 <!-- test:set-variables
-command: juju show-secret --kind user --format json | jq -r 'to_entries[] | select(.value.label == "internal-kafka-users") | "secret-uri: " + .key'
+command: juju add-secret internal-kafka-users admin=mynewpassword | awk '{print "secret-uri: " $0}'
 SECRET_URI: secret-uri
 -->
 

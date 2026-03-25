@@ -15,9 +15,7 @@ set -euo pipefail
 
 juju show-secret --reveal cluster.kafka.app | yq -r '.[].content["operator-password"]'
 
-juju add-secret internal-kafka-users admin=mynewpassword
-
-_CMD_OUTPUT=$(juju show-secret --kind user --format json | jq -r 'to_entries[] | select(.value.label == "internal-kafka-users") | "secret-uri: " + .key')
+_CMD_OUTPUT=$(juju add-secret internal-kafka-users admin=mynewpassword | awk '{print "secret-uri: " $0}')
 SECRET_URI=$(echo "$_CMD_OUTPUT" | grep 'secret-uri:' | awk '{print $2}')
 
 juju grant-secret internal-kafka-users kafka
