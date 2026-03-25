@@ -47,6 +47,6 @@ juju_wait --timeout 600
 
 juju remove-relation kafka-test-app kafka
 juju remove-relation kafka-test-app self-signed-certificates
-juju remove-application kafka-test-app --destroy-storage
+juju remove-application kafka-test-app --destroy-storage --no-prompt
 
 juju_wait --timeout 600
