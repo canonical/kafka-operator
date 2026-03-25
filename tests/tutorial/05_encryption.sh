@@ -15,11 +15,11 @@ set -euo pipefail
 
 juju deploy self-signed-certificates --config ca-common-name="Tutorial CA"
 
-juju_wait --timeout 600
+juju_wait --timeout 600 --allow-blocked data-integrator
 
 juju integrate kafka:certificates self-signed-certificates
 
-juju_wait --timeout 600
+juju_wait --timeout 600 --allow-blocked data-integrator
 
 juju integrate data-integrator kafka
 

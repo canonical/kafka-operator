@@ -20,7 +20,7 @@ To remove Charmed Apache Kafka and the `tutorial` model it is hosted on,
 along with all other applications:
 
 ```shell
-juju destroy-model tutorial --destroy-storage --force
+juju destroy-model tutorial --destroy-storage --force --no-prompt
 ```
 
 <!-- test:wait --seconds 120 -->

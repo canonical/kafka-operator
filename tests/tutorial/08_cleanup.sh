@@ -13,6 +13,6 @@ set -euo pipefail
 # shellcheck source=tests/tutorial/helpers.sh
 . "$SPREAD_PATH/tests/tutorial/helpers.sh"
 
-juju destroy-model tutorial --destroy-storage --force
+juju destroy-model tutorial --destroy-storage --force --no-prompt
 
 sleep 120

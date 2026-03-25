@@ -95,7 +95,7 @@ sudo sysctl -p
 Next, we should set the required model parameters using the `juju model-config` command:
 
 ```shell
-cat <<EOF > /tmp/cloudinit-userdata.yaml
+cat <<EOF > ~/cloudinit-userdata.yaml
 cloudinit-userdata: |
   postruncmd:
     - [ 'echo', 'vm.max_map_count=262144', '>>', '/etc/sysctl.conf' ]
@@ -105,7 +105,7 @@ cloudinit-userdata: |
     - [ 'sysctl', '-p' ]
 EOF
 
-juju model-config --file=/tmp/cloudinit-userdata.yaml
+juju model-config --file=~/cloudinit-userdata.yaml
 ```
 
 ## Deploy the databases and Kafka Connect charms
@@ -118,7 +118,7 @@ juju deploy postgresql --channel 14/stable
 juju deploy opensearch --channel 2/stable --config profile=testing
 ```
 
-<!-- test:juju-wait --timeout 1200 -->
+<!-- test:juju-wait --timeout 1200 --allow-blocked opensearch,kafka-connect -->
 
 OpenSearch charm requires a TLS relation to become active.
 We will use the [`self-signed-certificates` charm](https://charmhub.io/self-signed-certificates)

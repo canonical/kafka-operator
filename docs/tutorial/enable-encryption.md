@@ -30,7 +30,7 @@ Before enabling TLS on Charmed Apache Kafka we must first deploy the `self-signe
 juju deploy self-signed-certificates --config ca-common-name="Tutorial CA"
 ```
 
-<!-- test:juju-wait --timeout 600 -->
+<!-- test:juju-wait --timeout 600 --allow-blocked data-integrator -->
 
 Wait for the charm to settle into an `active`/`idle` state, as shown by the `juju status` command.
 
@@ -75,7 +75,7 @@ To enable TLS on Charmed Apache Kafka, integrate with `self-signed-certificates`
 juju integrate kafka:certificates self-signed-certificates
 ```
 
-<!-- test:juju-wait --timeout 600 -->
+<!-- test:juju-wait --timeout 600 --allow-blocked data-integrator -->
 
 After the charms settle into `active`/`idle` states, the Apache Kafka listeners
 should now have been swapped to the default encrypted port `9093`.

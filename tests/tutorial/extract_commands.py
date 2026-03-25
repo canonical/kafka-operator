@@ -90,7 +90,7 @@ from pathlib import Path
 
 SKIP_MARKER = "<!-- test:skip -->"
 _SLEEP_PATTERN = re.compile(r"<!--\s*test:wait\s+--seconds\s+(\d+)\s*-->")
-_JUJU_WAIT_PATTERN = re.compile(r"<!--\s*test:juju-wait(?:\s+(--timeout\s+\d+))?\s*-->")
+_JUJU_WAIT_PATTERN = re.compile(r"<!--\s*test:juju-wait(.*?)-->")
 _RUN_WITH_TIMEOUT_PATTERN = re.compile(r"<!--\s*test:run-with-timeout\s+--seconds\s+(\d+)\s*-->")
 _SET_VARIABLES_START = re.compile(r"<!--\s*test:set-variables\s*$")
 _SHELL_OPEN = re.compile(r"^```shell\s*$")
@@ -161,8 +161,8 @@ def _handle_marker_line(
 
     juju_wait_match = _JUJU_WAIT_PATTERN.match(stripped)
     if juju_wait_match:
-        args = juju_wait_match.group(1)
-        blocks.append(f"juju_wait {args}".rstrip() if args else "juju_wait")
+        args = juju_wait_match.group(1).strip()
+        blocks.append(f"juju_wait {args}" if args else "juju_wait")
         return "juju_wait"
 
     return None
