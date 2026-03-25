@@ -90,7 +90,7 @@ _CMD_OUTPUT=$(juju run postgresql/leader get-password)
 PG_PASSWORD=$(echo "$_CMD_OUTPUT" | grep 'password:' | awk '{print $2}')
 
 juju ssh postgresql/leader "PGPASSWORD=${PG_PASSWORD} psql --host \$(hostname -i) --username operator --dbname postgres -c 'CREATE DATABASE tutorial'"
-juju ssh postgresql/leader "PGPASSWORD=${PG_PASSWORD} psql --host \$(hostname -i) --username operator --dbname tutorial -f /home/ubuntu/populate.sql"
+juju ssh postgresql/leader "cat /home/ubuntu/populate.sql | PGPASSWORD=${PG_PASSWORD} psql --host \$(hostname -i) --username operator --dbname tutorial"
 juju ssh postgresql/leader "PGPASSWORD=${PG_PASSWORD} psql --host \$(hostname -i) --username operator --dbname tutorial -c 'SELECT COUNT(*) FROM posts'"
 
 juju deploy postgresql-connect-integrator \
