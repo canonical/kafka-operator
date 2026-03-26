@@ -82,6 +82,19 @@ placeholder matching one of the declared field names (e.g. ``<username>``,
 shell-variable reference (e.g. ``${KAFKA_USERNAME}``), so the Markdown source
 keeps its human-readable placeholders while the generated test script uses real
 values.
+
+Running hidden test-only commands
+---------------------------------
+Add a ``<!-- test:run ... -->`` block to inject shell commands that are
+invisible to users reading the rendered documentation but are emitted into the
+generated test script::
+
+    <!-- test:run
+    curl -u admin:${OS_PASSWORD} -k -sS "https://${OPENSEARCH_IP}:9200/etl_posts/_search?pretty=true"
+    -->
+
+This is useful when the user-facing command uses a human-readable placeholder
+(e.g. ``<admin-password>``) while the test needs the real variable.
 """
 
 import re
@@ -93,6 +106,7 @@ _SLEEP_PATTERN = re.compile(r"<!--\s*test:wait\s+--seconds\s+(\d+)\s*-->")
 _JUJU_WAIT_PATTERN = re.compile(r"<!--\s*test:juju-wait(.*?)-->")
 _RUN_WITH_TIMEOUT_PATTERN = re.compile(r"<!--\s*test:run-with-timeout\s+--seconds\s+(\d+)\s*-->")
 _SET_VARIABLES_START = re.compile(r"<!--\s*test:set-variables\s*$")
+_RUN_HIDDEN_START = re.compile(r"<!--\s*test:run\s*$")
 _SHELL_OPEN = re.compile(r"^```shell\s*$")
 _FENCE_CLOSE = re.compile(r"^```\s*$")
 
@@ -138,6 +152,32 @@ def _parse_set_variables_block(
         substitutions.append((f"<{field_name}>", f"${{{var_name}}}"))
 
     return "\n".join(snippet_lines), substitutions, i
+
+
+def _parse_run_hidden_block(
+    lines: list[str], start: int, active_substitutions: list[tuple[str, str]]
+) -> tuple[str, int]:
+    """Parse a <!-- test:run ... --> block starting at line `start`.
+
+    Returns (bash_snippet, next_index).
+    """
+    i = start + 1
+    cmd_lines: list[str] = []
+
+    while i < len(lines):
+        raw = lines[i]
+        if "-->" in raw:
+            i += 1
+            break
+        stripped = raw.rstrip()
+        if stripped:
+            cmd_lines.append(stripped)
+        i += 1
+
+    content = "\n".join(cmd_lines)
+    for placeholder, variable in active_substitutions:
+        content = content.replace(placeholder, variable)
+    return content, i
 
 
 def _handle_marker_line(
@@ -244,6 +284,13 @@ def extract_shell_blocks(source: str) -> list[str]:
             if snippet:
                 blocks.append(snippet)
                 active_substitutions.extend(substitutions)
+            continue
+
+        # Detect run-hidden block; emit commands invisible to the reader.
+        if _RUN_HIDDEN_START.match(line.strip()):
+            snippet, i = _parse_run_hidden_block(lines, i, active_substitutions)
+            if snippet:
+                blocks.append(snippet)
             continue
 
         # Opening fence for a shell block.

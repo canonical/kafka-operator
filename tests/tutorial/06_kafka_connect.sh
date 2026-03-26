@@ -114,9 +114,7 @@ juju integrate opensearch-connect-integrator kafka-connect
 
 juju_wait --timeout 900
 
-juju run opensearch/leader get-password
-
-_CMD_OUTPUT=$(juju run opensearch/leader get-password)
+_CMD_OUTPUT=$(juju run opensearch/leader get-password --wait=5m)
 OS_PASSWORD=$(echo "$_CMD_OUTPUT" | grep 'password:' | awk '{print $2}')
 
 OPENSEARCH_IP=$(juju ssh opensearch/0 'hostname -i' | tr -d '\r\n')
@@ -124,8 +122,6 @@ OPENSEARCH_IP=$(juju ssh opensearch/0 'hostname -i' | tr -d '\r\n')
 sleep 30
 
 curl -u admin:${OS_PASSWORD} -k -sS "https://${OPENSEARCH_IP}:9200/etl_posts/_search?pretty=true"
-
-juju run postgresql/leader get-password
 
 juju ssh postgresql/leader "PGPASSWORD=${PG_PASSWORD} psql --host \$(hostname -i) --username operator --dbname tutorial -c \"INSERT INTO posts (content, likes) VALUES ('my new post', 1)\""
 

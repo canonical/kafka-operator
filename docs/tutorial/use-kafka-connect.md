@@ -313,11 +313,11 @@ psql --host $(hostname -i) --username operator --password --dbname tutorial \
     -c 'SELECT COUNT(*) FROM posts'
 ```
 
-```shell
+<!-- test:run
 juju ssh postgresql/leader "PGPASSWORD=${PG_PASSWORD} psql --host \$(hostname -i) --username operator --dbname postgres -c 'CREATE DATABASE tutorial'"
 juju ssh postgresql/leader "cat /home/ubuntu/populate.sql | PGPASSWORD=${PG_PASSWORD} psql --host \$(hostname -i) --username operator --dbname tutorial"
 juju ssh postgresql/leader "PGPASSWORD=${PG_PASSWORD} psql --host \$(hostname -i) --username operator --dbname tutorial -c 'SELECT COUNT(*) FROM posts'"
-```
+-->
 
 The output should indicate that the `posts` table has five rows now:
 
@@ -423,12 +423,13 @@ We can use the OpenSearch REST API for that purpose.
 
 First, retrieve the admin user credentials for OpenSearch using `get-password` action:
 
+<!-- test:skip -->
 ```shell
 juju run opensearch/leader get-password
 ```
 
 <!-- test:set-variables
-command: juju run opensearch/leader get-password
+command: juju run opensearch/leader get-password --wait=5m
 OS_PASSWORD: password
 -->
 
@@ -450,15 +451,15 @@ OPENSEARCH_IP=$(juju ssh opensearch/0 'hostname -i' | tr -d '\r\n')
 either using your browser or `curl`:
 
 <!-- test:skip -->
-```bash
+```shell
 curl -u admin:<admin-password> -k -sS "https://${OPENSEARCH_IP}:9200/etl_posts/_search?pretty=true"
 ```
 
 <!-- test:wait --seconds 30 -->
 
-```shell
+<!-- test:run
 curl -u admin:${OS_PASSWORD} -k -sS "https://${OPENSEARCH_IP}:9200/etl_posts/_search?pretty=true"
-```
+-->
 
 As a result you get a JSON response containing the search results, which should have five documents.
 The `hits.total` value should be `5`, as shown in the output example below:
@@ -491,6 +492,7 @@ Now let's insert a new post into the PostgreSQL database.
 
 Get the password for the `operator` built-in user again:
 
+<!-- test:skip -->
 ```shell
 juju run postgresql/leader get-password
 ```
@@ -513,22 +515,22 @@ psql --host $(hostname -i) --username operator --password --dbname tutorial -c \
 
 Log out from the PostgreSQL unit using `exit` command or the `Ctrl+D` keyboard shortcut.
 
-```shell
+<!-- test:run
 juju ssh postgresql/leader "PGPASSWORD=${PG_PASSWORD} psql --host \$(hostname -i) --username operator --dbname tutorial -c \"INSERT INTO posts (content, likes) VALUES ('my new post', 1)\""
-```
+-->
 
 <!-- test:wait --seconds 30 -->
 
 Then, check that the data is automatically copied to the OpenSearch index:
 
 <!-- test:skip -->
-```bash
+```shell
 curl -u admin:<admin-password> -k -sS "https://${OPENSEARCH_IP}:9200/etl_posts/_search?pretty=true"
 ```
 
-```shell
+<!-- test:run
 curl -u admin:${OS_PASSWORD} -k -sS "https://${OPENSEARCH_IP}:9200/etl_posts/_search?pretty=true"
-```
+-->
 
 Which now should have six hits (output is truncated):
 
