@@ -102,7 +102,7 @@ juju deploy postgresql-connect-integrator \
 juju integrate postgresql-connect-integrator postgresql
 juju integrate postgresql-connect-integrator kafka-connect
 
-juju_wait --timeout 900
+juju_wait --timeout 1200
 
 juju deploy opensearch-connect-integrator \
     --channel edge \
@@ -112,7 +112,7 @@ juju deploy opensearch-connect-integrator \
 juju integrate opensearch-connect-integrator opensearch
 juju integrate opensearch-connect-integrator kafka-connect
 
-juju_wait --timeout 900
+juju_wait --timeout 1200
 
 _CMD_OUTPUT=$(juju run opensearch/leader get-password --wait=5m)
 OS_PASSWORD=$(echo "$_CMD_OUTPUT" | grep 'password:' | awk '{print $2}')
