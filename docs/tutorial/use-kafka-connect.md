@@ -43,33 +43,33 @@ juju status
 
 ```text
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
-tutorial  overlord    localhost/localhost  3.6.13   unsupported  18:27:29Z
+tutorial  overlord    localhost/localhost  3.6.20   unsupported  18:27:29Z
 
 App                       Version  Status  Scale  Charm                     Channel        Rev  Exposed  Message
-data-integrator                    active      1  data-integrator           latest/stable  180  no       
-kafka                     4.0.0    active      3  kafka                     4/edge         245  no       
-kraft                     4.0.0    active      3  kafka                     4/edge         245  no       
+data-integrator                    active      1  data-integrator           latest/stable  362  no       
+kafka                     4.1.1    active      3  kafka                     4/stable       248  no       
+kraft                     4.1.1    active      3  kafka                     4/stable       248  no       
 self-signed-certificates           active      1  self-signed-certificates  1/stable       317  no       
 
 Unit                         Workload  Agent  Machine  Public address  Ports           Message
-data-integrator/0*           active    idle   6        10.109.154.254                  
-kafka/0*                     active    idle   0        10.109.154.47   9093,19093/tcp  
-kafka/1                      active    idle   1        10.109.154.171  9093,19093/tcp  
-kafka/2                      active    idle   2        10.109.154.82   9093,19093/tcp  
-kraft/0*                     active    idle   3        10.109.154.49   9098/tcp        
-kraft/1                      active    idle   4        10.109.154.148  9098/tcp        
-kraft/2                      active    idle   5        10.109.154.50   9098/tcp        
-self-signed-certificates/0*  active    idle   8        10.109.154.248                  
+data-integrator/0*           active    idle   6        10.157.174.36                   
+kafka/0*                     active    idle   0        10.157.174.225  9093,19093/tcp  
+kafka/1                      active    idle   1        10.157.174.62   9093,19093/tcp  
+kafka/2                      active    idle   2        10.157.174.59   9093,19093/tcp  
+kraft/0*                     active    idle   3        10.157.174.228  9098/tcp        
+kraft/1                      active    idle   4        10.157.174.127  9098/tcp        
+kraft/2                      active    idle   5        10.157.174.24   9098/tcp        
+self-signed-certificates/0*  active    idle   8        10.157.174.248                  
 
-Machine  State    Address         Inst id        Base          AZ   Message
-0        started  10.109.154.47   juju-030538-0  ubuntu@24.04  dev  Running
-1        started  10.109.154.171  juju-030538-1  ubuntu@24.04  dev  Running
-2        started  10.109.154.82   juju-030538-2  ubuntu@24.04  dev  Running
-3        started  10.109.154.49   juju-030538-3  ubuntu@24.04  dev  Running
-4        started  10.109.154.148  juju-030538-4  ubuntu@24.04  dev  Running
-5        started  10.109.154.50   juju-030538-5  ubuntu@24.04  dev  Running
-6        started  10.109.154.254  juju-030538-6  ubuntu@24.04  dev  Running
-8        started  10.109.154.248  juju-030538-8  ubuntu@24.04  dev  Running             
+Machine  State    Address         Inst id        Base          AZ          Message
+0        started  10.157.174.225  juju-29b29f-0  ubuntu@24.04  kafka-test  Running
+1        started  10.157.174.62   juju-29b29f-1  ubuntu@24.04  kafka-test  Running
+2        started  10.157.174.59   juju-29b29f-2  ubuntu@24.04  kafka-test  Running
+3        started  10.157.174.228  juju-29b29f-3  ubuntu@24.04  kafka-test  Running
+4        started  10.157.174.127  juju-29b29f-4  ubuntu@24.04  kafka-test  Running
+5        started  10.157.174.24   juju-29b29f-5  ubuntu@24.04  kafka-test  Running
+6        started  10.157.174.36   juju-29b29f-6  ubuntu@24.04  kafka-test  Running
+8        started  10.157.174.248  juju-29b29f-8  ubuntu@24.04  kafka-test  Running
 ```
 
 </details>
@@ -154,42 +154,42 @@ After a couple of minutes, all the applications should be in `active`/`idle` sta
 
 ```text
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
-tutorial  overlord    localhost/localhost  3.6.13   unsupported  18:51:59Z
+tutorial  overlord    localhost/localhost  3.6.20   unsupported  18:51:59Z
 
 App                       Version  Status  Scale  Charm                     Channel        Rev  Exposed  Message
-data-integrator                    active      1  data-integrator           latest/stable  180  no       
-kafka                     4.0.0    active      3  kafka                     4/edge         245  no       
+data-integrator                    active      1  data-integrator           latest/stable  362  no       
+kafka                     4.1.1    active      3  kafka                     4/stable       248  no       
 kafka-connect                      active      1  kafka-connect             latest/edge     30  no       
-kraft                     4.0.0    active      3  kafka                     4/edge         245  no       
+kraft                     4.1.1    active      3  kafka                     4/stable       248  no       
 opensearch                         active      1  opensearch                2/stable       314  no       
 postgresql                14.20    active      1  postgresql                14/stable      987  no       
 self-signed-certificates           active      1  self-signed-certificates  1/stable       317  no       
 
 Unit                         Workload  Agent  Machine  Public address  Ports           Message
-data-integrator/0*           active    idle   6        10.109.154.254                  
-kafka-connect/0*             active    idle   10       10.109.154.69   8083/tcp        
-kafka/0*                     active    idle   0        10.109.154.47   9092,19093/tcp  
-kafka/1                      active    idle   1        10.109.154.171  9092,19093/tcp  
-kafka/2                      active    idle   2        10.109.154.82   9092,19093/tcp  
-kraft/0*                     active    idle   3        10.109.154.49   9098/tcp        
-kraft/1                      active    idle   4        10.109.154.148  9098/tcp        
-kraft/2                      active    idle   5        10.109.154.50   9098/tcp        
-opensearch/0*                active    idle   12       10.109.154.204  9200/tcp        
-postgresql/0*                active    idle   11       10.109.154.208  5432/tcp        Primary
-self-signed-certificates/0*  active    idle   8        10.109.154.248                  
+data-integrator/0*           active    idle   6        10.157.174.36                   
+kafka-connect/0*             active    idle   10       10.157.174.69   8083/tcp        
+kafka/0*                     active    idle   0        10.157.174.225  9092,19093/tcp  
+kafka/1                      active    idle   1        10.157.174.62   9092,19093/tcp  
+kafka/2                      active    idle   2        10.157.174.59   9092,19093/tcp  
+kraft/0*                     active    idle   3        10.157.174.228  9098/tcp        
+kraft/1                      active    idle   4        10.157.174.127  9098/tcp        
+kraft/2                      active    idle   5        10.157.174.24   9098/tcp        
+opensearch/0*                active    idle   12       10.157.174.204  9200/tcp        
+postgresql/0*                active    idle   11       10.157.174.208  5432/tcp        Primary
+self-signed-certificates/0*  active    idle   8        10.157.174.248                  
 
-Machine  State    Address         Inst id         Base          AZ   Message
-0        started  10.109.154.47   juju-030538-0   ubuntu@24.04  dev  Running
-1        started  10.109.154.171  juju-030538-1   ubuntu@24.04  dev  Running
-2        started  10.109.154.82   juju-030538-2   ubuntu@24.04  dev  Running
-3        started  10.109.154.49   juju-030538-3   ubuntu@24.04  dev  Running
-4        started  10.109.154.148  juju-030538-4   ubuntu@24.04  dev  Running
-5        started  10.109.154.50   juju-030538-5   ubuntu@24.04  dev  Running
-6        started  10.109.154.254  juju-030538-6   ubuntu@24.04  dev  Running
-8        started  10.109.154.248  juju-030538-8   ubuntu@24.04  dev  Running
-10       started  10.109.154.69   juju-030538-10  ubuntu@22.04  dev  Running
-11       started  10.109.154.208  juju-030538-11  ubuntu@22.04  dev  Running
-12       started  10.109.154.204  juju-030538-12  ubuntu@24.04  dev  Running
+Machine  State    Address         Inst id         Base          AZ          Message
+0        started  10.157.174.225  juju-29b29f-0   ubuntu@24.04  kafka-test  Running
+1        started  10.157.174.62   juju-29b29f-1   ubuntu@24.04  kafka-test  Running
+2        started  10.157.174.59   juju-29b29f-2   ubuntu@24.04  kafka-test  Running
+3        started  10.157.174.228  juju-29b29f-3   ubuntu@24.04  kafka-test  Running
+4        started  10.157.174.127  juju-29b29f-4   ubuntu@24.04  kafka-test  Running
+5        started  10.157.174.24   juju-29b29f-5   ubuntu@24.04  kafka-test  Running
+6        started  10.157.174.36   juju-29b29f-6   ubuntu@24.04  kafka-test  Running
+8        started  10.157.174.248  juju-29b29f-8   ubuntu@24.04  kafka-test  Running
+10       started  10.157.174.69   juju-29b29f-10  ubuntu@22.04  kafka-test  Running
+11       started  10.157.174.208  juju-29b29f-11  ubuntu@22.04  kafka-test  Running
+12       started  10.157.174.204  juju-29b29f-12  ubuntu@24.04  kafka-test  Running
 ```
 
 </details>
@@ -387,8 +387,8 @@ showing a message indicating that the ETL task is running:
 
 ```text
 ...
-opensearch-connect-integrator/0*  active    idle   14       10.109.154.70   8080/tcp        Task Status: RUNNING    
-postgresql-connect-integrator/0*  active    idle   13       10.109.154.173  8080/tcp        Task Status: RUNNING
+opensearch-connect-integrator/0*  active    idle   14       10.157.174.70   8080/tcp        Task Status: RUNNING    
+postgresql-connect-integrator/0*  active    idle   13       10.157.174.173  8080/tcp        Task Status: RUNNING
 ...
 ```
 

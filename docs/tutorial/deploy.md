@@ -9,7 +9,7 @@ myst:
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
-To deploy Charmed Apache Kafka, all you need to do is run the following commands, which will automatically fetch [Apache Kafka](https://charmhub.io/kafka?channel=4/edge) from [Charmhub](https://charmhub.io/) and deploy it to your model.
+To deploy Charmed Apache Kafka, all you need to do is run the following commands, which will automatically fetch [Apache Kafka](https://charmhub.io/kafka?channel=4/stable) from [Charmhub](https://charmhub.io/) and deploy it to your model.
 
 Charmed Apache Kafka can run both with `roles=broker` and/or `roles=controller`. With this configuration option, the charm can be deployed either as a single application running both Apache Kafka brokers and KRaft controllers, or as multiple applications with a separate controller cluster and broker cluster.
 
@@ -17,7 +17,7 @@ For this tutorial, we will deploy brokers separately.
 To deploy a cluster of three Apache Kafka brokers:
 
 ```shell
-juju deploy kafka -n 3 --channel 4/edge --config roles=broker
+juju deploy kafka -n 3 --channel 4/stable --config roles=broker
 ```
 
 Juju will now fetch Charmed Apache Kafka and begin deploying it to the LXD cloud.
@@ -40,7 +40,7 @@ between the two solutions, please refer to the
 To deploy a cluster of three KRaft controllers, run:
 
 ```shell
-juju deploy kafka -n 3 --channel 4/edge --config roles=controller kraft
+juju deploy kafka -n 3 --channel 4/stable --config roles=controller kraft
 ```
 
 After this, it is necessary to connect the two deployed applications,
@@ -68,27 +68,27 @@ Wait until the applications are `active` and all units show `active`/`idle` stat
 
 ```shell
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
-tutorial  overlord    localhost/localhost  3.6.13   unsupported  12:33:46Z
+tutorial  overlord    localhost/localhost  3.6.20   unsupported  13:43:44Z
 
-App    Version  Status  Scale  Charm  Channel  Rev  Exposed  Message
-kafka  4.0.0    active      3  kafka  4/edge   245  no       
-kraft  4.0.0    active      3  kafka  4/edge   245  no       
+App    Version  Status  Scale  Charm  Channel   Rev  Exposed  Message
+kafka  4.1.1    active      3  kafka  4/stable  248  no       
+kraft  4.1.1    active      3  kafka  4/stable  248  no       
 
 Unit      Workload  Agent  Machine  Public address  Ports      Message
-kafka/0*  active    idle   0        10.109.154.47   19093/tcp  
-kafka/1   active    idle   1        10.109.154.171  19093/tcp  
-kafka/2   active    idle   2        10.109.154.82   19093/tcp  
-kraft/0*  active    idle   3        10.109.154.49   9098/tcp   
-kraft/1   active    idle   4        10.109.154.148  9098/tcp   
-kraft/2   active    idle   5        10.109.154.50   9098/tcp   
+kafka/0*  active    idle   0        10.157.174.225  19093/tcp  
+kafka/1   active    idle   1        10.157.174.62   19093/tcp  
+kafka/2   active    idle   2        10.157.174.59   19093/tcp  
+kraft/0*  active    idle   3        10.157.174.228  9098/tcp   
+kraft/1   active    idle   4        10.157.174.127  9098/tcp   
+kraft/2   active    idle   5        10.157.174.24   9098/tcp   
 
-Machine  State    Address         Inst id        Base          AZ   Message
-0        started  10.109.154.47   juju-030538-0  ubuntu@24.04  dev  Running
-1        started  10.109.154.171  juju-030538-1  ubuntu@24.04  dev  Running
-2        started  10.109.154.82   juju-030538-2  ubuntu@24.04  dev  Running
-3        started  10.109.154.49   juju-030538-3  ubuntu@24.04  dev  Running
-4        started  10.109.154.148  juju-030538-4  ubuntu@24.04  dev  Running
-5        started  10.109.154.50   juju-030538-5  ubuntu@24.04  dev  Running
+Machine  State    Address         Inst id        Base          AZ          Message
+0        started  10.157.174.225  juju-29b29f-0  ubuntu@24.04  kafka-test  Running
+1        started  10.157.174.62   juju-29b29f-1  ubuntu@24.04  kafka-test  Running
+2        started  10.157.174.59   juju-29b29f-2  ubuntu@24.04  kafka-test  Running
+3        started  10.157.174.228  juju-29b29f-3  ubuntu@24.04  kafka-test  Running
+4        started  10.157.174.127  juju-29b29f-4  ubuntu@24.04  kafka-test  Running
+5        started  10.157.174.24   juju-29b29f-5  ubuntu@24.04  kafka-test  Running
 ```
 
 To exit the screen, push `Ctrl+C`.

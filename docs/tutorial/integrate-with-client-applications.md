@@ -26,7 +26,7 @@ juju deploy data-integrator --config topic-name=test-topic --config extra-user-r
 <details> <summary> Output example</summary>
 
 ```shell
-Deployed "data-integrator" from charm-hub charm "data-integrator", revision 180 in channel latest/stable on ubuntu@24.04/stable
+Deployed "data-integrator" from charm-hub charm "data-integrator", revision 362 in channel latest/stable on ubuntu@24.04/stable
 ```
 
 </details>
@@ -45,30 +45,30 @@ Wait for the status to become `active`/`idle` with the
 
 ```shell
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
-tutorial  overlord    localhost/localhost  3.6.13   unsupported  12:50:51Z
+tutorial  overlord    localhost/localhost  3.6.20   unsupported  13:50:02Z
 
 App              Version  Status  Scale  Charm            Channel        Rev  Exposed  Message
-data-integrator           active      1  data-integrator  latest/stable  180  no       
-kafka            4.0.0    active      3  kafka            4/edge         245  no       
-kraft            4.0.0    active      3  kafka            4/edge         245  no       
+data-integrator           active      1  data-integrator  latest/stable  362  no       
+kafka            4.1.1    active      3  kafka            4/stable       248  no       
+kraft            4.1.1    active      3  kafka            4/stable       248  no       
 
 Unit                Workload  Agent      Machine  Public address  Ports           Message
-data-integrator/0*  active    idle       6        10.109.154.254                  
-kafka/0*            active    executing  0        10.109.154.47   9092,19093/tcp  
-kafka/1             active    idle       1        10.109.154.171  9092,19093/tcp  
-kafka/2             active    idle       2        10.109.154.82   9092,19093/tcp  
-kraft/0*            active    idle       3        10.109.154.49   9098/tcp        
-kraft/1             active    idle       4        10.109.154.148  9098/tcp        
-kraft/2             active    idle       5        10.109.154.50   9098/tcp        
+data-integrator/0*  active    idle       6        10.157.174.36                   
+kafka/0*            active    idle       0        10.157.174.225  9092,19093/tcp  
+kafka/1             active    idle       1        10.157.174.62   9092,19093/tcp  
+kafka/2             active    idle       2        10.157.174.59   9092,19093/tcp  
+kraft/0*            active    idle       3        10.157.174.228  9098/tcp        
+kraft/1             active    idle       4        10.157.174.127  9098/tcp        
+kraft/2             active    idle       5        10.157.174.24   9098/tcp        
 
-Machine  State    Address         Inst id        Base          AZ   Message
-0        started  10.109.154.47   juju-030538-0  ubuntu@24.04  dev  Running
-1        started  10.109.154.171  juju-030538-1  ubuntu@24.04  dev  Running
-2        started  10.109.154.82   juju-030538-2  ubuntu@24.04  dev  Running
-3        started  10.109.154.49   juju-030538-3  ubuntu@24.04  dev  Running
-4        started  10.109.154.148  juju-030538-4  ubuntu@24.04  dev  Running
-5        started  10.109.154.50   juju-030538-5  ubuntu@24.04  dev  Running
-6        started  10.109.154.254  juju-030538-6  ubuntu@24.04  dev  Running
+Machine  State    Address         Inst id        Base          AZ          Message
+0        started  10.157.174.225  juju-29b29f-0  ubuntu@24.04  kafka-test  Running
+1        started  10.157.174.62   juju-29b29f-1  ubuntu@24.04  kafka-test  Running
+2        started  10.157.174.59   juju-29b29f-2  ubuntu@24.04  kafka-test  Running
+3        started  10.157.174.228  juju-29b29f-3  ubuntu@24.04  kafka-test  Running
+4        started  10.157.174.127  juju-29b29f-4  ubuntu@24.04  kafka-test  Running
+5        started  10.157.174.24   juju-29b29f-5  ubuntu@24.04  kafka-test  Running
+6        started  10.157.174.36   juju-29b29f-6  ubuntu@24.04  kafka-test  Running
 ```
 
 </details>
@@ -89,13 +89,13 @@ Running operation 1 with 1 task
 Waiting for task 2...
 kafka:
   consumer-group-prefix: relation-8-
-  data: '{"resource": "test-topic", "salt": "92Lgizh3GIHxOqTr", "extra-user-roles":
+  data: '{"resource": "test-topic", "salt": "qQUy7AFgV0rdBwT4", "extra-user-roles":
     "producer,consumer", "provided-secrets": ["mtls-cert"], "requested-secrets": ["username",
-    "password", "tls", "tls-ca", "uris", "read-only-uris"]}'
-  endpoints: 10.109.154.171:9092,10.109.154.47:9092,10.109.154.82:9092
-  password: Pw5UJtv1dcOkQzN47qVQNYNSsajeMD5Q
+    "password", "tls", "tls-ca", "uris", "read-only-uris", "entity-name", "entity-password"]}'
+  endpoints: 10.157.174.225:9092,10.157.174.59:9092,10.157.174.62:9092
+  password: LxupRA4MxzNwINXnn5X9De9XFSNnvU9g
   resource: test-topic
-  salt: kAh9cPhs7LnU9OBv
+  salt: JhHr4OXyim47GHsb
   tls: disabled
   topic: test-topic
   username: relation-8
@@ -113,7 +113,7 @@ a simplistic charm meant only for testing, that also bundles some Python scripts
 to Apache Kafka:
 
 ```shell
-juju deploy kafka-test-app --channel edge
+juju deploy kafka-test-app --channel stable
 ```
 
 Wait for the charm to become `active`/`idle`, and log into the container:
@@ -256,33 +256,33 @@ juju status
 
 ```shell
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
-tutorial  overlord    localhost/localhost  3.6.13   unsupported  14:27:10Z
+tutorial  overlord    localhost/localhost  3.6.20   unsupported  14:27:10Z
 
-App              Version  Status  Scale  Charm            Channel        Rev  Exposed  Message
-data-integrator           active      1  data-integrator  latest/stable  180  no       
-kafka            4.0.0    active      3  kafka            4/edge         245  no       
-kafka-test-app            active      1  kafka-test-app   latest/edge     15  no       Topic TOP-PICK enabled with process producer
-kraft            4.0.0    active      3  kafka            4/edge         245  no       
+App              Version  Status  Scale  Charm            Channel         Rev  Exposed  Message
+data-integrator           active      1  data-integrator  latest/stable   362  no       
+kafka            4.1.1    active      3  kafka            4/stable        248  no       
+kafka-test-app            active      1  kafka-test-app   latest/stable    11  no       Topic TOP-PICK enabled with process producer
+kraft            4.1.1    active      3  kafka            4/stable        248  no       
 
 Unit                Workload  Agent      Machine  Public address  Ports           Message
-data-integrator/0*  active    idle       6        10.109.154.254                  
-kafka-test-app/0*   active    idle       7        10.109.154.242                  Topic TOP-PICK enabled with process producer
-kafka/0*            active    executing  0        10.109.154.47   9092,19093/tcp  
-kafka/1             active    idle       1        10.109.154.171  9092,19093/tcp  
-kafka/2             active    idle       2        10.109.154.82   9092,19093/tcp  
-kraft/0*            active    idle       3        10.109.154.49   9098/tcp        
-kraft/1             active    idle       4        10.109.154.148  9098/tcp        
-kraft/2             active    idle       5        10.109.154.50   9098/tcp        
+data-integrator/0*  active    idle       6        10.157.174.36                   
+kafka-test-app/0*   active    idle       7        10.157.174.242                  Topic TOP-PICK enabled with process producer
+kafka/0*            active    idle       0        10.157.174.225  9092,19093/tcp  
+kafka/1             active    idle       1        10.157.174.62   9092,19093/tcp  
+kafka/2             active    idle       2        10.157.174.59   9092,19093/tcp  
+kraft/0*            active    idle       3        10.157.174.228  9098/tcp        
+kraft/1             active    idle       4        10.157.174.127  9098/tcp        
+kraft/2             active    idle       5        10.157.174.24   9098/tcp        
 
-Machine  State    Address         Inst id        Base          AZ   Message
-0        started  10.109.154.47   juju-030538-0  ubuntu@24.04  dev  Running
-1        started  10.109.154.171  juju-030538-1  ubuntu@24.04  dev  Running
-2        started  10.109.154.82   juju-030538-2  ubuntu@24.04  dev  Running
-3        started  10.109.154.49   juju-030538-3  ubuntu@24.04  dev  Running
-4        started  10.109.154.148  juju-030538-4  ubuntu@24.04  dev  Running
-5        started  10.109.154.50   juju-030538-5  ubuntu@24.04  dev  Running
-6        started  10.109.154.254  juju-030538-6  ubuntu@24.04  dev  Running
-7        started  10.109.154.242  juju-030538-7  ubuntu@22.04  dev  Running
+Machine  State    Address         Inst id        Base          AZ          Message
+0        started  10.157.174.225  juju-29b29f-0  ubuntu@24.04  kafka-test  Running
+1        started  10.157.174.62   juju-29b29f-1  ubuntu@24.04  kafka-test  Running
+2        started  10.157.174.59   juju-29b29f-2  ubuntu@24.04  kafka-test  Running
+3        started  10.157.174.228  juju-29b29f-3  ubuntu@24.04  kafka-test  Running
+4        started  10.157.174.127  juju-29b29f-4  ubuntu@24.04  kafka-test  Running
+5        started  10.157.174.24   juju-29b29f-5  ubuntu@24.04  kafka-test  Running
+6        started  10.157.174.36   juju-29b29f-6  ubuntu@24.04  kafka-test  Running
+7        started  10.157.174.242  juju-29b29f-7  ubuntu@22.04  kafka-test  Running
 ```
 
 </details>
@@ -296,7 +296,7 @@ juju exec --application kafka-test-app "tail /tmp/*.log"
 Make sure to see the following messages:
 
 ```text
-INFO [__main__] (MainThread) (produce_message) Message published to topic=TOP-PICK, message content: {"timestamp": 1768919219.744478, "_id": "9f4da8c1df2547f18c4d3365f7fb1c54", "origin": "juju-030538-7 (10.109.154.242)", "content": "Message #11"}
+INFO [__main__] (MainThread) (produce_message) Message published to topic=TOP-PICK, message content: {"timestamp": 1768919219.744478, "_id": "9f4da8c1df2547f18c4d3365f7fb1c54", "origin": "juju-29b29f-7 (10.157.174.242)", "content": "Message #11"}
 ```
 
 To stop the process (although it is very likely that the process has already stopped
