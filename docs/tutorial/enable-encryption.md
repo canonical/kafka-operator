@@ -136,7 +136,7 @@ the `self-signed-certificates` charm.
 Let's deploy our [Apache Kafka Test App](https://charmhub.io/kafka-test-app) again:
 
 ```shell
-juju deploy kafka-test-app --channel edge
+juju deploy kafka-test-app --channel stable
 ```
 
 <!-- test:await-idle --timeout 1200 --allow-blocked kafka-test-app -->

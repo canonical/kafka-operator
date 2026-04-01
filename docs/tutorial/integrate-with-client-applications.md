@@ -132,7 +132,7 @@ a simplistic charm meant only for testing, that also bundles some Python scripts
 to Apache Kafka:
 
 ```shell
-juju deploy kafka-test-app --channel edge
+juju deploy kafka-test-app --channel stable
 ```
 
 Wait for the charm to become `active`/`idle`, and log into the container:
