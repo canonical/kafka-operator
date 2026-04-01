@@ -84,8 +84,8 @@ kafka:
   consumer-group-prefix: relation-8-
   data: '{"resource": "test-topic", "salt": "yOIRb9uVUuJuKFVc", "extra-user-roles":
     "producer,consumer", "provided-secrets": ["mtls-cert"], "requested-secrets": ["username",
-    "password", "tls", "tls-ca", "uris", "read-only-uris"]}'
-  endpoints: 10.109.154.171:9092,10.109.154.47:9092,10.109.154.82:9092
+    "password", "tls", "tls-ca", "uris", "read-only-uris", "entity-name", "entity-password"]}'
+  endpoints: 10.157.174.225:9092,10.157.174.59:9092,10.157.174.62:9092
   password: RdRjZkXUC3dAb5VRFw2470fnoKrsRIXU
   resource: test-topic
   salt: W34UoIPzckdMJ6DU
@@ -129,8 +129,8 @@ kafka:
   consumer-group-prefix: relation-9-
   data: '{"resource": "test-topic", "salt": "iGWWWoUwCy39ou6f", "extra-user-roles":
     "producer,consumer", "provided-secrets": ["mtls-cert"], "requested-secrets": ["username",
-    "password", "tls", "tls-ca", "uris", "read-only-uris"]}'
-  endpoints: 10.109.154.171:9092,10.109.154.47:9092,10.109.154.82:9092
+    "password", "tls", "tls-ca", "uris", "read-only-uris", "entity-name", "entity-password"]}'
+  endpoints: 10.157.174.225:9092,10.157.174.59:9092,10.157.174.62:9092
   password: EEiI2gboTp2dF0NOcogtbrOWBTxkd5YB
   resource: test-topic
   salt: 7WqLjlZjeUvlEWrA
@@ -161,30 +161,30 @@ The output of the Juju model should be something like this:
 
 ```shell
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
-tutorial  overlord    localhost/localhost  3.6.13   unsupported  17:12:02Z
+tutorial  overlord    localhost/localhost  3.6.20   unsupported  17:12:02Z
 
 App              Version  Status   Scale  Charm            Channel        Rev  Exposed  Message
-data-integrator           blocked      1  data-integrator  latest/stable  180  no       Please relate the data-integrator with the desired product
-kafka            4.0.0    active       3  kafka            4/edge         245  no       
-kraft            4.0.0    active       3  kafka            4/edge         245  no       
+data-integrator           blocked      1  data-integrator  latest/stable  362  no       Please relate the data-integrator with the desired product
+kafka            4.1.1    active       3  kafka            4/stable       248  no       
+kraft            4.1.1    active       3  kafka            4/stable       248  no       
 
 Unit                Workload  Agent      Machine  Public address  Ports           Message
-data-integrator/0*  blocked   idle       6        10.109.154.254                  Please relate the data-integrator with the desired product
-kafka/0*            active    executing  0        10.109.154.47   9092,19093/tcp  
-kafka/1             active    executing  1        10.109.154.171  9092,19093/tcp  
-kafka/2             active    executing  2        10.109.154.82   9092,19093/tcp  
-kraft/0*            active    idle       3        10.109.154.49   9098/tcp        
-kraft/1             active    idle       4        10.109.154.148  9098/tcp        
-kraft/2             active    idle       5        10.109.154.50   9098/tcp        
+data-integrator/0*  blocked   idle       6        10.157.174.36                   Please relate the data-integrator with the desired product
+kafka/0*            active    executing  0        10.157.174.225  9092,19093/tcp  
+kafka/1             active    executing  1        10.157.174.62   9092,19093/tcp  
+kafka/2             active    executing  2        10.157.174.59   9092,19093/tcp  
+kraft/0*            active    idle       3        10.157.174.228  9098/tcp        
+kraft/1             active    idle       4        10.157.174.127  9098/tcp        
+kraft/2             active    idle       5        10.157.174.24   9098/tcp        
 
-Machine  State    Address         Inst id        Base          AZ   Message
-0        started  10.109.154.47   juju-030538-0  ubuntu@24.04  dev  Running
-1        started  10.109.154.171  juju-030538-1  ubuntu@24.04  dev  Running
-2        started  10.109.154.82   juju-030538-2  ubuntu@24.04  dev  Running
-3        started  10.109.154.49   juju-030538-3  ubuntu@24.04  dev  Running
-4        started  10.109.154.148  juju-030538-4  ubuntu@24.04  dev  Running
-5        started  10.109.154.50   juju-030538-5  ubuntu@24.04  dev  Running
-6        started  10.109.154.254  juju-030538-6  ubuntu@24.04  dev  Running
+Machine  State    Address         Inst id        Base          AZ          Message
+0        started  10.157.174.225  juju-29b29f-0  ubuntu@24.04  kafka-test  Running
+1        started  10.157.174.62   juju-29b29f-1  ubuntu@24.04  kafka-test  Running
+2        started  10.157.174.59   juju-29b29f-2  ubuntu@24.04  kafka-test  Running
+3        started  10.157.174.228  juju-29b29f-3  ubuntu@24.04  kafka-test  Running
+4        started  10.157.174.127  juju-29b29f-4  ubuntu@24.04  kafka-test  Running
+5        started  10.157.174.24   juju-29b29f-5  ubuntu@24.04  kafka-test  Running
+6        started  10.157.174.36   juju-29b29f-6  ubuntu@24.04  kafka-test  Running
 ```
 
 </details>
