@@ -7,6 +7,8 @@ import subprocess
 from dataclasses import dataclass
 from subprocess import PIPE, check_output
 
+from jubilant_adapters import JujuFixture
+
 from integration.ha.continuous_writes import ContinuousWritesResult
 from integration.helpers import (
     APP_NAME,
@@ -15,8 +17,6 @@ from integration.helpers import (
     get_kafka_zk_relation_data,
 )
 from literals import PATHS, SECURITY_PROTOCOL_PORTS
-
-from ..adapters import JujuFixture
 
 PROCESS = "kafka.Kafka"
 SERVICE_DEFAULT_PATH = "/etc/systemd/system/snap.charmed-kafka.daemon.service"

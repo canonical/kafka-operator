@@ -17,6 +17,7 @@ from typing import Any, List, Optional, Set
 import yaml
 from charms.kafka.v0.client import KafkaClient
 from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManager
+from jubilant_adapters import JujuFixture
 from kafka.admin import NewTopic
 from kazoo.exceptions import AuthFailedError, NoNodeError
 from tenacity import retry
@@ -27,8 +28,6 @@ from tenacity.wait import wait_fixed
 from core.models import JSON
 from literals import BALANCER_WEBSERVER_USER, JMX_CC_PORT, PATHS, PEER, SECURITY_PROTOCOL_PORTS
 from managers.auth import Acl, AuthManager
-
-from .adapters import JujuFixture
 
 METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 APP_NAME = METADATA["name"]

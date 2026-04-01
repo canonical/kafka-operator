@@ -6,10 +6,10 @@ import logging
 from time import sleep
 
 import pytest
+from jubilant_adapters import JujuFixture, gather
 
 from literals import CHARM_KEY, ZK
 
-from .adapters import JujuFixture, gather
 from .helpers import get_active_brokers, get_kafka_zk_relation_data
 
 logger = logging.getLogger(__name__)

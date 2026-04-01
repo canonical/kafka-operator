@@ -6,6 +6,7 @@ import logging
 from time import sleep
 
 import pytest
+from jubilant_adapters import JujuFixture, gather
 
 from integration.ha.continuous_writes import ContinuousWrites
 from integration.ha.ha_helpers import (
@@ -31,8 +32,6 @@ from integration.helpers import (
     check_logs,
     produce_and_check_logs,
 )
-
-from ..adapters import JujuFixture, gather
 
 RESTART_DELAY = 60
 CLIENT_TIMEOUT = 30

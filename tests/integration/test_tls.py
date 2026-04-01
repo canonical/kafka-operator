@@ -12,6 +12,7 @@ from time import sleep
 import kafka
 import pytest
 from charms.tls_certificates_interface.v3.tls_certificates import generate_private_key
+from jubilant_adapters import JujuFixture, gather
 
 from literals import (
     REL_NAME,
@@ -21,7 +22,6 @@ from literals import (
     ZK,
 )
 
-from .adapters import JujuFixture, gather
 from .helpers import (
     APP_NAME,
     REL_NAME_ADMIN,

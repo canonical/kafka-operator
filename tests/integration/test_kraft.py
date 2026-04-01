@@ -7,6 +7,7 @@ import os
 from time import sleep
 
 import pytest
+from jubilant_adapters import JujuFixture, gather
 
 from literals import (
     CONTROLLER_PORT,
@@ -16,7 +17,6 @@ from literals import (
     SECURITY_PROTOCOL_PORTS,
 )
 
-from .adapters import JujuFixture, gather
 from .helpers import (
     APP_NAME,
     KRaftUnitStatus,

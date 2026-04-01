@@ -10,6 +10,7 @@ from time import sleep
 from types import SimpleNamespace
 
 from charms.kafka.v0.client import KafkaClient
+from jubilant_adapters import JujuFixture
 from kafka.admin import NewTopic
 from kafka.consumer.fetcher import ConsumerRecord
 from kafka.errors import KafkaError
@@ -23,8 +24,6 @@ from tenacity import (
 )
 
 from integration.helpers import APP_NAME, DUMMY_NAME, get_provider_data
-
-from ..adapters import JujuFixture
 
 logger = logging.getLogger(__name__)
 logging.getLogger("kafka.conn").disabled = True

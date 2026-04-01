@@ -6,8 +6,8 @@ import logging
 from time import sleep
 
 import pytest
+from jubilant_adapters import JujuFixture, gather
 
-from .adapters import JujuFixture, gather
 from .helpers import (
     check_user,
     get_client_usernames,

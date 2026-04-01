@@ -9,10 +9,10 @@ from subprocess import PIPE, check_output
 
 import pytest
 import requests
+from jubilant_adapters import JujuFixture, gather
 
 from literals import DEPENDENCIES, JMX_EXPORTER_PORT, REL_NAME, SECURITY_PROTOCOL_PORTS
 
-from .adapters import JujuFixture, gather
 from .helpers import (
     APP_NAME,
     DUMMY_NAME,

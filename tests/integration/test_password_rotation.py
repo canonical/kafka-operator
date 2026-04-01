@@ -6,8 +6,8 @@ import logging
 from time import sleep
 
 import pytest
+from jubilant_adapters import JujuFixture, gather
 
-from .adapters import JujuFixture, gather
 from .helpers import APP_NAME, ZK_NAME, get_user, set_password
 
 logger = logging.getLogger(__name__)

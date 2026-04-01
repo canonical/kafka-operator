@@ -8,6 +8,7 @@ from subprocess import CalledProcessError
 from time import sleep
 
 import pytest
+from jubilant_adapters import JujuFixture, gather
 from tenacity import Retrying, stop_after_attempt, wait_fixed
 
 from literals import (
@@ -16,7 +17,6 @@ from literals import (
     TLS_RELATION,
 )
 
-from .adapters import JujuFixture, gather
 from .helpers import (
     APP_NAME,
     ZK_NAME,

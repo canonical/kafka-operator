@@ -6,8 +6,8 @@ import logging
 import time
 
 import pytest
+from jubilant_adapters import JujuFixture, gather
 
-from .adapters import JujuFixture, gather
 from .helpers import (
     APP_NAME,
     DUMMY_NAME,
