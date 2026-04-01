@@ -24,7 +24,6 @@ pytestmark = pytest.mark.broker
 CHANNEL = "3/stable"
 
 
-@pytest.mark.abort_on_fail
 def test_in_place_upgrade(juju: JujuFixture, kafka_charm, app_charm):
     gather(
         juju.ext.model.deploy(

@@ -69,8 +69,6 @@ def restart_delay(juju: JujuFixture):
         remove_restart_delay(juju=juju, unit_name=unit.name)
 
 
-@pytest.mark.skip_if_deployed
-@pytest.mark.abort_on_fail
 def test_build_and_deploy(juju: JujuFixture, kafka_charm, app_charm):
     gather(
         juju.ext.model.deploy(kafka_charm, application_name=APP_NAME, num_units=1, series="jammy"),
@@ -346,7 +344,6 @@ def test_full_cluster_restart(
 
 
 @pytest.mark.unstable
-@pytest.mark.abort_on_fail
 def test_network_cut_without_ip_change(
     juju: JujuFixture,
     c_writes: ContinuousWrites,
@@ -394,7 +391,6 @@ def test_network_cut_without_ip_change(
 
 
 @pytest.mark.unstable
-@pytest.mark.abort_on_fail
 def test_network_cut(
     juju: JujuFixture,
     c_writes: ContinuousWrites,

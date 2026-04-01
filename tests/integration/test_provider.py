@@ -34,7 +34,6 @@ REL_NAME_ADMIN = "kafka-client-admin"
 REL_NAME_CERTIFICATES = "certificates"
 
 
-@pytest.mark.abort_on_fail
 def test_deploy_charms_relate_active(
     juju: JujuFixture, kafka_charm, app_charm, usernames: set[str]
 ):
@@ -82,7 +81,6 @@ def test_deploy_charms_relate_active(
             assert acl.resource_name == "test-prefix"
 
 
-@pytest.mark.abort_on_fail
 def test_deploy_multiple_charms_same_topic_relate_active(
     juju: JujuFixture, app_charm, usernames: set[str]
 ):
@@ -113,7 +111,6 @@ def test_deploy_multiple_charms_same_topic_relate_active(
             assert acl.resource_name == "test-topic"
 
 
-@pytest.mark.abort_on_fail
 def test_remove_application_removes_user_and_acls(juju: JujuFixture, usernames: set[str]):
     """Test the correct removal of user and permission after relation removal."""
     juju.ext.model.remove_application(DUMMY_NAME_1, block_until_done=True)
@@ -141,7 +138,6 @@ def test_remove_application_removes_user_and_acls(juju: JujuFixture, usernames: 
             )
 
 
-@pytest.mark.abort_on_fail
 def test_deploy_producer_same_topic(juju: JujuFixture, app_charm, usernames: set[str]):
     """Test the correct deployment and relation with role producer."""
     gather(
@@ -178,7 +174,6 @@ def test_deploy_producer_same_topic(juju: JujuFixture, app_charm, usernames: set
     juju.ext.model.wait_for_idle(apps=[APP_NAME], idle_period=30, status="active")
 
 
-@pytest.mark.abort_on_fail
 def test_admin_added_to_super_users(juju: JujuFixture):
     """Test relation with admin privileges."""
     super_users = load_super_users(model_full_name=juju.ext.model_full_name)
@@ -203,7 +198,6 @@ def test_admin_added_to_super_users(juju: JujuFixture):
     assert len(super_users) == 3
 
 
-@pytest.mark.abort_on_fail
 def test_admin_removed_from_super_users(juju: JujuFixture):
     """Test that removal of the relation with admin privileges."""
     juju.ext.model.remove_application(DUMMY_NAME_1, block_until_done=True)
@@ -220,7 +214,6 @@ def test_admin_removed_from_super_users(juju: JujuFixture):
     juju.ext.model.remove_application(DUMMY_NAME_2, block_until_done=True)
 
 
-@pytest.mark.abort_on_fail
 def test_prefixed_topic_creation(juju: JujuFixture, app_charm):
     gather(
         juju.ext.model.deploy(
@@ -244,7 +237,6 @@ def test_prefixed_topic_creation(juju: JujuFixture, app_charm):
     assert response.results.get("success", None) == "TRUE"
 
 
-@pytest.mark.abort_on_fail
 def test_connection_updated_on_tls_enabled(juju: JujuFixture, app_charm):
     """Test relation when TLS is enabled."""
     # adding new app unit to validate

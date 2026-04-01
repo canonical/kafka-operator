@@ -54,8 +54,6 @@ MANUAL_TLS_NAME = "manual-tls-certificates"
 TLS_CONFIG = {"ca-common-name": "kafka"}
 
 
-@pytest.mark.abort_on_fail
-@pytest.mark.skip_if_deployed
 def test_deploy_tls(juju: JujuFixture, kafka_charm):
     gather(
         # FIXME (certs): Unpin the revision once the charm is fixed
@@ -85,7 +83,6 @@ def test_deploy_tls(juju: JujuFixture, kafka_charm):
         juju.ext.model.wait_for_idle(apps=[TLS_NAME, ZK], idle_period=30, status="active")
 
 
-@pytest.mark.abort_on_fail
 def test_kafka_tls(juju: JujuFixture, app_charm):
     """Tests TLS on Kafka.
 
@@ -161,7 +158,6 @@ def test_kafka_tls(juju: JujuFixture, app_charm):
     assert private_key_2 == new_private_key
 
 
-@pytest.mark.abort_on_fail
 def test_mtls(juju: JujuFixture):
     # creating the signed external cert on the unit
     action = juju.ext.model.units.get(f"{DUMMY_NAME}/0").run_action("create-certificate")
@@ -235,7 +231,6 @@ def test_mtls(juju: JujuFixture):
     assert max_offset == str(num_messages)
 
 
-@pytest.mark.abort_on_fail
 def test_truststore_live_reload(juju: JujuFixture):
     """Tests truststore live reload functionality using kafka-python client."""
     requirer = "other-req/0"
@@ -330,7 +325,6 @@ def test_truststore_live_reload(juju: JujuFixture):
     tmp_dir.cleanup()
 
 
-@pytest.mark.abort_on_fail
 def test_mtls_broken(juju: JujuFixture):
     juju.ext.model.remove_application(MTLS_NAME, block_until_done=True)
     juju.ext.model.wait_for_idle(
@@ -341,7 +335,6 @@ def test_mtls_broken(juju: JujuFixture):
     )
 
 
-@pytest.mark.abort_on_fail
 def test_kafka_tls_scaling(juju: JujuFixture):
     """Scale the application while using TLS to check that new units will configure correctly."""
     juju.ext.model.applications[APP_NAME].add_units(count=2)
@@ -380,7 +373,6 @@ def test_kafka_tls_scaling(juju: JujuFixture):
     )
 
 
-@pytest.mark.abort_on_fail
 def test_tls_removed(juju: JujuFixture):
     juju.ext.model.remove_application(TLS_NAME, block_until_done=True)
     juju.ext.model.wait_for_idle(
@@ -403,7 +395,6 @@ def test_tls_removed(juju: JujuFixture):
         assert not {"pem", "key", "p12", "jks"} & file_extensions
 
 
-@pytest.mark.abort_on_fail
 def test_dns_certificate(juju: JujuFixture):
     # re-set up TLS with DNS-only certs
     juju.ext.model.applications[APP_NAME].set_config({"certificate_include_ip_sans": "false"})
@@ -453,7 +444,6 @@ def test_dns_certificate(juju: JujuFixture):
 @pytest.mark.skipif(
     os.environ.get("CI") is not None, reason="Flaky on CI, passes 1 out of 3 times on average."
 )
-@pytest.mark.abort_on_fail
 def test_manual_tls_chain(juju: JujuFixture):
     juju.ext.model.deploy(MANUAL_TLS_NAME)
 

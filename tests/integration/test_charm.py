@@ -36,7 +36,6 @@ SAME_KAFKA = f"{APP_NAME}-same"
 
 # FIXME: https://github.com/canonical/kafka-operator/issues/142
 @pytest.mark.skip
-@pytest.mark.abort_on_fail
 def test_build_and_deploy_same_machine(juju: JujuFixture, kafka_charm):
     # deploying 1 machine
     juju.ext.model.add_machine(series="jammy")
@@ -79,7 +78,6 @@ def test_build_and_deploy_same_machine(juju: JujuFixture, kafka_charm):
     juju.ext.model.machines[machine_ids[0]].destroy()
 
 
-@pytest.mark.abort_on_fail
 def test_build_and_deploy(juju: JujuFixture, kafka_charm):
     juju.cli("create-storage-pool", "testing", "lxd")
 
@@ -103,13 +101,11 @@ def test_build_and_deploy(juju: JujuFixture, kafka_charm):
         juju.ext.model.wait_for_idle(apps=[APP_NAME, ZK_NAME], idle_period=30, status="active")
 
 
-@pytest.mark.abort_on_fail
 def test_consistency_between_workload_and_metadata(juju: JujuFixture):
     application = juju.status().apps[APP_NAME]
     assert application.version == DEPENDENCIES["kafka_service"]["version"]
 
 
-@pytest.mark.abort_on_fail
 def test_remove_zk_relation_relate(juju: JujuFixture):
     check_output(
         f"JUJU_MODEL={juju.ext.model_full_name} juju remove-relation {APP_NAME} {ZK_NAME}",
@@ -134,7 +130,6 @@ def test_remove_zk_relation_relate(juju: JujuFixture):
         )
 
 
-@pytest.mark.abort_on_fail
 def test_listeners(juju: JujuFixture, app_charm):
     address = get_address(juju=juju)
     assert check_socket(
@@ -172,7 +167,6 @@ def test_listeners(juju: JujuFixture, app_charm):
     )
 
 
-@pytest.mark.abort_on_fail
 def test_client_properties_makes_admin_connection(juju: JujuFixture):
     juju.ext.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
     assert juju.ext.model.applications[APP_NAME].status == "active"
@@ -193,7 +187,6 @@ def test_client_properties_makes_admin_connection(juju: JujuFixture):
     juju.ext.model.wait_for_idle(apps=[APP_NAME])
 
 
-@pytest.mark.abort_on_fail
 def test_logs_write_to_storage(juju: JujuFixture):
     juju.ext.model.wait_for_idle(apps=[APP_NAME, DUMMY_NAME])
     juju.ext.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
@@ -231,7 +224,6 @@ def test_exporter_endpoints(juju: JujuFixture):
     assert jmx_resp.ok
 
 
-@pytest.mark.abort_on_fail
 def test_log_level_change(juju: JujuFixture):
 
     for unit in juju.ext.model.applications[APP_NAME].units:
@@ -265,7 +257,6 @@ def test_log_level_change(juju: JujuFixture):
     juju.ext.model.wait_for_idle(apps=[APP_NAME], status="active", timeout=1000, idle_period=30)
 
 
-@pytest.mark.abort_on_fail
 @pytest.mark.skip  # skipping as we can't add storage without losing Juju conn
 def test_logs_write_to_new_storage(juju: JujuFixture):
     check_output(
@@ -284,7 +275,6 @@ def test_logs_write_to_new_storage(juju: JujuFixture):
     )
 
 
-@pytest.mark.abort_on_fail
 @pytest.mark.skip
 def test_observability_integration(juju: JujuFixture):
     juju.ext.model.deploy(
@@ -316,7 +306,6 @@ def test_observability_integration(juju: JujuFixture):
         assert '"state":"down"' not in targets
 
 
-@pytest.mark.abort_on_fail
 def test_deploy_with_existing_storage(juju: JujuFixture):
     unit_to_remove, *_ = juju.ext.model.applications[APP_NAME].add_units(count=1)
     juju.ext.model.block_until(lambda: len(juju.ext.model.applications[APP_NAME].units) == 2)

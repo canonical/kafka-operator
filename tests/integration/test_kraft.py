@@ -64,7 +64,6 @@ class TestKRaft:
 
         assert check_socket(address, CONTROLLER_PORT)
 
-    @pytest.mark.abort_on_fail
     def test_build_and_deploy(self, juju: JujuFixture, kafka_charm):
 
         gather(
@@ -118,7 +117,6 @@ class TestKRaft:
             status=status,
         )
 
-    @pytest.mark.abort_on_fail
     def test_integrate(self, juju: JujuFixture):
         if self.controller_app != APP_NAME:
             juju.ext.model.add_relation(
@@ -134,11 +132,9 @@ class TestKRaft:
         assert juju.ext.model.applications[APP_NAME].status == "active"
         assert juju.ext.model.applications[self.controller_app].status == "active"
 
-    @pytest.mark.abort_on_fail
     def test_listeners(self, juju: JujuFixture):
         self._assert_listeners_accessible(juju)
 
-    @pytest.mark.abort_on_fail
     def test_authorizer(self, juju: JujuFixture):
 
         address = get_address(juju=juju)
@@ -146,7 +142,6 @@ class TestKRaft:
 
         create_test_topic(juju, f"{address}:{port}")
 
-    @pytest.mark.abort_on_fail
     def test_scale_out(self, juju: JujuFixture):
         juju.ext.model.applications[self.controller_app].add_units(count=2)
 
@@ -181,7 +176,6 @@ class TestKRaft:
                 juju, broker_unit_num=unit_num, controller_unit_num=unit_num
             )
 
-    @pytest.mark.abort_on_fail
     def test_leader_change(self, juju: JujuFixture):
         juju.ext.model.applications[self.controller_app].destroy_units(f"{self.controller_app}/0")
         juju.ext.model.wait_for_idle(
@@ -224,7 +218,6 @@ class TestKRaft:
         assert (offset + 3) in unit_status
         assert unit_status[offset + 3] == KRaftUnitStatus.FOLLOWER
 
-    @pytest.mark.abort_on_fail
     def test_scale_in(self, juju: JujuFixture):
         juju.ext.model.applications[self.controller_app].destroy_units(
             *(f"{self.controller_app}/{unit_id}" for unit_id in (1, 2))

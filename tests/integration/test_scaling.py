@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 pytestmark = pytest.mark.broker
 
 
-@pytest.mark.abort_on_fail
 def test_kafka_simple_scale_up(juju: JujuFixture, kafka_charm):
     gather(
         juju.ext.model.deploy(
@@ -56,7 +55,6 @@ def test_kafka_simple_scale_up(juju: JujuFixture, kafka_charm):
     assert f"{chroot}/brokers/ids/2" in active_brokers
 
 
-@pytest.mark.abort_on_fail
 def test_kafka_simple_scale_down(juju: JujuFixture):
     juju.ext.model.applications[CHARM_KEY].destroy_units(f"{CHARM_KEY}/1")
     juju.ext.model.wait_for_idle(

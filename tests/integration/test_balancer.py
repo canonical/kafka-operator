@@ -41,7 +41,6 @@ class TestBalancer:
     deployment_strat: str = os.environ.get("DEPLOYMENT", "multi")
     balancer_app: str = {"single": APP_NAME, "multi": "balancer"}[deployment_strat]
 
-    @pytest.mark.abort_on_fail
     def test_build_and_deploy(self, juju: JujuFixture, kafka_charm):
 
         gather(
@@ -112,7 +111,6 @@ class TestBalancer:
         assert juju.ext.model.applications[ZK_NAME].status == "active"
         assert juju.ext.model.applications[self.balancer_app].status == "blocked"
 
-    @pytest.mark.abort_on_fail
     def test_relate_not_enough_brokers(self, juju: JujuFixture):
         juju.ext.model.add_relation(APP_NAME, ZK_NAME)
         juju.ext.model.add_relation(PRODUCER_APP, APP_NAME)
@@ -139,7 +137,6 @@ class TestBalancer:
                 model_full_name=juju.ext.model_full_name, app_name=self.balancer_app
             )
 
-    @pytest.mark.abort_on_fail
     def test_minimum_brokers_balancer_starts(self, juju: JujuFixture):
         juju.ext.model.applications[APP_NAME].add_units(count=2)
         juju.ext.model.block_until(lambda: len(juju.ext.model.applications[APP_NAME].units) == 3)
@@ -157,15 +154,12 @@ class TestBalancer:
         )
         assert balancer_is_secure(juju, app_name=self.balancer_app)
 
-    @pytest.mark.abort_on_fail
     def test_balancer_exporter_endpoints(self, juju: JujuFixture):
         assert balancer_exporter_is_up(juju.ext.model_full_name, self.balancer_app)
 
-    @pytest.mark.abort_on_fail
     def test_balancer_monitor_state(self, juju: JujuFixture):
         assert balancer_is_ready(juju=juju, app_name=self.balancer_app)
 
-    @pytest.mark.abort_on_fail
     @pytest.mark.skipif(
         deployment_strat == "single", reason="Testing full rebalance on large deployment"
     )
@@ -204,7 +198,6 @@ class TestBalancer:
             get_replica_count_by_broker_id(juju, self.balancer_app).get(str(new_broker_id), 0)
         )  # replicas were successfully moved
 
-    @pytest.mark.abort_on_fail
     @pytest.mark.skipif(
         deployment_strat == "multi", reason="Testing full rebalance on single-app deployment"
     )
@@ -261,7 +254,6 @@ class TestBalancer:
             get_replica_count_by_broker_id(juju, self.balancer_app).get(str(new_broker_id), 0)
         )  # replicas were successfully moved
 
-    @pytest.mark.abort_on_fail
     @pytest.mark.skipif(
         deployment_strat == "multi", reason="Testing full rebalance on single-app deployment"
     )
@@ -308,7 +300,6 @@ class TestBalancer:
             get_replica_count_by_broker_id(juju, self.balancer_app).get(str(new_broker_id), 0)
         )
 
-    @pytest.mark.abort_on_fail
     def test_tls(self, juju: JujuFixture):
         # deploy and integrate tls
         tls_config = {"ca-common-name": "kafka"}

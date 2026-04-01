@@ -18,8 +18,6 @@ DUMMY_NAME = "app"
 REL_NAME_ADMIN = "kafka-client-admin"
 
 
-@pytest.mark.abort_on_fail
-@pytest.mark.skip_if_deployed
 def test_build_and_deploy(juju: JujuFixture, kafka_charm, app_charm):
     gather(
         juju.ext.model.deploy(
