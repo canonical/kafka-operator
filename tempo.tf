@@ -113,7 +113,7 @@ resource "juju_application" "traefik" {
   }
 }
 
-# ingress relations (to accomodate for machine charms)
+# ingress relations (to accommodate for machine charms)
 resource "juju_integration" "tempo_ingress" {
 
   model_uuid = juju_model.dev.id
