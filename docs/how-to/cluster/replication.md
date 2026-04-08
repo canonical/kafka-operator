@@ -48,10 +48,10 @@ The result should be similar to:
 Model  Controller  Cloud/Region         Version  SLA          Timestamp
 k      vms         localhost/localhost  3.6.3    unsupported  10:45:37+02:00
 
-App            Version  Status  Scale  Charm          Channel      Rev  Exposed  Message
-active         3.9.0    active      1  kafka          3/edge       205  no
-passive        3.9.0    active      1  kafka          3/edge       205  no
-kafka-connect           active      1  kafka-connect  latest/edge   20  no
+App            Version  Status  Scale  Charm          Channel       Rev  Exposed  Message
+active         3.9.0    active      1  kafka          3/stable      240  no
+passive        3.9.0    active      1  kafka          3/stable      240  no
+kafka-connect           active      1  kafka-connect  latest/edge    20  no
 
 Unit              Workload  Agent  Machine  Public address  Ports           Message
 active/0*         active    idle   0        10.86.75.171    19092/tcp
@@ -96,11 +96,11 @@ After some time, the `mirrormaker` application should show up as `active/idle` i
 Model  Controller  Cloud/Region         Version  SLA          Timestamp
 k      vms         localhost/localhost  3.6.3    unsupported  10:59:37+02:00
 
-App            Version  Status  Scale  Charm          Channel      Rev  Exposed  Message
-active         3.9.0    active      1  kafka          3/edge       205  no       
-kafka-connect           active      1  kafka-connect  latest/edge   20  no       
-mirrormaker             active      1  mirrormaker                   0  no       Task Status: UNASSIGNED
-passive        3.9.0    active      1  kafka          3/edge       205  no       
+App            Version  Status  Scale  Charm          Channel       Rev  Exposed  Message
+active         3.9.0    active      1  kafka          3/stable      240  no       
+kafka-connect           active      1  kafka-connect  latest/edge    20  no       
+mirrormaker             active      1  mirrormaker                    0  no       Task Status: UNASSIGNED
+passive        3.9.0    active      1  kafka          3/stable      240  no       
 
 Unit              Workload  Agent  Machine  Public address  Ports           Message
 active/0*         active    idle   0        10.86.75.171    9092,19092/tcp  
@@ -140,11 +140,11 @@ Check the status of deployed applications by running `juju status` command. The 
 Model  Controller  Cloud/Region         Version  SLA          Timestamp
 k      vms         localhost/localhost  3.6.3    unsupported  10:59:37+02:00
 
-App              Version  Status  Scale  Charm          Channel      Rev  Exposed  Message
-kafka-a          3.9.0    active      1  kafka          3/edge       205  no       
-kafka-b          3.9.0    active      1  kafka          3/edge       205  no       
-kafka-connect-a           active      1  kafka-connect  latest/edge   20  no       
-kafka-connect-b           active      1  kafka-connect  latest/edge   20  no       
+App              Version  Status  Scale  Charm          Channel       Rev  Exposed  Message
+kafka-a          3.9.0    active      1  kafka          3/stable      240  no       
+kafka-b          3.9.0    active      1  kafka          3/stable      240  no       
+kafka-connect-a           active      1  kafka-connect  latest/edge    20  no       
+kafka-connect-b           active      1  kafka-connect  latest/edge    20  no       
 mirrormaker-a-b           active      1  mirrormaker                   0  no       Task Status: UNASSIGNED
 mirrormaker-b-a           active      1  mirrormaker                   0  no       Task Status: UNASSIGNED
 

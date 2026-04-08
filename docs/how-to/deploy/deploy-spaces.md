@@ -34,7 +34,7 @@ peers     2         10.10.10.0/24
 The space `alpha` is the default and cannot be removed. Two other spaces are configured for client and peer (internal) communications. To deploy Charmed Apache Kafka using the mentioned spaces:
 
 ```bash
-juju deploy kafka --channel 4/edge \
+juju deploy kafka --channel 4/stable \
   --constraints spaces=client,peers \
   --bind "cluster=peers kafka-client=clients"
 ```

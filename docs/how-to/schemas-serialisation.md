@@ -18,7 +18,7 @@ Follow the steps of the [How to deploy Charmed Apache Kafka](https://discourse.c
 To deploy Karapace and integrate it with Apache Kafka, use the following commands:
 
 ```bash
-juju deploy karapace --channel latest/edge
+juju deploy karapace --channel stable
 juju integrate karapace kafka
 ```
 

@@ -29,9 +29,9 @@ For reference, a cluster with three brokers and three KRaft controllers produces
 Model  Controller  Cloud/Region         Version  SLA          Timestamp
 ui     lxd         localhost/localhost  3.6.9    unsupported  08:37:59+01:00
 
-App         Version  Status  Scale  Charm  Channel  Rev  Exposed  Message
-controller  4.0.0    active      3  kafka  4/edge   239  no
-kafka       4.0.0    active      3  kafka  4/edge   239  no
+App         Version  Status  Scale  Charm  Channel   Rev  Exposed  Message
+controller  4.1.1    active      3  kafka  4/stable  248  no
+kafka       4.1.1    active      3  kafka  4/stable  248  no
 
 Unit           Workload  Agent  Machine  Public address  Ports      Message
 controller/0   active    idle   3        10.160.219.43   9098/tcp
@@ -57,7 +57,7 @@ Machine  State    Address         Inst id        Base          AZ  Message
 To deploy the Kafka UI charmed operator:
 
 ```bash
-juju deploy kafka-ui --channel latest/edge
+juju deploy kafka-ui --channel stable
 ```
 
 Once the charmed Kafka UI operator is deployed, it will end up in `blocked` state, since it needs to be integrated with a charmed Apache Kafka cluster. The output of `juju status` command will be like below:

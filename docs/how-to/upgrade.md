@@ -89,7 +89,7 @@ Note that the upgrade can be performed against:
 * selected channel/track, therefore upgrading to the latest revision published on that track:
 
   ```shell
-  juju refresh kafka --channel 4/edge
+  juju refresh kafka --channel 4/stable
   ```
 * selected revision:
 
