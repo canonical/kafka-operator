@@ -83,6 +83,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             logs_rules_dir=LOGS_RULES_DIR,
             log_slots=[f"{self.workload.SNAP_NAME}:{slot}" for slot in self.workload.LOG_SLOTS],
         )
+        self.tracing = ops.tracing.Tracing(self, "charm-tracing")
 
         self.framework.observe(getattr(self.on, "install"), self._on_install)
         self.framework.observe(getattr(self.on, "remove"), self._on_remove)
