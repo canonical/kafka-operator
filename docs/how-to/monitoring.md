@@ -93,14 +93,14 @@ juju run grafana/leader get-admin-password --model <k8s_cos_controller>:<cos_mod
 
 To tune the level of the server logs for Apache Kafka and Apache ZooKeeper, configure the configuration accordingly.
 
-For Charmed Apache Kafka, configure the `log_level` parameter:
+For Charmed Apache Kafka, configure the `log-level` parameter:
 
 ```shell
-juju config <KAFKA_APP_NAME> log_level=<LOG_LEVEL>
+juju config <KAFKA_APP_NAME> log-level=<LOG_LEVEL>
 ```
 
 ```{tip}
-See also: `log_level` configuration parameter [reference](https://charmhub.io/kafka/configurations#log-level).
+See also: `log-level` configuration parameter [reference](https://charmhub.io/kafka/configurations#log-level).
 ```
 
 Possible `LOG_LEVEL` values are: `ERROR`, `WARNING`, `INFO`, and `DEBUG`.
