@@ -113,7 +113,7 @@ a simplistic charm meant only for testing, that also bundles some Python scripts
 to Apache Kafka:
 
 ```shell
-juju deploy kafka-test-app --channel stable
+juju deploy kafka-test-app --channel edge
 ```
 
 Wait for the charm to become `active`/`idle`, and log into the container:
@@ -261,7 +261,7 @@ tutorial  overlord    localhost/localhost  3.6.20   unsupported  14:27:10Z
 App              Version  Status  Scale  Charm            Channel         Rev  Exposed  Message
 data-integrator           active      1  data-integrator  latest/stable   362  no       
 kafka            4.1.1    active      3  kafka            4/stable        248  no       
-kafka-test-app            active      1  kafka-test-app   latest/stable    11  no       Topic TOP-PICK enabled with process producer
+kafka-test-app            active      1  kafka-test-app   latest/edge      16  no       Topic TOP-PICK enabled with process producer
 kraft            4.1.1    active      3  kafka            4/stable        248  no       
 
 Unit                Workload  Agent      Machine  Public address  Ports           Message

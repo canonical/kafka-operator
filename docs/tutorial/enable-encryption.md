@@ -119,7 +119,7 @@ the `self-signed-certificates` charm.
 Let's deploy our [Apache Kafka Test App](https://charmhub.io/kafka-test-app) again:
 
 ```shell
-juju deploy kafka-test-app --channel stable
+juju deploy kafka-test-app --channel edge
 ```
 
 Then, enable encryption on the `kafka-test-app` by integrating with
