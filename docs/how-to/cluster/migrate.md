@@ -50,7 +50,7 @@ juju integrate kafka-connect kafka
 As we will need full access to both Kafka clusters, we will use credentials provided to the `data-integrator`. Get the SASL credentials to connect to the target Charmed Apache Kafka cluster:
 
 ```bash
-SECRET=juju show-unit data-integrator/0 --format yaml | yq -r '.. | ."secret-user"? // empty' | grep -oP "[^\/]*$"
+SECRET=$(juju show-unit data-integrator/0 --format yaml | yq -r '.. | ."secret-user"? // empty' | grep -oP "[^\/]*$")
 export NEW_USERNAME=$(juju show-secret --reveal $SECRET | yq -r '.. | .username? // empty')
 export NEW_PASSWORD=$(juju show-secret --reveal $SECRET | yq -r '.. | .password? // empty')
 ```

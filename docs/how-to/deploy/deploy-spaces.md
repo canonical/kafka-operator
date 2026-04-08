@@ -36,7 +36,7 @@ The space `alpha` is the default and cannot be removed. Two other spaces are con
 ```bash
 juju deploy kafka --channel 4/stable \
   --constraints spaces=client,peers \
-  --bind "cluster=peers kafka-client=clients"
+  --bind "cluster=peers kafka-client=client"
 ```
 
 ```{caution}
