@@ -100,7 +100,7 @@ juju config <KAFKA_APP_NAME> log_level=<LOG_LEVEL>
 ```
 
 ```{tip}
-See also: `log_level` configuration parameter [reference](https://charmhub.io/kafka/configurations#log_level).
+See also: `log_level` configuration parameter [reference](https://charmhub.io/kafka/configurations#log-level).
 ```
 
 Possible `LOG_LEVEL` values are: `ERROR`, `WARNING`, `INFO`, and `DEBUG`.
