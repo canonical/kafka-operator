@@ -12,7 +12,7 @@ To follow this guide, you need the following snaps installed:
 - Terraform `latest/stable`
 - Juju `3.6/stable`
 - jq `latest/stable`
-- Charmed Apache Kafka `4/edge`
+- Charmed Apache Kafka `4/stable`
 
 Moreover, it is assumed that you have Juju bootstrapped on both LXD and MicroK8s.
 The environment variables `LXD_CONTROLLER` and `MICROK8S_CONTROLLER` in this guide
@@ -38,8 +38,8 @@ deploy Charmed Apache Kafka following the [Deploy Apache Kafka tutorial](tutoria
 
 ```bash
 juju add-model kafka-oauth
-juju deploy kafka -n 3 --channel 4/edge --config roles="controller" controller
-juju deploy kafka -n 3 --channel 4/edge --config roles="broker"
+juju deploy kafka -n 3 --channel 4/stable --config roles="controller" controller
+juju deploy kafka -n 3 --channel 4/stable --config roles="broker"
 juju integrate kafka:peer-cluster-orchestrator controller:peer-cluster
 ```
 
@@ -65,7 +65,7 @@ To test the OAuth setup, we will use the CLI client shipped with the Charmed Apa
 You need to install the Charmed Apache Kafka 4 snap on your system:
 
 ```bash
-snap install charmed-kafka --channel 4/edge
+snap install charmed-kafka --channel 4/stable
 ```
 
 Then, create an OAuth client using the `hydra` application's `create-oauth-client` action:
