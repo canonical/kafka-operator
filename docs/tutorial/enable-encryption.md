@@ -36,33 +36,33 @@ Wait for the charm to settle into an `active`/`idle` state, as shown by the `juj
 
 ```shell
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
-tutorial  overlord    localhost/localhost  3.6.13   unsupported  17:56:56Z
+tutorial  overlord    localhost/localhost  3.6.20   unsupported  17:56:56Z
 
 App                       Version  Status   Scale  Charm                     Channel        Rev  Exposed  Message
-data-integrator                    blocked      1  data-integrator           latest/stable  180  no       Please relate the data-integrator with the desired product
-kafka                     4.0.0    active       3  kafka                     4/edge         245  no       
-kraft                     4.0.0    active       3  kafka                     4/edge         245  no       
+data-integrator                    blocked      1  data-integrator           latest/stable  362  no       Please relate the data-integrator with the desired product
+kafka                     4.1.1    active       3  kafka                     4/stable       248  no       
+kraft                     4.1.1    active       3  kafka                     4/stable       248  no       
 self-signed-certificates           active       1  self-signed-certificates  1/stable       317  no       
 
 Unit                         Workload  Agent  Machine  Public address  Ports      Message
-data-integrator/0*           blocked   idle   6        10.109.154.254             Please relate the data-integrator with the desired product
-kafka/0*                     active    idle   0        10.109.154.47   19093/tcp  
-kafka/1                      active    idle   1        10.109.154.171  19093/tcp  
-kafka/2                      active    idle   2        10.109.154.82   19093/tcp  
-kraft/0*                     active    idle   3        10.109.154.49   9098/tcp   
-kraft/1                      active    idle   4        10.109.154.148  9098/tcp   
-kraft/2                      active    idle   5        10.109.154.50   9098/tcp   
-self-signed-certificates/0*  active    idle   8        10.109.154.248             
+data-integrator/0*           blocked   idle   6        10.157.174.36              Please relate the data-integrator with the desired product
+kafka/0*                     active    idle   0        10.157.174.225  19093/tcp  
+kafka/1                      active    idle   1        10.157.174.62   19093/tcp  
+kafka/2                      active    idle   2        10.157.174.59   19093/tcp  
+kraft/0*                     active    idle   3        10.157.174.228  9098/tcp   
+kraft/1                      active    idle   4        10.157.174.127  9098/tcp   
+kraft/2                      active    idle   5        10.157.174.24   9098/tcp   
+self-signed-certificates/0*  active    idle   8        10.157.174.248             
 
-Machine  State    Address         Inst id        Base          AZ   Message
-0        started  10.109.154.47   juju-030538-0  ubuntu@24.04  dev  Running
-1        started  10.109.154.171  juju-030538-1  ubuntu@24.04  dev  Running
-2        started  10.109.154.82   juju-030538-2  ubuntu@24.04  dev  Running
-3        started  10.109.154.49   juju-030538-3  ubuntu@24.04  dev  Running
-4        started  10.109.154.148  juju-030538-4  ubuntu@24.04  dev  Running
-5        started  10.109.154.50   juju-030538-5  ubuntu@24.04  dev  Running
-6        started  10.109.154.254  juju-030538-6  ubuntu@24.04  dev  Running
-8        started  10.109.154.248  juju-030538-8  ubuntu@24.04  dev  Running
+Machine  State    Address         Inst id        Base          AZ          Message
+0        started  10.157.174.225  juju-29b29f-0  ubuntu@24.04  kafka-test  Running
+1        started  10.157.174.62   juju-29b29f-1  ubuntu@24.04  kafka-test  Running
+2        started  10.157.174.59   juju-29b29f-2  ubuntu@24.04  kafka-test  Running
+3        started  10.157.174.228  juju-29b29f-3  ubuntu@24.04  kafka-test  Running
+4        started  10.157.174.127  juju-29b29f-4  ubuntu@24.04  kafka-test  Running
+5        started  10.157.174.24   juju-29b29f-5  ubuntu@24.04  kafka-test  Running
+6        started  10.157.174.36   juju-29b29f-6  ubuntu@24.04  kafka-test  Running
+8        started  10.157.174.248  juju-29b29f-8  ubuntu@24.04  kafka-test  Running
 ```
 
 </details>

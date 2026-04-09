@@ -35,7 +35,7 @@ To migrate a cluster we need:
 By design, the Charmed Apache Kafka will not expose any available connections until related to by a client. In this guide, we will deploy a `data-integrator` application and integrate it to a `kafka` application, requesting `admin` level privileges:
 
 ```bash
-juju deploy data-integrator --channel=edge -n 1 --config extra-user-roles="admin" --config topic-name="__data-integrator-user"
+juju deploy data-integrator --channel=stable -n 1 --config extra-user-roles="admin" --config topic-name="__data-integrator-user"
 juju integrate kafka data-integrator
 ```
 
