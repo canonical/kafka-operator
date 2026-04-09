@@ -91,6 +91,7 @@ juju run grafana/leader get-admin-password --model <k8s_cos_controller>:<cos_mod
 ## Tune server logging level
 
 To tune the level of the server logs for Apache Kafka, configure the `log-level` parameter:
+)
 
 ```shell
 juju config <KAFKA_APP_NAME> log-level=<LOG_LEVEL>
