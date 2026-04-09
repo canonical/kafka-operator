@@ -48,7 +48,7 @@ New revisions of [Charmed Apache Kafka](http://charmhub.io/kafka) and [Charmed A
 - [DPE-6138](https://warthogs.atlassian.net/browse/DPE-6138) - chore: update zookeeper client lib [#282](https://github.com/canonical/kafka-operator/pull/282)
 - [DPE-6266](https://warthogs.atlassian.net/browse/DPE-6266) - chore: prepare charm for Charmcraft 3 [#293](https://github.com/canonical/kafka-operator/pull/293)
 - [DPE-5232](https://warthogs.atlassian.net/browse/DPE-5232);[DPE-5233](https://warthogs.atlassian.net/browse/DPE-5233) - chore: support for scaling operations in KRaft mode (single & multi-app) [#281](https://github.com/canonical/kafka-operator/pull/281)
-- [DPE-6247](https://warthogs.atlassian.net/browse/DPE-6247) - {spellexception}`test/cicd`: stabilise int-test CI [#320](https://github.com/canonical/kafka-operator/pull/320)
+- [DPE-6247](https://warthogs.atlassian.net/browse/DPE-6247) - `test/cicd`: stabilise int-test CI [#320](https://github.com/canonical/kafka-operator/pull/320)
 
 ### Bug fixes
 

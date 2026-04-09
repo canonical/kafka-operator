@@ -7,7 +7,7 @@ myst:
 (how-to-client-connections)=
 # How to manage client connections
 
-Relations to new applications are supported via the "[{spellexception}`kafka_client`](https://github.com/canonical/charm-relation-interfaces/blob/main/interfaces/kafka_client/v0/README.md)" interface.
+Relations to new applications are supported via the "[`kafka_client`](https://github.com/canonical/charm-relation-interfaces/blob/main/interfaces/kafka_client/v0/README.md)" interface.
 
 ## Via the `kafka_client` charm relation interface
 

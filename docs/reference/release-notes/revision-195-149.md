@@ -81,7 +81,7 @@ New features and bug fixes in the Charmed Apache ZooKeeper bundle:
 ### Other changes
 
 * [DPE-5565] Stable release upgrade
-* chore: bump {spellexception}`dp_libs` version (#147)
+* chore: bump `dp_libs` version (#147)
 * [MISC] General update dependencies (#144)
 * [MISC] Update CI to Juju 3.4 (#137)
 * [DPE-3932] Update information in metadata.yaml
@@ -95,7 +95,7 @@ and [GitHub](https://github.com/canonical/kafka-operator/issues) platforms.
 Contents of the Charmed Apache Kafka and Charmed Apache ZooKeeper include:
 
 * Charmed Apache ZooKeeper is based on the [charmed-zookeeper snap](https://snapcraft.io/charmed-zookeeper) of the `3/stable` channel (Ubuntu LTS “22.04” - core22-based) that ships the Apache ZooKeeper [3.8.4-ubuntu0](https://launchpad.net/zookeeper-releases/3.x/3.8.4-ubuntu0), built and supported by Canonical
-* Charmed Apache Kafka is based on the [{spellexception}`charmed-kafka` snap](https://snapcraft.io/charmed-kafka) of the `3/stable` channel (Ubuntu LTS “22.04” - core22-based) that ships the Apache Kafka [3.6.1-ubuntu0](https://launchpad.net/kafka-releases/3.x/3.6.1-ubuntu0), built and supported by Canonical
+* Charmed Apache Kafka is based on the [`charmed-kafka` snap](https://snapcraft.io/charmed-kafka) of the `3/stable` channel (Ubuntu LTS “22.04” - core22-based) that ships the Apache Kafka [3.6.1-ubuntu0](https://launchpad.net/kafka-releases/3.x/3.6.1-ubuntu0), built and supported by Canonical
 * Principal charms support the latest LTS series “22.04” only.
 
 More information about the artefacts are provided by the following table:
@@ -107,7 +107,7 @@ More information about the artefacts are provided by the following table:
 | Charmed Apache ZooKeeper snap     | `3/stable`     | `34`               | [13f3c6](https://github.com/canonical/charmed-zookeeper-snap/tree/13f3c620658fdc55b7d6745b81c7b5a00e042e10)         |        
 | Charmed Apache ZooKeeper operator | `3/stable`     | `149`              | [40576c](https://github.com/canonical/zookeeper-operator/commit/40576c1c87badd1e2352afc013ed0754808ef44c)           | 
 | Charmed Apache Kafka snap         | `3/stable`     | `37`               | [c266f9](https://github.com/canonical/charmed-kafka-snap/tree/c266f9cd283408d2106d4682b67661205a12ea7f)             |  
-| Charmed Apache Kafka operator     | `3/stable`     | `195`              | [{spellexception}`7948df`](https://github.com/canonical/kafka-operator/pull/241/commits/7948dfbbfaaa53fccc88beaa90f80de1e70beaa9)                 |   
+| Charmed Apache Kafka operator     | `3/stable`     | `195`              | [`7948df`](https://github.com/canonical/kafka-operator/pull/241/commits/7948dfbbfaaa53fccc88beaa90f80de1e70beaa9)                 |   
 
 ## Technical notes
 

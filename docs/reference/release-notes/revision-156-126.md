@@ -42,18 +42,18 @@ and [GitHub](https://github.com/canonical/kafka-operator/issues) platforms.
 * Charmed Apache ZooKeeper charm ships the Apache ZooKeeper [3.8.2-ubuntu0](https://launchpad.net/zookeeper-releases/3.x/3.8.2-ubuntu0), built and supported by Canonical
 * Charmed Apache Kafka charm ships the Apache Kafka [3.6.0-ubuntu0](https://launchpad.net/kafka-releases/3.x/3.6.0-ubuntu0), built and supported by Canonical
 * Charmed Apache ZooKeeper charm is based on [charmed-zookeeper snap](https://snapcraft.io/charmed-zookeeper) on the `3/stable` (Ubuntu LTS “22.04” - core22-based)
-* Charmed Apache Kafka charm is based on [{spellexception}`charmed-kafka` snap](https://snapcraft.io/charmed-kafka) on the `3/stable` channel (Ubuntu LTS “22.04” - core22-based)
+* Charmed Apache Kafka charm is based on [`charmed-kafka` snap](https://snapcraft.io/charmed-kafka) on the `3/stable` channel (Ubuntu LTS “22.04” - core22-based)
 * Principal charms support the latest LTS series “22.04” only.
 
 More information about the artefacts is provided by the following table:
 
 | Artefact               | Track/Series | Version/Revision | Code                                                                                                                |
 |------------------------|--------------|------------------|---------------------------------------------------------------------------------------------------------------------|
-| Apache ZooKeeper distribution | `3.x`          | `3.8.2-ubuntu0`    | [{spellexception}`5bb82d`](https://git.launchpad.net/zookeeper-releases/tree/?h=lp-3.8.2&id=5bb82df4ffba910a5b30dd42499921466405f087) |
+| Apache ZooKeeper distribution | `3.x`          | `3.8.2-ubuntu0`    | [`5bb82d`](https://git.launchpad.net/zookeeper-releases/tree/?h=lp-3.8.2&id=5bb82df4ffba910a5b30dd42499921466405f087) |
 | Apache Kafka distribution     | `3.x`          | `3.6.0-ubuntu0`    | [424389](https://git.launchpad.net/kafka-releases/tree/?h=lp-3.6.0&id=424389bb8f230beaef4ccb94aca464b5d22ac310)     |
 | Charmed Apache ZooKeeper snap | `3/stable`     | `28`               | [9757f4](https://github.com/canonical/charmed-zookeeper-snap/tree/9757f4a2a889981275f8f2a1a87e1c78ae1adb77)         |        
 | Charmed Apache ZooKeeper operator     | `3/stable`     | `126`              | [9ebd9a](https://github.com/canonical/zookeeper-operator/commit/9ebd9a2050e0bd626feb0019222d45f211ca7774)           | 
-| Charmed Apache Kafka snap     | `3/stable`     | `30`               | [{spellexception}`c0ce27`](https://github.com/canonical/charmed-kafka-snap/tree/c0ce275f70f688e66f10f295456d2b5ff33d4f64)             |  
+| Charmed Apache Kafka snap     | `3/stable`     | `30`               | [`c0ce27`](https://github.com/canonical/charmed-kafka-snap/tree/c0ce275f70f688e66f10f295456d2b5ff33d4f64)             |  
 | Charmed Apache Kafka operator         | `3/stable`     | `156`              | [01d65c](https://github.com/canonical/kafka-operator/tree/01d65c3444b593d5f18d197a6514421afd3f2bc6)                 |   
 
 ## Technical notes

@@ -11,7 +11,7 @@ Requirements:
 
 - Charmed Apache Kafka cluster up and running
 - [Encryption enabled](how-to-tls-encryption)
-- [{spellexception}`Java Runtime Environment (JRE)`](https://ubuntu.com/tutorials/install-jre#1-overview) installed
+- [Java Runtime Environment (JRE)](https://ubuntu.com/tutorials/install-jre#1-overview) installed
 - [`charmed-kafka` snap](https://snapcraft.io/charmed-kafka) installed
 - [jq](https://snapcraft.io/jq) installed
 

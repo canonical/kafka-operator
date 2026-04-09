@@ -262,8 +262,8 @@ sitemap_show_lastmod = True
 #######################
 
 html_theme = "ulwazi"
-html_static_path = ["_static"]
-templates_path = ["_templates"]
+# html_static_path = ["_static"]
+# templates_path = ["_templates"]
 
 
 #############
@@ -426,6 +426,11 @@ rst_prolog = """
     :class: woke-ignore
 .. role:: vale-ignore
     :class: vale-ignore
+"""
+
+myst_rst_prolog = """
+.. role:: spellexception
+    :class: spellexception
 """
 
 # Workaround for https://github.com/canonical/canonical-sphinx/issues/34
