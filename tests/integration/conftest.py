@@ -59,3 +59,12 @@ def juju(request: pytest.FixtureRequest):
     else:
         with temp_model_fixture(keep=keep_models) as juju:
             yield juju
+
+
+@pytest.fixture(scope="module", autouse=True)
+def setup_juju(juju: JujuFixture):
+    if not juju.model:
+        return
+
+    juju.wait_timeout = 600.0
+    juju.cli("switch", juju.model, include_model=False)
