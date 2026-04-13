@@ -174,12 +174,10 @@ def test_deploy_producer_same_topic(juju: JujuFixture, app_charm, usernames: set
     juju.ext.model.wait_for_idle(apps=[APP_NAME], idle_period=30, status="active")
 
 
-def test_admin_added_to_super_users(juju: JujuFixture):
+def test_admin_added_to_super_users(juju: JujuFixture, app_charm):
     """Test relation with admin privileges."""
     super_users = load_super_users(model_full_name=juju.ext.model_full_name)
     assert len(super_users) == 2
-
-    app_charm = juju.ext.build_charm("tests/integration/app-charm")
 
     gather(
         juju.ext.model.deploy(
