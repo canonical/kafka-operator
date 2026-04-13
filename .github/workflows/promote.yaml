@@ -67,3 +67,4 @@ jobs:
             echo "::error::Airflow API request failed with status $http_code"
             exit 1
           fi
+    permissions: {}
