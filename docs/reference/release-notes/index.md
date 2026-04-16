@@ -10,8 +10,4 @@ Charmed Apache Kafka has the following stable revisions:
 :maxdepth: 2
 
 248<revision-248.md>
-205<revision-205.md>
-195/149<revision-195-149.md>
-156/136<revision-156-136.md>
-156/126<revision-156-126.md>
 ```
