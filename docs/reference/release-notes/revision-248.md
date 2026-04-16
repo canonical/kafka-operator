@@ -37,9 +37,9 @@ See the documentation for how to migrate data between Charmed Apache Kafka clust
 
 - [DPE-7363](https://warthogs.atlassian.net/browse/DPE-7363) - feat: remove zookeeper & use Kafka 4 snap [#339](https://github.com/canonical/kafka-operator/pull/339)
 - [DPE-7147](https://warthogs.atlassian.net/browse/DPE-7147) - feat: adapt mTLS support to DA150 spec [#344](https://github.com/canonical/kafka-operator/pull/344)
-- [DPE-7142](https://warthogs.atlassian.net/browse/DPE-7142) - feat: update {spellexception}configs [#345](https://github.com/canonical/kafka-operator/pull/345)
+- [DPE-7142](https://warthogs.atlassian.net/browse/DPE-7142) - feat: update {spellexception}`configs` [#345](https://github.com/canonical/kafka-operator/pull/345)
 - [DPE-7141](https://warthogs.atlassian.net/browse/DPE-7141) - feat: KRaft JBOD support [#349](https://github.com/canonical/kafka-operator/pull/349)
-- [DPE-4428](https://warthogs.atlassian.net/browse/DPE-4428) - feat: Add `CONF`, `BIN`, `DATA`, `LOGS` {spellexception}env-vars to /etc/environment [#359](https://github.com/canonical/kafka-operator/pull/359)
+- [DPE-4428](https://warthogs.atlassian.net/browse/DPE-4428) - feat: Add `CONF`, `BIN`, `DATA`, `LOGS` {spellexception}`env`-vars to /etc/environment [#359](https://github.com/canonical/kafka-operator/pull/359)
 - [DPE-7284](https://warthogs.atlassian.net/browse/DPE-7284) - feat: add support for secret-based user management [#360](https://github.com/canonical/kafka-operator/pull/360)
 - [DPE-7413](https://warthogs.atlassian.net/browse/DPE-7413) - feat: extend SSL mapping validation [#354](https://github.com/canonical/kafka-operator/pull/354)
 - [DPE-7657](https://warthogs.atlassian.net/browse/DPE-7657) - feat: add broker_active check [#375](https://github.com/canonical/kafka-operator/pull/375)
@@ -48,19 +48,19 @@ See the documentation for how to migrate data between Charmed Apache Kafka clust
 - [DPE-7110](https://warthogs.atlassian.net/browse/DPE-7110) - feat: add support for Juju spaces [#385](https://github.com/canonical/kafka-operator/pull/385)
 - [DPE-8031](https://warthogs.atlassian.net/browse/DPE-8031) - feat: add Terraform charm module [#408](https://github.com/canonical/kafka-operator/pull/408)
 - [DPE-8312](https://warthogs.atlassian.net/browse/DPE-8312) - feat: auto-balance [#414](https://github.com/canonical/kafka-operator/pull/414)
-- [DPE-9107](https://warthogs.atlassian.net/browse/DPE-9107) - feat: add machines support to {spellexception}TF module [#463](https://github.com/canonical/kafka-operator/pull/463)
+- [DPE-9107](https://warthogs.atlassian.net/browse/DPE-9107) - feat: add machines support to {spellexception}`TF` module [#463](https://github.com/canonical/kafka-operator/pull/463)
 
 ## Improvements
 
-- [DPE-7616](https://warthogs.atlassian.net/browse/DPE-7616) - {spellexception}cicd: add HA tests for controller [#371](https://github.com/canonical/kafka-operator/pull/371)
+- [DPE-7616](https://warthogs.atlassian.net/browse/DPE-7616) - {spellexception}`cicd`: add HA tests for controller [#371](https://github.com/canonical/kafka-operator/pull/371)
 - [DPE-7150](https://warthogs.atlassian.net/browse/DPE-7150) - chore: refresh v3 [#380](https://github.com/canonical/kafka-operator/pull/380)
 - [DPE-7138](https://warthogs.atlassian.net/browse/DPE-7138) - chore: switch to {spellexception}`kafka-python` [#401](https://github.com/canonical/kafka-operator/pull/401)
 - [DPE-7583](https://warthogs.atlassian.net/browse/DPE-7583) - chore: split `metadata.log.dir` from `log.dirs` [#365](https://github.com/canonical/kafka-operator/pull/365)
 - [DPE-7839](https://warthogs.atlassian.net/browse/DPE-7839) - chore: refactor `config-changed` [#409](https://github.com/canonical/kafka-operator/pull/409)
-- [DPE-8311](https://warthogs.atlassian.net/browse/DPE-8311) - refactor: remove deployment mode logic from the TF module [#418](https://github.com/canonical/kafka-operator/pull/418)
+- [DPE-8311](https://warthogs.atlassian.net/browse/DPE-8311) - refactor: remove deployment mode logic from the {spellexception}`TF` module [#418](https://github.com/canonical/kafka-operator/pull/418)
 - [DPE-8529](https://warthogs.atlassian.net/browse/DPE-8529) - feat: migrate to data_interfaces V1 [#423](https://github.com/canonical/kafka-operator/pull/423)
 - [DPE-7790](https://warthogs.atlassian.net/browse/DPE-7790) - chore: rename internal users, use hyphen [#390](https://github.com/canonical/kafka-operator/pull/390)
-- [DPE-9033](https://warthogs.atlassian.net/browse/DPE-9033) - chore: update TF provider to v1.0+ and TLS to 1/stable [#442](https://github.com/canonical/kafka-operator/pull/442)
+- [DPE-9033](https://warthogs.atlassian.net/browse/DPE-9033) - chore: update {spellexception}`TF` provider to v1.0+ and TLS to 1/stable [#442](https://github.com/canonical/kafka-operator/pull/442)
 - [DPE-8940](https://warthogs.atlassian.net/browse/DPE-8940) - chore: add OAuth integration tests and docs [#439](https://github.com/canonical/kafka-operator/pull/439)
 
 ## Bug fixes
