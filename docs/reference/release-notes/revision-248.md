@@ -80,7 +80,7 @@ Principal charms support the latest LTS series `24.04` only.
 |---|---|---|---|---|
 | Charmed Apache Kafka | [248](https://github.com/canonical/kafka-operator/releases/tag/rev248) | AMD64 | Juju 3.6+ | Distribution: [4.1.1-ubuntu4](https://launchpad.net/kafka-releases/4.x/4.1.1-ubuntu4). <br> Snap: [revision 67](https://snapcraft.io/charmed-kafka). |
 | Charmed Apache Kafka Connect | [33](https://github.com/canonical/kafka-connect-operator/releases/tag/rev33) | AMD64 | Juju 3.6+ | Distribution: [4.1.1-ubuntu4](https://launchpad.net/kafka-releases/4.x/4.1.1-ubuntu4). <br> Snap: [revision 48](https://snapcraft.io/charmed-kafka). |
-| Charmed Karapace | [21](https://github.com/canonical/karapace-operator/releases/tag/rev21) | AMD64 | Juju 3.6+ | Snap: [revision 16](https://snapcraft.io/charmed-kafka). |
+| Charmed Karapace | [21](https://github.com/canonical/karapace-operator/releases/tag/rev21) | AMD64 | Juju 3.6+ | Snap: [revision 16](https://snapcraft.io/charmed-karapace). |
 | Charmed Kafka UI | [6](https://github.com/canonical/kafka-ui-operator/releases/tag/rev6) | AMD64 | Juju 3.6+ | Snap: [revision 3](https://snapcraft.io/charmed-kafka-ui). |
 
 Apache Kafka release notes: [4.0.0](https://archive.apache.org/dist/kafka/4.0.0/RELEASE_NOTES.html), [4.1.0](https://archive.apache.org/dist/kafka/4.1.0/RELEASE_NOTES.html).
