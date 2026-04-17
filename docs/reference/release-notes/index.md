@@ -1,9 +1,3 @@
----
-myst:
-  html_meta:
-    description: "Charmed Apache Kafka release notes - stable revisions, version history, and feature updates."
----
-
 (reference-release-notes-index)=
 # Releases
 
@@ -15,8 +9,5 @@ Charmed Apache Kafka has the following stable revisions:
 :titlesonly:
 :maxdepth: 2
 
-205<revision-205.md>
-195/149<revision-195-149.md>
-156/136<revision-156-136.md>
-156/126<revision-156-126.md>
+248<revision-248.md>
 ```
