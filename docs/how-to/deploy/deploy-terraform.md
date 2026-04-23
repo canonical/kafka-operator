@@ -15,7 +15,7 @@ For Juju CLI-based deployment, see the [Juju CLI deployment guide](how-to-deploy
 
 * A Juju controller bootstrapped on a **non-Kubernetes** cloud (see [Juju CLI deployment guide](how-to-deploy-anywhere) for setup instructions)
 * A Juju model created on the controller
-* [Terraform](https://developer.hashicorp.com/terraform/install) (`>= 0.14.0`) installed
+* [Terraform](https://developer.hashicorp.com/terraform/install) (`>= 1.0.0`) installed
 
 ## Configure the Terraform module
 
