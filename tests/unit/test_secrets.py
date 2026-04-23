@@ -7,6 +7,7 @@ from unittest.mock import PropertyMock, patch
 import pytest
 import yaml
 from ops.testing import Container, Context, PeerRelation, Secret, State
+from scenario.errors import UncaughtCharmError
 from tests.unit.helpers import generate_tls_artifacts
 
 from charm import KafkaCharm
@@ -101,7 +102,7 @@ def test_load_tls_private_key_secret(
 
     # When
     # Then
-    with pytest.raises(KeyError):
+    with pytest.raises(UncaughtCharmError, match="Missing tls-private-key secret key"):
         with ctx(ctx.on.config_changed(), state_in) as mgr:
             _ = mgr.run()
 
