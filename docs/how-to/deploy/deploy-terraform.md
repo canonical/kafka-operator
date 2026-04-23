@@ -17,15 +17,15 @@ For Juju CLI-based deployment, see the [Juju CLI deployment guide](how-to-deploy
 * A Juju model created on the controller
 * [Terraform](https://developer.hashicorp.com/terraform/install) (`>= 1.0.0`) installed
 
-## Deploy for production
+## Terraform configuration
 
-For production use, deploy separate `kafka` (broker) and `controller` (KRaft controller) applications and integrate them. To maintain high availability, 3+ broker units and 3 or 5 controller units are recommended.
+Save the following as `main.tf` in a new working directory. The module is sourced from the [`terraform/` directory](https://github.com/canonical/kafka-bundle/tree/main/terraform) in the Charmed Apache Kafka bundle repository.
+
+The same `main.tf` is used for both production and testing deployments — the deployment mode is controlled via `.tfvars` files.
 
 <details>
 
-<summary>Terraform configuration for production</summary>
-
-Save the following as `main.tf` in a new working directory. The module is sourced directly from the [`terraform/` directory](https://github.com/canonical/kafka-operator/tree/main/terraform) in the Charmed Apache Kafka GitHub repository.
+<summary>See main.tf</summary>
 
 ```hcl
 terraform {
@@ -50,102 +50,109 @@ variable "model_owner" {
   default     = "admin"
 }
 
+variable "profile" {
+  description = "Deployment profile: 'production' or 'testing'"
+  type        = string
+  default     = "testing"
+}
+
+variable "broker" {
+  description = "Apache Kafka broker configuration"
+  default     = {}
+}
+
+variable "controller" {
+  description = "Apache Kafka KRaft controller configuration"
+  default     = {}
+}
+
+variable "integrator" {
+  description = "Data Integrator configuration for admin user creation"
+  default     = { units = 0 }
+}
+
+variable "connect" {
+  description = "Kafka Connect configuration"
+  default     = { units = 0 }
+}
+
+variable "karapace" {
+  description = "Karapace Schema Registry configuration"
+  default     = { units = 0 }
+}
+
+variable "ui" {
+  description = "Kafbat Kafka UI configuration"
+  default     = { units = 0 }
+}
+
 data "juju_model" "kafka" {
   name  = var.model_name
   owner = var.model_owner
 }
 
 module "kafka" {
-  source = "git::https://github.com/canonical/kafka-operator//terraform?ref=main"
+  source = "git::https://github.com/canonical/kafka-bundle//terraform?ref=main"
 
-  app_name   = "kafka"
   model_uuid = data.juju_model.kafka.uuid
-  channel    = "4/stable"
-  units      = 3
-  config     = { roles = "broker" }
-}
-
-module "controller" {
-  source = "git::https://github.com/canonical/kafka-operator//terraform?ref=main"
-
-  app_name   = "controller"
-  model_uuid = data.juju_model.kafka.uuid
-  channel    = "4/stable"
-  units      = 3
-  config     = { roles = "controller" }
-}
-
-resource "juju_integration" "peer_cluster" {
-  model_uuid = data.juju_model.kafka.uuid
-
-  application {
-    name     = module.kafka.app_name
-    endpoint = "peer-cluster-orchestrator"
-  }
-
-  application {
-    name     = module.controller.app_name
-    endpoint = "peer-cluster"
-  }
+  profile    = var.profile
+  broker     = var.broker
+  controller = var.controller
+  integrator = var.integrator
+  connect    = var.connect
+  karapace   = var.karapace
+  ui         = var.ui
 }
 ```
 
 </details>
+
+When `controller` includes `units > 0`, the module deploys separate broker and controller applications. When `controller` is omitted or has `units = 0` (the default), the broker co-locates both the broker and controller roles in a single application.
+
+## Deploy for production
+
+For production use, deploy separate `kafka` (broker) and `controller` (KRaft controller) applications and integrate them. To maintain high availability, 3+ broker units and 3 or 5 controller units are recommended.
+
+Save the following as `production.tfvars`:
+
+```hcl
+model_name = "terraform"
+profile    = "production"
+
+broker = {
+  app_name = "kafka"
+  channel  = "4/stable"
+  units    = 3
+}
+
+controller = {
+  app_name = "controller"
+  channel  = "4/stable"
+  units    = 3
+}
+```
 
 ## (Alternative) Deploy for testing
 
 For non-production testing clusters, co-locate both KRaft controller and broker services in a single application to save resources.
 
-<details>
-
-<summary>Terraform configuration for testing</summary>
-
 ```{warning}
 This is not recommended for production deployments. Apache Kafka brokers rely on the KRaft controllers to coordinate. If both services go down at the same time, the risk of cluster instability increases.
 ```
 
-Save the following as `main.tf` in a new working directory:
+Save the following as `testing.tfvars`:
 
 ```hcl
-terraform {
-  required_providers {
-    juju = {
-      source  = "juju/juju"
-      version = ">= 1.0.0"
-    }
-  }
-}
+model_name = "terraform"
 
-provider "juju" {}
-
-variable "model_name" {
-  description = "Name of the Juju model to deploy to"
-  type        = string
-}
-
-variable "model_owner" {
-  description = "Owner of the Juju model"
-  type        = string
-  default     = "admin"
-}
-
-data "juju_model" "kafka" {
-  name  = var.model_name
-  owner = var.model_owner
-}
-
-module "kafka" {
-  source = "git::https://github.com/canonical/kafka-operator//terraform?ref=main"
-
-  app_name   = "kafka"
-  model_uuid = data.juju_model.kafka.uuid
-  channel    = "4/stable"
-  units      = 3
-  config     = { roles = "broker,controller" }
+broker = {
+  app_name = "kafka"
+  channel  = "4/stable"
+  units    = 3
 }
 ```
 
-</details>
+Since `controller` is omitted, the module defaults to zero controller units and co-locates the controller role within the broker application. The `profile` defaults to `"testing"`.
 
 ## Deploy
 
@@ -153,16 +160,18 @@ Initialise Terraform, then preview and apply the deployment:
 
 ```shell
 terraform init
-terraform plan -var "model_name=<model-name>"
+terraform plan -var-file="<profile>.tfvars"
 ```
 
 Review the plan output, then apply:
 
 ```shell
-terraform apply -var "model_name=<model-name>"
+terraform apply -var-file="<profile>.tfvars"
 ```
 
-Wait for the Terraform to finish.
+Replace `<profile>` with either `production` or `testing`, depending on the desired deployment.
+
+Wait for Terraform to finish.
 Then, monitor the Juju model status with:
 
 ```shell
@@ -173,51 +182,26 @@ The deployment is complete once all units show `active` and `idle` status.
 
 ## (Optional) Create an external admin user
 
-After deployment, the Apache Kafka cluster does not expose any external listeners by default. To create an admin user, deploy the [Data Integrator charm](https://charmhub.io/data-integrator).
-
-<details>
-
-<summary>Terraform configuration for admin user</summary>
-
-Add the following resources to `main.tf`. The Data Integrator is configured with `admin` role, granting `super.user` permissions on the cluster.
+After deployment, the Apache Kafka cluster does not expose any external listeners by default. To create an admin user, add the following `integrator` block to your `.tfvars` file:
 
 ```hcl
-resource "juju_application" "data_integrator" {
-  model_uuid = data.juju_model.kafka.uuid
-  name       = "data-integrator"
-
-  charm {
-    name    = "data-integrator"
-    channel = "latest/stable"
-  }
-
-  config = {
+integrator = {
+  app_name = "data-integrator"
+  channel  = "latest/stable"
+  config   = {
     topic-name       = "__admin-user"
     extra-user-roles = "admin"
   }
-
   units = 1
-}
-
-resource "juju_integration" "kafka_data_integrator" {
-  model_uuid = data.juju_model.kafka.uuid
-
-  application {
-    name = module.kafka.app_name
-  }
-
-  application {
-    name = juju_application.data_integrator.name
-  }
 }
 ```
 
-</details>
+The Data Integrator is configured with `admin` role, granting `super.user` permissions on the cluster. The bundle automatically integrates it with the Kafka broker.
 
 Apply the changes:
 
 ```shell
-terraform apply -var "model_name=<model-name>"
+terraform apply -var-file="<profile>.tfvars"
 ```
 
 Retrieve authentication credentials with:
