@@ -17,9 +17,15 @@ For Juju CLI-based deployment, see the [Juju CLI deployment guide](how-to-deploy
 * A Juju model created on the controller
 * [Terraform](https://developer.hashicorp.com/terraform/install) (`>= 1.0.0`) installed
 
-## Configure the Terraform module
+## Deploy for production
 
-Create a Terraform working directory and a `main.tf` file with the following content:
+For production use, deploy separate `kafka` (broker) and `controller` (KRaft controller) applications and integrate them. To maintain high availability, 3+ broker units and 3 or 5 controller units are recommended.
+
+<details>
+
+<summary>Terraform configuration for production</summary>
+
+Save the following as `main.tf` in a new working directory. The module is sourced directly from the [`terraform/` directory](https://github.com/canonical/kafka-operator/tree/main/terraform) in the Charmed Apache Kafka GitHub repository.
 
 ```hcl
 terraform {
@@ -33,18 +39,22 @@ terraform {
 
 provider "juju" {}
 
-data "juju_model" "kafka" {
-  name = var.model_name
+variable "model_name" {
+  description = "Name of the Juju model to deploy to"
+  type        = string
 }
-```
 
-### Deploy for production
+variable "model_owner" {
+  description = "Owner of the Juju model"
+  type        = string
+  default     = "admin"
+}
 
-For production use, deploy separate broker and controller applications.
+data "juju_model" "kafka" {
+  name  = var.model_name
+  owner = var.model_owner
+}
 
-Add the following to `main.tf`:
-
-```hcl
 module "kafka" {
   source = "git::https://github.com/canonical/kafka-operator//terraform?ref=main"
 
@@ -66,7 +76,7 @@ module "controller" {
 }
 
 resource "juju_integration" "peer_cluster" {
-  model = var.model_name
+  model_uuid = data.juju_model.kafka.uuid
 
   application {
     name     = module.kafka.app_name
@@ -80,15 +90,50 @@ resource "juju_integration" "peer_cluster" {
 }
 ```
 
-### (Alternative) Deploy for testing
+</details>
 
-For non-production testing clusters, co-locate both KRaft controller and broker services in a single application:
+## (Alternative) Deploy for testing
+
+For non-production testing clusters, co-locate both KRaft controller and broker services in a single application to save resources.
+
+<details>
+
+<summary>Terraform configuration for testing</summary>
 
 ```{warning}
 This is not recommended for production deployments. Apache Kafka brokers rely on the KRaft controllers to coordinate. If both services go down at the same time, the risk of cluster instability increases.
 ```
 
+Save the following as `main.tf` in a new working directory:
+
 ```hcl
+terraform {
+  required_providers {
+    juju = {
+      source  = "juju/juju"
+      version = ">= 1.0.0"
+    }
+  }
+}
+
+provider "juju" {}
+
+variable "model_name" {
+  description = "Name of the Juju model to deploy to"
+  type        = string
+}
+
+variable "model_owner" {
+  description = "Owner of the Juju model"
+  type        = string
+  default     = "admin"
+}
+
+data "juju_model" "kafka" {
+  name  = var.model_name
+  owner = var.model_owner
+}
+
 module "kafka" {
   source = "git::https://github.com/canonical/kafka-operator//terraform?ref=main"
 
@@ -100,16 +145,7 @@ module "kafka" {
 }
 ```
 
-### Define variables
-
-Create a `variables.tf` file:
-
-```hcl
-variable "model_name" {
-  description = "Name of the Juju model to deploy to"
-  type        = string
-}
-```
+</details>
 
 ## Deploy
 
@@ -117,19 +153,20 @@ Initialise Terraform, then preview and apply the deployment:
 
 ```shell
 terraform init
-terraform plan -var "model_name=<your-model-name>"
+terraform plan -var "model_name=<model-name>"
 ```
 
 Review the plan output, then apply:
 
 ```shell
-terraform apply -var "model_name=<your-model-name>"
+terraform apply -var "model_name=<model-name>"
 ```
 
-Wait for the deployment to settle. You can monitor the status with:
+Wait for the Terraform to finish.
+Then, monitor the Juju model status with:
 
 ```shell
-juju status --watch 5s
+watch juju status --color
 ```
 
 The deployment is complete once all units show `active` and `idle` status.
@@ -138,12 +175,16 @@ The deployment is complete once all units show `active` and `idle` status.
 
 After deployment, the Apache Kafka cluster does not expose any external listeners by default. To create an admin user, deploy the [Data Integrator charm](https://charmhub.io/data-integrator).
 
-Add the following to `main.tf`:
+<details>
+
+<summary>Terraform configuration for admin user</summary>
+
+Add the following resources to `main.tf`. The Data Integrator is configured with `admin` role, granting `super.user` permissions on the cluster.
 
 ```hcl
 resource "juju_application" "data_integrator" {
-  model = var.model_name
-  name  = "data-integrator"
+  model_uuid = data.juju_model.kafka.uuid
+  name       = "data-integrator"
 
   charm {
     name    = "data-integrator"
@@ -159,7 +200,7 @@ resource "juju_application" "data_integrator" {
 }
 
 resource "juju_integration" "kafka_data_integrator" {
-  model = var.model_name
+  model_uuid = data.juju_model.kafka.uuid
 
   application {
     name = module.kafka.app_name
@@ -171,10 +212,12 @@ resource "juju_integration" "kafka_data_integrator" {
 }
 ```
 
+</details>
+
 Apply the changes:
 
 ```shell
-terraform apply -var "model_name=<your-model-name>"
+terraform apply -var "model_name=<model-name>"
 ```
 
 Retrieve authentication credentials with:
@@ -185,17 +228,4 @@ juju run data-integrator/leader get-credentials
 
 ## Terraform module reference
 
-The Charmed Apache Kafka Terraform module exposes the following variables:
-
-| Variable | Type | Default | Description |
-|---|---|---|---|
-| `app_name` | `string` | (required) | Name of the Juju application |
-| `channel` | `string` | `"4/edge"` | Charm channel to deploy from |
-| `model_uuid` | `string` | (required) | Juju model UUID to deploy to |
-| `units` | `number` | `3` | Number of units to deploy |
-| `config` | `map(string)` | `{}` | Application configuration |
-| `constraints` | `string` | `"arch=amd64"` | Juju constraints |
-| `revision` | `number` | `null` | Charm revision to deploy |
-| `base` | `string` | `"ubuntu@24.04"` | Application base |
-| `storage` | `map(string)` | `{}` | Storage directives |
-| `machines` | `set(string)` | `[]` | List of machine resources for deployment |
+See the [Terraform module reference](reference-terraform) for the full list of input variables and outputs exposed by the Charmed Apache Kafka Terraform module.

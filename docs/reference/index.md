@@ -23,6 +23,7 @@ Charm-specific reference materials:
 * {ref}`reference-snap-commands`
 * {ref}`reference-statuses`
 * {ref}`reference-requirements`
+* {ref}`reference-terraform`
 
 General useful references:
 
@@ -42,6 +43,7 @@ Libraries<https://charmhub.io/kafka/libraries/kafka_libs?channel=4/stable>
 file-system-paths.md
 snap-commands.md
 listeners.md
+Terraform module<terraform.md>
 Statuses<statuses.md>
 requirements.md
 performance-tuning.md
