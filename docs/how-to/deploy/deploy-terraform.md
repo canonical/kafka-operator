@@ -136,10 +136,6 @@ controller = {
 
 For non-production testing clusters, co-locate both KRaft controller and broker services in a single application to save resources.
 
-```{warning}
-This is not recommended for production deployments. Apache Kafka brokers rely on the KRaft controllers to coordinate. If both services go down at the same time, the risk of cluster instability increases.
-```
-
 Save the following as `testing.tfvars`:
 
 ```hcl
@@ -169,7 +165,7 @@ Review the plan output, then apply:
 terraform apply -var-file="<profile>.tfvars"
 ```
 
-Replace `<profile>` with either `production` or `testing`, depending on the desired deployment.
+Replace `<profile>` with either `production` or `testing`, depending on the desired deployment. See [profile reference](https://charmhub.io/kafka/configurations?channel=4/stable#profile).
 
 Wait for Terraform to finish.
 Then, monitor the Juju model status with:
