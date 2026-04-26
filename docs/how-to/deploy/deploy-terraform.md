@@ -86,6 +86,17 @@ variable "ui" {
   default     = { units = 0 }
 }
 
+variable "tls_offer" {
+  description = "TLS provider cross-model offer URL"
+  type        = string
+  default     = null
+}
+
+variable "cos_offers" {
+  description = "COS cross-model offer URLs for observability"
+  default     = {}
+}
+
 data "juju_model" "kafka" {
   name  = var.model_name
   owner = var.model_owner
@@ -102,6 +113,8 @@ module "kafka" {
   connect    = var.connect
   karapace   = var.karapace
   ui         = var.ui
+  tls_offer  = var.tls_offer
+  cos_offers = var.cos_offers
 }
 ```
 
@@ -205,6 +218,30 @@ Retrieve authentication credentials with:
 ```shell
 juju run data-integrator/leader get-credentials
 ```
+
+## (Optional) Enable TLS encryption
+
+To encrypt client-facing traffic, pass a [cross-model offer](https://documentation.ubuntu.com/juju/en/latest/reference/relation/#cross-model-relations) URL from an existing TLS provider (e.g. `self-signed-certificates`) to the module. Add the following to your `.tfvars` file:
+
+```hcl
+tls_offer = "<controller>:<owner>/<model>.certificates"
+```
+
+The module will integrate all Kafka applications with the TLS provider automatically.
+
+## (Optional) Enable observability with COS
+
+To connect the cluster to the [Canonical Observability Stack (COS)](https://documentation.ubuntu.com/cos/en/latest/), provide the three required cross-model offer URLs. Add the following to your `.tfvars` file:
+
+```hcl
+cos_offers = {
+  dashboard = "<controller>:<owner>/<cos-model>.grafana-dashboards"
+  metrics   = "<controller>:<owner>/<cos-model>.prometheus-scrape"
+  logging   = "<controller>:<owner>/<cos-model>.loki-logging"
+}
+```
+
+All three fields must be set together — the module validates that either all or none are provided.
 
 ## Terraform module reference
 
