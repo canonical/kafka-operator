@@ -221,7 +221,7 @@ juju run data-integrator/leader get-credentials
 
 ## (Optional) Enable TLS encryption
 
-To encrypt client-facing traffic, pass a [cross-model offer](https://documentation.ubuntu.com/juju/en/latest/reference/relation/#cross-model-relations) URL from an existing TLS provider (e.g. `self-signed-certificates`) to the module. Add the following to your `.tfvars` file:
+To encrypt client-facing traffic, pass a [cross-model offer](https://documentation.ubuntu.com/juju/latest/reference/relation/#cross-model-relation) URL from an existing TLS provider (e.g. `self-signed-certificates`) to the module. Add the following to your `.tfvars` file:
 
 ```hcl
 tls_offer = "<controller>:<owner>/<model>.certificates"
@@ -231,7 +231,7 @@ The module will integrate all Kafka applications with the TLS provider automatic
 
 ## (Optional) Enable observability with COS
 
-To connect the cluster to the [Canonical Observability Stack (COS)](https://documentation.ubuntu.com/cos/en/latest/), provide the three required cross-model offer URLs. Add the following to your `.tfvars` file:
+To connect the cluster to the [Canonical Observability Stack (COS)](https://documentation.ubuntu.com/observability/), provide the three required cross-model offer URLs. Add the following to your `.tfvars` file:
 
 ```hcl
 cos_offers = {
