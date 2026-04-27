@@ -32,4 +32,4 @@ rules:
         actions/*: ref-pin
         docker/login-action: ref-pin
         tiobe/tics-github-action: ref-pin
-        charmed-kubernetes: ref-pin
+        charmed-kubernetes/*: ref-pin
