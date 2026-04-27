@@ -16,6 +16,7 @@ rules:
         - actions/*
         - docker/login-action
         - tiobe/tics-github-action
+        - charmed-kubernetes/*
   # Pinning actions to a commit SHA has a security tradeoff—pinned actions cannot be later
   # compromised, but they also cannot be security patched.
   # Above (in `forbidden-uses`), we restrict actions usage to organizations that we trust to have
