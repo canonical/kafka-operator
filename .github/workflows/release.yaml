@@ -28,7 +28,7 @@ jobs:
     permissions:
       contents: write # Needed to login to Discourse
       pull-requests: write # Need to create PR
-      actions: read,write
+      actions: write
 
   release:
     name: Release charm
