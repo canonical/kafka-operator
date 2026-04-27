@@ -11,14 +11,19 @@ on:
     - '*'
     paths:
     - 'docs/**'   # Only run on changes to the docs directory
+  workflow_dispatch:
 
 jobs:
   markdown-lint:
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
-    - uses: DavidAnson/markdownlint-cli2-action@v16
-      with:
-        config: "docs/.sphinx/.markdownlint.json"
+    - uses: ubuntu-latest
+      env:
+        CONFIG: "docs/.sphinx/.markdownlint.json"
+      run: |
+        sudo apt install -y npm
+        npm install markdownlint-cli2 --global
+        markdownlint-cli2 --config "$CONFIG" "**/*.md"
