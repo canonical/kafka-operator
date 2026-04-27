@@ -26,10 +26,9 @@ jobs:
     uses: ./.github/workflows/ci.yaml
     secrets: inherit
     permissions:
-      actions: read  # Needed for GitHub API call to get workflow version
       contents: write # Needed to login to Discourse
       pull-requests: write # Need to create PR
-      actions: write
+      actions: read,write
 
   release:
     name: Release charm
