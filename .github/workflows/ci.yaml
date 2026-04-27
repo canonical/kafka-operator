@@ -34,6 +34,7 @@ jobs:
         run: pipx install tox
       - name: Run linters
         run: tox run -e lint
+    permissions: {}
 
   unit-test:
     name: Unit tests
@@ -46,6 +47,7 @@ jobs:
         run: pipx install tox
       - name: Run tests
         run: tox run -e unit
+    permissions: {}
 
   build:
     strategy:
@@ -54,13 +56,17 @@ jobs:
           - .
           - tests/integration/app-charm
     name: Build charm | ${{ matrix.path }}
-    uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v32.2.2
+    uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v48.1.2
     with:
       path-to-charm-directory: ${{ matrix.path }}
       # FIXME: re-enable after re-added to ccc
       cache: false
+    permissions:
+      actions: read  # Needed for GitHub API call to get workflow version
+      contents: read
 
   integration-test-single:
+    permissions: {}
     strategy:
       fail-fast: false
       matrix:
@@ -121,6 +127,7 @@ jobs:
           CI_PACKED_CHARMS: ${{ needs.build.outputs.charms }}
 
   integration-test-multi:
+    permissions: {}
     strategy:
       fail-fast: false
       matrix:

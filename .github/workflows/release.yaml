@@ -13,10 +13,11 @@ on:
 jobs:
   tag:
     name: Create charm refresh compatibility version git tag
-    uses: canonical/data-platform-workflows/.github/workflows/tag_charm_edge.yaml@v32.2.2
+    uses: canonical/data-platform-workflows/.github/workflows/tag_charm_edge.yaml@v48.1.2
     with:
       track: '4'
     permissions:
+      actions: read  # Needed for GitHub API call to get workflow version
       contents: write # Needed to create git tag
 
   ci-tests:
@@ -25,6 +26,7 @@ jobs:
     uses: ./.github/workflows/ci.yaml
     secrets: inherit
     permissions:
+      actions: read  # Needed for GitHub API call to get workflow version
       contents: write # Needed to login to Discourse
       pull-requests: write # Need to create PR
       actions: write
@@ -34,11 +36,12 @@ jobs:
     needs:
       - tag
       - ci-tests
-    uses: canonical/data-platform-workflows/.github/workflows/release_charm_edge.yaml@v32.2.2
+    uses: canonical/data-platform-workflows/.github/workflows/release_charm_edge.yaml@v48.1.2
     with:
       track: ${{ needs.tag.outputs.track }}
       artifact-prefix: ${{ needs.ci-tests.outputs.artifact-prefix }}
     secrets:
       charmhub-token: ${{ secrets.CHARMHUB_TOKEN }}
     permissions:
+      actions: read  # Needed for GitHub API call to get workflow version
       contents: write  # Needed to create git tags
