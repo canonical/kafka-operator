@@ -14,9 +14,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  permissions: {}
   markdown-lint:
     runs-on: ubuntu-22.04
+    permissions: {}
     steps:
     - uses: actions/checkout@v6
       with:
