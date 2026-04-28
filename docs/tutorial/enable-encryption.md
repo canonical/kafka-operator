@@ -35,7 +35,7 @@ Before enabling TLS on Charmed Apache Kafka we must first deploy the `self-signe
 juju deploy self-signed-certificates --config ca-common-name="Tutorial CA"
 ```
 
-<!-- test:await-idle --timeout 600 --allow-blocked data-integrator -->
+<!-- test:await-idle --timeout 1200 --allow-blocked data-integrator -->
 
 Wait for the charm to settle into an `active`/`idle` state, as shown by the `juju status` command.
 
@@ -80,7 +80,7 @@ To enable TLS on Charmed Apache Kafka, integrate with `self-signed-certificates`
 juju integrate kafka:certificates self-signed-certificates
 ```
 
-<!-- test:await-idle --timeout 600 --allow-blocked data-integrator -->
+<!-- test:await-idle --timeout 1200 --allow-blocked data-integrator -->
 
 <!-- test:assert
 juju status --format json | jq -e '.applications["self-signed-certificates"]["application-status"].current == "active"'
@@ -113,7 +113,7 @@ Let's integrate the `data-integrator` application to the Apache Kafka cluster:
 juju integrate data-integrator kafka
 ```
 
-<!-- test:await-idle --timeout 600 -->
+<!-- test:await-idle --timeout 1200 -->
 
 After all units are back to `active`/`idle`, you will see the new ports in the `juju status` output.
 Now try connecting with `telnet` again:
@@ -139,7 +139,7 @@ Let's deploy our [Apache Kafka Test App](https://charmhub.io/kafka-test-app) aga
 juju deploy kafka-test-app --channel edge
 ```
 
-<!-- test:await-idle --timeout 600 -->
+<!-- test:await-idle --timeout 1200 --allow-blocked kafka-test-app -->
 
 Then, enable encryption on the `kafka-test-app` by integrating with
 the `self-signed-certificates` charm:

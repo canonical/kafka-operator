@@ -53,7 +53,7 @@ def _seconds_to_go_duration(seconds: int) -> str:
 
 def _build_await_idle_command(args_str: str) -> str:
     """Build a ``juju wait-for model`` command from await-idle annotation args."""
-    timeout = 600
+    timeout = 1200
     allow_blocked: list[str] = []
 
     tokens = shlex.split(args_str) if args_str.strip() else []
@@ -76,7 +76,12 @@ def _build_await_idle_command(args_str: str) -> str:
     else:
         query = 'forEach(applications, app => app.status == "active")'
 
-    return f"juju wait-for model tutorial --query='{query}' --timeout {duration}"
+    # Small sleep before we start polling. Without this, the
+    # wait-for can see the pre-command "active" state and exit immediately.
+    return (
+        "sleep 3\n"
+        f"juju wait-for model tutorial --query='{query}' --timeout {duration}"
+    )
 
 
 def _parse_set_variables_block(

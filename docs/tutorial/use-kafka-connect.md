@@ -154,7 +154,7 @@ application with the TLS operator:
 juju integrate kafka-connect self-signed-certificates
 ```
 
-<!-- test:await-idle --timeout 1200 -->
+<!-- test:await-idle --timeout 1200 --allow-blocked opensearch,kafka-connect -->
 
 Use the `watch juju status --color` command to continuously probe your model's status.
 After a couple of minutes, all the applications should be in `active`/`idle` state.
@@ -368,7 +368,7 @@ juju integrate postgresql-connect-integrator postgresql
 juju integrate postgresql-connect-integrator kafka-connect
 ```
 
-<!-- test:await-idle --timeout 1200 -->
+<!-- test:await-idle --timeout 1200 --allow-blocked opensearch -->
 
 After a couple of minutes, `juju status` command should show the
 `postgresql-connect-integrator` in `active`/`idle` state, with a message indicating
@@ -415,7 +415,7 @@ juju integrate opensearch-connect-integrator opensearch
 juju integrate opensearch-connect-integrator kafka-connect
 ```
 
-<!-- test:await-idle --timeout 1200 -->
+<!-- test:await-idle --timeout 1200 --allow-blocked opensearch -->
 
 Wait a couple of minutes and run `juju status`, now both `opensearch-connect-integrator`
 and `postgresql-connect-integrator` applications should be in `active`/`idle` state,

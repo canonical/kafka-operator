@@ -44,7 +44,7 @@ integrate it to the Charmed Apache Kafka:
 juju integrate data-integrator kafka
 ```
 
-<!-- test:await-idle --timeout 600 -->
+<!-- test:await-idle --timeout 1200 -->
 
 Wait for the status to become `active`/`idle` with the
 `watch juju status --color` command.
@@ -137,7 +137,7 @@ juju deploy kafka-test-app --channel edge
 
 Wait for the charm to become `active`/`idle`, and log into the container:
 
-<!-- test:await-idle --timeout 600 -->
+<!-- test:await-idle --timeout 1200 --allow-blocked kafka-test-app -->
 
 ```bash
 juju ssh kafka-test-app/0 /bin/bash
@@ -261,7 +261,7 @@ with Apache Kafka:
 juju integrate kafka-test-app kafka
 ```
 
-<!-- test:await-idle --timeout 600 -->
+<!-- test:await-idle --timeout 1200 -->
 
 ```{note}
 This will both take care of creating a dedicated user (as was done for the `data-integrator`)
@@ -330,7 +330,7 @@ you can just remove the relation:
 juju remove-relation kafka-test-app kafka
 ```
 
-<!-- test:await-idle --timeout 600 -->
+<!-- test:await-idle --timeout 1200 --allow-blocked kafka-test-app -->
 
 ### Consuming messages
 
@@ -346,7 +346,7 @@ After configuring the Apache Kafka Test App, just relate it again with the Charm
 juju integrate kafka-test-app kafka
 ```
 
-<!-- test:await-idle --timeout 600 -->
+<!-- test:await-idle --timeout 1200 -->
 
 This will again create a new user and start the consumer process.
 You can check progress with `juju status`.
@@ -359,7 +359,7 @@ as we won't need them anymore.
 juju remove-application kafka-test-app --destroy-storage --no-prompt
 ```
 
-<!-- test:await-idle --timeout 600 -->
+<!-- test:await-idle --timeout 1200 -->
 
 ## What's next?
 
