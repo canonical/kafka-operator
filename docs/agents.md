@@ -46,8 +46,8 @@ Pages under `docs/tutorial/` are the single source of truth for both rendered
 documentation and automated end-to-end tests (see `tests/tutorial/TESTING.md`).
 
 Commands are extracted **only** from `` ```shell `` fenced blocks.
-Use `` ```bash `` or `` ```text `` for output examples or commands that should
-not be executed by the test harness.
+Use `` ```bash `` for shell commands that should not be executed,
+and use `` ```text `` for output examples.
 
 Test metadata is embedded as HTML comments, invisible to readers:
 
