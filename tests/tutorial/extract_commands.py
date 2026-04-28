@@ -27,6 +27,22 @@ Add ``<!-- test:skip -->`` on the line immediately before the opening fence
     ```shell
     watch juju status --color   ← long-running; skip in tests
     ```
+
+Inserting a plain sleep
+-----------------------
+Add ``<!-- test:wait --seconds N -->`` on its own line to emit a ``sleep N``
+call at that point in the script:
+
+    <!-- test:wait --seconds 60 -->
+
+Inserting a juju_wait call
+--------------------------
+Add ``<!-- test:juju-wait -->`` on its own line to emit a ``juju_wait`` call
+that polls the Juju model until all units are active/idle.  An optional
+``--timeout`` value (seconds) can be supplied:
+
+    <!-- test:juju-wait -->
+    <!-- test:juju-wait --timeout 900 -->
 """
 
 import re
@@ -34,15 +50,19 @@ import sys
 from pathlib import Path
 
 SKIP_MARKER = "<!-- test:skip -->"
+_SLEEP_PATTERN = re.compile(r"<!--\s*test:wait\s+--seconds\s+(\d+)\s*-->")
+_JUJU_WAIT_PATTERN = re.compile(r"<!--\s*test:juju-wait(?:\s+(--timeout\s+\d+))?\s*-->")
 _SHELL_OPEN = re.compile(r"^```shell\s*$")
 _FENCE_CLOSE = re.compile(r"^```\s*$")
 
 
 def extract_shell_blocks(source: str) -> list[str]:
-    """Return shell code block contents from a MyST Markdown string.
+    """Return shell code block contents and wait calls from a MyST Markdown string.
 
-    Each returned string is the raw content between the fences, with the
-    fences themselves stripped.  Blocks marked with SKIP_MARKER are omitted.
+    Each returned string is either the raw content between shell fences, a
+    ``sleep N`` line from a ``<!-- test:wait -->`` marker, or a
+    ``juju_wait [--timeout N]`` line from a ``<!-- test:juju-wait -->`` marker.
+    Blocks marked with ``<!-- test:skip -->`` are omitted.
     """
     lines = source.splitlines()
     blocks: list[str] = []
@@ -55,6 +75,21 @@ def extract_shell_blocks(source: str) -> list[str]:
         # Detect skip marker; remember to skip the next shell block.
         if line.strip() == SKIP_MARKER:
             skip_next = True
+            i += 1
+            continue
+
+        # Detect plain sleep marker.
+        sleep_match = _SLEEP_PATTERN.match(line.strip())
+        if sleep_match:
+            blocks.append(f"sleep {sleep_match.group(1)}")
+            i += 1
+            continue
+
+        # Detect juju-wait marker; emit a juju_wait call.
+        juju_wait_match = _JUJU_WAIT_PATTERN.match(line.strip())
+        if juju_wait_match:
+            args = juju_wait_match.group(1)
+            blocks.append(f"juju_wait {args}".rstrip() if args else "juju_wait")
             i += 1
             continue
 

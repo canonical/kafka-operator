@@ -39,6 +39,8 @@ integrate it to the Charmed Apache Kafka:
 juju integrate data-integrator kafka
 ```
 
+<!-- test:juju-wait --timeout 300 -->
+
 Wait for the status to become `active`/`idle` with the
 `watch juju status --color` command.
 
@@ -247,6 +249,8 @@ with Apache Kafka:
 juju integrate kafka-test-app kafka
 ```
 
+<!-- test:juju-wait --timeout 300 -->
+
 ```{note}
 This will both take care of creating a dedicated user (as was done for the `data-integrator`)
 as well as start a producer process publishing messages to the `TOP-PICK` topic,
@@ -328,6 +332,8 @@ After configuring the Apache Kafka Test App, just relate it again with the Charm
 ```shell
 juju integrate kafka-test-app kafka
 ```
+
+<!-- test:juju-wait --timeout 300 -->
 
 This will again create a new user and start the consumer process.
 You can check progress with `juju status`.

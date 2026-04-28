@@ -17,7 +17,6 @@ juju deploy data-integrator --config topic-name=test-topic --config extra-user-r
 
 juju integrate data-integrator kafka
 
-# Wait for data-integrator to become active/idle after relation is established.
 juju_wait --timeout 300
 
 juju run data-integrator/leader get-credentials
@@ -28,7 +27,6 @@ juju config kafka-test-app topic_name=TOP-PICK role=producer num_messages=20
 
 juju integrate kafka-test-app kafka
 
-# Wait for producer process to start (kafka-test-app active + producer running).
 juju_wait --timeout 300
 
 juju status
@@ -41,7 +39,6 @@ juju config kafka-test-app topic_name=TOP-PICK role=consumer consumer_group_pref
 
 juju integrate kafka-test-app kafka
 
-# Wait for consumer process to start before tearing down.
 juju_wait --timeout 300
 
 juju remove-relation kafka-test-app kafka

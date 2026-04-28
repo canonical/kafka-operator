@@ -3,6 +3,4 @@ summary: "Tutorial stage 1 – Environment setup (environment.md)"
 kill-timeout: 15m
 
 execute: |
-  # shellcheck source=tests/tutorial/helpers.sh
-  . "$SPREAD_PATH/tests/tutorial/helpers.sh"
   bash "$SPREAD_PATH/tests/tutorial/01_environment.sh"
