@@ -44,6 +44,21 @@ jobs:
         run: tox run -e lint
     permissions: {}
 
+  markdown-lint:
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+        persist-credentials: false
+    - name: "Run markdownlint"
+      env:
+        CONFIG: "docs/.sphinx/.markdownlint.json"
+      run: |
+        npm install markdownlint-cli2 --global
+        markdownlint-cli2 --config "$CONFIG" "**/*.md"
+
   unit-test:
     name: Unit tests
     runs-on: ubuntu-latest
