@@ -88,3 +88,6 @@ suites:
     summary: Charmed Apache Kafka documentation tutorial
     systems:
       - ubuntu-24.04-64
+    prepare: |
+      # Juju's strictly-confined snap requires ~/.local/share/juju to exist when run as root.
+      mkdir -p /root/.local/share/juju

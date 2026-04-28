@@ -1,0 +1,6 @@
+summary: "Tutorial stage 2 – Deploy Apache Kafka (deploy.md)"
+
+kill-timeout: 30m
+
+execute: |
+  bash "$SPREAD_PATH/tests/tutorial/02_deploy.sh"
