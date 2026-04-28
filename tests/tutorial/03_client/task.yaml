@@ -1,5 +1,7 @@
 summary: "Tutorial stage 3 – Integrate with client applications (integrate-with-client-applications.md)"
 
+priority: 100
+
 kill-timeout: 40m
 
 execute: |
