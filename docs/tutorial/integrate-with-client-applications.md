@@ -46,8 +46,7 @@ Wait for the status to become `active`/`idle` with the
 
 <details> <summary> Output example</summary>
 
-<!-- test:skip -->
-```shell
+```text
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
 tutorial  overlord    localhost/localhost  3.6.20   unsupported  13:50:02Z
 
@@ -122,14 +121,14 @@ juju deploy kafka-test-app --channel edge
 
 Wait for the charm to become `active`/`idle`, and log into the container:
 
-<!-- test:skip -->
+<!-- test:juju-wait --timeout 300 -->
+
 ```shell
 juju ssh kafka-test-app/0 /bin/bash
 ```
 
 Make sure that the Python virtual environment libraries are visible:
 
-<!-- test:skip -->
 ```shell
 export PYTHONPATH="/var/lib/juju/agents/unit-kafka-test-app-0/charm/venv:/var/lib/juju/agents/unit-kafka-test-app-0/charm/lib"
 ```
@@ -138,7 +137,6 @@ Once this is set up, you can use the `client.py` script that exposes some functi
 
 Let's try that script runs:
 
-<!-- test:skip -->
 ```shell
 python3 -m charms.kafka.v0.client --help
 ```
@@ -188,7 +186,6 @@ Change the values of `username`, `password` and `endpoints` to the ones obtained
 from the `data-integrator` application in the previous section and run the script
 to produce message:
 
-<!-- test:skip -->
 ```shell
 python3 -m charms.kafka.v0.client \
   -u <username> \
@@ -205,7 +202,7 @@ Let this run for a few seconds, then halt the process by pushing `Ctrl+C`.
 
 Now, consume them with:
 
-<!-- test:skip -->
+<!-- test:run-with-timeout --seconds 30 -->
 ```shell
 python3 -m charms.kafka.v0.client \
   -u <username> \
@@ -266,7 +263,7 @@ juju status
 <details> <summary> Output example</summary>
 
 <!-- test:skip -->
-```shell
+```text
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
 tutorial  overlord    localhost/localhost  3.6.20   unsupported  14:27:10Z
 
@@ -319,6 +316,8 @@ you can just remove the relation:
 juju remove-relation kafka-test-app kafka
 ```
 
+<!-- test:juju-wait --timeout 300 -->
+
 ### Consuming messages
 
 The `kafka-test-app` charm can be used to consume messages by changing its configuration:
@@ -346,6 +345,8 @@ as we won't need them anymore.
 juju remove-relation kafka-test-app kafka
 juju remove-application kafka-test-app --destroy-storage
 ```
+
+<!-- test:juju-wait --timeout 300 -->
 
 ## What's next?
 
