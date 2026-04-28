@@ -34,4 +34,5 @@ crash.log
 
 # Generated tutorial test files (regenerate with: make -f tests/tutorial/Makefile extract)
 tests/tutorial/*.sh
+!tests/tutorial/helpers.sh
 tests/tutorial/*/
