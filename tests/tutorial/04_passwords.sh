@@ -28,7 +28,7 @@ juju run data-integrator/leader get-credentials
 
 juju remove-relation kafka data-integrator
 
-juju_wait --timeout 600
+juju_wait --timeout 600 --allow-blocked data-integrator
 
 juju integrate kafka data-integrator
 
@@ -38,4 +38,4 @@ juju run data-integrator/leader get-credentials
 
 juju remove-relation kafka data-integrator
 
-juju_wait --timeout 600
+juju_wait --timeout 600 --allow-blocked data-integrator

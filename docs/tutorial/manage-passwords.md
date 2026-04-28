@@ -115,7 +115,7 @@ and then re-integrating the `data-integrator` with the `kafka` charm:
 juju remove-relation kafka data-integrator
 ```
 
-<!-- test:juju-wait --timeout 600 -->
+<!-- test:juju-wait --timeout 600 --allow-blocked data-integrator -->
 
 Wait for the relation to be torn down and add integration again:
 
@@ -167,7 +167,7 @@ To remove the user, remove the relation:
 juju remove-relation kafka data-integrator
 ```
 
-<!-- test:juju-wait --timeout 600 -->
+<!-- test:juju-wait --timeout 600 --allow-blocked data-integrator -->
 
 <details> <summary> Output example</summary>
 
