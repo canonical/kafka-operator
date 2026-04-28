@@ -71,6 +71,3 @@ suites:
       # Spread SSHs in as root but does not always set HOME=/root.
       export HOME=/root
       mkdir -p /root/.local/share/juju
-
-      # Generate .sh scripts and task.yaml files from tutorial Markdown sources.
-      cd "$SPREAD_PATH" && make -f tests/tutorial/Makefile extract

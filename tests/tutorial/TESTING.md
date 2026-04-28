@@ -25,17 +25,30 @@ be generated locally before running Spread.
 
 ## Prerequisites
 
+- Ubuntu host machine (tested on 24.04)
 - [Multipass](https://documentation.ubuntu.com/multipass/latest/how-to-guides/install-multipass/)
-- [Spread](https://github.com/canonical/spread) via Go
-  (`go install github.com/snapcore/spread/cmd/spread@latest`), **not** as a snap
+- [Go](https://go.dev/doc/install)
+- [Spread](https://github.com/canonical/spread) installed via Go (**not** as a snap):
+  ```bash
+  go install github.com/snapcore/spread/cmd/spread@latest
+  ```
+- Python 3 and `make` (usually pre-installed on Ubuntu)
 
-## Running the tests
+## Quick start
 
-Generate scripts and task files, then run:
+From a fresh clone:
 
 ```bash
+git clone <repo-url> && cd kafka-operator
+
+# 1. Generate the .sh scripts and task.yaml files from Markdown sources.
 make -f tests/tutorial/Makefile extract
-spread -vv -debug multipass:ubuntu-24.04-64:tests/tutorial
+
+# 2. Run the full tutorial test suite.
+#    Spread will provision a Multipass VM, run all stages in order, and
+#    tear the VM down on completion. On failure, -debug drops you into
+#    a shell inside the VM.
+spread -vv -debug multipass:ubuntu-24.04-64:tests/tutorial/
 ```
 
 Run a single stage:
@@ -44,7 +57,11 @@ Run a single stage:
 spread -vv -debug multipass:ubuntu-24.04-64:tests/tutorial/01_environment
 ```
 
-Use `-continue` to keep going after failures.
+Use `-continue` to keep going after failures:
+
+```bash
+spread -continue -vv -debug multipass:ubuntu-24.04-64:tests/tutorial/
+```
 
 Resource defaults (override with env vars):
 
