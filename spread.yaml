@@ -11,12 +11,8 @@ backends:
       multipass delete --purge "$instance_name" 2>/dev/null || true
 
       # 8 CPUs / 16 GB RAM / 50 GB disk – sized for a 6-unit Juju/LXD cluster.
-      cpus="${SPREAD_VM_CPUS:-8}"
-      mem="${SPREAD_VM_MEM:-16G}"
-      disk="${SPREAD_VM_DISK:-50G}"
-
-      multipass launch --cpus "$cpus" --disk "$disk" --memory "$mem" \
-        --name "$instance_name" 24.04
+      multipass launch --cpus "${SPREAD_VM_CPUS:-8}" --disk "${SPREAD_VM_DISK:-50G}" \
+        --memory "${SPREAD_VM_MEM:-16G}" --name "$instance_name" 24.04
 
       # Pre-install snaps and enable root SSH for Spread.
       multipass exec "$instance_name" -- sudo sh -c "
