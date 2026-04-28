@@ -101,3 +101,56 @@ except Exception:
     juju status
     return 1
 }
+
+# ---------------------------------------------------------------------------
+# retry_until_success – retry a command with a fixed interval until it
+# succeeds or the timeout is reached.
+#
+# Usage:
+#   retry_until_success [--timeout SECONDS] [--interval SECONDS]
+#                       [--description TEXT] -- COMMAND [ARGS...]
+#
+# Defaults:
+#   --timeout   1200  (20 minutes)
+#   --interval   120  (retry every 2 minutes)
+#
+# Everything after the ``--`` separator is executed as a command on each
+# attempt.  If the command exits 0, the function returns 0 immediately.
+# If all attempts are exhausted, returns 1.
+# ---------------------------------------------------------------------------
+retry_until_success() {
+    local timeout=1200
+    local interval=120
+    local description="command"
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --timeout)     timeout="$2";     shift 2 ;;
+            --interval)    interval="$2";    shift 2 ;;
+            --description) description="$2"; shift 2 ;;
+            --)            shift; break ;;
+            *) echo "retry_until_success: unknown option: $1" >&2; return 1 ;;
+        esac
+    done
+
+    if [[ $# -eq 0 ]]; then
+        echo "retry_until_success: no command specified after --" >&2
+        return 1
+    fi
+
+    local elapsed=0
+    echo "Retrying ${description} (timeout=${timeout}s, interval=${interval}s)…"
+
+    while [[ "$elapsed" -lt "$timeout" ]]; do
+        if "$@" 2>&1; then
+            echo "${description} succeeded after ${elapsed}s."
+            return 0
+        fi
+        echo "[${elapsed}s elapsed] ${description} failed – retrying in ${interval}s…"
+        sleep "$interval"
+        elapsed=$(( elapsed + interval ))
+    done
+
+    echo "ERROR: ${description} did not succeed within ${timeout}s"
+    return 1
+}

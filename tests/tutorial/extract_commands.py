@@ -36,6 +36,7 @@ from pathlib import Path
 SKIP_MARKER = "<!-- test:skip -->"
 _SLEEP_PATTERN = re.compile(r"<!--\s*test:wait\s+--seconds\s+(\d+)\s*-->")
 _AWAIT_IDLE_PATTERN = re.compile(r"<!--\s*test:await-idle(.*?)-->")
+_RETRY_PATTERN = re.compile(r"<!--\s*test:retry\s+(.*?)-->")
 _RUN_WITH_TIMEOUT_PATTERN = re.compile(r"<!--\s*test:run-with-timeout\s+--seconds\s+(\d+)\s*-->")
 _SET_VARIABLES_START = re.compile(r"<!--\s*test:set-variables\s*$")
 _RUN_HIDDEN_START = re.compile(r"<!--\s*test:run\s*$")
@@ -43,6 +44,43 @@ _ASSERT_START = re.compile(r"<!--\s*test:assert\s*$")
 _SPREAD_META_START = re.compile(r"<!--\s*test:spread\s*$")
 _SHELL_OPEN = re.compile(r"^```shell\s*$")
 _FENCE_CLOSE = re.compile(r"^```\s*$")
+
+
+def _build_retry_command(args_str: str) -> str:
+    """Build a ``retry_until_success`` call from ``helpers.sh``.
+
+    Parses the inline arguments from a ``<!-- test:retry ... -->`` annotation
+    and returns a shell command that calls ``retry_until_success``.
+    """
+    timeout = 1200
+    interval = 120
+    description = "command"
+    command_parts: list[str] = []
+
+    tokens = shlex.split(args_str) if args_str.strip() else []
+    i = 0
+    while i < len(tokens):
+        if tokens[i] == "--timeout" and i + 1 < len(tokens):
+            timeout = int(tokens[i + 1])
+            i += 2
+        elif tokens[i] == "--interval" and i + 1 < len(tokens):
+            interval = int(tokens[i + 1])
+            i += 2
+        elif tokens[i] == "--description" and i + 1 < len(tokens):
+            description = tokens[i + 1]
+            i += 2
+        elif tokens[i] == "--":
+            command_parts = tokens[i + 1:]
+            break
+        else:
+            i += 1
+
+    parts = ["retry_until_success", "--timeout", str(timeout),
+             "--interval", str(interval),
+             "--description", shlex.quote(description),
+             "--"]
+    parts.extend(shlex.quote(p) for p in command_parts)
+    return " ".join(parts)
 
 
 def _build_await_idle_command(args_str: str) -> str:
@@ -168,6 +206,12 @@ def _handle_marker_line(
         args = await_idle_match.group(1).strip()
         blocks.append(_build_await_idle_command(args))
         return "await_idle"
+
+    retry_match = _RETRY_PATTERN.match(stripped)
+    if retry_match:
+        args = retry_match.group(1).strip()
+        blocks.append(_build_retry_command(args))
+        return "retry"
 
     return None
 

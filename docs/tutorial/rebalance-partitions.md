@@ -120,28 +120,7 @@ with no partitions allocated by default:
 Now, let's run the `rebalance` action to allocate some existing partitions
 from other brokers (`0`, `1` and `2`) to broker `3`:
 
-<!-- test:run
-# Cruise Control needs time to collect metrics from the cluster.  Rather than
-# a fixed sleep, retry the dryrun rebalance until CC reports ready (up to 40
-# minutes, polling every 2 minutes).
-elapsed=0
-timeout=2400
-interval=120
-echo "Waiting for Cruise Control to be ready (timeout=${timeout}s, poll=${interval}s)…"
-while [ "$elapsed" -lt "$timeout" ]; do
-  if juju run kraft/leader rebalance mode=add brokerid=103 --wait=2m 2>&1; then
-    echo "Cruise Control ready after ${elapsed}s."
-    break
-  fi
-  echo "[${elapsed}s elapsed] Cruise Control not ready – retrying in ${interval}s…"
-  sleep "$interval"
-  elapsed=$((elapsed + interval))
-done
-if [ "$elapsed" -ge "$timeout" ]; then
-  echo "ERROR: Cruise Control did not become ready within ${timeout}s"
-  exit 1
-fi
--->
+<!-- test:retry --timeout 2400 --interval 120 --description "Cruise Control readiness" -- juju run kraft/leader rebalance mode=add brokerid=103 --wait=2m -->
 
 <!-- test:skip -->
 ```shell
@@ -310,27 +289,7 @@ of partition allocation across all currently live broker units.
 To achieve this, re-run the `rebalance` action with the `mode=full`.
 You can do it in the "dryrun" mode (by default) for now:
 
-<!-- test:run
-# CC may need time to recollect metrics after the topology change.  Retry the
-# dryrun until it succeeds (up to 20 minutes, polling every 2 minutes).
-elapsed=0
-timeout=1200
-interval=120
-echo "Waiting for Cruise Control to be ready for full rebalance (timeout=${timeout}s)…"
-while [ "$elapsed" -lt "$timeout" ]; do
-  if juju run kraft/leader rebalance mode=full --wait=3m 2>&1; then
-    echo "Full rebalance dryrun succeeded after ${elapsed}s."
-    break
-  fi
-  echo "[${elapsed}s elapsed] Not ready – retrying in ${interval}s…"
-  sleep "$interval"
-  elapsed=$((elapsed + interval))
-done
-if [ "$elapsed" -ge "$timeout" ]; then
-  echo "ERROR: Cruise Control full rebalance dryrun did not succeed within ${timeout}s"
-  exit 1
-fi
--->
+<!-- test:retry --timeout 1200 --interval 120 --description "Cruise Control full rebalance" -- juju run kraft/leader rebalance mode=full --wait=3m -->
 
 <!-- test:skip -->
 ```shell

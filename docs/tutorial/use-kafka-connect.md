@@ -471,14 +471,9 @@ curl -u admin:<admin-password> -k -sS "https://${OPENSEARCH_IP}:9200/etl_posts/_
 <!-- test:wait --seconds 60 -->
 
 <!-- test:run
-for attempt in $(seq 1 20); do
-  if curl -u admin:${OS_PASSWORD} -k -sS "https://${OPENSEARCH_IP}:9200/etl_posts/_search" 2>/dev/null | jq -e '.hits.total.value >= 5' > /dev/null 2>&1; then
-    echo "ETL data verified on attempt $attempt"
-    break
-  fi
-  echo "Waiting for ETL data to appear in OpenSearch... attempt $attempt/20"
-  sleep 15
-done
+export OS_PASSWORD OPENSEARCH_IP
+retry_until_success --timeout 300 --interval 15 --description "ETL data in OpenSearch" -- \
+  bash -c 'curl -u admin:${OS_PASSWORD} -k -sS "https://${OPENSEARCH_IP}:9200/etl_posts/_search" 2>/dev/null | jq -e ".hits.total.value >= 5" > /dev/null 2>&1'
 -->
 
 <!-- test:run
