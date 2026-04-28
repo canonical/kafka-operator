@@ -44,7 +44,7 @@ integrate it to the Charmed Apache Kafka:
 juju integrate data-integrator kafka
 ```
 
-<!-- test:await-idle --timeout 1500 -->
+<!-- test:await-idle --timeout 1200 -->
 
 Wait for the status to become `active`/`idle` with the
 `watch juju status --color` command.
