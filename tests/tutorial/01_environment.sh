@@ -12,13 +12,24 @@ set -euo pipefail
 
 lxd init --auto
 
-# Ensure the default bridge exists with a path-MTU-safe MTU (1492 for PPPoE
-# upstreams) and without IPv6 (Juju doesn't support LXD+IPv6).
+# Detect the MTU of the default-route interface (already set by spread allocate).
+_iface=$(ip route show default | awk '/default/ {print $5; exit}')
+_mtu=$(cat /sys/class/net/"$_iface"/mtu 2>/dev/null || echo 1500)
+
+# Ensure the default bridge exists, disable IPv6 (Juju doesn't support LXD+IPv6),
+# and set the MTU to match the host interface.
 if ! lxc network show lxdbr0 > /dev/null 2>&1; then
   lxc network create lxdbr0
 fi
 lxc network set lxdbr0 ipv6.address none
-lxc network set lxdbr0 bridge.mtu 1492
+lxc network set lxdbr0 bridge.mtu "$_mtu"
+
+# Pin the LXD default profile to lxdbr0 with an explicit MTU.
+# This prevents Juju's bootstrap from switching containers to the ubuntu-fan
+# overlay network, whose UDP encapsulation would reduce the effective MTU and
+# break large snap downloads (e.g. juju-db) inside the controller container.
+lxc profile device remove default eth0 2>/dev/null || true
+lxc profile device add default eth0 nic nictype=bridged parent=lxdbr0 mtu="$_mtu"
 
 sudo snap install juju || snap list juju
 
