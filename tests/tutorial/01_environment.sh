@@ -37,6 +37,8 @@ lxc profile device add default eth0 nic nictype=bridged parent=lxdbr0 mtu="$_mtu
 
 sudo snap install juju || snap list juju
 
+sudo snap install yq || snap list yq
+
 juju bootstrap localhost overlord
 
 lxc list
