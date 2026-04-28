@@ -24,7 +24,7 @@ EOT
 
 sudo sysctl -p
 
-cat <<EOF > cloudinit-userdata.yaml
+cat <<EOF > /tmp/cloudinit-userdata.yaml
 cloudinit-userdata: |
   postruncmd:
     - [ 'echo', 'vm.max_map_count=262144', '>>', '/etc/sysctl.conf' ]
@@ -34,7 +34,7 @@ cloudinit-userdata: |
     - [ 'sysctl', '-p' ]
 EOF
 
-juju model-config --file=./cloudinit-userdata.yaml
+juju model-config --file=/tmp/cloudinit-userdata.yaml
 
 juju deploy kafka-connect --channel edge
 juju deploy postgresql --channel 14/stable

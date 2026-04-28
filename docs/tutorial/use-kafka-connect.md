@@ -95,7 +95,7 @@ sudo sysctl -p
 Next, we should set the required model parameters using the `juju model-config` command:
 
 ```shell
-cat <<EOF > cloudinit-userdata.yaml
+cat <<EOF > /tmp/cloudinit-userdata.yaml
 cloudinit-userdata: |
   postruncmd:
     - [ 'echo', 'vm.max_map_count=262144', '>>', '/etc/sysctl.conf' ]
@@ -105,7 +105,7 @@ cloudinit-userdata: |
     - [ 'sysctl', '-p' ]
 EOF
 
-juju model-config --file=./cloudinit-userdata.yaml
+juju model-config --file=/tmp/cloudinit-userdata.yaml
 ```
 
 ## Deploy the databases and Kafka Connect charms
