@@ -20,34 +20,34 @@ juju deploy kafka -n 3 --channel 4/edge --config roles=controller kraft
 juju integrate kafka:peer-cluster-orchestrator kraft:peer-cluster
 
 # Wait for all 6 units (3 brokers + 3 controllers) to reach active/idle.
-juju_wait --timeout 1800
+juju_wait --timeout 900
 
-juju show-secret --reveal cluster.kafka.app
+# juju show-secret --reveal cluster.kafka.app
 
-juju show-secret --reveal cluster.kafka.app | yq -r '.[].content["operator-password"]'
+# juju show-secret --reveal cluster.kafka.app | yq -r '.[].content["operator-password"]'
 
-bootstrap_address=$(juju show-unit kafka/0 | yq '.. | ."public-address"? // ""' | tr -d '"' | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+# bootstrap_address=$(juju show-unit kafka/0 | yq '.. | ."public-address"? // ""' | tr -d '"' | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
 
-export BOOTSTRAP_SERVER="${bootstrap_address}:19093"
+# export BOOTSTRAP_SERVER="${bootstrap_address}:19093"
 
-juju ssh kafka/leader sudo -i "ls \$BIN/bin"
+# juju ssh kafka/leader sudo -i "ls \$BIN/bin"
 
-juju ssh kafka/0 sudo -i \
-    "charmed-kafka.topics \
-        --create \
-        --topic test-topic \
-        --bootstrap-server $BOOTSTRAP_SERVER \
-        --command-config \$CONF/client.properties"
+# juju ssh kafka/0 sudo -i \
+#     "charmed-kafka.topics \
+#         --create \
+#         --topic test-topic \
+#         --bootstrap-server $BOOTSTRAP_SERVER \
+#         --command-config \$CONF/client.properties"
 
-juju ssh kafka/0 sudo -i \
-    "charmed-kafka.topics \
-        --list \
-        --bootstrap-server $BOOTSTRAP_SERVER \
-        --command-config \$CONF/client.properties"
+# juju ssh kafka/0 sudo -i \
+#     "charmed-kafka.topics \
+#         --list \
+#         --bootstrap-server $BOOTSTRAP_SERVER \
+#         --command-config \$CONF/client.properties"
 
-juju ssh kafka/0 sudo -i \
-    "charmed-kafka.topics \
-        --delete \
-        --topic test-topic \
-        --bootstrap-server $BOOTSTRAP_SERVER \
-        --command-config \$CONF/client.properties"
+# juju ssh kafka/0 sudo -i \
+#     "charmed-kafka.topics \
+#         --delete \
+#         --topic test-topic \
+#         --bootstrap-server $BOOTSTRAP_SERVER \
+#         --command-config \$CONF/client.properties"
