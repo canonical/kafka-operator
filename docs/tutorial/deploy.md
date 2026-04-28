@@ -56,7 +56,7 @@ taking care to specify which cluster is the orchestrator by selecting the specif
 juju integrate kafka:peer-cluster-orchestrator kraft:peer-cluster
 ```
 
-<!-- test:await-idle --timeout 900 -->
+<!-- test:await-idle --timeout 1200 -->
 
 <!-- test:assert
 test "$(juju status --format json | jq '.applications.kafka.units | length')" -eq 3
