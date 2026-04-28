@@ -1,8 +1,0 @@
-summary: "Tutorial stage 7 – Rebalance and reassign partitions (rebalance-partitions.md)"
-
-priority: -300
-
-kill-timeout: 60m
-
-execute: |
-  bash "$SPREAD_PATH/tests/tutorial/07_rebalance.sh"

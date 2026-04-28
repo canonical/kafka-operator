@@ -4,6 +4,11 @@ myst:
     description: "Manage and rotate passwords for Charmed Apache Kafka admin users and external users using Juju secrets and actions."
 ---
 
+<!-- test:spread
+priority: 0
+kill-timeout: 30m
+-->
+
 (tutorial-manage-passwords)=
 # 4. Manage passwords
 
@@ -63,7 +68,11 @@ using the secret ID saved earlier:
 juju config kafka system-users=<secret-uri>
 ```
 
-<!-- test:juju-wait --timeout 600 -->
+<!-- test:await-idle --timeout 600 -->
+
+<!-- test:assert
+juju show-secret --reveal cluster.kafka.app | yq -r '.[].content["operator-password"]' | grep -q mynewpassword
+-->
 
 Now, Charmed Apache Kafka will be able to read the new admin password from the correct secret,
 and will proceed to apply the new password on each unit with a rolling-restart of the services
@@ -115,7 +124,7 @@ and then re-integrating the `data-integrator` with the `kafka` charm:
 juju remove-relation kafka data-integrator
 ```
 
-<!-- test:juju-wait --timeout 600 --allow-blocked data-integrator -->
+<!-- test:await-idle --timeout 600 --allow-blocked data-integrator -->
 
 Wait for the relation to be torn down and add integration again:
 
@@ -123,7 +132,7 @@ Wait for the relation to be torn down and add integration again:
 juju integrate kafka data-integrator
 ```
 
-<!-- test:juju-wait --timeout 600 -->
+<!-- test:await-idle --timeout 600 -->
 
 The successful credential rotation can be confirmed by retrieving the new password
 with the action `get-credentials`:
@@ -167,7 +176,7 @@ To remove the user, remove the relation:
 juju remove-relation kafka data-integrator
 ```
 
-<!-- test:juju-wait --timeout 600 --allow-blocked data-integrator -->
+<!-- test:await-idle --timeout 600 --allow-blocked data-integrator -->
 
 <details> <summary> Output example</summary>
 

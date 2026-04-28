@@ -4,6 +4,11 @@ myst:
     description: "Use Kafka Connect for ETL workloads - move data between PostgreSQL and OpenSearch using charmed Apache Kafka."
 ---
 
+<!-- test:spread
+priority: -200
+kill-timeout: 60m
+-->
+
 (tutorial-kafka-connect)=
 # 6. Use Kafka Connect for ETL
 
@@ -118,7 +123,7 @@ juju deploy postgresql --channel 14/stable
 juju deploy opensearch --channel 2/stable --config profile=testing
 ```
 
-<!-- test:juju-wait --timeout 1200 --allow-blocked opensearch,kafka-connect -->
+<!-- test:await-idle --timeout 1200 --allow-blocked opensearch,kafka-connect -->
 
 OpenSearch charm requires a TLS relation to become active.
 We will use the [`self-signed-certificates` charm](https://charmhub.io/self-signed-certificates)
@@ -149,7 +154,7 @@ application with the TLS operator:
 juju integrate kafka-connect self-signed-certificates
 ```
 
-<!-- test:juju-wait --timeout 1200 -->
+<!-- test:await-idle --timeout 1200 -->
 
 Use the `watch juju status --color` command to continuously probe your model's status.
 After a couple of minutes, all the applications should be in `active`/`idle` state.
@@ -363,7 +368,7 @@ juju integrate postgresql-connect-integrator postgresql
 juju integrate postgresql-connect-integrator kafka-connect
 ```
 
-<!-- test:juju-wait --timeout 1200 -->
+<!-- test:await-idle --timeout 1200 -->
 
 After a couple of minutes, `juju status` command should show the
 `postgresql-connect-integrator` in `active`/`idle` state, with a message indicating
@@ -410,7 +415,7 @@ juju integrate opensearch-connect-integrator opensearch
 juju integrate opensearch-connect-integrator kafka-connect
 ```
 
-<!-- test:juju-wait --timeout 1200 -->
+<!-- test:await-idle --timeout 1200 -->
 
 Wait a couple of minutes and run `juju status`, now both `opensearch-connect-integrator`
 and `postgresql-connect-integrator` applications should be in `active`/`idle` state,
@@ -467,6 +472,10 @@ curl -u admin:<admin-password> -k -sS "https://${OPENSEARCH_IP}:9200/etl_posts/_
 
 <!-- test:run
 curl -u admin:${OS_PASSWORD} -k -sS "https://${OPENSEARCH_IP}:9200/etl_posts/_search?pretty=true"
+-->
+
+<!-- test:assert
+curl -u admin:${OS_PASSWORD} -k -sS "https://${OPENSEARCH_IP}:9200/etl_posts/_search" | jq -e '.hits.total.value >= 5'
 -->
 
 As a result you get a JSON response containing the search results, which should have five documents.

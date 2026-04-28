@@ -4,6 +4,11 @@ myst:
     description: "Deploy Charmed Apache Kafka clusters with KRaft controllers using Juju - complete guide for broker and controller deployment."
 ---
 
+<!-- test:spread
+priority: 200
+kill-timeout: 30m
+-->
+
 (tutorial-deploy)=
 # 2. Deploy Apache Kafka
 
@@ -51,7 +56,12 @@ taking care to specify which cluster is the orchestrator by selecting the specif
 juju integrate kafka:peer-cluster-orchestrator kraft:peer-cluster
 ```
 
-<!-- test:juju-wait --timeout 900 -->
+<!-- test:await-idle --timeout 900 -->
+
+<!-- test:assert
+test "$(juju status --format json | jq '.applications.kafka.units | length')" -eq 3
+test "$(juju status --format json | jq '.applications.kraft.units | length')" -eq 3
+-->
 
 Juju will now connect applications to exchange access credentials and machine endpoints.
 This process can take several minutes depending on the resources available on your machine.

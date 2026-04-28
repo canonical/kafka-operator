@@ -17,98 +17,66 @@ Only fenced code blocks whose opening fence is exactly:
 
 Any other language tag (``bash``, ``text``, ``console``, etc.) is ignored.
 
-Skipping a block
-----------------
-Add ``<!-- test:skip -->`` on the line immediately before the opening fence
-(blank lines between the marker and the fence are allowed):
-
-    <!-- test:skip -->
-    ```shell
-    watch juju status --color   ← long-running; skip in tests
-    ```
-
-Inserting a plain sleep
------------------------
-Add ``<!-- test:wait --seconds N -->`` on its own line to emit a ``sleep N``
-call at that point in the script:
-
-    <!-- test:wait --seconds 60 -->
-
-Inserting a juju_wait call
---------------------------
-Add ``<!-- test:juju-wait -->`` on its own line to emit a ``juju_wait`` call
-that polls the Juju model until all units are active/idle.  An optional
-``--timeout`` value (seconds) can be supplied:
-
-    <!-- test:juju-wait -->
-    <!-- test:juju-wait --timeout 900 -->
-
-Running a block with a timeout (kill after N seconds)
------------------------------------------------------
-Add ``<!-- test:run-with-timeout --seconds N -->`` on the line immediately
-before the opening fence to run that block inside ``timeout N`` and ignore the
-result.  Useful for commands that run indefinitely until interrupted (e.g.
-consumer scripts):
-
-    <!-- test:run-with-timeout --seconds 30 -->
-    ```shell
-    python3 -m charms.kafka.v0.client ... --consumer
-    ```
-
-The block is wrapped in a bash heredoc so multi-line commands work correctly,
-and the exit code is discarded (``|| true``) so a ``SIGTERM`` from ``timeout``
-does not abort the test script.
-
-Running a command and storing fields into shell variables
----------------------------------------------------------
-Add a ``<!-- test:set-variables ... -->`` block on its own lines to run an
-arbitrary command and parse named fields from its output into shell variables::
-
-    <!-- test:set-variables
-    command: juju run data-integrator/leader get-credentials
-    KAFKA_USERNAME: username
-    KAFKA_PASSWORD: password
-    KAFKA_ENDPOINTS: endpoints
-    -->
-
-The ``command:`` line specifies the shell command to run.  Every other
-``VARNAME: field`` line instructs the extractor to grep the command output for
-``field:`` and store the value (second whitespace-delimited token on that line)
-into ``$VARNAME``.
-
-From that point onward, any extracted shell block that contains a literal
-placeholder matching one of the declared field names (e.g. ``<username>``,
-``<endpoints>``) will have it automatically replaced with the corresponding
-shell-variable reference (e.g. ``${KAFKA_USERNAME}``), so the Markdown source
-keeps its human-readable placeholders while the generated test script uses real
-values.
-
-Running hidden test-only commands
----------------------------------
-Add a ``<!-- test:run ... -->`` block to inject shell commands that are
-invisible to users reading the rendered documentation but are emitted into the
-generated test script::
-
-    <!-- test:run
-    curl -u admin:${OS_PASSWORD} -k -sS "https://${OPENSEARCH_IP}:9200/etl_posts/_search?pretty=true"
-    -->
-
-This is useful when the user-facing command uses a human-readable placeholder
-(e.g. ``<admin-password>``) while the test needs the real variable.
+Annotations
+-----------
+Annotations are HTML comments placed before or between fenced code blocks.
+They control how blocks are extracted and what additional commands are emitted.
+See TESTING.md for full reference.
 """
 
 import re
+import shlex
 import sys
 from pathlib import Path
 
 SKIP_MARKER = "<!-- test:skip -->"
 _SLEEP_PATTERN = re.compile(r"<!--\s*test:wait\s+--seconds\s+(\d+)\s*-->")
-_JUJU_WAIT_PATTERN = re.compile(r"<!--\s*test:juju-wait(.*?)-->")
+_AWAIT_IDLE_PATTERN = re.compile(r"<!--\s*test:await-idle(.*?)-->")
 _RUN_WITH_TIMEOUT_PATTERN = re.compile(r"<!--\s*test:run-with-timeout\s+--seconds\s+(\d+)\s*-->")
 _SET_VARIABLES_START = re.compile(r"<!--\s*test:set-variables\s*$")
 _RUN_HIDDEN_START = re.compile(r"<!--\s*test:run\s*$")
+_ASSERT_START = re.compile(r"<!--\s*test:assert\s*$")
+_SPREAD_META_START = re.compile(r"<!--\s*test:spread\s*$")
 _SHELL_OPEN = re.compile(r"^```shell\s*$")
 _FENCE_CLOSE = re.compile(r"^```\s*$")
+
+
+def _seconds_to_go_duration(seconds: int) -> str:
+    """Convert seconds to Go duration format (e.g. 600 -> '10m', 90 -> '1m30s')."""
+    if seconds <= 0:
+        return "10m"
+    m, s = divmod(seconds, 60)
+    if s == 0:
+        return f"{m}m"
+    return f"{m}m{s}s"
+
+
+def _build_await_idle_command(args_str: str) -> str:
+    """Build a ``juju wait-for model`` command from await-idle annotation args."""
+    timeout = 600
+    allow_blocked: list[str] = []
+
+    tokens = shlex.split(args_str) if args_str.strip() else []
+    i = 0
+    while i < len(tokens):
+        if tokens[i] == "--timeout" and i + 1 < len(tokens):
+            timeout = int(tokens[i + 1])
+            i += 2
+        elif tokens[i] == "--allow-blocked" and i + 1 < len(tokens):
+            allow_blocked = [a.strip() for a in tokens[i + 1].split(",") if a.strip()]
+            i += 2
+        else:
+            i += 1
+
+    duration = _seconds_to_go_duration(timeout)
+
+    if allow_blocked:
+        app_conditions = " || ".join(f'app.name == "{name}"' for name in allow_blocked)
+        query = f'forEach(applications, app => app.status == "active" || {app_conditions})'
+    else:
+        query = 'forEach(applications, app => app.status == "active")'
+
+    return f"juju wait-for model tutorial --query='{query}' --timeout {duration}"
 
 
 def _parse_set_variables_block(
@@ -186,7 +154,7 @@ def _handle_marker_line(
 ) -> str | None:
     """Check *line* for a standalone annotation marker.
 
-    Returns a short tag (``"skip"``, ``"sleep"``, ``"juju_wait"``) when
+    Returns a short tag (``"skip"``, ``"sleep"``, ``"await_idle"``) when
     the line was consumed, or ``None`` when the line is not a marker.
     """
     stripped = line.strip()
@@ -199,11 +167,11 @@ def _handle_marker_line(
         blocks.append(f"sleep {sleep_match.group(1)}")
         return "sleep"
 
-    juju_wait_match = _JUJU_WAIT_PATTERN.match(stripped)
-    if juju_wait_match:
-        args = juju_wait_match.group(1).strip()
-        blocks.append(f"juju_wait {args}" if args else "juju_wait")
-        return "juju_wait"
+    await_idle_match = _AWAIT_IDLE_PATTERN.match(stripped)
+    if await_idle_match:
+        args = await_idle_match.group(1).strip()
+        blocks.append(_build_await_idle_command(args))
+        return "await_idle"
 
     return None
 
@@ -244,12 +212,11 @@ def _collect_shell_block(
 
 
 def extract_shell_blocks(source: str) -> list[str]:
-    """Return shell code block contents and wait calls from a MyST Markdown string.
+    """Return shell code block contents and generated commands from a MyST Markdown string.
 
     Each returned string is either the raw content between shell fences, a
-    ``sleep N`` line from a ``<!-- test:wait -->`` marker, or a
-    ``juju_wait [--timeout N]`` line from a ``<!-- test:juju-wait -->`` marker.
-    Blocks marked with ``<!-- test:skip -->`` are omitted.
+    ``sleep N`` line, a ``juju wait-for model`` command, or injected code from
+    other annotations.  Blocks marked with ``<!-- test:skip -->`` are omitted.
     """
     lines = source.splitlines()
     blocks: list[str] = []
@@ -261,7 +228,7 @@ def extract_shell_blocks(source: str) -> list[str]:
     while i < len(lines):
         line = lines[i]
 
-        # Detect standalone annotation markers (skip / sleep / juju_wait).
+        # Detect standalone annotation markers (skip / sleep / await_idle).
         marker = _handle_marker_line(line, blocks)
         if marker == "skip":
             skip_next = True
@@ -284,6 +251,20 @@ def extract_shell_blocks(source: str) -> list[str]:
             if snippet:
                 blocks.append(snippet)
                 active_substitutions.extend(substitutions)
+            continue
+
+        # Detect spread meta block; skip silently (used for task.yaml generation).
+        if _SPREAD_META_START.match(line.strip()):
+            while i < len(lines) and "-->" not in lines[i]:
+                i += 1
+            i += 1  # skip closing -->
+            continue
+
+        # Detect assert block; emit commands with assertion comment.
+        if _ASSERT_START.match(line.strip()):
+            snippet, i = _parse_run_hidden_block(lines, i, active_substitutions)
+            if snippet:
+                blocks.append(f"# --- Test assertion ---\n{snippet}")
             continue
 
         # Detect run-hidden block; emit commands invisible to the reader.
@@ -318,19 +299,57 @@ def build_script(input_path: Path, blocks: list[str]) -> str:
         f"# Extracted from : {input_path}\n"
         f"# Regenerate with: python3 tests/tutorial/extract_commands.py {input_path} <output.sh>\n"
         "#\n"
-        "# To skip a block in the Markdown source, add this comment on the line\n"
-        "# immediately before its opening fence (blank lines are fine between them):\n"
-        "#   <!-- test:skip -->\n"
-        "#\n"
         "# Only ```shell fences are extracted; use any other tag to naturally exclude a block.\n"
         "\n"
         "set -euo pipefail\n"
         "\n"
-        "# shellcheck source=tests/tutorial/helpers.sh\n"
-        ". \"$SPREAD_PATH/tests/tutorial/helpers.sh\"\n"
+        "# Spread SSHs in as root but does not always set HOME=/root.\n"
+        "export HOME=/root\n"
         "\n"
     )
     return header + "\n\n".join(blocks) + "\n"
+
+
+def extract_spread_meta(source: str) -> dict[str, str]:
+    """Extract spread test metadata from a ``<!-- test:spread ... -->`` block."""
+    lines = source.splitlines()
+    for i, line in enumerate(lines):
+        if _SPREAD_META_START.match(line.strip()):
+            meta: dict[str, str] = {}
+            j = i + 1
+            while j < len(lines):
+                raw = lines[j]
+                if "-->" in raw:
+                    break
+                stripped = raw.strip()
+                if stripped and ":" in stripped:
+                    key, _, value = stripped.partition(":")
+                    meta[key.strip()] = value.strip()
+                j += 1
+            return meta
+    return {}
+
+
+def extract_heading(source: str) -> str:
+    """Return the text of the first Markdown heading."""
+    for line in source.splitlines():
+        if line.startswith("# "):
+            return line[2:].strip()
+    return ""
+
+
+def build_task_yaml(script_path: str, heading: str, meta: dict[str, str]) -> str:
+    """Generate a Spread task.yaml file."""
+    priority = meta.get("priority", "0")
+    kill_timeout = meta.get("kill-timeout", "30m")
+    summary = heading or script_path
+    return (
+        f'summary: "{summary}"\n'
+        f"priority: {priority}\n"
+        f"kill-timeout: {kill_timeout}\n"
+        f"execute: |\n"
+        f'  bash "$SPREAD_PATH/{script_path}"\n'
+    )
 
 
 def main() -> None:
@@ -355,6 +374,17 @@ def main() -> None:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(script, encoding="utf-8")
         print(f"Written {len(blocks)} block(s) → {output_path}")
+
+        # Generate task.yaml alongside the .sh file if spread metadata exists.
+        meta = extract_spread_meta(source)
+        heading = extract_heading(source)
+        if meta:
+            task_dir = output_path.with_suffix("")  # 01_environment.sh → 01_environment/
+            task_yaml = task_dir / "task.yaml"
+            task_yaml.parent.mkdir(parents=True, exist_ok=True)
+            task_content = build_task_yaml(str(output_path), heading, meta)
+            task_yaml.write_text(task_content, encoding="utf-8")
+            print(f"Written task.yaml → {task_yaml}")
     else:
         print(script, end="")
 

@@ -68,5 +68,9 @@ suites:
     systems:
       - ubuntu-24.04-64
     prepare: |
-      # Juju's strictly-confined snap requires ~/.local/share/juju to exist when run as root.
+      # Spread SSHs in as root but does not always set HOME=/root.
+      export HOME=/root
       mkdir -p /root/.local/share/juju
+
+      # Generate .sh scripts and task.yaml files from tutorial Markdown sources.
+      cd "$SPREAD_PATH" && make -f tests/tutorial/Makefile extract

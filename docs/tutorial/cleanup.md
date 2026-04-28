@@ -4,6 +4,11 @@ myst:
     description: "Clean up your Charmed Apache Kafka tutorial environment - remove deployments, Juju controllers, and free system resources."
 ---
 
+<!-- test:spread
+priority: -400
+kill-timeout: 15m
+-->
+
 (tutorial-cleanup)=
 # 8. Cleanup your environment
 

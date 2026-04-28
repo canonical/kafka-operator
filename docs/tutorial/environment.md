@@ -4,6 +4,11 @@ myst:
     description: "Set up your development environment for Charmed Apache Kafka using LXD, Juju, and command-line tools on Ubuntu."
 ---
 
+<!-- test:spread
+priority: 300
+kill-timeout: 15m
+-->
+
 (tutorial-environment)=
 # 1. Set up the environment
 
@@ -110,6 +115,10 @@ Check the status of the model you created:
 ```shell
 juju status
 ```
+
+<!-- test:assert
+juju models | grep -q tutorial
+-->
 
 <details> <summary> Output example</summary>
 

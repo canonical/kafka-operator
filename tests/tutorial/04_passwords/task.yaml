@@ -1,8 +1,0 @@
-summary: "Tutorial stage 4 – Manage passwords (manage-passwords.md)"
-
-priority: 0
-
-kill-timeout: 30m
-
-execute: |
-  bash "$SPREAD_PATH/tests/tutorial/04_passwords.sh"

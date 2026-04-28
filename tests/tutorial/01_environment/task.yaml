@@ -1,8 +1,0 @@
-summary: "Tutorial stage 1 – Environment setup (environment.md)"
-
-priority: 300
-
-kill-timeout: 15m
-
-execute: |
-  bash "$SPREAD_PATH/tests/tutorial/01_environment.sh"
