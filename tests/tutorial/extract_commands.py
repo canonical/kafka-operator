@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Extract shell code blocks from MyST Markdown tutorial files.
+"""Extract shell code blocks from MyST Markdown tutorial files.
 
 Usage
 -----
@@ -141,6 +140,69 @@ def _parse_set_variables_block(
     return "\n".join(snippet_lines), substitutions, i
 
 
+def _handle_marker_line(
+    line: str,
+    blocks: list[str],
+) -> str | None:
+    """Check *line* for a standalone annotation marker.
+
+    Returns a short tag (``"skip"``, ``"sleep"``, ``"juju_wait"``) when
+    the line was consumed, or ``None`` when the line is not a marker.
+    """
+    stripped = line.strip()
+
+    if stripped == SKIP_MARKER:
+        return "skip"
+
+    sleep_match = _SLEEP_PATTERN.match(stripped)
+    if sleep_match:
+        blocks.append(f"sleep {sleep_match.group(1)}")
+        return "sleep"
+
+    juju_wait_match = _JUJU_WAIT_PATTERN.match(stripped)
+    if juju_wait_match:
+        args = juju_wait_match.group(1)
+        blocks.append(f"juju_wait {args}".rstrip() if args else "juju_wait")
+        return "juju_wait"
+
+    return None
+
+
+def _collect_shell_block(
+    lines: list[str],
+    start: int,
+    skip: bool,
+    timeout_seconds: int | None,
+    active_substitutions: list[tuple[str, str]],
+    blocks: list[str],
+) -> int:
+    """Read a shell fence starting at *start* (one past the opening fence).
+
+    Appends the processed content to *blocks* (unless *skip* is True) and
+    returns the index of the first line after the closing fence.
+    """
+    i = start
+    block_lines: list[str] = []
+    while i < len(lines) and not _FENCE_CLOSE.match(lines[i]):
+        block_lines.append(lines[i])
+        i += 1
+    i += 1  # consume closing fence
+
+    if not skip and block_lines:
+        content = "\n".join(block_lines)
+        for placeholder, variable in active_substitutions:
+            content = content.replace(placeholder, variable)
+        if timeout_seconds is not None:
+            blocks.append(
+                f"( timeout {timeout_seconds} bash << 'TUTORIAL_TIMEOUT_EOF'\n"
+                f"{content}\n"
+                f"TUTORIAL_TIMEOUT_EOF\n) || true"
+            )
+        else:
+            blocks.append(content)
+    return i
+
+
 def extract_shell_blocks(source: str) -> list[str]:
     """Return shell code block contents and wait calls from a MyST Markdown string.
 
@@ -159,24 +221,13 @@ def extract_shell_blocks(source: str) -> list[str]:
     while i < len(lines):
         line = lines[i]
 
-        # Detect skip marker; remember to skip the next shell block.
-        if line.strip() == SKIP_MARKER:
+        # Detect standalone annotation markers (skip / sleep / juju_wait).
+        marker = _handle_marker_line(line, blocks)
+        if marker == "skip":
             skip_next = True
             i += 1
             continue
-
-        # Detect plain sleep marker.
-        sleep_match = _SLEEP_PATTERN.match(line.strip())
-        if sleep_match:
-            blocks.append(f"sleep {sleep_match.group(1)}")
-            i += 1
-            continue
-
-        # Detect juju-wait marker; emit a juju_wait call.
-        juju_wait_match = _JUJU_WAIT_PATTERN.match(line.strip())
-        if juju_wait_match:
-            args = juju_wait_match.group(1)
-            blocks.append(f"juju_wait {args}".rstrip() if args else "juju_wait")
+        if marker is not None:
             i += 1
             continue
 
@@ -197,27 +248,10 @@ def extract_shell_blocks(source: str) -> list[str]:
 
         # Opening fence for a shell block.
         if _SHELL_OPEN.match(line):
-            i += 1
-            block_lines: list[str] = []
-            while i < len(lines) and not _FENCE_CLOSE.match(lines[i]):
-                block_lines.append(lines[i])
-                i += 1
-            i += 1  # consume closing fence
-
-            if not skip_next and block_lines:
-                content = "\n".join(block_lines)
-                for placeholder, variable in active_substitutions:
-                    content = content.replace(placeholder, variable)
-                if run_with_timeout_seconds is not None:
-                    # Wrap in a bash heredoc with timeout so multi-line commands
-                    # work and SIGTERM from timeout does not abort the script.
-                    blocks.append(
-                        f"( timeout {run_with_timeout_seconds} bash << 'TUTORIAL_TIMEOUT_EOF'\n"
-                        f"{content}\n"
-                        f"TUTORIAL_TIMEOUT_EOF\n) || true"
-                    )
-                else:
-                    blocks.append(content)
+            i = _collect_shell_block(
+                lines, i + 1, skip_next, run_with_timeout_seconds,
+                active_substitutions, blocks,
+            )
             skip_next = False
             run_with_timeout_seconds = None
             continue
