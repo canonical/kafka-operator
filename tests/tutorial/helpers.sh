@@ -37,6 +37,7 @@ juju_wait() {
     local interval=30
     local allow_blocked=""
 
+    # Parse named options, consuming two tokens per flag (name + value).
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --timeout)       timeout="$2";       shift 2 ;;
@@ -56,7 +57,7 @@ juju_wait() {
         # abort a calling script that has  set -euo pipefail  active.
         not_ready=$(
             set +o pipefail
-            ALLOW_BLOCKED="$allow_blocked" \
+            export ALLOW_BLOCKED="$allow_blocked"
             juju status --format=json 2>/dev/null | python3 -c '
 import json, sys, os
 try:

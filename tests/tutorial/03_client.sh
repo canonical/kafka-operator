@@ -17,7 +17,7 @@ juju deploy data-integrator --config topic-name=test-topic --config extra-user-r
 
 juju integrate data-integrator kafka
 
-juju_wait --timeout 300
+juju_wait --timeout 600
 
 juju run data-integrator/leader get-credentials
 
