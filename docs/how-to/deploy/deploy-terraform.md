@@ -21,7 +21,7 @@ For Juju CLI-based deployment, see the [Juju CLI deployment guide](how-to-deploy
 
 Save the following as `main.tf` in a new working directory. The module is sourced from the [`terraform/` directory](https://github.com/canonical/kafka-bundle/tree/main/terraform) in the Charmed Apache Kafka bundle repository.
 
-The same `main.tf` is used for both production and testing deployments — the deployment mode is controlled via `.tfvars` files.
+The same `main.tf` is used for both production and testing deployments — the deployment mode is controlled via a `kafka.auto.tfvars` file.
 
 <details>
 
@@ -126,7 +126,7 @@ When `controller` includes `units > 0`, the module deploys separate broker and c
 
 For production use, deploy separate `kafka` (broker) and `controller` (KRaft controller) applications and integrate them. To maintain high availability, 3+ broker units and 3 or 5 controller units are recommended.
 
-Save the following as `production.tfvars`:
+Save the following as `kafka.auto.tfvars`:
 
 ```hcl
 model_name = "terraform"
@@ -149,7 +149,7 @@ controller = {
 
 For non-production testing clusters, co-locate both KRaft controller and broker services in a single application to save resources.
 
-Save the following as `testing.tfvars`:
+Alternatively, save the following as `kafka.auto.tfvars`:
 
 ```hcl
 model_name = "terraform"
@@ -169,16 +169,16 @@ Initialise Terraform, then preview and apply the deployment:
 
 ```shell
 terraform init
-terraform plan -var-file="<profile>.tfvars"
+terraform plan
 ```
 
 Review the plan output, then apply:
 
 ```shell
-terraform apply -var-file="<profile>.tfvars"
+terraform apply
 ```
 
-Replace `<profile>` with either `production` or `testing`, depending on the desired deployment. See [profile reference](https://charmhub.io/kafka/configurations?channel=4/stable#profile).
+Terraform automatically loads the `.auto.tfvars` file in the working directory. See [profile reference](https://charmhub.io/kafka/configurations?channel=4/stable#profile).
 
 Wait for Terraform to finish.
 Then, monitor the Juju model status with:
@@ -191,7 +191,7 @@ The deployment is complete once all units show `active` and `idle` status.
 
 ## (Optional) Create an external admin user
 
-After deployment, the Apache Kafka cluster does not expose any external listeners by default. To create an admin user, add the following `integrator` block to your `.tfvars` file:
+After deployment, the Apache Kafka cluster does not expose any external listeners by default. To create an admin user, add the following `integrator` block to your `kafka.auto.tfvars` file:
 
 ```hcl
 integrator = {
@@ -210,7 +210,7 @@ The Data Integrator is configured with `admin` role, granting `super.user` permi
 Apply the changes:
 
 ```shell
-terraform apply -var-file="<profile>.tfvars"
+terraform apply
 ```
 
 Retrieve authentication credentials with:
@@ -221,7 +221,7 @@ juju run data-integrator/leader get-credentials
 
 ## (Optional) Enable TLS encryption
 
-To encrypt client-facing traffic, pass a [cross-model offer](https://documentation.ubuntu.com/juju/latest/reference/relation/#cross-model-relation) URL from an existing TLS provider (e.g. `self-signed-certificates`) to the module. Add the following to your `.tfvars` file:
+To encrypt client-facing traffic, pass a [cross-model offer](https://documentation.ubuntu.com/juju/latest/reference/relation/#cross-model-relation) URL from an existing TLS provider (e.g. `self-signed-certificates`) to the module. Add the following to your `kafka.auto.tfvars` file:
 
 ```hcl
 tls_offer = "<controller>:<owner>/<model>.certificates"
@@ -231,7 +231,7 @@ The module will integrate all Kafka applications with the TLS provider automatic
 
 ## (Optional) Enable observability with COS
 
-To connect the cluster to the [Canonical Observability Stack (COS)](https://documentation.ubuntu.com/observability/), provide the three required cross-model offer URLs. Add the following to your `.tfvars` file:
+To connect the cluster to the [Canonical Observability Stack (COS)](https://documentation.ubuntu.com/observability/), provide the three required cross-model offer URLs. Add the following to your `kafka.auto.tfvars` file:
 
 ```hcl
 cos_offers = {
