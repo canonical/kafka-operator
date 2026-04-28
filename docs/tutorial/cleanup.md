@@ -23,6 +23,8 @@ along with all other applications:
 juju destroy-model tutorial --destroy-storage --force
 ```
 
+<!-- test:wait --seconds 120 -->
+
 This will remove all applications in the `tutorial` model (Charmed Apache Kafka, 
 OpenSearch, PostgreSQL).
 Your Juju controller and other models (if any) will remain intact for future use.
@@ -42,12 +44,14 @@ you lose access to any other applications you have hosted on Juju.
 
 Check the list of controllers:
 
+<!-- test:skip -->
 ```shell
 juju controllers
 ```
 
 Remove the Juju controller created in this tutorial:
 
+<!-- test:skip -->
 ```shell
 juju destroy-controller overlord
 ```
@@ -56,6 +60,7 @@ juju destroy-controller overlord
 
 To remove Juju altogether:
 
+<!-- test:skip -->
 ```shell
 sudo snap remove juju --purge
 ```
@@ -66,18 +71,21 @@ If you also want to remove LXD containers and free up all resources:
 
 List all remaining LXD containers:
 
+<!-- test:skip -->
 ```shell
 lxc list
 ```
 
 Delete unnecessary containers:
 
+<!-- test:skip -->
 ```shell
 lxc delete <container-name> --force
 ```
 
 If you want to uninstall LXD completely:
 
+<!-- test:skip -->
 ```shell
 sudo snap remove lxd --purge
 ```

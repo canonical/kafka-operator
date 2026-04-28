@@ -44,6 +44,11 @@ juju add-secret internal-kafka-users admin=mynewpassword
 Note the generated secret ID that you see as a response.
 It will look something like `secret:d5nc29hlshbc45lnf07g`.
 
+<!-- test:set-variables
+command: juju show-secret --kind user --format json | jq -r 'to_entries[] | select(.value.label == "internal-kafka-users") | "secret-uri: " + .key'
+SECRET_URI: secret-uri
+-->
+
 Now, grant Charmed Apache Kafka access to the new secret:
 
 ```shell
@@ -54,8 +59,10 @@ Finally, inform Charmed Apache Kafka of the new secret to use for it's internal 
 using the secret ID saved earlier:
 
 ```shell
-juju config kafka system-users=secret:d5nc29hlshbc45lnf07g
+juju config kafka system-users=<secret-uri>
 ```
+
+<!-- test:juju-wait --timeout 600 -->
 
 Now, Charmed Apache Kafka will be able to read the new admin password from the correct secret,
 and will proceed to apply the new password on each unit with a rolling-restart of the services
@@ -79,7 +86,7 @@ juju run data-integrator/leader get-credentials
 
 Running the command should output:
 
-```shell
+```yaml
 kafka:
   consumer-group-prefix: relation-8-
   data: '{"resource": "test-topic", "salt": "yOIRb9uVUuJuKFVc", "extra-user-roles":
@@ -107,11 +114,15 @@ and then re-integrating the `data-integrator` with the `kafka` charm:
 juju remove-relation kafka data-integrator
 ```
 
+<!-- test:juju-wait --timeout 600 -->
+
 Wait for the relation to be torn down and add integration again:
 
 ```shell
 juju integrate kafka data-integrator
 ```
+
+<!-- test:juju-wait --timeout 600 -->
 
 The successful credential rotation can be confirmed by retrieving the new password
 with the action `get-credentials`:
@@ -124,7 +135,7 @@ juju run data-integrator/leader get-credentials
 
 Running the command should now output a different password:
 
-```shell
+```yaml
 kafka:
   consumer-group-prefix: relation-9-
   data: '{"resource": "test-topic", "salt": "iGWWWoUwCy39ou6f", "extra-user-roles":
@@ -155,11 +166,13 @@ To remove the user, remove the relation:
 juju remove-relation kafka data-integrator
 ```
 
+<!-- test:juju-wait --timeout 600 -->
+
 <details> <summary> Output example</summary>
 
 The output of the Juju model should be something like this:
 
-```shell
+```text
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
 tutorial  overlord    localhost/localhost  3.6.20   unsupported  17:12:02Z
 

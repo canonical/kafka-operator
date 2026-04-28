@@ -41,7 +41,12 @@ EXTRACT  := $(THIS_DIR)extract_commands.py
 SCRIPTS := \
     $(THIS_DIR)01_environment.sh:$(ROOT)/docs/tutorial/environment.md \
     $(THIS_DIR)02_deploy.sh:$(ROOT)/docs/tutorial/deploy.md \
-    $(THIS_DIR)03_client.sh:$(ROOT)/docs/tutorial/integrate-with-client-applications.md
+    $(THIS_DIR)03_client.sh:$(ROOT)/docs/tutorial/integrate-with-client-applications.md \
+    $(THIS_DIR)04_passwords.sh:$(ROOT)/docs/tutorial/manage-passwords.md \
+    $(THIS_DIR)05_encryption.sh:$(ROOT)/docs/tutorial/enable-encryption.md \
+    $(THIS_DIR)06_kafka_connect.sh:$(ROOT)/docs/tutorial/use-kafka-connect.md \
+    $(THIS_DIR)07_rebalance.sh:$(ROOT)/docs/tutorial/rebalance-partitions.md \
+    $(THIS_DIR)08_cleanup.sh:$(ROOT)/docs/tutorial/cleanup.md
 
 # Build a plain list of just the output (.sh) file paths.
 # $(foreach …) iterates over SCRIPTS; $(word 1, …) after splitting on ':'
