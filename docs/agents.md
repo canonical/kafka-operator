@@ -39,3 +39,25 @@ Place content in the correct directory:
 - Every page needs a unique reference label at the top: `(label-name)=`
 - MyST front matter (`---`) is used for SEO metadata (`html_meta.description`)
 - All documentation pages should be added to a toc-tree of a parent page to be included in the Nav Menu
+
+## Tutorial testing annotations
+
+Pages under `docs/tutorial/` are the single source of truth for both rendered
+documentation and automated end-to-end tests (see `tests/tutorial/TESTING.md`).
+
+Commands are extracted **only** from `` ```shell `` fenced blocks.
+Use `` ```bash `` or `` ```text `` for output examples or commands that should
+not be executed by the test harness.
+
+Test metadata is embedded as HTML comments, invisible to readers:
+
+- `<!-- test:skip -->` — skip the next shell block
+- `<!-- test:wait --seconds N -->` — emit `sleep N`
+- `<!-- test:await-idle -->` — poll `juju status` until all units are active/idle
+- `<!-- test:run -->` — hidden commands (not rendered in docs)
+- `<!-- test:assert -->` — hidden assertions
+- `<!-- test:set-variables -->` — capture command output into shell variables
+- `<!-- test:spread -->` — Spread task metadata (`priority`, `kill-timeout`)
+
+**When editing tutorial pages:** preserve existing annotations, and use the
+correct fence language (`` ```shell `` vs `` ```bash ``) intentionally.

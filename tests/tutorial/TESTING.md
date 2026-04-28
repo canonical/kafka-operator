@@ -159,6 +159,17 @@ gh run watch
 Annotations are HTML comments in the Markdown source. Only `` ```shell ``
 fences are extracted; other tags (`` ```bash ``, `` ```text ``) are ignored.
 
+Available annotations:
+
+- [`<!-- test:skip -->`](#-test-skip-) — skip the next shell block
+- [`<!-- test:wait -->`](#-test-wait---seconds-n-) — emit a sleep
+- [`<!-- test:await-idle -->`](#-test-await-idle---timeout-s---allow-blocked-app1app2-) — wait for all units to be active/idle
+- [`<!-- test:run-with-timeout -->`](#-test-run-with-timeout---seconds-n-) — run next block with a timeout
+- [`<!-- test:set-variables -->`](#-test-set-variables--) — capture command output into variables
+- [`<!-- test:run -->`](#-test-run--) — hidden commands (not rendered)
+- [`<!-- test:assert -->`](#-test-assert--) — hidden assertions
+- [`<!-- test:spread -->`](#-test-spread--) — Spread task metadata
+
 ### `<!-- test:skip -->`
 
 Skip the next `` ```shell `` block.
