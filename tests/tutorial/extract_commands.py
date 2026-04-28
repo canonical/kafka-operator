@@ -41,22 +41,13 @@ _SHELL_OPEN = re.compile(r"^```shell\s*$")
 _FENCE_CLOSE = re.compile(r"^```\s*$")
 
 
-def _seconds_to_go_duration(seconds: int) -> str:
-    """Convert seconds to Go duration format (e.g. 600 -> '10m', 90 -> '1m30s')."""
-    if seconds <= 0:
-        return "10m"
-    m, s = divmod(seconds, 60)
-    if s == 0:
-        return f"{m}m"
-    return f"{m}m{s}s"
-
-
 def _build_await_idle_command(args_str: str) -> str:
-    """Build a ``juju wait-for model`` command with a juju-status fallback.
+    """Build a ``wait_idle`` call from ``helpers.sh``.
 
-    ``juju wait-for model`` occasionally misses state transitions in Juju 3.6.x.
-    If it times out, we run a single ``juju status`` check — if the model is
-    already in the desired state the wait succeeds anyway.
+    The ``wait_idle`` function polls ``juju status`` until every unit is
+    active/idle (with optional allow-blocked exceptions).  It is more
+    reliable than ``juju wait-for model`` which occasionally misses state
+    transitions in Juju 3.6.x.
     """
     timeout = 1200
     allow_blocked: list[str] = []
@@ -73,21 +64,11 @@ def _build_await_idle_command(args_str: str) -> str:
         else:
             i += 1
 
-    duration = _seconds_to_go_duration(timeout)
-
+    parts = ["wait_idle", "--timeout", str(timeout)]
     if allow_blocked:
-        app_conditions = " || ".join(f'app.name == "{name}"' for name in allow_blocked)
-        query = f'forEach(applications, app => app.status == "active" || {app_conditions})'
-    else:
-        query = 'forEach(applications, app => app.status == "active")'
+        parts.extend(["--allow-blocked", ",".join(allow_blocked)])
 
-    blocked_args = " ".join(allow_blocked)
-
-    return (
-        "sleep 3\n"
-        f"juju wait-for model tutorial --query='{query}' --timeout {duration}"
-        f" || _check_idle {blocked_args}"
-    )
+    return " ".join(parts)
 
 
 def _parse_set_variables_block(
@@ -226,7 +207,7 @@ def extract_shell_blocks(source: str) -> list[str]:
     """Return shell code block contents and generated commands from a MyST Markdown string.
 
     Each returned string is either the raw content between shell fences, a
-    ``sleep N`` line, a ``juju wait-for model`` command, or injected code from
+    ``sleep N`` line, a ``wait_idle`` command, or injected code from
     other annotations.  Blocks marked with ``<!-- test:skip -->`` are omitted.
     """
     lines = source.splitlines()
@@ -314,23 +295,9 @@ def build_script(input_path: Path, blocks: list[str]) -> str:
         "\n"
         "set -euo pipefail\n"
         "\n"
-        "# Spread SSHs in as root but does not always set HOME=/root.\n"
-        "export HOME=/root\n"
-        "\n"
-        "# Fallback for juju wait-for: verify via juju status that all agents\n"
-        "# are idle and all app statuses are active (or in the allow-blocked list).\n"
-        "# Called automatically when juju wait-for times out.\n"
-        "_check_idle() {\n"
-        '  local _j; _j=$(juju status --format json)\n'
-        '  echo "$_j" | jq -e \\\n'
-        "    '[.applications[].units[].\"juju-status\".current] | all(. == \"idle\")' \\\n"
-        "    > /dev/null || { echo 'FAIL: not all agents idle' >&2; juju status; return 1; }\n"
-        '  for _a in "$@"; do _j=$(echo "$_j" | jq --arg a "$_a" \\\n'
-        "    '.applications[$a][\"application-status\"].current = \"active\"'); done\n"
-        '  echo "$_j" | jq -e \\\n'
-        "    '[.applications[].\"application-status\".current] | all(. == \"active\")' \\\n"
-        "    > /dev/null || { echo 'FAIL: not all apps active' >&2; juju status; return 1; }\n"
-        "}\n"
+        "# Load shared helpers (wait_idle, HOME export, etc.).\n"
+        'HELPERS="${SPREAD_PATH:-$(cd "$(dirname "$0")" && pwd)}/tests/tutorial/helpers.sh"\n'
+        '. "$HELPERS"\n'
         "\n"
     )
     return header + "\n\n".join(blocks) + "\n"

@@ -58,6 +58,10 @@ juju integrate kafka:peer-cluster-orchestrator kraft:peer-cluster
 
 <!-- test:await-idle --timeout 1200 -->
 
+<!-- test:run
+juju wait-for model tutorial --query='forEach(applications, app => app.status == "active")' --timeout 10m
+-->
+
 <!-- test:assert
 test "$(juju status --format json | jq '.applications.kafka.units | length')" -eq 3
 test "$(juju status --format json | jq '.applications.kraft.units | length')" -eq 3

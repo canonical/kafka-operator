@@ -139,9 +139,10 @@ Emit `sleep N` at that point in the script.
 
 ### `<!-- test:await-idle --timeout S --allow-blocked APP1,APP2 -->`
 
-Emit a `juju wait-for model` command that blocks until all applications are
-`active`. `--timeout` is in seconds (default: 600). `--allow-blocked` lists
-apps permitted to be in `blocked` state (comma-separated).
+Emit a `wait_idle` call (from `helpers.sh`) that polls `juju status` until all
+units are `active/idle`. `--timeout` is in seconds (default: 1200).
+`--allow-blocked` lists apps permitted to be in `blocked` state
+(comma-separated).
 
 ### `<!-- test:run-with-timeout --seconds N -->`
 
