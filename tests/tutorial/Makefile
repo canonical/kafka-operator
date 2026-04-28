@@ -119,10 +119,40 @@ help:
 	@echo "Usage: make -f tests/tutorial/Makefile [target]"
 	@echo ""
 	@echo "Targets:"
-	@echo "  all      Regenerate scripts that are out of date (default)"
-	@echo "  extract  Unconditionally regenerate all scripts"
-	@echo "  help     Show this help message"
+	@echo "  all       Regenerate scripts that are out of date (default)"
+	@echo "  extract   Unconditionally regenerate all scripts"
+	@echo "  test      Run the full tutorial suite (abort on first failure)"
+	@echo "  test-continue  Run all stages even if earlier ones fail"
+	@echo "  test-debug     Run with -debug: drop into a shell on failure"
+	@echo "  help      Show this help message"
 	@echo ""
 	@echo "Generated scripts:"
 	@$(foreach pair,$(SCRIPTS), \
 	    echo "  $(word 1,$(subst :, ,$(pair)))  ←  $(word 2,$(subst :, ,$(pair)))";)
+
+# ---------------------------------------------------------------------------
+# Spread configuration
+# ---------------------------------------------------------------------------
+SPREAD     ?= spread
+SPREAD_JOB ?= multipass:ubuntu-24.04-64:tests/tutorial/
+
+# ---------------------------------------------------------------------------
+# Target: test  (default run — abort on first failure)
+# ---------------------------------------------------------------------------
+.PHONY: test
+test: extract
+	$(SPREAD) -abend -vv $(SPREAD_JOB)
+
+# ---------------------------------------------------------------------------
+# Target: test-continue  (run all stages even if some fail)
+# ---------------------------------------------------------------------------
+.PHONY: test-continue
+test-continue: extract
+	$(SPREAD) -vv $(SPREAD_JOB)
+
+# ---------------------------------------------------------------------------
+# Target: test-debug  (abort on first failure, drop into VM shell)
+# ---------------------------------------------------------------------------
+.PHONY: test-debug
+test-debug: extract
+	$(SPREAD) -abend -vv -debug $(SPREAD_JOB)

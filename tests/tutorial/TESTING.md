@@ -45,22 +45,67 @@ git clone <repo-url> && cd kafka-operator
 make -f tests/tutorial/Makefile extract
 
 # 2. Run the full tutorial test suite.
-#    Spread will provision a Multipass VM, run all stages in order, and
-#    tear the VM down on completion. On failure, -debug drops you into
-#    a shell inside the VM.
-spread -vv -debug multipass:ubuntu-24.04-64:tests/tutorial/
+#    Aborts on the first failure, tears down the VM on completion.
+make -f tests/tutorial/Makefile test
 ```
 
-Run a single stage:
+The `test` target uses `-abend` so that the run stops immediately when a step
+fails. Since every tutorial stage depends on the previous one, continuing after
+a failure would only produce cascading errors.
+
+### Run modes
+
+| Make target      | Spread flags        | Behaviour                                                     |
+|------------------|---------------------|---------------------------------------------------------------|
+| `test` (default) | `-abend -vv`        | Abort on first failure, tear down VM                          |
+| `test-continue`  | `-vv`               | Run all stages even if earlier ones fail                      |
+| `test-debug`     | `-abend -vv -debug` | Abort on first failure, drop into an interactive VM shell     |
+
+**`test-debug`** is the most useful mode during development. When a step fails,
+Spread pauses and prints SSH credentials for the VM. You can SSH in, inspect
+`juju status`, read logs, re-run commands by hand, then type `exit` (or
+`Ctrl+D`) to let Spread clean up. Example:
 
 ```bash
-spread -vv -debug multipass:ubuntu-24.04-64:tests/tutorial/01_environment
+make -f tests/tutorial/Makefile test-debug
 ```
 
-Use `-continue` to keep going after failures:
+On failure you'll see output like:
+
+```
+2026-04-11 20:13:23 Debug shell on multipass:ubuntu-24.04-64 for multipass:ubuntu-24.04-64:tests/tutorial/03_client
+2026-04-11 20:13:23   Address: 10.189.154.39:22
+2026-04-11 20:13:23   User:    root
+2026-04-11 20:13:23   Password: 6d11d3739e023950
+```
+
+Use those credentials to SSH in:
 
 ```bash
-spread -continue -vv -debug multipass:ubuntu-24.04-64:tests/tutorial/
+ssh root@10.189.154.39     # password from the output above
+cd /charmed-kafka
+juju status                 # inspect the model
+bash tests/tutorial/03_client.sh   # re-run the failing script
+```
+
+When done, exit the shell and Spread will tear down the VM.
+
+### Running directly with `spread`
+
+You can also call `spread` directly for finer control:
+
+```bash
+# Abort on first failure (recommended for sequential tutorial):
+spread -abend -vv multipass:ubuntu-24.04-64:tests/tutorial/
+
+# Run all stages regardless of failures:
+spread -vv multipass:ubuntu-24.04-64:tests/tutorial/
+
+# Debug mode — interactive shell on failure:
+spread -abend -vv -debug multipass:ubuntu-24.04-64:tests/tutorial/
+
+# Run a single stage:
+spread -abend -vv -debug multipass:ubuntu-24.04-64:tests/tutorial/02_deploy
 ```
 
 Resource defaults (override with env vars):
