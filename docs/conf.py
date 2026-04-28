@@ -286,6 +286,7 @@ extensions = [
 
 exclude_patterns = [
     "doc-cheat-sheet*",
+    "agents.md",
 ]
 
 # Adds custom CSS files, located under 'html_static_path'
