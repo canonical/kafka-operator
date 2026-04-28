@@ -315,7 +315,7 @@ psql --host $(hostname -i) --username operator --password --dbname tutorial \
 
 ```shell
 juju ssh postgresql/leader "PGPASSWORD=${PG_PASSWORD} psql --host \$(hostname -i) --username operator --dbname postgres -c 'CREATE DATABASE tutorial'"
-juju ssh postgresql/leader "PGPASSWORD=${PG_PASSWORD} psql --host \$(hostname -i) --username operator --dbname tutorial -f /home/ubuntu/populate.sql"
+juju ssh postgresql/leader "cat /home/ubuntu/populate.sql | PGPASSWORD=${PG_PASSWORD} psql --host \$(hostname -i) --username operator --dbname tutorial"
 juju ssh postgresql/leader "PGPASSWORD=${PG_PASSWORD} psql --host \$(hostname -i) --username operator --dbname tutorial -c 'SELECT COUNT(*) FROM posts'"
 ```
 
