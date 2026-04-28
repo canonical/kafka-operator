@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright 2026 Canonical Ltd.
+# See LICENSE file for licensing details.
+
 """Extract shell code blocks from MyST Markdown tutorial files.
 
 Usage

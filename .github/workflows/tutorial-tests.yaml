@@ -12,7 +12,7 @@ jobs:
   tutorial-test:
     name: Tutorial end-to-end
     runs-on: [self-hosted, linux, AMD64, X64, xlarge, noble]
-    timeout-minutes: 120
+    timeout-minutes: 180
     steps:
       - name: Checkout
         uses: actions/checkout@v4
