@@ -17,8 +17,11 @@ The generation pipeline:
 1. Each `docs/tutorial/<page>.md` maps to a `tests/tutorial/<NN>_<name>.sh`
    script and a `tests/tutorial/<NN>_<name>/task.yaml` Spread task.
 2. `extract_commands.py` extracts `` ```shell `` fenced blocks, processes
-   annotations, and writes both the `.sh` script and `task.yaml`.
-3. The `Makefile` drives generation for all pages.
+   annotations, and writes both the `.sh` script and `task.yaml`. It accepts
+   one or more `<input.md> <output.sh>` pairs in a single invocation.
+3. Generation is driven either by **tox** (`tox -e tutorial-extract`, which
+   passes all pairs in one call) or by the **Makefile** (`make -f
+   tests/tutorial/Makefile extract`), which rebuilds only out-of-date scripts.
 
 Generated files (`.sh` and `task.yaml`) are **not stored in git**. They must
 be generated locally before running Spread.
@@ -148,11 +151,15 @@ gh run watch
 
 ## Adding a new tutorial page
 
-1. Register the page in the `SCRIPTS` variable in `tests/tutorial/Makefile`.
+1. Register the page in **both** places:
+   - The `SCRIPTS` variable in `tests/tutorial/Makefile` (used by `make`).
+   - The `[testenv:tutorial-extract]` command in `tox.ini` (used by `tox`),
+     appending the new `<input.md> <output.sh>` pair to the existing argument
+     list.
 2. Add a `<!-- test:spread ... -->` block to the Markdown file with `priority`
    and `kill-timeout` (see below).
-3. Run `make -f tests/tutorial/Makefile extract` to generate both the `.sh`
-   script and `task.yaml`.
+3. Run `tox -e tutorial-extract` (or `make -f tests/tutorial/Makefile extract`)
+   to generate both the `.sh` script and `task.yaml`.
 
 ## Annotation reference
 

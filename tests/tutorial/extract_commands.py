@@ -383,12 +383,8 @@ def build_task_yaml(script_path: str, heading: str, meta: dict[str, str]) -> str
     )
 
 
-def main() -> None:
-    if len(sys.argv) < 2:
-        print(__doc__)
-        sys.exit(1)
-
-    input_path = Path(sys.argv[1])
+def _process_pair(input_path: Path, output_path: Path) -> None:
+    """Extract shell blocks from *input_path* and write the script to *output_path*."""
     if not input_path.exists():
         sys.exit(f"Error: {input_path} does not exist")
 
@@ -399,25 +395,47 @@ def main() -> None:
         print(f"Warning: no shell blocks found in {input_path}", file=sys.stderr)
 
     script = build_script(input_path, blocks)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(script, encoding="utf-8")
+    print(f"Written {len(blocks)} block(s) → {output_path}")
 
-    if len(sys.argv) >= 3:
-        output_path = Path(sys.argv[2])
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(script, encoding="utf-8")
-        print(f"Written {len(blocks)} block(s) → {output_path}")
+    # Generate task.yaml alongside the .sh file if spread metadata exists.
+    meta = extract_spread_meta(source)
+    heading = extract_heading(source)
+    if meta:
+        task_dir = output_path.with_suffix("")  # 01_environment.sh → 01_environment/
+        task_yaml = task_dir / "task.yaml"
+        task_yaml.parent.mkdir(parents=True, exist_ok=True)
+        task_content = build_task_yaml(str(output_path), heading, meta)
+        task_yaml.write_text(task_content, encoding="utf-8")
+        print(f"Written task.yaml → {task_yaml}")
 
-        # Generate task.yaml alongside the .sh file if spread metadata exists.
-        meta = extract_spread_meta(source)
-        heading = extract_heading(source)
-        if meta:
-            task_dir = output_path.with_suffix("")  # 01_environment.sh → 01_environment/
-            task_yaml = task_dir / "task.yaml"
-            task_yaml.parent.mkdir(parents=True, exist_ok=True)
-            task_content = build_task_yaml(str(output_path), heading, meta)
-            task_yaml.write_text(task_content, encoding="utf-8")
-            print(f"Written task.yaml → {task_yaml}")
-    else:
-        print(script, end="")
+
+def main() -> None:
+    args = sys.argv[1:]
+
+    if not args:
+        print(__doc__)
+        sys.exit(1)
+
+    # Single input with no output → print to stdout.
+    if len(args) == 1:
+        input_path = Path(args[0])
+        if not input_path.exists():
+            sys.exit(f"Error: {input_path} does not exist")
+        source = input_path.read_text(encoding="utf-8")
+        blocks = extract_shell_blocks(source)
+        if not blocks:
+            print(f"Warning: no shell blocks found in {input_path}", file=sys.stderr)
+        print(build_script(input_path, blocks), end="")
+        return
+
+    # One or more <input.md> <output.sh> pairs.
+    if len(args) % 2 != 0:
+        sys.exit("Error: arguments must be pairs of <input.md> <output.sh>")
+
+    for i in range(0, len(args), 2):
+        _process_pair(Path(args[i]), Path(args[i + 1]))
 
 
 if __name__ == "__main__":
