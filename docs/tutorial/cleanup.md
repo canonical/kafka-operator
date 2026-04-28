@@ -4,6 +4,11 @@ myst:
     description: "Clean up your Charmed Apache Kafka tutorial environment - remove deployments, Juju controllers, and free system resources."
 ---
 
+<!-- test:spread
+priority: -400
+kill-timeout: 15m
+-->
+
 (tutorial-cleanup)=
 # 8. Cleanup your environment
 
@@ -20,8 +25,10 @@ To remove Charmed Apache Kafka and the `tutorial` model it is hosted on,
 along with all other applications:
 
 ```shell
-juju destroy-model tutorial --destroy-storage --force
+juju destroy-model tutorial --destroy-storage --force --no-prompt
 ```
+
+<!-- test:wait --seconds 120 -->
 
 This will remove all applications in the `tutorial` model (Charmed Apache Kafka, 
 OpenSearch, PostgreSQL).
@@ -42,12 +49,14 @@ you lose access to any other applications you have hosted on Juju.
 
 Check the list of controllers:
 
+<!-- test:skip -->
 ```shell
 juju controllers
 ```
 
 Remove the Juju controller created in this tutorial:
 
+<!-- test:skip -->
 ```shell
 juju destroy-controller overlord
 ```
@@ -56,6 +65,7 @@ juju destroy-controller overlord
 
 To remove Juju altogether:
 
+<!-- test:skip -->
 ```shell
 sudo snap remove juju --purge
 ```
@@ -66,18 +76,21 @@ If you also want to remove LXD containers and free up all resources:
 
 List all remaining LXD containers:
 
+<!-- test:skip -->
 ```shell
 lxc list
 ```
 
 Delete unnecessary containers:
 
+<!-- test:skip -->
 ```shell
 lxc delete <container-name> --force
 ```
 
 If you want to uninstall LXD completely:
 
+<!-- test:skip -->
 ```shell
 sudo snap remove lxd --purge
 ```

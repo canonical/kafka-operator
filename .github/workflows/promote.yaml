@@ -23,8 +23,18 @@ on:
           - stable
 
 jobs:
+  tutorial-tests:
+    name: Tutorial gate (beta → candidate)
+    if: inputs.from-risk == 'beta' && inputs.to-risk == 'candidate'
+    uses: ./.github/workflows/tutorial-tests.yaml
+    secrets: inherit
+
   promote:
     name: Promote charms
+    needs:
+      - tutorial-tests
+    # Run even when tutorial-tests is skipped (non beta→candidate promotions).
+    if: ${{ !failure() && !cancelled() }}
     uses: canonical/data-platform-workflows/.github/workflows/_promote_charms.yaml@v42.0.0
     with:
       track: '4'
