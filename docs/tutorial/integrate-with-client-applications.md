@@ -331,6 +331,7 @@ juju remove-relation kafka-test-app kafka
 ```
 
 <!-- test:await-idle --timeout 1200 --allow-blocked kafka-test-app -->
+<!-- test:wait --seconds 30 -->
 
 ### Consuming messages
 
@@ -339,6 +340,7 @@ The `kafka-test-app` charm can be used to consume messages by changing its confi
 ```shell
 juju config kafka-test-app topic_name=TOP-PICK role=consumer consumer_group_prefix=cg
 ```
+<!-- test:wait --seconds 5 -->
 
 After configuring the Apache Kafka Test App, just relate it again with the Charmed Apache Kafka.
 
