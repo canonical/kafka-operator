@@ -45,7 +45,7 @@ git clone <repo-url> && cd kafka-operator
 tox -e tutorial-extract
 
 # 2. Run the full tutorial test suite (extract + spread).
-#    Aborts on the first failure, tears down the VM on completion.
+#    Runs all stages even if earlier ones fail.
 tox -e tutorial
 ```
 
@@ -53,21 +53,22 @@ Alternatively, you can use the Makefile directly:
 
 ```bash
 make -f tests/tutorial/Makefile extract   # step 1
-make -f tests/tutorial/Makefile test      # steps 1+2
+make -f tests/tutorial/Makefile test      # steps 1+2 (abort on first failure)
 ```
 
-The `tutorial` tox env (and the Makefile `test` target) uses `-abend` so that
-the run stops immediately when a step fails. Since every tutorial stage depends
-on the previous one, continuing after a failure would only produce cascading
-errors.
+The `tox -e tutorial` env runs in **continue mode** (no `-abend`), executing
+all stages even if earlier ones fail. This is the mode used by CI.
+
+The Makefile `test` target uses `-abend` to stop immediately on the first
+failure — more useful during local development.
 
 ### Run modes
 
 | tox / Make                                 | Spread flags        | Behaviour                                                     |
 |--------------------------------------------|---------------------|---------------------------------------------------------------|
-| `tox -e tutorial` / `make … test`          | `-abend -vv`        | Abort on first failure, tear down VM                          |
+| `tox -e tutorial` / `make … test-continue` | `-vv`               | Run all stages even if earlier ones fail (CI default)         |
 | `tox -e tutorial-extract` / `make … extract` | —                 | Generate scripts only (no Spread run)                         |
-| `make … test-continue`                     | `-vv`               | Run all stages even if earlier ones fail                      |
+| `make … test`                              | `-abend -vv`        | Abort on first failure, tear down VM                          |
 | `make … test-debug`                        | `-abend -vv -debug` | Abort on first failure, drop into an interactive VM shell     |
 
 **`test-debug`** is the most useful mode during development. When a step fails,
@@ -124,6 +125,26 @@ Resource defaults (override with env vars):
 | `SPREAD_VM_CPUS`  | `8`     | Multipass VM CPU count |
 | `SPREAD_VM_MEM`   | `16G`   | Multipass VM RAM       |
 | `SPREAD_VM_DISK`  | `50G`   | Multipass VM disk      |
+
+## CI
+
+Tutorial tests run automatically in GitHub Actions via
+`.github/workflows/tutorial-tests.yaml`. The workflow:
+
+- **Triggers**: manual dispatch, `workflow_call` (from other workflows),
+  and monthly schedule (1st of every month at 03:00 UTC).
+- **Runner**: self-hosted `xlarge` with KVM support (required by Multipass).
+- **Mode**: continue (`-vv`, no `-abend`) — runs all stages and reports
+  all failures.
+- **Promotion gate**: the `promote.yaml` workflow calls `tutorial-tests.yaml`
+  when promoting from `beta` to `candidate`.
+
+To trigger manually:
+
+```bash
+gh workflow run tutorial-tests.yaml --ref <branch>
+gh run watch
+```
 
 ## Adding a new tutorial page
 
