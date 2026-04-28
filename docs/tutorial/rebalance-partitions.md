@@ -115,7 +115,7 @@ from other brokers (`0`, `1` and `2`) to broker `3`:
 
 <!-- test:run-with-timeout --seconds 180 -->
 ```shell
-juju run cruise-control/0 rebalance mode=add brokerid=103 --wait=2m
+juju run kraft/leader rebalance mode=add brokerid=103 --wait=2m
 ```
 
 ```{warning}
@@ -154,7 +154,7 @@ If we are happy with this proposal, we can re-run the action,
 but this time instructing the charm to actually execute the proposal:
 
 ```shell
-juju run cruise-control/0 rebalance mode=add dryrun=false brokerid=103 --wait=10m
+juju run kraft/leader rebalance mode=add dryrun=false brokerid=103 --wait=10m
 ```
 
 <!-- test:juju-wait --timeout 900 -->
@@ -164,10 +164,10 @@ To monitor the progress, in a separate terminal session, check the `juju debug-l
 to see it in progress:
 
 ```text
-unit-cruise-control-0: 22:18:41 INFO unit.cruise-control/0.juju-log Waiting for task execution to finish for user_task_id='d3e426a3-6c2e-412e-804c-8a677f2678af'...
-unit-cruise-control-0: 22:18:51 INFO unit.cruise-control/0.juju-log Waiting for task execution to finish for user_task_id='d3e426a3-6c2e-412e-804c-8a677f2678af'...
-unit-cruise-control-0: 22:19:02 INFO unit.cruise-control/0.juju-log Waiting for task execution to finish for user_task_id='d3e426a3-6c2e-412e-804c-8a677f2678af'...
-unit-cruise-control-0: 22:19:12 INFO unit.cruise-control/0.juju-log Waiting for task execution to finish for user_task_id='d3e426a3-6c2e-412e-804c-8a677f2678af'...
+unit-kraft-0: 22:18:41 INFO unit.kraft/0.juju-log Waiting for task execution to finish for user_task_id='d3e426a3-6c2e-412e-804c-8a677f2678af'...
+unit-kraft-0: 22:18:51 INFO unit.kraft/0.juju-log Waiting for task execution to finish for user_task_id='d3e426a3-6c2e-412e-804c-8a677f2678af'...
+unit-kraft-0: 22:19:02 INFO unit.kraft/0.juju-log Waiting for task execution to finish for user_task_id='d3e426a3-6c2e-412e-804c-8a677f2678af'...
+unit-kraft-0: 22:19:12 INFO unit.kraft/0.juju-log Waiting for task execution to finish for user_task_id='d3e426a3-6c2e-412e-804c-8a677f2678af'...
 ...
 ```
 
@@ -223,7 +223,7 @@ To remove the most recent broker unit `3` from the previous example,
 re-run the `rebalance` action with `mode=remove`:
 
 ```shell
-juju run cruise-control/0 rebalance mode=remove dryrun=false brokerid=3 --wait=10m
+juju run kraft/leader rebalance mode=remove dryrun=false brokerid=3 --wait=10m
 ```
 
 <!-- test:juju-wait --timeout 600 -->
@@ -260,7 +260,7 @@ Make sure that the broker has no partitions assigned, for example:
 Now, it is safe to scale-in the cluster by removing the broker number `3` completely:
 
 ```shell
-juju remove-unit kafka/3
+juju remove-unit kafka/3 --no-prompt
 ```
 
 <!-- test:juju-wait --timeout 600 -->
@@ -282,7 +282,7 @@ You can do it in the "dryrun" mode (by default) for now:
 
 <!-- test:run-with-timeout --seconds 660 -->
 ```shell
-juju run cruise-control/0 rebalance mode=full --wait=10m
+juju run kraft/leader rebalance mode=full --wait=10m
 ```
 
 Looking at the bottom of the output, see the value of the `balancedness` score
@@ -299,5 +299,5 @@ summary:
 To implement the proposed changes, run the same command but with `dryrun=false`:
 
 ```shell
-juju run cruise-control/0 rebalance mode=full dryrun=false --wait=10m
+juju run kraft/leader rebalance mode=full dryrun=false --wait=10m
 ```

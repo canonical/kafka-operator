@@ -34,11 +34,11 @@ juju ssh kafka/leader sudo -i charmed-kafka.log-dirs --describe \
 sleep 1200
 
 ( timeout 180 bash << 'TUTORIAL_TIMEOUT_EOF'
-juju run cruise-control/0 rebalance mode=add brokerid=103 --wait=2m
+juju run kraft/leader rebalance mode=add brokerid=103 --wait=2m
 TUTORIAL_TIMEOUT_EOF
 ) || true
 
-juju run cruise-control/0 rebalance mode=add dryrun=false brokerid=103 --wait=10m
+juju run kraft/leader rebalance mode=add dryrun=false brokerid=103 --wait=10m
 
 juju_wait --timeout 900
 
@@ -49,7 +49,7 @@ juju ssh kafka/leader sudo -i charmed-kafka.log-dirs --describe \
   | sed -n '/^{/p' \
   | jq '.brokers[] | select(.broker == 103)'
 
-juju run cruise-control/0 rebalance mode=remove dryrun=false brokerid=3 --wait=10m
+juju run kraft/leader rebalance mode=remove dryrun=false brokerid=3 --wait=10m
 
 juju_wait --timeout 600
 
@@ -60,13 +60,13 @@ juju ssh kafka/leader sudo -i charmed-kafka.log-dirs --describe \
   | sed -n '/^{/p' \
   | jq '.brokers[] | select(.broker == 103)'
 
-juju remove-unit kafka/3
+juju remove-unit kafka/3 --no-prompt
 
 juju_wait --timeout 600
 
 ( timeout 660 bash << 'TUTORIAL_TIMEOUT_EOF'
-juju run cruise-control/0 rebalance mode=full --wait=10m
+juju run kraft/leader rebalance mode=full --wait=10m
 TUTORIAL_TIMEOUT_EOF
 ) || true
 
-juju run cruise-control/0 rebalance mode=full dryrun=false --wait=10m
+juju run kraft/leader rebalance mode=full dryrun=false --wait=10m

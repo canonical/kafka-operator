@@ -50,7 +50,7 @@ juju integrate kafka-connect self-signed-certificates
 
 juju_wait --timeout 1200
 
-cat <<EOF > /tmp/populate.sql
+cat <<EOF > ~/populate.sql
 CREATE TABLE posts (
   id serial not null primary key,
   content text not null,
@@ -82,7 +82,7 @@ VALUES
   );
 EOF
 
-juju scp /tmp/populate.sql postgresql/0:/home/ubuntu/populate.sql
+juju scp ~/populate.sql postgresql/0:/home/ubuntu/populate.sql
 
 juju run postgresql/leader get-password
 

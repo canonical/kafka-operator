@@ -186,7 +186,7 @@ Before proceeding further, let's remove the `kafka-test-app` application:
 ```shell
 juju remove-relation kafka-test-app kafka
 juju remove-relation kafka-test-app self-signed-certificates
-juju remove-application kafka-test-app --destroy-storage
+juju remove-application kafka-test-app --destroy-storage --no-prompt
 ```
 
 <!-- test:juju-wait --timeout 600 -->
