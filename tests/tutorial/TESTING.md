@@ -14,14 +14,18 @@ consumed by `extract_commands.py`.
 
 The generation pipeline:
 
-1. Each `docs/tutorial/<page>.md` maps to a `tests/tutorial/<NN>_<name>.sh`
-   script and a `tests/tutorial/<NN>_<name>/task.yaml` Spread task.
+1. Each `docs/tutorial/<page>.md` that contains a `<!-- test:spread ... -->`
+   metadata block maps to a `tests/tutorial/<page>.sh` script and a
+   `tests/tutorial/<page>/task.yaml` Spread task. Execution order is
+   determined by the `priority` field in the spread metadata, not filenames.
 2. `extract_commands.py` extracts `` ```shell `` fenced blocks, processes
-   annotations, and writes both the `.sh` script and `task.yaml`. It accepts
-   one or more `<input.md> <output.sh>` pairs in a single invocation.
-3. Generation is driven either by **tox** (`tox -e tutorial-extract`, which
-   passes all pairs in one call) or by the **Makefile** (`make -f
-   tests/tutorial/Makefile extract`), which rebuilds only out-of-date scripts.
+   annotations, and writes both the `.sh` script and `task.yaml`. It supports
+   a **directory mode** (`extract_commands.py <input_dir> <output_dir>`) that
+   auto-discovers all `.md` files with spread metadata, as well as explicit
+   `<input.md> <output.sh>` pairs.
+3. Generation is driven either by **tox** (`tox -e tutorial-extract`) or by
+   the **Makefile** (`make -f tests/tutorial/Makefile extract`). Both use
+   directory discovery mode by default.
 
 Generated files (`.sh` and `task.yaml`) are **not stored in git**. They must
 be generated locally before running Spread.
@@ -151,13 +155,12 @@ gh run watch
 
 ## Adding a new tutorial page
 
-1. Register the page in **both** places:
-   - The `SCRIPTS` variable in `tests/tutorial/Makefile` (used by `make`).
-   - The `[testenv:tutorial-extract]` command in `tox.ini` (used by `tox`),
-     appending the new `<input.md> <output.sh>` pair to the existing argument
-     list.
-2. Add a `<!-- test:spread ... -->` block to the Markdown file with `priority`
-   and `kill-timeout` (see below).
+1. Add a `<!-- test:spread ... -->` block to the Markdown file with `priority`
+   and `kill-timeout` (see below). This is what makes the file discoverable
+   by `extract_commands.py`.
+2. Register the page in the `SCRIPTS` variable in `tests/tutorial/Makefile`
+   so that `make all` can track it for incremental (timestamp-based) rebuilds.
+   `tox` uses directory discovery and does **not** need updating.
 3. Run `tox -e tutorial-extract` (or `make -f tests/tutorial/Makefile extract`)
    to generate both the `.sh` script and `task.yaml`.
 

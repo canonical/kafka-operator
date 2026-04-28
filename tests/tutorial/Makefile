@@ -37,16 +37,19 @@ EXTRACT  := $(THIS_DIR)extract_commands.py
 # Script → Markdown mapping (SCRIPTS)
 # ---------------------------------------------------------------------------
 # Each entry is a colon-separated pair:  output.sh:source.md
+# Output filenames match the Markdown stem (no numeric prefix); Spread
+# execution order is determined by the ``priority`` field in each file's
+# ``<!-- test:spread ... -->`` metadata block.
 # To add a new tutorial page, append another line here in the same format.
 SCRIPTS := \
-    $(THIS_DIR)01_environment.sh:$(ROOT)/docs/tutorial/environment.md \
-    $(THIS_DIR)02_deploy.sh:$(ROOT)/docs/tutorial/deploy.md \
-    $(THIS_DIR)03_client.sh:$(ROOT)/docs/tutorial/integrate-with-client-applications.md \
-    $(THIS_DIR)04_passwords.sh:$(ROOT)/docs/tutorial/manage-passwords.md \
-    $(THIS_DIR)05_encryption.sh:$(ROOT)/docs/tutorial/enable-encryption.md \
-    $(THIS_DIR)06_kafka_connect.sh:$(ROOT)/docs/tutorial/use-kafka-connect.md \
-    $(THIS_DIR)07_rebalance.sh:$(ROOT)/docs/tutorial/rebalance-partitions.md \
-    $(THIS_DIR)08_cleanup.sh:$(ROOT)/docs/tutorial/cleanup.md
+    $(THIS_DIR)environment.sh:$(ROOT)/docs/tutorial/environment.md \
+    $(THIS_DIR)deploy.sh:$(ROOT)/docs/tutorial/deploy.md \
+    $(THIS_DIR)integrate-with-client-applications.sh:$(ROOT)/docs/tutorial/integrate-with-client-applications.md \
+    $(THIS_DIR)manage-passwords.sh:$(ROOT)/docs/tutorial/manage-passwords.md \
+    $(THIS_DIR)enable-encryption.sh:$(ROOT)/docs/tutorial/enable-encryption.md \
+    $(THIS_DIR)use-kafka-connect.sh:$(ROOT)/docs/tutorial/use-kafka-connect.md \
+    $(THIS_DIR)rebalance-partitions.sh:$(ROOT)/docs/tutorial/rebalance-partitions.md \
+    $(THIS_DIR)cleanup.sh:$(ROOT)/docs/tutorial/cleanup.md
 
 # Build a plain list of just the output (.sh) file paths.
 # $(foreach …) iterates over SCRIPTS; $(word 1, …) after splitting on ':'
@@ -84,7 +87,7 @@ all: $(OUTPUTS)
 # For each pair in SCRIPTS, $(eval $(call make_rule,…)) expands the template
 # and registers a concrete rule like:
 #
-#   tests/tutorial/01_environment.sh: docs/tutorial/environment.md extract_commands.py
+#   tests/tutorial/environment.sh: docs/tutorial/environment.md extract_commands.py
 #       cd <ROOT> && python3 extract_commands.py <source.md> <output.sh>
 #
 # We cd to ROOT before running the script so that the paths written into the
@@ -98,17 +101,13 @@ $(foreach pair,$(SCRIPTS),$(eval $(call make_rule,$(pair))))
 # ---------------------------------------------------------------------------
 # Target: extract
 # ---------------------------------------------------------------------------
-# Unlike 'all', this target runs extract_commands.py on every file in SCRIPTS
-# unconditionally — it does not check whether the output is already up to date.
-# Use this when you want to force a full regeneration regardless of timestamps,
-# for example after changing extract_commands.py itself.
-#
-# The semicolon after each command is required: $(foreach …) expands to a
-# single recipe line, so the semicolon separates consecutive shell commands.
+# Unlike 'all', this target runs extract_commands.py in directory-discovery
+# mode — it processes every .md file with spread metadata unconditionally,
+# without checking timestamps. Use this when you want to force a full
+# regeneration, for example after changing extract_commands.py itself.
 .PHONY: extract
 extract:
-	$(foreach pair,$(SCRIPTS), \
-	    cd $(ROOT) && $(PYTHON) $(call rel,$(EXTRACT)) $(call rel,$(word 2,$(subst :, ,$(pair)))) $(call rel,$(word 1,$(subst :, ,$(pair))));)
+	cd $(ROOT) && $(PYTHON) $(call rel,$(EXTRACT)) docs/tutorial/ tests/tutorial/
 
 # ---------------------------------------------------------------------------
 # Target: help

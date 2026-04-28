@@ -3,8 +3,12 @@
 
 Usage
 -----
+    # Auto-discover: process all .md files with spread metadata in a directory.
+    python3 tests/tutorial/extract_commands.py docs/tutorial/ tests/tutorial/
+
+    # Explicit pairs: one or more <input.md> <output.sh> pairs.
     python3 tests/tutorial/extract_commands.py docs/tutorial/environment.md \
-        tests/tutorial/01_environment.sh
+        tests/tutorial/environment.sh
 
     # Print to stdout (no output file argument)
     python3 tests/tutorial/extract_commands.py docs/tutorial/environment.md
@@ -403,12 +407,37 @@ def _process_pair(input_path: Path, output_path: Path) -> None:
     meta = extract_spread_meta(source)
     heading = extract_heading(source)
     if meta:
-        task_dir = output_path.with_suffix("")  # 01_environment.sh → 01_environment/
+        task_dir = output_path.with_suffix("")  # environment.sh → environment/
         task_yaml = task_dir / "task.yaml"
         task_yaml.parent.mkdir(parents=True, exist_ok=True)
         task_content = build_task_yaml(str(output_path), heading, meta)
         task_yaml.write_text(task_content, encoding="utf-8")
         print(f"Written task.yaml → {task_yaml}")
+
+
+def _discover_and_process(input_dir: Path, output_dir: Path) -> None:
+    """Find all .md files with spread metadata in *input_dir* and generate scripts.
+
+    Only files containing a ``<!-- test:spread ... -->`` block are processed.
+    The output filename is ``<stem>.sh`` where *stem* is the Markdown filename
+    without the ``.md`` extension.
+    """
+    md_files = sorted(input_dir.glob("*.md"))
+    if not md_files:
+        sys.exit(f"Error: no .md files found in {input_dir}")
+
+    processed = 0
+    for md_file in md_files:
+        source = md_file.read_text(encoding="utf-8")
+        if not extract_spread_meta(source):
+            continue
+        output_path = output_dir / f"{md_file.stem}.sh"
+        _process_pair(md_file, output_path)
+        processed += 1
+
+    if not processed:
+        sys.exit(f"Error: no files with spread metadata found in {input_dir}")
+    print(f"Processed {processed} file(s) from {input_dir}")
 
 
 def main() -> None:
@@ -417,6 +446,11 @@ def main() -> None:
     if not args:
         print(__doc__)
         sys.exit(1)
+
+    # Directory mode: discover files with spread metadata automatically.
+    if len(args) == 2 and Path(args[0]).is_dir():
+        _discover_and_process(Path(args[0]), Path(args[1]))
+        return
 
     # Single input with no output → print to stdout.
     if len(args) == 1:
