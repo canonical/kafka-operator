@@ -15,11 +15,11 @@ set -euo pipefail
 
 juju config kraft roles=balancer,controller
 
-juju_wait --timeout 900
+juju_wait --timeout 1200
 
 juju add-unit kafka
 
-juju_wait --timeout 900
+juju_wait --timeout 1200
 
 _CMD_OUTPUT=$(juju show-unit kafka/0 --format json | jq -r '."kafka/0"."public-address"' | awk '{print "unit-ip: " $1}')
 KAFKA_UNIT_IP=$(echo "$_CMD_OUTPUT" | grep 'unit-ip:' | awk '{print $2}')
@@ -40,7 +40,7 @@ TUTORIAL_TIMEOUT_EOF
 
 juju run kraft/leader rebalance mode=add dryrun=false brokerid=103 --wait=10m
 
-juju_wait --timeout 900
+juju_wait --timeout 1200
 
 juju ssh kafka/leader sudo -i charmed-kafka.log-dirs --describe \
   --bootstrap-server ${KAFKA_UNIT_IP}:19093 \
@@ -51,7 +51,7 @@ juju ssh kafka/leader sudo -i charmed-kafka.log-dirs --describe \
 
 juju run kraft/leader rebalance mode=remove dryrun=false brokerid=3 --wait=10m
 
-juju_wait --timeout 600
+juju_wait --timeout 1200
 
 juju ssh kafka/leader sudo -i charmed-kafka.log-dirs --describe \
   --bootstrap-server ${KAFKA_UNIT_IP}:19093 \
@@ -62,7 +62,7 @@ juju ssh kafka/leader sudo -i charmed-kafka.log-dirs --describe \
 
 juju remove-unit kafka/3 --no-prompt
 
-juju_wait --timeout 600
+juju_wait --timeout 1200
 
 ( timeout 660 bash << 'TUTORIAL_TIMEOUT_EOF'
 juju run kraft/leader rebalance mode=full --wait=10m

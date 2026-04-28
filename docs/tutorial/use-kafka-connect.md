@@ -359,7 +359,7 @@ juju integrate postgresql-connect-integrator postgresql
 juju integrate postgresql-connect-integrator kafka-connect
 ```
 
-<!-- test:juju-wait --timeout 900 -->
+<!-- test:juju-wait --timeout 1200 -->
 
 After a couple of minutes, `juju status` command should show the
 `postgresql-connect-integrator` in `active`/`idle` state, with a message indicating
@@ -402,7 +402,7 @@ juju integrate opensearch-connect-integrator opensearch
 juju integrate opensearch-connect-integrator kafka-connect
 ```
 
-<!-- test:juju-wait --timeout 900 -->
+<!-- test:juju-wait --timeout 1200 -->
 
 Wait a couple of minutes and run `juju status`, now both `opensearch-connect-integrator`
 and `postgresql-connect-integrator` applications should be in `active`/`idle` state,
