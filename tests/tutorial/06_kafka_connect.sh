@@ -99,6 +99,8 @@ juju deploy postgresql-connect-integrator \
     --config db_name=tutorial \
     --config topic_prefix=etl_
 
+juju wait-for unit postgresql-connect-integrator/0 --query='workload-status == "blocked"' --timeout 5m
+
 juju integrate postgresql-connect-integrator postgresql
 juju integrate postgresql-connect-integrator kafka-connect
 
@@ -108,6 +110,8 @@ juju deploy opensearch-connect-integrator \
     --channel edge \
     --config mode=sink \
     --config topics="etl_posts"
+
+juju wait-for unit opensearch-connect-integrator/0 --query='workload-status == "blocked"' --timeout 5m
 
 juju integrate opensearch-connect-integrator opensearch
 juju integrate opensearch-connect-integrator kafka-connect
