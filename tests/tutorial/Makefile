@@ -126,9 +126,9 @@ help:
 	@echo "  test-debug     Run with -debug: drop into a shell on failure"
 	@echo "  help      Show this help message"
 	@echo ""
-	@echo "Generated scripts:"
-	@$(foreach pair,$(SCRIPTS), \
-	    echo "  $(word 1,$(subst :, ,$(pair)))  ←  $(word 2,$(subst :, ,$(pair)))";)
+#	@echo "Generated scripts:"
+#	@$(foreach pair,$(SCRIPTS), \
+#	    echo "  $(word 1,$(subst :, ,$(pair)))  ←  $(word 2,$(subst :, ,$(pair)))";)
 
 # ---------------------------------------------------------------------------
 # Spread configuration
