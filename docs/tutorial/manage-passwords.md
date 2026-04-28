@@ -68,6 +68,7 @@ using the secret ID saved earlier:
 juju config kafka system-users=<secret-uri>
 ```
 
+<!-- test:wait --seconds 60 -->
 <!-- test:await-idle --timeout 600 -->
 
 <!-- test:assert

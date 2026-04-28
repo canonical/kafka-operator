@@ -468,7 +468,18 @@ either using your browser or `curl`:
 curl -u admin:<admin-password> -k -sS "https://${OPENSEARCH_IP}:9200/etl_posts/_search?pretty=true"
 ```
 
-<!-- test:wait --seconds 30 -->
+<!-- test:wait --seconds 60 -->
+
+<!-- test:run
+for attempt in $(seq 1 20); do
+  if curl -u admin:${OS_PASSWORD} -k -sS "https://${OPENSEARCH_IP}:9200/etl_posts/_search" 2>/dev/null | jq -e '.hits.total.value >= 5' > /dev/null 2>&1; then
+    echo "ETL data verified on attempt $attempt"
+    break
+  fi
+  echo "Waiting for ETL data to appear in OpenSearch... attempt $attempt/20"
+  sleep 15
+done
+-->
 
 <!-- test:run
 curl -u admin:${OS_PASSWORD} -k -sS "https://${OPENSEARCH_IP}:9200/etl_posts/_search?pretty=true"

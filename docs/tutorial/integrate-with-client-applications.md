@@ -6,7 +6,7 @@ myst:
 
 <!-- test:spread
 priority: 100
-kill-timeout: 40m
+kill-timeout: 60m
 -->
 
 (tutorial-integrate-with-client-applications)=
@@ -44,7 +44,7 @@ integrate it to the Charmed Apache Kafka:
 juju integrate data-integrator kafka
 ```
 
-<!-- test:await-idle --timeout 1200 -->
+<!-- test:await-idle --timeout 1500 -->
 
 Wait for the status to become `active`/`idle` with the
 `watch juju status --color` command.

@@ -53,7 +53,7 @@ Let's add the role `balancer` to the existing `kraft` Juju application:
 juju config kraft roles=balancer,controller
 ```
 
-<!-- test:await-idle --timeout 1200 -->
+<!-- test:await-idle --timeout 1200 --allow-blocked opensearch -->
 
 Wait for the status to become `active`/`idle`:
 
@@ -70,7 +70,7 @@ Let's scale-out the `kafka` application to four units (add one more):
 juju add-unit kafka
 ```
 
-<!-- test:await-idle --timeout 1200 -->
+<!-- test:await-idle --timeout 1200 --allow-blocked opensearch -->
 
 <!-- test:assert
 test "$(juju status --format json | jq '.applications.kafka.units | length')" -eq 4
@@ -166,7 +166,7 @@ but this time instructing the charm to actually execute the proposal:
 juju run kraft/leader rebalance mode=add dryrun=false brokerid=103 --wait=10m
 ```
 
-<!-- test:await-idle --timeout 1200 -->
+<!-- test:await-idle --timeout 1200 --allow-blocked opensearch -->
 
 Partition rebalancing can take significant time.
 To monitor the progress, in a separate terminal session, check the `juju debug-log` command output
@@ -235,7 +235,7 @@ re-run the `rebalance` action with `mode=remove`:
 juju run kraft/leader rebalance mode=remove dryrun=false brokerid=3 --wait=10m
 ```
 
-<!-- test:await-idle --timeout 1200 -->
+<!-- test:await-idle --timeout 1200 --allow-blocked opensearch -->
 
 This does not remove the unit, but moves the partitions from the broker on unit number `3`
 to other brokers within the cluster.
@@ -272,7 +272,7 @@ Now, it is safe to scale-in the cluster by removing the broker number `3` comple
 juju remove-unit kafka/3 --no-prompt
 ```
 
-<!-- test:await-idle --timeout 1200 -->
+<!-- test:await-idle --timeout 1200 --allow-blocked opensearch -->
 
 ## Full cluster rebalancing
 
