@@ -108,6 +108,13 @@ ok: "True"
 
 Make note of the values for `endpoints`, `username` and `password`, we'll be using them later.
 
+<!-- test:set-variables
+command: juju run data-integrator/leader get-credentials
+KAFKA_USERNAME: username
+KAFKA_PASSWORD: password
+KAFKA_ENDPOINTS: endpoints
+-->
+
 ## Non-charmed applications
 
 We will now use the username and password to produce some messages to Apache Kafka.
