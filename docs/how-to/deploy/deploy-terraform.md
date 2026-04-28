@@ -149,7 +149,7 @@ controller = {
 
 For non-production testing clusters, co-locate both KRaft controller and broker services in a single application to save resources.
 
-Alternatively, save the following as `kafka.auto.tfvars`:
+Save the following as `kafka.auto.tfvars`:
 
 ```hcl
 model_name = "terraform"
