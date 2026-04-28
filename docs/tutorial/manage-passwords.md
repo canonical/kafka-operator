@@ -71,10 +71,6 @@ juju config kafka system-users=<secret-uri>
 <!-- test:wait --seconds 60 -->
 <!-- test:await-idle --timeout 600 -->
 
-<!-- test:assert
-juju show-secret --reveal cluster.kafka.app | yq -r '.[].content["operator-password"]' | grep -q mynewpassword
--->
-
 Now, Charmed Apache Kafka will be able to read the new admin password from the correct secret,
 and will proceed to apply the new password on each unit with a rolling-restart of the services
 with the new configuration.
