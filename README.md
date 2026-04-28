@@ -277,7 +277,23 @@ For information on tuning performance of Charmed Apache Kafka, see the [Performa
 
 ## Contributing
 
-Please see the [Juju SDK docs](https://juju.is/docs/sdk) for guidelines on enhancements to this charm following best practice guidelines, and [CONTRIBUTING.md](https://github.com/canonical/kafka-operator/blob/main/CONTRIBUTING.md) for developer guidance. 
+Please see the [Juju SDK docs](https://juju.is/docs/sdk) for guidelines on enhancements to this charm following best practice guidelines, and [CONTRIBUTING.md](https://github.com/canonical/kafka-operator/blob/main/CONTRIBUTING.md) for developer guidance.
+
+Unit and lint checks use the standard tox environments:
+
+```bash
+tox -e lint
+tox -e unit
+```
+
+The tutorial end-to-end test suite (requires [Multipass](https://documentation.ubuntu.com/multipass/) and [Spread](https://github.com/canonical/spread)) can be run with:
+
+```bash
+tox -e tutorial           # extract scripts + run Spread tests
+tox -e tutorial-extract   # generate test scripts only
+```
+
+See [tests/tutorial/TESTING.md](tests/tutorial/TESTING.md) for full setup instructions and run modes.
 
 Also, if you truly enjoy working on open-source projects like this one, check out the [career options](https://canonical.com/careers/all) we have at [Canonical](https://canonical.com/). 
 

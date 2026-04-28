@@ -42,24 +42,33 @@ From a fresh clone:
 git clone <repo-url> && cd kafka-operator
 
 # 1. Generate the .sh scripts and task.yaml files from Markdown sources.
-make -f tests/tutorial/Makefile extract
+tox -e tutorial-extract
 
-# 2. Run the full tutorial test suite.
+# 2. Run the full tutorial test suite (extract + spread).
 #    Aborts on the first failure, tears down the VM on completion.
-make -f tests/tutorial/Makefile test
+tox -e tutorial
 ```
 
-The `test` target uses `-abend` so that the run stops immediately when a step
-fails. Since every tutorial stage depends on the previous one, continuing after
-a failure would only produce cascading errors.
+Alternatively, you can use the Makefile directly:
+
+```bash
+make -f tests/tutorial/Makefile extract   # step 1
+make -f tests/tutorial/Makefile test      # steps 1+2
+```
+
+The `tutorial` tox env (and the Makefile `test` target) uses `-abend` so that
+the run stops immediately when a step fails. Since every tutorial stage depends
+on the previous one, continuing after a failure would only produce cascading
+errors.
 
 ### Run modes
 
-| Make target      | Spread flags        | Behaviour                                                     |
-|------------------|---------------------|---------------------------------------------------------------|
-| `test` (default) | `-abend -vv`        | Abort on first failure, tear down VM                          |
-| `test-continue`  | `-vv`               | Run all stages even if earlier ones fail                      |
-| `test-debug`     | `-abend -vv -debug` | Abort on first failure, drop into an interactive VM shell     |
+| tox / Make                                 | Spread flags        | Behaviour                                                     |
+|--------------------------------------------|---------------------|---------------------------------------------------------------|
+| `tox -e tutorial` / `make … test`          | `-abend -vv`        | Abort on first failure, tear down VM                          |
+| `tox -e tutorial-extract` / `make … extract` | —                 | Generate scripts only (no Spread run)                         |
+| `make … test-continue`                     | `-vv`               | Run all stages even if earlier ones fail                      |
+| `make … test-debug`                        | `-abend -vv -debug` | Abort on first failure, drop into an interactive VM shell     |
 
 **`test-debug`** is the most useful mode during development. When a step fails,
 Spread pauses and prints SSH credentials for the VM. You can SSH in, inspect

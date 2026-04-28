@@ -203,6 +203,86 @@ def _collect_shell_block(
     return i
 
 
+class _ParseState:
+    """Mutable state carried through the extraction loop."""
+
+    __slots__ = ("skip_next", "run_with_timeout_seconds", "active_substitutions")
+
+    def __init__(self) -> None:
+        self.skip_next: bool = False
+        self.run_with_timeout_seconds: int | None = None
+        self.active_substitutions: list[tuple[str, str]] = []
+
+
+def _handle_run_with_timeout(
+    lines: list[str], i: int, blocks: list[str], state: _ParseState,
+) -> int:
+    match = _RUN_WITH_TIMEOUT_PATTERN.match(lines[i].strip())
+    state.run_with_timeout_seconds = int(match.group(1))  # type: ignore[union-attr]
+    return i + 1
+
+
+def _handle_set_variables(
+    lines: list[str], i: int, blocks: list[str], state: _ParseState,
+) -> int:
+    snippet, substitutions, next_i = _parse_set_variables_block(lines, i)
+    if snippet:
+        blocks.append(snippet)
+        state.active_substitutions.extend(substitutions)
+    return next_i
+
+
+def _handle_spread_meta(
+    lines: list[str], i: int, blocks: list[str], state: _ParseState,
+) -> int:
+    j = i
+    while j < len(lines) and "-->" not in lines[j]:
+        j += 1
+    return j + 1
+
+
+def _handle_assert(
+    lines: list[str], i: int, blocks: list[str], state: _ParseState,
+) -> int:
+    snippet, next_i = _parse_run_hidden_block(lines, i, state.active_substitutions)
+    if snippet:
+        blocks.append(f"# --- Test assertion ---\n{snippet}")
+    return next_i
+
+
+def _handle_run_hidden(
+    lines: list[str], i: int, blocks: list[str], state: _ParseState,
+) -> int:
+    snippet, next_i = _parse_run_hidden_block(lines, i, state.active_substitutions)
+    if snippet:
+        blocks.append(snippet)
+    return next_i
+
+
+def _handle_shell_open(
+    lines: list[str], i: int, blocks: list[str], state: _ParseState,
+) -> int:
+    next_i = _collect_shell_block(
+        lines, i + 1, state.skip_next, state.run_with_timeout_seconds,
+        state.active_substitutions, blocks,
+    )
+    state.skip_next = False
+    state.run_with_timeout_seconds = None
+    return next_i
+
+
+# Each entry is (pattern, handler).  The pattern is tested against the
+# stripped line for multi-line annotations, or the raw line for shell fences.
+_BLOCK_HANDLERS: list[tuple[re.Pattern[str], bool, object]] = [
+    (_RUN_WITH_TIMEOUT_PATTERN, True, _handle_run_with_timeout),
+    (_SET_VARIABLES_START, True, _handle_set_variables),
+    (_SPREAD_META_START, True, _handle_spread_meta),
+    (_ASSERT_START, True, _handle_assert),
+    (_RUN_HIDDEN_START, True, _handle_run_hidden),
+    (_SHELL_OPEN, False, _handle_shell_open),
+]
+
+
 def extract_shell_blocks(source: str) -> list[str]:
     """Return shell code block contents and generated commands from a MyST Markdown string.
 
@@ -212,10 +292,8 @@ def extract_shell_blocks(source: str) -> list[str]:
     """
     lines = source.splitlines()
     blocks: list[str] = []
+    state = _ParseState()
     i = 0
-    skip_next = False
-    run_with_timeout_seconds: int | None = None
-    active_substitutions: list[tuple[str, str]] = []
 
     while i < len(lines):
         line = lines[i]
@@ -223,64 +301,24 @@ def extract_shell_blocks(source: str) -> list[str]:
         # Detect standalone annotation markers (skip / sleep / await_idle).
         marker = _handle_marker_line(line, blocks)
         if marker == "skip":
-            skip_next = True
+            state.skip_next = True
             i += 1
             continue
         if marker is not None:
             i += 1
             continue
 
-        # Detect run-with-timeout marker; remember the timeout for the next block.
-        timeout_match = _RUN_WITH_TIMEOUT_PATTERN.match(line.strip())
-        if timeout_match:
-            run_with_timeout_seconds = int(timeout_match.group(1))
+        # Try multi-line annotations and shell fences via dispatch table.
+        for pattern, use_stripped, handler in _BLOCK_HANDLERS:
+            text = line.strip() if use_stripped else line
+            if pattern.match(text):
+                i = handler(lines, i, blocks, state)
+                break
+        else:
+            # No handler matched — non-empty lines reset the skip flag.
+            if line.strip():
+                state.skip_next = False
             i += 1
-            continue
-
-        # Detect set-variables block; emit a variable-extraction snippet.
-        if _SET_VARIABLES_START.match(line.strip()):
-            snippet, substitutions, i = _parse_set_variables_block(lines, i)
-            if snippet:
-                blocks.append(snippet)
-                active_substitutions.extend(substitutions)
-            continue
-
-        # Detect spread meta block; skip silently (used for task.yaml generation).
-        if _SPREAD_META_START.match(line.strip()):
-            while i < len(lines) and "-->" not in lines[i]:
-                i += 1
-            i += 1  # skip closing -->
-            continue
-
-        # Detect assert block; emit commands with assertion comment.
-        if _ASSERT_START.match(line.strip()):
-            snippet, i = _parse_run_hidden_block(lines, i, active_substitutions)
-            if snippet:
-                blocks.append(f"# --- Test assertion ---\n{snippet}")
-            continue
-
-        # Detect run-hidden block; emit commands invisible to the reader.
-        if _RUN_HIDDEN_START.match(line.strip()):
-            snippet, i = _parse_run_hidden_block(lines, i, active_substitutions)
-            if snippet:
-                blocks.append(snippet)
-            continue
-
-        # Opening fence for a shell block.
-        if _SHELL_OPEN.match(line):
-            i = _collect_shell_block(
-                lines, i + 1, skip_next, run_with_timeout_seconds,
-                active_substitutions, blocks,
-            )
-            skip_next = False
-            run_with_timeout_seconds = None
-            continue
-
-        # Non-empty, non-marker line resets the skip flag.
-        if line.strip():
-            skip_next = False
-
-        i += 1
 
     return blocks
 
