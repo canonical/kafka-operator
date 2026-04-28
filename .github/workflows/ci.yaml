@@ -56,7 +56,7 @@ jobs:
       env:
         CONFIG: "docs/.sphinx/.markdownlint.json"
       run: |
-        npm install markdownlint-cli2 --global
+        npm i markdownlint-cli2@0.16.0 --global
         markdownlint-cli2 --config "$CONFIG" "**/*.md"
 
   unit-test:
