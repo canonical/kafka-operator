@@ -47,6 +47,8 @@ jobs:
   markdown-lint:
     name: Lint MarkDown files
     uses: ./.github/workflows/markdown-style-checks.yml
+    permissions:
+      contents: read
 
   unit-test:
     name: Unit tests
