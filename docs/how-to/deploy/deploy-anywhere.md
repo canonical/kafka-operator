@@ -6,8 +6,8 @@ myst:
 
 # How to deploy Charmed Apache Kafka
 
-This guide provides platform-independent deployment instructions.
-For specific guides, see: [AWS](how-to-deploy-on-aws) and [Azure](how-to-deploy-on-azure).
+This guide provides platform-independent deployment instructions using the Juju CLI.
+For specific platform guides, see: [AWS](how-to-deploy-on-aws) and [Azure](how-to-deploy-on-azure). Alternatively, you can [deploy via Terraform](how-to-deploy-terraform).
 
 (how-to-deploy-anywhere)=
 
