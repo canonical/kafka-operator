@@ -27,7 +27,8 @@ jobs:
     name: Tutorial gate (beta → candidate)
     if: inputs.from-risk == 'beta' && inputs.to-risk == 'candidate'
     uses: ./.github/workflows/tutorial-tests.yaml
-    secrets: inherit
+    permissions:
+      contents: read
 
   promote:
     name: Promote charms
