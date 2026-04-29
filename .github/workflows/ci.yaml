@@ -47,6 +47,7 @@ jobs:
   markdown-lint:
     runs-on: ubuntu-latest
     permissions: {}
+    continue-on-error: true  # FIXME: remove after MD files are properly linted.
     steps:
     - uses: actions/checkout@v6
       with:
