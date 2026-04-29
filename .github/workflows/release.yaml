@@ -24,7 +24,6 @@ jobs:
     needs:
       - tag
     uses: ./.github/workflows/ci.yaml
-    secrets: inherit
     permissions:
       contents: write # Needed to login to Discourse
       pull-requests: write # Need to create PR

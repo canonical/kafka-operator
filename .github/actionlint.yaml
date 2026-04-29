@@ -1,0 +1,7 @@
+# Copyright 2026 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+self-hosted-runner:
+  labels:
+    - "self-hosted-linux-amd64-noble-large"
+    - "self-hosted-linux-amd64-noble-xlarge"
