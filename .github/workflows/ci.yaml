@@ -47,7 +47,6 @@ jobs:
   markdown-lint:
     name: Lint MarkDown files
     uses: ./.github/workflows/markdown-style-checks.yml
-    continue-on-error: true  # FIXME: remove after MD files are properly linted.
 
   unit-test:
     name: Unit tests
