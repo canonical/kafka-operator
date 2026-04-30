@@ -5,14 +5,15 @@ name: Promote charms
 on:
   workflow_dispatch:
     inputs:
-      from-risk:
-        description: Promote from this Charmhub risk
+      revisions:
+        description: |
+          Comma-separated list of git revision tags to promote.
+          These must match the tags created by canonical/data-platform-workflows release_charm_edge.yaml
+
+          Single-charm repo example: 'rev123,rev124'
+          Monorepo example: 'mysql/rev123,mysql-k8s/rev124'
         required: true
-        type: choice
-        options:
-          - edge
-          - beta
-          - candidate
+        type: string
       to-risk:
         description: Promote to this Charmhub risk
         required: true
@@ -25,7 +26,7 @@ on:
 jobs:
   tutorial-tests:
     name: Tutorial gate (beta → candidate)
-    if: inputs.from-risk == 'beta' && inputs.to-risk == 'candidate'
+    if: ${{ inputs.to-risk == 'candidate' }}
     uses: ./.github/workflows/tutorial-tests.yaml
     secrets: inherit
 
@@ -35,19 +36,18 @@ jobs:
       - tutorial-tests
     # Run even when tutorial-tests is skipped (non beta→candidate promotions).
     if: ${{ !failure() && !cancelled() }}
-    uses: canonical/data-platform-workflows/.github/workflows/_promote_charms.yaml@v42.0.0
+    uses: canonical/data-platform-workflows/.github/workflows/_promote_charms.yaml@v49.0.1
     with:
       track: '4'
-      from-risk: ${{ inputs.from-risk }}
+      revisions: ${{ inputs.revisions }}
       to-risk: ${{ inputs.to-risk }}
     secrets:
       charmhub-token: ${{ secrets.CHARMHUB_TOKEN }}
     permissions:
+      actions: read  # Needed for Github API call to get workflow version
       contents: write  # Needed to edit GitHub releases
 
   trigger-release-ci:
-    # only on beta promotion
-    if: ${{ inputs.to-risk == 'beta' }}
     name: Trigger release CI
     runs-on: ubuntu-latest
     needs: promote
