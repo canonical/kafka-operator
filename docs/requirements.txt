@@ -1,4 +1,14 @@
-canonical-sphinx[full]
+# canonical-sphinx[full]
+sphinx
+build
+sphinx-autobuild
+canonical-sphinx-config @ git+https://github.com/Canonical/canonical-sphinx-config.git@main
+myst-parser~=4.0
+sphinx-basic-ng
+sphinxcontrib-jquery
+beautifulsoup4
+ulwazi
+sphinx-terminal
 packaging
 sphinxcontrib-svg2pdfconverter[CairoSVG]
 sphinx-last-updated-by-git
