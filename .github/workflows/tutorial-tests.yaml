@@ -35,7 +35,7 @@ jobs:
           if ! command -v go &>/dev/null; then
             sudo snap install go --classic
           fi
-          go install github.com/snapcore/spread/cmd/spread@latest
+          go install github.com/canonical/spread/cmd/spread@latest
           echo "$HOME/go/bin" >> "$GITHUB_PATH"
 
       - name: Install tox
