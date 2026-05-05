@@ -15,7 +15,7 @@ jobs:
     timeout-minutes: 180
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Check KVM availability
         run: |
@@ -38,16 +38,11 @@ jobs:
           go install github.com/canonical/spread/cmd/spread@latest
           echo "$HOME/go/bin" >> "$GITHUB_PATH"
 
-      - name: Install pipx
-        run: |
-          python3 -m pip install --user pipx
-          python3 -m pipx ensurepath
-
-      - name: Add pipx to PATH
-        run: echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
-
       - name: Install tox
-        run: pipx install tox
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pipx
+          pipx install tox
 
       - name: Run tutorial tests
         run: tox -e tutorial
