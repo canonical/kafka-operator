@@ -38,6 +38,14 @@ jobs:
           go install github.com/canonical/spread/cmd/spread@latest
           echo "$HOME/go/bin" >> "$GITHUB_PATH"
 
+      - name: Install pipx
+        run: |
+          python3 -m pip install --user pipx
+          python3 -m pipx ensurepath
+
+      - name: Add pipx to PATH
+        run: echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
+
       - name: Install tox
         run: |
           sudo apt-get update
