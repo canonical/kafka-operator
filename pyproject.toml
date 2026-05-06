@@ -28,7 +28,7 @@ requires-poetry = ">=2.0.0"
 
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
-ops = ">=2.17.0"
+ops = {extras = ["tracing"], version = "^3.0.0"}
 kazoo = ">=2.8.0"
 
 # The cosl dep could be removed from here once PYDEPS is released:
