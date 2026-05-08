@@ -37,7 +37,7 @@ be generated locally before running Spread.
 - [Go](https://go.dev/doc/install)
 - [Spread](https://github.com/canonical/spread) installed via Go (**not** as a snap):
   ```bash
-  go install github.com/snapcore/spread/cmd/spread@latest
+  go install github.com/canonical/spread/cmd/spread@latest
   ```
 - Python 3 and `make` (usually pre-installed on Ubuntu)
 
