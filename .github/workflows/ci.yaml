@@ -23,17 +23,32 @@ on:
         value: ${{ jobs.build.outputs.artifact-prefix }}
 
 jobs:
+  lint-workflows:
+    name: Lint .github/workflows/
+    uses: canonical/data-platform-workflows/.github/workflows/lint_workflows.yaml@v48.1.2
+    permissions:
+      contents: read
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - name: Install tox
         run: pipx install tox
       - name: Run linters
         run: tox run -e lint
+    permissions: {}
+
+  markdown-lint:
+    name: Lint MarkDown files
+    uses: ./.github/workflows/markdown-style-checks.yml
+    permissions:
+      contents: read
 
   unit-test:
     name: Unit tests
@@ -41,11 +56,14 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - name: Install tox
         run: pipx install tox
       - name: Run tests
         run: tox run -e unit
+    permissions: {}
 
   build:
     strategy:
@@ -54,13 +72,17 @@ jobs:
           - .
           - tests/integration/app-charm
     name: Build charm | ${{ matrix.path }}
-    uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v32.2.2
+    uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v48.1.2
     with:
       path-to-charm-directory: ${{ matrix.path }}
       # FIXME: re-enable after re-added to ccc
       cache: false
+    permissions:
+      actions: read  # Needed for GitHub API call to get workflow version
+      contents: read
 
   integration-test-single:
+    permissions: {}
     strategy:
       fail-fast: false
       matrix:
@@ -85,18 +107,20 @@ jobs:
       - lint
       - unit-test
       - build
-    runs-on: [self-hosted, linux, AMD64, X64, large, noble]
+    runs-on: self-hosted-linux-amd64-noble-large
     timeout-minutes: 120
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
         with:
           provider: lxd
           juju-channel: 3.6/stable
       - name: Download packed charm(s)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           pattern: ${{ needs.build.outputs.artifact-prefix }}-*
           merge-multiple: true
@@ -110,17 +134,19 @@ jobs:
           if [ "${{ github.event_name }}" == "schedule" ]
           then
             echo Running unstable and stable tests
-            echo "mark_expression=" >> $GITHUB_OUTPUT
+            echo "mark_expression=" >> "$GITHUB_OUTPUT"
           else
             echo Skipping unstable tests
-            echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
+            echo "mark_expression=not unstable" >> "$GITHUB_OUTPUT"
           fi
       - name: Run integration tests
-        run: tox run -e ${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --kraft-mode ${{ matrix.kraft-mode }}
+        run: tox run -e ${{ matrix.tox-environments }} -- -m "$MARK_EXPRESSION" --keep-models --kraft-mode ${{ matrix.kraft-mode }}
         env:
           CI_PACKED_CHARMS: ${{ needs.build.outputs.charms }}
+          MARK_EXPRESSION: ${{ steps.select-tests.outputs.mark_expression }}
 
   integration-test-multi:
+    permissions: {}
     strategy:
       fail-fast: false
       matrix:
@@ -148,18 +174,20 @@ jobs:
       - lint
       - unit-test
       - build
-    runs-on: [self-hosted, linux, AMD64, X64, xlarge, noble]
+    runs-on: self-hosted-linux-amd64-noble-xlarge
     timeout-minutes: 120
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
         with:
           provider: lxd
           juju-channel: 3.6/stable
       - name: Download packed charm(s)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           pattern: ${{ needs.build.outputs.artifact-prefix }}-*
           merge-multiple: true
@@ -172,7 +200,7 @@ jobs:
           # calico has issues with strict confinements, so remove -strict
           sudo snap install microk8s --channel 1.32 --classic
 
-          sudo usermod -a -G microk8s $USER
+          sudo usermod -a -G microk8s "$USER"
           mkdir -p ~/.kube
           chmod 0700 ~/.kube
 
@@ -188,15 +216,15 @@ jobs:
           # make juju work with microk8s --classic
           sudo mkdir -p /var/snap/juju/current/microk8s/credentials
           sudo microk8s config | sudo tee /var/snap/juju/current/microk8s/credentials/client.config
-          sudo chown -R $USER:$USER /var/snap/juju/current/microk8s/credentials
+          sudo chown -R "$USER":"$USER" /var/snap/juju/current/microk8s/credentials
 
           IP_ADDR=$(ip -4 -j route get 2.2.2.2 | jq -r '.[] | .prefsrc')
           sudo microk8s enable dns
           sudo microk8s enable hostpath-storage
-          sudo microk8s enable metallb:$IP_ADDR-$IP_ADDR
+          sudo microk8s enable metallb:"$IP_ADDR"-"$IP_ADDR"
 
           juju bootstrap microk8s
-          juju switch $LXD_CONTROLLER
+          juju switch "$LXD_CONTROLLER"
 
       - name: Select tests
         id: select-tests
@@ -204,13 +232,14 @@ jobs:
           if [ "${{ github.event_name }}" == "schedule" ]
           then
             echo Running unstable and stable tests
-            echo "mark_expression=" >> $GITHUB_OUTPUT
+            echo "mark_expression=" >> "$GITHUB_OUTPUT"
           else
             echo Skipping unstable tests
-            echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
+            echo "mark_expression=not unstable" >> "$GITHUB_OUTPUT"
           fi
       - name: Run integration tests
-        run: tox run -e ${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kraft-mode ${{ matrix.kraft-mode }}
+        run: tox run -e ${{ matrix.tox-environments }} -- -m "$MARK_EXPRESSION" --keep-models --kraft-mode ${{ matrix.kraft-mode }}
         env:
           CI_PACKED_CHARMS: ${{ needs.build.outputs.charms }}
+          MARK_EXPRESSION: ${{ steps.select-tests.outputs.mark_expression }}
 

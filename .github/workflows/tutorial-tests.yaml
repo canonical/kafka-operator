@@ -11,11 +11,15 @@ on:
 jobs:
   tutorial-test:
     name: Tutorial end-to-end
-    runs-on: [self-hosted, linux, AMD64, X64, xlarge, noble]
+    runs-on: self-hosted-linux-amd64-noble-xlarge
     timeout-minutes: 180
+    permissions:
+      contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Check KVM availability
         run: |
