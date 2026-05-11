@@ -170,7 +170,7 @@ html_theme_options = {
 # TODO: If your documentation is hosted on https://docs.ubuntu.com/,
 #       uncomment and update as needed.
 
-# slug = ''
+slug = 'charmed-kafka'
 
 #######################
 # Sitemap configuration: https://sphinx-sitemap.readthedocs.io/
@@ -286,6 +286,7 @@ extensions = [
 
 exclude_patterns = [
     "doc-cheat-sheet*",
+    "agents.md",
 ]
 
 # Adds custom CSS files, located under 'html_static_path'

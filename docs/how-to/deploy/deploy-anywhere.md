@@ -6,8 +6,8 @@ myst:
 
 # How to deploy Charmed Apache Kafka
 
-This guide provides platform-independent deployment instructions.
-For specific guides, see: [AWS](how-to-deploy-on-aws) and [Azure](how-to-deploy-on-azure).
+This guide provides platform-independent deployment instructions using the Juju CLI.
+For specific platform guides, see: [AWS](how-to-deploy-on-aws) and [Azure](how-to-deploy-on-azure). Alternatively, you can [deploy via Terraform](how-to-deploy-terraform).
 
 (how-to-deploy-anywhere)=
 
@@ -80,8 +80,8 @@ juju show-model | yq '.[].type'
 Charmed Apache Kafka for production use-cases is deployed as follows:
 
 ```shell
-juju deploy kafka -n <broker-units> --config roles=broker --channel 4/edge
-juju deploy kafka -n <controller-units> --config roles=controller --channel 4/edge controller
+juju deploy kafka -n <broker-units> --config roles=broker --channel 4/stable
+juju deploy kafka -n <controller-units> --config roles=controller --channel 4/stable controller
 ```
 
 - `<broker-units>` -- the number of units to deploy for Charmed Apache Kafka brokers
@@ -114,7 +114,7 @@ This is not recommended for any production deployments. Apache Kafka brokers rel
 Charmed Apache Kafka for testing use-cases is deployed as follows:
 
 ```shell
-juju deploy kafka -n <kafka-units> --config roles=broker,controller --channel 4/edge
+juju deploy kafka -n <kafka-units> --config roles=broker,controller --channel 4/stable
 ```
 
 - `<kafka-units>` -- the number of units to deploy for Charmed Apache Kafka

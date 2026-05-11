@@ -63,6 +63,15 @@ tox run -e integration   # integration tests
 tox                      # runs 'lint' and 'unit' environments
 ```
 
+The tutorial end-to-end test suite (requires [Multipass](https://documentation.ubuntu.com/multipass/) and [Spread](https://github.com/canonical/spread)) can be run with:
+
+```shell
+tox -e tutorial           # extract scripts + run Spread tests
+tox -e tutorial-extract   # generate test scripts only
+```
+
+See [tests/tutorial/TESTING.md](tests/tutorial/TESTING.md) for full setup instructions and run modes.
+
 ## Documentation
 
 Product documentation is stored in [Discourse](https://discourse.charmhub.io/t/charmed-apache-kafka-documentation/10288) and published on Charmhub and the Canonical website via Discourse API. 
