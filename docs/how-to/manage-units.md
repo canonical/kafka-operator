@@ -99,7 +99,7 @@ Admin client authentication information is stored in the
 The content of the file can be accessed using `juju ssh` command:
 
 ```shell
-juju ssh kafka/leader `cat /etc/kafka/client.properties`
+juju ssh kafka/leader 'cat /var/snap/charmed-kafka/common/etc/kafka/client.properties'
 ```
 
 This file can be provided to the Apache Kafka bin commands via the `--command-config`
@@ -115,7 +115,7 @@ already present. For example, see below.
 To list the current topics on the Apache Kafka cluster, using credentials from inside the cluster, run:
 
 ```shell
-juju ssh kafka/leader 'charmed-kafka.topics --bootstrap-server $BOOTSTRAP_SERVERS --list --command-config /var/snap/charmed-kafka/common/etc/kafka/client.properties'
+juju ssh kafka/leader "charmed-kafka.topics --bootstrap-server $BOOTSTRAP_SERVERS --list --command-config /var/snap/charmed-kafka/common/etc/kafka/client.properties"
 ```
 
 The `BOOTSTRAP_SERVERS` variable contains the information we retrieved earlier in the previous section.

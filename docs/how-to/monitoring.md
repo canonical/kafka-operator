@@ -7,8 +7,8 @@ myst:
 (how-to-monitoring)=
 # How to set up monitoring
 
-Charmed Apache Kafka and Charmed Apache ZooKeeper come with the [JMX exporter](https://github.com/prometheus/jmx_exporter/).
-The metrics can be queried by accessing the `http://<kafka-unit-ip>:9101/metrics` and `http://<zookeeper-unit-ip>:9998/metrics` endpoints, respectively.
+Charmed Apache Kafka comes with the [JMX exporter](https://github.com/prometheus/jmx_exporter/).
+The metrics can be queried by accessing the `http://<kafka-unit-ip>:9101/metrics` endpoint.
 
 Additionally, the charm provides integration with the [Canonical Observability Stack](https://charmhub.io/topics/canonical-observability-stack).
 
@@ -61,12 +61,11 @@ juju consume <k8s_controller>:admin/<cos_model_name>.loki-logging
 juju consume <k8s_controller>:admin/<cos_model_name>.grafana-dashboards
 ```
 
-Now, deploy `grafana-agent` (subordinate charm) and relate it with Charmed Apache Kafka and Charmed Apache ZooKeeper:
+Now, deploy `grafana-agent` (subordinate charm) and relate it with Charmed Apache Kafka:
 
 ```shell
 juju deploy grafana-agent
 juju integrate kafka:cos-agent grafana-agent
-juju integrate zookeeper:cos-agent grafana-agent
 ```
 
 Finally, relate `grafana-agent` with consumed COS offers:
@@ -91,9 +90,9 @@ juju run grafana/leader get-admin-password --model <k8s_cos_controller>:<cos_mod
 
 ## Tune server logging level
 
-To tune the level of the server logs for Apache Kafka and Apache ZooKeeper, configure the configuration accordingly.
+To tune the server log level for Apache Kafka, adjust the `log-level` configuration.
 
-For Charmed Apache Kafka, configure the `log-level` parameter:
+For Charmed Apache Kafka, set the `log-level` parameter:
 
 ```shell
 juju config <KAFKA_APP_NAME> log-level=<LOG_LEVEL>
@@ -105,32 +104,19 @@ See also: `log-level` configuration parameter [reference](https://charmhub.io/ka
 
 Possible `LOG_LEVEL` values are: `ERROR`, `WARNING`, `INFO`, and `DEBUG`.
 
-For Charmed Apache ZooKeeper, configure the `log-level` parameter:
-
-```shell
-juju config <ZOOKEEPER_APP_NAME> log-level=<LOG_LEVEL>
-```
-
-Possible `LOG_LEVEL` values are the same as above.
-
-```{tip}
-See also: `log-level` configuration parameter [reference](https://charmhub.io/zookeeper/configurations#log-level).
-```
-
 (how-to-monitoring-integrate-alerts-and-dashboards)=
 ## Alerts and dashboards
 
-This guide shows you how to integrate an existing set of rules and/or dashboards to your Charmed Apache Kafka and Charmed Apache ZooKeeper deployment to be consumed with the [Canonical Observability Stack (COS)](https://charmhub.io/topics/canonical-observability-stack).
+This guide shows you how to integrate an existing set of rules and/or dashboards to your Charmed Apache Kafka deployment to be consumed with the [Canonical Observability Stack (COS)](https://charmhub.io/topics/canonical-observability-stack).
 To do so, we will sync resources stored in a git repository to COS Lite.
 
 ### Prerequisites
 
-Deploy the `cos-lite` bundle in a Kubernetes environment and integrate Charmed Apache Kafka and Charmed Apache ZooKeeper to the COS offers, as shown in the [How to Enable Monitoring](how-to-monitoring-enable-monitoring) guide.
+Deploy the `cos-lite` bundle in a Kubernetes environment and integrate Charmed Apache Kafka to the COS offers, as shown above in the [Enable Monitoring](how-to-monitoring-enable-monitoring) section.
 This guide will refer to the models that charms are deployed into as:
 
 * `<cos-model>` for the model containing observability charms (and deployed on K8s)
-* `<apps-model>` for the model containing Charmed Apache Kafka and Charmed Apache ZooKeeper
-* `<apps-model>` for other optional charms (e.g. TLS-certificates operators, `grafana-agent`, `data-integrator`, etc.).
+* `<apps-model>` for the model containing Charmed Apache Kafka and other optional charms (e.g. TLS-certificates operators, `grafana-agent`, `data-integrator`, etc.).
 
 ### Create a repository with a custom monitoring setup
 
@@ -147,8 +133,9 @@ Deploy the [COS configuration](https://charmhub.io/cos-configuration-k8s) charm 
 
 ```shell
 juju deploy cos-configuration-k8s cos-config \
+  -m <cos-model> \
   --config git_repo=<repository_url> \
-  --config git_branch=<branch> \
+  --config git_branch=<branch>
 ```
 
 The COS configuration charm keeps the monitoring stack in sync with our repository, by forwarding resources to Prometheus, Loki and Grafana.
@@ -165,9 +152,9 @@ The path to the resource folders can be set after deployment:
 
 ```shell
 juju config cos-config \
-  --config prometheus_alert_rules_path=<path_to_prom_rules>
-  --config loki_alert_rules_path=<path_to_loki_rules>
-  --config grafana_dashboards_path=<path_to_models>
+  prometheus_alert_rules_path=<path_to_prom_rules> \
+  loki_alert_rules_path=<path_to_loki_rules> \
+  grafana_dashboards_path=<path_to_models>
 ```
 
 Then, integrate the charm to the COS operator to forward the rules and dashboards:

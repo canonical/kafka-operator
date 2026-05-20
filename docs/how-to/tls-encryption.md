@@ -76,7 +76,7 @@ The Juju secret keys **MUST** follow the naming constraint of `<kafka-applicatio
 Grant the Charmed Apache Kafka application access to the new Juju secret:
 
 ```bash
-juju grant-secret external-kafka-pks
+juju grant-secret external-kafka-pks kafka
 ```
 
 Take note of the `secret-id` in the response.
