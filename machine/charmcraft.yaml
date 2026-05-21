@@ -59,6 +59,11 @@ parts:
     override-build: |
       rustup default 1.93.1
       craftctl default
+      # Replace symlinks
+      find .common/ -mindepth 1 -type d | while read -r dir; do 
+         rm -rf "$CRAFT_PART_INSTALL"/src/$(basename $dir);
+         cp -ra $dir "$CRAFT_PART_INSTALL"/src/
+      done
       # Include requirements.txt in *.charm artifact for easier debugging
       cp requirements.txt "$CRAFT_PART_INSTALL/requirements.txt"
   # "files" part name is arbitrary; use for consistency
@@ -75,7 +80,7 @@ parts:
       python3 -m venv ../refresh-version-venv
       source ../refresh-version-venv/bin/activate
       poetry install --only build-refresh-version
-      write-charm-version
+      # write-charm-version
 
       craftctl default
     stage:
