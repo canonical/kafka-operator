@@ -1,0 +1,150 @@
+# Copyright 2022 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+# Testing tools configuration
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+log_cli_level = "INFO"
+asyncio_mode = "auto"
+markers = ["unstable", "broker", "balancer", "fails_in_kafka4"]
+
+# Formatting tools configuration
+[tool.black]
+line-length = 99
+target-version = ["py310"]
+
+[tool.isort]
+profile = "black"
+
+[tool.codespell]
+ignore-words-list = "AKS,aks,EKS,eks"
+
+[tool.poetry]
+package-mode = false
+requires-poetry = ">=2.0.0"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+ops = ">=2.17.0"
+kazoo = ">=2.8.0"
+tenacity = ">=8.0.1"
+pure-sasl = ">=0.6.2"
+jsonschema = ">=4.10"
+cryptography = ">42.0.0"
+pydantic = "^2.11"
+pyyaml = "^6.0.1"
+requests = ">2.25"
+lightkube = "0.15.4"
+trustme = "^1.2.0"
+charmlibs-pathops = "^1.0.0"
+charm-refresh = "^3.1.0.0"
+cosl = ">= 0.0.5"
+
+[tool.poetry.group.charm-libs.dependencies]
+# data_platform_libs/v0/data_interfaces.py
+ops = ">=2.0.0"
+poetry-core = "*"
+pydantic = "^2.11"
+# tls_certificates_interface/v3/tls_certificates.py
+cryptography = ">=42.0.5"
+# hydra/v0/oauth.py
+jsonschema = "*"
+
+[tool.poetry.group.fmt]
+optional = true
+
+[tool.poetry.group.fmt.dependencies]
+black = "^22.3.0"
+ruff = ">=0.1.0"
+
+[tool.poetry.group.lint]
+optional = true
+
+[tool.poetry.group.lint.dependencies]
+black = "^22.3.0"
+ruff = ">=0.1.0"
+codespell = ">=2.2.2"
+pyright = "^1.1.301"
+
+[tool.poetry.group.unit]
+optional = true
+
+[tool.poetry.group.unit.dependencies]
+pytest = ">=7.2"
+coverage = { extras = ["toml"], version = ">7.0" }
+pytest-mock = "^3.11.1"
+packaging = "^24.1"
+ops = { version = ">=2.17.0", extras = ["testing"] }
+
+[tool.poetry.group.security]
+optional = true
+
+[tool.poetry.group.security.dependencies]
+bandit = "^1.7.4"
+safety = "^3.0.0"
+
+[tool.poetry.group.integration]
+optional = true
+
+[tool.poetry.group.integration.dependencies]
+pytest = ">=7.2"
+juju = "^3.2.0"
+coverage = { extras = ["toml"], version = ">7.0" }
+pytest-operator = ">0.20"
+kazoo = ">=2.8"
+tenacity = ">=7.0"
+pure-sasl = ">=0.5"
+kafka-python = ">=2.0"
+requests = ">2.25"
+flaky = ">=3.0"
+jubilant = ">=1.0.0"
+toml = "^0.10.2"
+
+[tool.poetry.group.build-refresh-version]
+optional = true
+
+[tool.poetry.group.build-refresh-version.dependencies]
+charm-refresh-build-version = "^0.2.0"
+
+[tool.ruff]
+line-length = 99
+lint.select = ["E", "W", "F", "C", "N", "D", "I001"]
+lint.extend-ignore = [
+  "D203",
+  "D204",
+  "D213",
+  "D215",
+  "D400",
+  "D401",
+  "D404",
+  "D406",
+  "D407",
+  "D408",
+  "D409",
+  "D413",
+]
+lint.ignore = ["E501", "D107"]
+extend-exclude = ["__pycache__", "*.egg_info", "tests/integration/app-charm/lib"]
+lint.per-file-ignores = { "tests/*" = ["D100", "D101", "D102", "D103", "D104", "E999"], "src/literals.py" = ["D101"] }
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.pyright]
+include = ["src"]
+extraPaths = ["./lib", "src"]
+pythonVersion = "3.10"
+pythonPlatform = "All"
+typeCheckingMode = "basic"
+reportIncompatibleMethodOverride = false
+reportImportCycles = false
+reportMissingModuleSource = true
+stubPath = ""
