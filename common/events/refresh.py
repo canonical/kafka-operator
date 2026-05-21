@@ -10,6 +10,10 @@ import time
 from typing import TYPE_CHECKING
 
 import charm_refresh
+from lightkube.core.client import Client
+from lightkube.core.exceptions import ApiError
+from lightkube.resources.apps_v1 import StatefulSet
+
 
 if TYPE_CHECKING:
     from charm import KafkaCharm
@@ -104,6 +108,31 @@ class MachinesKafkaRefresh(KafkaRefresh, charm_refresh.CharmSpecificMachines):
         # Call post_snap_refresh to handle health checks and set next_unit_allowed_to_refresh
         logger.debug("Running post-snap-refresh check...")
         self._charm.post_snap_refresh(refresh)
+
+
+@dataclasses.dataclass(eq=False)
+class KubernetesKafkaRefresh(KafkaRefresh, charm_refresh.CharmSpecificKubernetes):
+    """Refresh handler for Kafka charm on Kubernetes substrate."""
+
+    def run_pre_refresh_checks_after_1_unit_refreshed(self) -> None:
+        """Implement pre-refresh checks after 1 unit refreshed."""
+        super().run_pre_refresh_checks_after_1_unit_refreshed()
+        if self._charm.unit.is_leader():
+            self._set_rolling_update_partition(partition=len(self._charm.state.brokers) - 1)
+
+    def _set_rolling_update_partition(self, partition: int) -> None:
+        """Set the rolling update partition to a specific value."""
+        try:
+            patch = {"spec": {"updateStrategy": {"rollingUpdate": {"partition": partition}}}}
+            Client().patch(  # pyright: ignore [reportArgumentType]
+                StatefulSet,
+                name=self._charm.model.app.name,
+                namespace=self._charm.model.name,
+                obj=patch,
+            )
+            logger.debug(f"Kubernetes StatefulSet partition set to {partition}")
+        except ApiError as e:
+            raise KafkaUpgradeError("Kubernetes StatefulSet patch failed", str(e))
 
 
 def is_workload_compatible(
