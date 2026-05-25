@@ -20,15 +20,8 @@ from ops import (
 )
 from ops.log import JujuLogHandler
 
-from core.cluster import ClusterState
-from core.models import Substrates
-from core.structured_config import CharmConfig
-from events.balancer import BalancerOperator
-from events.broker import BrokerOperator
-from events.peer_cluster import PeerClusterEventsHandler
-from events.refresh import MachinesKafkaRefresh
-from events.tls import TLSHandler
-from literals import (
+from single_kernel_kafka.core.cluster import ClusterState
+from single_kernel_kafka.core.literals import (
     CHARM_KEY,
     JMX_CC_PORT,
     JMX_EXPORTER_PORT,
@@ -38,8 +31,15 @@ from literals import (
     SUBSTRATE,
     DebugLevel,
     Status,
+    Substrates,
 )
-from workload import KafkaWorkload
+from single_kernel_kafka.core.structured_config import CharmConfig
+from single_kernel_kafka.events.balancer import BalancerOperator
+from single_kernel_kafka.events.broker import BrokerOperator
+from single_kernel_kafka.events.peer_cluster import PeerClusterEventsHandler
+from single_kernel_kafka.events.refresh import MachinesKafkaRefresh
+from single_kernel_kafka.events.tls import TLSHandler
+from single_kernel_kafka.workload import KafkaWorkloadMachine as KafkaWorkload
 
 logger = logging.getLogger(__name__)
 logging.getLogger("httpx").setLevel(logging.WARNING)

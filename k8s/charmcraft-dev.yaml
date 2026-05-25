@@ -57,14 +57,13 @@ parts:
       - pkg-config  # Needed to build Python dependencies with Rust from source
       - rustup      # Needed to build Python dependencies with Rust from source
     override-build: |
-      rustup default 1.93.1
+      rustup default 1.93.1  # renovate: charmcraft-rust-latest
       craftctl default
       # Replace symlinks
-      # find .common/ -mindepth 1 -type d | while read -r dir; do 
-      #    rm -rf "$CRAFT_PART_INSTALL"/src/$(basename $dir);
-      #    cp -ra $dir "$CRAFT_PART_INSTALL"/src/
-      # done
-      rm -rf $CRAFT_PART_INSTALL/src/single_kernel_kafka
+      find .common/ -mindepth 1 -type d | while read -r dir; do
+         rm -rf "$CRAFT_PART_INSTALL"/src/$(basename $dir);
+         cp -ra $dir "$CRAFT_PART_INSTALL"/src/
+      done
       # Include requirements.txt in *.charm artifact for easier debugging
       cp requirements.txt "$CRAFT_PART_INSTALL/requirements.txt"
   # "files" part name is arbitrary; use for consistency

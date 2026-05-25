@@ -1,0 +1,48 @@
+# Copyright 2026 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+[project]
+name = "single-kernel-kafka"
+version = "0.4.4"
+description = "Common libs for Apacha Kafka charms."
+
+[build-system]
+requires = ["poetry-core>=2.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+requires-poetry = ">=2.0.0"
+
+[tool.poetry.dependencies]
+python = ">=3.10,<4.0"
+ops = ">=2.17.0"
+kazoo = ">=2.8.0"
+
+# The cosl dep could be removed from here once PYDEPS is released:
+# https://github.com/canonical/charmcraft/pull/1003
+cosl = ">= 0.0.50"
+
+tenacity = ">=8.0.1"
+pure-sasl = ">=0.6.2"
+jsonschema = ">=4.10"
+cryptography = ">42.0.0"
+pydantic = "^2.11"
+pyyaml = "^6.0.1"
+requests = "^2.32.3"
+lightkube = "0.15.4"
+trustme = "^1.2.0"
+charmlibs-pathops = "^1.0.0"
+charm-refresh = "^3.0.0.6"
+toml = "^0.10.2"
+
+[tool.poetry.group.charm-libs.dependencies]
+# data_platform_libs/v0/data_interfaces.py
+ops = ">=2.0.0"
+# data_platform_libs/v0/upgrade.py
+# grafana_agent/v0/cos_agent.py requires pydantic <2
+poetry-core = "*"
+pydantic = "^2.11"
+# tls_certificates_interface/v3/tls_certificates.py
+cryptography = ">=42.0.5"
+# hydra/v0/oauth.py
+jsonschema = "*"

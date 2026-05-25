@@ -2,10 +2,12 @@
 
 # The 'pack' command sequence
 pack:
-	@cp -ra ../common/ .common
-	@charmcraft pack -v
+	@mkdir -p build
+	@rsync -av --exclude build . ./build/
+	@cp -ra ../common/ build/.common
+	@charmcraft pack -v -p build -o .
 
 # A cleanup command to remove the build directory
 clean:
-	rm -rf .common
+	rm -rf build
 	@charmcraft clean
