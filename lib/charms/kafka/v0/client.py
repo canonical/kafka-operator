@@ -99,7 +99,7 @@ LIBPATCH = 2
 class KafkaClient:
     """Simplistic KafkaClient built on top of kafka-python."""
 
-    API_VERSION = (2, 5, 0)
+    API_VERSION = (4, 2, 0)
 
     def __init__(
         self,
