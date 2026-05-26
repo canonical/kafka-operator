@@ -71,7 +71,7 @@ copyright = "%s CC-BY-SA, %s" % (datetime.date.today().year, author)
 # NOTE: The Open Graph Protocol (OGP) enhances page display in a social graph
 #       and is used by social media platforms; see https://ogp.me/
 
-ogp_site_url = "https://canonical-charmed-kafka.readthedocs-hosted.com/"
+ogp_site_url = os.environ.get("READTHEDOCS_CANONICAL_URL", "/")
 
 
 # Preview name of the documentation website
@@ -170,7 +170,7 @@ html_theme_options = {
 # TODO: If your documentation is hosted on https://docs.ubuntu.com/,
 #       uncomment and update as needed.
 
-slug = 'charmed-kafka'
+slug = 'data/kafka/docs'
 
 #######################
 # Sitemap configuration: https://sphinx-sitemap.readthedocs.io/
@@ -178,7 +178,7 @@ slug = 'charmed-kafka'
 
 # Base URL of RTD hosted project
 
-html_baseurl = 'https://documentation.ubuntu.com/charmed-kafka/'
+html_baseurl = os.environ.get("READTHEDOCS_CANONICAL_URL", "/")
 
 # URL scheme. Add language and version scheme elements.
 # When configured with RTD variables, check for RTD environment so manual runs succeed:
@@ -302,6 +302,7 @@ html_css_files = [
 
 html_js_files = [
 	'js/bundle.js',
+    "overwritelinks.js",
 ]
 
 # Specifies a reST snippet to be appended to each .rst file
