@@ -63,7 +63,7 @@ html_title = project + " documentation"
 
 copyright = "%s CC-BY-SA, %s" % (datetime.date.today().year, author)
 
-
+version = f"{os.environ.get('READTHEDOCS_VERSION', 'local')}"
 # Documentation website URL
 #
 # TODO: Update with the official URL of your docs or leave empty if unsure.
@@ -71,7 +71,7 @@ copyright = "%s CC-BY-SA, %s" % (datetime.date.today().year, author)
 # NOTE: The Open Graph Protocol (OGP) enhances page display in a social graph
 #       and is used by social media platforms; see https://ogp.me/
 
-ogp_site_url = os.environ.get("READTHEDOCS_CANONICAL_URL", "/")
+ogp_site_url = f"https://canonical.com/data/kafka/docs/{version}/"
 
 
 # Preview name of the documentation website
@@ -178,7 +178,7 @@ slug = 'data/kafka/docs'
 
 # Base URL of RTD hosted project
 
-html_baseurl = os.environ.get("READTHEDOCS_CANONICAL_URL", "/")
+html_baseurl = f"https://canonical.com/data/kafka/docs/{version}/"
 
 # URL scheme. Add language and version scheme elements.
 # When configured with RTD variables, check for RTD environment so manual runs succeed:
