@@ -5,27 +5,23 @@ myst:
 ---
 
 (index)=
+# Charmed Apache Kafka documentation
+
+Charmed Apache Kafka is an open-source operator, packaged as a
+[Juju charm](https://documentation.ubuntu.com/juju/3.6/reference/charm/),
+that simplifies the deployment, scaling, and management of
+[Apache Kafka](https://kafka.apache.org) clusters on physical hardware, VMs,
+and cloud environments including AWS, Azure, OpenStack, and VMware.
 
 ```{note}
 This is an **IAAS/VM** charmed operator.
 To deploy on Kubernetes, see [Charmed Apache Kafka K8s operator](https://documentation.ubuntu.com/charmed-kafka-k8s/4/).
 ```
 
-# Charmed Apache Kafka documentation
-
-Charmed Apache Kafka is an open-source software operator, packaged as a
-[Juju charm](https://documentation.ubuntu.com/juju/3.6/reference/charm/),
-that simplifies the deployment, scaling, and management of Apache Kafka clusters
-on physical hardware, Virtual Machines, as well as cloud and cloud-like environments
-including AWS, Azure, OpenStack, and VMware.
-
-[Apache Kafka](https://kafka.apache.org) is a free, open-source software project
-by the Apache Software Foundation.
-
-The charm helps ops teams and administrators automate Apache Kafka operations from
+The charm automates Apache Kafka operations from
 [Day 0 to Day 2](https://codilime.com/blog/day-0-day-1-day-2-the-software-lifecycle-in-the-cloud-age/)
-with additional capabilities, such as: replication, TLS encryption, password rotation,
-easy-to-use application integration, and monitoring.
+with capabilities such as replication, TLS encryption, password rotation,
+application integration, and monitoring.
 
 ## In this documentation
 
@@ -65,6 +61,8 @@ that welcomes community contributions, suggestions, fixes and constructive feedb
 
 ## License and trademarks
 
+[Apache Kafka](https://kafka.apache.org) is a free, open-source software project
+by the Apache Software Foundation.
 Apache®, Apache Kafka, Kafka®, and the Apache Kafka logo are either registered trademarks
 or trademarks of the Apache Software Foundation in the United States and/or other countries.
 
