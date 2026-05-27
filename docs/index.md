@@ -40,10 +40,12 @@ easy-to-use application integration, and monitoring.
 
 ## How the documentation is organised
 
-[Tutorial](tutorial-introduction): For new users needing to learn how to use Charmed Apache Kafka <br>
-[How-to guides](how-to-index): For users needing step-by-step instructions to achieve a practical goal <br>
-[Reference](reference-index): For precise, theoretical, factual information to be used while working with the charm <br>
-[Explanation](explanation-index): For deeper understanding of key Charmed Apache Kafka concepts <br>
+This documentation follows the [Diátaxis](https://diataxis.fr/) framework to help you find the right information depending on your goal:
+
+[Tutorial](tutorial-introduction): Walk through deploying your first Charmed Apache Kafka cluster from scratch, step by step <br>
+[How-to guides](how-to-index): Solve specific operational tasks such as enabling TLS, connecting clients, or scaling brokers <br>
+[Reference](reference-index): Look up configuration options, status codes, file paths, and system requirements <br>
+[Explanation](explanation-index): Understand the design decisions behind security, replication, and integration architecture <br>
 
 ## Project and community
 
