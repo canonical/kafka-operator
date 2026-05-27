@@ -29,7 +29,6 @@ requires-poetry = ">=2.0.0"
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
 ops = ">=2.17.0"
-kazoo = ">=2.8.0"
 
 # The cosl dep could be removed from here once PYDEPS is released:
 # https://github.com/canonical/charmcraft/pull/1003
@@ -94,7 +93,6 @@ pytest = ">=7.2"
 juju = "^3.6.0.0"
 coverage = { extras = ["toml"], version = ">7.0" }
 pytest-operator = ">0.20"
-kazoo = ">=2.8"
 tenacity = ">=7.0"
 pure-sasl = ">=0.5"
 kafka-python = ">=2.0"

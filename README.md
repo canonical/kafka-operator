@@ -176,7 +176,6 @@ unit-data-integrator-0:
       password: ejMp4SblzxkMCF0yUXjaspneflXqcyXK
       tls: disabled
       username: relation-27
-      zookeeper-uris: 10.123.8.154:2181,10.123.8.181:2181,10.123.8.61:2181/kafka
     ok: "True"
   status: completed
   timing:
@@ -253,14 +252,14 @@ Since the Charmed Apache Kafka Operator is deployed on a machine environment, it
 of the COS relations. The [offers-overlay](https://github.com/canonical/cos-lite-bundle/blob/main/overlays/offers-overlay.yaml)
 can be used, and this step is shown in the COS tutorial.
 
-Next, deploy [Grafana Agent](https://charmhub.io/grafana-agent) and follow the
+Next, deploy [Opentelemetry collector](https://charmhub.io/opentelemetry-collector) and follow the
 [tutorial](https://discourse.charmhub.io/t/using-the-grafana-agent-machine-charm/8896)
 to relate it to the COS Lite offers.
 
-Now, integrate Apache Kafka with the Grafana Agent:
+Now, integrate Apache Kafka with the Opentelemetry collector:
 
 ```bash
-juju integrate kafka grafana-agent
+juju integrate kafka opentelemetry-collector
 ```
 
 After this is complete, Grafana will show two new dashboards: `Kafka Metrics` and `Node Exporter Kafka`.
