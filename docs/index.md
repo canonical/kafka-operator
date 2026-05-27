@@ -25,24 +25,36 @@ application integration, and monitoring.
 
 ## In this documentation
 
-|                    |                                                                     |
-|--------------------|---------------------------------------------------------------------|
-| **Getting started** | [Introduction](tutorial-introduction) • [Environment setup](tutorial-environment) • [Requirements](reference-requirements) |
-| **Deployment** | [Deploy](how-to-deploy-index) • [Juju CLI](how-to-deploy-anywhere) • [Terraform](how-to-deploy-terraform) • [AWS](how-to-deploy-on-aws) • [Azure](how-to-deploy-on-azure) • [Juju Spaces](how-to-deploy-spaces) |
-| **Operations** | [Connections management](how-to-client-connections) • [Unit management](how-to-manage-units) • [Monitoring](how-to-monitoring) • [Listeners](reference-broker-listeners) • [Statuses](reference-statuses) |
-| **Maintenance** | [Version upgrade](how-to-upgrade) • [Migration](how-to-cluster-migration) • [Replication](how-to-cluster-replication) • [MirrorMaker](explanation-mirrormaker2-0) • [Backups](explanation-backups) |
-| **Security** | [Overview](explanation-security) • [Enable encryption](how-to-tls-encryption) • [mTLS](how-to-create-mtls-client-credentials) • [OAuth](how-to-enable-oauth) • [Cryptography](explanation-cryptography) |
-| **Extensions** | [Kafka Connect](how-to-use-kafka-connect-for-etl-workloads) • [Schema registry](how-to-schemas-serialisation) • [Kafka UI](how-to-kafka-ui) |
-| **Internals** | [Snap commands](reference-snap-commands) • [File paths](reference-file-system-paths) • [Performance tuning](reference-performance-tuning) • [Terraform module](reference-terraform) • [Release notes](reference-release-notes-index) |
+### Get started
+
+Set up your environment, understand the requirements, and deploy your first Charmed Apache Kafka cluster.
+
+- **Getting started**: [Introduction](tutorial-introduction) • [Environment setup](tutorial-environment) • [Requirements](reference-requirements)
+- **Deployment**: [Deploy](how-to-deploy-index) • [Juju CLI](how-to-deploy-anywhere) • [Terraform](how-to-deploy-terraform) • [AWS](how-to-deploy-on-aws) • [Azure](how-to-deploy-on-azure) • [Juju Spaces](how-to-deploy-spaces)
+
+### Operate and maintain
+
+Manage day-to-day cluster operations, keep it up to date, and ensure resilience through replication and upgrades.
+
+- **Operations**: [Connections management](how-to-client-connections) • [Unit management](how-to-manage-units) • [Monitoring](how-to-monitoring) • [Listeners](reference-broker-listeners) • [Statuses](reference-statuses)
+- **Maintenance**: [Version upgrade](how-to-upgrade) • [Migration](how-to-cluster-migration) • [Replication](how-to-cluster-replication) • [MirrorMaker](explanation-mirrormaker2-0) • [Backups](explanation-backups)
+
+### Secure and extend
+
+Protect your cluster with encryption and authentication, and integrate additional tools.
+
+- **Security**: [Overview](explanation-security) • [Enable encryption](how-to-tls-encryption) • [mTLS](how-to-create-mtls-client-credentials) • [OAuth](how-to-enable-oauth) • [Cryptography](explanation-cryptography)
+- **Extensions**: [Kafka Connect](how-to-use-kafka-connect-for-etl-workloads) • [Schema registry](how-to-schemas-serialisation) • [Kafka UI](how-to-kafka-ui)
+- **Internals**: [Snap commands](reference-snap-commands) • [File paths](reference-file-system-paths) • [Performance tuning](reference-performance-tuning) • [Terraform module](reference-terraform) • [Release notes](reference-release-notes-index)
 
 ## How the documentation is organised
 
-This documentation follows the [Diátaxis](https://diataxis.fr/) framework to help you find the right information depending on your goal:
+This documentation uses the [Diátaxis documentation structure](https://diataxis.fr/):
 
-[Tutorial](tutorial-introduction): Walk through deploying your first Charmed Apache Kafka cluster from scratch, step by step <br>
-[How-to guides](how-to-index): Solve specific operational tasks such as enabling TLS, connecting clients, or scaling brokers <br>
-[Reference](reference-index): Look up configuration options, status codes, file paths, and system requirements <br>
-[Explanation](explanation-index): Understand the design decisions behind security, replication, and integration architecture <br>
+- The [Tutorial](tutorial-introduction) walks you through deploying your first Charmed Apache Kafka cluster from scratch, step by step.
+- [How-to guides](how-to-index) help you solve specific operational tasks such as enabling TLS, connecting clients, or scaling brokers.
+- [Reference](reference-index) lets you look up configuration options, status codes, file paths, and system requirements.
+- [Explanation](explanation-index) helps you understand the design decisions behind security, replication, and integration architecture.
 
 ## Project and community
 
