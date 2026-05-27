@@ -31,12 +31,13 @@ easy-to-use application integration, and monitoring.
 
 |                    |                                                                     |
 |--------------------|---------------------------------------------------------------------|
-| **Tutorial** | [Introduction](tutorial-introduction) • [Step 1: Environment setup](tutorial-environment) |
-| **Deployment** | [Deploy](how-to-deploy-index) • [Juju CLI](how-to-deploy-anywhere) • [Terraform](how-to-deploy-terraform) • [AWS](how-to-deploy-on-aws) •  [Azure](how-to-deploy-on-azure) • [Juju Spaces](how-to-deploy-spaces) •  [Requirements](reference-requirements) |
-| **Operations** | [Connections management](how-to-client-connections) • [Unit management](how-to-manage-units) • [Monitoring](how-to-monitoring) • [Snap commands](reference-snap-commands) • [File system paths](reference-file-system-paths) • [Broker listeners](reference-broker-listeners) • [Status reference](reference-statuses) • [Performance overview](reference-performance-tuning) |
-| **Maintenance** | [Version upgrade](how-to-upgrade) • [Migration](how-to-cluster-migration) • [Replication](how-to-cluster-replication) • [MirrorMaker](explanation-mirrormaker2-0)  • [Backups](explanation-backups) |
-| **Security** | [Overview](explanation-security) • [Enable encryption](how-to-tls-encryption) • [mTLS](how-to-create-mtls-client-credentials) • [Cryptography](explanation-cryptography) |
-| **Extensions** | [Kafka Connect](how-to-use-kafka-connect-for-etl-workloads) • [Schema registry](how-to-schemas-serialisation) |
+| **Getting started** | [Introduction](tutorial-introduction) • [Environment setup](tutorial-environment) • [Requirements](reference-requirements) |
+| **Deployment** | [Deploy](how-to-deploy-index) • [Juju CLI](how-to-deploy-anywhere) • [Terraform](how-to-deploy-terraform) • [AWS](how-to-deploy-on-aws) • [Azure](how-to-deploy-on-azure) • [Juju Spaces](how-to-deploy-spaces) |
+| **Operations** | [Connections management](how-to-client-connections) • [Unit management](how-to-manage-units) • [Monitoring](how-to-monitoring) • [Listeners](reference-broker-listeners) • [Statuses](reference-statuses) |
+| **Maintenance** | [Version upgrade](how-to-upgrade) • [Migration](how-to-cluster-migration) • [Replication](how-to-cluster-replication) • [MirrorMaker](explanation-mirrormaker2-0) • [Backups](explanation-backups) |
+| **Security** | [Overview](explanation-security) • [Enable encryption](how-to-tls-encryption) • [mTLS](how-to-create-mtls-client-credentials) • [OAuth](how-to-enable-oauth) • [Cryptography](explanation-cryptography) |
+| **Extensions** | [Kafka Connect](how-to-use-kafka-connect-for-etl-workloads) • [Schema registry](how-to-schemas-serialisation) • [Kafka UI](how-to-kafka-ui) |
+| **Internals** | [Snap commands](reference-snap-commands) • [File paths](reference-file-system-paths) • [Performance tuning](reference-performance-tuning) • [Terraform module](reference-terraform) • [Release notes](reference-release-notes-index) |
 
 ## How the documentation is organised
 
