@@ -9,7 +9,7 @@ myst:
 
 Charmed Apache Kafka has been updated from Apache Kafka 3.9 to 4.1, bringing in the latest major-version changes. For more detail on the upstream changes, see the official Apache Kafka [4.0 release notes](https://archive.apache.org/dist/kafka/4.0.0/RELEASE_NOTES.html) and [4.1 release notes](https://archive.apache.org/dist/kafka/4.1.0/RELEASE_NOTES.html).
 
-Apache ZooKeeper has now been fully removed as a dependency. For guidance on deploying Charmed Apache Kafka in production without ZooKeeper, see the [deployment documentation](https://documentation.ubuntu.com/charmed-kafka/4/how-to/deploy/#deploy-charmed-apache-kafka-for-production).
+Apache ZooKeeper has now been fully removed as a dependency. For guidance on deploying Charmed Apache Kafka in production without ZooKeeper, see the [deployment documentation](https://documentation.ubuntu.com/charmed-kafka/4/how-to/deploy/deploy-anywhere/#deploy-charmed-apache-kafka-for-production).
 
 Cruise Control is now available as a stable feature for partition rebalancing. To learn how to rebalance partitions with Cruise Control, follow the [tutorial](https://documentation.ubuntu.com/charmed-kafka/4/tutorial/rebalance-partitions/).
 
