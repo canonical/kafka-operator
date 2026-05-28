@@ -74,7 +74,7 @@ that welcomes community contributions, suggestions, fixes and constructive feedb
 - [Read our Code of Conduct](https://ubuntu.com/community/code-of-conduct)
 - [Join the Discourse forum](https://discourse.charmhub.io/tag/kafka)
 - [Contribute](https://github.com/canonical/kafka-operator/blob/main/CONTRIBUTING.md) and report [issues](https://github.com/canonical/kafka-operator/issues/new)
-- Explore [Canonical Data Fabric solutions](https://canonical.com/data)
+- Explore [Canonical's open-source data platform](https://canonical.com/data)
 - [Contact us](reference-contact) for all further questions
 
 ## License and trademarks
