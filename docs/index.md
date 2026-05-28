@@ -25,6 +25,8 @@ application integration, and monitoring.
 
 ## In this documentation
 
+Charmed Apache Kafka documentation has the following topics.
+
 ### Get started
 
 Set up your environment, understand the requirements, and deploy your first Charmed Apache Kafka cluster.
