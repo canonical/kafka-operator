@@ -59,12 +59,13 @@ parts:
     override-build: |
       rustup default 1.93.1
       craftctl default
-      # Replace symlinks
-      # find .common/ -mindepth 1 -type d | while read -r dir; do 
-      #    rm -rf "$CRAFT_PART_INSTALL"/src/$(basename $dir);
-      #    cp -ra $dir "$CRAFT_PART_INSTALL"/src/
-      # done
       rm -rf $CRAFT_PART_INSTALL/src/single_kernel_kafka
+      # Install single kernel lib from source if in dev mode
+      if [[ -f "${CRAFT_PART_SRC}/DEVMODE" ]]; then
+        pip install -U \
+          -t ${CRAFT_PART_INSTALL}/venv/lib/python3.12/site-packages/ \
+          ${CRAFT_PART_SRC}/.common
+      fi
       # Include requirements.txt in *.charm artifact for easier debugging
       cp requirements.txt "$CRAFT_PART_INSTALL/requirements.txt"
   # "files" part name is arbitrary; use for consistency

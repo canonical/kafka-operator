@@ -3,7 +3,7 @@
 
 [project]
 name = "single-kernel-kafka"
-version = "0.4.4"
+version = "0.4.7"
 description = "Common libs for Apacha Kafka charms."
 
 [build-system]

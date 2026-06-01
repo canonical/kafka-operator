@@ -70,9 +70,12 @@ BrokerCapacities = TypedDict(
 )
 
 custom_secret_groups = SECRET_GROUPS
-setattr(custom_secret_groups, "BROKER", "broker")
-setattr(custom_secret_groups, "BALANCER", "balancer")
-setattr(custom_secret_groups, "CONTROLLER", "controller")
+if not hasattr(custom_secret_groups, "BROKER"):
+    setattr(custom_secret_groups, "BROKER", "broker")
+if not hasattr(custom_secret_groups, "BALANCER"):
+    setattr(custom_secret_groups, "BALANCER", "balancer")
+if not hasattr(custom_secret_groups, "CONTROLLER"):
+    setattr(custom_secret_groups, "CONTROLLER", "controller")
 
 SECRET_LABEL_MAP = {
     "broker-username": getattr(custom_secret_groups, "BROKER"),

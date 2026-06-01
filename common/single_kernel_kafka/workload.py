@@ -63,6 +63,7 @@ class WorkloadMachine(WorkloadBase):
         self.container = container
         self.kafka = snap.SnapCache()[SNAP_NAME]
         self.root = pathops.LocalPath("/")
+        self.substrate = "vm"
 
     @property
     @override
@@ -255,7 +256,6 @@ class KafkaWorkloadMachine(WorkloadMachine):
         self.paths = CharmedKafkaPaths(BROKER)
         self.service = BROKER.service
         self.container = container
-        self.substrate = "vm"
 
     @property
     @override
@@ -332,6 +332,7 @@ class WorkloadK8s(WorkloadBase):
 
         self.container = container
         self.root = pathops.ContainerPath("/", container=self.container)
+        self.substrate = "k8s"
 
     @override
     def modify_time(self, file: str) -> float:
@@ -495,7 +496,6 @@ class KafkaWorkloadK8s(WorkloadK8s):
 
         self.paths = CharmedKafkaPaths(BROKER)
         self.service = BROKER.service
-        self.substrate = "k8s"
 
     @property
     @override
