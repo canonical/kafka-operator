@@ -1,6 +1,6 @@
 // Replace oldDomain with newDomain
 const oldDomain = 'canonical-kafka-charm.readthedocs-hosted.com';
-const newDomain = 'https://canonical.com/data/kafka/docs';
+const newDomain = 'canonical.com/data/kafka/docs';
 
 function escapeRegExp(value) {
     return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
