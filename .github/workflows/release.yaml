@@ -18,6 +18,7 @@ jobs:
       track: '4'
     permissions:
       contents: write # Needed to create git tag
+      actions: read # Needed by reusable workflow
 
   ci-tests:
     needs:
@@ -25,9 +26,7 @@ jobs:
     uses: ./.github/workflows/ci.yaml
     secrets: inherit
     permissions:
-      contents: write # Needed to login to Discourse
-      pull-requests: write # Need to create PR
-      actions: write
+      contents: read
 
   release:
     name: Release charm
@@ -42,6 +41,7 @@ jobs:
       charmhub-token: ${{ secrets.CHARMHUB_TOKEN }}
     permissions:
       contents: write  # Needed to create git tags
+      actions: read # Needed by reusable workflow
 
   trigger-release-ci:
     name: Trigger release CI
