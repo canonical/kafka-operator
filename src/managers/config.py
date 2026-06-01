@@ -11,14 +11,14 @@ import os
 import re
 import textwrap
 from abc import abstractmethod
-from typing import Iterable, cast
+from typing import cast
 
 from lightkube.core.exceptions import ApiError
 from typing_extensions import override
 
 from core.cluster import ClusterState
 from core.structured_config import CharmConfig, LogLevel
-from core.workload import CharmedKafkaPaths, WorkloadBase
+from core.workload import CharmedKafkaPaths, WorkloadBase, map_env
 from literals import (
     ADMIN_USER,
     BALANCER,
@@ -832,6 +832,7 @@ class ConfigManager(CommonConfigManager):
             self.jvm_performance_opts,
             self.heap_opts,
             self.log_level,
+            f"BOOTSTRAP_SERVER={self.state.bootstrap_server_internal}",
         ]
 
         raw_current_env = self.workload.read("/etc/environment")
@@ -1050,15 +1051,3 @@ class BalancerConfigManager(CommonConfigManager):
             content=f"{self.state.cluster.balancer_username}: {self.state.cluster.balancer_password},ADMIN\n",
             path=self.workload.paths.cruise_control_auth,
         )
-
-
-def map_env(env: Iterable[str]) -> dict[str, str]:
-    """Parse env var into a dict."""
-    map_env = {}
-    for var in env:
-        key = "".join(var.split("=", maxsplit=1)[0])
-        value = "".join(var.split("=", maxsplit=1)[1:])
-        if key:
-            # only check for keys, as we can have an empty value for a variable
-            map_env[key] = value
-    return map_env
