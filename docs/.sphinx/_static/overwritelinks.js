@@ -1,23 +1,37 @@
- // Replace oldDomain with newDomain
- const oldDomain = 'canonical-charmed-opensearch.readthedocs-hosted.com/2';
- const newDomain = 'canonical.com/data/opensearch/docs';
+// Replace oldDomain with newDomain
+const oldDomain = 'canonical-kafka-charm.readthedocs-hosted.com';
+const newDomain = 'https://canonical.com/data/kafka/docs';
 
- // Use a MutationObserver to wait for the RTD flyout element to appear in the DOM
- const observer = new MutationObserver(function(mutations, obs) {
-     const rtdFlyout = document.querySelector('readthedocs-flyout');
-     if (!rtdFlyout) return;
+function escapeRegExp(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
-     obs.disconnect();
+function overwriteMatchingAnchorUrls(container) {
+    if (!container) return;
 
-     rtdFlyout.addEventListener('click', function() {
-         const shadowRoot = rtdFlyout.shadowRoot;
-         if (!shadowRoot) return;
+    const anchors = container.querySelectorAll('a[href], link[href]');
+    const oldDomainRegex = new RegExp(escapeRegExp(oldDomain), 'g');
 
-         const anchors = shadowRoot.querySelectorAll('a');
-         anchors.forEach(anchor => {
-             anchor.href = anchor.href.replace(new RegExp(oldDomain, 'g'), newDomain);
-         });
-     });
- });
+    anchors.forEach(anchor => {
+        anchor.href = anchor.href.replace(oldDomainRegex, newDomain);
+    });
+}
 
- observer.observe(document.body, { childList: true, subtree: true });
+overwriteMatchingAnchorUrls(document.querySelector('header'));
+
+// Use a MutationObserver to wait for the RTD flyout element to appear in the DOM
+const observer = new MutationObserver(function(mutations, obs) {
+    const rtdFlyout = document.querySelector('readthedocs-flyout');
+    if (!rtdFlyout) return;
+
+    obs.disconnect();
+
+    rtdFlyout.addEventListener('click', function() {
+        const shadowRoot = rtdFlyout.shadowRoot;
+        if (!shadowRoot) return;
+
+        overwriteMatchingAnchorUrls(shadowRoot);
+    });
+});
+
+observer.observe(document.body, { childList: true, subtree: true });
