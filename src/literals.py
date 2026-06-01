@@ -12,7 +12,7 @@ from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, StatusBase
 
 CHARM_KEY = "kafka"
 SNAP_NAME = "charmed-kafka"
-CHARMED_KAFKA_SNAP_REVISION = "70"
+CHARMED_KAFKA_SNAP_REVISION = "71"
 CONTAINER = "kafka"
 SUBSTRATE = "vm"
 STORAGE = "data"
@@ -299,6 +299,6 @@ DEPENDENCIES = {
         "dependencies": {"zookeeper": ">3.6"},
         "name": "kafka",
         "upgrade_supported": "^3",  # zk support removed in 4.0
-        "version": "3.9.1",
+        "version": "3.9.2",
     },
 }
