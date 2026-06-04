@@ -6,14 +6,11 @@ myst:
 
 # How to deploy Charmed Apache Kafka
 
-This guide provides platform-independent deployment instructions using the Juju CLI.
-For specific platform guides, see: [AWS](how-to-deploy-on-aws) and [Azure](how-to-deploy-on-azure). Alternatively, you can [deploy via Terraform](how-to-deploy-terraform).
+This guide provides platform-independent deployment instructions for the **IAAS/VM** operator using the Juju CLI.
+Kubernetes deployments are covered in the [Charmed Apache Kafka K8s documentation](https://charmhub.io/kafka-k8s).
+Platform-specific steps are available for [AWS](how-to-deploy-on-aws) and [Azure](how-to-deploy-on-azure). Alternatively, you can [deploy via Terraform](how-to-deploy-terraform).
 
 (how-to-deploy-anywhere)=
-
-```{caution}
-For K8s Charmed Apache Kafka, see the [Charmed Apache Kafka K8s documentation](https://charmhub.io/kafka-k8s) instead.
-```
 
 To deploy a Charmed Apache Kafka cluster on a bare environment, it is necessary to:
 
