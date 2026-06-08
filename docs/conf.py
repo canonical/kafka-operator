@@ -71,7 +71,7 @@ version = f"{os.environ.get('READTHEDOCS_VERSION', 'local')}"
 # NOTE: The Open Graph Protocol (OGP) enhances page display in a social graph
 #       and is used by social media platforms; see https://ogp.me/
 
-ogp_site_url = f"https://canonical.com/data/kafka/docs/{version}/"
+ogp_site_url = "https://canonical.com/data/kafka/docs/"
 
 
 # Preview name of the documentation website
@@ -178,7 +178,7 @@ slug = 'data/kafka/docs'
 
 # Base URL of RTD hosted project
 
-html_baseurl = f"https://canonical.com/data/kafka/docs/{version}/"
+html_baseurl = "https://canonical.com/data/kafka/docs/"
 
 # URL scheme. Add language and version scheme elements.
 # When configured with RTD variables, check for RTD environment so manual runs succeed:
