@@ -60,7 +60,7 @@ jobs:
               \"conf\": {
                 \"charm\": \"kafka\",
                 \"version\": \"${{ github.ref_name }}\",
-                \"charm_revisions\": \"${{ needs.release.outputs.charm_revisions }}\"
+                \"charm_revisions\": \"${{ needs.release.outputs.charm-revisions }}\"
               }
             }")
           http_code=$(echo "$response" | tail -n1)
