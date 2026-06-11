@@ -338,7 +338,6 @@ class BrokerOperator(Object):
             not self.charm.workload.kafka.services.get(PYTHON_EXPORTER_SERVICE, {}).get("active")
             or env_changed
         ):
-            self.config_manager.set_environment()
             self.charm.workload.kafka.restart(services=[PYTHON_EXPORTER_SERVICE])
 
         # If Kafka is related to client charms, update their information.
