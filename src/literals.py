@@ -63,7 +63,7 @@ BALANCER_WEBSERVER_PORT = 9090
 
 SECRETS_APP = [
     f"{user}-password" for user in INTERNAL_USERS + [BALANCER_WEBSERVER_USER, CONTROLLER_USER]
-] + ["internal-ca", "internal-ca-key"]
+] + ["internal-ca", "internal-ca-key", "oauth-users"]
 SECRETS_UNIT = [
     "truststore-password",
     "keystore-password",
