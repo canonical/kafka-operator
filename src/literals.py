@@ -83,7 +83,8 @@ JMX_EXPORTER_PORT = 9101
 JMX_CC_PORT = 9102
 METRICS_RULES_DIR = "./src/alert_rules/prometheus"
 LOGS_RULES_DIR = "./src/alert_rules/loki"
-
+KIP714_LIBPATH = "custom-kafka-metric-exporter-1.0.jar"
+KIP714_CLASSNAME = "org.imandata.kafka.CustomMetricsReporter"
 
 @dataclass
 class Ports:

@@ -32,6 +32,7 @@ from literals import (
     CHARM_KEY,
     JMX_CC_PORT,
     JMX_EXPORTER_PORT,
+    KIP714_LIBPATH,
     LOGS_RULES_DIR,
     METRICS_RULES_DIR,
     OS_REQUIREMENTS,
@@ -118,6 +119,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             return
 
         self._set_os_config()
+        self.workload.exec(f"cp src/{KIP714_LIBPATH} {self.workload.paths.data_path}")
 
     def _set_os_config(self) -> None:
         """Sets sysctl config."""

@@ -32,6 +32,8 @@ from literals import (
     JMX_EXPORTER_PORT,
     JVM_MEM_MAX_GB,
     JVM_MEM_MIN_GB,
+    KIP714_CLASSNAME,
+    KIP714_LIBPATH,
     KRAFT_NODE_ID_OFFSET,
     PATHS,
     PROFILE_TESTING,
@@ -792,6 +794,7 @@ class ConfigManager(CommonConfigManager):
                 f"listeners={','.join(listeners_repr)}",
                 f"advertised.listeners={','.join(advertised_listeners)}",
                 f"inter.broker.listener.name={self.internal_listener.name}",
+                f"metric.reporters={KIP714_CLASSNAME}"
             ]
             + self.scram_properties
             + self.oauth_properties
@@ -848,6 +851,8 @@ class ConfigManager(CommonConfigManager):
             self.jvm_performance_opts,
             self.heap_opts,
             self.log_level,
+            # TODO: ideally, this should be bundled in the snap
+            f'CLASSPATH={PATHS["kafka"]["DATA"]}/{KIP714_LIBPATH}',
         ] + self.auxiliary_paths
 
         raw_current_env = self.workload.read("/etc/environment")
