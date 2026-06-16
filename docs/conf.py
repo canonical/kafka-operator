@@ -371,7 +371,8 @@ exclude_patterns = [
     "doc-cheat-sheet*",
     "_build", 
     "Thumbs.db", 
-    ".DS_Store"
+    ".DS_Store",
+    "agent*",
 ]
 
 # Adds custom CSS files, located under 'html_static_path'
@@ -454,3 +455,15 @@ intersphinx_mapping = {}
 # PDF
 
 # set_modern_pdf_config = True
+
+
+# Register spellexception role
+
+def setup(app):
+    from docutils.parsers.rst import roles
+    from docutils import nodes
+
+    def spellexception_role(name, rawtext, text, lineno, inliner, options=None, content=None):
+        return [nodes.inline(rawtext, text, classes=["spellexception"])], []
+
+    roles.register_local_role("spellexception", spellexception_role)
