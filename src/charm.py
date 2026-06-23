@@ -32,6 +32,7 @@ from literals import (
     LOGS_RULES_DIR,
     METRICS_RULES_DIR,
     OS_REQUIREMENTS,
+    PYTHON_EXPORTER_PORT,
     SUBSTRATE,
     DebugLevel,
     Status,
@@ -66,6 +67,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
                 # See https://github.com/canonical/charmed-kafka-snap for details
                 {"path": "/metrics", "port": JMX_EXPORTER_PORT},
                 {"path": "/metrics", "port": JMX_CC_PORT},
+                {"path": "/metrics", "port": PYTHON_EXPORTER_PORT},
             ],
             metrics_rules_dir=METRICS_RULES_DIR,
             logs_rules_dir=LOGS_RULES_DIR,

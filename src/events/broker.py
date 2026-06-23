@@ -38,6 +38,7 @@ from literals import (
     GROUP,
     PEER,
     PROFILE_TESTING,
+    PYTHON_EXPORTER_SERVICE,
     REL_NAME,
     USER_ID,
     Status,
@@ -327,6 +328,17 @@ class BrokerOperator(Object):
         self.charm.state.unit_broker.unit.set_ports(  # in case of listeners changes
             *[listener.port for listener in self.config_manager.all_listeners]
         )
+
+        # Reconcile python exporter service
+        current_env = self.workload.read_env()
+        env_changed = (
+            current_env.get("BOOTSTRAP_SERVER") != self.charm.state.bootstrap_server_internal
+        )
+        if (
+            not self.charm.workload.kafka.services.get(PYTHON_EXPORTER_SERVICE, {}).get("active")
+            or env_changed
+        ):
+            self.charm.workload.kafka.restart(services=[PYTHON_EXPORTER_SERVICE])
 
         # If Kafka is related to client charms, update their information.
         if self.model.relations.get(REL_NAME, None) and self.charm.unit.is_leader():
