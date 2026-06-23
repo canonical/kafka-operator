@@ -1108,7 +1108,7 @@
         "h": 5,
         "w": 8,
         "x": 0,
-        "y": 15
+        "y": 25
       },
       "id": 467,
       "links": [],
@@ -1147,7 +1147,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 20
+        "y": 30
       },
       "id": 680,
       "panels": [],
@@ -1204,7 +1204,7 @@
         "h": 5,
         "w": 8,
         "x": 0,
-        "y": 21
+        "y": 31
       },
       "id": 681,
       "links": [],
@@ -1244,7 +1244,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 26
+        "y": 36
       },
       "id": 651,
       "panels": [],
@@ -1294,7 +1294,7 @@
         "h": 5,
         "w": 8,
         "x": 0,
-        "y": 27
+        "y": 37
       },
       "id": 192,
       "links": [],
@@ -1369,7 +1369,7 @@
         "h": 5,
         "w": 8,
         "x": 8,
-        "y": 27
+        "y": 37
       },
       "id": 677,
       "links": [],
@@ -1443,7 +1443,7 @@
         "h": 5,
         "w": 8,
         "x": 16,
-        "y": 27
+        "y": 37
       },
       "id": 678,
       "links": [],
@@ -1498,7 +1498,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 32
+        "y": 42
       },
       "hiddenSeries": false,
       "id": 665,
@@ -1603,7 +1603,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 32
+        "y": 42
       },
       "hiddenSeries": false,
       "id": 666,
@@ -1708,7 +1708,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 32
+        "y": 42
       },
       "hiddenSeries": false,
       "id": 667,
@@ -1799,7 +1799,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 40
+        "y": 50
       },
       "id": 653,
       "panels": [],
@@ -1826,7 +1826,7 @@
         "h": 10,
         "w": 12,
         "x": 0,
-        "y": 41
+        "y": 51
       },
       "hiddenSeries": false,
       "id": 152,
@@ -1931,7 +1931,7 @@
         "h": 10,
         "w": 12,
         "x": 12,
-        "y": 41
+        "y": 51
       },
       "hiddenSeries": false,
       "id": 155,
@@ -2047,7 +2047,7 @@
         "h": 10,
         "w": 12,
         "x": 0,
-        "y": 51
+        "y": 61
       },
       "hiddenSeries": false,
       "id": 50,
@@ -2153,7 +2153,7 @@
         "h": 10,
         "w": 12,
         "x": 12,
-        "y": 51
+        "y": 61
       },
       "hiddenSeries": false,
       "id": 176,
@@ -2799,7 +2799,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 90
+        "y": 81
       },
       "hiddenSeries": false,
       "id": 150,
@@ -3553,7 +3553,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 124
+        "y": 116
       },
       "hiddenSeries": false,
       "id": 140,
@@ -4421,6 +4421,99 @@
       ],
       "title": "JVM",
       "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Total Lag Across Partitions",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 15
+      },
+      "id": 689,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${prometheusds}"
+          },
+          "editorMode": "code",
+          "expr": "avg by (group, topic) ( (sum by (group, topic, juju_unit) (kafka_consumer_offset_lag_total ) ) )",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Consumer Group Lags",
+      "type": "timeseries"
     }
   ],
   "refresh": "1m",
