@@ -10,6 +10,7 @@ __pycache__/
 .python-version
 last_written_value
 *.srl
+.common/
 
 # Terraform state files
 *.tfstate
