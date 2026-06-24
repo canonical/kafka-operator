@@ -24,7 +24,6 @@ from ops import (
     UpdateStatusEvent,
 )
 from ops.pebble import ExecError
-from ..workload import KafkaWorkloadMachine, KafkaWorkloadK8s
 
 from ..core.literals import (
     BALANCER_WEBSERVER_PORT,
@@ -44,6 +43,7 @@ from ..managers.config import TESTING_OPTIONS, ConfigManager
 from ..managers.controller import ControllerManager
 from ..managers.k8s import K8sManager
 from ..managers.tls import TLSManager
+from ..workload import KafkaWorkloadK8s, KafkaWorkloadMachine
 from .actions import ActionEvents
 from .controller import KRaftHandler
 from .oauth import OAuthHandler
@@ -51,7 +51,7 @@ from .provider import KafkaProvider
 from .secrets import SecretsHandler
 
 if TYPE_CHECKING:
-    from charm import KafkaCharm
+    from ..core.models import KafkaCharmBase as KafkaCharm
 
 logger = logging.getLogger(__name__)
 

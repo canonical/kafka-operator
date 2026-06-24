@@ -23,7 +23,6 @@ from ops import (
 )
 from ops.pebble import ExecError
 from requests import Response
-from ..workload import BalancerWorkloadMachine, BalancerWorkloadK8s
 
 from ..core.literals import (
     BALANCER,
@@ -40,6 +39,7 @@ from ..core.workload import WorkloadBase
 from ..managers.balancer import BalancerManager
 from ..managers.config import CRUISE_CONTROL_TESTING_OPTIONS, BalancerConfigManager
 from ..managers.tls import TLSManager
+from ..workload import BalancerWorkloadK8s, BalancerWorkloadMachine
 
 if TYPE_CHECKING:
     from ..core.models import KafkaCharmBase as KafkaCharm

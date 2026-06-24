@@ -6,24 +6,27 @@ import dataclasses
 import logging
 from pathlib import Path
 from typing import cast
-from unittest.mock import MagicMock, PropertyMock, patch
+from unittest.mock import MagicMock, Mock, PropertyMock, patch
 
 import pytest
 import yaml
-from ops.testing import Container, Context, State
-
-from charm import KafkaCharm
-from events.refresh import KafkaUpgradeError, MachinesKafkaRefresh, is_workload_compatible
-from literals import CONTAINER, SUBSTRATE
+from common.single_kernel_kafka.core.literals import CONTAINER, PEER, SUBSTRATE
+from common.single_kernel_kafka.events.refresh import (
+    KafkaUpgradeError,
+    MachinesKafkaRefresh,
+    is_workload_compatible,
+)
+from machine.src.charm import KafkaCharm
+from ops.testing import Container, Context, PeerRelation, State
 
 logger = logging.getLogger(__name__)
 
 pytestmark = pytest.mark.broker
 
 
-CONFIG = yaml.safe_load(Path("./config.yaml").read_text())
-ACTIONS = yaml.safe_load(Path("./actions.yaml").read_text())
-METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
+CONFIG = yaml.safe_load(Path("./machine/config.yaml").read_text())
+ACTIONS = yaml.safe_load(Path("./machine/actions.yaml").read_text())
+METADATA = yaml.safe_load(Path("./machine/metadata.yaml").read_text())
 
 
 @pytest.fixture()
@@ -68,7 +71,9 @@ def test_post_snap_refresh_healthy_cluster(ctx: Context, base_state: State) -> N
         mock_refresh.next_unit_allowed_to_refresh = False
 
         with patch(
-            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=True
+            "single_kernel_kafka.events.broker.BrokerOperator.healthy",
+            new_callable=PropertyMock,
+            return_value=True,
         ):
             charm.post_snap_refresh(mock_refresh)
 
@@ -88,7 +93,9 @@ def test_post_snap_refresh_unhealthy_cluster(ctx: Context, base_state: State) ->
         mock_refresh.next_unit_allowed_to_refresh = False
 
         with patch(
-            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=False
+            "single_kernel_kafka.events.broker.BrokerOperator.healthy",
+            new_callable=PropertyMock,
+            return_value=False,
         ):
             charm.post_snap_refresh(mock_refresh)
 
@@ -97,35 +104,54 @@ def test_post_snap_refresh_unhealthy_cluster(ctx: Context, base_state: State) ->
 
 
 @pytest.mark.skipif(SUBSTRATE == "k8s", reason="snap_refresh not applicable in k8s")
-def test_refresh_snap_successful(ctx: Context, base_state: State) -> None:
+def test_refresh_snap_successful(
+    ctx: Context,
+    base_state: State,
+    kraft_data: dict[str, str],
+    passwords_data: dict[str, str],
+    unit_peer_tls_data: dict[str, str],
+) -> None:
     # Given
-    state_in = base_state
     snap_name = "kafka"
     snap_revision = "123"
 
+    cluster_peer = PeerRelation(
+        PEER,
+        PEER,
+        local_app_data=kraft_data | passwords_data,
+        local_unit_data=unit_peer_tls_data,
+    )
+    state_in = dataclasses.replace(
+        base_state, relations=[cluster_peer], config={"roles": "broker,controller"}
+    )
+
     # When
     with (
-        patch("workload.KafkaWorkload.stop") as mock_stop,
-        patch("workload.KafkaWorkload.restart") as mock_restart,
-        patch("workload.Workload.install", return_value=True) as mock_install,
-        patch("managers.config.ConfigManager.set_environment") as mock_set_env,
-        patch("charm.KafkaCharm.post_snap_refresh") as mock_post_refresh,
+        patch("single_kernel_kafka.workload.KafkaWorkloadMachine.stop") as mock_stop,
+        patch("single_kernel_kafka.workload.KafkaWorkloadMachine.restart") as mock_restart,
+        patch("single_kernel_kafka.managers.tls.TLSManager.configure"),
+        patch(
+            "single_kernel_kafka.workload.WorkloadMachine.install", return_value=True
+        ) as mock_install,
+        patch("single_kernel_kafka.managers.config.ConfigManager.set_environment") as mock_set_env,
         patch("time.sleep"),
         ctx(ctx.on.config_changed(), state_in) as manager,
     ):
         charm = cast(KafkaCharm, manager.charm)
+        charm.post_snap_refresh = Mock()
         mock_refresh = MagicMock()
 
         # Set the revision on the kafka snap mock
         charm.workload.kafka.revision = "456"
 
-        # Mock the MachinesKafkaRefresh constructor to avoid version checks
-        with patch("events.refresh.MachinesKafkaRefresh.__init__", return_value=None):
-            kafka_refresh = MachinesKafkaRefresh.__new__(MachinesKafkaRefresh)
-            kafka_refresh._charm = charm
-            kafka_refresh.refresh_snap(
-                snap_name=snap_name, snap_revision=snap_revision, refresh=mock_refresh
-            )
+        # Mock the KafkaRefresh constructor to avoid version checks
+        # with patch("single_kernel_kafka.events.refresh.KafkaRefresh.__init__", return_value=None):
+        kafka_refresh = MachinesKafkaRefresh(
+            workload_name="Kafka", charm_name="kafka", _charm=charm
+        )
+        kafka_refresh.refresh_snap(
+            snap_name=snap_name, snap_revision=snap_revision, refresh=mock_refresh
+        )
 
         # Then
         mock_stop.assert_called_once()
@@ -133,7 +159,7 @@ def test_refresh_snap_successful(ctx: Context, base_state: State) -> None:
         mock_refresh.update_snap_revision.assert_called_once()
         mock_set_env.assert_called_once()
         mock_restart.assert_called_once()
-        mock_post_refresh.assert_called_once_with(mock_refresh)
+        charm.post_snap_refresh.assert_called_once_with(mock_refresh)
 
 
 @pytest.mark.skipif(SUBSTRATE == "k8s", reason="snap_refresh not applicable in k8s")
@@ -146,9 +172,11 @@ def test_refresh_snap_install_failure_revision_unchanged(ctx: Context, base_stat
 
     # When
     with (
-        patch("workload.KafkaWorkload.stop") as mock_stop,
-        patch("workload.KafkaWorkload.start") as mock_start,
-        patch("workload.Workload.install", return_value=False) as mock_install,
+        patch("single_kernel_kafka.workload.KafkaWorkloadMachine.stop") as mock_stop,
+        patch("single_kernel_kafka.workload.KafkaWorkloadMachine.start") as mock_start,
+        patch(
+            "single_kernel_kafka.workload.WorkloadMachine.install", return_value=False
+        ) as mock_install,
         ctx(ctx.on.config_changed(), state_in) as manager,
     ):
         charm = cast(KafkaCharm, manager.charm)
@@ -158,7 +186,7 @@ def test_refresh_snap_install_failure_revision_unchanged(ctx: Context, base_stat
         charm.workload.kafka.revision = original_revision
 
         # Mock the MachinesKafkaRefresh constructor to avoid version checks
-        with patch("events.refresh.MachinesKafkaRefresh.__init__", return_value=None):
+        with patch("single_kernel_kafka.events.refresh.KafkaRefresh.__init__", return_value=None):
             kafka_refresh = MachinesKafkaRefresh.__new__(MachinesKafkaRefresh)
             kafka_refresh._charm = charm
 
@@ -183,8 +211,8 @@ def test_refresh_snap_install_failure_revision_changed(ctx: Context, base_state:
 
     # When
     with (
-        patch("workload.KafkaWorkload.stop") as mock_stop,
-        patch("workload.KafkaWorkload.start") as mock_start,
+        patch("single_kernel_kafka.workload.KafkaWorkloadMachine.stop") as mock_stop,
+        patch("single_kernel_kafka.workload.KafkaWorkloadMachine.start") as mock_start,
         ctx(ctx.on.config_changed(), state_in) as manager,
     ):
         charm = cast(KafkaCharm, manager.charm)
@@ -202,9 +230,10 @@ def test_refresh_snap_install_failure_revision_changed(ctx: Context, base_state:
         # Mock the MachinesKafkaRefresh constructor to avoid version checks
         with (
             patch(
-                "workload.Workload.install", side_effect=change_revision_after_install
+                "single_kernel_kafka.workload.WorkloadMachine.install",
+                side_effect=change_revision_after_install,
             ) as mock_install,
-            patch("events.refresh.MachinesKafkaRefresh.__init__", return_value=None),
+            patch("single_kernel_kafka.events.refresh.KafkaRefresh.__init__", return_value=None),
         ):
             kafka_refresh = MachinesKafkaRefresh.__new__(MachinesKafkaRefresh)
             kafka_refresh._charm = charm

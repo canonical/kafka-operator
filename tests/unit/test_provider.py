@@ -4,35 +4,33 @@
 
 import dataclasses
 import logging
-from pathlib import Path
 from typing import cast
 from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
-import yaml
-from ops.testing import Container, Context, PeerRelation, Relation, Secret, State
-from tests.unit.helpers import TLSArtifacts
-
-from charm import KafkaCharm
-from literals import (
+from common.single_kernel_kafka.core.literals import (
     CONTAINER,
     PEER,
     REL_NAME,
-    SUBSTRATE,
     TLS_RELATION,
     Status,
 )
-from managers.auth import AuthManager
+from common.single_kernel_kafka.managers.auth import AuthManager
+from ops.testing import Container, Context, PeerRelation, Relation, Secret, State
+from tests.unit.helpers import (
+    ACTIONS,
+    CONFIG,
+    METADATA,
+    SUBSTRATE,
+    SUBSTRATE_CLS,
+    KafkaCharm,
+    TLSArtifacts,
+)
 
 pytestmark = pytest.mark.broker
 
 
 logger = logging.getLogger(__name__)
-
-
-CONFIG = yaml.safe_load(Path("./config.yaml").read_text())
-ACTIONS = yaml.safe_load(Path("./actions.yaml").read_text())
-METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 
 
 @pytest.fixture()
@@ -77,10 +75,11 @@ def test_client_relation_created_adds_user(
     # When
     with (
         patch(
-            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=True
+            "single_kernel_kafka.events.broker.BrokerOperator.healthy",
+            new_callable=PropertyMock,
+            return_value=True,
         ),
-        patch("managers.auth.AuthManager.add_user") as patched_add_user,
-        patch("workload.KafkaWorkload.run_bin_command"),
+        patch("single_kernel_kafka.managers.auth.AuthManager.add_user") as patched_add_user,
     ):
         state_out = ctx.run(ctx.on.relation_changed(client_relation), state_in)
 
@@ -112,17 +111,20 @@ def test_client_relation_broken_removes_user(ctx: Context, base_state: State) ->
     # When
     with (
         patch(
-            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=True
+            "single_kernel_kafka.events.broker.BrokerOperator.healthy",
+            new_callable=PropertyMock,
+            return_value=True,
         ),
-        patch("managers.auth.AuthManager.add_user"),
-        patch("managers.auth.AuthManager.delete_user") as patched_delete_user,
-        patch("managers.auth.AuthManager.remove_all_user_acls") as patched_remove_acls,
+        patch("single_kernel_kafka.managers.auth.AuthManager.add_user"),
+        patch("single_kernel_kafka.managers.auth.AuthManager.delete_user") as patched_delete_user,
         patch(
-            "managers.tls.TLSManager.trusted_certificates",
+            "single_kernel_kafka.managers.auth.AuthManager.remove_all_user_acls"
+        ) as patched_remove_acls,
+        patch(
+            "single_kernel_kafka.managers.tls.TLSManager.trusted_certificates",
             new_callable=PropertyMock,
             return_value=[],
         ),
-        patch("workload.KafkaWorkload.run_bin_command"),
     ):
         state_out = ctx.run(ctx.on.relation_broken(client_relation), state_in)
 
@@ -150,11 +152,13 @@ def test_client_relation_joined_sets_necessary_relation_data(
     # When
     with (
         patch(
-            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=True
+            "single_kernel_kafka.events.broker.BrokerOperator.healthy",
+            new_callable=PropertyMock,
+            return_value=True,
         ),
-        patch("managers.auth.AuthManager.add_user"),
-        patch("workload.KafkaWorkload.run_bin_command"),
-        patch("workload.KafkaWorkload.read"),
+        patch("single_kernel_kafka.managers.auth.AuthManager.add_user"),
+        patch(f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.read"),
+        patch(f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.run_bin_command"),
     ):
         state_out = ctx.run(ctx.on.relation_changed(client_relation), state_in)
 
@@ -218,17 +222,22 @@ def test_mtls_without_tls_relation(
     )
 
     with (
-        patch("workload.KafkaWorkload.read", return_value=["key=value"]),
         patch(
-            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=True
+            f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.read",
+            return_value=["key=value"],
+        ),
+        patch(
+            "single_kernel_kafka.events.broker.BrokerOperator.healthy",
+            new_callable=PropertyMock,
+            return_value=True,
         ),
         # This is for the peer relation, no client.
         patch(
-            "managers.tls.TLSManager.get_current_sans",
+            "single_kernel_kafka.managers.tls.TLSManager.get_current_sans",
             return_value={"sans_ip": ["10.10.10.10"], "sans_dns": ["dns"]},
         ),
         # Model props
-        patch("core.models.KafkaCluster.internal_user_credentials"),
+        patch("single_kernel_kafka.core.models.KafkaCluster.internal_user_credentials"),
     ):
         state_out = ctx.run(ctx.on.relation_changed(client_relation), state_in)
 
@@ -279,21 +288,27 @@ def test_mtls_setup(
     )
 
     with (
-        patch("workload.KafkaWorkload.read", return_value=["key=value"]),
         patch(
-            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock, return_value=True
+            f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.read",
+            return_value=["key=value"],
+        ),
+        patch(
+            "single_kernel_kafka.events.broker.BrokerOperator.healthy",
+            new_callable=PropertyMock,
+            return_value=True,
         ),
         # Model props
-        patch("core.models.KafkaCluster.internal_user_credentials"),
+        patch("single_kernel_kafka.core.models.KafkaCluster.internal_user_credentials"),
         # TLSManager methods
         patch(
-            "managers.tls.TLSManager.get_current_sans",
+            "single_kernel_kafka.managers.tls.TLSManager.get_current_sans",
             return_value={"sans_ip": "ip", "sans_dns": "dns"},
         ),
         patch(
-            "managers.tls.TLSManager.build_sans", return_value={"sans_ip": "ip", "sans_dns": "dns"}
+            "single_kernel_kafka.managers.tls.TLSManager.build_sans",
+            return_value={"sans_ip": "ip", "sans_dns": "dns"},
         ),
-        patch("events.tls.TLSHandler.update_truststore"),
+        patch("single_kernel_kafka.events.tls.TLSHandler.update_truststore"),
         ctx(ctx.on.relation_changed(client_relation), state_in) as mgr,
     ):
         mock_auth_manager = MagicMock(spec=AuthManager)

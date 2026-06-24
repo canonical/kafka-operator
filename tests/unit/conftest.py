@@ -7,17 +7,17 @@ from collections import defaultdict
 from unittest.mock import Mock, PropertyMock, patch
 
 import pytest
-from ops import JujuVersion
-from ops.testing import Relation
-from src.literals import (
+from common.single_kernel_kafka.core.literals import (
     CONTROLLER_USER,
     INTERNAL_USERS,
     PEER_CLUSTER_RELATION,
     SNAP_NAME,
     SUBSTRATE,
 )
-from src.managers.balancer import CruiseControlClient
-from tests.unit.helpers import TLSArtifacts, generate_tls_artifacts
+from common.single_kernel_kafka.managers.balancer import CruiseControlClient
+from ops import JujuVersion
+from ops.testing import Relation
+from tests.unit.helpers import SUBSTRATE_CLS, TLSArtifacts, generate_tls_artifacts
 
 
 @pytest.fixture(scope="module")
@@ -71,13 +71,17 @@ def patched_pebble_restart(mocker):
 
 @pytest.fixture(autouse=True)
 def patched_etc_environment():
-    with patch("managers.config.ConfigManager.set_environment") as etc_env:
+    with patch("single_kernel_kafka.managers.config.ConfigManager.set_environment") as etc_env:
         yield etc_env
 
 
 @pytest.fixture(autouse=True)
 def patched_relation_ip():
-    with patch("core.models.RelationState.ip", new_callable=PropertyMock, return_value="10.5.5.5"):
+    with patch(
+        "single_kernel_kafka.core.models.RelationState.ip",
+        new_callable=PropertyMock,
+        return_value="10.5.5.5",
+    ):
         yield
 
 
@@ -85,33 +89,59 @@ def patched_relation_ip():
 def patched_workload(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("time.sleep", lambda _: None)
     monkeypatch.setattr("charmlibs.pathops.LocalPath.exists", lambda _: True)
-    monkeypatch.setattr("workload.Workload.active", lambda _: True)
-    monkeypatch.setattr("workload.Workload.write", lambda _, content, path: None)
-    monkeypatch.setattr("workload.Workload.read", lambda _, path: [])
-    monkeypatch.setattr("workload.Workload.get_service_pid", lambda _: 1314231)
-    monkeypatch.setattr("workload.Workload.last_restart", time.time() - 100.0)
-    monkeypatch.setattr("workload.Workload.modify_time", lambda _, file: time.time() - 1000.0)
-    monkeypatch.setattr("workload.Workload.ping", lambda _, nodes: True)
-    monkeypatch.setattr("workload.Workload.ips", ["10.10.10.10"])
+    monkeypatch.setattr("charmlibs.pathops.ContainerPath.exists", lambda _: True)
+    monkeypatch.setattr(
+        f"single_kernel_kafka.workload.Workload{SUBSTRATE_CLS}.active", lambda _: True
+    )
+    monkeypatch.setattr(
+        f"single_kernel_kafka.workload.Workload{SUBSTRATE_CLS}.write",
+        lambda _, content, path: None,
+    )
+    monkeypatch.setattr(
+        f"single_kernel_kafka.workload.Workload{SUBSTRATE_CLS}.read", lambda _, path: []
+    )
+    monkeypatch.setattr(
+        f"single_kernel_kafka.workload.Workload{SUBSTRATE_CLS}.stop", lambda _: None
+    )
+    monkeypatch.setattr(
+        f"single_kernel_kafka.workload.Workload{SUBSTRATE_CLS}.get_service_pid", lambda _: 1314231
+    )
+    monkeypatch.setattr(
+        f"single_kernel_kafka.workload.Workload{SUBSTRATE_CLS}.last_restart", time.time() - 100.0
+    )
+    monkeypatch.setattr(
+        f"single_kernel_kafka.workload.Workload{SUBSTRATE_CLS}.modify_time",
+        lambda _, file: time.time() - 1000.0,
+    )
+    monkeypatch.setattr(
+        f"single_kernel_kafka.workload.Workload{SUBSTRATE_CLS}.ping", lambda _, nodes: True
+    )
+    monkeypatch.setattr(
+        f"single_kernel_kafka.workload.Workload{SUBSTRATE_CLS}.ips", ["10.10.10.10"]
+    )
 
 
 @pytest.fixture(autouse=True)
 def patched_trust(monkeypatch: pytest.MonkeyPatch):
     # patch peer_trusted_certificates here,
     # we have comprehensive unit tests in test_tls_manager
-    monkeypatch.setattr("managers.tls.TLSManager.peer_trusted_certificates", {})
+    monkeypatch.setattr(
+        "single_kernel_kafka.managers.tls.TLSManager.peer_trusted_certificates", {}
+    )
 
 
 @pytest.fixture(autouse=True)
 def patched_get_users():
     # patch AuthManager.get_users here, we have unit tests in test_auth
-    with patch("managers.auth.AuthManager.get_users", return_value=["admin"]):
+    with patch("single_kernel_kafka.managers.auth.AuthManager.get_users", return_value=["admin"]):
         yield
 
 
 @pytest.fixture(autouse=True)
 def random_uuid():
-    with patch("managers.controller.ControllerManager.generate_uuid") as gen_uuid:
+    with patch(
+        "single_kernel_kafka.managers.controller.ControllerManager.generate_uuid"
+    ) as gen_uuid:
         gen_uuid.return_value = "some-random-uuid"
         yield
 
@@ -119,7 +149,7 @@ def random_uuid():
 @pytest.fixture(autouse=True)
 def patched_sysctl_config():
     if SUBSTRATE == "vm":
-        with patch("charm.sysctl.Config.configure") as sysctl_config:
+        with patch("machine.src.charm.sysctl.Config.configure") as sysctl_config:
             yield sysctl_config
     else:
         yield
@@ -127,14 +157,15 @@ def patched_sysctl_config():
 
 @pytest.fixture(autouse=True)
 def patched_exec():
-    with patch("workload.KafkaWorkload.exec") as patched_exec:
+    with patch(f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.exec") as patched_exec:
         yield patched_exec
 
 
 @pytest.fixture(autouse=True)
 def patched_broker_active():
     with patch(
-        "managers.controller.ControllerManager.broker_active", return_value=True
+        "single_kernel_kafka.managers.controller.ControllerManager.broker_active",
+        return_value=True,
     ) as _broker_active:
         yield _broker_active
 
@@ -143,7 +174,7 @@ def patched_broker_active():
 def patched_health_machine_configured():
     if SUBSTRATE == "vm":
         with patch(
-            "health.KafkaHealth.machine_configured", return_value=True
+            "single_kernel_kafka.health.KafkaHealth.machine_configured", return_value=True
         ) as machine_configured:
             yield machine_configured
     else:
@@ -197,7 +228,9 @@ def user_tasks() -> dict:
 def patched_node_ip():
     if SUBSTRATE == "k8s":
         with patch(
-            "core.models.KafkaBroker.node_ip", new_callable=PropertyMock, return_value="1234"
+            "single_kernel_kafka.core.models.KafkaBroker.node_ip",
+            new_callable=PropertyMock,
+            return_value="10.30.30.10",
         ) as patched_node_ip:
             yield patched_node_ip
     else:
@@ -208,7 +241,7 @@ def patched_node_ip():
 def patched_node_port():
     if SUBSTRATE == "k8s":
         with patch(
-            "managers.k8s.K8sManager.get_listener_nodeport",
+            "single_kernel_kafka.managers.k8s.K8sManager.get_listener_nodeport",
             return_value=20000,
         ) as patched_node_port:
             yield patched_node_port
@@ -242,8 +275,17 @@ def mock_refresh():
     refresh_mock.next_unit_allowed_to_refresh = True
     refresh_mock.workload_allowed_to_start = True
 
+    versions_mock = Mock()
+    versions_mock.charm = "v1/4.0.0"
+    versions_mock.workload = "4.0.0"
+
     with (
         patch("charm_refresh.Machines", Mock(return_value=refresh_mock)),
-        patch("charm.MachinesKafkaRefresh", Mock(return_value=None)),
+        patch("single_kernel_kafka.events.refresh.MachinesKafkaRefresh", Mock(return_value=None)),
+        patch("charm_refresh.Kubernetes", Mock(return_value=refresh_mock)),
+        patch(
+            "single_kernel_kafka.events.refresh.KubernetesKafkaRefresh", Mock(return_value=None)
+        ),
+        patch("charm_refresh._main._RefreshVersions", Mock(return_value=versions_mock)),
     ):
         yield

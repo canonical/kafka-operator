@@ -18,13 +18,7 @@ from charms.kafka.v0.client import KafkaClient
 from charms.tls_certificates_interface.v4.tls_certificates import PrivateKey
 from kafka.admin import NewTopic
 from pytest_operator.plugin import OpsTest
-from tenacity import retry
-from tenacity.retry import retry_if_result
-from tenacity.stop import stop_after_attempt
-from tenacity.wait import wait_fixed
-
-from core.models import JSON
-from literals import (
+from single_kernel_kafka.core.literals import (
     BALANCER_WEBSERVER_USER,
     JMX_CC_PORT,
     PATHS,
@@ -33,15 +27,15 @@ from literals import (
     PEER_CLUSTER_RELATION,
     KRaftUnitStatus,
 )
-from managers.auth import Acl, AuthManager
+from single_kernel_kafka.core.models import JSON
+from single_kernel_kafka.managers.auth import Acl, AuthManager
+from tenacity import retry
+from tenacity.retry import retry_if_result
+from tenacity.stop import stop_after_attempt
+from tenacity.wait import wait_fixed
 
-METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
-APP_NAME = METADATA["name"]
-SERIES = "noble"
-CONTROLLER_NAME = "controller"
-DUMMY_NAME = "app"
-REL_NAME_ADMIN = "kafka-client-admin"
-REL_NAME_PRODUCER = "kafka-client-producer"
+from integration.helpers import APP_NAME, CONTROLLER_NAME
+
 TEST_DEFAULT_MESSAGES = 15
 
 AUTH_SECRET_NAME = "auth"

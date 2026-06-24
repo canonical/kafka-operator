@@ -1,4 +1,4 @@
-# Copyright 2022 Canonical Ltd.
+ # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 type: charm
@@ -71,7 +71,8 @@ parts:
   # "files" part name is arbitrary; use for consistency
   files:
     plugin: dump
-    source: .
+    source: https://github.com/canonical/kafka-operator
+    source-type: git
     after:
       - poetry-deps  # Ensure poetry is installed
     build-packages:
@@ -82,7 +83,7 @@ parts:
       python3 -m venv ../refresh-version-venv
       source ../refresh-version-venv/bin/activate
       poetry install --only build-refresh-version
-      # write-charm-version
+      write-charm-version
 
       craftctl default
     stage:

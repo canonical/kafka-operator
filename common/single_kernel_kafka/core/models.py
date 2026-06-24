@@ -4,12 +4,20 @@
 
 """Collection of state objects for the Kafka relations, apps and units."""
 
+import abc
 import json
 import logging
 import socket
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Annotated, Literal, MutableMapping, TypeAlias, TypedDict
+from typing import (
+    TYPE_CHECKING,
+    Annotated,
+    Literal,
+    MutableMapping,
+    TypeAlias,
+    TypedDict,
+)
 
 import requests
 from charms.data_platform_libs.v0.data_interfaces import (
@@ -53,10 +61,23 @@ from .literals import (
     SECURITY_PROTOCOL_PORTS,
     TLS_RELATION,
     AuthMap,
+    Status,
     Substrates,
     TLSScope,
 )
 from .structured_config import CharmConfig
+
+if TYPE_CHECKING:
+    from charm_refresh import Kubernetes, Machines
+    from charms.rolling_ops.v0.rollingops import RollingOpsManager
+
+    from ..events.balancer import BalancerOperator
+    from ..events.broker import BrokerOperator
+    from ..events.tls import TLSHandler
+    from ..health import KafkaHealth
+    from ..workload import WorkloadK8s, WorkloadMachine
+    from .cluster import ClusterState
+
 
 logger = logging.getLogger(__name__)
 
@@ -96,11 +117,34 @@ BalancerGroupSecretStr = Annotated[
 ]
 
 
-class KafkaCharmBase(TypedCharmBase[CharmConfig]):
+class KafkaCharmBase(TypedCharmBase[CharmConfig], abc.ABC):
     """Base model for Kafka operators."""
 
     config_type = CharmConfig
+
+    balancer: "BalancerOperator"
+    broker: "BrokerOperator"
+    health: "KafkaHealth"
+    pending_inactive_statuses: list[Status]
+    restart: "RollingOpsManager"
+    refresh: "Machines | Kubernetes"
+    state: "ClusterState"
     substrate: Substrates
+    tls: "TLSHandler"
+    workload: "WorkloadMachine | WorkloadK8s"
+
+    @abc.abstractmethod
+    def _set_status(self, key: Status) -> None: ...
+
+    @abc.abstractmethod
+    def post_snap_refresh(self, refresh: "Machines") -> None:
+        """Handle post-snap refresh health checks and set next_unit_allowed_to_refresh."""
+
+    @property
+    @abc.abstractmethod
+    def refresh_not_ready(self) -> bool:
+        """Check if refresh is not available or currently in progress."""
+        ...
 
 
 @dataclass

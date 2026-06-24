@@ -1,0 +1,160 @@
+# Copyright 2022 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+# This a temporary workaround for CI charm builds until the charmcraft tooling supports git root builds.
+
+on:
+  workflow_call:
+    inputs:
+      artifact-prefix:
+        description: Charm packages are uploaded to GitHub artifacts beginning with this prefix
+        default: packed-charm
+        type: string
+      path-to-charm-directory:
+        description: Relative path to charm directory from repository directory
+        default: .
+        type: string
+      charmcraft-snap-channel:
+        description: |
+          charmcraft snap channel
+        required: false
+        default: 4/stable
+        type: string
+      lxd-snap-channel:
+        description: |
+          LXD snap channel
+        required: false
+        default: 6/stable
+        type: string
+    outputs:
+      artifact-prefix:
+        description: Charm packages are uploaded to GitHub artifacts beginning with this prefix
+        value: ${{ inputs.artifact-prefix }}
+
+jobs:
+  collect-platforms:
+    name: Collect platforms for charm | ${{ inputs.path-to-charm-directory }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Get workflow version
+        id: workflow-version
+        uses: canonical/get-workflow-version-action@v1
+        with:
+          repository-name: canonical/data-platform-workflows
+          file-name: build_charm.yaml
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install CLI
+        run: pipx install git+https://github.com/canonical/data-platform-workflows@"${VAR_SHA}"#subdirectory=_cli
+        env:
+          VAR_SHA: ${{ steps.workflow-version.outputs.sha }}
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Collect charm platforms to build from charmcraft.yaml
+        id: collect
+        run: collect-charm-platforms --directory="${VAR_DIRECTORY}"
+        env:
+          VAR_DIRECTORY: ${{ inputs.path-to-charm-directory }}
+    outputs:
+      platforms: ${{ steps.collect.outputs.platforms }}
+    permissions:
+      actions: read  # Needed for GitHub API call to get workflow version (for private repositories)
+      contents: read
+
+  build:
+    strategy:
+      matrix:
+        platform: ${{ fromJSON(needs.collect-platforms.outputs.platforms) }}
+    name: 'Build charm | ${{ matrix.platform.name }}'
+    needs:
+      - collect-platforms
+    runs-on: ${{ matrix.platform.runner }}
+    timeout-minutes: 120
+    steps:
+      - name: (IS hosted) Install pipx
+        if: ${{ contains(matrix.platform.runner, 'self-hosted') }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install pipx -y
+          pipx ensurepath
+      - name: Get workflow version
+        id: workflow-version
+        uses: canonical/get-workflow-version-action@v1
+        with:
+          repository-name: canonical/data-platform-workflows
+          file-name: build_charm.yaml
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install CLI
+        run: pipx install git+https://github.com/canonical/data-platform-workflows@"${VAR_SHA}"#subdirectory=_cli
+        env:
+          VAR_SHA: ${{ steps.workflow-version.outputs.sha }}
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0  # Checkout history with git tags
+      # Needed to install poetry on s390x
+      - name: (IS hosted) Install rust toolchain
+        if: ${{ contains(matrix.platform.runner, 'self-hosted') }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install pkg-config rustup -y
+          rustup set profile minimal
+          rustup default stable
+      - name: Set up environment
+        run: |
+          sudo snap install lxd --channel ${{ inputs.lxd-snap-channel }}
+          # shellcheck disable=SC2078
+          # (shellcheck sees it as constant, but GitHub Actions expression is not constant between workflow runs)
+          sudo adduser "$USER" lxd
+          # `newgrp` does not work in GitHub Actions; use `sudo --user` instead
+          sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- lxd waitready
+          sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- lxd init --auto
+          # Workaround for Docker & LXD on same machine
+          sudo iptables -F FORWARD
+          sudo iptables -P FORWARD ACCEPT
+
+          sudo snap install charmcraft --classic --channel ${{ inputs.charmcraft-snap-channel }}
+          pipx install charmcraftcache poetry charmcraftlocal
+      - run: snap list
+      - name: Pack charm
+        id: pack
+        run: |
+          sudo --user "$USER" --preserve-env --preserve-env=PATH -- \
+            env -- tox -e charm-pack -- \
+            ${{ inputs.path-to-charm-directory }} --platform="${VAR_PLATFORM}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VAR_PLATFORM: ${{ matrix.platform.name }}
+      - name: Charmcraft logs
+        if: ${{ success() || (failure() && steps.pack.outcome == 'failure') }}
+        run: cat ~/.local/state/charmcraft/log/*
+      - name: lxc image list --all-projects
+        if: ${{ success() || (failure() && steps.pack.outcome == 'failure') }}
+        run: sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- lxc image list --all-projects
+      - name: Check charm refresh compatibility version tags were present
+        run: check-charm-contains-valid-refresh-version --directory="${VAR_DIRECTORY}"
+        env:
+          VAR_DIRECTORY: ${{ inputs.path-to-charm-directory }}
+      - run: touch .empty
+      - name: Compute path in artifact
+        id: path-in-artifact
+        run: compute-path-in-artifact "${VAR_DIRECTORY}"
+        env:
+          VAR_DIRECTORY: ${{ inputs.path-to-charm-directory }}
+      - name: Upload charm package
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.artifact-prefix }}-${{ steps.path-in-artifact.outputs.path }}--platform-${{ matrix.platform.name_in_artifact }}
+          # .empty file required to preserve directory structure
+          # See https://github.com/actions/upload-artifact/issues/344#issuecomment-1379232156
+          path: |
+            ${{ inputs.path-to-charm-directory }}/*.charm
+            .empty
+          include-hidden-files: true  # For `.empty`
+          if-no-files-found: error
+    permissions:
+      actions: read  # Needed for GitHub API call to get workflow version (for private repositories)
+      contents: read

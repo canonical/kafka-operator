@@ -15,7 +15,6 @@ from ops import (
     StartEvent,
     UpdateStatusEvent,
 )
-from ..workload import KafkaWorkloadMachine, KafkaWorkloadK8s
 
 from ..core.literals import (
     CONTAINER,
@@ -26,6 +25,7 @@ from ..core.literals import (
 )
 from ..managers.config import ConfigManager
 from ..managers.controller import ControllerManager
+from ..workload import KafkaWorkloadK8s, KafkaWorkloadMachine
 
 if TYPE_CHECKING:
     from ..core.models import KafkaCharmBase as KafkaCharm

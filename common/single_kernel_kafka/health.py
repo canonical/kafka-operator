@@ -10,8 +10,9 @@ import subprocess
 from statistics import mean
 from typing import TYPE_CHECKING
 
-from .core.literals import JVM_MEM_MAX_GB, JVM_MEM_MIN_GB
 from ops.framework import Object
+
+from .core.literals import JVM_MEM_MAX_GB, JVM_MEM_MIN_GB
 
 if TYPE_CHECKING:
     from .core.models import KafkaCharmBase as KafkaCharm

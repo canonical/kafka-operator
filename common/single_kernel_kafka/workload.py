@@ -10,6 +10,7 @@ import logging
 import os
 import re
 import subprocess
+from dataclasses import dataclass
 from io import StringIO
 from typing import Mapping, cast
 
@@ -17,7 +18,6 @@ from charmlibs import pathops
 from charms.operator_libs_linux.v2 import snap
 from ops import Container, pebble
 from ops.pebble import ExecError
-
 from tenacity import (
     retry,
     retry_any,
@@ -326,6 +326,13 @@ class WorkloadK8s(WorkloadBase):
     paths: CharmedKafkaPaths
     service: str
 
+    @dataclass
+    class _Version:
+        """Compatibility workload version data for K8s."""
+
+        version = "4"
+        revision = None
+
     def __init__(self, container: Container | None) -> None:
         if not container:
             raise AttributeError("Container is required.")
@@ -333,6 +340,7 @@ class WorkloadK8s(WorkloadBase):
         self.container = container
         self.root = pathops.ContainerPath("/", container=self.container)
         self.substrate = "k8s"
+        self.kafka = self._Version()
 
     @override
     def modify_time(self, file: str) -> float:

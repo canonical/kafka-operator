@@ -52,10 +52,11 @@ jobs:
     strategy:
       matrix:
         path:
-          - .
+          - machine
+          - k8s
           - tests/integration/app-charm
     name: Build charm | ${{ matrix.path }}
-    uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v32.2.2
+    uses: .github/workflows/_build_charm_dev.yaml
     with:
       path-to-charm-directory: ${{ matrix.path }}
 

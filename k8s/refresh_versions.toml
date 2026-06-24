@@ -2,4 +2,3 @@
 
 charm_major = 1
 workload = "4.1.1"
-charm = "4/1.999.0"

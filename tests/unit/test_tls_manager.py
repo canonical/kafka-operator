@@ -16,14 +16,20 @@ from unittest.mock import MagicMock
 import pytest
 import yaml
 from charmlibs import pathops
-from src.core.cluster import KafkaBroker
-from src.core.structured_config import CharmConfig
-from src.core.workload import CharmedKafkaPaths, WorkloadBase
-from src.literals import BROKER, SUBSTRATE, TLSScope
-from src.managers.tls import TLSManager
+from common.single_kernel_kafka.core.cluster import KafkaBroker
+from common.single_kernel_kafka.core.literals import BROKER, SUBSTRATE, TLSScope
+from common.single_kernel_kafka.core.structured_config import CharmConfig
+from common.single_kernel_kafka.core.workload import CharmedKafkaPaths, WorkloadBase
+from common.single_kernel_kafka.managers.tls import TLSManager
 from tests.unit.helpers import TLSArtifacts, generate_tls_artifacts
 
 logger = logging.getLogger(__name__)
+pytestmark = [
+    pytest.mark.skipif(
+        SUBSTRATE == "k8s", reason="No need to run substrate-agnostic tests on K8s."
+    )
+]
+
 
 UNIT_NAME = "kafka/0"
 INTERNAL_ADDRESS = "10.10.10.10"
@@ -119,7 +125,7 @@ def tls_manager(tmp_path_factory, monkeypatch):
 
     raw_config = {
         k.replace("-", "_"): v.get("default", "")
-        for k, v in yaml.safe_load(open("config.yaml")).get("options", {}).items()
+        for k, v in yaml.safe_load(open("machine/config.yaml")).get("options", {}).items()
     }
     mgr = TLSManager(
         state=mock_state,

@@ -10,6 +10,7 @@ from typing import Generator
 
 import jubilant
 import pytest
+from single_kernel_kafka.core.literals import PEER
 
 from integration.helpers import APP_NAME, REL_NAME_ADMIN
 from integration.helpers.jubilant import (
@@ -19,7 +20,6 @@ from integration.helpers.jubilant import (
     get_provider_data,
     get_relation_data,
 )
-from literals import PEER
 
 logger = logging.getLogger(__name__)
 

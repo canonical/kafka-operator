@@ -5,8 +5,7 @@
 import logging
 
 import pytest
-
-from managers.auth import Acl, AuthManager
+from common.single_kernel_kafka.managers.auth import Acl, AuthManager
 
 logger = logging.getLogger(__name__)
 

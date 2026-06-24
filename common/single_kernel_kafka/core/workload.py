@@ -15,7 +15,7 @@ from contextlib import closing
 from charmlibs import pathops
 from ops.pebble import Layer
 
-from ..core.literals import BALANCER, BROKER, Role, TLSScope, Substrates
+from ..core.literals import BALANCER, BROKER, Role, Substrates, TLSScope
 
 logger = logging.getLogger(__name__)
 

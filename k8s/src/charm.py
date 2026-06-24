@@ -6,22 +6,15 @@
 
 import logging
 import os
+import typing
 
 os.environ.update({"SUBSTRATE": "k8s"})
 
 import charm_refresh
-from charms.data_platform_libs.v0.data_models import TypedCharmBase
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.loki_k8s.v1.loki_push_api import LogForwarder
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from charms.rolling_ops.v0.rollingops import RollingOpsManager
-from single_kernel_kafka.core.cluster import ClusterState
-from single_kernel_kafka.core.structured_config import CharmConfig
-from single_kernel_kafka.events.balancer import BalancerOperator
-from single_kernel_kafka.events.broker import BrokerOperator
-from single_kernel_kafka.events.peer_cluster import PeerClusterEventsHandler
-from single_kernel_kafka.events.refresh import KubernetesKafkaRefresh
-from single_kernel_kafka.events.tls import TLSHandler
 from ops import (
     ActiveStatus,
     CollectStatusEvent,
@@ -30,7 +23,7 @@ from ops import (
 )
 from ops.log import JujuLogHandler
 from ops.main import main
-
+from single_kernel_kafka.core.cluster import ClusterState
 from single_kernel_kafka.core.literals import (
     CHARM_KEY,
     CONTAINER,
@@ -43,6 +36,13 @@ from single_kernel_kafka.core.literals import (
     Status,
     Substrates,
 )
+from single_kernel_kafka.core.models import KafkaCharmBase
+from single_kernel_kafka.core.structured_config import CharmConfig
+from single_kernel_kafka.events.balancer import BalancerOperator
+from single_kernel_kafka.events.broker import BrokerOperator
+from single_kernel_kafka.events.peer_cluster import PeerClusterEventsHandler
+from single_kernel_kafka.events.refresh import KubernetesKafkaRefresh
+from single_kernel_kafka.events.tls import TLSHandler
 from single_kernel_kafka.workload import KafkaWorkloadK8s as KafkaWorkload
 
 logger = logging.getLogger(__name__)
@@ -51,7 +51,7 @@ logging.getLogger("httpcore").setLevel(logging.WARNING)
 logging.getLogger("charms.data_platform_libs.v1.data_interfaces").setLevel(logging.WARNING)
 
 
-class KafkaCharm(TypedCharmBase[CharmConfig]):
+class KafkaCharm(KafkaCharmBase):
     """Charmed Operator for Kafka K8s."""
 
     config_type = CharmConfig
@@ -66,7 +66,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
                 handler.setFormatter(logging.Formatter("{name}:{message}", style="{"))
 
         self.name = CHARM_KEY
-        self.substrate: Substrates = SUBSTRATE
+        self.substrate: Substrates = typing.cast(Substrates, SUBSTRATE)
         self.pending_inactive_statuses: list[Status] = []
 
         # Common attrs init
@@ -264,6 +264,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         """Check if refresh is not available or currently in progress."""
         return not self.refresh or self.refresh.in_progress
 
+    def post_snap_refresh(self, refresh) -> None:
+        """Handle post-snap refresh health checks and set next_unit_allowed_to_refresh."""
+        raise NotImplementedError("Post snap refresh called on K8s charm!")
 
 if __name__ == "__main__":
     main(KafkaCharm)

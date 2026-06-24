@@ -5,10 +5,10 @@
 """Charmed Machine Operator for Apache Kafka."""
 
 import logging
+import typing
 
 import charm_refresh
 import ops
-from charms.data_platform_libs.v0.data_models import TypedCharmBase
 from charms.grafana_agent.v0.cos_agent import COSAgentProvider
 from charms.operator_libs_linux.v0 import sysctl
 from charms.rolling_ops.v0.rollingops import RollingOpsManager, RunWithLock
@@ -19,7 +19,6 @@ from ops import (
     StatusBase,
 )
 from ops.log import JujuLogHandler
-
 from single_kernel_kafka.core.cluster import ClusterState
 from single_kernel_kafka.core.literals import (
     CHARM_KEY,
@@ -33,6 +32,7 @@ from single_kernel_kafka.core.literals import (
     Status,
     Substrates,
 )
+from single_kernel_kafka.core.models import KafkaCharmBase
 from single_kernel_kafka.core.structured_config import CharmConfig
 from single_kernel_kafka.events.balancer import BalancerOperator
 from single_kernel_kafka.events.broker import BrokerOperator
@@ -47,7 +47,7 @@ logging.getLogger("httpcore").setLevel(logging.WARNING)
 logging.getLogger("charms.data_platform_libs.v1.data_interfaces").setLevel(logging.WARNING)
 
 
-class KafkaCharm(TypedCharmBase[CharmConfig]):
+class KafkaCharm(KafkaCharmBase):
     """Charmed Operator for Kafka."""
 
     config_type = CharmConfig
@@ -61,7 +61,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
                 handler.setFormatter(logging.Formatter("{name}:{message}", style="{"))
 
         self.name = CHARM_KEY
-        self.substrate: Substrates = SUBSTRATE
+        self.substrate: Substrates = typing.cast(Substrates, SUBSTRATE)
         self.pending_inactive_statuses: list[Status] = []
 
         # Common attrs init
@@ -193,7 +193,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             event.defer()
             return
 
-        self.broker.workload.disable_enable()
+        self.broker.workload.disable_enable()  # pyright: ignore[reportAttributeAccessIssue]
         self.broker.workload.start()
 
         if self.broker.workload.active():

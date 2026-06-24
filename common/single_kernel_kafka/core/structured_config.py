@@ -10,7 +10,7 @@ from enum import Enum
 from typing import Literal
 
 from charms.data_platform_libs.v0.data_models import BaseConfigModel
-from pydantic import Field, validator
+from pydantic import Field, field_validator
 
 from ..managers.ssl_principal_mapper import SslPrincipalMapper
 from .literals import BALANCER, BROKER, CONTROLLER, SUBSTRATE
@@ -65,7 +65,7 @@ class CharmConfig(BaseConfigModel):
     system_users: str | None = None
     tls_private_key: str | None = None
 
-    @validator("*", pre=True)
+    @field_validator("*", mode="before")
     @classmethod
     def blank_string(cls, value):
         """Check for empty strings."""
@@ -73,7 +73,7 @@ class CharmConfig(BaseConfigModel):
             return None
         return value
 
-    @validator("log_cleaner_min_compaction_lag_ms")
+    @field_validator("log_cleaner_min_compaction_lag_ms")
     @classmethod
     def log_cleaner_min_compaction_lag_ms_validator(cls, value: str) -> int | None:
         """Check validity of `log_cleaner_min_compaction_lag_ms` field."""
@@ -82,7 +82,7 @@ class CharmConfig(BaseConfigModel):
             return int_value
         raise ValueError("Value out of range.")
 
-    @validator("log_cleaner_delete_retention_ms")
+    @field_validator("log_cleaner_delete_retention_ms")
     @classmethod
     def log_cleaner_delete_retention_ms_validator(cls, value: str) -> int | None:
         """Check validity of `log_cleaner_delete_retention_ms` field."""
@@ -91,7 +91,7 @@ class CharmConfig(BaseConfigModel):
             return int_value
         raise ValueError("Value out of range.")
 
-    @validator("ssl_principal_mapping_rules")
+    @field_validator("ssl_principal_mapping_rules")
     @classmethod
     def ssl_principal_mapping_rules_validator(cls, value: str) -> str | None:
         """Check that the list is formed by valid regex values."""
@@ -100,7 +100,7 @@ class CharmConfig(BaseConfigModel):
         SslPrincipalMapper.parse_rules(rules)
         return value
 
-    @validator("transaction_state_log_num_partitions", "offsets_topic_num_partitions")
+    @field_validator("transaction_state_log_num_partitions", "offsets_topic_num_partitions")
     @classmethod
     def between_zero_and_10k(cls, value: int) -> int | None:
         """Check that the integer value is between zero and 10000."""
@@ -108,7 +108,7 @@ class CharmConfig(BaseConfigModel):
             return value
         raise ValueError("Value below zero or greater than 10000.")
 
-    @validator("log_retention_bytes", "log_retention_ms")
+    @field_validator("log_retention_bytes", "log_retention_ms")
     @classmethod
     def greater_than_minus_one(cls, value: str) -> int | None:
         """Check value greater than -1."""
@@ -117,7 +117,7 @@ class CharmConfig(BaseConfigModel):
             raise ValueError("Value below -1. Accepted value are greater or equal than -1.")
         return int_value
 
-    @validator(
+    @field_validator(
         "log_flush_interval_messages",
         "log_flush_interval_ms",
         "offsets_topic_num_partitions",
@@ -132,7 +132,7 @@ class CharmConfig(BaseConfigModel):
             raise ValueError("Value below 1. Accepted value are greater or equal than 1.")
         return int_value
 
-    @validator("log_segment_bytes")
+    @field_validator("log_segment_bytes")
     @classmethod
     def greater_than_1_mb(cls, value: int) -> int | None:
         """Check value greater than 1 MB."""
@@ -140,7 +140,7 @@ class CharmConfig(BaseConfigModel):
             raise ValueError("Value below 1 MB. Accepted value are greater or equal than 1 MB.")
         return value
 
-    @validator("message_max_bytes")
+    @field_validator("message_max_bytes")
     @classmethod
     def greater_than_zero(cls, value: int) -> int | None:
         """Check value greater than zero."""
@@ -148,7 +148,7 @@ class CharmConfig(BaseConfigModel):
             raise ValueError("Value below -1. Accepted value are greater or equal than -1.")
         return value
 
-    @validator(
+    @field_validator(
         "log_flush_offset_checkpoint_interval_ms",
         "log_segment_bytes",
         "message_max_bytes",
@@ -163,7 +163,7 @@ class CharmConfig(BaseConfigModel):
             return value
         raise ValueError("Value is not an integer")
 
-    @validator(
+    @field_validator(
         "log_flush_interval_messages",
         "log_flush_interval_ms",
         "log_retention_bytes",
@@ -179,7 +179,7 @@ class CharmConfig(BaseConfigModel):
             return int_value
         raise ValueError("Value is not a long")
 
-    @validator("expose_external")
+    @field_validator("expose_external")
     @classmethod
     def expose_external_validator(cls, value: str) -> str | None:
         """Check expose_external config option is only used on Kubernetes charm."""
@@ -194,7 +194,7 @@ class CharmConfig(BaseConfigModel):
 
         return value
 
-    @validator("roles", pre=True)
+    @field_validator("roles", mode="before")
     @classmethod
     def roles_values(cls, value: str) -> str:
         """Check roles values."""
@@ -205,13 +205,13 @@ class CharmConfig(BaseConfigModel):
 
         return ",".join(sorted(roles))  # this has to be a string as it goes in to properties
 
-    @validator("certificate_extra_sans", pre=True)
+    @field_validator("certificate_extra_sans", mode="before")
     @classmethod
     def certificate_extra_sans_values(cls, value: str) -> list[str]:
         """Formats certificate_extra_sans values to a list."""
         return value.split(",") if value else []
 
-    @validator("extra_listeners", pre=True)
+    @field_validator("extra_listeners", mode="before")
     @classmethod
     def extra_listeners_port_values(cls, value: str) -> list[str]:
         """Check extra_listeners port values for each listener, and format values to a list."""
@@ -250,7 +250,7 @@ class CharmConfig(BaseConfigModel):
 
         return listeners
 
-    @validator("system_users", "tls_private_key")
+    @field_validator("system_users", "tls_private_key")
     @classmethod
     def secret_validator(cls, value: str) -> str:
         """Check validity of fields which should be a secret URI."""

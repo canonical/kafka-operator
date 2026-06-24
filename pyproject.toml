@@ -123,8 +123,8 @@ src = ["src", "tests"]
 max-complexity = 10
 
 [tool.pyright]
-include = ["src"]
-extraPaths = ["./lib"]
+include = ["common", "machine/src", "k8s/src"]
+extraPaths = ["./machine/lib"]
 pythonVersion = "3.10"
 pythonPlatform = "All"
 typeCheckingMode = "basic"

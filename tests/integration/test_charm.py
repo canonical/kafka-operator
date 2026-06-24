@@ -14,12 +14,17 @@ import pytest
 import requests
 import toml
 from pytest_operator.plugin import OpsTest
+from single_kernel_kafka.core.literals import (
+    JMX_EXPORTER_PORT,
+    PATHS,
+    PEER_CLUSTER_ORCHESTRATOR_RELATION,
+    PEER_CLUSTER_RELATION,
+    REL_NAME,
+    SECURITY_PROTOCOL_PORTS,
+)
 
+from integration.helpers import APP_NAME, DUMMY_NAME, REL_NAME_ADMIN, SERIES
 from integration.helpers.pytest_operator import (
-    APP_NAME,
-    DUMMY_NAME,
-    REL_NAME_ADMIN,
-    SERIES,
     check_socket,
     count_lines_with,
     deploy_cluster,
@@ -27,14 +32,6 @@ from integration.helpers.pytest_operator import (
     get_machine,
     produce_and_check_logs,
     run_client_properties,
-)
-from literals import (
-    JMX_EXPORTER_PORT,
-    PATHS,
-    PEER_CLUSTER_ORCHESTRATOR_RELATION,
-    PEER_CLUSTER_RELATION,
-    REL_NAME,
-    SECURITY_PROTOCOL_PORTS,
 )
 
 logger = logging.getLogger(__name__)

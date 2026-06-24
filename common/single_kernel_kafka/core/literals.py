@@ -21,7 +21,7 @@ CHARM_KEY = "kafka" if SUBSTRATE == "vm" else "kafka-k8s"
 CONTAINER = "kafka"
 STORAGE = "data"
 
-# These will be overriden in VM case.
+# These will be overridden in VM case.
 SNAP_NAME = "charmed-kafka"
 CHARMED_KAFKA_SNAP_REVISION = 1
 
@@ -177,6 +177,8 @@ else:
 
 @dataclass
 class Role:
+    """Charm role data model."""
+
     value: str
     service: str
     paths: dict[str, str]
