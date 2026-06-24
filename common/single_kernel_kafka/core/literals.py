@@ -12,7 +12,7 @@ from typing import Literal, NamedTuple
 import toml
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, StatusBase, WaitingStatus
 
-SUBSTRATE = os.environ.get("SUBSTRATE", "vm")
+SUBSTRATE = os.environ.get("SUBSTRATE", "vm").replace("machine", "vm")
 if SUBSTRATE not in ("vm", "k8s"):
     raise RuntimeError(f"Unknown substrate: {SUBSTRATE}")
 
