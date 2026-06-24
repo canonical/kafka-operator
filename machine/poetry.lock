@@ -2700,8 +2700,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<4.0"
-<<<<<<< HEAD
 content-hash = "9dbcb1f5dd238e74eb0c81417c765e853c0c9f005417ca835bd09c9172ca3903"
-=======
-content-hash = "c57323b287139ad0633af4fcd05e4dfaa96218d82f6e1a5d00adb45590afa0f7"
->>>>>>> 88b750c (further refactoring/deduplication of kernel & charm codes)

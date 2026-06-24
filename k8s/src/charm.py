@@ -268,5 +268,6 @@ class KafkaCharm(KafkaCharmBase):
         """Handle post-snap refresh health checks and set next_unit_allowed_to_refresh."""
         raise NotImplementedError("Post snap refresh called on K8s charm!")
 
+
 if __name__ == "__main__":
     main(KafkaCharm)

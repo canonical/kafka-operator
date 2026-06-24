@@ -56,9 +56,12 @@ jobs:
           - k8s
           - tests/integration/app-charm
     name: Build charm | ${{ matrix.path }}
-    uses: .github/workflows/_build_charm_dev.yaml
+    uses: ./.github/workflows/_build_charm_dev.yaml
     with:
       path-to-charm-directory: ${{ matrix.path }}
+    permissions:
+      actions: read
+      contents: read
 
   integration-test-single:
     strategy:

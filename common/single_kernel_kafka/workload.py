@@ -2,7 +2,7 @@
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-"""KafkaSnap class and methods."""
+"""Kafka Workload class and methods."""
 
 import csv
 import datetime
