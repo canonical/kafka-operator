@@ -5,6 +5,9 @@
 """Charmed Machine Operator for Apache Kafka."""
 
 import logging
+import os
+
+os.environ.update({"SUBSTRATE": "k8s"})
 
 import charm_refresh
 from charms.data_platform_libs.v0.data_models import TypedCharmBase
@@ -12,6 +15,13 @@ from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.loki_k8s.v1.loki_push_api import LogForwarder
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from charms.rolling_ops.v0.rollingops import RollingOpsManager
+from single_kernel_kafka.core.cluster import ClusterState
+from single_kernel_kafka.core.structured_config import CharmConfig
+from single_kernel_kafka.events.balancer import BalancerOperator
+from single_kernel_kafka.events.broker import BrokerOperator
+from single_kernel_kafka.events.peer_cluster import PeerClusterEventsHandler
+from single_kernel_kafka.events.refresh import KubernetesKafkaRefresh
+from single_kernel_kafka.events.tls import TLSHandler
 from ops import (
     ActiveStatus,
     CollectStatusEvent,
@@ -21,14 +31,7 @@ from ops import (
 from ops.log import JujuLogHandler
 from ops.main import main
 
-from core.cluster import ClusterState
-from core.structured_config import CharmConfig
-from events.balancer import BalancerOperator
-from events.broker import BrokerOperator
-from events.peer_cluster import PeerClusterEventsHandler
-from events.refresh import KubernetesKafkaRefresh
-from events.tls import TLSHandler
-from literals import (
+from single_kernel_kafka.core.literals import (
     CHARM_KEY,
     CONTAINER,
     JMX_CC_PORT,
@@ -40,7 +43,7 @@ from literals import (
     Status,
     Substrates,
 )
-from workload import KafkaWorkload
+from single_kernel_kafka.workload import KafkaWorkloadK8s as KafkaWorkload
 
 logger = logging.getLogger(__name__)
 logging.getLogger("httpx").setLevel(logging.WARNING)
