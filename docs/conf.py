@@ -1,5 +1,4 @@
 import datetime
-import ast
 import os
 import yaml
 
@@ -32,7 +31,9 @@ author = "Canonical Ltd."
 # Sidebar documentation title; best kept reasonably short
 #
 # TODO: To include a version number, add it here (hardcoded or automated).
-#
+# version = "beta"
+
+
 # TODO: To disable the title, set to an empty string.
 
 html_title = project + " documentation"
@@ -61,8 +62,7 @@ html_title = project + " documentation"
 #         -H 'Accept: application/vnd.github.v3.raw' \
 #         https://api.github.com/repos/canonical/<REPO> | jq '.created_at'
 
-copyright = "%s CC-BY-SA, %s" % (datetime.date.today().year, author)
-
+copyright = f"{datetime.date.today().year}"
 
 # Documentation website URL
 #
@@ -92,26 +92,64 @@ ogp_image = "https://assets.ubuntu.com/v1/253da317-image-document-ubuntudocs.svg
 
 # TODO: To customise the favicon, uncomment and update as needed.
 
-# html_favicon = '.sphinx/_static/favicon.png'
+# html_favicon = ".sphinx/_static/favicon.png"
 
 
 # Dictionary of values to pass into the Sphinx context for all pages:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_context
 
+# TODO: Adjust to point to the repository where your documentation source files
+# are stored.
+
+github_repo = "https://github.com/canonical/kafka-operator"
+
+# TODO: Change if your default branch is not 'main'.
+repo_default_branch = "main"
+
+# Determine the source branch for GitHub links (view/edit source, license, etc.)
+# On Read the Docs, use the actual git branch/tag being built;
+# fall back to the default branch for local builds.
+source_branch = os.environ.get("READTHEDOCS_GIT_IDENTIFIER", repo_default_branch)
+
+# TODO: Select the default syntax for docs source files.
+# This is for a fallback view/edit source code buttons.
+
+default_source_extension = ".md"
+
+# TODO: Change to your product website URL,
+#       dropping the 'https://' prefix, e.g. 'ubuntu.com/lxd'.
+#       If there is no such website - set to '/' or remove the {{ product_page }}
+#       link from the page header template.
+
+product_page = "canonical.com/data/kafka"
+
 html_context = {
     # Product page URL; can be different from product docs URL
-    #
-    # TODO: Change to your product website URL,
-    #       dropping the 'https://' prefix, e.g. 'ubuntu.com/lxd'.
     #
     # TODO: If there's no such website,
     #       remove the {{ product_page }} link from the page header template
     #       (usually .sphinx/_templates/header.html; also, see README.rst).
-    "product_page": "canonical.com/data/kafka",
+    "product_page": product_page,
     # Product tag image; the orange part of your logo, shown in the page header
     #
     # TODO: To add a tag image, uncomment and update as needed.
     # 'product_tag': '_static/tag.png',
+    # 
+    # Inherit project name
+    "project": project, 
+    # Inherit the author value
+    "author": author,
+    # Licensing information
+    # 
+    # TODO: Change your product's license name and a link to its file.
+    # For the name, we recommend using the standard shorthand identifier from
+    # https://spdx.org/licenses
+    # For the URL, link directly to the product's license statement, typically found on
+    # the product's home page or in its GitHub project.
+    "license": {
+        "name": "LGPL-3.0-only",
+        "url": github_repo + "/blob/" + source_branch + "/LICENSE",
+    },
     # Your Discourse instance URL
     #
     # TODO: Change to your Discourse instance URL or leave empty.
@@ -133,25 +171,55 @@ html_context = {
     #
     # NOTE: If set, links for viewing the documentation source files
     #       and creating GitHub issues are added at the bottom of each page.
-    "github_url": "https://github.com/canonical/kafka-operator",
+    "github_url": github_repo,
     # Docs branch in the repo; used in links for viewing the source files
     #
-    # TODO: To customise the branch, uncomment and update as needed.
-    'repo_default_branch': 'main',
+    "repo_branch": source_branch,
     # Docs location in the repo; used in links for viewing the source files
     #
-
-
     # TODO: To customise the directory, uncomment and update as needed.
     "repo_folder": "/docs/",
     # TODO: To enable or disable the Previous / Next buttons at the bottom of pages
     # Valid options: none, prev, next, both
-    "sequential_nav": "both",
+    # "sequential_nav": "both",
     # TODO: To enable listing contributors on individual pages, set to True
     "display_contributors": False,
 
     # Required for feedback button    
-    'github_issues': 'enabled',
+    "feedback": True,
+    "github_issues": "enabled",
+    "default_source_extension": default_source_extension,
+    "default_edit_url": github_repo + "/edit/" + source_branch + "/docs/index" + default_source_extension,
+    "default_view_url": github_repo + "/blob/" + source_branch + "/docs/index" + default_source_extension,
+
+    # Horizontal Nav Menu
+    "company": "Canonical",
+    # "link1_URL": "https://canonical-starter-pack.readthedocs-hosted.com/",
+    # "link1_name": "First optional link",
+    # "link2_URL": "https://canonical-starter-pack.readthedocs-hosted.com/",
+    # "link2_name": "Second optional link",
+
+    # Canonical Product menu
+    # Uncomment if you need a product menu added on the top of every page
+    # "add_product_menu": True,
+    
+    # Main Horizontal menu
+    # "is_docs": False, # Purpose unknown
+    "logo_link_URL": "/",
+    "logo_img_URL": "https://assets.ubuntu.com/v1/82818827-CoF_white.svg",
+    "logo_title": "Kafka",
+
+    # TODO: Customize the footer.
+    "footer": {
+        # Whether to add the product name as the first entry.
+        "product": True,
+        # Whether to add the license as the second entry.
+        "license": True,
+        # List your footer entries. Accepts HTML tags.
+        "entries": [
+            '<a class="js-revoke-cookie-manager" href="#tracker-settings">Manage your tracker settings</a>',
+        ]
+    }
 }
 
 # TODO: To enable the edit button on pages, uncomment and change the link to a
@@ -161,16 +229,19 @@ html_context = {
 # - https://launchpad.net/example
 # - https://git.launchpad.net/example
 #
-html_theme_options = {
-'source_edit_link': 'https://github.com/canonical/kafka-operator',
-}
+# html_theme_options = {
+# 'source_edit_link': 'https://github.com/canonical/sphinx-docs-starter-pack',
+# }
 
 # Project slug; see https://meta.discourse.org/t/what-is-category-slug/87897
 #
 # TODO: If your documentation is hosted on https://docs.ubuntu.com/,
 #       uncomment and update as needed.
 
-slug = 'charmed-kafka'
+# slug = ''
+
+# Limit the number of levels for Table of contents
+localtoc_max_depth = 3
 
 #######################
 # Sitemap configuration: https://sphinx-sitemap.readthedocs.io/
@@ -178,18 +249,26 @@ slug = 'charmed-kafka'
 
 # Base URL of RTD hosted project
 
-html_baseurl = 'https://documentation.ubuntu.com/charmed-kafka/'
+html_baseurl = "https://documentation.ubuntu.com/charmed-kafka/"
 
 # URL scheme. Add language and version scheme elements.
 # When configured with RTD variables, check for RTD environment so manual runs succeed:
 
-if 'READTHEDOCS_VERSION' in os.environ:
+if "READTHEDOCS_VERSION" in os.environ:
     version = os.environ["READTHEDOCS_VERSION"]
-    sitemap_url_scheme = '{version}{link}'
+    sitemap_url_scheme = "{version}{link}"
 else:
-    sitemap_url_scheme = 'MANUAL/{link}'
+    sitemap_url_scheme = "MANUAL/{link}"
 
+# Include `lastmod` dates in the sitemap:
+
+sitemap_show_lastmod = True
+
+#######################
 # Template and asset locations
+#######################
+
+html_theme = "ulwazi"
 
 html_static_path = [
     ".sphinx/_static",
@@ -226,12 +305,7 @@ redirects = {}
 
 linkcheck_ignore = [
     "http://127.0.0.1:8000",
-    "https://github.com/canonical/ACME/*",
-    "https://matrix.to/#/#charmhub-data-platform:ubuntu.com",
-    "https://us-east-1.console.aws.amazon.com/ec2/",
-    "https://launchpad.net/soss",
-    "https://cwiki.apache.org/*",
-    "https://archive.apache.org/*",
+    "https://github.com/canonical/ACME/*"
     ]
 
 
@@ -253,7 +327,12 @@ linkcheck_retries = 3
 # NOTE: By default, the following MyST extensions are enabled:
 #       substitution, deflist, linkify
 
-# myst_enable_extensions = set()
+myst_enable_extensions = {
+    "colon_fence",
+    "deflist",
+    "substitution",
+    "tasklist"
+}
 
 
 # Custom Sphinx extensions; see
@@ -275,18 +354,25 @@ linkcheck_retries = 3
 #       - youtube-links
 
 extensions = [
-    "canonical_sphinx",
+    "sphinx_terminal",
     "sphinxcontrib.cairosvgconverter",
     "sphinx_last_updated_by_git",
     "sphinx.ext.intersphinx",
     "sphinx_sitemap",
+    "ulwazi",
+    "canonical_sphinx_config",
+    "myst_parser",
+    "sphinxcontrib.jquery",
 ]
 
 # Excludes files or directories from processing
 
 exclude_patterns = [
     "doc-cheat-sheet*",
-    "agents.md",
+    "_build", 
+    "Thumbs.db", 
+    ".DS_Store",
+    "agent*",
 ]
 
 # Adds custom CSS files, located under 'html_static_path'
@@ -302,6 +388,12 @@ html_js_files = [
     "bundle.js",
 ]
 
+
+# Syntax highlighting settings
+
+highlight_language = "none" # default
+pygments_style = "autumn" # see https://pygments.org/styles for more
+pygments_dark_style = "github-dark" # see https://pygments.org/styles for more
 
 # Specifies a reST snippet to be appended to each .rst file
 
@@ -352,12 +444,26 @@ if "discourse_prefix" not in html_context and "discourse" in html_context:
 
 # Workaround for substitutions.yaml
 
-if os.path.exists('./reuse/substitutions.yaml'):
-    with open('./reuse/substitutions.yaml', 'r') as fd:
+if os.path.exists("./reuse/substitutions.yaml"):
+    with open("./reuse/substitutions.yaml", "r") as fd:
         myst_substitutions = yaml.safe_load(fd.read())
 
 # Add configuration for intersphinx mapping
 
-intersphinx_mapping = {
-    'starter-pack': ('https://canonical-example-product-documentation.readthedocs-hosted.com/en/latest', None)
-}
+intersphinx_mapping = {}
+
+# PDF
+
+# set_modern_pdf_config = True
+
+
+# Register spellexception role
+
+def setup(app):
+    from docutils.parsers.rst import roles
+    from docutils import nodes
+
+    def spellexception_role(name, rawtext, text, lineno, inliner, options=None, content=None):
+        return [nodes.inline(rawtext, text, classes=["spellexception"])], []
+
+    roles.register_local_role("spellexception", spellexception_role)
