@@ -1,0 +1,89 @@
+# Copyright 2024 Canonical Ltd.
+# See LICENSE file for licensing details.
+name: kafka-k8s
+display-name: Apache Kafka - K8s
+description: |
+  Apache Kafka is an event streaming platform. This charm deploys and operates Apache Kafka on
+  a K8s environment.
+
+  Apache Kafka is a free, open source software project by the Apache Software Foundation. 
+  Users can find out more at the [Apache Kafka project page](https://kafka.apache.org/).
+summary: Charmed Apache Kafka K8s Operator
+docs: https://discourse.charmhub.io/t/charmed-apache-kafka-k8s-v-4-x/19022
+source: https://github.com/canonical/kafka-k8s-operator
+issues: https://github.com/canonical/kafka-k8s-operator/issues
+website:
+  - https://ubuntu.com/data/kafka
+  - https://canonical.com/data/docs/kafka/k8s
+  - https://charmhub.io/kafka-k8s
+  - https://github.com/canonical/kafka-k8s-operator
+  - https://matrix.to/#/%23charmhub-data-platform%3Aubuntu.com
+maintainers:
+  - Canonical Data Platform <data-platform@lists.launchpad.net>
+assumes:
+  - k8s-api
+
+containers:
+  kafka:
+    resource: kafka-image
+    mounts:
+      - storage: data
+        location: /var/lib/kafka/data
+
+resources:
+  kafka-image:
+    type: oci-image
+    description: OCI Image for Apache Kafka
+    upstream-source: ghcr.io/canonical/charmed-kafka@sha256:8582c514c33b22fa8eb35475cf5c45732befe339307e7807ba4be03906460fa7
+
+peers:
+  cluster:
+    interface: cluster
+  restart:
+    interface: rolling_op
+  refresh-v-three:
+    interface: refresh
+
+provides:
+  kafka-client:
+    interface: kafka_client
+    optional: true
+  metrics-endpoint:
+    interface: prometheus_scrape
+    optional: true
+  grafana-dashboard:
+    interface: grafana_dashboard
+    optional: true
+  peer-cluster-orchestrator:
+    interface: peer_cluster
+    limit: 1
+    optional: true
+
+requires:
+  certificates:
+    interface: tls-certificates
+    limit: 1
+    optional: true
+  peer-certificates:
+    interface: tls-certificates
+    limit: 1
+    optional: true
+  client-cas:
+    interface: certificate_transfer
+  logging:
+    interface: loki_push_api
+    optional: true
+  peer-cluster:
+    interface: peer_cluster
+    optional: true
+  oauth:
+    interface: oauth
+    limit: 1
+    optional: true
+
+storage:
+  data:
+    type: filesystem
+    description: Directories where the log data is stored
+    minimum-size: 1G
+    location: /var/lib/kafka/data
