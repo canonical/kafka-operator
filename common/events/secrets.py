@@ -62,7 +62,13 @@ class SecretsHandler(Object):
         if not (credentials := self.load_auth_secret()):
             return
 
-        if self.charm.refresh_not_ready or not self.dependent.healthy:
+        if not all(
+            [
+                not self.charm.refresh_not_ready,
+                self.dependent.healthy,
+                self.workload.container_can_connect,
+            ]
+        ):
             event.defer()
             return
 
