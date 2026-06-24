@@ -33,11 +33,12 @@ if SUBSTRATE == "vm":
     USER_NAME = "_daemon_"
     GROUP = "root"
     # TODO: check if using `charm_refresh` internals is feasible for workload instead of these literals
-    with open("refresh_versions.toml", "r") as f:
-        data = toml.load(f)
+    if os.path.exists("refresh_versions.toml"):
+        with open("refresh_versions.toml", "r") as f:
+            data = toml.load(f)
 
-    SNAP_NAME = data["snap"]["name"]
-    CHARMED_KAFKA_SNAP_REVISION = data["snap"]["revisions"]["x86_64"]
+        SNAP_NAME = data["snap"]["name"]
+        CHARMED_KAFKA_SNAP_REVISION = data["snap"]["revisions"]["x86_64"]
 else:
     USER_ID = "kafka"
     USER_NAME = "kafka"
