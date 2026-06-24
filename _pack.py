@@ -42,7 +42,6 @@ if __name__ == "__main__":
     if charm_dir in ["machine", "k8s"]:
         for cmd in _alternate_pack_script(charm_dir, *sys.argv[2:]):
             ret += _exec(cmd)
-        sys.exit()
     else:
         cwd = os.getcwd()
         os.chdir(charm_dir)

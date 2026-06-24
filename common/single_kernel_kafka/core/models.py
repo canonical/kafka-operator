@@ -75,7 +75,7 @@ if TYPE_CHECKING:
     from ..events.broker import BrokerOperator
     from ..events.tls import TLSHandler
     from ..health import KafkaHealth
-    from ..workload import WorkloadK8s, WorkloadMachine
+    from ..workload import KafkaWorkloadK8s, KafkaWorkloadMachine
     from .cluster import ClusterState
 
 
@@ -127,11 +127,11 @@ class KafkaCharmBase(TypedCharmBase[CharmConfig], abc.ABC):
     health: "KafkaHealth"
     pending_inactive_statuses: list[Status]
     restart: "RollingOpsManager"
-    refresh: "Machines | Kubernetes"
+    refresh: "Machines | Kubernetes | None"
     state: "ClusterState"
     substrate: Substrates
     tls: "TLSHandler"
-    workload: "WorkloadMachine | WorkloadK8s"
+    workload: "KafkaWorkloadMachine | KafkaWorkloadK8s"
 
     @abc.abstractmethod
     def _set_status(self, key: Status) -> None: ...
