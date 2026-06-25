@@ -12,7 +12,6 @@ from dataclasses import dataclass
 from functools import cached_property
 from typing import (
     TYPE_CHECKING,
-    Annotated,
     Literal,
     MutableMapping,
     TypeAlias,
@@ -42,12 +41,10 @@ from charms.data_platform_libs.v1.data_interfaces import (
     OptionalSecretStr,
     SecretGroup,
     SecretNotFoundError,
-    TlsSecretBool,
-    TlsSecretStr,
 )
 from lightkube.resources.core_v1 import Node, Pod
 from ops.model import Application, Model, ModelError, Relation, Unit
-from pydantic import Field, ValidationError, field_validator
+from pydantic import ValidationError, field_validator
 from typing_extensions import override
 
 from ..managers.k8s import K8sManager
@@ -107,14 +104,6 @@ SECRET_LABEL_MAP = {
     "balancer-password": getattr(custom_secret_groups, "BALANCER"),
     "balancer-uris": getattr(custom_secret_groups, "BALANCER"),
 }
-
-BrokerGroupSecretStr = Annotated[OptionalSecretStr, Field(exclude=True, default=None), "broker"]
-ControllerGroupSecretStr = Annotated[
-    OptionalSecretStr, Field(exclude=True, default=None), "controller"
-]
-BalancerGroupSecretStr = Annotated[
-    OptionalSecretStr, Field(exclude=True, default=None), "balancer"
-]
 
 
 class KafkaCharmBase(TypedCharmBase[CharmConfig], abc.ABC):
@@ -195,8 +184,8 @@ class KafkaPermissionModel(EntityPermissionModel):
 class KafkaCompatibilityResponseModel(KafkaResponseModel):
     """Response model compatible with V0."""
 
-    tls: TlsSecretBool | TlsSecretStr = Field(default=None)
-    consumer_group_prefix: str | None = Field(default=None)
+    tls: OptionalSecretStr = "disabled"
+    consumer_group_prefix: str | None = None
 
 
 class RelationStateV1:
@@ -1302,12 +1291,17 @@ class KafkaClient(RelationStateV1):
     def needs_update(self, broker_ca: str) -> bool:
         """Check if written data for this client needs update, based on current Kafka app state."""
         state = self.written_data
+        tls_value = (
+            self.tls
+            if self.version == "v0"
+            else self.tls.replace("enabled", "true").replace("disabled", "false")
+        )
         return not all(
             [
                 self.username == state.get("username"),
                 self.password == state.get("password"),
                 self.bootstrap_server == state.get("endpoints"),
-                self.tls == state.get("tls"),
+                tls_value == state.get("tls"),
                 broker_ca == state.get("tls-ca", ""),
             ]
         )

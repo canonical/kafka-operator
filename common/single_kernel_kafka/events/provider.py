@@ -19,7 +19,7 @@ from ops.framework import Object
 from ops.pebble import ExecError
 
 from ..core.literals import REL_NAME, Status
-from ..core.models import KafkaClient, KafkaCompatibilityResponseModel
+from ..core.models import KafkaClient, KafkaCompatibilityResponseModel, KafkaResponseModel
 from ..managers.ssl_principal_mapper import NoMatchingRuleError, SslPrincipalMapper
 
 if TYPE_CHECKING:
@@ -278,7 +278,10 @@ class KafkaProvider(Object):
             # In v1, we can't write enabled, because it's not JSON-serializable.
             _tls_value = client.tls == "enabled" if client.version == "v1" else client.tls
 
-            response = KafkaCompatibilityResponseModel(
+            response_cls = (
+                KafkaCompatibilityResponseModel if client.version == "v0" else KafkaResponseModel
+            )
+            response = response_cls(
                 request_id=client.request_id,
                 salt=client.request.salt,
                 username=client.username,

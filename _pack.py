@@ -13,7 +13,7 @@ def _alternate_pack_script(charm_dir: str, *args) -> list[Command]:
     find build/ -iname *.charm -exec rm {{}} \;
     touch build/DEVMODE
     rsync -av {charm_dir}/ build/
-    cp -ra common/ build/.common
+    rsync -av common/ build/.common
     /bin/bash -c "cd build && charmcraft pack -v {' '.join(args)}"
     find build/ -iname *.charm -exec cp {{}} {charm_dir}/ \;
     """
