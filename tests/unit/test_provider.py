@@ -229,6 +229,7 @@ def test_mtls_without_tls_relation(
         ),
         # Model props
         patch("core.models.KafkaCluster.internal_user_credentials"),
+        patch("charmlibs.rollingops.RollingOpsManager.request_async_lock", autospec=True),
     ):
         state_out = ctx.run(ctx.on.relation_changed(client_relation), state_in)
 
@@ -294,6 +295,7 @@ def test_mtls_setup(
             "managers.tls.TLSManager.build_sans", return_value={"sans_ip": "ip", "sans_dns": "dns"}
         ),
         patch("events.tls.TLSHandler.update_truststore"),
+        patch("charmlibs.rollingops.RollingOpsManager.request_async_lock", autospec=True),
         ctx(ctx.on.relation_changed(client_relation), state_in) as mgr,
     ):
         mock_auth_manager = MagicMock(spec=AuthManager)
