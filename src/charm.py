@@ -164,7 +164,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         ):
             self.balancer.workload.stop()
 
-    def _restart_broker(self, **kwargs) -> OperationResult:
+    def _restart_broker(self, **_kwargs) -> OperationResult:
         """Callback for `rolling_ops` restart operations.
 
         The RollingOpsManager expecting a charm instance, we cannot move this method to the broker logic.
@@ -189,7 +189,7 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
 
         return OperationResult.RELEASE
 
-    def _disable_enable_restart_broker(self, **kwargs) -> OperationResult:
+    def _disable_enable_restart_broker(self, **_kwargs) -> OperationResult:
         """Callback for `rolling_ops` disable_enable restart operations.
 
         The RollingOpsManager expecting a charm instance, we cannot move this method to the broker logic.
