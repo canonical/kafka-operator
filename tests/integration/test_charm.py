@@ -14,6 +14,7 @@ import pytest
 import requests
 import toml
 from pytest_operator.plugin import OpsTest
+from tenacity import Retrying, stop_after_attempt, wait_fixed
 
 from integration.helpers.pytest_operator import (
     APP_NAME,
@@ -119,22 +120,32 @@ async def test_listeners(ops_test: OpsTest, app_charm, kafka_apps):
 
     assert ops_test.model.applications[APP_NAME].status == "active"
     assert ops_test.model.applications[DUMMY_NAME].status == "active"
-    await ops_test.model.wait_for_idle(
-        apps=[*kafka_apps, DUMMY_NAME], idle_period=60, status="active"
-    )
 
-    # check that client listener is active
-    assert check_socket(address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client)
+    # Opening the client listener is applied via a rolling restart that the
+    # rollingops library processes in a background worker, which Juju idle
+    # detection does not gate on. Retry briefly until the listener settles.
+    for attempt in Retrying(stop=stop_after_attempt(6), wait=wait_fixed(15), reraise=True):
+        with attempt:
+            await ops_test.model.wait_for_idle(
+                apps=[*kafka_apps, DUMMY_NAME], idle_period=30, status="active"
+            )
+            # check that client listener is active
+            assert check_socket(
+                address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
+            )
 
     # remove relation and check that client listener is not active
     await ops_test.model.applications[APP_NAME].remove_relation(
         f"{APP_NAME}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_ADMIN}"
     )
-    await ops_test.model.wait_for_idle(apps=kafka_apps, idle_period=60)
-
-    assert not check_socket(
-        address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
-    )
+    # Likewise, tearing down the listener is applied via a background rolling
+    # restart, so retry until it is actually closed.
+    for attempt in Retrying(stop=stop_after_attempt(6), wait=wait_fixed(15), reraise=True):
+        with attempt:
+            await ops_test.model.wait_for_idle(apps=kafka_apps, idle_period=30)
+            assert not check_socket(
+                address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
+            )
 
 
 @pytest.mark.abort_on_fail
