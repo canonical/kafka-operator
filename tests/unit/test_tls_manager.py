@@ -148,7 +148,6 @@ def tls_manager(tmp_path_factory, monkeypatch):
         keystore_password=KEYSTORE_PASSWORD,
         truststore_password=TRUSTSTORE_PASSWORD,
         scopes={},
-        sans_builder=sans_builder,
         peer_cluster_ca=[],
     )
 
@@ -156,6 +155,7 @@ def tls_manager(tmp_path_factory, monkeypatch):
         settings=mgr_settings,
         workload=mock_workload,
         substrate=SUBSTRATE,
+        sans_builder=sans_builder,
         conf_path=mock_workload.paths.conf_path,
     )
     mgr.keytool = KEYTOOL
@@ -387,7 +387,7 @@ def test_tls_manager_sans(
         substrate=SUBSTRATE,
         config=charm_config,
     )
-    tls_manager.settings.sans_builder = sans_builder
+    tls_manager.sans_builder = sans_builder
 
     # check SANs
     current_sans = tls_manager.get_current_sans()

@@ -70,9 +70,10 @@ class ConnectCharm(ConnectCharmBase):
         self.connect_manager = ConnectManager(context=self.context, workload=self.workload)
         self.sans_builder = ConnectSansBuilder(self.context, self.workload, self.substrate)
         self.tls_manager = TLSManager(
-            settings=self.context.get_tls_manager_settings(self.sans_builder),
+            settings=self.context.tls_manager_settings,
             workload=self.workload,
             substrate=self.substrate,
+            sans_builder=self.sans_builder,
             conf_path=self.workload.connect_paths.config_dir,
         )
 

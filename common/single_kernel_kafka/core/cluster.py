@@ -57,7 +57,6 @@ from .models import (
     PeerClusterData,
     PeerClusterOrchestratorData,
     RelationStateV1,
-    SansBuilderBase,
     TLSManagerSettings,
 )
 
@@ -764,7 +763,8 @@ class KafkaContext(Object):
             unit.peer_certs.rotate for unit in self.brokers
         )
 
-    def get_tls_manager_settings(self, sans_builder: SansBuilderBase) -> TLSManagerSettings:
+    @property
+    def tls_manager_settings(self) -> TLSManagerSettings:
         """Return TLS manager settings for this unit/app."""
         return TLSManagerSettings(
             app_name=self.unit_broker.unit.app.name,
@@ -777,6 +777,5 @@ class KafkaContext(Object):
                 TLSScope.PEER: self.unit_broker.peer_certs,
                 TLSScope.CLIENT: self.unit_broker.client_certs,
             },
-            sans_builder=sans_builder,
             peer_cluster_ca=self.peer_cluster_ca,
         )

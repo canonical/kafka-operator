@@ -59,7 +59,7 @@ logger = logging.getLogger(__name__)
 class BrokerOperator(Object):
     """Charmed Operator for Kafka."""
 
-    def __init__(self, charm) -> None:
+    def __init__(self, charm: "KafkaCharm") -> None:
         super().__init__(charm, BROKER.value)
         self.charm: "KafkaCharm" = charm
 
@@ -75,11 +75,11 @@ class BrokerOperator(Object):
             config=self.charm.config,
             substrate=self.charm.substrate,
         )
-        settings = self.charm.state.get_tls_manager_settings(sans_builder)
         self.tls_manager = TLSManager(
-            settings=settings,
+            settings=self.charm.state.tls_manager_settings,
             workload=self.workload,
             substrate=self.charm.substrate,
+            sans_builder=sans_builder,
             conf_path=self.workload.paths.conf_path,
         )
         self.controller_manager = ControllerManager(self.charm.state, self.workload)

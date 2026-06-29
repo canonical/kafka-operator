@@ -162,11 +162,13 @@ class TLSManager:
         settings: TLSManagerSettings,
         workload: WorkloadBase,
         substrate: Substrates,
+        sans_builder: SansBuilderBase,
         conf_path: str,
     ):
         self.settings = settings
         self.workload = workload
         self.substrate = substrate
+        self.sans_builder = sans_builder
         self.conf_path = conf_path
 
         self.keytool = "charmed-kafka.keytool" if self.substrate == "vm" else "keytool"
@@ -186,7 +188,7 @@ class TLSManager:
 
     def build_sans(self) -> Sans:
         """Build SANs using the SANs builder."""
-        return self.settings.sans_builder.build_sans()
+        return self.sans_builder.build_sans()
 
     def get_state(self, scope: TLSScope) -> TLSContextBase:
         """Returns the TLSState object for the given scope."""

@@ -108,11 +108,11 @@ class BalancerOperator(Object):
             config=self.charm.config,
             substrate=self.charm.substrate,
         )
-        settings = self.charm.state.get_tls_manager_settings(sans_builder)
         self.tls_manager = TLSManager(
-            settings=settings,
+            settings=self.charm.state.tls_manager_settings,
             workload=self.workload,
             substrate=self.charm.substrate,
+            sans_builder=sans_builder,
             conf_path=self.workload.paths.conf_path,
         )
 

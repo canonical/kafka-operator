@@ -179,7 +179,6 @@ class TLSManagerSettings:
     keystore_password: str
     truststore_password: str
     scopes: dict[TLSScope, "TLSContextBase"]
-    sans_builder: SansBuilderBase
     peer_cluster_ca: list[str]
 
 

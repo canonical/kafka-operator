@@ -24,7 +24,7 @@ from ops.model import Application, Relation, RelationDataAccessError, Unit
 from typing_extensions import override
 
 from .literals import SUBSTRATE, ConnectLiterals, ConnectStatus, Substrates, TLSScope
-from .models import SansBuilderBase, TLSContextBase, TLSManagerSettings
+from .models import TLSContextBase, TLSManagerSettings
 from .structured_config import ConnectCharmConfig
 
 if TYPE_CHECKING:
@@ -563,7 +563,8 @@ class ConnectContext(WithStatus, Object):
 
         return cache
 
-    def get_tls_manager_settings(self, sans_builder: SansBuilderBase) -> TLSManagerSettings:
+    @property
+    def tls_manager_settings(self) -> TLSManagerSettings:
         """Return TLS manager settings for this unit/app."""
         return TLSManagerSettings(
             app_name=self.worker_unit.unit.app.name,
@@ -575,7 +576,6 @@ class ConnectContext(WithStatus, Object):
             scopes={
                 TLSScope.CONNECT: self.worker_unit.tls,
             },
-            sans_builder=sans_builder,
             peer_cluster_ca=[],
         )
 
