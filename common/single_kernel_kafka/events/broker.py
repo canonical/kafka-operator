@@ -42,7 +42,7 @@ from ..managers.balancer import BalancerManager
 from ..managers.config import TESTING_OPTIONS, ConfigManager
 from ..managers.controller import ControllerManager
 from ..managers.k8s import K8sManager
-from ..managers.tls import TLSManager
+from ..managers.tls import KafkaSansBuilder, TLSManager
 from ..workload import KafkaWorkloadK8s, KafkaWorkloadMachine
 from .actions import ActionEvents
 from .controller import KRaftHandler
@@ -69,11 +69,18 @@ class BrokerOperator(Object):
             container = self.charm.unit.get_container(CONTAINER)
             self.workload = KafkaWorkloadK8s(container=container)
 
-        self.tls_manager = TLSManager(
+        sans_builder = KafkaSansBuilder(
             state=self.charm.state,
             workload=self.workload,
-            substrate=self.charm.substrate,
             config=self.charm.config,
+            substrate=self.charm.substrate,
+        )
+        settings = self.charm.state.get_tls_manager_settings(sans_builder)
+        self.tls_manager = TLSManager(
+            settings=settings,
+            workload=self.workload,
+            substrate=self.charm.substrate,
+            conf_path=self.workload.paths.conf_path,
         )
         self.controller_manager = ControllerManager(self.charm.state, self.workload)
 
@@ -310,7 +317,7 @@ class BrokerOperator(Object):
         # remove temporary trust aliases if they're no longer needed.
         if (
             self.tls_manager.peer_truststore_has_temporary_aliases
-            and self.tls_manager.both_apps_trust_new_bundle()
+            and self.tls_manager.both_apps_trust_new_bundle(self.charm.state)
         ):
             logger.info("Removing decommissioned CA from truststore.")
             self.tls_manager.rebuild_truststore()
@@ -571,7 +578,7 @@ class BrokerOperator(Object):
             self.charm.state.cluster.add_broker(broker)
 
         # brokers which have been successfully removed,
-        # we will remove these from the ClusterState, and capacityJBOD.json file
+        # we will remove these from the KafkaContext, and capacityJBOD.json file
         removed_brokers = (
             set(self.charm.state.cluster.broker_capacities_snapshot)
             - self.kraft.controller_manager.online_brokers

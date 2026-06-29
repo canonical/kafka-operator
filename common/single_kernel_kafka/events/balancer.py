@@ -38,7 +38,7 @@ from ..core.literals import (
 from ..core.workload import WorkloadBase
 from ..managers.balancer import BalancerManager
 from ..managers.config import CRUISE_CONTROL_TESTING_OPTIONS, BalancerConfigManager
-from ..managers.tls import TLSManager
+from ..managers.tls import KafkaSansBuilder, TLSManager
 from ..workload import BalancerWorkloadK8s, BalancerWorkloadMachine
 
 if TYPE_CHECKING:
@@ -91,7 +91,7 @@ class BalancerOperator(Object):
 
     on = BalancerEvents()  # pyright: ignore [reportAssignmentType]
 
-    def __init__(self, charm, kafka_workload: WorkloadBase) -> None:
+    def __init__(self, charm: "KafkaCharm", kafka_workload: WorkloadBase) -> None:
         super().__init__(charm, BALANCER.value)
         self.charm: "KafkaCharm" = charm
         self.kafka_workload: WorkloadBase = kafka_workload
@@ -102,11 +102,18 @@ class BalancerOperator(Object):
             container = self.charm.unit.get_container(CONTAINER)
             self.workload = BalancerWorkloadK8s(container=container)
 
-        self.tls_manager = TLSManager(
+        sans_builder = KafkaSansBuilder(
             state=self.charm.state,
             workload=self.workload,
-            substrate=self.charm.substrate,
             config=self.charm.config,
+            substrate=self.charm.substrate,
+        )
+        settings = self.charm.state.get_tls_manager_settings(sans_builder)
+        self.tls_manager = TLSManager(
+            settings=settings,
+            workload=self.workload,
+            substrate=self.charm.substrate,
+            conf_path=self.workload.paths.conf_path,
         )
 
         # Before fast exit to avoid silently ignoring the action

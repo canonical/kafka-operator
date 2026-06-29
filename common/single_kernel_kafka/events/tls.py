@@ -348,7 +348,7 @@ class TLSHandler(Object):
             self.charm.broker.tls_manager.update_cert(alias=alias, cert=cert)
 
         logger.debug(f"Following aliases should be in the truststore: {live_aliases}")
-        self.charm.broker.tls_manager.reload_truststore()
+        self.charm.broker.tls_manager.reload_truststore(self.charm.state)
 
     @property
     def ready(self) -> bool:
@@ -389,7 +389,9 @@ class TLSHandler(Object):
         self.unit_tls_rotate()
         if (
             self.charm.state.tls_rotate
-            and not self.charm.broker.tls_manager.peer_cluster_app_trusts_new_bundle()
+            and not self.charm.broker.tls_manager.peer_cluster_app_trusts_new_bundle(
+                self.charm.state
+            )
         ):
             # Basically we should defer and wait for the other side
             # to complete its rolling restart and then begin our rolling restart.

@@ -49,6 +49,7 @@ def base_state():
     else:
         state = State(leader=True)
 
+    state = dataclasses.replace(state, relations=[])
     return state
 
 
@@ -193,7 +194,7 @@ def test_ready_to_start(charm_configuration, base_state: State):
             return_value="cluster-uuid-number",
         ),
         patch(
-            "single_kernel_kafka.core.cluster.ClusterState.broker_capacities",
+            "single_kernel_kafka.core.cluster.KafkaContext.broker_capacities",
             new_callable=PropertyMock,
             return_value={"brokerCapacities": [{}, {}, {}]},
         ),

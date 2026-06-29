@@ -1,0 +1,8 @@
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+pre-upgrade-check:
+  description: Run necessary pre-upgrade checks before executing a charm upgrade.
+
+resume-upgrade:
+  description: Resume a rolling upgrade after asserting successful upgrade of a new revision.

@@ -33,6 +33,7 @@ cosl = ">= 0.0.50"
 charm-refresh = "^3.0.0.6"
 toml = "^0.10.2"
 single_kernel_kafka = { path = "./common" }
+kafkacl = { git = "https://github.com/canonical/kafkacl", branch = "pydantic-v2" }
 
 [tool.poetry.group.charm-libs.dependencies]
 # data_platform_libs/v0/data_interfaces.py
@@ -123,8 +124,8 @@ src = ["src", "tests"]
 max-complexity = 10
 
 [tool.pyright]
-include = ["common", "machine/src", "k8s/src"]
-extraPaths = ["./machine/lib"]
+include = ["common", "machine/src", "k8s/src", "connect-machine/src", "connect-k8s/src"]
+extraPaths = ["./machine/lib", "./connect-machine/lib", "./connect-k8s/lib"]
 pythonVersion = "3.10"
 pythonPlatform = "All"
 typeCheckingMode = "basic"

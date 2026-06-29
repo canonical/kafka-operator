@@ -1,0 +1,36 @@
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+# Testing tools configuration
+
+[tool.poetry]
+name = "connect-k8s-operator"
+version = "1.0"
+description = "connect-k8s-operator"
+authors = []
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.10,<4.0"
+ops = ">=2.17.0"
+
+kafkacl = { git = "https://github.com/canonical/kafkacl", branch = "pydantic-v2" }
+
+# The cosl dep could be removed from here once PYDEPS is released:
+# https://github.com/canonical/charmcraft/pull/1003
+cosl = ">= 0.0.50"
+
+# TODO: This is required for bootstrap, it should be replaced by PyPi package.
+single_kernel_kafka = { url = "https://custom-built-snaps.s3.eu-north-1.amazonaws.com/single_kernel_kafka-0.4.4-py3-none-any.whl" }
+
+[tool.poetry.group.charm-libs.dependencies]
+# data_platform_libs/v0/data_interfaces.py
+ops = ">=2.0.0"
+# data_platform_libs/v0/upgrade.py
+# grafana_agent/v0/cos_agent.py requires pydantic <2
+poetry-core = "*"
+# tls_certificates_interface/v1/tls_certificates.py
+# tls_certificates lib uses a feature only available in cryptography >=42.0.5
+cryptography = ">=42.0.5"
+# hydra/v0/oauth.py
+jsonschema = "*"

@@ -15,8 +15,8 @@ Command = str
 
 def _alternate_pack_script(charm_dir: str, *args) -> list[Command]:
     raw = rf"""
+    rm -rf build
     mkdir -p build
-    find build/ -iname *.charm -exec rm {{}} \;
     touch build/DEVMODE
     rsync -av {charm_dir}/ build/
     rsync -av common/ build/.common
@@ -45,7 +45,7 @@ if __name__ == "__main__":
     charm_dir = sys.argv[1].rstrip("/")
 
     ret = 0
-    if charm_dir in ["machine", "k8s"]:
+    if charm_dir in ["connect-k8s", "connect-machine", "machine", "k8s"]:
         for cmd in _alternate_pack_script(charm_dir, *sys.argv[2:]):
             ret += _exec(cmd)
     else:

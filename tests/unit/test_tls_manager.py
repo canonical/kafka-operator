@@ -9,7 +9,7 @@ import logging
 import os
 import ssl
 import subprocess
-from multiprocessing import Process
+import threading
 from typing import Any, Mapping
 from unittest.mock import MagicMock
 
@@ -18,9 +18,15 @@ import yaml
 from charmlibs import pathops
 from common.single_kernel_kafka.core.cluster import KafkaBroker
 from common.single_kernel_kafka.core.literals import BROKER, SUBSTRATE, TLSScope
+from common.single_kernel_kafka.core.models import (
+    Sans,
+    SansBuilderBase,
+    TLSManagerSettings,
+    TLSState,
+)
 from common.single_kernel_kafka.core.structured_config import CharmConfig
-from common.single_kernel_kafka.core.workload import CharmedKafkaPaths, WorkloadBase
-from common.single_kernel_kafka.managers.tls import TLSManager
+from common.single_kernel_kafka.core.workload import CharmedKafkaPaths, ConnectPaths, WorkloadBase
+from common.single_kernel_kafka.managers.tls import KafkaSansBuilder, TLSManager
 from tests.unit.helpers import TLSArtifacts, generate_tls_artifacts
 
 logger = logging.getLogger(__name__)
@@ -36,6 +42,18 @@ INTERNAL_ADDRESS = "10.10.10.10"
 BIND_ADDRESS = "10.20.20.20"
 KEYTOOL = "keytool"
 JKS_UNIT_TEST_FILE = "tests/unit/TestJKS.java"
+KEYSTORE_PASSWORD = "keystore-password"
+TRUSTSTORE_PASSWORD = "truststore-password"
+
+
+class TestSansBuilder(SansBuilderBase):
+    """Fake SANs builder."""
+
+    def build_sans(self) -> Sans:
+        return {
+            "sans_ip": ["10.10.10.10"],
+            "sans_dns": ["kafka-0.local"],
+        }
 
 
 def _exec(
@@ -76,16 +94,19 @@ except subprocess.CalledProcessError:
 
 @contextlib.contextmanager
 def simple_ssl_server(certfile: str, keyfile: str, port: int = 10443):
-    httpd = http.server.HTTPServer(("127.0.0.1", port), http.server.SimpleHTTPRequestHandler)
+    httpd = http.server.ThreadingHTTPServer(
+        ("127.0.0.1", port), http.server.SimpleHTTPRequestHandler
+    )
     ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
     ctx.load_cert_chain(certfile=certfile, keyfile=keyfile)
     httpd.socket = ctx.wrap_socket(httpd.socket, server_side=True)
 
-    process = Process(target=httpd.serve_forever)
-    process.start()
+    server_thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    server_thread.start()
     yield
 
-    process.kill()
+    httpd.shutdown()
+    httpd.server_close()
 
 
 class JKSError(Exception):
@@ -115,27 +136,51 @@ def tls_manager(tmp_path_factory, monkeypatch):
     mock_workload.exec = _exec
     mock_workload.root = pathops.LocalPath("/")
     mock_workload.paths = CharmedKafkaPaths(BROKER)
+    mock_workload.connect_paths = ConnectPaths(SUBSTRATE)
     mock_workload.paths.conf_path = tmp_path_factory.mktemp("workload")
 
-    # Mock State
-    mock_state = MagicMock()
-    mock_broker_state = KafkaBroker(None, MagicMock(), MagicMock(), SUBSTRATE)
-    mock_broker_state.relation_data = {}
-    mock_state.unit_broker = mock_broker_state
+    sans_builder = TestSansBuilder()
+    mgr_settings = TLSManagerSettings(
+        app_name="kafka",
+        unit_name="kafka/0",
+        internal_ca=None,
+        internal_ca_key=None,
+        keystore_password=KEYSTORE_PASSWORD,
+        truststore_password=TRUSTSTORE_PASSWORD,
+        scopes={},
+        sans_builder=sans_builder,
+        peer_cluster_ca=[],
+    )
 
-    raw_config = {
-        k.replace("-", "_"): v.get("default", "")
-        for k, v in yaml.safe_load(open("machine/config.yaml")).get("options", {}).items()
-    }
     mgr = TLSManager(
-        state=mock_state,
+        settings=mgr_settings,
         workload=mock_workload,
         substrate=SUBSTRATE,
-        config=CharmConfig(**raw_config),
+        conf_path=mock_workload.paths.conf_path,
     )
     mgr.keytool = KEYTOOL
 
     yield mgr
+
+
+@pytest.fixture
+def mock_kafka_state():
+    """Mock ClusterState fixture."""
+    mock_state = MagicMock()
+    mock_broker_state = KafkaBroker(None, MagicMock(), MagicMock(), SUBSTRATE)
+    mock_broker_state.relation_data = {}
+    mock_state.unit_broker = mock_broker_state
+    return mock_state
+
+
+@pytest.fixture
+def charm_config() -> CharmConfig:
+    """Charm config fixture."""
+    raw_config = {
+        k.replace("-", "_"): v.get("default", "")
+        for k, v in yaml.safe_load(open("machine/config.yaml")).get("options", {}).items()
+    }
+    return CharmConfig(**raw_config)
 
 
 def _set_manager_state(
@@ -160,7 +205,10 @@ def _set_manager_state(
             }
         )
 
-    mgr.state.unit_broker.relation_data = data
+    rel_state = MagicMock()
+    rel_state.relation_data = data
+    tls_state = TLSState(rel_state, scope)
+    mgr.settings.scopes[scope] = tls_state
 
 
 def _tls_manager_set_everything(mgr: TLSManager) -> None:
@@ -203,8 +251,7 @@ def test_tls_manager_set_methods(
     _set_manager_state(tls_manager, tls_artifacts=tls_artifacts)
 
     if not tls_initialized:
-        tls_manager.state.unit_broker.relation_data = {}
-        tls_manager.state.peer_cluster.relation_data = {"tls": ""}
+        tls_manager.settings.scopes = {}
 
     caplog.set_level(logging.DEBUG)
     _tls_manager_set_everything(tls_manager)
@@ -267,7 +314,7 @@ def test_tls_manager_truststore_functionality(
     with simple_ssl_server(certfile=app_certfile, keyfile=app_keyfile):
         # since we don't have the app cert/ca in our truststore, JKS test should fail.
         with pytest.raises(JKSError):
-            java_jks_test(truststore_path, tls_manager.state.unit_broker.truststore_password)
+            java_jks_test(truststore_path, TRUSTSTORE_PASSWORD)
 
         # Add the app cert
         filename = f"{tls_manager.workload.paths.conf_path}/some-app.pem"
@@ -275,7 +322,7 @@ def test_tls_manager_truststore_functionality(
         tls_manager.import_cert(alias="some-app", filename="some-app.pem")
 
         # now the test should pass
-        java_jks_test(truststore_path, tls_manager.state.unit_broker.truststore_password)
+        java_jks_test(truststore_path, TRUSTSTORE_PASSWORD)
 
         # import again with the same alias
         filename = f"{tls_manager.workload.paths.conf_path}/other-file.pem"
@@ -289,7 +336,7 @@ def test_tls_manager_truststore_functionality(
 
         # We don't have the cert anymore, so the JKS test should fail again.
         with pytest.raises(JKSError):
-            java_jks_test(truststore_path, tls_manager.state.unit_broker.truststore_password)
+            java_jks_test(truststore_path, TRUSTSTORE_PASSWORD)
 
         # Now add the app's CA cert instead of its own cert
         filename = f"{tls_manager.workload.paths.conf_path}/some-app-ca.pem"
@@ -297,7 +344,7 @@ def test_tls_manager_truststore_functionality(
         tls_manager.import_cert(alias="some-app-ca", filename="some-app-ca.pem")
 
         # the test should pass again
-        java_jks_test(truststore_path, tls_manager.state.unit_broker.truststore_password)
+        java_jks_test(truststore_path, TRUSTSTORE_PASSWORD)
 
     # remove some non-existing alias.
     tls_manager.remove_cert("other-app")
@@ -315,6 +362,8 @@ def test_tls_manager_truststore_functionality(
 def test_tls_manager_sans(
     tls_manager: TLSManager,
     with_intermediate: bool,
+    charm_config: CharmConfig,
+    mock_kafka_state,
 ) -> None:
     """Tests the lifecycle of adding/removing certs from Java and TLSManager points of view."""
     tls_artifacts = generate_tls_artifacts(
@@ -324,9 +373,22 @@ def test_tls_manager_sans(
         with_intermediate=with_intermediate,
     )
     # patch node_ip
-    tls_manager.state.unit_broker.node_ip = "10.5.5.10"
+    mock_kafka_state.unit_broker.node_ip = "10.5.5.10"
     _set_manager_state(tls_manager, tls_artifacts=tls_artifacts)
     _tls_manager_set_everything(tls_manager)
+    mock_kafka_state.unit_broker.client_certs.return_value = tls_manager.settings.scopes[
+        TLSScope.CLIENT
+    ]
+
+    # Instantiate KafkaSansBuilder
+    sans_builder = KafkaSansBuilder(
+        state=mock_kafka_state,
+        workload=tls_manager.workload,
+        substrate=SUBSTRATE,
+        config=charm_config,
+    )
+    tls_manager.settings.sans_builder = sans_builder
+
     # check SANs
     current_sans = tls_manager.get_current_sans()
     assert current_sans and current_sans == {
@@ -363,10 +425,9 @@ def test_simulate_os_errors(tls_manager: TLSManager):
 
 def test_peer_cluster_trust(tls_manager: TLSManager):
     _set_manager_state(tls_manager)
-    tls_manager.state.roles = "broker"
     tls_data = generate_tls_artifacts(subject="controller/0")
 
-    tls_manager.state.peer_cluster_ca = [tls_data.ca]
+    tls_manager.settings.peer_cluster_ca = [tls_data.ca]
     tls_manager.update_peer_cluster_trust()
 
     trusted_certs = tls_manager.peer_trusted_certificates
@@ -380,7 +441,7 @@ def test_peer_cluster_trust(tls_manager: TLSManager):
 
     # Now let's rotate
     new_tls_data = generate_tls_artifacts(subject="controller/0")
-    tls_manager.state.peer_cluster_ca = [new_tls_data.ca]
+    tls_manager.settings.peer_cluster_ca = [new_tls_data.ca]
 
     tls_manager.update_peer_cluster_trust()
     trusted_certs = tls_manager.peer_trusted_certificates

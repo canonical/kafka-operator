@@ -198,7 +198,7 @@ def test_extra_sans_config(
         charm = cast(KafkaCharm, manager.charm)
 
         # Then
-        assert charm.broker.tls_manager._build_extra_sans() == expected
+        assert charm.broker.tls_manager.settings.sans_builder._build_extra_sans() == expected
 
 
 def test_sans(charm_configuration: dict, base_state: State, patched_node_ip, monkeypatch) -> None:

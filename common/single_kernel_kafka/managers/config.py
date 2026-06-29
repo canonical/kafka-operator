@@ -15,7 +15,7 @@ from typing import Iterable, cast
 from lightkube.core.exceptions import ApiError
 from typing_extensions import override
 
-from ..core.cluster import ClusterState
+from ..core.cluster import KafkaContext
 from ..core.literals import (
     ADMIN_USER,
     BALANCER,
@@ -176,7 +176,7 @@ class CommonConfigManager:
 
     config: CharmConfig
     workload: WorkloadBase
-    state: ClusterState
+    state: KafkaContext
 
     @cached_property
     def peer_cluster_state(self) -> PeerCluster:
@@ -298,7 +298,7 @@ class ConfigManager(CommonConfigManager):
 
     def __init__(
         self,
-        state: ClusterState,
+        state: KafkaContext,
         workload: WorkloadBase,
         config: CharmConfig,
     ):
@@ -883,7 +883,7 @@ class BalancerConfigManager(CommonConfigManager):
 
     def __init__(
         self,
-        state: ClusterState,
+        state: KafkaContext,
         workload: WorkloadBase,
         config: CharmConfig,
     ):

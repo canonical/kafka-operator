@@ -8,8 +8,8 @@ import logging
 import re
 import socket
 import subprocess
+from dataclasses import dataclass
 from datetime import timedelta
-from typing import TypedDict  # nosec B404
 
 from charms.tls_certificates_interface.v4.tls_certificates import (
     PrivateKey,
@@ -23,19 +23,129 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from ops.pebble import ExecError
 
-from ..core.cluster import ClusterState
+from ..core.cluster import KafkaContext
+from ..core.connect_models import ConnectContext
 from ..core.literals import GROUP, USER_NAME, Substrates
-from ..core.models import GeneratedCa, SelfSignedCertificate, TLSScope, TLSState
+from ..core.models import (
+    GeneratedCa,
+    Sans,
+    SansBuilderBase,
+    SelfSignedCertificate,
+    TLSContextBase,
+    TLSManagerSettings,
+    TLSScope,
+)
 from ..core.structured_config import CharmConfig
 from ..core.workload import WorkloadBase
 
 logger = logging.getLogger(__name__)
 
-Sans = TypedDict("Sans", {"sans_ip": list[str], "sans_dns": list[str]})
-
 
 class UnknownScopeError(Exception):
     """Exception raised when TLS scope is undefined or not implemented."""
+
+
+@dataclass
+class TLSPaths:
+    """TLS paths data model."""
+
+    keystore: str
+    truststore: str
+
+
+class KafkaSansBuilder(SansBuilderBase):
+    """SANs builder for Kafka charm."""
+
+    def __init__(
+        self,
+        state: KafkaContext,
+        workload: WorkloadBase,
+        substrate: Substrates,
+        config: CharmConfig,
+    ):
+        self.state = state
+        self.workload = workload
+        self.substrate = substrate
+        self.config = config
+
+    def _build_extra_sans(self) -> list[str]:
+        """Parse the certificate_extra_sans config option."""
+        extra_sans = self.config.extra_listeners or self.config.certificate_extra_sans or []
+        clean_sans = [san.split(":")[0] for san in extra_sans]
+        parsed_sans = [
+            san.replace("{unit}", str(self.state.unit_broker.unit_id)) for san in clean_sans
+        ]
+
+        return parsed_sans
+
+    def build_sans(self) -> Sans:
+        """Builds a SAN dict of DNS names and IPs for the unit."""
+        if self.substrate == "vm":
+            return {
+                "sans_ip": self.workload.ips,
+                "sans_dns": [self.state.unit_broker.unit.name, socket.getfqdn()]
+                + self._build_extra_sans(),
+            }
+        else:
+            return {
+                "sans_ip": sorted(
+                    ip
+                    for ip in [
+                        str(self.state.bind_address),
+                        self.state.unit_broker.node_ip,
+                    ]
+                    if ip
+                ),
+                "sans_dns": sorted(
+                    [
+                        self.state.unit_broker.internal_address.split(".")[0],
+                        self.state.unit_broker.internal_address,
+                        socket.getfqdn(),
+                    ]
+                    + self._build_extra_sans()
+                ),
+            }
+
+
+class ConnectSansBuilder(SansBuilderBase):
+    """SANs builder for Connect charms."""
+
+    def __init__(
+        self,
+        context: ConnectContext,
+        workload: WorkloadBase,
+        substrate: Substrates,
+    ):
+        self.context = context
+        self.unit_context = context.worker_unit
+        self.workload = workload
+        self.substrate = substrate
+
+    def build_sans(
+        self,
+    ) -> Sans:
+        """Builds a SAN dict of DNS names and IPs for the unit."""
+        if self.substrate == "vm":
+            return {
+                "sans_ip": [self.unit_context.internal_address],
+                "sans_dns": [self.unit_context.unit.name, socket.getfqdn()],
+            }
+        else:
+            return {
+                "sans_ip": sorted(
+                    [
+                        str(self.context.bind_address),
+                        # self.unit_context.node_ip,
+                    ]
+                ),
+                "sans_dns": sorted(
+                    [
+                        self.unit_context.internal_address.split(".")[0],
+                        self.unit_context.internal_address,
+                        socket.getfqdn(),
+                    ]
+                ),
+            }
 
 
 class TLSManager:
@@ -49,44 +159,55 @@ class TLSManager:
 
     def __init__(
         self,
-        state: ClusterState,
+        settings: TLSManagerSettings,
         workload: WorkloadBase,
         substrate: Substrates,
-        config: CharmConfig,
+        conf_path: str,
     ):
-        self.state = state
+        self.settings = settings
         self.workload = workload
         self.substrate = substrate
-        self.config = config
+        self.conf_path = conf_path
 
         self.keytool = "charmed-kafka.keytool" if self.substrate == "vm" else "keytool"
 
-    def get_state(self, scope: TLSScope) -> TLSState:
-        """Returns the TLSState object for the given scope."""
-        if scope == TLSScope.PEER:
-            return self.state.unit_broker.peer_certs
-        elif scope == TLSScope.CLIENT:
-            return self.state.unit_broker.client_certs
+        self.paths = {
+            TLSScope.PEER: TLSPaths(
+                keystore=workload.paths.peer_keystore, truststore=workload.paths.peer_truststore
+            ),
+            TLSScope.CLIENT: TLSPaths(
+                keystore=workload.paths.keystore, truststore=workload.paths.truststore
+            ),
+            TLSScope.CONNECT: TLSPaths(
+                keystore=workload.connect_paths.keystore,
+                truststore=workload.connect_paths.truststore,
+            ),
+        }
 
-        raise UnknownScopeError(f"Unknown scope: {scope}")
+    def build_sans(self) -> Sans:
+        """Build SANs using the SANs builder."""
+        return self.settings.sans_builder.build_sans()
+
+    def get_state(self, scope: TLSScope) -> TLSContextBase:
+        """Returns the TLSState object for the given scope."""
+        if scope not in self.settings.scopes:
+            raise UnknownScopeError(f"Unknown scope: {scope}")
+
+        return self.settings.scopes[scope]
 
     def get_truststore_path(self, scope: TLSScope) -> str:
         """Returns the truststore path for the given scope."""
-        if scope == TLSScope.PEER:
-            return self.workload.paths.peer_truststore
-        elif scope == TLSScope.CLIENT:
-            return self.workload.paths.truststore
+        if scope not in self.settings.scopes:
+            raise UnknownScopeError(f"Unknown scope: {scope}")
 
-        raise UnknownScopeError(f"Unknown scope: {scope}")
+        return self.paths[scope].truststore
 
     def get_keystore_path(self, scope: TLSScope) -> str:
         """Returns the keystore path for the given scope."""
-        if scope == TLSScope.PEER:
-            return self.workload.paths.peer_keystore
-        elif scope == TLSScope.CLIENT:
-            return self.workload.paths.keystore
+        if scope not in self.settings.scopes:
+            raise UnknownScopeError(f"Unknown scope: {scope}")
 
-        raise UnknownScopeError(f"Unknown scope: {scope}")
+        return self.paths[scope].keystore
 
     def generate_internal_ca(self) -> GeneratedCa:
         """Set up internal CA to issue self-signed certificates for internal communications."""
@@ -94,9 +215,11 @@ class TLSManager:
         ca = generate_ca(
             private_key=ca_key,
             validity=timedelta(days=3650),
-            common_name=f"{self.state.unit_broker.unit.app.name}",
+            common_name=f"{self.settings.app_name}",
             organization=TLSScope.PEER.value,
         )
+        self.settings.internal_ca = ca
+        self.settings.internal_ca_key = ca_key
 
         return GeneratedCa(ca=ca.raw, ca_key=ca_key.raw)
 
@@ -104,7 +227,7 @@ class TLSManager:
         """Generate self-signed certificate for the unit to be used for internal communications."""
         state = self.get_state(TLSScope.PEER)
 
-        if not self.state.internal_ca:
+        if not self.settings.internal_ca:
             logger.error("Internal CA is not set up yet.")
             return
 
@@ -112,7 +235,7 @@ class TLSManager:
             logger.debug("No need to set up internal credentials...")
             return
 
-        ca_key, ca = self.state.internal_ca_key, self.state.internal_ca
+        ca_key, ca = self.settings.internal_ca_key, self.settings.internal_ca
         if ca is None or ca_key is None:
             logger.error("Internal CA is not setup yet.")
             return
@@ -125,7 +248,7 @@ class TLSManager:
         sans = self.build_sans()
         csr = generate_csr(
             private_key=private_key,
-            common_name=f"{self.state.unit_broker.unit.name}",
+            common_name=f"{self.settings.unit_name}",
             sans_ip=frozenset(sans["sans_ip"]),
             sans_dns=frozenset(sans["sans_dns"]),
         )
@@ -139,7 +262,7 @@ class TLSManager:
 
     def set_server_key(self) -> None:
         """Sets the unit private-key."""
-        for scope in self.SCOPES:
+        for scope in self.settings.scopes:
             state = self.get_state(scope)
 
             if not state.private_key:
@@ -148,25 +271,23 @@ class TLSManager:
 
             self.workload.write(
                 content=state.private_key,
-                path=f"{self.workload.paths.conf_path}/{scope.value}-server.key",
+                path=f"{self.conf_path}/{scope.value}-server.key",
             )
 
     def set_ca(self) -> None:
         """Sets the unit ca."""
-        for scope in self.SCOPES:
+        for scope in self.settings.scopes:
             state = self.get_state(scope)
 
             if not state.ca:
                 logger.debug("Can't set CA to unit, missing CA in relation data")
                 continue
 
-            self.workload.write(
-                content=state.ca, path=f"{self.workload.paths.conf_path}/{scope.value}-ca.pem"
-            )
+            self.workload.write(content=state.ca, path=f"{self.conf_path}/{scope.value}-ca.pem")
 
     def set_certificate(self) -> None:
         """Sets the unit certificate."""
-        for scope in self.SCOPES:
+        for scope in self.settings.scopes:
             state = self.get_state(scope)
 
             if not state.certificate:
@@ -175,12 +296,12 @@ class TLSManager:
 
             self.workload.write(
                 content=state.certificate,
-                path=f"{self.workload.paths.conf_path}/{scope.value}-server.pem",
+                path=f"{self.conf_path}/{scope.value}-server.pem",
             )
 
     def set_bundle(self) -> None:
         """Sets the unit cert bundle."""
-        for scope in self.SCOPES:
+        for scope in self.settings.scopes:
             state = self.get_state(scope)
 
             if not state.certificate or not state.ca:
@@ -191,12 +312,12 @@ class TLSManager:
 
             self.workload.write(
                 content="\n".join(state.bundle),
-                path=f"{self.workload.paths.conf_path}/{scope.value}-bundle.pem",
+                path=f"{self.conf_path}/{scope.value}-bundle.pem",
             )
 
     def set_chain(self) -> None:
         """Sets the unit chain."""
-        for scope in self.SCOPES:
+        for scope in self.settings.scopes:
             state = self.get_state(scope)
 
             if not state.bundle:
@@ -207,12 +328,12 @@ class TLSManager:
             for i, chain_cert in enumerate(state.bundle):
                 self.workload.write(
                     content=chain_cert,
-                    path=f"{self.workload.paths.conf_path}/{scope.value}-bundle{i}.pem",
+                    path=f"{self.conf_path}/{scope.value}-bundle{i}.pem",
                 )
 
     def set_truststore(self) -> None:
         """Adds bundle to JKS truststore."""
-        for scope in self.SCOPES:
+        for scope in self.settings.scopes:
             state = self.get_state(scope)
             self.import_bundle(bundle=state.bundle, scope=scope)
 
@@ -227,7 +348,7 @@ class TLSManager:
 
     def set_keystore(self) -> None:
         """Creates and adds unit cert and private-key to the keystore."""
-        for scope in self.SCOPES:
+        for scope in self.settings.scopes:
             state = self.get_state(scope)
 
             if not all([state.private_key, state.certificate, state.ca]):
@@ -243,17 +364,17 @@ class TLSManager:
                 "-inkey",
                 f"{scope.value}-server.key",
                 "-passin",
-                f"pass:{self.state.unit_broker.keystore_password}",
+                f"pass:{self.settings.keystore_password}",
                 "-certfile",
                 f"{scope.value}-server.pem",
                 "-out",
                 f"{scope.value}-keystore.p12",
                 "-password",
-                f"pass:{self.state.unit_broker.keystore_password}",
+                f"pass:{self.settings.keystore_password}",
             ]
 
             try:
-                self.workload.exec(command=command, working_dir=self.workload.paths.conf_path)
+                self.workload.exec(command=command, working_dir=self.conf_path)
                 self.workload.exec(
                     f"chown {USER_NAME}:{GROUP} {self.get_keystore_path(scope)}".split()
                 )
@@ -264,7 +385,7 @@ class TLSManager:
 
     def update_peer_cluster_trust(self) -> None:
         """Updates peer truststore with current state of peer-cluster certificate chain."""
-        bundle = self.state.peer_cluster_ca
+        bundle = self.settings.peer_cluster_ca
 
         if not bundle:
             return
@@ -293,8 +414,17 @@ class TLSManager:
         self.set_keystore()
         self.update_peer_cluster_trust()
 
-    def import_cert(self, alias: str, filename: str, scope: TLSScope = TLSScope.CLIENT) -> None:
+    def import_cert(
+        self,
+        alias: str,
+        filename: str,
+        scope: TLSScope = TLSScope.CLIENT,
+        cert_content: str | None = None,
+    ) -> None:
         """Add a certificate to the truststore."""
+        if cert_content:
+            self.workload.write(content=cert_content, path=f"{self.conf_path}/{filename}")
+
         command = [
             self.keytool,
             "-import",
@@ -306,13 +436,11 @@ class TLSManager:
             "-keystore",
             f"{scope.value}-truststore.jks",
             "-storepass",
-            f"{self.state.unit_broker.truststore_password}",
+            f"{self.settings.truststore_password}",
             "-noprompt",
         ]
         try:
-            self.workload.exec(
-                command=command, working_dir=self.workload.paths.conf_path, log_on_error=False
-            )
+            self.workload.exec(command=command, working_dir=self.conf_path, log_on_error=False)
         except (subprocess.CalledProcessError, ExecError) as e:
             # in case this reruns and fails
             if e.stdout and "already exists" in e.stdout:
@@ -332,7 +460,7 @@ class TLSManager:
         for i, certificate in enumerate(bundle):
             alias = f"{alias_prefix}bundle{i}"
             filename = f"{scope.value}-{alias}.pem"
-            file_path = self.workload.root / self.workload.paths.conf_path / filename
+            file_path = self.workload.root / self.conf_path / filename
 
             if not file_path.exists():
                 self.workload.write(content=certificate, path=f"{file_path}")
@@ -351,15 +479,13 @@ class TLSManager:
                 "-keystore",
                 f"{scope.value}-truststore.jks",
                 "-storepass",
-                f"{self.state.unit_broker.truststore_password}",
+                f"{self.settings.truststore_password}",
                 "-noprompt",
             ]
-            self.workload.exec(
-                command=command, working_dir=self.workload.paths.conf_path, log_on_error=False
-            )
+            self.workload.exec(command=command, working_dir=self.conf_path, log_on_error=False)
             self.workload.exec(
                 f"rm -f {scope.value}-{alias}.pem".split(),
-                working_dir=self.workload.paths.conf_path,
+                working_dir=self.conf_path,
             )
         except (subprocess.CalledProcessError, ExecError) as e:
             if e.stdout and "does not exist" in e.stdout:
@@ -373,7 +499,7 @@ class TLSManager:
         # we should remove the previous cert first. If it doesn't exist, it will not raise an error.
         self.remove_cert(alias=alias, scope=scope)
         filename = f"{scope.value}-{alias}.pem"
-        self.workload.write(content=cert, path=f"{self.workload.paths.conf_path}/{filename}")
+        self.workload.write(content=cert, path=f"{self.conf_path}/{filename}")
         self.import_cert(alias=alias, filename=filename, scope=scope)
 
     def alias_needs_update(self, alias: str, cert: str) -> bool:
@@ -383,50 +509,12 @@ class TLSManager:
 
         return self.certificate_fingerprint(cert) != self.trusted_certificates.get(alias, b"")
 
-    def _build_extra_sans(self) -> list[str]:
-        """Parse the certificate_extra_sans config option."""
-        extra_sans = self.config.extra_listeners or self.config.certificate_extra_sans or []
-        clean_sans = [san.split(":")[0] for san in extra_sans]
-        parsed_sans = [
-            san.replace("{unit}", str(self.state.unit_broker.unit_id)) for san in clean_sans
-        ]
-
-        return parsed_sans
-
-    def build_sans(self) -> Sans:
-        """Builds a SAN dict of DNS names and IPs for the unit."""
-        if self.substrate == "vm":
-            return {
-                "sans_ip": self.workload.ips,
-                "sans_dns": [self.state.unit_broker.unit.name, socket.getfqdn()]
-                + self._build_extra_sans(),
-            }
-        else:
-            return {
-                "sans_ip": sorted(
-                    [
-                        str(self.state.bind_address),
-                        self.state.unit_broker.node_ip,
-                    ]
-                ),
-                "sans_dns": sorted(
-                    [
-                        self.state.unit_broker.internal_address.split(".")[0],
-                        self.state.unit_broker.internal_address,
-                        socket.getfqdn(),
-                    ]
-                    + self._build_extra_sans()
-                ),
-            }
-
     def get_current_sans(self, scope: TLSScope = TLSScope.CLIENT) -> Sans | None:
         """Gets the current SANs for the unit cert."""
         state = self.get_state(scope)
         if (
             not state.certificate
-            or not (
-                self.workload.root / self.workload.paths.conf_path / f"{scope.value}-server.pem"
-            ).exists()
+            or not (self.workload.root / self.conf_path / f"{scope.value}-server.pem").exists()
         ):
             return
 
@@ -442,7 +530,7 @@ class TLSManager:
 
         try:
             sans_lines = self.workload.exec(
-                command=command, working_dir=self.workload.paths.conf_path
+                command=command, working_dir=self.conf_path
             ).splitlines()
         except (subprocess.CalledProcessError, ExecError) as e:
             logger.error(e.stdout)
@@ -470,39 +558,9 @@ class TLSManager:
     def remove_stores(self, scope: TLSScope = TLSScope.CLIENT) -> None:
         """Cleans up all keys/certs/stores on a unit."""
         for pattern in ["*.pem", "*.key", "*.p12", "*.jks"]:
-            for path in (self.workload.root / self.workload.paths.conf_path).glob(
-                f"{scope.value}-{pattern}"
-            ):
+            for path in (self.workload.root / self.conf_path).glob(f"{scope.value}-{pattern}"):
                 logger.debug(f"Removing {path}")
                 path.unlink()
-
-    def reload_truststore(self) -> None:
-        """Reloads the truststore using `kafka-configs` utility without restarting the broker."""
-        if not (
-            all(
-                [
-                    (self.workload.root / self.workload.paths.truststore).exists(),
-                    (self.workload.root / self.workload.paths.client_properties).exists(),
-                    self.workload.ping(self.state.bootstrap_server_internal),
-                ]
-            )
-        ):
-            return
-
-        bin_args = [
-            f"--command-config {self.workload.paths.client_properties}",
-            f"--bootstrap-server {self.state.bootstrap_server_internal}",
-            "--entity-type brokers",
-            f"--entity-name {self.state.unit_broker.broker_id}",
-            "--alter",
-            f"--add-config listener.name.CLIENT_SSL_SSL.ssl.truststore.location={self.workload.paths.truststore}",
-        ]
-
-        logger.info("Reloading truststore")
-        self.workload.run_bin_command(
-            bin_keyword="configs",
-            bin_args=bin_args,
-        )
 
     def alias_common_name(self, alias: str) -> str:
         """Returns the common name for a loaded certificate alias."""
@@ -510,9 +568,7 @@ class TLSManager:
             raise Exception(f"{alias=} can't be found in the truststore.")
 
         cert = "\n".join(
-            self.workload.read(
-                f"{self.workload.paths.conf_path}/{TLSScope.CLIENT.value}-{alias}.pem"
-            )
+            self.workload.read(f"{self.conf_path}/{TLSScope.CLIENT.value}-{alias}.pem")
         )
         if not cert:
             raise FileNotFoundError(f"Can't find the certificate for {alias=}")
@@ -530,10 +586,10 @@ class TLSManager:
             "-keystore",
             truststore_path,
             "-storepass",
-            self.state.unit_broker.truststore_password,
+            self.settings.truststore_password,
             "-noprompt",
         ]
-        raw = self.workload.exec(command=command, working_dir=self.workload.paths.conf_path)
+        raw = self.workload.exec(command=command, working_dir=self.conf_path)
 
         # each record in the truststore has the following format:
         #
@@ -546,44 +602,6 @@ class TLSManager:
             for match in re.findall("(.+?),.+?trustedCertEntry.*?\n.+?([0-9a-fA-F:]{95})\n", raw)
         }
 
-    def peer_cluster_app_trusts_new_bundle(self) -> bool:
-        """Checks whether the peer-cluster (remote) app has loaded this (local) app's cert bundle or not."""
-        if self.state.runs_broker and self.state.runs_controller:
-            # Not applicable for KRaft single mode
-            return True
-
-        for certificate in self.state.unit_broker.peer_certs.bundle:
-            if self.is_valid_leaf_certificate(certificate):
-                # peer-cluster app does not need to trust leaf certificates,
-                # only chain & CA certs should be trusted.
-                continue
-
-            hash_bytes = self.certificate_fingerprint(certificate)
-            if (
-                self.bytes_to_keytool_hash(hash_bytes)
-                not in self.state.trusted_by_peer_cluster_app
-            ):
-                return False
-
-        return True
-
-    def both_apps_trust_new_bundle(self) -> bool:
-        """During a TLS rotation, checks whether new bundle is added to the truststore and a restart is done."""
-        common_truststore = self.state.trusted_by_our_app & self.state.trusted_by_peer_cluster_app
-        bundles = self.state.unit_broker.peer_certs.bundle + self.state.peer_cluster_ca
-
-        for certificate in bundles:
-            if self.is_valid_leaf_certificate(certificate):
-                # peer-cluster app does not need to trust leaf certificates,
-                # only chain & CA certs should be trusted.
-                continue
-
-            hash_bytes = self.certificate_fingerprint(certificate)
-            if self.bytes_to_keytool_hash(hash_bytes) not in common_truststore:
-                return False
-
-        return True
-
     def rebuild_truststore(self) -> None:
         """Destroys and rebuilds peer (internal) truststore."""
         try:
@@ -592,40 +610,6 @@ class TLSManager:
             pass
         self.set_truststore()
         self.update_peer_cluster_trust()
-
-    def sans_changed(self, scope: TLSScope) -> bool:
-        """Check if a diff is detected between the unit's certificate SANs and current IPs/hostnames of the unit."""
-        if not (current_sans := self.get_current_sans(scope)):
-            return False
-
-        current_sans_ip = set(current_sans["sans_ip"]) if current_sans else set()
-        expected_sans_ip = set(self.build_sans()["sans_ip"]) if current_sans else set()
-        sans_ip_changed = current_sans_ip ^ expected_sans_ip
-
-        current_sans_dns = set(current_sans["sans_dns"]) if current_sans else set()
-        expected_sans_dns = set(self.build_sans()["sans_dns"]) if current_sans else set()
-
-        sans_dns_changed = (current_sans_dns ^ expected_sans_dns) - {
-            # we omit 'kafka/{unit_id}' and 'kafka' here to avoid a bug with Digicert not supporting '/' characters in SANs
-            # Digicert truncates the 'kafka/{unit_id}' to just 'kafka'
-            # i.e don't assume we need new certs if 'diff' includes those value, as these SANs aren't typically used anyway
-            self.state.unit_broker.unit.name,
-            self.state.cluster.app.name,
-        }
-
-        if sans_ip_changed or sans_dns_changed:
-            logger.info(
-                (
-                    f"Certificate SANs changed - "
-                    f"OLD SANs IP = {current_sans_ip - expected_sans_ip}, "
-                    f"NEW SANs IP = {expected_sans_ip - current_sans_ip}, "
-                    f"OLD SANs DNS = {current_sans_dns - expected_sans_dns}, "
-                    f"NEW SANs DNS = {expected_sans_dns - current_sans_dns}"
-                )
-            )
-            return True
-
-        return False
 
     @staticmethod
     def is_valid_leaf_certificate(cert: str) -> bool:
@@ -691,3 +675,102 @@ class TLSManager:
                 return True
 
         return False
+
+    def sans_changed(self, scope: TLSScope) -> bool:
+        """Check if a diff is detected between the unit's certificate SANs and current IPs/hostnames of the unit."""
+        if not (current_sans := self.get_current_sans(scope)):
+            return False
+
+        current_sans_ip = set(current_sans["sans_ip"]) if current_sans else set()
+        expected_sans_ip = set(self.build_sans()["sans_ip"]) if current_sans else set()
+        sans_ip_changed = current_sans_ip ^ expected_sans_ip
+
+        current_sans_dns = set(current_sans["sans_dns"]) if current_sans else set()
+        expected_sans_dns = set(self.build_sans()["sans_dns"]) if current_sans else set()
+
+        sans_dns_changed = (current_sans_dns ^ expected_sans_dns) - {
+            # we omit 'kafka/{unit_id}' and 'kafka' here to avoid a bug with Digicert not supporting '/' characters in SANs
+            # Digicert truncates the 'kafka/{unit_id}' to just 'kafka'
+            # i.e don't assume we need new certs if 'diff' includes those value, as these SANs aren't typically used anyway
+            self.settings.unit_name,
+            self.settings.app_name,
+        }
+
+        if sans_ip_changed or sans_dns_changed:
+            logger.info(
+                (
+                    f"Certificate SANs changed - "
+                    f"OLD SANs IP = {current_sans_ip - expected_sans_ip}, "
+                    f"NEW SANs IP = {expected_sans_ip - current_sans_ip}, "
+                    f"OLD SANs DNS = {current_sans_dns - expected_sans_dns}, "
+                    f"NEW SANs DNS = {expected_sans_dns - current_sans_dns}"
+                )
+            )
+            return True
+
+        return False
+
+    # Methods coupled with KafkaContext, these should be refactored
+
+    def both_apps_trust_new_bundle(self, state: KafkaContext) -> bool:
+        """During a TLS rotation, checks whether new bundle is added to the truststore and a restart is done."""
+        common_truststore = state.trusted_by_our_app & state.trusted_by_peer_cluster_app
+        bundles = state.unit_broker.peer_certs.bundle + state.peer_cluster_ca
+
+        for certificate in bundles:
+            if self.is_valid_leaf_certificate(certificate):
+                # peer-cluster app does not need to trust leaf certificates,
+                # only chain & CA certs should be trusted.
+                continue
+
+            hash_bytes = self.certificate_fingerprint(certificate)
+            if self.bytes_to_keytool_hash(hash_bytes) not in common_truststore:
+                return False
+
+        return True
+
+    def peer_cluster_app_trusts_new_bundle(self, state: KafkaContext) -> bool:
+        """Checks whether the peer-cluster (remote) app has loaded this (local) app's cert bundle or not."""
+        if state.runs_broker and state.runs_controller:
+            # Not applicable for KRaft single mode
+            return True
+
+        for certificate in state.unit_broker.peer_certs.bundle:
+            if self.is_valid_leaf_certificate(certificate):
+                # peer-cluster app does not need to trust leaf certificates,
+                # only chain & CA certs should be trusted.
+                continue
+
+            hash_bytes = self.certificate_fingerprint(certificate)
+            if self.bytes_to_keytool_hash(hash_bytes) not in state.trusted_by_peer_cluster_app:
+                return False
+
+        return True
+
+    def reload_truststore(self, state: KafkaContext) -> None:
+        """Reloads the truststore using `kafka-configs` utility without restarting the broker."""
+        if not (
+            all(
+                [
+                    (self.workload.root / self.workload.paths.truststore).exists(),
+                    (self.workload.root / self.workload.paths.client_properties).exists(),
+                    self.workload.ping(state.bootstrap_server_internal),
+                ]
+            )
+        ):
+            return
+
+        bin_args = [
+            f"--command-config {self.workload.paths.client_properties}",
+            f"--bootstrap-server {state.bootstrap_server_internal}",
+            "--entity-type brokers",
+            f"--entity-name {state.unit_broker.broker_id}",
+            "--alter",
+            f"--add-config listener.name.CLIENT_SSL_SSL.ssl.truststore.location={self.workload.paths.truststore}",
+        ]
+
+        logger.info("Reloading truststore")
+        self.workload.run_bin_command(
+            bin_keyword="configs",
+            bin_args=bin_args,
+        )
