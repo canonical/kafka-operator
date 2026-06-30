@@ -56,8 +56,8 @@ jobs:
         path:
           - machine
           - k8s
-          - connect-machine
-          - connect-k8s
+          - connect_machine
+          - connect_k8s
           - tests/integration/app-charm
     name: Build charm for testing | ${{ matrix.path }}
     uses: ./.github/workflows/_build_charm_dev.yaml

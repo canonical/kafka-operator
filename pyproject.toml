@@ -124,8 +124,8 @@ src = ["src", "tests"]
 max-complexity = 10
 
 [tool.pyright]
-include = ["common", "machine/src", "k8s/src", "connect-machine/src", "connect-k8s/src"]
-extraPaths = ["./machine/lib", "./connect-machine/lib", "./connect-k8s/lib"]
+include = ["common", "machine/src", "k8s/src", "connect_machine/src", "connect_k8s/src"]
+extraPaths = ["./machine/lib", "./connect_machine/lib", "./connect_k8s/lib"]
 pythonVersion = "3.10"
 pythonPlatform = "All"
 typeCheckingMode = "basic"

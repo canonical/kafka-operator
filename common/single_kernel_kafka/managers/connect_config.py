@@ -165,7 +165,9 @@ class ConfigManager:
     def log_level_opts(self) -> str:
         """Returns the log4j options for configuring the connect service logging."""
         # Remapping to WARN that is generally used in Java applications based on log4j and logback.
-        log_level = "WARN" if self.config.log_level == "WARNING" else self.config.log_level
+        log_level = (
+            "WARN" if self.config.log_level.value == "WARNING" else self.config.log_level.value
+        )
 
         opts = [
             f"-Dlog4j.configuration=file:{self.workload.connect_paths.log4j_properties} -Dcharmed.kafka.log.level={log_level}"

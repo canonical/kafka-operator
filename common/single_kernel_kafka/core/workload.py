@@ -149,21 +149,25 @@ class CharmedKafkaPaths:
 class ConnectPaths:
     """Object to store common paths for Kafka Connect worker."""
 
-    def __init__(self, substrate: Substrates):
+    MACHINE = {
+        "config": f"/var/snap/{SNAP_NAME}/current/etc/connect",
+        "plugins": f"/var/snap/{SNAP_NAME}/common/var/lib/connect/plugins/",
+        "logs": f"/var/snap/{SNAP_NAME}/common/var/log/connect",
+    }
 
-        if substrate == "vm":
-            self._config_dir = f"/var/snap/{SNAP_NAME}/current/etc/connect"
-            self._plugins_path = f"/var/snap/{SNAP_NAME}/common/var/lib/connect/plugins/"
-            self._logs_dir = f"/var/snap/{SNAP_NAME}/common/var/log/connect"
-        else:
-            self._config_dir = "/etc/connect"
-            self._plugins_path = "/var/lib/connect/plugins/"
-            self._logs_dir = "/var/logs/connect/"
+    K8S = {
+        "config": "/etc/connect",
+        "plugins": "/var/lib/connect/plugins/",
+        "logs": "/var/logs/connect/",
+    }
+
+    def __init__(self, substrate: Substrates):
+        self._paths = self.MACHINE if substrate == "vm" else self.K8S
 
     @property
     def config_dir(self) -> str:
         """Path to Kafka Connect config directory."""
-        return self._config_dir
+        return self._paths["config"]
 
     @property
     def snap_dir(self) -> str:
@@ -173,7 +177,7 @@ class ConnectPaths:
     @property
     def logs_dir(self) -> str:
         """Path to logs dir."""
-        return self._logs_dir
+        return self._paths["logs"]
 
     @property
     def env(self) -> str:
@@ -183,7 +187,7 @@ class ConnectPaths:
     @property
     def plugins(self) -> str:
         """Path to plugins folder or storage."""
-        return self._plugins_path
+        return self._paths["plugins"]
 
     @property
     def worker_properties(self) -> str:

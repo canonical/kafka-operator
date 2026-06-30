@@ -131,10 +131,10 @@ class ConnectUpgradeK8s(DataUpgrade):
         )
 
         self.framework.observe(
-            getattr(self.charm.on, "upgrade_charm"), self._on_kafka_pebble_ready_upgrade
+            getattr(self.charm.on, "upgrade_charm"), self._on_connect_pebble_ready_upgrade
         )
 
-    def _on_kafka_pebble_ready_upgrade(self, event: EventBase) -> None:
+    def _on_connect_pebble_ready_upgrade(self, event: EventBase) -> None:
         """Handler for the `upgrade-charm` events handled during in-place upgrades."""
         if not self.charm.workload.container or self.charm.workload.container.can_connect():
             event.defer()

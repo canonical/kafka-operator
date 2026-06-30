@@ -6,28 +6,22 @@
 
 import datetime
 import logging
-import os
 from typing import cast
 
-os.environ.update({"SUBSTRATE": "k8s"})
-
 import ops
-from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
-from charms.loki_k8s.v0.loki_push_api import LogProxyConsumer
-from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
+from charms.grafana_agent.v0.cos_agent import COSAgentProvider
 from charms.rolling_ops.v0.rollingops import RollingOpsManager
 from ops import (
     CollectStatusEvent,
     EventBase,
-    InstallEvent,
     ModelError,
-    StartEvent,
     StatusBase,
 )
 from single_kernel_kafka.core.connect_models import ConnectCharmBase
 from single_kernel_kafka.core.connect_models import ConnectContext as Context
 from single_kernel_kafka.core.literals import (
     CONNECT_DEPENDENCIES,
+    SNAP_NAME,
     SUBSTRATE,
     ConnectLiterals,
     ConnectStatus,
@@ -38,13 +32,16 @@ from single_kernel_kafka.core.structured_config import ConnectCharmConfig
 from single_kernel_kafka.events.connect.base import ConnectHandler
 from single_kernel_kafka.events.connect.kafka import KafkaHandler
 from single_kernel_kafka.events.connect.tls import TLSHandler
-from single_kernel_kafka.events.connect.upgrade import ConnectDependencyModel, ConnectUpgradeK8s
+from single_kernel_kafka.events.connect.upgrade import (
+    ConnectDependencyModel,
+    ConnectUpgradeMachine,
+)
 from single_kernel_kafka.events.connect.user_secrets import SecretsHandler
 from single_kernel_kafka.managers.auth import ConnectAuthManager
 from single_kernel_kafka.managers.connect import ConnectManager
 from single_kernel_kafka.managers.connect_config import ConfigManager
 from single_kernel_kafka.managers.tls import ConnectSansBuilder, TLSManager
-from single_kernel_kafka.workload import ConnectWorkloadK8s
+from single_kernel_kafka.workload import ConnectWorkloadMachine
 
 logger = logging.getLogger(__name__)
 
@@ -56,11 +53,11 @@ class ConnectCharm(ConnectCharmBase):
 
     def __init__(self, *args):
         super().__init__(*args)
-        self.name = "kafka-connect-k8s"
+        self.name = "kafka-connect"
         self.substrate: Substrates = cast(Substrates, SUBSTRATE)
         self.pending_inactive_statuses: list[ConnectStatus] = []
 
-        self.workload = ConnectWorkloadK8s(container=self.unit.get_container(self.container_name))
+        self.workload = ConnectWorkloadMachine()
         self.context = Context(self, substrate=self.substrate)
         self.auth_manager = ConnectAuthManager(
             context=self.context,
@@ -86,60 +83,38 @@ class ConnectCharm(ConnectCharmBase):
         self.framework.observe(self.on.collect_unit_status, self._on_collect_status)
         self.framework.observe(self.on.collect_app_status, self._on_collect_status)
 
-        if self.substrate == "k8s":
-            self.framework.observe(getattr(self.on, "kafka_connect_pebble_ready"), self._on_start)
-
         self.connect = ConnectHandler(self)
         self.kafka = KafkaHandler(self)
         self.tls = TLSHandler(self)
-        self.upgrade = ConnectUpgradeK8s(
+        self.upgrade = ConnectUpgradeMachine(
             self,
             substrate=self.substrate,
             dependency_model=ConnectDependencyModel(
                 **CONNECT_DEPENDENCIES  # pyright: ignore[reportArgumentType]
             ),
         )
-
         self.user_secrets = SecretsHandler(self)
 
         self.restart = RollingOpsManager(self, relation="restart", callback=self._restart_callback)
 
-        self.metrics_endpoint = MetricsEndpointProvider(
+        self.cos_agent = COSAgentProvider(
             self,
-            jobs=[
-                {
-                    "static_configs": [
-                        {
-                            "targets": [
-                                f"*:{ConnectLiterals.JMX_EXPORTER_PORT}",
-                            ]
-                        }
-                    ]
-                }
+            metrics_endpoints=[
+                # Endpoint for the kafka and jmx exporters
+                # See https://github.com/canonical/charmed-kafka-snap for details
+                {"path": "/metrics", "port": ConnectLiterals.JMX_EXPORTER_PORT},
             ],
-            alert_rules_path=ConnectLiterals.METRICS_RULES_DIR,
-        )
-        self.grafana_dashboards = GrafanaDashboardProvider(self)
-        self.loki_push = LogProxyConsumer(
-            self,
-            log_files=[
-                f"{self.workload.connect_paths.logs_dir}/connect.log",
-            ],
-            relation_name="logging",
-            container_name=self.container_name,
+            metrics_rules_dir=ConnectLiterals.METRICS_RULES_DIR,
+            log_slots=[f"{SNAP_NAME}:connect-logs"],
         )
 
-    def _on_install(self, event: InstallEvent) -> None:
+    def _on_install(self, _) -> None:
         """Handler for `install` event."""
-        if not self.workload.container_can_connect:
-            event.defer()
+        if not self.workload.install():
+            self._set_status(ConnectStatus.SNAP_NOT_INSTALLED)
             return
 
-    def _on_start(self, event: StartEvent) -> None:
-        if not self.workload.container_can_connect:
-            event.defer()
-            return
-
+    def _on_start(self, _) -> None:
         if not self.context.kafka_client.relation:
             self._set_status(ConnectStatus.MISSING_KAFKA)
 
@@ -199,20 +174,35 @@ class ConnectCharm(ConnectCharmBase):
         self.connect.update_plugins()
         self.connect.update_clients_data()
 
-        # Check if SANs have changed.
-        if self.context.peer_workers.tls_enabled and self.tls_manager.sans_changed(
-            TLSScope.CONNECT
-        ):
-            unit_tls_context = self.context.worker_unit.tls
-            self.tls.certificates.on.certificate_expiring.emit(
-                certificate=unit_tls_context.certificate,
-                expiry=datetime.datetime.now().isoformat(),
-            )
-            self.context.worker_unit.update(
-                {unit_tls_context.CERT: ""}
-            )  # ensures only single requested new certs, will be replaced on new certificate-available event
+        logger.warn(
+            [
+                self.context.peer_workers.tls_enabled,
+                self.context.worker_unit.tls.certificate,
+                self.context.worker_unit.tls.ca,
+                self.context.worker_unit.tls.private_key,
+            ]
+        )
 
-            return  # config-changed would be eventually fired on certificate-available, so no need to defer.
+        # Check if SANs have changed.
+        if all(
+            [
+                self.context.peer_workers.tls_enabled,
+                self.context.worker_unit.tls.certificate,
+                self.context.worker_unit.tls.ca,
+                self.context.worker_unit.tls.private_key,
+            ]
+        ):
+            if self.tls_manager.sans_changed(TLSScope.CONNECT):
+                unit_tls_context = self.context.worker_unit.tls
+                self.tls.certificates.on.certificate_expiring.emit(
+                    certificate=unit_tls_context.certificate,
+                    expiry=datetime.datetime.now().isoformat(),
+                )
+                self.context.worker_unit.update(
+                    {unit_tls_context.CERT: ""}
+                )  # ensures only single requested new certs, will be replaced on new certificate-available event
+
+                return  # config-changed would be eventually fired on certificate-available, so no need to defer.
 
         current_config = set(self.workload.read(self.workload.connect_paths.worker_properties))
         diff = set(self.config_manager.properties) ^ current_config
