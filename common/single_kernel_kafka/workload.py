@@ -471,8 +471,8 @@ class WorkloadK8s(WorkloadBase):
         )
 
     @override
-    def write(self, content: str, path: str) -> None:
-        (self.root / path).write_text(content, user=USER_NAME, group=GROUP)
+    def write(self, content: str | BinaryIO, path: str, mode: str = "w") -> None:
+        self.container.push(path, content, make_dirs=True)
 
     @override
     def exec(
