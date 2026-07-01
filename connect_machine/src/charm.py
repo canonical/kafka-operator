@@ -174,15 +174,6 @@ class ConnectCharm(ConnectCharmBase):
         self.connect.update_plugins()
         self.connect.update_clients_data()
 
-        logger.warn(
-            [
-                self.context.peer_workers.tls_enabled,
-                self.context.worker_unit.tls.certificate,
-                self.context.worker_unit.tls.ca,
-                self.context.worker_unit.tls.private_key,
-            ]
-        )
-
         # Check if SANs have changed.
         if all(
             [

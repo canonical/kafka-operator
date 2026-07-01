@@ -266,7 +266,7 @@ class TLSContext(RelationContext, TLSContextBase):
     PRIVATE_KEY = "private-key"
     KEYSTORE_PASSWORD = "keystore-password"
     TRUSTSTORE_PASSWORD = "truststore-password"
-    KEYS = {CA, CERT, CSR, CHAIN}
+    KEYS = {CA, CERT, CSR, CHAIN, PRIVATE_KEY}
     SECRETS = [CERT, CSR, PRIVATE_KEY, KEYSTORE_PASSWORD, TRUSTSTORE_PASSWORD]
 
     def __init__(self, relation, data_interface, component, substrate=SUBSTRATE):
