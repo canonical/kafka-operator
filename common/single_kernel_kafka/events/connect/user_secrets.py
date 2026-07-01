@@ -47,8 +47,12 @@ class SecretsHandler(Object):
         self.framework.observe(getattr(self.charm.on, "config_changed"), self._on_secret_changed)
         self.framework.observe(getattr(self.charm.on, "secret_changed"), self._on_secret_changed)
 
-    def _on_secret_changed(self, _: SecretChangedEvent) -> None:
+    def _on_secret_changed(self, event: SecretChangedEvent) -> None:
         """Handle the `secret_changed` event."""
+        if not self.workload.container_can_connect:
+            event.defer()
+            return
+
         credentials = self.load_auth_secret()
         saved_state = self.charm.auth_manager.credentials
         changed = {u for u in credentials if credentials[u] != saved_state.get(u)}
