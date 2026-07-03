@@ -48,9 +48,9 @@ If there are no suitable controllers, create a new one:
 juju bootstrap <cloud> <controller>
 ```
 
-where `<cloud>` -- the cloud to deploy controller to, e.g. `localhost` if using a LXD cloud. For more information on how to set up a new cloud, see the [How to manage clouds](https://documentation.ubuntu.com/juju/latest/howto/manage-clouds/index.html) guide in Juju documentation.
+where `<cloud>` -- the cloud to deploy controller to, e.g. `localhost` if using a LXD cloud. For more information on how to set up a new cloud, see the [How to manage clouds](https://canonical.com/juju/docs/juju-cli/latest/howto/manage-clouds/index.html) guide in Juju documentation.
 
-For more Juju controller setup guidance, see the [How to manage controllers](https://documentation.ubuntu.com/juju/3.6/howto/manage-controllers/) guide in Juju documentation.
+For more Juju controller setup guidance, see the [How to manage controllers](https://canonical.com/juju/docs/juju-cli/3.6/howto/manage-controllers/) guide in Juju documentation.
 
 ## Juju model setup
 

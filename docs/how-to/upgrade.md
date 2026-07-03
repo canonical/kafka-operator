@@ -83,7 +83,7 @@ Although optional, this action should always be run before Charmed Apache Kafka 
 
 ### Step 4: Upgrade
 
-Use the [`juju refresh`](https://juju.is/docs/juju/juju-refresh) command to trigger the charm upgrade process.
+Use the [`juju refresh`](https://canonical.com/juju/docs/juju-cli/3.6/reference/juju-cli/list-of-juju-cli-commands/refresh/) command to trigger the charm upgrade process.
 Note that the upgrade can be performed against:
 
 * selected channel/track, therefore upgrading to the latest revision published on that track:

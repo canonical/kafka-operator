@@ -7,7 +7,7 @@ myst:
 (how-to-manage-units)=
 # How to manage units
 
-For general Juju unit management process, see the [Juju documentation](https://juju.is/docs/juju/manage-units).
+For general Juju unit management process, see the [Juju documentation](https://canonical.com/juju/docs/juju-cli/3.6/howto/manage-units/).
 
 ## Scaling
 
@@ -23,7 +23,7 @@ To scale-out Charmed Apache Kafka application, add more units:
 juju add-unit kafka -n <num_brokers_to_add>
 ```
 
-See the `juju add-unit` [command reference](https://documentation.ubuntu.com/juju/latest/reference/juju-cli/list-of-juju-cli-commands/add-unit/).
+See the `juju add-unit` [command reference](https://canonical.com/juju/docs/juju-cli/latest/reference/juju-cli/list-of-juju-cli-commands/add-unit/).
 
 Make sure to reassign partitions and topics to use newly added units. See below for guidance.
 
@@ -39,7 +39,7 @@ To decrease the number of Apache Kafka brokers, remove some existing units from 
 juju remove-unit kafka/1 kafka/2
 ```
 
-See the `juju remove-unit` [command reference](https://documentation.ubuntu.com/juju/latest/reference/juju-cli/list-of-juju-cli-commands/remove-unit/).
+See the `juju remove-unit` [command reference](https://canonical.com/juju/docs/juju-cli/latest/reference/juju-cli/list-of-juju-cli-commands/remove-unit/).
 
 ### Partition reassignment
 

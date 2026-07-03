@@ -91,7 +91,6 @@ juju run grafana/leader get-admin-password --model <k8s_cos_controller>:<cos_mod
 ## Tune server logging level
 
 To tune the level of the server logs for Apache Kafka, configure the `log-level` parameter:
-)
 
 ```shell
 juju config <KAFKA_APP_NAME> log-level=<LOG_LEVEL>
@@ -143,7 +142,7 @@ Refer to the [documentation](https://charmhub.io/cos-configuration-k8s/configure
 Adding, updating or deleting an alert rule or a dashboard in the repository will be reflected in the monitoring stack.
 
 ```{note}
-You need to manually refresh `cos-config`'s local repository with the *sync-now* action if you do not want to wait for the next [update-status event](https://documentation.ubuntu.com/juju/3.6/reference/hook/#update-status) to pull the latest changes.
+You need to manually refresh `cos-config`'s local repository with the *sync-now* action if you do not want to wait for the next [update-status event](https://canonical.com/juju/docs/juju-cli/3.6/reference/hook/#update-status) to pull the latest changes.
 ```
 
 ### Forward the rules and dashboards

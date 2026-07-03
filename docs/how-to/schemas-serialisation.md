@@ -11,7 +11,7 @@ Message schemas in Apache Kafka define the structure and format of data exchange
 
 ## Prerequisites
 
-Follow the steps of the [How to deploy Charmed Apache Kafka](https://discourse.charmhub.io/t/charmed-kafka-documentation-how-to-deploy/13261) guide to set up the environment. For this guide, we will need an active Charmed Apache Kafka application.
+Follow the steps of the [How to deploy Charmed Apache Kafka](how-to-deploy-anywhere) guide to set up the environment. For this guide, we will need an active Charmed Apache Kafka application.
 
 ## Deploy and set up Karapace
 

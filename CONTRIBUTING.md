@@ -6,7 +6,7 @@ This documents explains the processes and practices recommended for contributing
 
 - Generally, before developing enhancements to this charm, you should consider [opening an issue](https://github.com/canonical/kafka-operator/issues) explaining your problem with examples, and your desired use case.
 - If you would like to chat with us about your use-cases or proposed implementation, you can reach us at [Canonical Mattermost public channel](https://chat.charmhub.io/charmhub/channels/charm-dev) or [Discourse](https://discourse.charmhub.io/).
-- Familiarising yourself with the [Charmed Operator Framework](https://juju.is/docs/sdk) library will help you a lot when working on new features or bug fixes.
+- Familiarising yourself with the [Charmed Operator Framework](https://canonical.com/juju/docs/juju-cli/3.6/howto/manage-charms/) library will help you a lot when working on new features or bug fixes.
 - All enhancements require review before being merged. Code review typically examines
   - code quality
   - test coverage
@@ -15,9 +15,9 @@ This documents explains the processes and practices recommended for contributing
 
 ## Requirements
 
-To build the charm locally, you will need to install [Charmcraft](https://juju.is/docs/sdk/install-charmcraft).
+To build the charm locally, you will need to install [Charmcraft](https://snapcraft.io/charmcraft).
 
-To run the charm locally with Juju, it is recommended to use [LXD](https://linuxcontainers.org/lxd/introduction/) as your virtual machine manager. Instructions for running Juju on LXD can be found [here](https://juju.is/docs/olm/lxd).
+To run the charm locally with Juju, it is recommended to use [LXD](https://linuxcontainers.org/lxd/introduction/) as your virtual machine manager. Instructions for running Juju on LXD can be found [here](https://canonical.com/juju/docs/juju-cli/3.6/reference/cloud/list-of-supported-clouds/lxd/).
 
 ## Build and Deploy
 

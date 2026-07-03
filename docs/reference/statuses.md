@@ -7,7 +7,7 @@ myst:
 (reference-statuses)=
 # Charm statuses
 
-A deployed charm follows [standard Juju applications statuses](https://documentation.ubuntu.com/juju/3.6/reference/status/#application-status). Here you can find the expected reactions on many typical Charmed Apache Kafka statuses:
+A deployed charm follows [standard Juju applications statuses](https://canonical.com/juju/docs/juju-cli/3.6/reference/status/#application-status). Here you can find the expected reactions on many typical Charmed Apache Kafka statuses:
 
 | Juju Status | Message                                                                    | Expectations                                                                                                                                                                                                        | Actions                                                                                                                                               |
 |-------------|----------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|

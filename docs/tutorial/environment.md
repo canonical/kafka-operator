@@ -27,7 +27,7 @@ The fastest, simplest way to get started with Charmed Apache Kafka is to set up 
 LXD is a system container and virtual machine manager;
 Apache Kafka will be run in one of these containers and managed by Juju.
 While this tutorial covers the basics of LXD, you can
-[learn more about LXD here](https://documentation.ubuntu.com/lxd/stable-5.21/).
+[learn more about LXD here](https://canonical.com/lxd/docs/stable-5.21/).
 
 LXD comes pre-installed on Ubuntu 24.04 LTS. Verify that LXD is installed by entering the command
 `which lxd`. This will output `/snap/bin/lxd` or, for some systems, `/usr/sbin/lxd`.
