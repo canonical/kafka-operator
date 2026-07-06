@@ -17,7 +17,7 @@ This How-to guide covers deploying Kafka Connect, integrating it with Charmed Ap
 
 ## Prerequisites
 
-For this guide, we will need an active Charmed Apache Kafka application. Follow the [How to deploy Charmed Apache Kafka](https://discourse.charmhub.io/t/charmed-kafka-documentation-how-to-deploy/13261) guide to set up the environment.
+For this guide, we will need an active Charmed Apache Kafka application. Follow the [How to deploy Charmed Apache Kafka](how-to-deploy-anywhere) guide to set up the environment.
 
 ## Deploy and set up
 

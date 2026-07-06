@@ -14,7 +14,7 @@ source: https://github.com/canonical/kafka-operator
 issues: https://github.com/canonical/kafka-operator/issues
 website:
   - https://ubuntu.com/data/kafka
-  - https://canonical.com/data/docs/kafka/iaas
+  - https://canonical.com/data/kafka/docs/
   - https://charmhub.io/kafka
   - https://github.com/canonical/kafka-operator
   - https://matrix.to/#/%23charmhub-data-platform%3Aubuntu.com

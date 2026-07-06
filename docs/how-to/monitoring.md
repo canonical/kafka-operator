@@ -132,8 +132,9 @@ Deploy the [COS configuration](https://charmhub.io/cos-configuration-k8s) charm 
 
 ```shell
 juju deploy cos-configuration-k8s cos-config \
+  -m <cos-model> \
   --config git_repo=<repository_url> \
-  --config git_branch=<branch> \
+  --config git_branch=<branch>
 ```
 
 The COS configuration charm keeps the monitoring stack in sync with our repository, by forwarding resources to Prometheus, Loki and Grafana.
@@ -141,7 +142,7 @@ Refer to the [documentation](https://charmhub.io/cos-configuration-k8s/configure
 Adding, updating or deleting an alert rule or a dashboard in the repository will be reflected in the monitoring stack.
 
 ```{note}
-You need to manually refresh `cos-config`'s local repository with the *sync-now* action if you do not want to wait for the next [update-status event](https://documentation.ubuntu.com/juju/3.6/reference/hook/#update-status) to pull the latest changes.
+You need to manually refresh `cos-config`'s local repository with the *sync-now* action if you do not want to wait for the next [update-status event](https://canonical.com/juju/docs/juju-cli/3.6/reference/hook/#update-status) to pull the latest changes.
 ```
 
 ### Forward the rules and dashboards
@@ -150,9 +151,9 @@ The path to the resource folders can be set after deployment:
 
 ```shell
 juju config cos-config \
-  --config prometheus_alert_rules_path=<path_to_prom_rules>
-  --config loki_alert_rules_path=<path_to_loki_rules>
-  --config grafana_dashboards_path=<path_to_models>
+  prometheus_alert_rules_path=<path_to_prom_rules> \
+  loki_alert_rules_path=<path_to_loki_rules> \
+  grafana_dashboards_path=<path_to_models>
 ```
 
 Then, integrate the charm to the COS operator to forward the rules and dashboards:

@@ -7,7 +7,7 @@ myst:
 (how-to-deploy-spaces)=
 # Deploy on Juju spaces
 
-The Charmed Apache Kafka operator supports [Juju spaces](https://documentation.ubuntu.com/juju/latest/reference/space/index.html) to separate network traffic for:
+The Charmed Apache Kafka operator supports [Juju spaces](https://canonical.com/juju/docs/juju-cli/latest/reference/space/index.html) to separate network traffic for:
 
 - **Internal communications**, including inter-broker and broker-to-controller communications.
 - **Client**, including traffic between broker and clients (producers and consumers).
@@ -16,7 +16,7 @@ The Charmed Apache Kafka operator supports [Juju spaces](https://documentation.u
 
 * Charmed Apache Kafka 4
 * Configured network spaces
-  * See [Juju | `add-space` command reference](https://documentation.ubuntu.com/juju/latest/reference/juju-cli/list-of-juju-cli-commands/add-space/)
+  * See [Juju | `add-space` command reference](https://canonical.com/juju/docs/juju-cli/latest/reference/juju-cli/list-of-juju-cli-commands/add-space/)
 
 ## Deploy
 
@@ -36,7 +36,7 @@ The space `alpha` is the default and cannot be removed. Two other spaces are con
 ```bash
 juju deploy kafka --channel 4/stable \
   --constraints spaces=client,peers \
-  --bind "cluster=peers kafka-client=clients"
+  --bind "cluster=peers kafka-client=client"
 ```
 
 ```{caution}

@@ -118,7 +118,7 @@ Once all the units are shown as `active`/`idle`, the credentials can be retrieve
 
 All sensitive configuration data used by Charmed Apache Kafka,
 such as passwords and SSL certificates, is stored in Juju secrets.
-See the [Juju secrets documentation](https://documentation.ubuntu.com/juju/3.6/reference/secret/)
+See the [Juju secrets documentation](https://canonical.com/juju/docs/juju-cli/3.6/reference/secret/)
 for more information.
 
 To reveal the contents of the Juju secret containing sensitive cluster data

@@ -24,7 +24,7 @@ The following are some of the most important planned features and their implemen
 - [x] Horizontally scale brokers
 - [x] Username/Password creation for related applications
 - [x] Automatic topic creation with associated user ACLs
-- [x] Persistent storage support with [Juju Storage](https://juju.is/docs/olm/defining-and-using-persistent-storage)
+- [x] Persistent storage support with [Juju Storage](https://canonical.com/juju/docs/juju-cli/3.6/reference/storage/)
 - [x] TLS/SSL encrypted connections
 - [x] mTLS
 - [ ] Multi-application clusters
@@ -41,12 +41,12 @@ The following requirements are meant to be for production environment:
 - 12 storage devices
 - 10 Gb Ethernet card
 
-The charm can be deployed in much smaller environments if needed. For more information on requirements and version compartibility, see the [Requirements](https://discourse.charmhub.io/t/charmed-kafka-documentation-reference-requirements/10563) page.
+The charm can be deployed in much smaller environments if needed. For more information on requirements and version compartibility, see the [Requirements](https://canonical.com/data/kafka/docs/4/reference/requirements/) page.
 
 ## Usage
 
 This section demonstrates basic usage of the Charmed Apache Kafka operator. 
-For more information on how to perform typical tasks, see the How to guides section of the [Charmed Apache Kafka documentation](https://canonical.com/data/docs/kafka/iaas).
+For more information on how to perform typical tasks, see the How to guides section of the [Charmed Apache Kafka documentation](https://canonical.com/data/kafka/docs/).
 
 ### Deployment
 
@@ -138,7 +138,7 @@ When storage is added or removed, the Apache Kafka service will restart to ensur
 
 ## Relations
 
-The Charmed Apache Kafka Operator supports Juju [relations (integrations)](https://documentation.ubuntu.com/juju/latest/reference/relation/) for interfaces listed below.
+The Charmed Apache Kafka Operator supports Juju [relations (integrations)](https://canonical.com/juju/docs/juju-cli/latest/reference/relation/) for interfaces listed below.
 
 #### The Kafka_client interface
 
@@ -266,13 +266,13 @@ After this is complete, Grafana will show two new dashboards: `Kafka Metrics` an
 
 ## Security
 
-For an overview of security features of the Charmed Apache Kafka Operator, see the [Security page](https://canonical.com/data/docs/kafka/iaas/e-security) in the Explanation section of the documentation.
+For an overview of security features of the Charmed Apache Kafka Operator, see the [Security page](https://canonical.com/data/kafka/docs/4/explanation/security/) in the Explanation section of the documentation.
 
 Security issues in the Charmed Apache Kafka Operator can be reported through [Launchpad](https://wiki.ubuntu.com/DebuggingSecurity#How_to_File). Please do not file GitHub issues about security issues.
 
 ## Performance tuning
 
-For information on tuning performance of Charmed Apache Kafka, see the [Performance tuning reference](https://discourse.charmhub.io/t/charmed-kafka-documentation-reference-performace-tuning/10561) page.
+For information on tuning performance of Charmed Apache Kafka, see the [Performance tuning reference](https://canonical.com/data/kafka/docs/4/reference/performance-tuning/) page.
 
 ## Contributing
 

@@ -28,7 +28,7 @@ Charmed Apache Kafka can be deployed on top of several clouds and virtualisation
 
 ### Juju
 
-Juju is the component responsible for orchestrating the entire lifecycle, from deployment to Day 2 operations. For more information on Juju security hardening, see the [Juju security](https://documentation.ubuntu.com/juju/3.6/explanation/juju-security/) page and the [How to harden your deployment](https://documentation.ubuntu.com/juju/latest/howto/manage-your-juju-deployment/harden-your-juju-deployment/) guide.
+Juju is the component responsible for orchestrating the entire lifecycle, from deployment to Day 2 operations. For more information on Juju security hardening, see the [Juju security](https://canonical.com/juju/docs/juju-cli/3.6/explanation/juju-security/) page and the [How to harden your deployment](https://canonical.com/juju/docs/juju-cli/latest/howto/manage-your-juju-deployment/harden-your-juju-deployment/) guide.
 
 #### Cloud credentials
 
@@ -39,13 +39,13 @@ virtual machines, networks, storages, etc. Please refer to the links below for m
 | Cloud     | Cloud user policies                                                                                                                                                                                                                            |
 |-----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | OpenStack | N/A                                                                                                                                                                                                                                            |
-| AWS       | [Juju AWS Permission](https://discourse.charmhub.io/t/juju-aws-permissions/5307), [AWS Instance Profiles](https://discourse.charmhub.io/t/using-aws-instance-profiles-with-juju-2-9/5185), [Juju on AWS](https://juju.is/docs/juju/amazon-ec2) | 
-| Azure     | [Juju Azure Permission](https://juju.is/docs/juju/microsoft-azure), [How to use Juju with Microsoft Azure](https://discourse.charmhub.io/t/how-to-use-juju-with-microsoft-azure/15219)                                                         |
+| AWS       | [Juju on AWS](https://canonical.com/juju/docs/juju-cli/3.6/reference/cloud/list-of-supported-clouds/amazon-ec2/) | 
+| Azure     | [Juju on Azure](https://canonical.com/juju/docs/juju-cli/3.6/reference/cloud/list-of-supported-clouds/microsoft-azure/)                                                         |
 
 #### Juju users
 
 It is very important that Juju users are set up with minimal permissions depending on the scope of their operations. 
-Please refer to the [User access levels](https://juju.is/docs/juju/user-permissions) documentation for more information on the access levels and corresponding abilities. 
+Please refer to the [User access levels](https://canonical.com/juju/docs/juju-cli/3.6/reference/user/) documentation for more information on the access levels and corresponding abilities. 
 
 Juju user credentials must be stored securely and rotated regularly to limit the chances of unauthorised access due to credentials leakage.
 
