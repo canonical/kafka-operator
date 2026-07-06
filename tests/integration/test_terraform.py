@@ -30,7 +30,7 @@ def _deploy_terraform(tmp_path, tfvars: dict = {}) -> str:
     tf_path = tmp_path / "terraform"
     tf_path.mkdir()
     logger.info(f"Using {tf_path}")
-    os.system(f"cp -R terraform/* {tf_path}/")
+    os.system(f"cp -R machine/terraform/* {tf_path}/")
 
     _tfvars = TFVARS_DEFAULTS | tfvars
     with open(f"{tf_path}/{TFVARS_FILENAME}", "w") as f:

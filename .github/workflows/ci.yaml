@@ -48,7 +48,9 @@ jobs:
       - name: Run tests
         run: tox run -e unit
 
-  build:
+  # FIXME: remove this once _pack.py is no longer needed.
+  build-dev:
+    if: ${{ github.ref_name != 'main' }}
     strategy:
       matrix:
         path:
@@ -62,6 +64,19 @@ jobs:
     permissions:
       actions: read
       contents: read
+
+  build-release:
+    if: ${{ github.ref_name == 'main' }}
+    strategy:
+      matrix:
+        path:
+          - machine
+          - k8s
+          - tests/integration/app-charm
+    name: Build charm | ${{ matrix.path }}
+    uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v32.2.2
+    with:
+      path-to-charm-directory: ${{ matrix.path }}
 
   integration-test-single:
     strategy:
@@ -87,7 +102,8 @@ jobs:
     needs:
       - lint
       - unit-test
-      - build
+      - build-dev
+      - build-release
     runs-on: [self-hosted, linux, AMD64, X64, large, noble]
     timeout-minutes: 120
     steps:
@@ -150,7 +166,8 @@ jobs:
     needs:
       - lint
       - unit-test
-      - build
+      - build-dev
+      - build-release
     runs-on: [self-hosted, linux, AMD64, X64, xlarge, noble]
     timeout-minutes: 120
     steps:
