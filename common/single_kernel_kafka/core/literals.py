@@ -12,6 +12,7 @@ from typing import Literal, NamedTuple
 import toml
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, StatusBase, WaitingStatus
 
+# TODO: this logic should be replaced by `ops` API, whenever it supports it.
 SUBSTRATE = os.environ.get("SUBSTRATE", "vm").replace("machine", "vm")
 if SUBSTRATE not in ("vm", "k8s"):
     raise RuntimeError(f"Unknown substrate: {SUBSTRATE}")
@@ -21,10 +22,7 @@ CHARM_KEY = "kafka" if SUBSTRATE == "vm" else "kafka-k8s"
 CONTAINER = "kafka"
 STORAGE = "data"
 
-# These will be overridden in VM case.
 SNAP_NAME = "charmed-kafka"
-CHARMED_KAFKA_SNAP_REVISION = 1
-
 if SUBSTRATE == "vm":
     # '584792' refers to _daemon_, which do not exists on the storage-attached hook prior to the
     # snap install.
@@ -40,6 +38,7 @@ if SUBSTRATE == "vm":
         SNAP_NAME = data["snap"]["name"]
         CHARMED_KAFKA_SNAP_REVISION = data["snap"]["revisions"]["x86_64"]
 else:
+    CHARMED_KAFKA_SNAP_REVISION = "1"  # not used on K8s
     USER_ID = "kafka"
     USER_NAME = "kafka"
     GROUP = "kafka"

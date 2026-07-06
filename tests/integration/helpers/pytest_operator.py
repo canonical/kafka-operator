@@ -14,7 +14,6 @@ from subprocess import PIPE, CalledProcessError, check_output
 from typing import Any, List, Literal, Set
 
 import yaml
-from charms.kafka.v0.client import KafkaClient
 from charms.tls_certificates_interface.v4.tls_certificates import PrivateKey
 from kafka.admin import NewTopic
 from pytest_operator.plugin import OpsTest
@@ -28,6 +27,7 @@ from single_kernel_kafka.core.literals import (
     KRaftUnitStatus,
 )
 from single_kernel_kafka.core.models import JSON
+from single_kernel_kafka.lib.v0.client import KafkaClient
 from single_kernel_kafka.managers.auth import Acl, AuthManager
 from tenacity import retry
 from tenacity.retry import retry_if_result

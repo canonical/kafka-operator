@@ -1,4 +1,10 @@
-"""Temporary workaround for `charmcraft pack` restrictions, ONLY for development purposes."""
+"""
+Temporary workaround for `charmcraft pack` restrictions, ONLY for development purposes.
+
+Please refer to DA-263 for more information.
+
+FIXME: This should be removed once charmcraft supports git-driven build roots (ST-178).
+"""
 
 
 import os

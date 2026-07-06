@@ -16,7 +16,9 @@ requires-poetry = ">=2.0.0"
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
 ops = ">=2.17.0"
-kazoo = ">=2.8.0"
+
+# lib.v0.client requirement
+kafka-python = ">=2.0"
 
 # The cosl dep could be removed from here once PYDEPS is released:
 # https://github.com/canonical/charmcraft/pull/1003

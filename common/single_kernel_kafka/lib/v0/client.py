@@ -70,12 +70,13 @@ def on_kafka_relation_created(self, event: RelationCreatedEvent):
         logger.info(message)
 ```
 """
+
 from __future__ import annotations
 
 import argparse
 import logging
-import time
 import sys
+import time
 from functools import cached_property
 from typing import Generator, List, Optional
 
@@ -99,7 +100,7 @@ LIBPATCH = 2
 class KafkaClient:
     """Simplistic KafkaClient built on top of kafka-python."""
 
-    API_VERSION = (2, 5, 0)
+    API_VERSION = (4, 2, 0)
 
     def __init__(
         self,
@@ -142,7 +143,7 @@ class KafkaClient:
             ssl_cafile=self.cafile_path if self.ssl else None,
             ssl_certfile=self.certfile_path if self.ssl else None,
             ssl_keyfile=self.keyfile_path if self.mtls else None,
-            api_version=KafkaClient.API_VERSION,
+            api_version=KafkaClient.API_VERSION if self.mtls else None,
         )
 
     @cached_property
@@ -158,7 +159,7 @@ class KafkaClient:
             ssl_cafile=self.cafile_path if self.ssl else None,
             ssl_certfile=self.certfile_path if self.ssl else None,
             ssl_keyfile=self.keyfile_path if self.mtls else None,
-            api_version=KafkaClient.API_VERSION,
+            api_version=KafkaClient.API_VERSION if self.mtls else None,
             acks="all",
             retries=10,
             retry_backoff_ms=1000,
@@ -177,7 +178,7 @@ class KafkaClient:
             ssl_cafile=self.cafile_path if self.ssl else None,
             ssl_certfile=self.certfile_path if self.ssl else None,
             ssl_keyfile=self.keyfile_path if self.mtls else None,
-            api_version=KafkaClient.API_VERSION,
+            api_version=KafkaClient.API_VERSION if self.mtls else None,
             group_id=self._consumer_group_prefix,
             enable_auto_commit=True,
             auto_offset_reset="earliest",
@@ -249,13 +250,13 @@ class KafkaClient:
             topic_name: the topic to send messages to
             message_content: the content of the message to send
             timeout: timeout for blocking after sending the message, defaults to 30s
-        
+
         Raises:
             KafkaTimeoutError, KafkaError (general)
         """
         item_content = f"Message #{message_content}"
         future = self._producer_client.send(topic_name, str.encode(item_content))
-        future.get(timeout=timeout)
+        future.get(timeout=timeout)  # pyright: ignore[reportOptionalMemberAccess]
         logger.debug(f"Message published to topic={topic_name}, message content: {item_content}")
 
     def close(self) -> None:
