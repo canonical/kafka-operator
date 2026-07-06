@@ -38,7 +38,7 @@ if SUBSTRATE == "vm":
         SNAP_NAME = data["snap"]["name"]
         CHARMED_KAFKA_SNAP_REVISION = data["snap"]["revisions"]["x86_64"]
 else:
-    CHARMED_KAFKA_SNAP_REVISION = "1"  # not used on K8s
+    CHARMED_KAFKA_SNAP_REVISION = "-1"  # not used on K8s
     USER_ID = "kafka"
     USER_NAME = "kafka"
     GROUP = "kafka"
