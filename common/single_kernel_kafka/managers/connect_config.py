@@ -217,7 +217,7 @@ class ConfigManager:
     @property
     def rest_tls_properties(self) -> list[str]:
         """Returns TLS properties for the REST API endpoint."""
-        if not self.context.peer_workers.tls_enabled:
+        if not self.context.tls_enabled:
             return []
 
         return [

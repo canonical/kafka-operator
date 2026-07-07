@@ -23,6 +23,7 @@ CONTAINER = "kafka"
 STORAGE = "data"
 
 SNAP_NAME = "charmed-kafka"
+
 if SUBSTRATE == "vm":
     # '584792' refers to _daemon_, which do not exists on the storage-attached hook prior to the
     # snap install.
@@ -417,6 +418,7 @@ class ConnectStatus(Enum):
     SERVICE_NOT_RUNNING = StatusLevel(BlockedStatus("worker service is not running"), "WARNING")
     SERVICE_STARTING = StatusLevel(WaitingStatus("worker is still starting up"), "INFO")
     SERVICE_UNHEALTHY = StatusLevel(BlockedStatus("worker is unable to handle requests"), "ERROR")
+    NO_CERT = StatusLevel(WaitingStatus("unit waiting for signed certificates"), "INFO")
 
     ACTIVE = StatusLevel(ActiveStatus(), "DEBUG")
 

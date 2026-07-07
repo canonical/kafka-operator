@@ -327,6 +327,9 @@ class TLSContext(RelationContext, TLSContextBase):
     @property
     @override
     def status(self) -> ConnectStatus:
+        if not all([self.private_key, self.bundle]):
+            return ConnectStatus.NO_CERT
+
         return ConnectStatus.ACTIVE
 
 
@@ -564,6 +567,11 @@ class ConnectContext(WithStatus, Object):
         return cache
 
     @property
+    def tls_enabled(self) -> bool:
+        """Returns True if TLS is enabled and active."""
+        return self.peer_workers.tls_enabled and self.worker_unit.tls.ready
+
+    @property
     def tls_manager_settings(self) -> TLSManagerSettings:
         """Return TLS manager settings for this unit/app."""
         return TLSManagerSettings(
@@ -584,6 +592,9 @@ class ConnectContext(WithStatus, Object):
     def status(self) -> ConnectStatus:
         if not self.kafka_client.ready:
             return self.kafka_client.status
+
+        if self.peer_workers.tls_enabled:
+            return self.worker_unit.tls.status
 
         return ConnectStatus.ACTIVE
 

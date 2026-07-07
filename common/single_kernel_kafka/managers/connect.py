@@ -8,11 +8,13 @@ import logging
 import os
 import re
 import tempfile
+import warnings
 from pathlib import Path
 from subprocess import CalledProcessError
 from typing import Pattern
 
 import requests
+import urllib3
 from kafkacl.models import TaskStatus
 from requests.auth import HTTPBasicAuth
 from tenacity import (
@@ -149,12 +151,15 @@ class ConnectManager:
 
         url = f"{self.context.rest_uri}/{api.lstrip('/')}"
 
-        try:
-            response = requests.request(
-                method, url, verify=False, auth=auth, timeout=self.REQUEST_TIMEOUT, **kwargs
-            )
-        except Exception as e:
-            raise Exception(f"Connect API call /{api} failed: {e}")
+        with warnings.catch_warnings():
+            # FIXME: Connect Manager should use the CA chain to verify its requests.
+            warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
+            try:
+                response = requests.request(
+                    method, url, verify=False, auth=auth, timeout=self.REQUEST_TIMEOUT, **kwargs
+                )
+            except Exception as e:
+                raise Exception(f"Connect API call /{api} failed: {e}")
 
         if verbose:
             logging.debug(f"{method} - {url}: {response.content}")

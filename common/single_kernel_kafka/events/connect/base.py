@@ -121,10 +121,10 @@ class ConnectHandler(Object):
                     "endpoints": self.context.rest_endpoints,
                     "username": client.username,
                     "password": client.password,
-                    "tls": "enabled" if self.context.peer_workers.tls_enabled else "disabled",
+                    "tls": "enabled" if self.context.tls_enabled else "disabled",
                     "tls-ca": (
                         self.context.worker_unit.tls.ca
-                        if self.context.peer_workers.tls_enabled
+                        if self.context.tls_enabled
                         else "disabled"
                     ),
                 }
