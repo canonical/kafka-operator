@@ -17,9 +17,9 @@ from typing import Any, List, Optional, Set
 import yaml
 from charms.kafka.v0.client import KafkaClient
 from charms.zookeeper.v0.client import QuorumLeaderNotFoundError, ZooKeeperManager
+from jubilant_adapters import JujuFixture
 from kafka.admin import NewTopic
 from kazoo.exceptions import AuthFailedError, NoNodeError
-from pytest_operator.plugin import OpsTest
 from tenacity import retry
 from tenacity.retry import retry_if_result
 from tenacity.stop import stop_after_attempt
@@ -99,32 +99,32 @@ def get_user(model_full_name: str | None, username: str = "sync") -> str:
     return line
 
 
-async def set_password(ops_test: OpsTest, username="sync", password=None, num_unit=0) -> Any:
+def set_password(juju: JujuFixture, username="sync", password=None, num_unit=0) -> Any:
     """Use the charm action to start a password rotation."""
     params = {"username": username}
     if password:
         params["password"] = password
 
-    action = await ops_test.model.units.get(f"{APP_NAME}/{num_unit}").run_action(
+    action = juju.ext.model.units.get(f"{APP_NAME}/{num_unit}").run_action(
         "set-password", **params
     )
-    password = await action.wait()
+    password = action.wait()
     return password.results
 
 
-async def set_tls_private_key(ops_test: OpsTest, key: Optional[str] = None, num_unit=0):
+def set_tls_private_key(juju: JujuFixture, key: Optional[str] = None, num_unit=0):
     """Use the charm action to start a password rotation."""
     params = {"internal-key": key} if key else {}
 
-    action = await ops_test.model.units.get(f"{APP_NAME}/{num_unit}").run_action(
+    action = juju.ext.model.units.get(f"{APP_NAME}/{num_unit}").run_action(
         "set-tls-private-key", **params
     )
-    return (await action.wait()).results
+    return (action.wait()).results
 
 
-def extract_private_key(ops_test: OpsTest, unit_name: str) -> str | None:
+def extract_private_key(juju: JujuFixture, unit_name: str) -> str | None:
     user_secret = get_secret_by_label(
-        ops_test,
+        juju,
         label=f"cluster.{unit_name.split('/')[0]}.unit",
         owner=unit_name,
     )
@@ -132,9 +132,9 @@ def extract_private_key(ops_test: OpsTest, unit_name: str) -> str | None:
     return user_secret.get("private-key")
 
 
-def extract_ca(ops_test: OpsTest, unit_name: str) -> str | None:
+def extract_ca(juju: JujuFixture, unit_name: str) -> str | None:
     user_secret = get_secret_by_label(
-        ops_test,
+        juju,
         label=f"cluster.{unit_name.split('/')[0]}.unit",
         owner=unit_name,
     )
@@ -142,9 +142,9 @@ def extract_ca(ops_test: OpsTest, unit_name: str) -> str | None:
     return user_secret.get("ca-cert") or user_secret.get("ca")
 
 
-def extract_truststore_password(ops_test: OpsTest, unit_name: str) -> str | None:
+def extract_truststore_password(juju: JujuFixture, unit_name: str) -> str | None:
     user_secret = get_secret_by_label(
-        ops_test,
+        juju,
         label=f"cluster.{unit_name.split('/')[0]}.unit",
         owner=unit_name,
     )
@@ -173,11 +173,11 @@ def check_tls(ip: str, port: int) -> bool:
 
 
 def check_hostname_verification(
-    ops_test: OpsTest, hostname: str, port: str, cafile_name: str, unit_name: str
+    juju: JujuFixture, hostname: str, port: str, cafile_name: str, unit_name: str
 ) -> str:
     try:
         result = check_output(
-            f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'echo | sudo openssl s_client -connect {hostname}:{port} -CAfile /root/{cafile_name} -verify_hostname {hostname}'",
+            f"JUJU_MODEL={juju.ext.model_full_name} juju ssh {unit_name} sudo -i 'echo | sudo openssl s_client -connect {hostname}:{port} -CAfile /root/{cafile_name} -verify_hostname {hostname}'",
             stderr=PIPE,
             shell=True,
             universal_newlines=True,
@@ -190,9 +190,9 @@ def check_hostname_verification(
         raise e
 
 
-def get_unit_hostname(ops_test: OpsTest, unit_name: str) -> str:
+def get_unit_hostname(juju: JujuFixture, unit_name: str) -> str:
     result = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'hostname -A'",
+        f"JUJU_MODEL={juju.ext.model_full_name} juju ssh {unit_name} sudo -i 'hostname -A'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -200,10 +200,10 @@ def get_unit_hostname(ops_test: OpsTest, unit_name: str) -> str:
     return result
 
 
-def copy_file_to_unit(ops_test: OpsTest, unit_name: str, filename: str, content: str) -> None:
+def copy_file_to_unit(juju: JujuFixture, unit_name: str, filename: str, content: str) -> None:
     try:
         check_output(
-            f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'sudo tee -a {filename}'",
+            f"JUJU_MODEL={juju.ext.model_full_name} juju ssh {unit_name} sudo -i 'sudo tee -a {filename}'",
             stderr=PIPE,
             shell=True,
             input=content,
@@ -216,16 +216,16 @@ def copy_file_to_unit(ops_test: OpsTest, unit_name: str, filename: str, content:
         raise e
 
 
-def consume_and_check(ops_test: OpsTest, provider_unit_name: str, topic: str) -> None:
+def consume_and_check(juju: JujuFixture, provider_unit_name: str, topic: str) -> None:
     """Consumes 15 messages created by `produce_and_check_logs` function.
 
     Args:
-        ops_test: OpsTest
+        juju: JujuFixture
         provider_unit_name: the app to grab credentials from
         topic: the desired topic to consume from
     """
     relation_data = get_provider_data(
-        ops_test=ops_test,
+        juju=juju,
         unit_name=provider_unit_name,
         owner=APP_NAME,
     )
@@ -252,7 +252,7 @@ def consume_and_check(ops_test: OpsTest, provider_unit_name: str, topic: str) ->
 
 
 def produce_and_check_logs(
-    ops_test: OpsTest,
+    juju: JujuFixture,
     kafka_unit_name: str,
     provider_unit_name: str,
     topic: str,
@@ -263,7 +263,7 @@ def produce_and_check_logs(
     """Produces 15 messages from HN to chosen Kafka topic.
 
     Args:
-        ops_test: OpsTest
+        juju: JujuFixture
         kafka_unit_name: the kafka unit to checks logs on
         provider_unit_name: the app to grab credentials from
         topic: the desired topic to produce to
@@ -276,7 +276,7 @@ def produce_and_check_logs(
         AssertionError: if logs aren't found for desired topic
     """
     relation_data = get_provider_data(
-        ops_test=ops_test,
+        juju=juju,
         unit_name=provider_unit_name,
         owner=APP_NAME,
     )
@@ -299,19 +299,19 @@ def produce_and_check_logs(
         message = f"Message #{i}"
         client.produce_message(topic_name=topic, message_content=message)
 
-    check_logs(ops_test, kafka_unit_name, topic)
+    check_logs(juju, kafka_unit_name, topic)
 
 
-def check_logs(ops_test: OpsTest, kafka_unit_name: str, topic: str) -> None:
+def check_logs(juju: JujuFixture, kafka_unit_name: str, topic: str) -> None:
     """Checks if messages for a topic have been produced.
 
     Args:
-        ops_test: OpsTest
+        juju: JujuFixture
         kafka_unit_name: the kafka unit to checks logs on
         topic: the desired topic to check
     """
     logs = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {kafka_unit_name} sudo -i 'find {PATHS['kafka']['DATA']}/data'",
+        f"JUJU_MODEL={juju.ext.model_full_name} juju ssh {kafka_unit_name} sudo -i 'find {PATHS['kafka']['DATA']}/data'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -326,14 +326,14 @@ def check_logs(ops_test: OpsTest, kafka_unit_name: str, topic: str) -> None:
     assert passed, "logs not found"
 
 
-async def run_client_properties(ops_test: OpsTest) -> str:
+def run_client_properties(juju: JujuFixture) -> str:
     """Runs command requiring admin permissions, authenticated with bootstrap-server."""
     bootstrap_server = (
-        await get_address(ops_test=ops_test)
+        get_address(juju=juju)
         + f":{SECURITY_PROTOCOL_PORTS['SASL_PLAINTEXT', 'SCRAM-SHA-512'].client}"
     )
     result = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.configs --bootstrap-server {bootstrap_server} --describe --all --command-config {PATHS['kafka']['CONF']}/client.properties --entity-type users'",
+        f"JUJU_MODEL={juju.ext.model_full_name} juju ssh kafka/0 sudo -i 'charmed-kafka.configs --bootstrap-server {bootstrap_server} --describe --all --command-config {PATHS['kafka']['CONF']}/client.properties --entity-type users'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -342,10 +342,10 @@ async def run_client_properties(ops_test: OpsTest) -> str:
     return result
 
 
-async def set_mtls_client_acls(ops_test: OpsTest, bootstrap_server: str) -> str:
+def set_mtls_client_acls(juju: JujuFixture, bootstrap_server: str) -> str:
     """Adds ACLs for principal `User:client` and `TEST-TOPIC`."""
     result = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'sudo charmed-kafka.acls --bootstrap-server {bootstrap_server} --add --allow-principal=User:client --operation READ --operation WRITE --operation CREATE --topic TEST-TOPIC --command-config {PATHS['kafka']['CONF']}/client.properties'",
+        f"JUJU_MODEL={juju.ext.model_full_name} juju ssh kafka/0 sudo -i 'sudo charmed-kafka.acls --bootstrap-server {bootstrap_server} --add --allow-principal=User:client --operation READ --operation WRITE --operation CREATE --topic TEST-TOPIC --command-config {PATHS['kafka']['CONF']}/client.properties'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -354,17 +354,17 @@ async def set_mtls_client_acls(ops_test: OpsTest, bootstrap_server: str) -> str:
     return result
 
 
-async def create_test_topic(ops_test: OpsTest, bootstrap_server: str) -> str:
+def create_test_topic(juju: JujuFixture, bootstrap_server: str) -> str:
     """Creates `test` topic and adds ACLs for principal `User:*`."""
     _ = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'sudo charmed-kafka.topics --bootstrap-server {bootstrap_server} --command-config {PATHS['kafka']['CONF']}/client.properties -create -topic test'",
+        f"JUJU_MODEL={juju.ext.model_full_name} juju ssh kafka/0 sudo -i 'sudo charmed-kafka.topics --bootstrap-server {bootstrap_server} --command-config {PATHS['kafka']['CONF']}/client.properties -create -topic test'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
     )
 
     result = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh kafka/0 sudo -i 'sudo charmed-kafka.acls --bootstrap-server {bootstrap_server} --add --allow-principal=User:* --operation READ --operation WRITE --operation CREATE --topic test --command-config {PATHS['kafka']['CONF']}/client.properties'",
+        f"JUJU_MODEL={juju.ext.model_full_name} juju ssh kafka/0 sudo -i 'sudo charmed-kafka.acls --bootstrap-server {bootstrap_server} --add --allow-principal=User:* --operation READ --operation WRITE --operation CREATE --topic test --command-config {PATHS['kafka']['CONF']}/client.properties'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -384,9 +384,9 @@ def count_lines_with(model_full_name: str | None, unit: str, file: str, pattern:
     return int(result)
 
 
-def get_secret_by_label(ops_test: OpsTest, label: str, owner: str) -> dict[str, str]:
+def get_secret_by_label(juju: JujuFixture, label: str, owner: str) -> dict[str, str]:
     secrets_meta_raw = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju list-secrets --format json",
+        f"JUJU_MODEL={juju.ext.model_full_name} juju list-secrets --format json",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -400,7 +400,7 @@ def get_secret_by_label(ops_test: OpsTest, label: str, owner: str) -> dict[str, 
             break
 
     secrets_data_raw = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju show-secret --format json --reveal {secret_id}",
+        f"JUJU_MODEL={juju.ext.model_full_name} juju show-secret --format json --reveal {secret_id}",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -410,9 +410,9 @@ def get_secret_by_label(ops_test: OpsTest, label: str, owner: str) -> dict[str, 
     return secret_data[secret_id]["content"]["Data"]
 
 
-def search_secrets(ops_test: OpsTest, owner: str, search_key: str) -> str:
+def search_secrets(juju: JujuFixture, owner: str, search_key: str) -> str:
     secrets_meta_raw = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju list-secrets --format json",
+        f"JUJU_MODEL={juju.ext.model_full_name} juju list-secrets --format json",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -424,7 +424,7 @@ def search_secrets(ops_test: OpsTest, owner: str, search_key: str) -> str:
             continue
 
         secrets_data_raw = check_output(
-            f"JUJU_MODEL={ops_test.model_full_name} juju show-secret --format json --reveal {secret_id}",
+            f"JUJU_MODEL={juju.ext.model_full_name} juju show-secret --format json --reveal {secret_id}",
             stderr=PIPE,
             shell=True,
             universal_newlines=True,
@@ -437,9 +437,9 @@ def search_secrets(ops_test: OpsTest, owner: str, search_key: str) -> str:
     return ""
 
 
-def show_unit(ops_test: OpsTest, unit_name: str) -> Any:
+def show_unit(juju: JujuFixture, unit_name: str) -> Any:
     result = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju show-unit {unit_name}",
+        f"JUJU_MODEL={juju.ext.model_full_name} juju show-unit {unit_name}",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -448,8 +448,8 @@ def show_unit(ops_test: OpsTest, unit_name: str) -> Any:
     return yaml.safe_load(result)
 
 
-def get_client_usernames(ops_test: OpsTest, owner: str = APP_NAME) -> set[str]:
-    app_secret = get_secret_by_label(ops_test, label=f"cluster.{owner}.app", owner=owner)
+def get_client_usernames(juju: JujuFixture, owner: str = APP_NAME) -> set[str]:
+    app_secret = get_secret_by_label(juju, label=f"cluster.{owner}.app", owner=owner)
 
     usernames = set()
     for key in app_secret.keys():
@@ -463,9 +463,9 @@ def get_client_usernames(ops_test: OpsTest, owner: str = APP_NAME) -> set[str]:
 
 # FIXME: will need updating after zookeeper_client is implemented in full
 def get_kafka_zk_relation_data(
-    ops_test: OpsTest, owner: str, unit_name: str, relation_name: str = ZK_NAME
+    juju: JujuFixture, owner: str, unit_name: str, relation_name: str = ZK_NAME
 ) -> dict[str, str]:
-    unit_data = show_unit(ops_test, unit_name)
+    unit_data = show_unit(juju, unit_name)
 
     kafka_zk_relation_data = {}
     for info in unit_data[unit_name]["relation-info"]:
@@ -476,13 +476,13 @@ def get_kafka_zk_relation_data(
             kafka_zk_relation_data.update(dict(info["application-data"]))
 
     user_secret = get_secret_by_label(
-        ops_test,
+        juju,
         label=f"{relation_name}.{kafka_zk_relation_data['relation-id']}.user.secret",
         owner=owner,
     )
 
     tls_secret = get_secret_by_label(
-        ops_test,
+        juju,
         label=f"{relation_name}.{kafka_zk_relation_data['relation-id']}.tls.secret",
         owner=owner,
     )
@@ -492,13 +492,13 @@ def get_kafka_zk_relation_data(
 
 
 def get_provider_data(
-    ops_test: OpsTest,
+    juju: JujuFixture,
     owner: str,
     unit_name: str,
     relation_name: str = "kafka-client",
     relation_interface: str = "kafka-client-admin",
 ) -> dict[str, str]:
-    unit_data = show_unit(ops_test, unit_name)
+    unit_data = show_unit(juju, unit_name)
 
     provider_relation_data = {}
     for info in unit_data[unit_name]["relation-info"]:
@@ -509,13 +509,13 @@ def get_provider_data(
             provider_relation_data.update(dict(info["application-data"]))
 
     user_secret = get_secret_by_label(
-        ops_test,
+        juju,
         label=f"{relation_name}.{provider_relation_data['relation-id']}.user.secret",
         owner=owner,
     )
 
     tls_secret = get_secret_by_label(
-        ops_test,
+        juju,
         label=f"{relation_name}.{provider_relation_data['relation-id']}.tls.secret",
         owner=owner,
     )
@@ -551,16 +551,16 @@ def get_active_brokers(config: dict[str, str]) -> set[str]:
     return brokers
 
 
-async def get_address(ops_test: OpsTest, app_name=APP_NAME, unit_num=0) -> str:
+def get_address(juju: JujuFixture, app_name=APP_NAME, unit_num=0) -> str:
     """Get the address for a unit."""
-    status = await ops_test.model.get_status()  # noqa: F821
+    status = juju.ext.model.get_status()  # noqa: F821
     address = status["applications"][app_name]["units"][f"{app_name}/{unit_num}"]["public-address"]
     return address
 
 
-async def get_machine(ops_test: OpsTest, app_name=APP_NAME, unit_num=0) -> str:
+def get_machine(juju: JujuFixture, app_name=APP_NAME, unit_num=0) -> str:
     """Get the machine_id for a unit."""
-    status = await ops_test.model.get_status()
+    status = juju.ext.model.get_status()
     machine_id = status["applications"][app_name]["units"][f"{app_name}/{unit_num}"]["machine"]
     return machine_id
 
@@ -585,8 +585,8 @@ def balancer_is_running(model_full_name: str | None, app_name: str) -> bool:
     return True
 
 
-def balancer_is_secure(ops_test: OpsTest, app_name: str) -> bool:
-    model_full_name = ops_test.model_full_name
+def balancer_is_secure(juju: JujuFixture, app_name: str) -> bool:
+    model_full_name = juju.ext.model_full_name
     err_401 = "Error 401 Unauthorized"
     unauthorized_ok = err_401 in check_output(
         f"JUJU_MODEL={model_full_name} juju ssh {app_name}/leader sudo -i 'curl http://localhost:9090/kafkacruisecontrol/state'",
@@ -595,7 +595,7 @@ def balancer_is_secure(ops_test: OpsTest, app_name: str) -> bool:
         universal_newlines=True,
     )
 
-    pwd = get_secret_by_label(ops_test=ops_test, label=f"{PEER}.{app_name}.app", owner=app_name)[
+    pwd = get_secret_by_label(juju=juju, label=f"{PEER}.{app_name}.app", owner=app_name)[
         "balancer-password"
     ]
     authorized_ok = err_401 not in check_output(
@@ -614,14 +614,14 @@ def balancer_is_secure(ops_test: OpsTest, app_name: str) -> bool:
     retry=retry_if_result(lambda result: result is False),
     retry_error_callback=lambda _: False,
 )
-def balancer_is_ready(ops_test: OpsTest, app_name: str) -> bool:
-    pwd = get_secret_by_label(ops_test=ops_test, label=f"{PEER}.{app_name}.app", owner=app_name)[
+def balancer_is_ready(juju: JujuFixture, app_name: str) -> bool:
+    pwd = get_secret_by_label(juju=juju, label=f"{PEER}.{app_name}.app", owner=app_name)[
         "balancer-password"
     ]
 
     try:
         monitor_state = check_output(
-            f"JUJU_MODEL={ops_test.model_full_name} juju ssh {app_name}/leader sudo -i 'curl http://localhost:9090/kafkacruisecontrol/state?json=True'"
+            f"JUJU_MODEL={juju.ext.model_full_name} juju ssh {app_name}/leader sudo -i 'curl http://localhost:9090/kafkacruisecontrol/state?json=True'"
             f" -u {BALANCER_WEBSERVER_USER}:{pwd}",
             stderr=PIPE,
             shell=True,
@@ -648,12 +648,12 @@ def balancer_is_ready(ops_test: OpsTest, app_name: str) -> bool:
     stop=stop_after_attempt(6),
     reraise=True,
 )
-def get_kafka_broker_state(ops_test: OpsTest, app_name: str) -> JSON:
-    pwd = get_secret_by_label(ops_test=ops_test, label=f"{PEER}.{app_name}.app", owner=app_name)[
+def get_kafka_broker_state(juju: JujuFixture, app_name: str) -> JSON:
+    pwd = get_secret_by_label(juju=juju, label=f"{PEER}.{app_name}.app", owner=app_name)[
         "balancer-password"
     ]
     broker_state = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {app_name}/leader sudo -i 'curl http://localhost:9090/kafkacruisecontrol/kafka_cluster_state?json=True'"
+        f"JUJU_MODEL={juju.ext.model_full_name} juju ssh {app_name}/leader sudo -i 'curl http://localhost:9090/kafkacruisecontrol/kafka_cluster_state?json=True'"
         f" -u {BALANCER_WEBSERVER_USER}:{pwd}",
         stderr=PIPE,
         shell=True,
@@ -671,8 +671,8 @@ def get_kafka_broker_state(ops_test: OpsTest, app_name: str) -> JSON:
     return broker_state_json
 
 
-def get_replica_count_by_broker_id(ops_test: OpsTest, app_name: str) -> dict[str, Any]:
-    broker_state_json = get_kafka_broker_state(ops_test, app_name)
+def get_replica_count_by_broker_id(juju: JujuFixture, app_name: str) -> dict[str, Any]:
+    broker_state_json = get_kafka_broker_state(juju, app_name)
     return broker_state_json.get("ReplicaCountByBrokerId", {})
 
 
@@ -682,11 +682,11 @@ def get_replica_count_by_broker_id(ops_test: OpsTest, app_name: str) -> dict[str
     reraise=True,
 )
 def kraft_quorum_status(
-    ops_test: OpsTest, unit_name: str, bootstrap_controller: str, verbose: bool = True
+    juju: JujuFixture, unit_name: str, bootstrap_controller: str, verbose: bool = True
 ) -> dict[int, KRaftUnitStatus]:
     """Returns a dict mapping of unit ID to KRaft unit status based on `kafka-metadata-quorum.sh` utility's output."""
     result = check_output(
-        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.metadata-quorum  --command-config {PATHS['kafka']['CONF']}/server.properties --bootstrap-controller {bootstrap_controller} describe --replication'",
+        f"JUJU_MODEL={juju.ext.model_full_name} juju ssh {unit_name} sudo -i 'charmed-kafka.metadata-quorum  --command-config {PATHS['kafka']['CONF']}/server.properties --bootstrap-controller {bootstrap_controller} describe --replication'",
         stderr=PIPE,
         shell=True,
         universal_newlines=True,
@@ -707,10 +707,10 @@ def kraft_quorum_status(
     return unit_status
 
 
-def sign_manual_certs(ops_test: OpsTest, manual_app: str = "manual-tls-certificates") -> None:
+def sign_manual_certs(juju: JujuFixture, manual_app: str = "manual-tls-certificates") -> None:
     delim = "-----BEGIN CERTIFICATE REQUEST-----"
 
-    csrs_cmd = f"JUJU_MODEL={ops_test.model_full_name} juju run {manual_app}/0 get-outstanding-certificate-requests --format=json | jq -r '.[\"{manual_app}/0\"].results.result' | jq '.[].csr' | sed 's/\\\\n/\\n/g' | sed 's/\\\"//g'"
+    csrs_cmd = f"JUJU_MODEL={juju.ext.model_full_name} juju run {manual_app}/0 get-outstanding-certificate-requests --format=json | jq -r '.[\"{manual_app}/0\"].results.result' | jq '.[].csr' | sed 's/\\\\n/\\n/g' | sed 's/\\\"//g'"
     csrs = check_output(csrs_cmd, stderr=PIPE, universal_newlines=True, shell=True).split(delim)
 
     for i, csr in enumerate(csrs):
@@ -726,7 +726,7 @@ def sign_manual_certs(ops_test: OpsTest, manual_app: str = "manual-tls-certifica
 
             try:
                 sign_cmd = f"openssl x509 -req -in {csr_file} -CAkey tests/integration/data/int.key -CA tests/integration/data/int.pem -days 100 -CAcreateserial -out {cert_file} -copy_extensions copyall --passin pass:password"
-                provide_cmd = f'JUJU_MODEL={ops_test.model_full_name} juju run {manual_app}/0 provide-certificate ca-certificate="$(base64 -w0 tests/integration/data/int.pem)" ca-chain="$(base64 -w0 tests/integration/data/root.pem)" certificate="$(base64 -w0 {cert_file})" certificate-signing-request="$(base64 -w0 {csr_file})"'
+                provide_cmd = f'JUJU_MODEL={juju.ext.model_full_name} juju run {manual_app}/0 provide-certificate ca-certificate="$(base64 -w0 tests/integration/data/int.pem)" ca-chain="$(base64 -w0 tests/integration/data/root.pem)" certificate="$(base64 -w0 {cert_file})" certificate-signing-request="$(base64 -w0 {csr_file})"'
 
                 check_output(sign_cmd, stderr=PIPE, universal_newlines=True, shell=True)
                 response = check_output(
@@ -738,12 +738,12 @@ def sign_manual_certs(ops_test: OpsTest, manual_app: str = "manual-tls-certifica
                 raise e
 
 
-async def list_truststore_aliases(ops_test: OpsTest, unit: str = f"{APP_NAME}/0") -> list[str]:
-    truststore_password = extract_truststore_password(ops_test=ops_test, unit_name=unit)
+def list_truststore_aliases(juju: JujuFixture, unit: str = f"{APP_NAME}/0") -> list[str]:
+    truststore_password = extract_truststore_password(juju=juju, unit_name=unit)
 
     try:
         result = check_output(
-            f"JUJU_MODEL={ops_test.model_full_name} juju ssh {unit} sudo -i 'charmed-kafka.keytool -list -keystore /var/snap/charmed-kafka/current/etc/kafka/truststore.jks -storepass {truststore_password}'",
+            f"JUJU_MODEL={juju.ext.model_full_name} juju ssh {unit} sudo -i 'charmed-kafka.keytool -list -keystore /var/snap/charmed-kafka/current/etc/kafka/truststore.jks -storepass {truststore_password}'",
             stderr=PIPE,
             shell=True,
             universal_newlines=True,

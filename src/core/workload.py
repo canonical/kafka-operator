@@ -4,10 +4,12 @@
 
 """Supporting objects for Kafka charm state."""
 
+import os
 import re
 import secrets
 import string
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 
 from charmlibs import pathops
 from ops.pebble import Layer
@@ -203,6 +205,16 @@ class WorkloadBase(ABC):
             version = ""
         return version
 
+    def read_env(self, env_file: str = "/etc/environment") -> dict[str, str]:
+        """Read environment variables from the specified env_file and parse them as dict."""
+        if not os.path.exists(env_file):
+            return {}
+
+        with open(env_file) as f:
+            lines = [line.strip() for line in f.readlines() if not line.strip().startswith("#")]
+
+        return map_env(lines)
+
     @property
     @abstractmethod
     def installed(self) -> bool:
@@ -229,3 +241,15 @@ class WorkloadBase(ABC):
             String of 32 randomized letter+digit characters
         """
         return "".join([secrets.choice(string.ascii_letters + string.digits) for _ in range(32)])
+
+
+def map_env(env: Iterable[str]) -> dict[str, str]:
+    """Parse env var into a dict."""
+    map_env = {}
+    for var in env:
+        key = "".join(var.split("=", maxsplit=1)[0])
+        value = "".join(var.split("=", maxsplit=1)[1:])
+        if key:
+            # only check for keys, as we can have an empty value for a variable
+            map_env[key] = value
+    return map_env
