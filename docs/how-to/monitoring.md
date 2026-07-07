@@ -77,7 +77,7 @@ After this is complete, the monitoring COS stack should be up and running and re
 
 ### Connect Grafana web interface
 
-To connect to the Grafana web interface, follow the [Browse dashboards](https://charmhub.io/topics/canonical-observability-stack/tutorials/install-microk8s?_ga=2.201254254.1948444620.1704703837-757109492.1701777558#heading--browse-dashboards) section of the MicroK8s "Getting started" guide.
+To connect to the Grafana web interface, follow the [Browse dashboards](https://documentation.ubuntu.com/observability/latest/tutorial/cos-lite-microk8s-sandbox/#browse-dashboards) section of the "Getting started with COS Lite on MicroK8s" guide.
 
 ```shell
 juju run grafana/leader get-admin-password --model <k8s_cos_controller>:<cos_model_name>
@@ -94,7 +94,7 @@ juju config <KAFKA_APP_NAME> log_level=<LOG_LEVEL>
 ```
 
 ```{tip}
-See also: `log_level` configuration parameter [reference](https://charmhub.io/kafka/configurations#log_level).
+See also: `log_level` configuration parameter [reference](https://charmhub.io/kafka/configurations#log-level).
 ```
 
 Possible `LOG_LEVEL` values are: `ERROR`, `WARNING`, `INFO`, and `DEBUG`.
