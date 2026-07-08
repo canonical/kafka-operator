@@ -77,7 +77,7 @@ Your CLI is up-to-date.
 ### Authenticate
 
 ```{note}
-For more information on how to authenticate, refer to the [Juju documentation](https://documentation.ubuntu.com/juju/3.6/reference/cloud/list-of-supported-clouds/the-microsoft-azure-cloud-and-juju/#authentication-types) and [a dedicated user guide on how to register Azure on Juju](https://discourse.charmhub.io/t/how-to-use-juju-with-microsoft-azure/15219).
+For more information on how to authenticate, refer to the [Juju documentation](https://canonical.com/juju/docs/juju-cli/3.6/reference/cloud/list-of-supported-clouds/microsoft-azure/#authentication-types) and [a dedicated user guide on how to register Azure on Juju](https://discourse.charmhub.io/t/how-to-use-juju-with-microsoft-azure/15219).
 ```
 
 First of all, retrieve your subscription id:

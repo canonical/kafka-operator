@@ -88,7 +88,7 @@ You can [query Loki](https://discourse.charmhub.io/t/loki-k8s-docs-http-api/1344
 ```{note}
 Learn more:
 
-* COS [Logging architecture explanation](https://documentation.ubuntu.com/observability/latest/explanation/logging-architecture/)
+* COS [Logging architecture explanation](https://documentation.ubuntu.com/observability/latest/explanation/telemetry/logging-architecture/)
 * [How to enable monitoring using COS](how-to-monitoring-enable-monitoring) guide
 ```
 
