@@ -8,14 +8,13 @@ import logging
 
 import charm_refresh
 import ops
+from charmlibs.rollingops import OperationResult, RollingOpsManager
 from charms.data_platform_libs.v0.data_models import TypedCharmBase
 from charms.grafana_agent.v0.cos_agent import COSAgentProvider
 from charms.operator_libs_linux.v0 import sysctl
-from charms.rolling_ops.v0.rollingops import RollingOpsManager, RunWithLock
 from ops import (
     ActiveStatus,
     CollectStatusEvent,
-    EventBase,
     StatusBase,
 )
 from ops.log import JujuLogHandler
@@ -69,7 +68,14 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         self.sysctl_config = sysctl.Config(name=CHARM_KEY)
 
         self.workload = KafkaWorkload()  # Will be re-instantiated for each role.
-        self.restart = RollingOpsManager(self, relation="restart", callback=self._restart_broker)
+        self.restart = RollingOpsManager(
+            self,
+            peer_relation_name="restart",
+            callback_targets={
+                "restart": self._restart_broker,
+                "disable_enable": self._disable_enable_restart_broker,
+            },
+        )
 
         self._grafana_agent = COSAgentProvider(
             self,
@@ -158,15 +164,14 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
         ):
             self.balancer.workload.stop()
 
-    def _restart_broker(self, event: EventBase) -> None:
-        """Handler for `rolling_ops` restart events.
+    def _restart_broker(self, **_kwargs) -> OperationResult:
+        """Callback for `rolling_ops` restart operations.
 
         The RollingOpsManager expecting a charm instance, we cannot move this method to the broker logic.
         """
         # only attempt restart if service is already active
         if not self.broker.healthy:
-            event.defer()
-            return
+            return OperationResult.RETRY_RELEASE
 
         self.broker.workload.restart()
 
@@ -175,23 +180,23 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             runs_broker=self.state.runs_broker,
             runs_controller=self.state.runs_controller,
         ):
-            event.defer()
-            return
+            return OperationResult.RETRY_RELEASE
 
         self.broker.update_credentials_cache()
 
         # Force update our trusted certs relation data.
         self.broker.update_peer_truststore_state(force=True)
 
-    def _disable_enable_restart_broker(self, event: RunWithLock) -> None:
-        """Handler for `rolling_ops` disable_enable restart events.
+        return OperationResult.RELEASE
+
+    def _disable_enable_restart_broker(self, **_kwargs) -> OperationResult:
+        """Callback for `rolling_ops` disable_enable restart operations.
 
         The RollingOpsManager expecting a charm instance, we cannot move this method to the broker logic.
         """
         if not self.broker.healthy:
             logger.warning(f"Broker {self.unit.name.split('/')[1]} is not ready restart")
-            event.defer()
-            return
+            return OperationResult.RETRY_RELEASE
 
         self.broker.workload.disable_enable()
         self.broker.workload.start()
@@ -200,7 +205,9 @@ class KafkaCharm(TypedCharmBase[CharmConfig]):
             logger.info(f"Broker {self.unit.name.split('/')[1]} restarted")
         else:
             logger.error(f"Broker {self.unit.name.split('/')[1]} failed to restart")
-            return
+            return OperationResult.RETRY_RELEASE
+
+        return OperationResult.RELEASE
 
     def _on_collect_status(self, event: CollectStatusEvent):
         status = self._determine_unit_status()

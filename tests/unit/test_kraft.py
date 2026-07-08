@@ -262,9 +262,7 @@ def test_leader_change(charm_configuration, base_state: State):
     state_in = dataclasses.replace(base_state, relations=[cluster_peer, restart_peer])
 
     # When
-    with patch(
-        "charms.rolling_ops.v0.rollingops.RollingOpsManager._on_run_with_lock", autospec=True
-    ):
+    with patch("charmlibs.rollingops.RollingOpsManager.request_async_lock", autospec=True):
         state_out = ctx.run(ctx.on.leader_elected(), state_in)
 
     # Then
