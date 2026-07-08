@@ -721,6 +721,29 @@ class KafkaCluster(RelationState):
         """Usernames and passwords of related client applications."""
         return {key: value for key, value in self.relation_data.items() if "relation-" in key}
 
+    @property
+    def oauth_users(self) -> set[str]:
+        """Set of OAuth users for which the ACLs are defined."""
+        _list = json.loads(self.relation_data.get("oauth-users", "null")) or []
+        return set(_list)
+
+    def add_oauth_user(self, user: str) -> None:
+        """Add an OAuth user."""
+        if user in self.oauth_users:
+            return
+
+        _updated = list(self.oauth_users | {user})
+        self.update({"oauth-users": json.dumps(_updated)})
+
+    def remove_oauth_user(self, user: str) -> None:
+        """Remove an OAuth user."""
+        if user not in self.oauth_users:
+            return
+
+        _updated = set(self.oauth_users)
+        _updated.remove(user)
+        self.update({"oauth-users": json.dumps(list(_updated))})
+
     # --- TLS ---
 
     @property

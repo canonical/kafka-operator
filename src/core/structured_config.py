@@ -4,13 +4,14 @@
 
 """Structured configuration for the Kafka charm."""
 
+import json
 import logging
 import re
 from enum import Enum
 from typing import Literal
 
 from charms.data_platform_libs.v0.data_models import BaseConfigModel
-from pydantic import Field, validator
+from pydantic import Field, field_validator, validator
 
 from literals import BALANCER, BROKER, CONTROLLER, SUBSTRATE
 from managers.ssl_principal_mapper import SslPrincipalMapper
@@ -64,6 +65,7 @@ class CharmConfig(BaseConfigModel):
     cruisecontrol_capacity_threshold: float = Field(default=0.8, validate_default=False, le=1)
     system_users: str | None = None
     tls_private_key: str | None = None
+    roles_mapping: dict = {}
 
     @validator("*", pre=True)
     @classmethod
@@ -264,3 +266,12 @@ class CharmConfig(BaseConfigModel):
             )
 
         return value
+
+    @field_validator("roles_mapping", mode="before")
+    @classmethod
+    def parse_roles_mapping_to_dict(cls, v: str) -> dict:
+        """Validator to convert a string representation of a dict into a dict."""
+        try:
+            return json.loads(v)
+        except json.JSONDecodeError as e:
+            raise ValueError("roles-mapping is not a valid JSON dictionary") from e
