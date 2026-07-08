@@ -50,12 +50,13 @@ parts:
     source: .
     after:
       - poetry-deps
-    poetry-export-extra-args: ['--only', 'main,charm-libs']
+    poetry-export-extra-args: ['--only', 'main,charm-libs', '--without-hashes']
     build-packages:
       - libffi-dev  # Needed to build Python dependencies with Rust from source
       - libssl-dev  # Needed to build Python dependencies with Rust from source
       - pkg-config  # Needed to build Python dependencies with Rust from source
       - rustup      # Needed to build Python dependencies with Rust from source
+      - git         # Needed for the git dependency (common lib)
     override-build: |
       rustup default 1.93.1  # renovate: charmcraft-rust-latest
       craftctl default
