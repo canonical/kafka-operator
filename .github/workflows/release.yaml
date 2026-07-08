@@ -64,13 +64,14 @@ jobs:
               dag_run_id: $dag_run_id,
               logical_date: $logical_date,
               conf: {
+                substrate: "vm",
                 charm: "kafka",
                 version: $version,
                 charm_revisions: $charm_revisions
               }
             }')
           response=$(curl -s -w "\n%{http_code}" -X POST \
-            "https://airflow.data-platform.ps7.canonical.com/api/v2/dags/kafka_4.x_vm/dagRuns" \
+            "https://airflow.data-platform.ps7.canonical.com/api/v2/dags/kafka_4.x/dagRuns" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${AIRFLOW_TOKEN}" \
             -d "$body")
