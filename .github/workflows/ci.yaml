@@ -48,16 +48,38 @@ jobs:
       - name: Run tests
         run: tox run -e unit
 
-  build:
+  # FIXME: remove this once _pack.py is no longer needed.
+  build-dev:
+    if: ${{ github.ref_name != 'main' }}
     strategy:
       matrix:
         path:
-          - .
+          - machine
+          - k8s
           - tests/integration/app-charm
-    name: Build charm | ${{ matrix.path }}
+    name: Build charm for testing | ${{ matrix.path }}
+    uses: ./.github/workflows/_build_charm_dev.yaml
+    with:
+      path-to-charm-directory: ${{ matrix.path }}
+    permissions:
+      actions: read
+      contents: read
+
+  build-release:
+    if: ${{ github.ref_name == 'main' }}
+    strategy:
+      matrix:
+        path:
+          - machine
+          - k8s
+          - tests/integration/app-charm
+    name: Build charm for release | ${{ matrix.path }}
     uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v32.2.2
     with:
       path-to-charm-directory: ${{ matrix.path }}
+    permissions:
+      actions: read
+      contents: read
 
   integration-test-single:
     strategy:
@@ -83,7 +105,12 @@ jobs:
     needs:
       - lint
       - unit-test
-      - build
+      - build-dev
+      - build-release
+    if: |
+      always() &&
+      !cancelled() &&
+      (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
     runs-on: [self-hosted, linux, AMD64, X64, large, noble]
     timeout-minutes: 120
     steps:
@@ -97,7 +124,7 @@ jobs:
       - name: Download packed charm(s)
         uses: actions/download-artifact@v4
         with:
-          pattern: ${{ needs.build.outputs.artifact-prefix }}-*
+          pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
           merge-multiple: true
       - name: Setup terraform if needed
         if: ${{ matrix.tox-environments == 'integration-terraform' }}
@@ -117,7 +144,7 @@ jobs:
       - name: Run integration tests
         run: tox run -e ${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --kraft-mode ${{ matrix.kraft-mode }}
         env:
-          CI_PACKED_CHARMS: ${{ needs.build.outputs.charms }}
+          CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
 
   integration-test-multi:
     strategy:
@@ -146,7 +173,12 @@ jobs:
     needs:
       - lint
       - unit-test
-      - build
+      - build-dev
+      - build-release
+    if: |
+      always() &&
+      !cancelled() &&
+      (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
     runs-on: [self-hosted, linux, AMD64, X64, xlarge, noble]
     timeout-minutes: 120
     steps:
@@ -160,7 +192,7 @@ jobs:
       - name: Download packed charm(s)
         uses: actions/download-artifact@v4
         with:
-          pattern: ${{ needs.build.outputs.artifact-prefix }}-*
+          pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
           merge-multiple: true
       - name: Setup terraform & microk8s controller (for OAuth tests)
         if: ${{ matrix.tox-environments == 'integration-oauth' }}
@@ -211,5 +243,5 @@ jobs:
       - name: Run integration tests
         run: tox run -e ${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kraft-mode ${{ matrix.kraft-mode }}
         env:
-          CI_PACKED_CHARMS: ${{ needs.build.outputs.charms }}
+          CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
 

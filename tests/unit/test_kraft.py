@@ -5,17 +5,10 @@
 import dataclasses
 import json
 import logging
-from pathlib import Path
 from unittest.mock import PropertyMock, patch
 
 import pytest
-import yaml
-from ops import ActiveStatus
-from ops.testing import Container, Context, PeerRelation, Relation, State
-from tests.unit.helpers import generate_tls_artifacts
-
-from charm import KafkaCharm
-from literals import (
+from common.single_kernel_kafka.core.literals import (
     ADMIN_USER,
     CONTAINER,
     CONTROLLER_USER,
@@ -23,18 +16,23 @@ from literals import (
     PEER,
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
     PEER_CLUSTER_RELATION,
-    SUBSTRATE,
     Status,
+)
+from ops import ActiveStatus
+from ops.testing import Container, Context, PeerRelation, Relation, State
+from tests.unit.helpers import (
+    ACTIONS,
+    CONFIG,
+    METADATA,
+    SUBSTRATE,
+    SUBSTRATE_CLS,
+    KafkaCharm,
+    generate_tls_artifacts,
 )
 
 pytestmark = pytest.mark.kraft
 
 logger = logging.getLogger(__name__)
-
-
-CONFIG = yaml.safe_load(Path("./config.yaml").read_text())
-ACTIONS = yaml.safe_load(Path("./actions.yaml").read_text())
-METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 
 
 @pytest.fixture()
@@ -85,7 +83,10 @@ def test_ready_to_start_no_peer_cluster(charm_configuration, base_state: State):
     state_in = dataclasses.replace(base_state, relations=[cluster_peer])
 
     # When
-    with patch("workload.KafkaWorkload.run_bin_command", return_value="cluster-uuid-number"):
+    with patch(
+        f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.run_bin_command",
+        return_value="cluster-uuid-number",
+    ):
         state_out = ctx.run(ctx.on.start(), state_in)
 
     # Then
@@ -108,7 +109,10 @@ def test_ready_to_start_missing_peer_tls_data_as_controller(
     state_in = dataclasses.replace(base_state, relations=[cluster_peer, peer_cluster])
 
     # When
-    with patch("workload.KafkaWorkload.run_bin_command", return_value="cluster-uuid-number"):
+    with patch(
+        f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.run_bin_command",
+        return_value="cluster-uuid-number",
+    ):
         state_out = ctx.run(ctx.on.start(), state_in)
 
     # Then
@@ -134,7 +138,10 @@ def test_ready_to_start_missing_broker_data_as_controller(charm_configuration, b
     state_in = dataclasses.replace(base_state, relations=[cluster_peer, peer_cluster])
 
     # When
-    with patch("workload.KafkaWorkload.run_bin_command", return_value="cluster-uuid-number"):
+    with patch(
+        f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.run_bin_command",
+        return_value="cluster-uuid-number",
+    ):
         state_out = ctx.run(ctx.on.start(), state_in)
 
     # Then
@@ -157,7 +164,10 @@ def test_ready_to_start_missing_data_as_broker(charm_configuration, base_state: 
     state_in = dataclasses.replace(base_state, relations=[cluster_peer, peer_cluster])
 
     # When
-    with patch("workload.KafkaWorkload.run_bin_command", return_value="cluster-uuid-number"):
+    with patch(
+        f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.run_bin_command",
+        return_value="cluster-uuid-number",
+    ):
         state_out = ctx.run(ctx.on.start(), state_in)
 
     # Then
@@ -178,20 +188,25 @@ def test_ready_to_start(charm_configuration, base_state: State):
 
     # When
     with (
-        patch("workload.KafkaWorkload.run_bin_command", return_value="cluster-uuid-number"),
         patch(
-            "core.cluster.ClusterState.broker_capacities",
+            f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.run_bin_command",
+            return_value="cluster-uuid-number",
+        ),
+        patch(
+            "single_kernel_kafka.core.cluster.ClusterState.broker_capacities",
             new_callable=PropertyMock,
             return_value={"brokerCapacities": [{}, {}, {}]},
         ),
         patch(
-            "managers.balancer.BalancerManager.config_change_detected",
+            "single_kernel_kafka.managers.balancer.BalancerManager.config_change_detected",
             return_value=False,
         ),
-        patch("managers.tls.TLSManager.configure"),
-        patch("health.KafkaHealth.machine_configured", return_value=True),
-        patch("workload.KafkaWorkload.start"),
-        patch("workload.KafkaWorkload.active", return_value=True),
+        patch("single_kernel_kafka.managers.tls.TLSManager.configure"),
+        patch("single_kernel_kafka.health.KafkaHealth.machine_configured", return_value=True),
+        patch(f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.start"),
+        patch(
+            f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.active", return_value=True
+        ),
         patch("charms.operator_libs_linux.v2.snap.SnapCache"),
     ):
         state_out = ctx.run(ctx.on.start(), state_in)
@@ -230,7 +245,9 @@ def test_remove_controller(charm_configuration, base_state: State):
     state_in = dataclasses.replace(base_state, relations=[cluster_peer], leader=False)
 
     # When
-    with patch("workload.KafkaWorkload.run_bin_command") as patched_run_bin_command:
+    with patch(
+        f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.run_bin_command"
+    ) as patched_run_bin_command:
         _ = ctx.run(ctx.on.relation_departed(cluster_peer, remote_unit=0), state_in)
 
     # Then

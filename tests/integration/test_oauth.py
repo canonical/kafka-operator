@@ -8,6 +8,7 @@ import textwrap
 
 import jubilant
 import pytest
+from single_kernel_kafka.core.literals import SECURITY_PROTOCOL_PORTS, TLS_RELATION
 
 from integration.helpers import (
     APP_NAME,
@@ -21,7 +22,6 @@ from integration.helpers.jubilant import (
     get_unit_ipv4_address,
 )
 from integration.helpers.pytest_operator import check_socket
-from literals import SECURITY_PROTOCOL_PORTS, TLS_RELATION
 
 logger = logging.getLogger(__name__)
 
@@ -157,16 +157,14 @@ def test_an_oauth_client_on_data_integrator(juju: jubilant.Juju, tmp_path_factor
     truststore_password = "tspass"
     base_path = "/var/snap/charmed-kafka/current/etc/kafka"
     truststore_path = f"{base_path}/oauth-client.jks"
-    client_properties = textwrap.dedent(
-        f"""
+    client_properties = textwrap.dedent(f"""
         security.protocol=SASL_SSL
         sasl.mechanism=OAUTHBEARER
         sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required oauth.client.id="{client_id}" oauth.client.secret="{client_secret}" oauth.token.endpoint.uri="{token_endpoint_uri}" oauth.scope="profile" oauth.ssl.truststore.location="{truststore_path}" oauth.ssl.truststore.password="{truststore_password}" oauth.ssl.truststore.type="JKS" oauth.audience="kafka";
         sasl.login.callback.handler.class=io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
         ssl.truststore.location={truststore_path}
         ssl.truststore.password={truststore_password}
-    """
-    )
+    """)
 
     # Save the properties and the CA into temp files
     client_dir = tmp_path_factory.mktemp("client")

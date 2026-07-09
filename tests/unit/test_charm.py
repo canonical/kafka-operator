@@ -4,41 +4,31 @@
 
 import dataclasses
 import logging
-from pathlib import Path
 from typing import cast
 from unittest.mock import PropertyMock, patch
 
 import pytest
-import yaml
-from ops.testing import Container, Context, PeerRelation, Relation, State, Storage
-
-from charm import KafkaCharm
-from literals import (
+from common.single_kernel_kafka.core.literals import (
     CHARM_KEY,
     CONTAINER,
     JMX_EXPORTER_PORT,
     PEER,
     REL_NAME,
-    SUBSTRATE,
     TLS_RELATION,
     Status,
 )
+from ops.testing import Container, Context, PeerRelation, Relation, State, Storage
+from tests.unit.helpers import ACTIONS, CONFIG, METADATA, SUBSTRATE, SUBSTRATE_CLS, KafkaCharm
 
 if SUBSTRATE == "vm":
     from charms.operator_libs_linux.v0.sysctl import ApplyError
     from charms.operator_libs_linux.v2.snap import SnapError
-
-    from literals import OS_REQUIREMENTS
+    from common.single_kernel_kafka.core.literals import OS_REQUIREMENTS
 
 pytestmark = pytest.mark.broker
 
 
 logger = logging.getLogger(__name__)
-
-
-CONFIG = yaml.safe_load(Path("./config.yaml").read_text())
-ACTIONS = yaml.safe_load(Path("./actions.yaml").read_text())
-METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 
 
 @pytest.fixture()
@@ -69,7 +59,10 @@ def test_install_blocks_snap_install_failure(ctx: Context, base_state: State) ->
     state_in = base_state
 
     # When
-    with patch("workload.Workload.install", return_value=False), patch("workload.Workload.write"):
+    with (
+        patch("single_kernel_kafka.workload.WorkloadMachine.install", return_value=False),
+        patch("single_kernel_kafka.workload.WorkloadMachine.write"),
+    ):
         state_out = ctx.run(ctx.on.install(), state_in)
 
     # Then
@@ -82,7 +75,7 @@ def test_install_sets_env_vars(ctx: Context, base_state: State, patched_etc_envi
     state_in = base_state
 
     # When
-    with patch("workload.Workload.install"):
+    with patch(f"single_kernel_kafka.workload.Workload{SUBSTRATE_CLS}.install"):
         _ = ctx.run(ctx.on.install(), state_in)
 
     # Then
@@ -95,7 +88,7 @@ def test_install_configures_os(ctx: Context, base_state: State, patched_sysctl_c
     state_in = base_state
 
     # When
-    with patch("workload.Workload.install"):
+    with patch("single_kernel_kafka.workload.WorkloadMachine.install"):
         _ = ctx.run(ctx.on.install(), state_in)
 
     # Then
@@ -110,7 +103,7 @@ def test_install_sets_status_if_os_config_fails(
     state_in = base_state
 
     # When
-    with patch("workload.Workload.install"):
+    with patch("single_kernel_kafka.workload.WorkloadMachine.install"):
         patched_sysctl_config.side_effect = ApplyError("Error setting values")
         state_out = ctx.run(ctx.on.install(), state_in)
 
@@ -168,10 +161,12 @@ def test_ready_to_start_succeeds(
 
     # When
     with (
-        patch("workload.KafkaWorkload.active", return_value=True),
-        patch("workload.KafkaWorkload.write"),
-        patch("workload.KafkaWorkload.start") as patched_start,
-        patch("events.broker.BrokerOperator._on_update_status", autospec=True),
+        patch(
+            f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.active", return_value=True
+        ),
+        patch(f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.write"),
+        patch(f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.start") as patched_start,
+        patch("single_kernel_kafka.events.broker.BrokerOperator._on_update_status", autospec=True),
     ):
         ctx.run(ctx.on.start(), state_in)
 
@@ -201,8 +196,10 @@ def test_healthy_fails_if_snap_not_active(
 
     # When
     with (
-        patch("workload.KafkaWorkload.active", return_value=False) as patched_snap_active,
-        patch("workload.KafkaWorkload.start"),
+        patch(
+            f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.active", return_value=False
+        ) as patched_snap_active,
+        patch(f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.start"),
         ctx(ctx.on.start(), state_in) as manager,
     ):
         charm = cast(KafkaCharm, manager.charm)
@@ -219,7 +216,9 @@ def test_healthy_succeeds(ctx: Context, base_state: State, passwords_data: dict[
     state_in = dataclasses.replace(base_state, relations=[cluster_peer])
 
     with (
-        patch("workload.KafkaWorkload.active", return_value=True),
+        patch(
+            f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.active", return_value=True
+        ),
         ctx(ctx.on.start(), state_in) as manager,
     ):
         charm = cast(KafkaCharm, manager.charm)
@@ -238,11 +237,17 @@ def test_start_sets_necessary_config(
     # When
     with (
         # NOTE: Patching `active` cuts the hook short, as we are only testing properties being set.
-        patch("workload.KafkaWorkload.active", return_value=False),
-        patch("managers.auth.AuthManager.add_user"),
-        patch("managers.config.ConfigManager.set_server_properties") as patched_server_properties,
-        patch("managers.config.ConfigManager.set_client_properties") as patched_client_properties,
-        patch("workload.KafkaWorkload.start"),
+        patch(
+            f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.active", return_value=False
+        ),
+        patch("single_kernel_kafka.managers.auth.AuthManager.add_user"),
+        patch(
+            "single_kernel_kafka.managers.config.ConfigManager.set_server_properties"
+        ) as patched_server_properties,
+        patch(
+            "single_kernel_kafka.managers.config.ConfigManager.set_client_properties"
+        ) as patched_client_properties,
+        patch(f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.start"),
     ):
         ctx.run(ctx.on.start(), state_in)
 
@@ -263,18 +268,18 @@ def test_start_sets_pebble_layer(
     # When
     with (
         # NOTE: Patching `active` cuts the hook short, as we are only testing layer being set.
-        patch("workload.KafkaWorkload.active", return_value=False),
-        patch("managers.auth.AuthManager.add_user"),
-        patch("managers.config.ConfigManager.set_zk_jaas_config"),
-        patch("managers.config.ConfigManager.set_server_properties"),
-        patch("managers.config.ConfigManager.set_client_properties"),
-        patch("workload.KafkaWorkload.start"),
+        patch(
+            f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.active", return_value=False
+        ),
+        patch("single_kernel_kafka.managers.auth.AuthManager.add_user"),
+        patch("single_kernel_kafka.managers.config.ConfigManager.set_server_properties"),
+        patch("single_kernel_kafka.managers.config.ConfigManager.set_client_properties"),
+        patch(f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.start"),
         ctx(ctx.on.start(), state_in) as manager,
     ):
         charm = cast(KafkaCharm, manager.charm)
         extra_opts = [
             f"-javaagent:{charm.workload.paths.jmx_prometheus_javaagent}={JMX_EXPORTER_PORT}:{charm.workload.paths.jmx_prometheus_config}",
-            f"-Djava.security.auth.login.config={charm.workload.paths.zk_jaas}",
         ]
         command = f"{charm.workload.paths.binaries_path}/bin/kafka-server-start.sh {charm.workload.paths.server_properties}"
         expected_plan = {
@@ -289,7 +294,7 @@ def test_start_sets_pebble_layer(
                     "group": "kafka",
                     "environment": {
                         "KAFKA_OPTS": " ".join(extra_opts),
-                        "JAVA_HOME": "/usr/lib/jvm/java-18-openjdk-amd64",
+                        "JAVA_HOME": "/usr/lib/jvm/java-21-openjdk-amd64",
                         "LOG_DIR": charm.workload.paths.logs_path,
                     },
                 },
@@ -312,7 +317,9 @@ def test_start_does_not_start_if_not_ready(ctx: Context, base_state: State) -> N
 
     # When
     with (
-        patch("workload.KafkaWorkload.start") as patched_start_snap_service,
+        patch(
+            f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.start"
+        ) as patched_start_snap_service,
         patch("ops.framework.EventBase.defer") as patched_defer,
     ):
         _ = ctx.run(ctx.on.start(), state_in)
@@ -329,7 +336,11 @@ def test_start_does_not_start_if_leader_has_not_set_creds(ctx: Context, base_sta
     state_in = dataclasses.replace(base_state, relations=[cluster_peer], leader=False)
 
     # When
-    with (patch("workload.KafkaWorkload.start") as patched_start_snap_service,):
+    with (
+        patch(
+            f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.start"
+        ) as patched_start_snap_service,
+    ):
         state_out = ctx.run(ctx.on.start(), state_in)
 
     # Then
@@ -352,9 +363,12 @@ def test_update_status_blocks_if_broker_not_active(
 
     # When
     with (
-        patch("workload.KafkaWorkload.active", return_value=True),
         patch(
-            "managers.controller.ControllerManager.broker_active", return_value=False
+            f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.active", return_value=True
+        ),
+        patch(
+            "single_kernel_kafka.managers.controller.ControllerManager.broker_active",
+            return_value=False,
         ) as patched_broker_active,
     ):
         state_out = ctx.run(ctx.on.update_status(), state_in)
@@ -375,8 +389,10 @@ def test_update_status_blocks_if_machine_not_configured(
     # When
 
     with (
-        patch("health.KafkaHealth.machine_configured", side_effect=SnapError()),
-        patch("events.broker.BrokerOperator.healthy", return_value=True),
+        patch(
+            "single_kernel_kafka.health.KafkaHealth.machine_configured", side_effect=SnapError()
+        ),
+        patch("single_kernel_kafka.events.broker.BrokerOperator.healthy", return_value=True),
     ):
         state_out = ctx.run(ctx.on.update_status(), state_in)
 
@@ -400,8 +416,8 @@ def test_update_status_sets_sysconf_warning(
 
     # When
     with (
-        patch("workload.KafkaWorkload.active", return_value=True),
-        patch("health.KafkaHealth.machine_configured", return_value=False),
+        patch("single_kernel_kafka.workload.KafkaWorkloadMachine.active", return_value=True),
+        patch("single_kernel_kafka.health.KafkaHealth.machine_configured", return_value=False),
     ):
         state_out = ctx.run(ctx.on.update_status(), state_in)
 
@@ -424,7 +440,9 @@ def test_update_status_sets_active(
     state_in = dataclasses.replace(base_state, relations=[cluster_peer])
 
     # When
-    with patch("workload.KafkaWorkload.active", return_value=True):
+    with patch(
+        f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.active", return_value=True
+    ):
         state_out = ctx.run(ctx.on.update_status(), state_in)
 
     # Then
@@ -442,7 +460,7 @@ def test_storage_add_does_nothing_if_snap_not_active(
 
     # When
     with (
-        patch("workload.KafkaWorkload.active", return_value=False),
+        patch("single_kernel_kafka.workload.KafkaWorkloadMachine.active", return_value=False),
         patch("charm.KafkaCharm._disable_enable_restart_broker") as patched_restart,
     ):
         ctx.run(ctx.on.storage_attached(storage), state_in)
@@ -462,8 +480,8 @@ def test_storage_add_when_service_not_healthy(
 
     # When
     with (
-        patch("workload.KafkaWorkload.active", return_value=True),
-        patch("events.broker.BrokerOperator.healthy", return_value=False),
+        patch("single_kernel_kafka.workload.KafkaWorkloadMachine.active", return_value=True),
+        patch("single_kernel_kafka.events.broker.BrokerOperator.healthy", return_value=False),
         patch("charm.KafkaCharm._disable_enable_restart_broker") as patched_restart,
     ):
         ctx.run(ctx.on.storage_attached(storage), state_in)
@@ -486,15 +504,21 @@ def test_storage_add(
 
     # When
     with (
-        patch("workload.KafkaWorkload.active", return_value=True),
-        patch("events.broker.BrokerOperator.healthy", return_value=True),
-        patch("managers.config.ConfigManager.set_server_properties"),
-        patch("managers.config.ConfigManager.set_client_properties"),
-        patch("managers.config.ConfigManager.set_environment"),
-        patch("managers.controller.ControllerManager.format_storages") as patched_format_storages,
-        patch("workload.KafkaWorkload.read", return_value=["gandalf=grey"]),
-        patch("workload.KafkaWorkload.disable_enable") as patched_disable_enable,
-        patch("workload.KafkaWorkload.start") as patched_start,
+        patch("single_kernel_kafka.workload.KafkaWorkloadMachine.active", return_value=True),
+        patch("single_kernel_kafka.events.broker.BrokerOperator.healthy", return_value=True),
+        patch("single_kernel_kafka.managers.config.ConfigManager.set_server_properties"),
+        patch("single_kernel_kafka.managers.config.ConfigManager.set_client_properties"),
+        patch("single_kernel_kafka.managers.config.ConfigManager.set_environment"),
+        patch(
+            "single_kernel_kafka.managers.controller.ControllerManager.format_storages"
+        ) as patched_format_storages,
+        patch(
+            "single_kernel_kafka.workload.KafkaWorkloadMachine.read", return_value=["gandalf=grey"]
+        ),
+        patch(
+            "single_kernel_kafka.workload.KafkaWorkloadMachine.disable_enable"
+        ) as patched_disable_enable,
+        patch("single_kernel_kafka.workload.KafkaWorkloadMachine.start") as patched_start,
         patch("ops.framework.EventBase.defer") as patched_defer,
     ):
         ctx.run(ctx.on.storage_attached(storage), state_in)
@@ -519,14 +543,19 @@ def test_config_changed_updates_server_properties(ctx: Context, base_state: Stat
     # When
     with (
         patch(
-            "managers.config.ConfigManager.server_properties",
+            "single_kernel_kafka.managers.config.ConfigManager.server_properties",
             new_callable=PropertyMock,
             return_value=["gandalf=white"],
         ),
-        patch("events.broker.BrokerOperator.healthy", return_value=True),
-        patch("workload.KafkaWorkload.read", return_value=["gandalf=grey"]),
-        patch("managers.config.ConfigManager.set_server_properties") as set_server_properties,
-        patch("managers.config.ConfigManager.set_client_properties"),
+        patch("single_kernel_kafka.events.broker.BrokerOperator.healthy", return_value=True),
+        patch(
+            f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.read",
+            return_value=["gandalf=grey"],
+        ),
+        patch(
+            "single_kernel_kafka.managers.config.ConfigManager.set_server_properties"
+        ) as set_server_properties,
+        patch("single_kernel_kafka.managers.config.ConfigManager.set_client_properties"),
         patch(
             "charms.rolling_ops.v0.rollingops.RollingOpsManager._on_run_with_lock", autospec=True
         ),
@@ -553,19 +582,22 @@ def test_config_changed_requests_new_certificate(
     # When
     with (
         patch(
-            "managers.config.ConfigManager.server_properties",
+            "single_kernel_kafka.managers.config.ConfigManager.server_properties",
             new_callable=PropertyMock,
             return_value=["gandalf=white"],
         ),
-        patch("events.broker.BrokerOperator.healthy", return_value=True),
-        patch("workload.KafkaWorkload.read", return_value=["gandalf=grey"]),
-        patch("managers.config.ConfigManager.set_client_properties"),
+        patch("single_kernel_kafka.events.broker.BrokerOperator.healthy", return_value=True),
         patch(
-            "managers.tls.TLSManager.get_current_sans",
+            f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.read",
+            return_value=["gandalf=grey"],
+        ),
+        patch("single_kernel_kafka.managers.config.ConfigManager.set_client_properties"),
+        patch(
+            "single_kernel_kafka.managers.tls.TLSManager.get_current_sans",
             return_value={"sans_ip": ["10.10.10.11"], "sans_dns": ["denethor"]},
         ),
         patch(
-            "managers.tls.TLSManager.build_sans",
+            "single_kernel_kafka.managers.tls.TLSManager.build_sans",
             return_value={"sans_ip": ["10.10.10.11"], "sans_dns": ["aragorn"]},
         ),
         patch(
@@ -598,19 +630,22 @@ def test_config_changed_does_not_request_new_certificate_for_slashes(
     # When
     with (
         patch(
-            "managers.config.ConfigManager.server_properties",
+            "single_kernel_kafka.managers.config.ConfigManager.server_properties",
             new_callable=PropertyMock,
             return_value=["gandalf=white"],
         ),
-        patch("events.broker.BrokerOperator.healthy", return_value=True),
-        patch("workload.KafkaWorkload.read", return_value=["gandalf=grey"]),
-        patch("managers.config.ConfigManager.set_client_properties"),
+        patch("single_kernel_kafka.events.broker.BrokerOperator.healthy", return_value=True),
         patch(
-            "managers.tls.TLSManager.get_current_sans",
+            f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.read",
+            return_value=["gandalf=grey"],
+        ),
+        patch("single_kernel_kafka.managers.config.ConfigManager.set_client_properties"),
+        patch(
+            "single_kernel_kafka.managers.tls.TLSManager.get_current_sans",
             return_value={"sans_ip": ["10.10.10.11"], "sans_dns": [CHARM_KEY]},
         ),
         patch(
-            "managers.tls.TLSManager.build_sans",
+            "single_kernel_kafka.managers.tls.TLSManager.build_sans",
             return_value={"sans_ip": ["10.10.10.11"], "sans_dns": [f"{CHARM_KEY}/0"]},
         ),
         patch(
@@ -637,19 +672,24 @@ def test_config_changed_updates_client_properties(ctx: Context, base_state: Stat
     # When
     with (
         patch(
-            "managers.config.ConfigManager.client_properties",
+            "single_kernel_kafka.managers.config.ConfigManager.client_properties",
             new_callable=PropertyMock,
             return_value=["gandalf=white"],
         ),
         patch(
-            "managers.config.ConfigManager.server_properties",
+            "single_kernel_kafka.managers.config.ConfigManager.server_properties",
             new_callable=PropertyMock,
             return_value=["sauron=bad"],
         ),
-        patch("events.broker.BrokerOperator.healthy", return_value=True),
-        patch("workload.KafkaWorkload.read", return_value=["gandalf=grey"]),
-        patch("managers.config.ConfigManager.set_server_properties"),
-        patch("managers.config.ConfigManager.set_client_properties") as set_client_properties,
+        patch("single_kernel_kafka.events.broker.BrokerOperator.healthy", return_value=True),
+        patch(
+            f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.read",
+            return_value=["gandalf=grey"],
+        ),
+        patch("single_kernel_kafka.managers.config.ConfigManager.set_server_properties"),
+        patch(
+            "single_kernel_kafka.managers.config.ConfigManager.set_client_properties"
+        ) as set_client_properties,
         patch(
             "charms.rolling_ops.v0.rollingops.RollingOpsManager._on_run_with_lock", autospec=True
         ),
@@ -671,15 +711,18 @@ def test_config_changed_updates_client_data(ctx: Context, base_state: State) -> 
     # When
     with (
         patch(
-            "managers.config.ConfigManager.server_properties",
+            "single_kernel_kafka.managers.config.ConfigManager.server_properties",
             new_callable=PropertyMock,
             return_value=["gandalf=white"],
         ),
-        patch("events.broker.BrokerOperator.healthy", return_value=True),
-        patch("workload.KafkaWorkload.read", return_value=["gandalf=white"]),
-        patch("events.provider.KafkaProvider.reconcile") as patched_reconcile,
+        patch("single_kernel_kafka.events.broker.BrokerOperator.healthy", return_value=True),
         patch(
-            "managers.config.ConfigManager.set_client_properties"
+            f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.read",
+            return_value=["gandalf=white"],
+        ),
+        patch("single_kernel_kafka.events.provider.KafkaProvider.reconcile") as patched_reconcile,
+        patch(
+            "single_kernel_kafka.managers.config.ConfigManager.set_client_properties"
         ) as patched_set_client_properties,
         patch(
             "charms.rolling_ops.v0.rollingops.RollingOpsManager._on_run_with_lock", autospec=True
@@ -701,14 +744,17 @@ def test_config_changed_restarts(ctx: Context, base_state: State) -> None:
 
     with (
         patch(
-            "managers.config.ConfigManager.server_properties",
+            "single_kernel_kafka.managers.config.ConfigManager.server_properties",
             new_callable=PropertyMock,
             return_value=["gandalf=grey"],
         ),
-        patch("events.broker.BrokerOperator.healthy", return_value=True),
-        patch("workload.KafkaWorkload.read", return_value=["gandalf=white"]),
-        patch("managers.auth.AuthManager.add_user"),
-        patch("managers.config.ConfigManager.set_server_properties"),
+        patch("single_kernel_kafka.events.broker.BrokerOperator.healthy", return_value=True),
+        patch(
+            f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.read",
+            return_value=["gandalf=white"],
+        ),
+        patch("single_kernel_kafka.managers.auth.AuthManager.add_user"),
+        patch("single_kernel_kafka.managers.config.ConfigManager.set_server_properties"),
         patch(
             "charms.rolling_ops.v0.rollingops.RollingOpsManager._on_run_with_lock", autospec=True
         ) as patched_restart_lib,

@@ -73,15 +73,21 @@ def _build_retry_command(args_str: str) -> str:
             description = tokens[i + 1]
             i += 2
         elif tokens[i] == "--":
-            command_parts = tokens[i + 1:]
+            command_parts = tokens[i + 1 :]
             break
         else:
             i += 1
 
-    parts = ["retry_until_success", "--timeout", str(timeout),
-             "--interval", str(interval),
-             "--description", shlex.quote(description),
-             "--"]
+    parts = [
+        "retry_until_success",
+        "--timeout",
+        str(timeout),
+        "--interval",
+        str(interval),
+        "--description",
+        shlex.quote(description),
+        "--",
+    ]
     parts.extend(shlex.quote(p) for p in command_parts)
     return " ".join(parts)
 
@@ -266,7 +272,10 @@ class _ParseState:
 
 
 def _handle_run_with_timeout(
-    lines: list[str], i: int, blocks: list[str], state: _ParseState,
+    lines: list[str],
+    i: int,
+    blocks: list[str],
+    state: _ParseState,
 ) -> int:
     match = _RUN_WITH_TIMEOUT_PATTERN.match(lines[i].strip())
     state.run_with_timeout_seconds = int(match.group(1))  # type: ignore[union-attr]
@@ -274,7 +283,10 @@ def _handle_run_with_timeout(
 
 
 def _handle_set_variables(
-    lines: list[str], i: int, blocks: list[str], state: _ParseState,
+    lines: list[str],
+    i: int,
+    blocks: list[str],
+    state: _ParseState,
 ) -> int:
     snippet, substitutions, next_i = _parse_set_variables_block(lines, i)
     if snippet:
@@ -284,7 +296,10 @@ def _handle_set_variables(
 
 
 def _handle_spread_meta(
-    lines: list[str], i: int, blocks: list[str], state: _ParseState,
+    lines: list[str],
+    i: int,
+    blocks: list[str],
+    state: _ParseState,
 ) -> int:
     j = i
     while j < len(lines) and "-->" not in lines[j]:
@@ -293,7 +308,10 @@ def _handle_spread_meta(
 
 
 def _handle_assert(
-    lines: list[str], i: int, blocks: list[str], state: _ParseState,
+    lines: list[str],
+    i: int,
+    blocks: list[str],
+    state: _ParseState,
 ) -> int:
     snippet, next_i = _parse_run_hidden_block(lines, i, state.active_substitutions)
     if snippet:
@@ -302,7 +320,10 @@ def _handle_assert(
 
 
 def _handle_run_hidden(
-    lines: list[str], i: int, blocks: list[str], state: _ParseState,
+    lines: list[str],
+    i: int,
+    blocks: list[str],
+    state: _ParseState,
 ) -> int:
     snippet, next_i = _parse_run_hidden_block(lines, i, state.active_substitutions)
     if snippet:
@@ -311,11 +332,18 @@ def _handle_run_hidden(
 
 
 def _handle_shell_open(
-    lines: list[str], i: int, blocks: list[str], state: _ParseState,
+    lines: list[str],
+    i: int,
+    blocks: list[str],
+    state: _ParseState,
 ) -> int:
     next_i = _collect_shell_block(
-        lines, i + 1, state.skip_next, state.run_with_timeout_seconds,
-        state.active_substitutions, blocks,
+        lines,
+        i + 1,
+        state.skip_next,
+        state.run_with_timeout_seconds,
+        state.active_substitutions,
+        blocks,
     )
     state.skip_next = False
     state.run_with_timeout_seconds = None

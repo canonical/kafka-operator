@@ -9,23 +9,20 @@ from subprocess import CalledProcessError
 
 import pytest
 from pytest_operator.plugin import OpsTest
+from single_kernel_kafka.core.literals import (
+    INTERNAL_TLS_RELATION,
+    PEER_CLUSTER_ORCHESTRATOR_RELATION,
+    PEER_CLUSTER_RELATION,
+)
 from tenacity import Retrying, stop_after_attempt, wait_fixed
 
-from integration.helpers import TLS_CHANNEL, TLS_NAME
+from integration.helpers import APP_NAME, CONTROLLER_NAME, SERIES, TLS_CHANNEL, TLS_NAME
 from integration.helpers.pytest_operator import (
-    APP_NAME,
-    CONTROLLER_NAME,
-    SERIES,
     balancer_exporter_is_up,
     balancer_is_ready,
     balancer_is_running,
     balancer_is_secure,
     get_replica_count_by_broker_id,
-)
-from literals import (
-    INTERNAL_TLS_RELATION,
-    PEER_CLUSTER_ORCHESTRATOR_RELATION,
-    PEER_CLUSTER_RELATION,
 )
 
 logger = logging.getLogger(__name__)
@@ -63,9 +60,9 @@ class TestBalancer:
                 series=SERIES,
                 trust=True,
                 config={
-                    "roles": "controller"
-                    if self.balancer_app == APP_NAME
-                    else "controller,balancer",
+                    "roles": (
+                        "controller" if self.balancer_app == APP_NAME else "controller,balancer"
+                    ),
                     "profile": "testing",
                 },
             ),

@@ -7,16 +7,15 @@ import logging
 
 import pytest
 from pytest_operator.plugin import OpsTest
+from single_kernel_kafka.core.literals import INTER_BROKER_USER
 
+from integration.helpers import APP_NAME, SERIES
 from integration.helpers.pytest_operator import (
-    APP_NAME,
     AUTH_SECRET_NAME,
-    SERIES,
     deploy_cluster,
     get_user,
     set_password,
 )
-from literals import INTER_BROKER_USER
 
 logger = logging.getLogger(__name__)
 

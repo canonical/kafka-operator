@@ -5,17 +5,11 @@
 import dataclasses
 import json
 import logging
-from pathlib import Path
 from typing import cast
 from unittest.mock import PropertyMock, mock_open, patch
 
 import pytest
-import yaml
-from ops import CharmMeta
-from ops.testing import Container, Context, PeerRelation, Relation, Secret, State, Storage
-
-from charm import KafkaCharm
-from literals import (
+from common.single_kernel_kafka.core.literals import (
     ADMIN_USER,
     CONTAINER,
     INTER_BROKER_USER,
@@ -28,19 +22,16 @@ from literals import (
     PEER,
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
     REL_NAME,
-    SUBSTRATE,
     TLS_RELATION,
 )
+from ops import CharmMeta
+from ops.testing import Container, Context, PeerRelation, Relation, Secret, State, Storage
+from tests.unit.helpers import ACTIONS, CONFIG, METADATA, SUBSTRATE, KafkaCharm
 
 pytestmark = pytest.mark.broker
 
 
 logger = logging.getLogger(__name__)
-
-
-CONFIG = yaml.safe_load(Path("./config.yaml").read_text())
-ACTIONS = yaml.safe_load(Path("./actions.yaml").read_text())
-METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 
 
 @pytest.fixture()
@@ -169,21 +160,21 @@ def test_listeners_in_server_properties(charm_configuration: dict, base_state: S
     if SUBSTRATE == "k8s":
         expected_listeners += [f"EXTERNAL_{sasl_pm}://0.0.0.0:29092"]
         expected_advertised_listeners += [
-            f"EXTERNAL_{sasl_pm}://1234:20000"  # values for nodeip:nodeport in conftest
+            f"EXTERNAL_{sasl_pm}://10.30.30.10:20000"  # values for nodeip:nodeport in conftest
         ]
 
     # When
     with (
         patch(
-            "core.models.KafkaCluster.internal_user_credentials",
+            "single_kernel_kafka.core.models.KafkaCluster.internal_user_credentials",
             new_callable=PropertyMock,
             return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
         ),
         patch(
-            "managers.k8s.K8sManager._get_service",
+            "single_kernel_kafka.managers.k8s.K8sManager._get_service",
         ),
         patch(
-            "managers.k8s.K8sManager.get_node_port",
+            "single_kernel_kafka.managers.k8s.K8sManager.get_node_port",
         ),
         ctx(ctx.on.config_changed(), state_in) as manager,
     ):
@@ -392,7 +383,7 @@ def test_ssl_listeners_in_server_properties(ctx: Context, base_state: State, pat
     # When
     with (
         patch(
-            "core.models.KafkaCluster.internal_user_credentials",
+            "single_kernel_kafka.core.models.KafkaCluster.internal_user_credentials",
             new_callable=PropertyMock,
             return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
         ),
@@ -485,7 +476,7 @@ def test_set_environment(ctx: Context, base_state: State) -> None:
 
     # When
     with (
-        patch("workload.KafkaWorkload.write") as patched_write,
+        patch("single_kernel_kafka.workload.KafkaWorkloadMachine.write") as patched_write,
         patch("builtins.open", mock_open()),
         patch("shutil.chown"),
         ctx(ctx.on.config_changed(), state_in) as manager,
@@ -523,8 +514,21 @@ def test_bootstrap_server(ctx: Context, base_state: State) -> None:
         bootstrap_servers_internal = charm.state.bootstrap_server_internal
         bootstrap_servers_client = charm.state.bootstrap_server_client(client_rel)
         assert bootstrap_servers_client != bootstrap_servers_internal
-        assert set(bootstrap_servers_client.split(",")) == {"draebeert:9092", "bolehs:9092"}
-        assert set(bootstrap_servers_internal.split(",")) == {"treebeard:19093", "shelob:19093"}
+        if SUBSTRATE == "vm":
+            assert set(bootstrap_servers_client.split(",")) == {"draebeert:9092", "bolehs:9092"}
+            assert set(bootstrap_servers_internal.split(",")) == {
+                "treebeard:19093",
+                "shelob:19093",
+            }
+        else:
+            assert set(bootstrap_servers_client.split(",")) == {
+                "kafka-k8s-0.kafka-k8s-endpoints:9092",
+                "kafka-k8s-1.kafka-k8s-endpoints:9092",
+            }
+            assert set(bootstrap_servers_internal.split(",")) == {
+                "kafka-k8s-0.kafka-k8s-endpoints:19093",
+                "kafka-k8s-1.kafka-k8s-endpoints:19093",
+            }
 
 
 def test_default_replication_properties_less_than_three(ctx: Context, base_state: State) -> None:
@@ -583,7 +587,7 @@ def test_ssl_principal_mapping_rules(charm_configuration: dict, base_state: Stat
     # Given
     with (
         patch(
-            "core.models.KafkaCluster.internal_user_credentials",
+            "single_kernel_kafka.core.models.KafkaCluster.internal_user_credentials",
             new_callable=PropertyMock,
             return_value={INTER_BROKER_USER: "fangorn", ADMIN_USER: "forest"},
         ),
@@ -607,7 +611,7 @@ def test_rack_properties(ctx: Context, base_state: State) -> None:
     # When
     with (
         patch(
-            "managers.config.ConfigManager.rack_properties",
+            "single_kernel_kafka.managers.config.ConfigManager.rack_properties",
             new_callable=PropertyMock,
             return_value=["broker.rack=gondor-west"],
         ),

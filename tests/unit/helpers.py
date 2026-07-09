@@ -2,8 +2,11 @@
 # Copyright 2025 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import os
 from dataclasses import dataclass
+from pathlib import Path
 
+import yaml
 from charms.tls_certificates_interface.v3.tls_certificates import (
     generate_ca,
     generate_certificate,
@@ -11,6 +14,20 @@ from charms.tls_certificates_interface.v3.tls_certificates import (
     generate_private_key,
 )
 from cryptography import x509
+
+SUBSTRATE = os.environ.get("SUBSTRATE", "vm")
+SUBSTRATE_CLS = "Machine" if SUBSTRATE == "vm" else "K8s"
+CONFIG = yaml.safe_load(Path(f"./{SUBSTRATE_CLS.lower()}/config.yaml").read_text())
+ACTIONS = yaml.safe_load(Path(f"./{SUBSTRATE_CLS.lower()}/actions.yaml").read_text())
+METADATA = yaml.safe_load(Path(f"./{SUBSTRATE_CLS.lower()}/metadata.yaml").read_text())
+
+if SUBSTRATE == "vm":
+    from machine.src.charm import KafkaCharm
+else:
+    from k8s.src.charm import KafkaCharm
+
+
+_charm_cls = KafkaCharm
 
 
 @dataclass

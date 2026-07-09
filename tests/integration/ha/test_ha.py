@@ -8,6 +8,7 @@ import time
 import jubilant
 import pytest
 from flaky import flaky
+from single_kernel_kafka.core.literals import SECURITY_PROTOCOL_PORTS
 
 from integration.ha.continuous_writes import ContinuousWrites
 from integration.helpers import (
@@ -44,7 +45,6 @@ from integration.helpers.jubilant import (
     kraft_quorum_status,
     produce_and_check_logs,
 )
-from literals import SECURITY_PROTOCOL_PORTS
 
 logger = logging.getLogger(__name__)
 

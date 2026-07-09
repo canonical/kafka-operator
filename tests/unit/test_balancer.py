@@ -6,35 +6,33 @@ import dataclasses
 import json
 import logging
 import re
-from pathlib import Path
 from typing import cast
 from unittest.mock import PropertyMock, patch
 
 import pytest
-import yaml
-from ops import ActiveStatus
-from ops.testing import ActionFailed, Container, Context, PeerRelation, State
-from tests.unit.helpers import generate_tls_artifacts
-
-from charm import KafkaCharm
-from literals import (
+from common.single_kernel_kafka.core.literals import (
     BALANCER_TOPICS,
     BALANCER_WEBSERVER_USER,
     CONTAINER,
     PEER,
-    SUBSTRATE,
     Status,
 )
-from managers.balancer import CruiseControlClient
+from common.single_kernel_kafka.managers.balancer import CruiseControlClient
+from ops import ActiveStatus
+from ops.testing import ActionFailed, Container, Context, PeerRelation, State
+from tests.unit.helpers import (
+    ACTIONS,
+    CONFIG,
+    METADATA,
+    SUBSTRATE,
+    SUBSTRATE_CLS,
+    KafkaCharm,
+    generate_tls_artifacts,
+)
 
 pytestmark = pytest.mark.balancer
 
 logger = logging.getLogger(__name__)
-
-
-CONFIG = yaml.safe_load(Path("./config.yaml").read_text())
-ACTIONS = yaml.safe_load(Path("./actions.yaml").read_text())
-METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 
 
 @pytest.fixture()
@@ -95,15 +93,18 @@ def test_install_blocks_snap_install_failure(
     state_in = base_state
 
     # When
-    with patch("workload.Workload.install", return_value=False), patch("workload.Workload.write"):
+    with (
+        patch(f"single_kernel_kafka.workload.Workload{SUBSTRATE_CLS}.install", return_value=False),
+        patch(f"single_kernel_kafka.workload.Workload{SUBSTRATE_CLS}.write"),
+    ):
         state_out = ctx.run(ctx.on.install(), state_in)
 
     # Then
     assert state_out.unit_status == Status.SNAP_NOT_INSTALLED.value.status
 
 
-@patch("workload.Workload.restart")
-@patch("workload.Workload.start")
+@patch(f"single_kernel_kafka.workload.Workload{SUBSTRATE_CLS}.restart")
+@patch(f"single_kernel_kafka.workload.Workload{SUBSTRATE_CLS}.start")
 def test_stop_workload_if_not_leader(
     patched_start, patched_restart, ctx_balancer_only: Context, base_state: State
 ) -> None:
@@ -126,8 +127,13 @@ def test_stop_workload_if_role_not_present(ctx_balancer_only: Context, base_stat
 
     # When
     with (
-        patch("workload.BalancerWorkload.active", return_value=True),
-        patch("workload.BalancerWorkload.stop") as patched_stopped,
+        patch(
+            f"single_kernel_kafka.workload.BalancerWorkload{SUBSTRATE_CLS}.active",
+            return_value=True,
+        ),
+        patch(
+            f"single_kernel_kafka.workload.BalancerWorkload{SUBSTRATE_CLS}.stop"
+        ) as patched_stopped,
     ):
         ctx.run(ctx.on.config_changed(), state_in)
 
@@ -216,53 +222,62 @@ def test_ready_to_start_ok(
 
     # When
     with (
-        patch("managers.balancer.BalancerManager.get_partition_assignment", return_value={}),
-        patch("workload.BalancerWorkload.write") as patched_writer,
         patch(
-            "core.cluster.ClusterState.broker_capacities",
+            "single_kernel_kafka.managers.balancer.BalancerManager.get_partition_assignment",
+            return_value={},
+        ),
+        patch(
+            f"single_kernel_kafka.workload.BalancerWorkload{SUBSTRATE_CLS}.write"
+        ) as patched_writer,
+        patch(
+            "single_kernel_kafka.core.cluster.ClusterState.broker_capacities",
             new_callable=PropertyMock,
             return_value={"brokerCapacities": [{}, {}, {}]},
         ),
         patch(
-            "managers.balancer.BalancerManager.config_change_detected",
+            "single_kernel_kafka.managers.balancer.BalancerManager.config_change_detected",
             return_value=False,
         ),
         patch(
-            "core.cluster.ClusterState.broker_capacities",
+            "single_kernel_kafka.core.cluster.ClusterState.broker_capacities",
             new_callable=PropertyMock,
             return_value={"brokerCapacities": [{}, {}, {}]},
         ),
-        patch("workload.KafkaWorkload.read"),
-        patch("workload.BalancerWorkload.exec"),
-        patch("workload.BalancerWorkload.restart"),
-        patch("workload.KafkaWorkload.start"),
-        patch("workload.BalancerWorkload.active", return_value=True),
-        patch("workload.KafkaWorkload.active", return_value=True),
+        patch(f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.read"),
+        patch(f"single_kernel_kafka.workload.BalancerWorkload{SUBSTRATE_CLS}.restart"),
+        patch(f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.start"),
         patch(
-            "core.models.PeerCluster.broker_connected",
+            f"single_kernel_kafka.workload.BalancerWorkload{SUBSTRATE_CLS}.active",
+            return_value=True,
+        ),
+        patch(
+            f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.active", return_value=True
+        ),
+        patch(
+            "single_kernel_kafka.core.models.PeerCluster.broker_connected",
             new_callable=PropertyMock,
             return_value=True,
         ),
         patch(
-            "managers.config.ConfigManager.server_properties",
+            "single_kernel_kafka.managers.config.ConfigManager.server_properties",
             new_callable=PropertyMock,
             return_value=[],
         ),
         patch(
-            "managers.config.BalancerConfigManager.cruise_control_properties",
+            "single_kernel_kafka.managers.config.BalancerConfigManager.cruise_control_properties",
             new_callable=PropertyMock,
             return_value=[],
         ),
         patch(
-            "managers.tls.TLSManager.build_sans",
+            "single_kernel_kafka.managers.tls.TLSManager.build_sans",
             return_value={"sans_ip": ["10.10.10.10"], "sans_dns": ["dns"]},
         ),
         patch(
-            "managers.tls.TLSManager.get_current_sans",
+            "single_kernel_kafka.managers.tls.TLSManager.get_current_sans",
             return_value={"sans_ip": ["10.10.10.10"], "sans_dns": ["dns"]},
         ),
-        patch("managers.tls.TLSManager.configure"),
-        patch("health.KafkaHealth.machine_configured", return_value=True),
+        patch("single_kernel_kafka.managers.tls.TLSManager.configure"),
+        patch("single_kernel_kafka.health.KafkaHealth.machine_configured", return_value=True),
         patch("charms.operator_libs_linux.v2.snap.SnapCache"),  # specific VM, works fine on k8s
     ):
         state_out = ctx.run(ctx.on.start(), state_in)
@@ -277,7 +292,7 @@ def test_ready_to_start_ok(
 
 
 def test_client_get_args(client: CruiseControlClient):
-    with patch("managers.balancer.requests.get") as patched_get:
+    with patch("single_kernel_kafka.managers.balancer.requests.get") as patched_get:
         client.get("silmaril")
 
         _, kwargs = patched_get.call_args
@@ -290,7 +305,7 @@ def test_client_get_args(client: CruiseControlClient):
 
 
 def test_client_post_args(client: CruiseControlClient):
-    with patch("managers.balancer.requests.post") as patched_post:
+    with patch("single_kernel_kafka.managers.balancer.requests.post") as patched_post:
         client.post("silmaril")
 
         _, kwargs = patched_post.call_args
@@ -305,7 +320,9 @@ def test_client_post_args(client: CruiseControlClient):
 
 
 def test_client_get_task_status(client: CruiseControlClient, user_tasks: dict):
-    with patch("managers.balancer.requests.get", return_value=MockResponse(user_tasks)):
+    with patch(
+        "single_kernel_kafka.managers.balancer.requests.get", return_value=MockResponse(user_tasks)
+    ):
         assert (
             client.get_task_status(user_task_id="e4256bcb-93f7-4290-ab11-804a665bf011")
             == "Completed"
@@ -313,23 +330,32 @@ def test_client_get_task_status(client: CruiseControlClient, user_tasks: dict):
 
 
 def test_client_monitoring(client: CruiseControlClient, state: dict):
-    with patch("managers.balancer.requests.get", return_value=MockResponse(state)):
+    with patch(
+        "single_kernel_kafka.managers.balancer.requests.get", return_value=MockResponse(state)
+    ):
         assert client.monitoring
 
 
 def test_client_executing(client: CruiseControlClient, state: dict):
-    with patch("managers.balancer.requests.get", return_value=MockResponse(state)):
+    with patch(
+        "single_kernel_kafka.managers.balancer.requests.get", return_value=MockResponse(state)
+    ):
         assert not client.executing
 
 
 def test_client_ready(client: CruiseControlClient, state: dict):
-    with patch("managers.balancer.requests.get", return_value=MockResponse(state)):
+    with patch(
+        "single_kernel_kafka.managers.balancer.requests.get", return_value=MockResponse(state)
+    ):
         assert client.ready
 
     not_ready_state = state
     not_ready_state["MonitorState"]["numMonitoredWindows"] = 0  # aka not ready
 
-    with patch("managers.balancer.requests.get", return_value=MockResponse(not_ready_state)):
+    with patch(
+        "single_kernel_kafka.managers.balancer.requests.get",
+        return_value=MockResponse(not_ready_state),
+    ):
         assert not client.ready
 
 
@@ -342,9 +368,13 @@ def test_balancer_manager_create_internal_topics(
 
     # When
     with (
-        patch("core.models.PeerCluster.broker_uris", new_callable=PropertyMock, return_value=""),
         patch(
-            "workload.BalancerWorkload.run_bin_command",
+            "single_kernel_kafka.core.models.PeerCluster.broker_uris",
+            new_callable=PropertyMock,
+            return_value="",
+        ),
+        patch(
+            f"single_kernel_kafka.workload.BalancerWorkload{SUBSTRATE_CLS}.run_bin_command",
             new_callable=None,
             return_value=BALANCER_TOPICS[0],  # pretend it exists already
         ) as patched_run,
@@ -397,32 +427,32 @@ def test_balancer_manager_rebalance_full(
     # When
     with (
         patch(
-            "core.cluster.ClusterState.runs_balancer",
+            "single_kernel_kafka.core.cluster.ClusterState.runs_balancer",
             new_callable=PropertyMock,
             return_value=balancer,
         ),
         patch(
-            "managers.balancer.CruiseControlClient.monitoring",
+            "single_kernel_kafka.managers.balancer.CruiseControlClient.monitoring",
             new_callable=PropertyMock,
             return_value=monitoring,
         ),
         patch(
-            "managers.balancer.CruiseControlClient.executing",
+            "single_kernel_kafka.managers.balancer.CruiseControlClient.executing",
             new_callable=PropertyMock,
             return_value=not executing,
         ),
         patch(
-            "managers.balancer.CruiseControlClient.ready",
+            "single_kernel_kafka.managers.balancer.CruiseControlClient.ready",
             new_callable=PropertyMock,
             return_value=ready,
         ),
         patch(
-            "managers.balancer.BalancerManager.rebalance",
+            "single_kernel_kafka.managers.balancer.BalancerManager.rebalance",
             new_callable=None,
             return_value=(MockResponse(content=proposal, status_code=status), "foo"),
         ),
         patch(
-            "managers.balancer.BalancerManager.wait_for_task",
+            "single_kernel_kafka.managers.balancer.BalancerManager.wait_for_task",
             new_callable=None,
         ) as patched_wait_for_task,
     ):
@@ -454,27 +484,27 @@ def test_rebalance_add_remove_broker_id_length(
     # When
     with (
         patch(
-            "managers.balancer.CruiseControlClient.monitoring",
+            "single_kernel_kafka.managers.balancer.CruiseControlClient.monitoring",
             new_callable=PropertyMock,
             return_value=True,
         ),
         patch(
-            "managers.balancer.CruiseControlClient.executing",
+            "single_kernel_kafka.managers.balancer.CruiseControlClient.executing",
             new_callable=PropertyMock,
             return_value=not True,
         ),
         patch(
-            "managers.balancer.CruiseControlClient.ready",
+            "single_kernel_kafka.managers.balancer.CruiseControlClient.ready",
             new_callable=PropertyMock,
             return_value=True,
         ),
         patch(
-            "managers.balancer.BalancerManager.rebalance",
+            "single_kernel_kafka.managers.balancer.BalancerManager.rebalance",
             new_callable=None,
             return_value=(MockResponse(content=proposal, status_code=200), "foo"),
         ),
         patch(
-            "managers.balancer.BalancerManager.wait_for_task",
+            "single_kernel_kafka.managers.balancer.BalancerManager.wait_for_task",
             new_callable=None,
         ) as patched_wait_for_task,
     ):
@@ -501,17 +531,17 @@ def test_rebalance_broker_id_not_found(
     # When
     with (
         patch(
-            "managers.balancer.CruiseControlClient.monitoring",
+            "single_kernel_kafka.managers.balancer.CruiseControlClient.monitoring",
             new_callable=PropertyMock,
             return_value=True,
         ),
         patch(
-            "managers.balancer.CruiseControlClient.executing",
+            "single_kernel_kafka.managers.balancer.CruiseControlClient.executing",
             new_callable=PropertyMock,
             return_value=not True,
         ),
         patch(
-            "managers.balancer.CruiseControlClient.ready",
+            "single_kernel_kafka.managers.balancer.CruiseControlClient.ready",
             new_callable=PropertyMock,
             return_value=True,
         ),

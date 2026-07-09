@@ -11,18 +11,17 @@ from typing import Any, Literal, Mapping
 
 import jubilant
 import yaml
-from charms.kafka.v0.client import KafkaClient
 from kafka.admin import NewTopic
-from tenacity import retry
-from tenacity.stop import stop_after_attempt
-from tenacity.wait import wait_fixed
-
-from literals import (
+from single_kernel_kafka.core.literals import (
     PATHS,
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
     PEER_CLUSTER_RELATION,
 )
-from managers.balancer import BalancerManager
+from single_kernel_kafka.lib.v0.client import KafkaClient
+from single_kernel_kafka.managers.balancer import BalancerManager
+from tenacity import retry
+from tenacity.stop import stop_after_attempt
+from tenacity.wait import wait_fixed
 
 from . import (
     APP_NAME,

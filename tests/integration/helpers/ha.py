@@ -9,13 +9,13 @@ from dataclasses import dataclass
 from subprocess import PIPE, CalledProcessError, check_output
 
 import jubilant
+from single_kernel_kafka.core.literals import KRAFT_NODE_ID_OFFSET, PATHS, SECURITY_PROTOCOL_PORTS
 from tenacity import RetryError, Retrying, retry, retry_if_result, stop_after_attempt, wait_fixed
 
 from integration.ha.continuous_writes import ContinuousWritesResult
 from integration.helpers import APP_NAME, CONTROLLER_NAME, KRaftMode
 from integration.helpers.jubilant import KRaftUnitStatus, all_active_idle, kraft_quorum_status
 from integration.helpers.pytest_operator import check_socket, get_unit_ipv4_address
-from literals import KRAFT_NODE_ID_OFFSET, PATHS, SECURITY_PROTOCOL_PORTS
 
 CONTROLLER_PORT = SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].controller
 BROKER_PORT = SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client

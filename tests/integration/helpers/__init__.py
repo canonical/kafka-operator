@@ -12,10 +12,9 @@ from subprocess import PIPE, CalledProcessError, check_output
 from typing import Literal
 
 import yaml
+from single_kernel_kafka.core.literals import KRAFT_NODE_ID_OFFSET
 
-from literals import KRAFT_NODE_ID_OFFSET
-
-METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
+METADATA = yaml.safe_load(Path("./machine/metadata.yaml").read_text())
 APP_NAME = METADATA["name"]
 SERIES = "noble"
 CONTROLLER_NAME = "controller"
@@ -63,14 +62,12 @@ def _run_script(script: str) -> None:
 def deploy_identity_platform(git_tag: str = "v1.0.0") -> None:
     """Deploy the Canonical Identity Platform Terraform bundle."""
     home = os.environ.get("HOME", "/tmp")
-    _run_script(
-        f"""
+    _run_script(f"""
         mkdir {home}/iam-bundle
         git clone --branch {git_tag} https://github.com/canonical/iam-bundle-integration.git {home}/iam-bundle
         terraform -chdir={home}/iam-bundle/examples/tutorial init
         terraform -chdir={home}/iam-bundle/examples/tutorial apply -auto-approve
-    """
-    )
+    """)
 
 
 def get_controller_name(cloud: Literal["localhost", "microk8s"]) -> str | None:

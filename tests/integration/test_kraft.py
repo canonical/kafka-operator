@@ -9,24 +9,7 @@ from itertools import product
 
 import pytest
 from pytest_operator.plugin import OpsTest
-
-from integration.ha.continuous_writes import ContinuousWrites
-from integration.helpers import TLS_CHANNEL, TLS_NAME
-from integration.helpers.ha import assert_continuous_writes_consistency
-from integration.helpers.pytest_operator import (
-    APP_NAME,
-    DUMMY_NAME,
-    REL_NAME_ADMIN,
-    SERIES,
-    KRaftMode,
-    check_socket,
-    create_test_topic,
-    get_address,
-    kraft_quorum_status,
-    list_truststore_aliases,
-    search_secrets,
-)
-from literals import (
+from single_kernel_kafka.core.literals import (
     INTERNAL_TLS_RELATION,
     KRAFT_NODE_ID_OFFSET,
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
@@ -34,6 +17,19 @@ from literals import (
     SECURITY_PROTOCOL_PORTS,
     AuthMap,
     KRaftUnitStatus,
+)
+
+from integration.ha.continuous_writes import ContinuousWrites
+from integration.helpers import APP_NAME, DUMMY_NAME, REL_NAME_ADMIN, SERIES, TLS_CHANNEL, TLS_NAME
+from integration.helpers.ha import assert_continuous_writes_consistency
+from integration.helpers.pytest_operator import (
+    KRaftMode,
+    check_socket,
+    create_test_topic,
+    get_address,
+    kraft_quorum_status,
+    list_truststore_aliases,
+    search_secrets,
 )
 
 logger = logging.getLogger(__name__)

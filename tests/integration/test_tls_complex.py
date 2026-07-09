@@ -2,6 +2,11 @@ import logging
 
 import jubilant
 import pytest
+from single_kernel_kafka.core.literals import (
+    INTERNAL_TLS_RELATION,
+    SECURITY_PROTOCOL_PORTS,
+    TLS_RELATION,
+)
 
 from integration.ha.continuous_writes import ContinuousWrites
 from integration.helpers import (
@@ -24,7 +29,6 @@ from integration.helpers.jubilant import (
     all_active_idle,
     deploy_cluster,
 )
-from literals import INTERNAL_TLS_RELATION, SECURITY_PROTOCOL_PORTS, TLS_RELATION
 
 logger = logging.getLogger(__name__)
 

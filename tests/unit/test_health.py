@@ -4,21 +4,17 @@
 
 import json
 import logging
-from pathlib import Path
 from typing import cast
 from unittest.mock import mock_open, patch
 
 import pytest
-import yaml
-from ops.testing import Container, Context, State
-
-from charm import KafkaCharm
-from literals import (
+from common.single_kernel_kafka.core.literals import (
     CONTAINER,
     JVM_MEM_MAX_GB,
     JVM_MEM_MIN_GB,
-    SUBSTRATE,
 )
+from ops.testing import Container, Context, State
+from tests.unit.helpers import ACTIONS, CONFIG, METADATA, SUBSTRATE, KafkaCharm
 
 pytestmark = [
     pytest.mark.broker,
@@ -27,11 +23,6 @@ pytestmark = [
 
 
 logger = logging.getLogger(__name__)
-
-
-CONFIG = yaml.safe_load(Path("./config.yaml").read_text())
-ACTIONS = yaml.safe_load(Path("./actions.yaml").read_text())
-METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 
 
 @pytest.fixture()
@@ -83,10 +74,10 @@ def test_check_vm_swappiness(ctx: Context, base_state: State) -> None:
 
     # When
     with (
-        patch("health.KafkaHealth._get_vm_swappiness", return_value=5),
-        patch("health.KafkaHealth._check_file_descriptors", return_value=True),
-        patch("health.KafkaHealth._check_memory_maps", return_value=True),
-        patch("health.KafkaHealth._check_total_memory", return_value=True),
+        patch("single_kernel_kafka.health.KafkaHealth._get_vm_swappiness", return_value=5),
+        patch("single_kernel_kafka.health.KafkaHealth._check_file_descriptors", return_value=True),
+        patch("single_kernel_kafka.health.KafkaHealth._check_memory_maps", return_value=True),
+        patch("single_kernel_kafka.health.KafkaHealth._check_total_memory", return_value=True),
         ctx(ctx.on.config_changed(), state_in) as manager,
     ):
         charm = cast(KafkaCharm, manager.charm)
@@ -112,7 +103,10 @@ def test_check_total_memory_testing_profile(
 
     # When
     with (
-        patch("workload.KafkaWorkload.read", return_value=[f"MemTotal:      {total_mem_kb} kB"]),
+        patch(
+            "single_kernel_kafka.workload.KafkaWorkloadMachine.read",
+            return_value=[f"MemTotal:      {total_mem_kb} kB"],
+        ),
         ctx(ctx.on.config_changed(), state_in) as manager,
     ):
         charm = cast(KafkaCharm, manager.charm)
@@ -131,7 +125,10 @@ def test_get_partitions_size(ctx: Context, base_state: State) -> None:
 
     # When
     with (
-        patch("workload.KafkaWorkload.run_bin_command", return_value=example_log_dirs),
+        patch(
+            "single_kernel_kafka.workload.KafkaWorkloadMachine.run_bin_command",
+            return_value=example_log_dirs,
+        ),
         ctx(ctx.on.config_changed(), state_in) as manager,
     ):
         charm = cast(KafkaCharm, manager.charm)
@@ -146,7 +143,9 @@ def test_check_file_descriptors_no_listeners(ctx: Context, base_state: State) ->
 
     # When
     with (
-        patch("workload.KafkaWorkload.run_bin_command") as patched_run_bin,
+        patch(
+            "single_kernel_kafka.workload.KafkaWorkloadMachine.run_bin_command"
+        ) as patched_run_bin,
         ctx(ctx.on.config_changed(), state_in) as manager,
     ):
         charm = cast(KafkaCharm, manager.charm)
@@ -169,10 +168,10 @@ def test_machine_configured_succeeds_and_fails(
 
     # When
     with (
-        patch("health.KafkaHealth._check_memory_maps", return_value=mmap),
-        patch("health.KafkaHealth._check_file_descriptors", return_value=fd),
-        patch("health.KafkaHealth._check_vm_swappiness", return_value=swap),
-        patch("health.KafkaHealth._check_total_memory", return_value=mem),
+        patch("single_kernel_kafka.health.KafkaHealth._check_memory_maps", return_value=mmap),
+        patch("single_kernel_kafka.health.KafkaHealth._check_file_descriptors", return_value=fd),
+        patch("single_kernel_kafka.health.KafkaHealth._check_vm_swappiness", return_value=swap),
+        patch("single_kernel_kafka.health.KafkaHealth._check_total_memory", return_value=mem),
         ctx(ctx.on.config_changed(), state_in) as manager,
     ):
         charm = cast(KafkaCharm, manager.charm)

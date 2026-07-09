@@ -11,10 +11,10 @@ from dataclasses import dataclass
 from multiprocessing import Event, Process, Queue
 from types import SimpleNamespace
 
-from charms.kafka.v0.client import KafkaClient
 from kafka.admin import NewTopic
 from kafka.consumer.fetcher import ConsumerRecord
 from kafka.errors import KafkaError, TopicAlreadyExistsError
+from single_kernel_kafka.lib.v0.client import KafkaClient
 from tenacity import (
     RetryError,
     Retrying,

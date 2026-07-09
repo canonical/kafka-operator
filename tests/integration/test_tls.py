@@ -12,13 +12,24 @@ import kafka
 import pytest
 from charms.tls_certificates_interface.v4.tls_certificates import PrivateKey, generate_private_key
 from pytest_operator.plugin import OpsTest
+from single_kernel_kafka.core.literals import (
+    CERTIFICATE_TRANSFER_RELATION,
+    REL_NAME,
+    SECURITY_PROTOCOL_PORTS,
+    TLS_RELATION,
+)
 from tenacity import Retrying, stop_after_attempt, wait_fixed
 
-from integration.helpers import TLS_CHANNEL, TLS_NAME, sign_manual_certs
-from integration.helpers.pytest_operator import (
+from integration.helpers import (
     APP_NAME,
+    DUMMY_NAME,
     REL_NAME_PRODUCER,
     SERIES,
+    TLS_CHANNEL,
+    TLS_NAME,
+    sign_manual_certs,
+)
+from integration.helpers.pytest_operator import (
     check_tls,
     create_test_topic,
     deploy_cluster,
@@ -32,14 +43,6 @@ from integration.helpers.pytest_operator import (
     set_tls_private_key,
     update_tls_private_key,
 )
-from literals import (
-    CERTIFICATE_TRANSFER_RELATION,
-    REL_NAME,
-    SECURITY_PROTOCOL_PORTS,
-    TLS_RELATION,
-)
-
-from .test_charm import DUMMY_NAME
 
 logger = logging.getLogger(__name__)
 logging.getLogger("kafka.conn").setLevel(logging.CRITICAL)

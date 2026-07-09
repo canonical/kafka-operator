@@ -29,12 +29,18 @@ jobs:
       contents: read
 
   release:
-    name: Release charm
+    name: Release charm | ${{ matrix.path }}
+    strategy:
+      matrix:
+        path:
+          - machine
+          - k8s
     needs:
       - tag
       - ci-tests
     uses: canonical/data-platform-workflows/.github/workflows/release_charm_edge.yaml@v49.0.1
     with:
+      path-to-charm-directory: ${{ matrix.path }}
       track: ${{ needs.tag.outputs.track }}
       artifact-prefix: ${{ needs.ci-tests.outputs.artifact-prefix }}
     secrets:
@@ -43,46 +49,47 @@ jobs:
       contents: write  # Needed to create git tags
       actions: read # Needed by reusable workflow
 
-  trigger-release-ci:
-    name: Trigger release CI
-    runs-on: ubuntu-latest
-    needs: release
-    steps:
-      - name: Trigger Airflow DAG
-        env:
-          CHARM_REVISIONS: ${{ needs.release.outputs.charm-revisions }}
-          VERSION: ${{ github.ref_name }}
-          RUN_ID: ${{ github.run_id }}
-          AIRFLOW_TOKEN: ${{ secrets.AIRFLOW_API_TOKEN }}
-        run: |
-          body=$(jq -nc \
-            --arg dag_run_id "promote-${RUN_ID}" \
-            --arg logical_date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            --arg version "$VERSION" \
-            --argjson charm_revisions "$CHARM_REVISIONS" \
-            '{
-              dag_run_id: $dag_run_id,
-              logical_date: $logical_date,
-              conf: {
-                charm: "kafka",
-                version: $version,
-                charm_revisions: $charm_revisions
-              }
-            }')
-          response=$(curl -s -w "\n%{http_code}" -X POST \
-            "https://airflow.data-platform.ps7.canonical.com/api/v2/dags/kafka_4.x_vm/dagRuns" \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${AIRFLOW_TOKEN}" \
-            -d "$body")
-          http_code=$(echo "$response" | tail -n1)
-          resp_body=$(echo "$response" | sed '$d')
-          echo "$resp_body"
-          if echo "$resp_body" | grep -q '"detail":"Token Expired"'; then
-            echo "::error::Airflow API token has expired"
-            exit 1
-          fi
-          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
-            echo "::error::Airflow API request failed with status $http_code"
-            exit 1
-          fi
-    permissions: {}
+# TODO: should be enabled after Airflow DAGs are updated.
+  # trigger-release-ci:
+  #   name: Trigger release CI
+  #   runs-on: ubuntu-latest
+  #   needs: release
+  #   steps:
+  #     - name: Trigger Airflow DAG
+  #       env:
+  #         CHARM_REVISIONS: ${{ needs.release.outputs.charm-revisions }}
+  #         VERSION: ${{ github.ref_name }}
+  #         RUN_ID: ${{ github.run_id }}
+  #         AIRFLOW_TOKEN: ${{ secrets.AIRFLOW_API_TOKEN }}
+  #       run: |
+  #         body=$(jq -nc \
+  #           --arg dag_run_id "promote-${RUN_ID}" \
+  #           --arg logical_date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  #           --arg version "$VERSION" \
+  #           --argjson charm_revisions "$CHARM_REVISIONS" \
+  #           '{
+  #             dag_run_id: $dag_run_id,
+  #             logical_date: $logical_date,
+  #             conf: {
+  #               charm: "kafka",
+  #               version: $version,
+  #               charm_revisions: $charm_revisions
+  #             }
+  #           }')
+  #         response=$(curl -s -w "\n%{http_code}" -X POST \
+  #           "https://airflow.data-platform.ps7.canonical.com/api/v2/dags/kafka_4.x_vm/dagRuns" \
+  #           -H "Content-Type: application/json" \
+  #           -H "Authorization: Bearer ${AIRFLOW_TOKEN}" \
+  #           -d "$body")
+  #         http_code=$(echo "$response" | tail -n1)
+  #         resp_body=$(echo "$response" | sed '$d')
+  #         echo "$resp_body"
+  #         if echo "$resp_body" | grep -q '"detail":"Token Expired"'; then
+  #           echo "::error::Airflow API token has expired"
+  #           exit 1
+  #         fi
+  #         if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+  #           echo "::error::Airflow API request failed with status $http_code"
+  #           exit 1
+  #         fi
+  #   permissions: {}

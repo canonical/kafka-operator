@@ -1,25 +1,30 @@
 import dataclasses
 import logging
-from pathlib import Path
 from typing import cast
 from unittest.mock import PropertyMock, patch
 
 import pytest
-import yaml
+from common.single_kernel_kafka.core.literals import (
+    CHARM_KEY,
+    CONTAINER,
+    INTERNAL_USERS,
+    PEER,
+)
 from ops.testing import Container, Context, PeerRelation, Secret, State
 from scenario.errors import UncaughtCharmError
-from tests.unit.helpers import generate_tls_artifacts
-
-from charm import KafkaCharm
-from literals import CHARM_KEY, CONTAINER, INTERNAL_USERS, PEER, SUBSTRATE
+from tests.unit.helpers import (
+    ACTIONS,
+    CONFIG,
+    METADATA,
+    SUBSTRATE,
+    KafkaCharm,
+    generate_tls_artifacts,
+)
 
 logger = logging.getLogger(__name__)
 
 AUTH_CONFIG_KEY = "system-users"
 TLS_PK_KEY = "tls-private-key"
-CONFIG = yaml.safe_load(Path("./config.yaml").read_text())
-ACTIONS = yaml.safe_load(Path("./actions.yaml").read_text())
-METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 
 
 @pytest.fixture()
@@ -131,7 +136,7 @@ def test_secret_changed_set_tls_private_key(
     # When
     with (
         ctx(ctx.on.secret_changed(tls_private_key_secret), state_in) as mgr,
-        patch("events.tls.TLSHandler.set_tls_private_key") as set_tls_pk,
+        patch("single_kernel_kafka.events.tls.TLSHandler.set_tls_private_key") as set_tls_pk,
     ):
         _ = mgr.run()
 
@@ -163,7 +168,8 @@ def test_set_credentials(
     with (
         ctx(ctx.on.secret_changed(auth_secret), state_in) as mgr,
         patch(
-            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock(return_value=True)
+            "single_kernel_kafka.events.broker.BrokerOperator.healthy",
+            new_callable=PropertyMock(return_value=True),
         ),
     ):
         charm: KafkaCharm = cast(KafkaCharm, mgr.charm)
@@ -204,7 +210,8 @@ def test_secret_removed_preserves_credentials(
     with (
         ctx(ctx.on.secret_changed(auth_secret), state_in) as mgr,
         patch(
-            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock(return_value=True)
+            "single_kernel_kafka.events.broker.BrokerOperator.healthy",
+            new_callable=PropertyMock(return_value=True),
         ),
     ):
         charm: KafkaCharm = cast(KafkaCharm, mgr.charm)
@@ -219,7 +226,8 @@ def test_secret_removed_preserves_credentials(
     with (
         ctx(ctx.on.config_changed(), state_interim) as mgr,
         patch(
-            "events.broker.BrokerOperator.healthy", new_callable=PropertyMock(return_value=True)
+            "single_kernel_kafka.events.broker.BrokerOperator.healthy",
+            new_callable=PropertyMock(return_value=True),
         ),
     ):
         charm = cast(KafkaCharm, mgr.charm)

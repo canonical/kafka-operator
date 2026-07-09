@@ -7,10 +7,10 @@ import logging
 
 import pytest
 from pytest_operator.plugin import OpsTest
+from single_kernel_kafka.core.literals import CONTROLLER_USER, INTERNAL_USERS
 
-from integration.helpers import TLS_CHANNEL, TLS_NAME
+from integration.helpers import SERIES, TLS_CHANNEL, TLS_NAME
 from integration.helpers.pytest_operator import (
-    SERIES,
     check_user,
     deploy_cluster,
     get_client_usernames,
@@ -18,7 +18,6 @@ from integration.helpers.pytest_operator import (
     load_acls,
     load_super_users,
 )
-from literals import CONTROLLER_USER, INTERNAL_USERS
 
 logger = logging.getLogger(__name__)
 
@@ -173,12 +172,10 @@ async def test_deploy_producer_same_topic(
 
 
 @pytest.mark.abort_on_fail
-async def test_admin_added_to_super_users(ops_test: OpsTest, kafka_apps):
+async def test_admin_added_to_super_users(ops_test: OpsTest, app_charm, kafka_apps):
     """Test relation with admin privileges."""
     super_users = load_super_users(model_full_name=ops_test.model_full_name)
     assert len(super_users) == 3  # controller, replication, operator
-
-    app_charm = await ops_test.build_charm("tests/integration/app-charm")
 
     await asyncio.gather(
         ops_test.model.deploy(app_charm, application_name=DUMMY_NAME_1, num_units=1, series=SERIES)

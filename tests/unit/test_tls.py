@@ -6,36 +6,33 @@ import dataclasses
 import json
 import logging
 import socket
-from pathlib import Path
 from typing import cast
 from unittest.mock import PropertyMock, patch
 
 import pytest
 import trustme
-import yaml
-from ops import BoundEvent
-from ops.testing import Container, Context, PeerRelation, Secret, State
-from tests.unit.helpers import generate_tls_artifacts
-from tests.unit.test_secrets import TLS_PK_KEY
-from trustme import CA
-
-from charm import KafkaCharm
-from literals import (
+from common.single_kernel_kafka.core.literals import (
     CHARM_KEY,
     CONTAINER,
     PEER,
-    SUBSTRATE,
 )
+from ops import BoundEvent
+from ops.testing import Container, Context, PeerRelation, Secret, State
+from tests.unit.helpers import (
+    ACTIONS,
+    CONFIG,
+    METADATA,
+    SUBSTRATE,
+    KafkaCharm,
+    generate_tls_artifacts,
+)
+from tests.unit.test_secrets import TLS_PK_KEY
+from trustme import CA
 
 pytestmark = pytest.mark.broker
 
 
 logger = logging.getLogger(__name__)
-
-
-CONFIG = yaml.safe_load(Path("./config.yaml").read_text())
-ACTIONS = yaml.safe_load(Path("./actions.yaml").read_text())
-METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 
 
 @pytest.fixture()
@@ -119,11 +116,11 @@ def test_set_tls_private_key(
     with (
         ctx(ctx.on.secret_changed(tls_private_key_secret), state_in) as mgr,
         patch(
-            "events.tls.TLSHandler.refresh_tls_certificates",
+            "single_kernel_kafka.events.tls.TLSHandler.refresh_tls_certificates",
             new_callable=PropertyMock(spec=BoundEvent),
         ) as patched,
         patch(
-            "core.models.TLSState.private_key",
+            "single_kernel_kafka.core.models.TLSState.private_key",
             new_callable=PropertyMock(return_value=(unit_pk)),
         ),
     ):
@@ -212,7 +209,7 @@ def test_sans(charm_configuration: dict, base_state: State, patched_node_ip, mon
         PEER,
         local_unit_data={"private-address": "treebeard"},
     )
-    monkeypatch.setattr("workload.Workload.ips", ["treebeard"])
+    monkeypatch.setattr("single_kernel_kafka.workload.WorkloadMachine.ips", ["treebeard"])
     state_in = dataclasses.replace(base_state, relations=[cluster_peer])
     ctx = Context(
         KafkaCharm, meta=METADATA, config=charm_configuration, actions=ACTIONS, unit_id=0
@@ -236,7 +233,7 @@ def test_sans(charm_configuration: dict, base_state: State, patched_node_ip, mon
         with (
             patch("ops.model.Model.get_binding"),
             patch(
-                "core.models.KafkaBroker.node_ip",
+                "single_kernel_kafka.core.models.KafkaBroker.node_ip",
                 new_callable=PropertyMock,
                 return_value="palantir",
             ),
