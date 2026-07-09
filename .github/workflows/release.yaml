@@ -3,6 +3,7 @@
 name: Release to Charmhub
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -27,6 +28,7 @@ jobs:
     secrets: inherit
     permissions:
       contents: read
+      actions: read
 
   release:
     name: Release charm | ${{ matrix.path }}
