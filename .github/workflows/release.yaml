@@ -3,10 +3,10 @@
 name: Release to Charmhub
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
+      - ci/fix-release
     paths-ignore:
       - 'docs/**'
       - '**.md'
