@@ -77,6 +77,7 @@ jobs:
     uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v32.2.2
     with:
       path-to-charm-directory: ${{ matrix.path }}
+      cache: false  # FIXME: remove after re-added to ccc-hub
     permissions:
       actions: read
       contents: read

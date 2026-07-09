@@ -73,19 +73,36 @@ parts:
   # "files" part name is arbitrary; use for consistency
   files:
     plugin: dump
-    source: https://github.com/canonical/kafka-operator
-    source-type: git
+    source: .
     after:
       - poetry-deps  # Ensure poetry is installed
     build-packages:
       - git
+      - rsync
     override-build: |
+      git clone https://github.com/canonical/kafka-operator upstream
+      cd upstream/k8s
+
+      if [[ -f "${CRAFT_PART_SRC}/DEVMODE" ]]; then
+        # We are in dev mode, we can comfortably copy the changed files
+        rsync -av ${CRAFT_PART_SRC}/ .
+        # To avoid dirty label, but still have the dev label.
+        git config user.name "charmcraft"
+        git config user.email "charmcraft@local.dev"
+        git add .
+        git commit  -m "chore: sync with dev branch"
+      fi
+
       # Set `charm_version` in refresh_versions.toml from git tag
-      # Create venv in `..` so that git working tree is not dirty
-      python3 -m venv ../refresh-version-venv
-      source ../refresh-version-venv/bin/activate
+      # Create venv outside git workdir so that git working tree is not dirty
+      python3 -m venv ${CRAFT_PART_BUILD}/refresh-version-venv
+      source ${CRAFT_PART_BUILD}/refresh-version-venv/bin/activate
       poetry install --only build-refresh-version
       write-charm-version
+
+      # Get the written charm version and append it to the file which is going to be primed.
+      refresh_version=$(cat refresh_versions.toml | grep 'charm =')
+      sed -i "/^workload/s|.*|&\n$refresh_version|" ${CRAFT_PART_BUILD}/refresh_versions.toml
 
       craftctl default
     stage:
