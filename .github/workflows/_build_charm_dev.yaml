@@ -101,9 +101,12 @@ jobs:
           # FIXME: install from a channel
           # sudo snap install charmcraft --classic --channel ${{ inputs.charmcraft-snap-channel }}
           sudo snap install --classic astral-uv
-          git clone https://github.com/canonical/charmcraft --branch work/CHARMCRAFT-710-prototype
-          cd charmcraft && uv run charmcraft --version && cd ..
-          ln -sf $(realpath charmcraft/.venv/bin/charmcraft) /usr/local/bin/charmcraft
+          git clone https://github.com/canonical/charmcraft \
+            --branch work/CHARMCRAFT-710-prototype \
+            ~/charmcraft
+
+          pushd ~/charmcraft && uv run charmcraft --version && popd
+          ln -sf $(realpath ~/charmcraft/.venv/bin/charmcraft) /usr/local/bin/charmcraft
       - run: snap list
       - name: Pack charm
         id: pack
