@@ -14,7 +14,9 @@ kill-timeout: 15m
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
+<!-- vale Canonical.004-Canonical-product-names = NO -->
 (remove-kafka-and-juju)=
+<!-- vale Canonical.004-Canonical-product-names = YES -->
 ## Remove tutorial
 
 ```{caution}
@@ -34,7 +36,9 @@ This will remove all applications in the `tutorial` model (Charmed Apache Kafka,
 OpenSearch, PostgreSQL).
 Your Juju controller and other models (if any) will remain intact for future use.
 
+<!-- vale Canonical.004-Canonical-product-names = NO -->
 (remove-juju)=
+<!-- vale Canonical.004-Canonical-product-names = YES -->
 ## (Optional) Remove Juju and LXD
 
 If you don't need Juju anymore and want to free up additional resources on your machine,

@@ -61,7 +61,7 @@ In the following, we provide guidance on how to harden your deployment using:
 
 ### Operating system
 
-Charmed Apache Kafka operators currently run on top of Ubuntu 24.04. Deploy a [Landscape Client Charm](https://charmhub.io/landscape-client?) to 
+Charmed Apache Kafka operators currently run on top of Ubuntu 24.04 LTS. Deploy a [Landscape Client Charm](https://charmhub.io/landscape-client?) to 
 connect the underlying VM to a Landscape User Account to manage security upgrades and integrate [Ubuntu Pro](https://ubuntu.com/pro) subscriptions. 
 
 ### Security upgrades
