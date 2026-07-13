@@ -98,17 +98,23 @@ jobs:
           sudo iptables -F FORWARD
           sudo iptables -P FORWARD ACCEPT
 
-          sudo snap install charmcraft --classic --channel ${{ inputs.charmcraft-snap-channel }}
-          pipx install charmcraftcache poetry charmcraftlocal
+          # FIXME: install from a channel
+          # sudo snap install charmcraft --classic --channel ${{ inputs.charmcraft-snap-channel }}
+          sudo snap install --classic astral-uv
+          git clone https://github.com/canonical/charmcraft \
+            --branch work/CHARMCRAFT-710-prototype \
+            ~/charmcraft
+
+          pushd ~/charmcraft && uv run charmcraft --version && popd
+          ln -sf $(realpath ~/charmcraft/.venv/bin/charmcraft) /usr/local/bin/charmcraft
       - run: snap list
       - name: Pack charm
         id: pack
+        working-directory: ${{ inputs.path-to-charm-directory }}
         run: |
-          pipx install tox
-          TOX=$(which tox)
-          sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- "$TOX" -e charm-pack -- \
-            ${{ inputs.path-to-charm-directory }} --platform="${VAR_PLATFORM}"
+          sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- charmcraft pack -v --platform="${VAR_PLATFORM}"
         env:
+          CHARMCRAFT_EXPERIMENTAL_MONOREPO: "true"
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VAR_PLATFORM: ${{ matrix.platform.name }}
       - name: Charmcraft logs
