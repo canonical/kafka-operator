@@ -351,8 +351,8 @@ jobs:
           - integration-k8s-password-rotation
           - integration-k8s-tls
           - integration-k8s-tls-complex
-          - integration-k8s-balancer-single
-          - integration-k8s-balancer-multi
+          - integration-k8s-balancer-broker
+          - integration-k8s-balancer-controller
           - integration-k8s-kraft
           - integration-k8s-kraft-tls
           - integration-k8s-ha

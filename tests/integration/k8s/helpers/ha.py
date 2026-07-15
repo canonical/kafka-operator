@@ -175,7 +175,7 @@ def modify_pebble_restart_delay(
             f"Copying extend_pebble_restart_delay manifest to {unit} {container_name} container..."
         )
         check_output(
-            f"kubectl cp ./tests/integration/ha/manifests/{policy}_pebble_restart_delay.yaml {unit.replace('/', '-')}:{pebble_patch_path} -c {container_name} -n {juju.model}",
+            f"kubectl cp ./tests/integration/k8s/ha/manifests/{policy}_pebble_restart_delay.yaml {unit.replace('/', '-')}:{pebble_patch_path} -c {container_name} -n {juju.model}",
             stderr=PIPE,
             shell=True,
             universal_newlines=True,
@@ -211,7 +211,7 @@ def deploy_chaos_mesh(namespace: str) -> None:
         " ".join(
             [
                 "sudo",
-                "tests/integration/ha/scripts/deploy_chaos_mesh.sh",
+                "tests/integration/k8s/ha/scripts/deploy_chaos_mesh.sh",
                 namespace,
             ]
         ),
@@ -230,7 +230,7 @@ def destroy_chaos_mesh(namespace: str) -> None:
     env["KUBECONFIG"] = os.path.expanduser("~/.kube/config")
 
     check_output(
-        f"sudo tests/integration/ha/scripts/destroy_chaos_mesh.sh {namespace}",
+        f"sudo tests/integration/k8s/ha/scripts/destroy_chaos_mesh.sh {namespace}",
         shell=True,
         env=env,
     )
@@ -245,7 +245,7 @@ def isolate_instance_from_cluster(juju: jubilant.Juju, unit_name: str) -> None:
     """
     with tempfile.NamedTemporaryFile() as temp_file:
         with open(
-            "tests/integration/ha/manifests/chaos_network_loss.yaml", "r"
+            "tests/integration/k8s/ha/manifests/chaos_network_loss.yaml", "r"
         ) as chaos_network_loss_file:
             template = string.Template(chaos_network_loss_file.read())
             chaos_network_loss = template.substitute(
