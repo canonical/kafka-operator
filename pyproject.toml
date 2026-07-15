@@ -98,7 +98,7 @@ lint.extend-ignore = [
   "D413",
 ]
 lint.ignore = ["E501", "D107"]
-extend-exclude = ["__pycache__", "*.egg_info", "tests/integration/app-charm/lib"]
+extend-exclude = ["__pycache__", "*.egg_info", "tests/integration/machine/app-charm/lib", "tests/integration/k8s/app-charm/lib"]
 lint.per-file-ignores = { "tests/*" = ["D100", "D101", "D102", "D103", "D104", "E999"], "src/literals.py" = ["D101"] }
 target-version = "py310"
 src = ["src", "tests"]
