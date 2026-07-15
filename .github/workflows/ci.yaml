@@ -23,6 +23,10 @@ on:
         description: build_charm.yaml `artifact-prefix` output
         value: ${{ jobs.build.outputs.artifact-prefix }}
 
+env:
+  JUJU_CHANNEL: "3.6/stable"
+  MICROK8S_CHANNEL: "1.28-strict/stable"
+
 jobs:
   lint:
     name: Lint
