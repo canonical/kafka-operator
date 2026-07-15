@@ -49,7 +49,7 @@ def test_build_and_deploy(juju: jubilant.Juju, kafka_charm, kraft_mode, controll
 
 def test_consistency_between_workload_and_metadata(juju: jubilant.Juju):
     application = juju.status().apps[APP_NAME]
-    with open("refresh_versions.toml", "r") as f:
+    with open("k8s/refresh_versions.toml", "r") as f:
         data = toml.load(f)
     assert application.version == data["workload"]
 
