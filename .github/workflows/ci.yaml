@@ -318,6 +318,16 @@ jobs:
 
           pipx ensurepath
           pipx install tox poetry
+      # FIXME: remove this step when the previously installed charmcraft snap supports monorepos.
+      - name: Install charmcraft with monorepo feature
+        run: |
+          sudo snap install --classic astral-uv
+          git clone https://github.com/canonical/charmcraft \
+            --branch work/CHARMCRAFT-710-prototype \
+            ~/charmcraft
+
+          pushd ~/charmcraft && uv run charmcraft --version && popd
+          echo "CHARMCRAFT_BIN=$(realpath ~/charmcraft/.venv/bin/charmcraft)" >> $GITHUB_ENV
       - name: Download packed charm(s)
         uses: actions/download-artifact@v4
         with:
@@ -408,6 +418,16 @@ jobs:
           
           pipx ensurepath
           pipx install tox poetry
+      # FIXME: remove this step when the previously installed charmcraft snap supports monorepos.
+      - name: Install charmcraft with monorepo feature
+        run: |
+          sudo snap install --classic astral-uv
+          git clone https://github.com/canonical/charmcraft \
+            --branch work/CHARMCRAFT-710-prototype \
+            ~/charmcraft
+
+          pushd ~/charmcraft && uv run charmcraft --version && popd
+          echo "CHARMCRAFT_BIN=$(realpath ~/charmcraft/.venv/bin/charmcraft)" >> $GITHUB_ENV
       - name: Download packed charm(s)
         uses: actions/download-artifact@v4
         with:

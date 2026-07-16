@@ -28,45 +28,53 @@ from integration.k8s.helpers.jubilant import all_active_idle, check_logs, deploy
 logger = logging.getLogger(__name__)
 
 CHANNEL = "3/stable"
+CHARMCRAFT = os.environ.get("CHARMCRAFT_BIN", "charmcraft")
 
 
-def _build_pinned_refresh_charm(juju: jubilant.Juju, version: Literal["pre", "post"] = "post"):
+def _build_pinned_refresh_charm(juju: jubilant.Juju, tmp_path_factory: pytest.TempPathFactory, version: Literal["pre", "post"] = "post"):
     """Build charms used for refresh tests."""
 
     def ignore_hidden(path, names):
         return [name for name in names if name.startswith(".")]
 
     # create a charmcraft.yaml without the write-charm-version override
-    with open("charmcraft.yaml") as f:
+    with open("k8s/charmcraft.yaml") as f:
         cc = yaml.safe_load(f)
         cc["parts"]["files"].pop("override-build")
 
-    tmp_dir = f"{juju._temp_dir}/refresh-charm-{version}"
+    tmp_dir = tmp_path_factory.mktemp(f"refresh-charm-{version}")
     os.makedirs(tmp_dir, exist_ok=True)
-    shutil.copytree(".", tmp_dir, dirs_exist_ok=True, ignore=ignore_hidden)
+    # Copy repo files to the tmp_dir
+    os.system(f"rsync -avq --exclude .tox --exclude venv . {tmp_dir}/")
     shutil.copyfile(
         f"tests/integration/k8s/refresh-charm/refresh_versions.{version}.toml",
-        f"{tmp_dir}/refresh_versions.toml",
+        f"{tmp_dir}/k8s/refresh_versions.toml",
     )
-    with open(f"{tmp_dir}/charmcraft.yaml", "w") as f:
+    with open(f"{tmp_dir}/k8s/charmcraft.yaml", "w") as f:
         f.write(yaml.safe_dump(cc))
 
     logger.info(f"Building {version} refresh charm, using {tmp_dir}. might take a while...")
-    subprocess.check_output("charmcraft pack", shell=True, stderr=subprocess.PIPE, cwd=tmp_dir)
-    if not (paths := glob.glob(f"{tmp_dir}/*.charm")):
+    subprocess.check_output(
+        f"{CHARMCRAFT} pack",
+        shell=True,
+        stderr=subprocess.PIPE,
+        cwd=f"{tmp_dir}/k8s",
+        env=os.environ | {"CHARMCRAFT_EXPERIMENTAL_MONOREPO": "true"},
+    )
+    if not (paths := glob.glob(f"{tmp_dir}/k8s/*.charm")):
         raise RuntimeError("Can not find built charm path!")
 
     return paths[0]
 
 
 @pytest.fixture(scope="module")
-def pre_refresh_charm(juju: jubilant.Juju):
-    return _build_pinned_refresh_charm(juju, version="pre")
+def pre_refresh_charm(juju: jubilant.Juju, tmp_path_factory):
+    return _build_pinned_refresh_charm(juju, tmp_path_factory=tmp_path_factory, version="pre")
 
 
 @pytest.fixture(scope="module")
-def post_refresh_charm(juju: jubilant.Juju):
-    return _build_pinned_refresh_charm(juju, version="post")
+def post_refresh_charm(juju: jubilant.Juju, tmp_path_factory):
+    return _build_pinned_refresh_charm(juju, tmp_path_factory=tmp_path_factory, version="post")
 
 
 @pytest.mark.abort_on_fail
