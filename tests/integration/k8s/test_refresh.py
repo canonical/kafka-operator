@@ -31,7 +31,11 @@ CHANNEL = "3/stable"
 CHARMCRAFT = os.environ.get("CHARMCRAFT_BIN", "charmcraft")
 
 
-def _build_pinned_refresh_charm(juju: jubilant.Juju, tmp_path_factory: pytest.TempPathFactory, version: Literal["pre", "post"] = "post"):
+def _build_pinned_refresh_charm(
+    juju: jubilant.Juju,
+    tmp_path_factory: pytest.TempPathFactory,
+    version: Literal["pre", "post"] = "post",
+):
     """Build charms used for refresh tests."""
 
     def ignore_hidden(path, names):

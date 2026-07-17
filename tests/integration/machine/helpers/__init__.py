@@ -135,8 +135,8 @@ def sign_manual_certs(model: str | None, manual_app: str = "manual-tls-certifica
             cert_file = tmp_dir / f"{i}.pem"
 
             try:
-                sign_cmd = f"openssl x509 -req -in {csr_file} -CAkey tests/integration/data/int.key -CA tests/integration/data/int.pem -days 100 -CAcreateserial -out {cert_file} -copy_extensions copyall --passin pass:password"
-                provide_cmd = f'JUJU_MODEL={model} juju run {manual_app}/0 provide-certificate ca-certificate="$(base64 -w0 tests/integration/data/int.pem)" ca-chain="$(base64 -w0 tests/integration/data/root.pem)" certificate="$(base64 -w0 {cert_file})" certificate-signing-request="$(base64 -w0 {csr_file})"'
+                sign_cmd = f"openssl x509 -req -in {csr_file} -CAkey tests/integration/machine/data/int.key -CA tests/integration/machine/data/int.pem -days 100 -CAcreateserial -out {cert_file} -copy_extensions copyall --passin pass:password"
+                provide_cmd = f'JUJU_MODEL={model} juju run {manual_app}/0 provide-certificate ca-certificate="$(base64 -w0 tests/integration/machine/data/int.pem)" ca-chain="$(base64 -w0 tests/integration/machine/data/root.pem)" certificate="$(base64 -w0 {cert_file})" certificate-signing-request="$(base64 -w0 {csr_file})"'
 
                 check_output(sign_cmd, stderr=PIPE, universal_newlines=True, shell=True)
                 response = check_output(
