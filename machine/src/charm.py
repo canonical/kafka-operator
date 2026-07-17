@@ -19,6 +19,7 @@ from ops import (
     StatusBase,
 )
 from ops.log import JujuLogHandler
+from ops.tracing import Tracing
 from single_kernel_kafka.core.cluster import ClusterState
 from single_kernel_kafka.core.literals import (
     CHARM_KEY,
@@ -83,6 +84,8 @@ class KafkaCharm(KafkaCharmBase):
             logs_rules_dir=LOGS_RULES_DIR,
             log_slots=[f"{self.workload.SNAP_NAME}:{slot}" for slot in self.workload.LOG_SLOTS],
         )
+        if self.config.profile == "testing":
+            self.tracing = Tracing(self, "charm-tracing")
 
         self.framework.observe(getattr(self.on, "install"), self._on_install)
         self.framework.observe(getattr(self.on, "remove"), self._on_remove)

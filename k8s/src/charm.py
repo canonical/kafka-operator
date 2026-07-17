@@ -23,6 +23,7 @@ from ops import (
 )
 from ops.log import JujuLogHandler
 from ops.main import main
+from ops.tracing import Tracing
 from single_kernel_kafka.core.cluster import ClusterState
 from single_kernel_kafka.core.literals import (
     CHARM_KEY,
@@ -120,6 +121,9 @@ class KafkaCharm(KafkaCharmBase):
             alert_rules_path=LOGS_RULES_DIR,
             relation_name="logging",
         )
+
+        if self.config.profile == "testing":
+            self.tracing = Tracing(self, "charm-tracing")
 
     def _on_roles_changed(self, _):
         """Handler for `config_changed` events.
