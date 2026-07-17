@@ -62,6 +62,18 @@ class KafkaRefresh(charm_refresh.CharmSpecificCommon, abc.ABC):
             and not self._charm.state.runs_controller
         ):
             raise charm_refresh.PrecheckFailed("Refresh not supported on balancer-only nodes.")
+
+        if self._charm.state.ready_to_start:
+            broker = self._charm.broker
+            broker.config_manager.set_environment()
+            broker.config_manager.set_server_properties()
+            broker.config_manager.set_client_properties()
+            broker.tls_manager.configure()
+
+            # start kafka service
+            broker.workload.restart()
+            time.sleep(10)
+
         if not self._charm.broker.healthy:
             raise charm_refresh.PrecheckFailed("Cluster is not healthy")
 
