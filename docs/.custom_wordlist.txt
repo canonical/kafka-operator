@@ -4,6 +4,8 @@ backends
 Charmcraft
 cjk
 cryptographically
+docstring
+docstrings
 dvipng
 fonts
 freefont
