@@ -77,14 +77,19 @@ pymarkdownlnt-install: install
 
 install: $(DOCS_VENVDIR)
 
-run: install
+# Auto-generate reference pages from charm source files (actions.yaml,
+# config.yaml). Output is gitignored under docs/reference/_generated/.
+generate: install
+	@. $(DOCS_VENV); python3 $(DEV_DIR)/generate_charm_reference.py
+
+run: install generate
 	. $(DOCS_VENV); $(DOCS_VENVDIR)/bin/sphinx-autobuild -b dirhtml --host $(SPHINX_HOST) --port $(SPHINX_PORT) "$(DOCS_SOURCEDIR)" "$(DOCS_BUILDDIR)" $(SPHINX_OPTS) $(SPHINX_AUTOBUILD_OPTS)
 
 # Doesn't depend on $(DOCS_BUILDDIR) to rebuild properly at every run.
-html: install
+html: install generate
 	. $(DOCS_VENV); $(SPHINX_BUILD) --fail-on-warning --keep-going -b dirhtml "$(DOCS_SOURCEDIR)" "$(DOCS_BUILDDIR)" -w $(DEV_DIR)/warnings.txt $(SPHINX_OPTS)
 
-epub: install
+epub: install generate
 	. $(DOCS_VENV); $(SPHINX_BUILD) -b epub "$(DOCS_SOURCEDIR)" "$(DOCS_BUILDDIR)" -w $(DEV_DIR)/warnings.txt $(SPHINX_OPTS)
 
 serve: html
@@ -171,7 +176,7 @@ pdf-prep-force:
 	apt-get upgrade -y
 	apt-get install --no-install-recommends -y $(DOCS_PDFPACKAGES) \
 
-pdf: pdf-prep
+pdf: pdf-prep generate
 	@. $(DOCS_VENV); $(SPHINX_BUILD) -M latexpdf "$(DOCS_SOURCEDIR)" "$(DOCS_BUILDDIR)" $(SPHINX_OPTS)
 	@rm ./$(DOCS_BUILDDIR)/latex/front-page-light.pdf || true
 	@rm ./$(DOCS_BUILDDIR)/latex/normal-page-footer.pdf || true

@@ -13,8 +13,8 @@ This section contains the following reference materials.
 
 Charmhub generated content:
 
-* [Actions](https://charmhub.io/kafka/actions?channel=4/stable)
-* [Configurations](https://charmhub.io/kafka/configure?channel=4/stable)
+* {ref}`reference-actions`
+* {ref}`reference-configurations`
 * [Libraries](https://charmhub.io/kafka/libraries/kafka_libs?channel=4/stable)
 
 Charm-specific reference materials:
@@ -37,8 +37,8 @@ General useful references:
 :hidden:
 
 release-notes/index.md
-Actions<https://charmhub.io/kafka/actions?channel=4/stable>
-Configurations<https://charmhub.io/kafka/configure?channel=4/stable>
+_generated/actions.md
+_generated/configurations.md
 Libraries<https://charmhub.io/kafka/libraries/kafka_libs?channel=4/stable>
 file-system-paths.md
 snap-commands.md
