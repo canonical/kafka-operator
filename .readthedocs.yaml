@@ -22,13 +22,10 @@ build:
       then
         exit 183;
       fi
-    # Install PyYAML (required by the reference-page generator). The docs
-    # requirements are installed later by RTD, but the generator runs in
-    # pre_build and needs yaml at that point.
-    - pip install pyyaml
     # Generate the auto-generated reference pages (actions, configurations)
     # from machine/actions.yaml and machine/config.yaml before Sphinx runs.
     # The output is written to docs/reference/_generated/ (gitignored).
+    # PyYAML is installed from docs/requirements.txt before pre_build runs.
     pre_build:
     - python3 docs/_dev/generate_charm_reference.py
 
