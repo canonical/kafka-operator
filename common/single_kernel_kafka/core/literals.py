@@ -23,7 +23,6 @@ CONTAINER = "kafka"
 STORAGE = "data"
 
 SNAP_NAME = "charmed-kafka"
-
 if SUBSTRATE == "vm":
     # '584792' refers to _daemon_, which do not exists on the storage-attached hook prior to the
     # snap install.
