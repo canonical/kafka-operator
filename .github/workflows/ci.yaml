@@ -93,6 +93,8 @@ jobs:
       contents: read
 
   integration-test-single:
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -158,6 +160,8 @@ jobs:
           CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
 
   integration-test-multi:
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -257,6 +261,8 @@ jobs:
           CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
 
   integration-test-k8s-single:
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -354,6 +360,8 @@ jobs:
           CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
 
   integration-test-k8s-multi:
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
