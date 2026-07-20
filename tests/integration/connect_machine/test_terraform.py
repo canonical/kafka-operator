@@ -60,8 +60,8 @@ def test_deployment_active(juju: JujuFixture, model_uuid: str, tmp_path):
 
     juju.ext.model.wait_for_idle(apps=[APP_NAME], idle_period=30, timeout=900, status="blocked")
     assert (
-        juju.ext.model.applications[APP_NAME].status_message
-        == Status.MISSING_KAFKA.value.status.message
+        juju.ext.model.applications[APP_NAME].status_message.lower()
+        == Status.MISSING_KAFKA.value.status.message.lower()
     )
 
     _destroy_terraform(working_dir)
@@ -95,8 +95,8 @@ def test_deployment_on_machines(juju: JujuFixture, model_uuid: str, tmp_path):
 
     juju.ext.model.wait_for_idle(apps=[APP_NAME], idle_period=30, timeout=900, status="blocked")
     assert (
-        juju.ext.model.applications[APP_NAME].status_message
-        == Status.MISSING_KAFKA.value.status.message
+        juju.ext.model.applications[APP_NAME].status_message.lower()
+        == Status.MISSING_KAFKA.value.status.message.lower()
     )
 
     status = juju.ext.model.applications

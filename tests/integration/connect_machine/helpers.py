@@ -212,7 +212,7 @@ def make_api_request(
     target_unit = juju.ext.model.applications[APP_NAME].units[0] if unit is None else unit
 
     unit_ip = get_unit_ipv4_address(juju, target_unit)
-    url = f"{proto}://{unit_ip}:{port}/{endpoint}"
+    url = f"{proto}://{unit_ip}:{port}/{endpoint.lstrip('/')}"
 
     auth = None
     if auth_enabled:
