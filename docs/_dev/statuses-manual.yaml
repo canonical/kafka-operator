@@ -1,0 +1,215 @@
+# Manual prose for the statuses reference page.
+#
+# This file is the human-authored companion to the auto-generated
+# statuses table.  The generator (docs/_dev/generate_statuses.py) reads
+# the Status enum from common/single_kernel_kafka/core/literals.py to
+# obtain the Juju status label and message text, then merges the
+# `expectations` and `actions` prose from this file.
+#
+# Keyed by enum member name (e.g. SNAP_NOT_INSTALLED), which is stable
+# across message typo fixes.  If a developer renames an enum member the
+# generator will emit a stderr warning about an orphaned key here.
+#
+# Entries marked `hidden: true` are valid enum statuses that are
+# internal/transient and intentionally excluded from the published
+# table.
+
+statuses:
+  ACTIVE:
+    expectations: Normal charm operations
+    actions: No actions required
+
+  ADDED_STORAGE:
+    expectations: >-
+      Existing data is not automatically rebalanced when new storage is
+      attached. New storage will be used for newly created topics and/or
+      partitions
+    actions: >-
+      Inspect the storage utilisation and based on the need, and rebalance
+      data across multiple storages/brokers
+
+  REMOVED_STORAGE:
+    expectations: >-
+      Storage volumes were removed from a broker that still has replicas
+      elsewhere. Partitions that lived on the removed storage may be
+      under-replicated until a rebalance is run.
+    actions: >-
+      Run a partition reassignment / rebalance to restore replication
+      factors on the affected partitions.
+
+  REMOVED_STORAGE_NO_REPL:
+    expectations: >-
+      Some partition/topics are not replicated on multiple storages,
+      therefore potentially leading to data loss
+    actions: >-
+      Add new storage, increase replication of topics/partitions and/or
+      rebalance data across multiple storages/brokers
+
+  SYSCONF_NOT_OPTIMAL:
+    expectations: >-
+      The broker is running on a machine that has sub-optimal OS settings.
+      Although this may not preclude Apache Kafka to work, it may result in
+      sub-optimal performances
+    actions: >-
+      Check the Juju debug-log for insights on which settings are
+      sub-optimal and may be changed
+
+  SYSCONF_NOT_POSSIBLE:
+    expectations: >-
+      Some of the sysctl settings required by Apache Kafka could not be
+      set, therefore affecting Apache Kafka performance and correct
+      settings. This can also be due to the charm being deployed on the
+      wrong substrate
+    actions: >-
+      Remove the deployment and make sure that the selected charm is
+      correct given the Juju cloud substrate
+
+  SNAP_NOT_INSTALLED:
+    expectations: There are issues with the network connection and/or the snap Store
+    actions: >-
+      Check your internet connection and Snapcraft.io status. Remove the
+      application and when everything is OK, deploy the charm again
+
+  SERVICE_NOT_RUNNING:
+    expectations: The charm failed to start the Apache Kafka snap daemon processes
+    actions: Check the Apache Kafka logs for insights on the issue
+
+  CC_NOT_RUNNING:
+    expectations: The charm failed to start the Cruise Control snap daemon process
+    actions: Check the Cruise Control logs for insights on the issue
+
+  BROKER_NOT_CONNECTED:
+    expectations: >-
+      The Apache Kafka broker unit is unable to authenticate to the KRaft
+      controllers
+    actions: >-
+      May self-resolve after 5-15m. Otherwise, check the Apache Kafka logs
+      for insights on the issue
+
+  MISSING_MODE:
+    expectations: >-
+      The Apache Kafka brokers do not have information on where the KRaft
+      controller to connect to is
+    actions: >-
+      Ensure that there is an active relation between the broker and KRaft
+      controllers, or that the broker application has configuration
+      `roles=broker,controller`
+
+  MTLS_REQUIRES_TLS:
+    expectations: >-
+      The units do not have the necessary client keystore and truststore
+      to trust provided mTLS certificates
+    actions: >-
+      Ensure that there is an active `certificates` relation with a
+      `tls-certificates` relation interface provider application
+
+  INVALID_CLIENT_CERTIFICATE:
+    expectations: >-
+      The certificate provided in a `kafka_client` relation across the
+      `mtls-cert` relation data field is not a valid certificate
+    actions: >-
+      Ensure that the client application is sending a valid certificate,
+      and not a CA
+
+  NO_BROKER_CREDS:
+    expectations: >-
+      Intrabroker credentials being created to enable communication and
+      syncing among brokers belonging to the Apache Kafka clusters.
+    actions: ""
+
+  NO_CERT:
+    expectations: >-
+      Unit has requested a CSR request via the certificates relation and
+      it is waiting to receive the signed certificate
+    actions: ""
+
+  NO_BROKER_DATA:
+    expectations: >-
+      The KRaft controller or Cruise Control rebalancer does not have
+      sufficient Apache Kafka broker data to make a valid connection
+    actions: >-
+      Ensure that KRaft controller and/or Cruise Control rebalancer
+      applications are related to a Apache Kafka broker application
+
+  NOT_ENOUGH_BROKERS:
+    expectations: >-
+      The Cruise Control rebalancer application is not provided with the
+      minimum number of brokers' data - 3
+    actions: >-
+      Ensure that the Apache Kafka broker application has at least 3 units.
+      Less than 3 units will result in Cruise Control not functioning
+
+  WAITING_FOR_REBALANCE:
+    expectations: >-
+      The Cruise Control rebalancer application is currently running a
+      rebalance task, and is busy
+    actions: ""
+
+  SCALING_WARNING:
+    expectations: >-
+      The Apache Kafka cluster is scaling. Potentially disruptive actions
+      such as refresh should be postponed until scaling completes.
+    actions: Wait for the scaling operation to complete.
+
+  # --- Hidden statuses (internal / transient) ---
+  # These are valid enum members but represent transient startup or
+  # internal states that are not useful to document individually.
+
+  NO_PEER_RELATION:
+    hidden: true
+
+  NO_PEER_CLUSTER_RELATION:
+    hidden: true
+
+  NOT_ALL_RELATED:
+    hidden: true
+
+  NO_CLUSTER_UUID:
+    hidden: true
+
+  NO_BOOTSTRAP_CONTROLLER:
+    hidden: true
+
+  MISSING_CONTROLLER_PASSWORD:
+    hidden: true
+
+  NO_INTERNAL_TLS:
+    hidden: true
+
+  NO_PEER_CLUSTER_CA:
+    hidden: true
+
+  NOT_IMPLEMENTED:
+    hidden: true
+
+  NO_BALANCER_RELATION:
+    hidden: true
+
+# Framework-level statuses set by Juju itself, not by charm code.
+# Appended after the enum-derived rows.
+framework:
+  - status: Maintenance
+    message: ""
+    expectations: >-
+      Charm is performing the internal maintenance (e.g. cluster
+      re-configuration, upgrade, …)
+    actions: No actions required
+
+  - status: Error
+    message: any
+    expectations: An unhandled internal error happened
+    actions: >-
+      Read the message hint. Execute Juju resolve <error_unit/0> after
+      addressing the root of the error state
+
+  - status: Terminated
+    message: any
+    expectations: The unit is gone and will be cleaned by Juju soon
+    actions: No actions possible
+
+  - status: Unknown
+    message: any
+    expectations: >-
+      Juju doesn't know the charm app/unit status. Possible reason: K8s
+      charm termination in progress.
+    actions: Manual investigation required if status is permanent
