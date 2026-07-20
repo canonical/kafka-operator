@@ -1,0 +1,5 @@
+wheel
+ops >= 2.0.0
+typing-extensions >= 4.12
+pydantic < 2
+kafkacl @ git+https://github.com/canonical/kafkacl@main

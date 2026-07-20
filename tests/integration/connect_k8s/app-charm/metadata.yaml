@@ -1,0 +1,33 @@
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+name: integrator
+description: |
+  Toy charm used to test Kafka Connect requirer interface in integration tests.
+summary: |
+  Charm used to mimic the Kafka Connect integrators for test purpose only.
+assumes:
+  - k8s-api
+
+peers:
+  peer:
+    interface: peer
+
+requires:
+  connect-client:
+    interface: connect_client
+    optional: true
+    limit: 1
+  data:
+    interface: mysql_client
+    optional: true
+    limit: 1
+
+resources:
+  connect-plugin:
+    type: file
+    filename: "plugin.tar"
+    description: |
+      Apache Kafka Connect connector plugin, which will be served by this integrator through a REST endpoint.
+      The plugin should be packed into a TAR archive, including all required Java libs and the connector implementation.
+      The archive should not contain any libraries provided by the Apache Kafka Connect runtime.

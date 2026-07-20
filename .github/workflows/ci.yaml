@@ -34,7 +34,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Install tox
         run: pipx install tox
       - name: Run linters
@@ -46,7 +46,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Install tox
         run: pipx install tox
       - name: Run tests
@@ -64,6 +64,9 @@ jobs:
           - connect_k8s
           - tests/integration/machine/app-charm
           - tests/integration/k8s/app-charm
+          - tests/integration/connect_machine/sink-integrator-charm
+          - tests/integration/connect_machine/source-integrator-charm
+          - tests/integration/connect_k8s/app-charm
     name: Build charm for testing | ${{ matrix.path }}
     uses: ./.github/workflows/_build_charm_dev.yaml
     with:
@@ -83,6 +86,9 @@ jobs:
           - connect_k8s
           - tests/integration/machine/app-charm
           - tests/integration/k8s/app-charm
+          - tests/integration/connect_machine/sink-integrator-charm
+          - tests/integration/connect_machine/source-integrator-charm
+          - tests/integration/connect_k8s/app-charm
     name: Build charm for release | ${{ matrix.path }}
     uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v32.2.2
     with:
@@ -92,29 +98,29 @@ jobs:
       actions: read
       contents: read
 
-  integration-test-single:
+  integration-kafka-machine-single:
     permissions:
       contents: read
     strategy:
       fail-fast: false
       matrix:
         tox-environments:
-          - integration-machine-auto-balance
-          - integration-machine-charm
-          - integration-machine-provider
-          - integration-machine-provider-v1
-          - integration-machine-password-rotation
-          - integration-machine-tls
-          - integration-machine-refresh
-          - integration-machine-tls-complex
-          - integration-machine-kraft
-          - integration-machine-kraft-tls
-          - integration-machine-ha
-          - integration-machine-spaces
-          - integration-machine-terraform
+          - auto-balance
+          - charm
+          - provider
+          - provider-v1
+          - password-rotation
+          - tls
+          - refresh
+          - tls-complex
+          - kraft
+          - kraft-tls
+          - ha
+          - spaces
+          - terraform
         kraft-mode:
           - single
-    name: "${{ matrix.tox-environments }} | machine | ${{ matrix.kraft-mode }}"
+    name: "Kafka | machine | ${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}"
     needs:
       - lint
       - unit-test
@@ -128,19 +134,19 @@ jobs:
     timeout-minutes: 120
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
         with:
           provider: lxd
           juju-channel: 3.6/stable
       - name: Download packed charm(s)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
           merge-multiple: true
       - name: Setup terraform if needed
-        if: ${{ matrix.tox-environments == 'integration-machine-terraform' }}
+        if: ${{ matrix.tox-environments == 'terraform' }}
         run: |
           sudo snap install --classic terraform
       - name: Select tests
@@ -155,36 +161,36 @@ jobs:
             echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
           fi
       - name: Run integration tests
-        run: tox run -e ${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --kraft-mode ${{ matrix.kraft-mode }}
+        run: tox run -e integration-machine-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --kraft-mode ${{ matrix.kraft-mode }}
         env:
           CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
 
-  integration-test-multi:
+  integration-kafka-machine-multi:
     permissions:
       contents: read
     strategy:
       fail-fast: false
       matrix:
         tox-environments:
-          - integration-machine-auto-balance
-          - integration-machine-charm
-          - integration-machine-provider
-          - integration-machine-provider-v1
-          - integration-machine-password-rotation
-          - integration-machine-tls
-          - integration-machine-refresh
-          - integration-machine-tls-complex
-          - integration-machine-balancer-broker
-          - integration-machine-balancer-controller
-          - integration-machine-kraft
-          - integration-machine-kraft-tls
-          - integration-machine-ha
-          - integration-machine-ha-controller
-          - integration-machine-spaces
-          - integration-machine-oauth
+          - auto-balance
+          - charm
+          - provider
+          - provider-v1
+          - password-rotation
+          - tls
+          - refresh
+          - tls-complex
+          - balancer-broker
+          - balancer-controller
+          - kraft
+          - kraft-tls
+          - ha
+          - ha-controller
+          - spaces
+          - oauth
         kraft-mode:
           - multi
-    name: "${{ matrix.tox-environments }} | machine | ${{ matrix.kraft-mode }}"
+    name: "Kafka | machine | ${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}"
     needs:
       - lint
       - unit-test
@@ -198,19 +204,19 @@ jobs:
     timeout-minutes: 120
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
         with:
           provider: lxd
           juju-channel: 3.6/stable
       - name: Download packed charm(s)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
           merge-multiple: true
       - name: Setup terraform & microk8s controller (for OAuth tests)
-        if: ${{ matrix.tox-environments == 'integration-machine-oauth' }}
+        if: ${{ matrix.tox-environments == 'oauth' }}
         run: |
           LXD_CONTROLLER=$(juju models --format json | jq -r '.models[0]."controller-name"')
           sudo snap install --classic terraform
@@ -256,31 +262,31 @@ jobs:
             echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
           fi
       - name: Run integration tests
-        run: tox run -e ${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kraft-mode ${{ matrix.kraft-mode }}
+        run: tox run -e integration-machine-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kraft-mode ${{ matrix.kraft-mode }}
         env:
           CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
 
-  integration-test-k8s-single:
+  integration-kafka-k8s-single:
     permissions:
       contents: read
     strategy:
       fail-fast: false
       matrix:
         tox-environments:
-          - integration-k8s-auto-balance
-          - integration-k8s-charm
-          - integration-k8s-provider
-          - integration-k8s-provider-v1
-          - integration-k8s-password-rotation
-          - integration-k8s-tls
-          - integration-k8s-tls-complex
-          - integration-k8s-kraft
-          - integration-k8s-kraft-tls
-          - integration-k8s-ha
-          - integration-k8s-refresh
+          - auto-balance
+          - charm
+          - provider
+          - provider-v1
+          - password-rotation
+          - tls
+          - tls-complex
+          - kraft
+          - kraft-tls
+          - ha
+          - refresh
         kraft-mode:
           - single
-    name: "${{ matrix.tox-environments }} | k8s | ${{ matrix.kraft-mode }}"
+    name: "Kafka | k8s | ${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}"
     needs:
       - lint
       - unit-test
@@ -294,7 +300,7 @@ jobs:
     timeout-minutes: 120
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Setup operator environment
         run: |
           sudo snap install concierge --classic
@@ -339,7 +345,7 @@ jobs:
           pushd ~/charmcraft && uv run charmcraft --version && popd
           echo "CHARMCRAFT_BIN=$(realpath ~/charmcraft/.venv/bin/charmcraft)" >> $GITHUB_ENV
       - name: Download packed charm(s)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
           merge-multiple: true
@@ -355,34 +361,34 @@ jobs:
             echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
           fi
       - name: Run integration tests
-        run: tox run -e ${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kraft-mode ${{ matrix.kraft-mode }}
+        run: tox run -e integration-k8s-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kraft-mode ${{ matrix.kraft-mode }}
         env:
           CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
 
-  integration-test-k8s-multi:
+  integration-kafka-k8s-multi:
     permissions:
       contents: read
     strategy:
       fail-fast: false
       matrix:
         tox-environments:
-          - integration-k8s-auto-balance
-          - integration-k8s-charm
-          - integration-k8s-provider
-          - integration-k8s-provider-v1
-          - integration-k8s-password-rotation
-          - integration-k8s-tls
-          - integration-k8s-tls-complex
-          - integration-k8s-balancer-broker
-          - integration-k8s-balancer-controller
-          - integration-k8s-kraft
-          - integration-k8s-kraft-tls
-          - integration-k8s-ha
-          - integration-k8s-ha-controller
-          - integration-k8s-refresh
+          - auto-balance
+          - charm
+          - provider
+          - provider-v1
+          - password-rotation
+          - tls
+          - tls-complex
+          - balancer-broker
+          - balancer-controller
+          - kraft
+          - kraft-tls
+          - ha
+          - ha-controller
+          - refresh
         kraft-mode:
           - multi
-    name: ${{ matrix.tox-environments }} | k8s | ${{ matrix.kraft-mode }}
+    name: "Kafka | k8s | ${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}"
     needs:
       - lint
       - unit-test
@@ -396,7 +402,7 @@ jobs:
     timeout-minutes: 120
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Setup operator environment
         run: |
           sudo snap install concierge --classic
@@ -441,7 +447,7 @@ jobs:
           pushd ~/charmcraft && uv run charmcraft --version && popd
           echo "CHARMCRAFT_BIN=$(realpath ~/charmcraft/.venv/bin/charmcraft)" >> $GITHUB_ENV
       - name: Download packed charm(s)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
           merge-multiple: true
@@ -457,6 +463,74 @@ jobs:
             echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
           fi
       - name: Run integration tests
-        run: tox run -e ${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kraft-mode ${{ matrix.kraft-mode }}
+        run: tox run -e integration-k8s-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kraft-mode ${{ matrix.kraft-mode }}
+        env:
+          CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
+
+  integration-connect-machine:
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        tox-environments:
+          - charm
+          - tls
+          - plugins
+          - provider
+          - upgrade
+          - requirer
+          - scaling
+          - secrets
+          - terraform
+        kafka-version:
+          - "3"
+          - "4"
+        exclude:
+          # TF tests don't involve Kafka
+          - tox-environments: terraform
+            kafka-version: 3
+    name: Connect | machine | ${{ matrix.tox-environments }} | Kafka ${{ matrix.kafka-version }}
+    needs:
+      - lint
+      - unit-test
+      - build-dev
+      - build-release
+    if: |
+      always() &&
+      !cancelled() &&
+      (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
+    runs-on: [self-hosted, linux, AMD64, X64, large, noble]
+    timeout-minutes: 240
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup operator environment
+        uses: charmed-kubernetes/actions-operator@main
+        with:
+          provider: lxd
+          juju-channel: 3.6/stable
+      - name: Download packed charm(s)
+        uses: actions/download-artifact@v6
+        with:
+          pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
+          merge-multiple: true
+      - name: Setup terraform if needed
+        if: ${{ matrix.tox-environments == 'terraform' }}
+        run: |
+          sudo snap install --classic terraform
+      - name: Select tests
+        id: select-tests
+        run: |
+          if [ "${{ github.event_name }}" == "schedule" ]
+          then
+            echo Running unstable and stable tests
+            echo "mark_expression=" >> $GITHUB_OUTPUT
+          else
+            echo Skipping unstable tests
+            echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
+          fi
+      - name: Run integration tests
+        run: tox run -e integration-connect-machine-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kafka ${{ matrix.kafka-version }}
         env:
           CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}

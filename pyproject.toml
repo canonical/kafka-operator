@@ -72,6 +72,7 @@ kafka-python = ">=2.0"
 requests = ">2.25"
 flaky = ">=3.0"
 jubilant = ">=1.0.0"
+jubilant-adapters = ">=0.2.0"
 
 [tool.poetry.group.format.dependencies]
 pyright = "^1.1.301"
@@ -100,7 +101,15 @@ lint.extend-ignore = [
   "D413",
 ]
 lint.ignore = ["E501", "D107"]
-extend-exclude = ["__pycache__", "*.egg_info", "tests/integration/machine/app-charm/lib", "tests/integration/k8s/app-charm/lib"]
+extend-exclude = [
+  "__pycache__",
+  "*.egg_info",
+  "tests/integration/machine/app-charm/lib",
+  "tests/integration/k8s/app-charm/lib",
+  "tests/integration/connect_machine/source-integrator-charm/lib",
+  "tests/integration/connect_machine/sink-integrator-charm/lib",
+  "tests/integration/connect_k8s/app-charm/lib",
+]
 lint.per-file-ignores = { "tests/*" = ["D100", "D101", "D102", "D103", "D104", "E999"], "src/literals.py" = ["D101"] }
 target-version = "py310"
 src = ["src", "tests"]
