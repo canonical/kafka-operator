@@ -37,6 +37,16 @@ parts:
       "$HOME/.local/bin/uv" tool install --no-python-downloads --python '>=3.9' poetry==2.0.0 --with poetry-plugin-export==1.8.0  # renovate: charmcraft-poetry-latest
 
       ln -sf "$HOME/.local/bin/poetry" /usr/local/bin/poetry
+  # Build and stages the common lib
+  common-lib:
+    source: ../common
+    plugin: nil
+    after:
+      - poetry-deps
+    override-build:
+      poetry build -f wheel -o ${CRAFT_PART_INSTALL}/
+    stage:
+      - single_kernel_kafka*.whl
   # "charm-poetry" part name is arbitrary; use for consistency
   # Avoid using "charm" part name since that has special meaning to charmcraft
   charm-poetry:
@@ -50,6 +60,7 @@ parts:
     source: .
     after:
       - poetry-deps
+      - common-lib
     poetry-export-extra-args: ['--only', 'main,charm-libs', '--without-hashes']
     build-packages:
       - libffi-dev  # Needed to build Python dependencies with Rust from source
@@ -62,12 +73,9 @@ parts:
       craftctl default
 
       rm -rf $CRAFT_PART_INSTALL/src/single_kernel_kafka
-      # Install single kernel lib from source if in dev mode
-      if [[ -f "${CRAFT_PART_SRC}/DEVMODE" ]]; then
-        pip install -U \
-          -t ${CRAFT_PART_INSTALL}/venv/lib/python3.12/site-packages/ \
-          ${CRAFT_PART_SRC}/.common
-      fi
+      pip install -U \
+        -t ${CRAFT_PART_INSTALL}/venv/lib/python3.12/site-packages/ \
+        ${CRAFT_STAGE}/single_kernel_kafka*.whl
       # Include requirements.txt in *.charm artifact for easier debugging
       cp requirements.txt "$CRAFT_PART_INSTALL/requirements.txt"
   # "files" part name is arbitrary; use for consistency
