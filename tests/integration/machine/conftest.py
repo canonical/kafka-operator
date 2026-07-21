@@ -43,34 +43,6 @@ def _locate_charm(charm_path: typing.Union[str, os.PathLike]) -> pathlib.Path:
         raise ValueError(f"Unable to find .charm file for {architecture=} and at {charm_path=}")
 
 
-def _locate_charm(charm_path: typing.Union[str, os.PathLike]) -> pathlib.Path:
-    """Locate the .charm file in the charm_path based on the system architecture."""
-    charm_path = pathlib.Path(charm_path)
-    architecture = subprocess.run(
-        ["dpkg", "--print-architecture"],
-        capture_output=True,
-        check=True,
-        encoding="utf-8",
-    ).stdout.strip()
-    assert architecture in ("amd64", "arm64")
-    packed_charms = list(charm_path.glob(f"*{architecture}.charm"))
-    if len(packed_charms) == 1:
-        # python-libjuju's model.deploy(), juju deploy, and juju bundle files expect local charms
-        # to begin with `./` or `/` to distinguish them from Charmhub charms.
-        # Therefore, we need to return an absolute path—a relative `pathlib.Path` does not start
-        # with `./` when cast to a str.
-        # (python-libjuju model.deploy() expects a str but will cast any input to a str as a
-        # workaround for pytest-operator's non-compliant `build_charm` return type of
-        # `pathlib.Path`.)
-        return packed_charms[0].resolve(strict=True)
-    elif len(packed_charms) > 1:
-        raise ValueError(
-            f"More than one matching .charm file found at {charm_path=} for {architecture=}"
-        )
-    else:
-        raise ValueError(f"Unable to find .charm file for {architecture=} and at {charm_path=}")
-
-
 def pytest_addoption(parser):
     """Defines pytest parsers."""
     parser.addoption(
