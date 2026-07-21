@@ -23,6 +23,10 @@ on:
         description: build_charm.yaml `artifact-prefix` output
         value: ${{ jobs.build.outputs.artifact-prefix }}
 
+env:
+  JUJU_CHANNEL: "3.6/stable"
+  MICROK8S_CHANNEL: "1.28-strict/stable"
+
 jobs:
   lint:
     name: Lint
@@ -56,7 +60,8 @@ jobs:
         path:
           - machine
           - k8s
-          - tests/integration/app-charm
+          - tests/integration/machine/app-charm
+          - tests/integration/k8s/app-charm
     name: Build charm for testing | ${{ matrix.path }}
     uses: ./.github/workflows/_build_charm_dev.yaml
     with:
@@ -72,7 +77,8 @@ jobs:
         path:
           - machine
           - k8s
-          - tests/integration/app-charm
+          - tests/integration/machine/app-charm
+          - tests/integration/k8s/app-charm
     name: Build charm for release | ${{ matrix.path }}
     uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v32.2.2
     with:
@@ -87,22 +93,22 @@ jobs:
       fail-fast: false
       matrix:
         tox-environments:
-          - integration-auto-balance
-          - integration-charm
-          - integration-provider
-          - integration-provider-v1
-          - integration-password-rotation
-          - integration-tls
-          - integration-refresh
-          - integration-tls-complex
-          - integration-kraft
-          - integration-kraft-tls
-          - integration-ha
-          - integration-spaces
-          - integration-terraform
+          - integration-machine-auto-balance
+          - integration-machine-charm
+          - integration-machine-provider
+          - integration-machine-provider-v1
+          - integration-machine-password-rotation
+          - integration-machine-tls
+          - integration-machine-refresh
+          - integration-machine-tls-complex
+          - integration-machine-kraft
+          - integration-machine-kraft-tls
+          - integration-machine-ha
+          - integration-machine-spaces
+          - integration-machine-terraform
         kraft-mode:
           - single
-    name: "${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}"
+    name: "${{ matrix.tox-environments }} | machine | ${{ matrix.kraft-mode }}"
     needs:
       - lint
       - unit-test
@@ -128,7 +134,7 @@ jobs:
           pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
           merge-multiple: true
       - name: Setup terraform if needed
-        if: ${{ matrix.tox-environments == 'integration-terraform' }}
+        if: ${{ matrix.tox-environments == 'integration-machine-terraform' }}
         run: |
           sudo snap install --classic terraform
       - name: Select tests
@@ -152,25 +158,25 @@ jobs:
       fail-fast: false
       matrix:
         tox-environments:
-          - integration-auto-balance
-          - integration-charm
-          - integration-provider
-          - integration-provider-v1
-          - integration-password-rotation
-          - integration-tls
-          - integration-refresh
-          - integration-tls-complex
-          - integration-balancer-broker
-          - integration-balancer-controller
-          - integration-kraft
-          - integration-kraft-tls
-          - integration-ha
-          - integration-ha-controller
-          - integration-spaces
-          - integration-oauth
+          - integration-machine-auto-balance
+          - integration-machine-charm
+          - integration-machine-provider
+          - integration-machine-provider-v1
+          - integration-machine-password-rotation
+          - integration-machine-tls
+          - integration-machine-refresh
+          - integration-machine-tls-complex
+          - integration-machine-balancer-broker
+          - integration-machine-balancer-controller
+          - integration-machine-kraft
+          - integration-machine-kraft-tls
+          - integration-machine-ha
+          - integration-machine-ha-controller
+          - integration-machine-spaces
+          - integration-machine-oauth
         kraft-mode:
           - multi
-    name: "${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}"
+    name: "${{ matrix.tox-environments }} | machine | ${{ matrix.kraft-mode }}"
     needs:
       - lint
       - unit-test
@@ -196,7 +202,7 @@ jobs:
           pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
           merge-multiple: true
       - name: Setup terraform & microk8s controller (for OAuth tests)
-        if: ${{ matrix.tox-environments == 'integration-oauth' }}
+        if: ${{ matrix.tox-environments == 'integration-machine-oauth' }}
         run: |
           LXD_CONTROLLER=$(juju models --format json | jq -r '.models[0]."controller-name"')
           sudo snap install --classic terraform
@@ -246,3 +252,199 @@ jobs:
         env:
           CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
 
+  integration-test-k8s-single:
+    strategy:
+      fail-fast: false
+      matrix:
+        tox-environments:
+          - integration-k8s-auto-balance
+          - integration-k8s-charm
+          - integration-k8s-provider
+          - integration-k8s-provider-v1
+          - integration-k8s-password-rotation
+          - integration-k8s-tls
+          - integration-k8s-tls-complex
+          - integration-k8s-kraft
+          - integration-k8s-kraft-tls
+          - integration-k8s-ha
+          - integration-k8s-refresh
+        kraft-mode:
+          - single
+    name: "${{ matrix.tox-environments }} | k8s | ${{ matrix.kraft-mode }}"
+    needs:
+      - lint
+      - unit-test
+      - build-dev
+      - build-release
+    if: |
+      always() &&
+      !cancelled() &&
+      (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
+    runs-on: [self-hosted, linux, AMD64, X64, large, noble]
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup operator environment
+        run: |
+          sudo snap install concierge --classic
+          # calico has issues with strict confinements, so remove -strict
+          sudo snap install microk8s --channel ${MICROK8S_CHANNEL//"-strict"/} --classic
+          sudo snap install juju --channel $JUJU_CHANNEL
+
+          sudo usermod -a -G microk8s $USER
+          mkdir -p ~/.kube
+          chmod 0700 ~/.kube
+
+          sudo tee /var/snap/microk8s/current/args/certs.d/docker.io/hosts.toml << EOF
+          server = "$DOCKERHUB_MIRROR"
+          [host."${DOCKERHUB_MIRROR#'https://'}"]
+          capabilities = ["pull", "resolve"]
+          EOF
+
+          sudo microk8s stop
+          sudo microk8s start
+
+          # make juju work with microk8s --classic
+          sudo mkdir -p /var/snap/juju/current/microk8s/credentials
+          sudo microk8s config | sudo tee /var/snap/juju/current/microk8s/credentials/client.config
+          sudo chown -R $USER:$USER /var/snap/juju/current/microk8s/credentials
+
+          sudo concierge prepare \
+            -p microk8s \
+            --microk8s-channel ${MICROK8S_CHANNEL//"-strict"/} \
+            --juju-channel $JUJU_CHANNEL \
+            --extra-debs pipx
+
+          pipx ensurepath
+          pipx install tox poetry
+      # FIXME: remove this step when the previously installed charmcraft snap supports monorepos.
+      - name: Install charmcraft with monorepo feature
+        run: |
+          sudo snap install --classic astral-uv
+          git clone https://github.com/canonical/charmcraft \
+            --branch work/CHARMCRAFT-710-prototype \
+            ~/charmcraft
+
+          pushd ~/charmcraft && uv run charmcraft --version && popd
+          echo "CHARMCRAFT_BIN=$(realpath ~/charmcraft/.venv/bin/charmcraft)" >> $GITHUB_ENV
+      - name: Download packed charm(s)
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
+          merge-multiple: true
+      - name: Select tests
+        id: select-tests
+        run: |
+          if [ "${{ github.event_name }}" == "schedule" ]
+          then
+            echo Running unstable and stable tests
+            echo "mark_expression=" >> $GITHUB_OUTPUT
+          else
+            echo Skipping unstable tests
+            echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
+          fi
+      - name: Run integration tests
+        run: tox run -e ${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kraft-mode ${{ matrix.kraft-mode }}
+        env:
+          CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
+
+  integration-test-k8s-multi:
+    strategy:
+      fail-fast: false
+      matrix:
+        tox-environments:
+          - integration-k8s-auto-balance
+          - integration-k8s-charm
+          - integration-k8s-provider
+          - integration-k8s-provider-v1
+          - integration-k8s-password-rotation
+          - integration-k8s-tls
+          - integration-k8s-tls-complex
+          - integration-k8s-balancer-broker
+          - integration-k8s-balancer-controller
+          - integration-k8s-kraft
+          - integration-k8s-kraft-tls
+          - integration-k8s-ha
+          - integration-k8s-ha-controller
+          - integration-k8s-refresh
+        kraft-mode:
+          - multi
+    name: ${{ matrix.tox-environments }} | k8s | ${{ matrix.kraft-mode }}
+    needs:
+      - lint
+      - unit-test
+      - build-dev
+      - build-release
+    if: |
+      always() &&
+      !cancelled() &&
+      (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
+    runs-on: [self-hosted, linux, AMD64, X64, xlarge, noble]
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup operator environment
+        run: |
+          sudo snap install concierge --classic
+          # calico has issues with strict confinements, so remove -strict
+          sudo snap install microk8s --channel ${MICROK8S_CHANNEL//"-strict"/} --classic
+          sudo snap install juju --channel $JUJU_CHANNEL
+
+          sudo usermod -a -G microk8s $USER
+          mkdir -p ~/.kube
+          chmod 0700 ~/.kube
+
+          sudo tee /var/snap/microk8s/current/args/certs.d/docker.io/hosts.toml << EOF
+          server = "$DOCKERHUB_MIRROR"
+          [host."${DOCKERHUB_MIRROR#'https://'}"]
+          capabilities = ["pull", "resolve"]
+          EOF
+
+          sudo microk8s stop
+          sudo microk8s start
+
+          # make juju work with microk8s --classic
+          sudo mkdir -p /var/snap/juju/current/microk8s/credentials
+          sudo microk8s config | sudo tee /var/snap/juju/current/microk8s/credentials/client.config
+          sudo chown -R $USER:$USER /var/snap/juju/current/microk8s/credentials
+
+          sudo concierge prepare \
+            -p microk8s \
+            --microk8s-channel ${MICROK8S_CHANNEL//"-strict"/} \
+            --juju-channel $JUJU_CHANNEL \
+            --extra-debs pipx
+          
+          pipx ensurepath
+          pipx install tox poetry
+      # FIXME: remove this step when the previously installed charmcraft snap supports monorepos.
+      - name: Install charmcraft with monorepo feature
+        run: |
+          sudo snap install --classic astral-uv
+          git clone https://github.com/canonical/charmcraft \
+            --branch work/CHARMCRAFT-710-prototype \
+            ~/charmcraft
+
+          pushd ~/charmcraft && uv run charmcraft --version && popd
+          echo "CHARMCRAFT_BIN=$(realpath ~/charmcraft/.venv/bin/charmcraft)" >> $GITHUB_ENV
+      - name: Download packed charm(s)
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
+          merge-multiple: true
+      - name: Select tests
+        id: select-tests
+        run: |
+          if [ "${{ github.event_name }}" == "schedule" ]
+          then
+            echo Running unstable and stable tests
+            echo "mark_expression=" >> $GITHUB_OUTPUT
+          else
+            echo Skipping unstable tests
+            echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
+          fi
+      - name: Run integration tests
+        run: tox run -e ${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kraft-mode ${{ matrix.kraft-mode }}
+        env:
+          CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
