@@ -22,12 +22,13 @@ build:
       then
         exit 183;
       fi
-    # Generate the auto-generated reference pages (actions, configurations)
-    # from machine/actions.yaml and machine/config.yaml before Sphinx runs.
-    # The output is written to docs/reference/_generated/ (gitignored).
+    # Generate the auto-generated reference pages (actions, configurations,
+    # statuses) from charm source files before Sphinx runs.  The output is
+    # written to docs/reference/_generated/ (gitignored).
     # PyYAML is installed from docs/requirements.txt before pre_build runs.
     pre_build:
     - python3 docs/_dev/generate_charm_reference.py
+    - python3 docs/_dev/generate_statuses.py
 
 # Build documentation in the docs/ directory with Sphinx
 sphinx:
