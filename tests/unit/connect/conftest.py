@@ -7,7 +7,6 @@ from unittest.mock import MagicMock, Mock, PropertyMock, patch
 import pytest
 from common.single_kernel_kafka.core.literals import ConnectLiterals
 from common.single_kernel_kafka.managers.connect import HealthResponse
-from ops import EventBase
 from ops.testing import Container, Context, PeerRelation, Resource, State
 
 from ..helpers import SUBSTRATE, SUBSTRATE_CLS
@@ -61,23 +60,15 @@ def plugin_resource():
     )
 
 
-class MockAcquireLock(EventBase):
-    def __init__(self, handle, callback_override: str | None = None):
-        super().__init__(handle)
-        self.callback_override = "_restart_callback"
-
-    def snapshot(self):
-        """Snapshot of lock event."""
-        return {"callback_override": self.callback_override}
-
-    def restore(self, snapshot):
-        """Restores lock event."""
-        self.callback_override = snapshot["callback_override"]
-
-
 @pytest.fixture
 def restart_rel(monkeypatch):
-    monkeypatch.setattr("charms.rolling_ops.v0.rollingops.AcquireLock", MockAcquireLock)
+    def _run_restart_callback(self, callback_id="restart", kwargs=None, max_retry=None):
+        """Run the restart callback synchronously in place of the async worker."""
+        self._charm._restart_callback(**(kwargs or {}))
+
+    monkeypatch.setattr(
+        "charmlibs.rollingops.RollingOpsManager.request_async_lock", _run_restart_callback
+    )
 
     return PeerRelation("restart", "rolling_op")
 

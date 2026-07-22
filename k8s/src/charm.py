@@ -11,14 +11,13 @@ import typing
 os.environ.update({"SUBSTRATE": "k8s"})
 
 import charm_refresh
+from charmlibs.rollingops import OperationResult, RollingOpsManager
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.loki_k8s.v1.loki_push_api import LogForwarder
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
-from charms.rolling_ops.v0.rollingops import RollingOpsManager
 from ops import (
     ActiveStatus,
     CollectStatusEvent,
-    EventBase,
     StatusBase,
 )
 from ops.log import JujuLogHandler
@@ -76,7 +75,14 @@ class KafkaCharm(KafkaCharmBase):
             container=self.unit.get_container(CONTAINER)
         )  # Will be re-instantiated for each role.
 
-        self.restart = RollingOpsManager(self, relation="restart", callback=self._restart_broker)
+        self.restart = RollingOpsManager(
+            self,
+            peer_relation_name="restart",
+            callback_targets={
+                "restart": self._restart_broker,
+                "disable_enable": self._disable_enable_restart_broker,
+            },
+        )
 
         self.framework.observe(getattr(self.on, "config_changed"), self._on_roles_changed)
         self.framework.observe(self.on.collect_unit_status, self._on_collect_status)
@@ -140,12 +146,11 @@ class KafkaCharm(KafkaCharmBase):
         ):
             self.balancer.workload.stop()
 
-    def _restart_broker(self, event: EventBase) -> None:
-        """Handler for `rolling_ops` restart events."""
+    def _restart_broker(self, **_kwargs) -> OperationResult:
+        """Callback for `rolling_ops` restart operations."""
         # only attempt restart if service is already active
         if not self.broker.healthy:
-            event.defer()
-            return
+            return OperationResult.RETRY_RELEASE
 
         self.broker.workload.restart()
 
@@ -154,13 +159,22 @@ class KafkaCharm(KafkaCharmBase):
             runs_broker=self.state.runs_broker,
             runs_controller=self.state.runs_controller,
         ):
-            event.defer()
-            return
+            return OperationResult.RETRY_RELEASE
 
         self.broker.update_credentials_cache()
 
         # Force update our trusted certs relation data.
         self.broker.update_peer_truststore_state(force=True)
+
+        return OperationResult.RELEASE
+
+    def _disable_enable_restart_broker(self, **_kwargs) -> OperationResult:
+        """Callback for `rolling_ops` disable_enable restart operations.
+
+        No-op on K8s. The disable/enable cycle only exists on the machine charm to
+        work around a Snap storage-volume mount bug, which does not apply to containers.
+        """
+        return OperationResult.RELEASE
 
     def _set_status(self, key: Status) -> None:
         """Sets charm status."""

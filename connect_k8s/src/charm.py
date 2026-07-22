@@ -12,13 +12,12 @@ from typing import cast
 os.environ.update({"SUBSTRATE": "k8s"})
 
 import ops
+from charmlibs.rollingops import OperationResult, RollingOpsManager
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.loki_k8s.v0.loki_push_api import LogProxyConsumer
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
-from charms.rolling_ops.v0.rollingops import RollingOpsManager
 from ops import (
     CollectStatusEvent,
-    EventBase,
     InstallEvent,
     ModelError,
     StartEvent,
@@ -102,7 +101,11 @@ class ConnectCharm(ConnectCharmBase):
 
         self.user_secrets = SecretsHandler(self)
 
-        self.restart = RollingOpsManager(self, relation="restart", callback=self._restart_callback)
+        self.restart = RollingOpsManager(
+            self,
+            peer_relation_name="restart",
+            callback_targets={"restart": self._restart_callback},
+        )
 
         self.metrics_endpoint = MetricsEndpointProvider(
             self,
@@ -163,10 +166,10 @@ class ConnectCharm(ConnectCharmBase):
         for status in self.pending_inactive_statuses + [workload_status]:
             event.add_status(status.value.status)
 
-    def _restart_callback(self, event: EventBase) -> None:
-        """Handler for `rolling_ops` restart events."""
+    def _restart_callback(self, **_kwargs) -> OperationResult:
+        """Callback for `rolling_ops` restart operations."""
         if not self.context.ready or not self.context.worker_unit.should_restart:
-            return
+            return OperationResult.RELEASE
 
         self.connect_manager.restart_worker()
 
@@ -174,7 +177,9 @@ class ConnectCharm(ConnectCharmBase):
             # shouldn't take longer than a minute
             if self.connect_manager.healthy:
                 self.context.worker_unit.should_restart = False
-                return
+                return OperationResult.RELEASE
+
+        return OperationResult.RETRY_RELEASE
 
     def reconcile(self) -> None:
         """Substrate-agnostic method for startup/restarts/config-changes which orchestrates workload, managers and handlers.
@@ -237,7 +242,7 @@ class ConnectCharm(ConnectCharmBase):
         self.tls_manager.configure()
         self.config_manager.configure()
 
-        self.on[f"{self.restart.name}"].acquire_lock.emit()
+        self.restart.request_async_lock(callback_id="restart")
 
 
 if __name__ == "__main__":

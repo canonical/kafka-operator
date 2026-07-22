@@ -70,7 +70,7 @@ from .structured_config import CharmConfig
 
 if TYPE_CHECKING:
     from charm_refresh import Kubernetes, Machines
-    from charms.rolling_ops.v0.rollingops import RollingOpsManager
+    from charmlibs.rollingops import RollingOpsManager
 
     from ..events.balancer import BalancerOperator
     from ..events.broker import BrokerOperator
