@@ -241,11 +241,9 @@ class BrokerOperator(Object):
                     internal_user_credentials=self.charm.state.cluster.internal_user_credentials,
                     initial_controllers=f"{self.charm.state.peer_cluster.bootstrap_unit_id}@{self.charm.state.peer_cluster.bootstrap_controller}:{self.charm.state.peer_cluster.bootstrap_replica_id}",
                 )
-                self.charm.on[f"{self.charm.restart.name}"].acquire_lock.emit(
-                    callback_override="_disable_enable_restart_broker"
-                )
+                self.charm.restart.request_async_lock(callback_id="disable_enable")
             else:
-                self.charm.on[f"{self.charm.restart.name}"].acquire_lock.emit()
+                self.charm.restart.request_async_lock(callback_id="restart")
 
     def _handle_broker_service_updates(self) -> None:
         """Handle updates to broker services, client data, and other post-configuration tasks."""
@@ -321,7 +319,7 @@ class BrokerOperator(Object):
         ):
             logger.info("Removing decommissioned CA from truststore.")
             self.tls_manager.rebuild_truststore()
-            self.charm.on[f"{self.charm.restart.name}"].acquire_lock.emit()
+            self.charm.restart.request_async_lock(callback_id="restart")
 
         if self.charm.state.runs_broker and not self.kraft.controller_manager.broker_active():
             self.charm._set_status(Status.BROKER_NOT_CONNECTED)

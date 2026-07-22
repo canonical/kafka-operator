@@ -28,7 +28,7 @@ from .models import TLSContextBase, TLSManagerSettings
 from .structured_config import ConnectCharmConfig
 
 if TYPE_CHECKING:
-    from charms.rolling_ops.v0.rollingops import RollingOpsManager
+    from charmlibs.rollingops import RollingOpsManager
 
     from ..managers.auth import ConnectAuthManager
     from ..managers.connect import ConnectManager
