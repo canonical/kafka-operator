@@ -1,0 +1,20 @@
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+type: charm
+platforms:
+  ubuntu@24.04:amd64:
+parts:
+  charm:
+    build-packages:
+      - libffi-dev
+      - libssl-dev
+      - pkg-config
+      - git
+    override-build: |
+      snap install rustup --classic
+      rustup --version
+      rustup set profile minimal
+      rustup default 1.94.0
+      craftctl default
+    plugin: charm

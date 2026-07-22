@@ -42,6 +42,10 @@ from charms.data_platform_libs.v1.data_interfaces import (
     SecretGroup,
     SecretNotFoundError,
 )
+from charms.tls_certificates_interface.v4.tls_certificates import (
+    Certificate,
+    PrivateKey,
+)
 from lightkube.resources.core_v1 import Node, Pod
 from ops.model import Application, Model, ModelError, Relation, Unit
 from pydantic import ValidationError, field_validator
@@ -73,7 +77,7 @@ if TYPE_CHECKING:
     from ..events.tls import TLSHandler
     from ..health import KafkaHealth
     from ..workload import KafkaWorkloadK8s, KafkaWorkloadMachine
-    from .cluster import ClusterState
+    from .cluster import KafkaContext
 
 
 logger = logging.getLogger(__name__)
@@ -86,6 +90,7 @@ BrokerCapacity = TypedDict("BrokerCapacity", {"brokerId": str, "capacity": Capac
 BrokerCapacities = TypedDict(
     "BrokerCapacities", {"brokerCapacities": list[BrokerCapacity]}, total=False
 )
+Sans = TypedDict("Sans", {"sans_ip": list[str], "sans_dns": list[str]})
 
 custom_secret_groups = SECRET_GROUPS
 if not hasattr(custom_secret_groups, "BROKER"):
@@ -117,7 +122,7 @@ class KafkaCharmBase(TypedCharmBase[CharmConfig], abc.ABC):
     pending_inactive_statuses: list[Status]
     restart: "RollingOpsManager"
     refresh: "Machines | Kubernetes | None"
-    state: "ClusterState"
+    state: "KafkaContext"
     substrate: Substrates
     tls: "TLSHandler"
     workload: "KafkaWorkloadMachine | KafkaWorkloadK8s"
@@ -152,6 +157,29 @@ class SelfSignedCertificate:
     csr: str
     certificate: str
     private_key: str
+
+
+class SansBuilderBase(abc.ABC):
+    """Base interface for SANs builders."""
+
+    @abc.abstractmethod
+    def build_sans(self) -> Sans:
+        """Builds a SAN dict of DNS names and IPs for the unit."""
+        ...
+
+
+@dataclass
+class TLSManagerSettings:
+    """TLS Manager settings model."""
+
+    app_name: str
+    unit_name: str
+    internal_ca: Certificate | None
+    internal_ca_key: PrivateKey | None
+    keystore_password: str
+    truststore_password: str
+    scopes: dict[TLSScope, "TLSContextBase"]
+    peer_cluster_ca: list[str]
 
 
 RESOURCE_TYPES = {"TOPIC", "GROUP"}
@@ -857,7 +885,53 @@ class KafkaCluster(RelationState):
         self.update({"broker-capacities-snapshot": json.dumps(snapshot)})
 
 
-class TLSState:
+class TLSContextBase(abc.ABC):
+    """Data interface for TLS context."""
+
+    @property
+    @abc.abstractmethod
+    def private_key(self) -> str:
+        """The unit private-key."""
+        ...
+
+    @property
+    @abc.abstractmethod
+    def csr(self) -> str:
+        """The unit cert signing request."""
+        ...
+
+    @property
+    @abc.abstractmethod
+    def certificate(self) -> str:
+        """The signed unit certificate."""
+        ...
+
+    @property
+    @abc.abstractmethod
+    def ca(self) -> str:
+        """The CA used to sign unit cert."""
+        ...
+
+    @property
+    @abc.abstractmethod
+    def chain(self) -> list[str]:
+        """The chain used to sign unit cert."""
+        ...
+
+    @property
+    @abc.abstractmethod
+    def bundle(self) -> list[str]:
+        """The cert bundle used for TLS identity."""
+        ...
+
+    @property
+    @abc.abstractmethod
+    def ready(self) -> bool:
+        """Returns True if all the necessary TLS relation data has been set, False otherwise."""
+        ...
+
+
+class TLSState(TLSContextBase):
     """State collection metadata for TLS credentials."""
 
     def __init__(self, relation_state: RelationState, scope: TLSScope):

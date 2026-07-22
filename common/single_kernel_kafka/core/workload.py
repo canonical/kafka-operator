@@ -10,14 +10,32 @@ import secrets
 import socket
 import string
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 from contextlib import closing
+from dataclasses import dataclass
+from typing import BinaryIO
 
 from charmlibs import pathops
 from ops.pebble import Layer
 
-from ..core.literals import BALANCER, BROKER, Role, Substrates, TLSScope
+from ..core.literals import (
+    BALANCER,
+    BROKER,
+    SNAP_NAME,
+    Role,
+    Substrates,
+    TLSScope,
+)
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class DirEntry:
+    """Object to represent an entry in directory listing."""
+
+    name: str
+    is_dir: bool
 
 
 class CharmedKafkaPaths:
@@ -128,10 +146,100 @@ class CharmedKafkaPaths:
         return f"{self.conf_path}/cruisecontrol.credentials"
 
 
+class ConnectPaths:
+    """Object to store common paths for Kafka Connect worker."""
+
+    MACHINE = {
+        "config": f"/var/snap/{SNAP_NAME}/current/etc/connect",
+        "plugins": f"/var/snap/{SNAP_NAME}/common/var/lib/connect/plugins/",
+        "logs": f"/var/snap/{SNAP_NAME}/common/var/log/connect",
+    }
+
+    K8S = {
+        "config": "/etc/connect",
+        "plugins": "/var/lib/connect/plugins/",
+        "logs": "/var/logs/connect/",
+    }
+
+    def __init__(self, substrate: Substrates):
+        self._paths = self.MACHINE if substrate == "vm" else self.K8S
+
+    @property
+    def config_dir(self) -> str:
+        """Path to Kafka Connect config directory."""
+        return self._paths["config"]
+
+    @property
+    def snap_dir(self) -> str:
+        """Path to Kafka & Kafka connect snap's base dir."""
+        return f"/snap/{SNAP_NAME}/current/opt/kafka"
+
+    @property
+    def logs_dir(self) -> str:
+        """Path to logs dir."""
+        return self._paths["logs"]
+
+    @property
+    def env(self) -> str:
+        """Path to environment file."""
+        return "/etc/environment"
+
+    @property
+    def plugins(self) -> str:
+        """Path to plugins folder or storage."""
+        return self._paths["plugins"]
+
+    @property
+    def worker_properties(self) -> str:
+        """Path to distributed connect worker properties file."""
+        return f"{self.config_dir}/connect-distributed.properties"
+
+    @property
+    def jaas(self) -> str:
+        """Path to authentication JAAS config file."""
+        return f"{self.config_dir}/jaas.cfg"
+
+    @property
+    def keystore(self) -> str:
+        """Path to Java Keystore containing service private-key and signed certificates."""
+        return f"{self.config_dir}/connect-keystore.p12"
+
+    @property
+    def truststore(self):
+        """Path to Java Truststore containing trusted CAs + certificates."""
+        return f"{self.config_dir}/connect-truststore.jks"
+
+    @property
+    def truststore_password(self) -> str:
+        """Path to truststore password file."""
+        return f"{self.config_dir}/truststore.password"
+
+    @property
+    def passwords(self) -> str:
+        """Path to passwords file store when using PropertyFileLoginModule."""
+        return f"{self.config_dir}/connect.password"
+
+    @property
+    def jmx_prometheus_javaagent(self) -> str:
+        """Path to JMX Prometheus exporter java agent."""
+        return f"{self.snap_dir}/libs/jmx_prometheus_javaagent.jar"
+
+    @property
+    def jmx_prometheus_config(self) -> str:
+        """Path to JMX Prometheus exporter YAML config file."""
+        return f"{self.config_dir}/jmx_prometheus.yaml"
+
+    @property
+    def log4j_properties(self) -> str:
+        """Path to log4j properties file."""
+        return f"{self.config_dir}/log4j.properties"
+
+
 class WorkloadBase(ABC):
     """Base interface for common workload operations."""
 
     paths: CharmedKafkaPaths
+    connect_paths: ConnectPaths
     root: pathops.PathProtocol
     substrate: Substrates
 
@@ -163,7 +271,7 @@ class WorkloadBase(ABC):
         ...
 
     @abstractmethod
-    def write(self, content: str, path: str, mode: str = "w") -> None:
+    def write(self, content: str | BinaryIO, path: str, mode: str = "w") -> None:
         """Writes content to a workload file.
 
         Args:
@@ -180,6 +288,7 @@ class WorkloadBase(ABC):
         env: dict[str, str] | None = None,
         working_dir: str | None = None,
         log_on_error: bool = True,
+        sensitive: bool = False,
     ) -> str:
         """Runs a command on the workload substrate."""
         ...
@@ -208,6 +317,35 @@ class WorkloadBase(ABC):
             String of kafka bin command output
         """
         ...
+
+    @abstractmethod
+    def mkdir(self, path: str) -> None:
+        """Creates a new directory at the provided path."""
+        ...
+
+    @abstractmethod
+    def rmdir(self, path: str) -> None:
+        """Removes the directory at the provided path."""
+        ...
+
+    @abstractmethod
+    def remove(self, path: str, glob: bool = False) -> None:
+        """Removes the file at the provided path."""
+        ...
+
+    @abstractmethod
+    def dir_exists(self, path: str) -> bool:
+        """Checks whether a directory exists at provided path on the workload."""
+        ...
+
+    @abstractmethod
+    def ls(self, path: str) -> list[DirEntry]:
+        """Returns a directory listing of provided path on the workload."""
+        ...
+
+    @abstractmethod
+    def set_environment(self, env_vars: Iterable[str]) -> None:
+        """Updates the environment variables with provided iterable of key=value `env_vars`."""
 
     @property
     @abstractmethod
@@ -254,6 +392,18 @@ class WorkloadBase(ABC):
             String of 32 randomized letter+digit characters
         """
         return "".join([secrets.choice(string.ascii_letters + string.digits) for _ in range(32)])
+
+    @staticmethod
+    def map_env(env: Iterable[str]) -> dict[str, str]:
+        """Parse env variables into a dict."""
+        map_env = {}
+        for var in env:
+            key = "".join(var.split("=", maxsplit=1)[0])
+            value = "".join(var.split("=", maxsplit=1)[1:])
+            if key:
+                # only check for keys, as we can have an empty value for a variable
+                map_env[key] = value
+        return map_env
 
     @staticmethod
     def ping(bootstrap_nodes: str) -> bool:

@@ -42,7 +42,7 @@ from ..managers.balancer import BalancerManager
 from ..managers.config import TESTING_OPTIONS, ConfigManager
 from ..managers.controller import ControllerManager
 from ..managers.k8s import K8sManager
-from ..managers.tls import TLSManager
+from ..managers.tls import KafkaSansBuilder, TLSManager
 from ..workload import KafkaWorkloadK8s, KafkaWorkloadMachine
 from .actions import ActionEvents
 from .controller import KRaftHandler
@@ -59,7 +59,7 @@ logger = logging.getLogger(__name__)
 class BrokerOperator(Object):
     """Charmed Operator for Kafka."""
 
-    def __init__(self, charm) -> None:
+    def __init__(self, charm: "KafkaCharm") -> None:
         super().__init__(charm, BROKER.value)
         self.charm: "KafkaCharm" = charm
 
@@ -69,11 +69,18 @@ class BrokerOperator(Object):
             container = self.charm.unit.get_container(CONTAINER)
             self.workload = KafkaWorkloadK8s(container=container)
 
-        self.tls_manager = TLSManager(
+        sans_builder = KafkaSansBuilder(
             state=self.charm.state,
             workload=self.workload,
-            substrate=self.charm.substrate,
             config=self.charm.config,
+            substrate=self.charm.substrate,
+        )
+        self.tls_manager = TLSManager(
+            settings=self.charm.state.tls_manager_settings,
+            workload=self.workload,
+            substrate=self.charm.substrate,
+            sans_builder=sans_builder,
+            conf_path=self.workload.paths.conf_path,
         )
         self.controller_manager = ControllerManager(self.charm.state, self.workload)
 
@@ -310,7 +317,7 @@ class BrokerOperator(Object):
         # remove temporary trust aliases if they're no longer needed.
         if (
             self.tls_manager.peer_truststore_has_temporary_aliases
-            and self.tls_manager.both_apps_trust_new_bundle()
+            and self.tls_manager.both_apps_trust_new_bundle(self.charm.state)
         ):
             logger.info("Removing decommissioned CA from truststore.")
             self.tls_manager.rebuild_truststore()
@@ -571,7 +578,7 @@ class BrokerOperator(Object):
             self.charm.state.cluster.add_broker(broker)
 
         # brokers which have been successfully removed,
-        # we will remove these from the ClusterState, and capacityJBOD.json file
+        # we will remove these from the KafkaContext, and capacityJBOD.json file
         removed_brokers = (
             set(self.charm.state.cluster.broker_capacities_snapshot)
             - self.kraft.controller_manager.online_brokers

@@ -1,0 +1,78 @@
+groups:
+- name: connect.alerts
+  rules:
+  # ==============
+  # Base JMX Rules
+  # ==============
+  - alert: JVM Memory Filling Up
+    expr: (sum by (instance)(jvm_memory_bytes_used{area="heap",juju_charm!=".*"}) / sum by (instance)(jvm_memory_bytes_max{area="heap",juju_charm!=".*"})) * 100 > 80
+    for: 2m
+    labels:
+        severity: warning
+    annotations:
+        summary: JVM memory filling up (instance {{ $labels.instance }})
+        description: "JVM memory is filling up (> 80%)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+  - alert: Threads Dead Locked
+    expr: jvm_threads_deadlocked{juju_charm!=".*"} > 0
+    labels:
+      severity: warning
+    annotations:
+      summary: "Kafka Connect JVM threads Deadlock occurred."
+      description: |-
+        JVM Thread Deadlock means a situation where two or more JVM threads are blocked forever, waiting for each other.
+        Deadlock occurs when multiple threads need the same locks but obtain them in different order.
+
+        Also look to JVM documentation about threads state:
+        https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Thread.State.html
+  # ==============
+  # Connect Tasks Rules
+  # ==============
+  - alert: KafkaConnectTaskFailed
+    expr: kafka_connect_connector_task_status{status="failed"} > 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Kafka Connect task failed"
+      description: "One or more tasks for connector {{ $labels.connector }} have failed."
+  - alert: KafkaConnectConnectorUnassigned
+    expr: kafka_connect_connector_task_status{status="unassigned"} > 0
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Kafka Connect connector stuck in UNASSIGNED state"
+      description: "Connector {{ $labels.connector }} is not assigned to any worker."
+  - alert: KafkaConnectConnectorUnhealthy
+    expr: kafka_connect_connector_task_status{status!="running"} > 0
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Kafka Connect connector is unhealthy"
+      description: "Connector {{ $labels.connector }} is in a non-running state ({{ $labels.status }}) for over 5 minutes."
+  - alert: KafkaConnectTaskRestartRateHigh
+    expr: rate(kafka_connect_connect_worker_metrics_connector_restarting_task_count[5m]) > 0.1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Kafka Connect task is restarting frequently"
+      description: "Task {{ $labels.task }} of connector {{ $labels.connector }} is restarting more than 0.1 times/sec (~30 restarts/hour)."
+  - alert: KafkaConnectTaskCommitFailures
+    expr: increase(kafka_connect_connector_task_metrics_offset_commit_failure_percentage[5m]) > 0
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Kafka Connect task commit failures"
+      description: "One or more commit failures detected in task {{ $labels.task }} of connector {{ $labels.connector }}."
+  - alert: KafkaConnectTaskErrorRateHigh
+    expr: rate(kafka_connect_task_error_metrics_total_record_errors[5m]) > 0.5
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High error rate in Kafka Connect"
+      description: "Kafka Connect tasks are reporting over 0.5 errors/sec — check logs for details."

@@ -6,18 +6,21 @@
 
 import csv
 import datetime
+import fnmatch
+import glob as _glob
 import logging
 import os
 import re
 import subprocess
+from collections.abc import Iterable
 from dataclasses import dataclass
 from io import StringIO
-from typing import Mapping, cast
+from typing import BinaryIO, Mapping, cast
 
 from charmlibs import pathops
 from charms.operator_libs_linux.v2 import snap
 from ops import Container, pebble
-from ops.pebble import ExecError
+from ops.pebble import ExecError, FileType
 from tenacity import (
     retry,
     retry_any,
@@ -40,8 +43,9 @@ from .core.literals import (
     SNAP_NAME,
     USER_NAME,
     AuthMap,
+    ConnectLiterals,
 )
-from .core.workload import CharmedKafkaPaths, WorkloadBase
+from .core.workload import CharmedKafkaPaths, ConnectPaths, DirEntry, WorkloadBase
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +64,8 @@ class WorkloadMachine(WorkloadBase):
     service: str
 
     def __init__(self, container: Container | None = None) -> None:
+        self.connect_paths = ConnectPaths(substrate="vm")
+        self.paths = CharmedKafkaPaths(BROKER)  # subclasses can override this
         self.container = container
         self.kafka = snap.SnapCache()[SNAP_NAME]
         self.root = pathops.LocalPath("/")
@@ -98,9 +104,46 @@ class WorkloadMachine(WorkloadBase):
         )
 
     @override
-    def write(self, content: str, path: str, mode: str = "w") -> None:
+    def write(self, content: str | BinaryIO, path: str, mode: str = "w") -> None:
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        (self.root / path).write_text(content, user=USER_NAME, group=GROUP)
+        with open(path, mode) as f:
+            f.write(content)
+
+        self.exec(["chown", "-R", f"{USER_NAME}:{GROUP}", f"{path}"])
+
+    @override
+    def mkdir(self, path: str) -> None:
+        self.exec(["mkdir", path])
+
+    @override
+    def rmdir(self, path: str) -> None:
+        self.exec(["rm", "-r", path])
+
+    @override
+    def remove(self, path: str, glob: bool = False) -> None:
+        if not glob:
+            self.exec(["rm", path])
+            return
+
+        for file in _glob.glob(path):
+            self.exec(["rm", "-rf", file])
+
+    @override
+    def dir_exists(self, path: str) -> bool:
+        return os.path.isdir(path)
+
+    @override
+    def ls(self, path: str) -> list[DirEntry]:
+        return [DirEntry(name=f.name, is_dir=f.is_dir()) for f in os.scandir(path)]
+
+    @override
+    def set_environment(self, env_vars: Iterable[str]) -> None:
+        raw_current_env = self.read(self.connect_paths.env)
+        current_env = self.map_env(raw_current_env)
+
+        updated_env = current_env | self.map_env(env_vars)
+        content = "\n".join([f"{key}={value}" for key, value in updated_env.items()])
+        self.write(content=content + "\n", path=self.connect_paths.env)
 
     @override
     def exec(
@@ -253,7 +296,6 @@ class KafkaWorkloadMachine(WorkloadMachine):
 
     def __init__(self, container: Container | None = None) -> None:
         super().__init__(container=container)
-        self.paths = CharmedKafkaPaths(BROKER)
         self.service = BROKER.service
         self.container = container
 
@@ -317,6 +359,20 @@ class BalancerWorkloadMachine(WorkloadMachine):
         raise NotImplementedError
 
 
+class ConnectWorkloadMachine(WorkloadMachine):
+    """Kafka Connect specific wrapper."""
+
+    def __init__(self, container: Container | None = None) -> None:
+        super().__init__(container=container)
+        self.service = ConnectLiterals.SERVICE_NAME
+        self.container = container
+
+    @property
+    @override
+    def layer(self) -> pebble.Layer:
+        raise NotImplementedError
+
+
 ### K8s Implementation
 
 
@@ -341,6 +397,8 @@ class WorkloadK8s(WorkloadBase):
         self.root = pathops.ContainerPath("/", container=self.container)
         self.substrate = "k8s"
         self.kafka = self._Version()
+        self.paths = CharmedKafkaPaths(BROKER)  # subclasses can override this
+        self.connect_paths = ConnectPaths(substrate="k8s")
 
     @override
     def modify_time(self, file: str) -> float:
@@ -413,8 +471,8 @@ class WorkloadK8s(WorkloadBase):
         )
 
     @override
-    def write(self, content: str, path: str) -> None:
-        (self.root / path).write_text(content, user=USER_NAME, group=GROUP)
+    def write(self, content: str | BinaryIO, path: str, mode: str = "w") -> None:
+        self.container.push(path, content, make_dirs=True)
 
     @override
     def exec(
@@ -473,6 +531,58 @@ class WorkloadK8s(WorkloadBase):
 
         command = f"{self.paths.binaries_path}/bin/kafka-{bin_keyword}.sh {' '.join(bin_args)}"
         return self.exec(command=command.split(), env=parsed_opts or None)
+
+    @override
+    def mkdir(self, path: str) -> None:
+        try:
+            self.exec(["mkdir", path])
+        except pebble.ExecError as e:
+            if "File exists" in str(e):
+                return
+            raise e
+
+    @override
+    def rmdir(self, path: str) -> None:
+        self.exec(["rm", "-r", path])
+
+    @override
+    def remove(self, path: str, glob: bool = False) -> None:
+        if not glob:
+            self.exec(["rm", path])
+            return
+
+        dirname = os.path.dirname(path)
+        for file in self.container.list_files(dirname):
+            if fnmatch.fnmatch(file.path, path):
+                self.exec(["rm", "-rf", file.path])
+
+    @override
+    def dir_exists(self, path: str) -> bool:
+        """Checks whether a directory exists at provided path on the workload."""
+        if not self.container_can_connect:
+            return False
+
+        return self.container.isdir(path)
+
+    @override
+    def ls(self, path: str) -> list[DirEntry]:
+        """Returns a directory listing of provided path on the workload."""
+        if not self.container_can_connect:
+            return []
+
+        return [
+            DirEntry(name=f.name, is_dir=(f.type == FileType.DIRECTORY))
+            for f in self.container.list_files(path)
+        ]
+
+    @override
+    def set_environment(self, env_vars: Iterable[str]) -> None:
+        raw_current_env = self.read(self.connect_paths.env)
+        current_env = self.map_env(raw_current_env)
+
+        updated_env = current_env | self.map_env(env_vars)
+        content = "\n".join([f"{key}={value}" for key, value in updated_env.items()])
+        self.write(content=content + "\n", path=self.connect_paths.env)
 
     # ------- Kafka vm specific -------
 
@@ -638,6 +748,51 @@ class BalancerWorkloadK8s(WorkloadK8s):
                         # FIXME https://github.com/canonical/kafka-k8s-operator/issues/80
                         "JAVA_HOME": "/usr/lib/jvm/java-21-openjdk-amd64",
                         "LOG_DIR": self.paths.logs_path,
+                    },
+                }
+            },
+        }
+        return pebble.Layer(layer_config)
+
+
+class ConnectWorkloadK8s(WorkloadK8s):
+    """Kafka Connect specific wrapper."""
+
+    def __init__(self, container: Container) -> None:
+        super().__init__(container=container)
+        self.service = ConnectLiterals.SERVICE_NAME
+        self.container = container
+
+    @property
+    @override
+    def container_can_connect(self) -> bool:
+        return self.container.can_connect()
+
+    @property
+    @override
+    def layer(self) -> pebble.Layer:
+        """Returns a Pebble configuration layer for Kafka Connect."""
+        extra_opts = [
+            f"-javaagent:{self.paths.jmx_prometheus_javaagent}={JMX_EXPORTER_PORT}:{self.connect_paths.jmx_prometheus_config}",
+            f"-Djava.security.auth.login.config={self.connect_paths.jaas}",
+        ]
+        command = f"/opt/kafka/bin/connect-distributed.sh {self.connect_paths.worker_properties}"
+
+        layer_config: pebble.LayerDict = {
+            "summary": "Kafka Connect Layer",
+            "description": "Pebble config layer for Apache Kafka Connect distributed worker",
+            "services": {
+                self.service: {
+                    "override": "merge",
+                    "summary": "Kafka Connect Worker",
+                    "command": command,
+                    "startup": "enabled",
+                    "user": USER_NAME,
+                    "group": GROUP,
+                    "environment": {
+                        "KAFKA_OPTS": " ".join(extra_opts),
+                        "JAVA_HOME": "/usr/lib/jvm/java-21-openjdk-amd64",
+                        "LOG_DIR": self.connect_paths.logs_dir,
                     },
                 }
             },

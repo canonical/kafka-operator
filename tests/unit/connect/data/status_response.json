@@ -1,0 +1,41 @@
+{
+    "mysql-source-integrator_r12_1129a534a92e46658fa1f1c9743a7c11": {
+        "status": {
+            "name": "mysql-source-integrator_r12_1129a534a92e46658fa1f1c9743a7c11",
+            "connector": {
+                "state": "RUNNING",
+                "worker_id": "10.150.221.155:8083"
+            },
+            "tasks": [
+                {
+                    "id": 0,
+                    "state": "RUNNING",
+                    "worker_id": "10.150.221.155:8083"
+                }
+            ],
+            "type": "source"
+        }
+    },
+    "custom-connector": {
+        "status": {
+            "name": "custom-connector",
+            "connector": {
+                "state": "STOPPED",
+                "worker_id": "10.150.221.155:8083"
+            },
+            "tasks": [],
+            "type": "source"
+        }
+    },
+    "mysql-source-integrator_r11_1129a534a92e46658fa1f1c9743a7c11": {
+        "status": {
+            "name": "mysql-source-integrator_r11_1129a534a92e46658fa1f1c9743a7c11",
+            "connector": {
+                "state": "STOPPED",
+                "worker_id": "10.150.221.155:8083"
+            },
+            "tasks": [],
+            "type": "sink"
+        }
+    }
+}

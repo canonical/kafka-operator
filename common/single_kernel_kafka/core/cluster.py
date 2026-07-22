@@ -44,6 +44,7 @@ from .literals import (
     AuthMap,
     Status,
     Substrates,
+    TLSScope,
 )
 from .models import (
     BrokerCapacities,
@@ -56,6 +57,7 @@ from .models import (
     PeerClusterData,
     PeerClusterOrchestratorData,
     RelationStateV1,
+    TLSManagerSettings,
 )
 
 if TYPE_CHECKING:
@@ -64,7 +66,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class ClusterState(Object):
+class KafkaContext(Object):
     """Collection of global cluster state for the Kafka services."""
 
     def __init__(self, charm: "KafkaCharm", substrate: Substrates):
@@ -759,4 +761,21 @@ class ClusterState(Object):
 
         return relation.data[relation.app].get("peer-cluster-rotate") == "true" and any(
             unit.peer_certs.rotate for unit in self.brokers
+        )
+
+    @property
+    def tls_manager_settings(self) -> TLSManagerSettings:
+        """Return TLS manager settings for this unit/app."""
+        return TLSManagerSettings(
+            app_name=self.unit_broker.unit.app.name,
+            unit_name=self.unit_broker.unit.name,
+            internal_ca=self.internal_ca,
+            internal_ca_key=self.internal_ca_key,
+            keystore_password=self.unit_broker.keystore_password,
+            truststore_password=self.unit_broker.truststore_password,
+            scopes={
+                TLSScope.PEER: self.unit_broker.peer_certs,
+                TLSScope.CLIENT: self.unit_broker.client_certs,
+            },
+            peer_cluster_ca=self.peer_cluster_ca,
         )

@@ -230,7 +230,7 @@ def test_ready_to_start_ok(
             f"single_kernel_kafka.workload.BalancerWorkload{SUBSTRATE_CLS}.write"
         ) as patched_writer,
         patch(
-            "single_kernel_kafka.core.cluster.ClusterState.broker_capacities",
+            "single_kernel_kafka.core.cluster.KafkaContext.broker_capacities",
             new_callable=PropertyMock,
             return_value={"brokerCapacities": [{}, {}, {}]},
         ),
@@ -239,7 +239,7 @@ def test_ready_to_start_ok(
             return_value=False,
         ),
         patch(
-            "single_kernel_kafka.core.cluster.ClusterState.broker_capacities",
+            "single_kernel_kafka.core.cluster.KafkaContext.broker_capacities",
             new_callable=PropertyMock,
             return_value={"brokerCapacities": [{}, {}, {}]},
         ),
@@ -427,7 +427,7 @@ def test_balancer_manager_rebalance_full(
     # When
     with (
         patch(
-            "single_kernel_kafka.core.cluster.ClusterState.runs_balancer",
+            "single_kernel_kafka.core.cluster.KafkaContext.runs_balancer",
             new_callable=PropertyMock,
             return_value=balancer,
         ),
