@@ -1318,28 +1318,6 @@ reference = "pydantic-v2"
 resolved_reference = "24424637defeac0c3439f88f9e54e9344d901320"
 
 [[package]]
-name = "kazoo"
-version = "2.11.0"
-description = "\"Higher Level Zookeeper Client\""
-optional = false
-python-versions = "*"
-groups = ["integration"]
-files = [
-    {file = "kazoo-2.11.0-py2.py3-none-any.whl", hash = "sha256:aa6be17159540dae4087661b8d4e24c7b58d4dc26170a2d5b8468b06712d84a9"},
-    {file = "kazoo-2.11.0.tar.gz", hash = "sha256:57e7e6f69295c8f922511488eeb79680729e14bb8eb382d5cad83aa11345c36c"},
-]
-
-[package.extras]
-alldeps = ["Sphinx (>=1.2.2)", "eventlet (>=0.17.1)", "flake8", "gevent (>=1.2)", "mypy (>=0.991)", "pure_sasl (>=0.5.1)", "sphinx-autodoc-typehints (>=1)"]
-dev = ["flake8"]
-docs = ["Sphinx (>=1.2.2)", "sphinx-autodoc-typehints (>=1)"]
-eventlet = ["eventlet (>=0.17.1)"]
-gevent = ["gevent (>=1.2)"]
-sasl = ["pure_sasl (>=0.5.1)"]
-test = ["eventlet (>=0.17.1) ; implementation_name != \"pypy\"", "gevent (>=1.2) ; implementation_name != \"pypy\"", "objgraph", "pyjks", "pyopenssl", "pytest", "pytest-cov", "pytest-timeout"]
-typing = ["mypy (>=0.991)"]
-
-[[package]]
 name = "kubernetes"
 version = "30.1.0"
 description = "Kubernetes python client"
@@ -2943,4 +2921,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<4.0"
-content-hash = "9f30238e9107ab1a8467f1959c933c11bcce0936c9479ace55d3db4a46402d23"
+content-hash = "a19426969d47256e78ab7c4e6ddd02a3662702affc76d0f028774e1454f69c9a"

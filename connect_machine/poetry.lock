@@ -607,6 +607,26 @@ files = [
 referencing = ">=0.31.0"
 
 [[package]]
+name = "kafka-python"
+version = "3.0.9"
+description = "Pure Python client for Apache Kafka"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "kafka_python-3.0.9-py3-none-any.whl", hash = "sha256:506ba871979b79813120bbf522bd71d827611c0756de57aac5a15f111a11bed4"},
+    {file = "kafka_python-3.0.9.tar.gz", hash = "sha256:703c00a59d9853494a9821f8665d99e9443951dabe657a0b2a24e9e50a70703d"},
+]
+
+[package.extras]
+benchmarks = ["pyperf"]
+crc32c = ["crc32c"]
+lz4 = ["lz4"]
+snappy = ["python-snappy"]
+testing = ["pytest", "pytest-mock", "pytest-timeout"]
+zstd = ["zstandard"]
+
+[[package]]
 name = "kafkacl"
 version = "0.0.1"
 description = "Shared and reusable code for Kafka Connect integrator charms."
@@ -631,28 +651,6 @@ type = "git"
 url = "https://github.com/canonical/kafkacl"
 reference = "pydantic-v2"
 resolved_reference = "24424637defeac0c3439f88f9e54e9344d901320"
-
-[[package]]
-name = "kazoo"
-version = "2.11.0"
-description = "\"Higher Level Zookeeper Client\""
-optional = false
-python-versions = "*"
-groups = ["main"]
-files = [
-    {file = "kazoo-2.11.0-py2.py3-none-any.whl", hash = "sha256:aa6be17159540dae4087661b8d4e24c7b58d4dc26170a2d5b8468b06712d84a9"},
-    {file = "kazoo-2.11.0.tar.gz", hash = "sha256:57e7e6f69295c8f922511488eeb79680729e14bb8eb382d5cad83aa11345c36c"},
-]
-
-[package.extras]
-alldeps = ["Sphinx (>=1.2.2)", "eventlet (>=0.17.1)", "flake8", "gevent (>=1.2)", "mypy (>=0.991)", "pure_sasl (>=0.5.1)", "sphinx-autodoc-typehints (>=1)"]
-dev = ["flake8"]
-docs = ["Sphinx (>=1.2.2)", "sphinx-autodoc-typehints (>=1)"]
-eventlet = ["eventlet (>=0.17.1)"]
-gevent = ["gevent (>=1.2)"]
-sasl = ["pure_sasl (>=0.5.1)"]
-test = ["eventlet (>=0.17.1) ; implementation_name != \"pypy\"", "gevent (>=1.2) ; implementation_name != \"pypy\"", "objgraph", "pyjks", "pyopenssl", "pytest", "pytest-cov", "pytest-timeout"]
-typing = ["mypy (>=0.991)"]
 
 [[package]]
 name = "lightkube"
@@ -1180,35 +1178,37 @@ files = [
 
 [[package]]
 name = "single-kernel-kafka"
-version = "0.4.4"
+version = "1.0.0"
 description = "Common libs for Apacha Kafka charms."
 optional = false
 python-versions = ">=3.10,<4.0"
 groups = ["main"]
-files = [
-    {file = "single_kernel_kafka-0.4.4-py3-none-any.whl", hash = "sha256:924445918897299fedb38753ac98184377ddc9138aa48a2865e1385412933775"},
-]
+files = []
+develop = false
 
 [package.dependencies]
-charm-refresh = ">=3.0.0.6,<4.0.0.0"
-charmlibs-pathops = ">=1.0.0,<2.0.0"
-cosl = ">=0.0.50"
+charm-refresh = "^3.0.0.6"
+charmlibs-pathops = "^1.0.0"
+cosl = ">= 0.0.50"
 cryptography = ">42.0.0"
 jsonschema = ">=4.10"
-kazoo = ">=2.8.0"
+kafka-python = ">=2.0"
 lightkube = "0.15.4"
 ops = ">=2.17.0"
 pure-sasl = ">=0.6.2"
-pydantic = ">=2.11,<3.0"
-pyyaml = ">=6.0.1,<7.0.0"
-requests = ">=2.32.3,<3.0.0"
+pydantic = "^2.11"
+pyyaml = "^6.0.1"
+requests = "^2.32.3"
 tenacity = ">=8.0.1"
-toml = ">=0.10.2,<0.11.0"
-trustme = ">=1.2.0,<2.0.0"
+toml = "^0.10.2"
+trustme = "^1.2.0"
 
 [package.source]
-type = "url"
-url = "https://custom-built-snaps.s3.eu-north-1.amazonaws.com/single_kernel_kafka-0.4.4-py3-none-any.whl"
+type = "git"
+url = "https://github.com/canonical/kafka-operator"
+reference = "main"
+resolved_reference = "3c25f095a1e92cf0a8161f7a716929643682519a"
+subdirectory = "common"
 
 [[package]]
 name = "tenacity"
@@ -1396,4 +1396,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<4.0"
-content-hash = "65af9272595c546dd44a839262666dcffd49de5d0baead81caa029833073da99"
+content-hash = "3f77e011af2a24bf34aeea80503651a8a04b68c50279a05925f6bf20890968db"
