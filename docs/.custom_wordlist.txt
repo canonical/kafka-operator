@@ -4,6 +4,8 @@ backends
 Charmcraft
 cjk
 cryptographically
+docstring
+docstrings
 dvipng
 fonts
 freefont
@@ -183,3 +185,10 @@ unhandled
 Kafbat
 Kafbat's
 tf
+codec
+codecs
+cpu
+gzip
+sysconfigs
+uncompacted
+zstd

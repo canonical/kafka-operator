@@ -16,6 +16,9 @@ _dev/vale.ini
 # Build outputs
 _build
 
+# Auto-generated reference pages (regenerate with: make generate)
+reference/_generated/
+
 # Node.js
 package*.json
 
