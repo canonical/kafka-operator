@@ -208,7 +208,7 @@ def test_ready_to_start(charm_configuration, base_state: State):
         patch(
             f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.active", return_value=True
         ),
-        patch("charms.operator_libs_linux.v2.snap.SnapCache"),
+        patch("charmlibs.snap.SnapCache"),
     ):
         state_out = ctx.run(ctx.on.start(), state_in)
 
