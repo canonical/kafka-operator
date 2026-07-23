@@ -468,6 +468,22 @@ test = ["certifi (>=2024)", "cryptography-vectors (==46.0.7)", "pretend (>=0.7)"
 test-randomorder = ["pytest-randomly"]
 
 [[package]]
+name = "dpcharmlibs-interfaces"
+version = "1.0.2"
+description = "The dpcharmlibs.interfaces package."
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = [
+    {file = "dpcharmlibs_interfaces-1.0.2-py3-none-any.whl", hash = "sha256:1fa1005e55a0fa000bcf340831ab33ff7e7f6225678d6d07ca1383c36a658326"},
+    {file = "dpcharmlibs_interfaces-1.0.2.tar.gz", hash = "sha256:5cc88791d4844c1d485188e10c04fbc6651de16b841fe2fb09da5643bf3af981"},
+]
+
+[package.dependencies]
+ops = ">=3,<4"
+pydantic = ">=2.11,<3"
+
+[[package]]
 name = "exceptiongroup"
 version = "1.3.1"
 description = "Backport of PEP 654 (exception groups)"
@@ -1350,4 +1366,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<4.0"
-content-hash = "5283eb8cacbab6d08de7b18dc1a4ae88146bbeefdb7465a01f041819432e4fc5"
+content-hash = "b1daf579b0696a1618b7172e09373d9e1d8857e124c9e2843734cdfc5146dbfd"
