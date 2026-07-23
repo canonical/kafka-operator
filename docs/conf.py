@@ -184,6 +184,7 @@ linkcheck_ignore = [
     "https://launchpad.net/soss",
     "https://cwiki.apache.org/*",
     "https://archive.apache.org/*",
+    r"http://worker-\d+\.domain\.com.*",
 ]
 
 # A regex list of URLs where anchors are ignored by 'make linkcheck'
