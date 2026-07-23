@@ -29,9 +29,12 @@ from charms.data_platform_libs.v0.data_interfaces import (
     RequirerData,
 )
 from charms.data_platform_libs.v0.data_models import TypedCharmBase
-from charms.data_platform_libs.v1.data_interfaces import (
+from charms.tls_certificates_interface.v4.tls_certificates import (
+    Certificate,
+    PrivateKey,
+)
+from dpcharmlibs.interfaces import (
     SECRET_PREFIX,
-    BaseModel,
     EntityPermissionModel,
     KafkaRequestModel,
     KafkaResponseModel,
@@ -40,15 +43,11 @@ from charms.data_platform_libs.v1.data_interfaces import (
     OptionalSecrets,
     OptionalSecretStr,
     SecretGroup,
-    SecretNotFoundError,
-)
-from charms.tls_certificates_interface.v4.tls_certificates import (
-    Certificate,
-    PrivateKey,
 )
 from lightkube.resources.core_v1 import Node, Pod
+from ops import SecretNotFoundError
 from ops.model import Application, Model, ModelError, Relation, Unit
-from pydantic import ValidationError, field_validator
+from pydantic import BaseModel, ValidationError, field_validator
 from typing_extensions import override
 
 from ..managers.k8s import K8sManager

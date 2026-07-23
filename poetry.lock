@@ -873,6 +873,23 @@ files = [
 ]
 
 [[package]]
+name = "dpcharmlibs-interfaces"
+version = "1.1.0"
+description = "The dpcharmlibs.interfaces package."
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = [
+    {file = "dpcharmlibs_interfaces-1.1.0-py3-none-any.whl", hash = "sha256:9f74df4a9e254237d2614e1a1efb342492fcb5b2da066d6d5633e72838ed4d57"},
+    {file = "dpcharmlibs_interfaces-1.1.0.tar.gz", hash = "sha256:a8a4644b8eadebf8cb1da933022cf81ed7c697eda86b5fbfffafc5e8c769d02d"},
+]
+
+[package.dependencies]
+cryptography = ">=48.0.0"
+ops = ">=3,<4"
+pydantic = ">=2.11,<3"
+
+[[package]]
 name = "dunamai"
 version = "1.26.1"
 description = "Dynamic version generation"
@@ -2583,6 +2600,7 @@ charmlibs-pathops = "^1.0.0"
 charmlibs-snap = "^1.0.0"
 cosl = ">= 0.0.50"
 cryptography = ">42.0.0"
+dpcharmlibs-interfaces = "^1.0.0"
 jsonschema = ">=4.10"
 kafka-python = ">=2.0"
 lightkube = "0.15.4"

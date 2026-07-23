@@ -44,7 +44,7 @@ from single_kernel_kafka.workload import KafkaWorkloadMachine as KafkaWorkload
 logger = logging.getLogger(__name__)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
-logging.getLogger("charms.data_platform_libs.v1.data_interfaces").setLevel(logging.WARNING)
+logging.getLogger("dpcharmlibs.interfaces").setLevel(logging.WARNING)
 
 
 class KafkaCharm(KafkaCharmBase):

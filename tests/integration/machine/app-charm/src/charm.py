@@ -15,13 +15,13 @@ import subprocess
 from socket import getfqdn
 
 from charms.data_platform_libs.v0.data_interfaces import KafkaRequires, TopicCreatedEvent
-from charms.data_platform_libs.v1.data_interfaces import (
+from charms.operator_libs_linux.v1 import snap
+from dpcharmlibs.interfaces import (
     EntityPermissionModel,
     KafkaRequestModel,
     KafkaResponseModel,
     ResourceRequirerEventHandler,
 )
-from charms.operator_libs_linux.v1 import snap
 from ops.charm import ActionEvent, CharmBase, RelationEvent
 from ops.main import main
 from ops.model import ActiveStatus

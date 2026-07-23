@@ -8,7 +8,7 @@ import logging
 import subprocess  # nosec B404
 from typing import TYPE_CHECKING
 
-from charms.data_platform_libs.v1.data_interfaces import (
+from dpcharmlibs.interfaces import (
     KafkaRequestModel,
     MtlsCertUpdatedEvent,
     ResourceProviderEventHandler,

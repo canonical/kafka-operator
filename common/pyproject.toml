@@ -35,6 +35,7 @@ lightkube = "0.15.4"
 trustme = "^1.2.0"
 charmlibs-pathops = "^1.0.0"
 charmlibs-snap = "^1.0.0"
+dpcharmlibs-interfaces = "^1.0.0"
 charm-refresh = "^3.0.0.6"
 toml = "^0.10.2"
 
