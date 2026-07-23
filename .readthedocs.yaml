@@ -13,12 +13,19 @@ build:
   jobs:
     post_checkout:
     - git fetch --unshallow || true
-    # Cancel building pull requests when there aren't changed in the docs directory.
-    # If there are no changes (git diff exits with 0) we force the command to return with 183.
+    # Cancel building pull requests when there aren't changed in the docs
+    # directory or in the charm source files used to auto-generate reference
+    # pages.  If there are no changes (git diff exits with 0) we force the
+    # command to return with 183.
     # This is a special exit code on Read the Docs that will cancel the build immediately.
     # https://docs.readthedocs.io/en/stable/build-customization.html#cancel-build-based-on-a-condition
     - |
-      if [ "$READTHEDOCS_VERSION_TYPE" = "external" ] && git diff --quiet origin/main -- 'docs/' '.readthedocs.yaml';
+      if [ "$READTHEDOCS_VERSION_TYPE" = "external" ] && git diff --quiet origin/main -- \
+        'docs/' \
+        '.readthedocs.yaml' \
+        'machine/actions.yaml' \
+        'machine/config.yaml' \
+        'common/single_kernel_kafka/core/literals.py';
       then
         exit 183;
       fi
