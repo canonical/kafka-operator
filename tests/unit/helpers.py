@@ -4,16 +4,16 @@
 
 import os
 from dataclasses import dataclass
+from datetime import timedelta
 from pathlib import Path
 
 import yaml
-from charms.tls_certificates_interface.v3.tls_certificates import (
+from charmlibs.interfaces.tls_certificates import (
     generate_ca,
     generate_certificate,
     generate_csr,
     generate_private_key,
 )
-from cryptography import x509
 
 SUBSTRATE = os.environ.get("SUBSTRATE", "vm")
 SUBSTRATE_CLS = "Machine" if SUBSTRATE == "vm" else "K8s"
@@ -57,42 +57,45 @@ def generate_tls_artifacts(
     Returns:
         TLSArtifacts: Object containing required TLS Artifacts.
     """
+    validity = timedelta(days=365)
+
     # CA
     ca_key = generate_private_key()
-    ca = generate_ca(private_key=ca_key, subject="some-ca")
+    ca = generate_ca(private_key=ca_key, validity=validity, common_name="some-ca")
     signing_cert, signing_key = ca, ca_key
 
     # Intermediate?
     if with_intermediate:
         intermediate_key = generate_private_key()
-        key_usage_ext = x509.KeyUsage(
-            digital_signature=True,
-            content_commitment=False,
-            key_encipherment=False,
-            data_encipherment=False,
-            key_agreement=False,
-            key_cert_sign=True,
-            crl_sign=True,
-            encipher_only=False,
-            decipher_only=False,
-        )
         intermediate_csr = generate_csr(
             private_key=intermediate_key,
-            subject="some-intermediate",
-            additional_critical_extensions=[key_usage_ext],
+            common_name="some-intermediate",
         )
-        intermediate_cert = generate_certificate(intermediate_csr, ca, ca_key)
+        intermediate_cert = generate_certificate(
+            csr=intermediate_csr,
+            ca=ca,
+            ca_private_key=ca_key,
+            validity=validity,
+            is_ca=True,
+        )
         signing_cert, signing_key = intermediate_cert, intermediate_key
 
     key = generate_private_key()
-    csr = generate_csr(key, subject=subject, sans_dns=sans_dns, sans_ip=sans_ip)
-    cert = generate_certificate(csr, signing_cert, signing_key)
+    csr = generate_csr(
+        private_key=key,
+        common_name=subject,
+        sans_dns=frozenset(sans_dns),
+        sans_ip=frozenset(sans_ip),
+    )
+    cert = generate_certificate(
+        csr=csr, ca=signing_cert, ca_private_key=signing_key, validity=validity
+    )
 
     return TLSArtifacts(
-        certificate=cert.decode("utf-8"),
-        private_key=key.decode("utf-8"),
-        ca=ca.decode("utf-8"),
-        chain=[cert.decode("utf-8"), *list({signing_cert.decode("utf-8"), ca.decode("utf-8")})],
-        signing_cert=signing_cert.decode("utf-8"),
-        signing_key=signing_key.decode("utf-8"),
+        certificate=str(cert),
+        private_key=str(key),
+        ca=str(ca),
+        chain=[str(cert), *list({str(signing_cert), str(ca)})],
+        signing_cert=str(signing_cert),
+        signing_key=str(signing_key),
     )

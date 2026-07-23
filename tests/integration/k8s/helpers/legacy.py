@@ -14,7 +14,7 @@ from typing import Any, List, Literal, Set
 
 import jubilant
 import yaml
-from charms.tls_certificates_interface.v4.tls_certificates import PrivateKey
+from charmlibs.interfaces.tls_certificates import PrivateKey
 from kafka.admin import NewTopic
 from single_kernel_kafka.core.literals import (
     ADMIN_USER,

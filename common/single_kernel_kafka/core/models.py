@@ -19,6 +19,10 @@ from typing import (
 )
 
 import requests
+from charmlibs.interfaces.tls_certificates import (
+    Certificate,
+    PrivateKey,
+)
 from charms.data_platform_libs.v0.data_interfaces import (
     PROV_SECRET_PREFIX,
     SECRET_GROUPS,
@@ -29,10 +33,6 @@ from charms.data_platform_libs.v0.data_interfaces import (
     RequirerData,
 )
 from charms.data_platform_libs.v0.data_models import TypedCharmBase
-from charms.tls_certificates_interface.v4.tls_certificates import (
-    Certificate,
-    PrivateKey,
-)
 from dpcharmlibs.interfaces import (
     SECRET_PREFIX,
     EntityPermissionModel,
