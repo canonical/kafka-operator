@@ -8,6 +8,7 @@ import abc
 import json
 import logging
 import socket
+import warnings
 from dataclasses import dataclass
 from functools import cached_property
 from typing import (
@@ -33,17 +34,22 @@ from charms.data_platform_libs.v0.data_interfaces import (
     RequirerData,
 )
 from charms.data_platform_libs.v0.data_models import TypedCharmBase
-from dpcharmlibs.interfaces import (
-    SECRET_PREFIX,
-    EntityPermissionModel,
-    KafkaRequestModel,
-    KafkaResponseModel,
-    OpsPeerRepository,
-    OpsRelationRepository,
-    OptionalSecrets,
-    OptionalSecretStr,
-    SecretGroup,
-)
+
+# FIXME: remove this when the following issue is fixed:
+# https://github.com/canonical/data-platform-charmlibs/issues/21
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    from dpcharmlibs.interfaces import (
+        SECRET_PREFIX,
+        EntityPermissionModel,
+        KafkaRequestModel,
+        KafkaResponseModel,
+        OpsPeerRepository,
+        OpsRelationRepository,
+        OptionalSecrets,
+        OptionalSecretStr,
+        SecretGroup,
+    )
 from lightkube.resources.core_v1 import Node, Pod
 from ops import SecretNotFoundError
 from ops.model import Application, Model, ModelError, Relation, Unit
