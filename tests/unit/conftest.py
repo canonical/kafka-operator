@@ -256,7 +256,7 @@ def patched_snap(monkeypatch):
     snap_mock.services = defaultdict(default_factory=lambda _: {"active": True})
     cache.return_value = {SNAP_NAME: snap_mock}
     with monkeypatch.context() as m:
-        m.setattr("charms.operator_libs_linux.v2.snap.SnapCache", cache)
+        m.setattr("charmlibs.snap.SnapCache", cache)
         yield
 
 

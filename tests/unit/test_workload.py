@@ -13,7 +13,7 @@ from common.single_kernel_kafka.core.workload import WorkloadBase
 from common.single_kernel_kafka.workload import KafkaWorkloadMachine as KafkaWorkload
 
 if SUBSTRATE == "vm":
-    from charms.operator_libs_linux.v2.snap import SnapError
+    from charmlibs.snap import SnapError
 
 pytestmark = [
     pytest.mark.broker,
