@@ -78,9 +78,11 @@ pymarkdownlnt-install: install
 install: $(DOCS_VENVDIR)
 
 # Auto-generate reference pages from charm source files (actions.yaml,
-# config.yaml). Output is gitignored under docs/reference/_generated/.
+# config.yaml, statuses enum). Output is gitignored under
+# docs/reference/_generated/.
 generate: install
 	@. $(DOCS_VENV); python3 $(DEV_DIR)/generate_charm_reference.py
+	@. $(DOCS_VENV); python3 $(DEV_DIR)/generate_statuses.py
 
 run: install generate
 	. $(DOCS_VENV); $(DOCS_VENVDIR)/bin/sphinx-autobuild -b dirhtml --host $(SPHINX_HOST) --port $(SPHINX_PORT) "$(DOCS_SOURCEDIR)" "$(DOCS_BUILDDIR)" $(SPHINX_OPTS) $(SPHINX_AUTOBUILD_OPTS)

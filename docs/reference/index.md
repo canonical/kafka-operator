@@ -44,7 +44,7 @@ file-system-paths.md
 snap-commands.md
 listeners.md
 Terraform module<terraform.md>
-Statuses<statuses.md>
+_generated/statuses.md
 requirements.md
 performance-tuning.md
 Contact<contact.md>
