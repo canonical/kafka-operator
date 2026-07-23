@@ -14,7 +14,7 @@ from subprocess import PIPE, CalledProcessError, check_output
 from typing import Any, List, Literal, Set
 
 import yaml
-from charms.tls_certificates_interface.v4.tls_certificates import PrivateKey
+from charmlibs.interfaces.tls_certificates import PrivateKey
 from kafka.admin import NewTopic
 from pytest_operator.plugin import OpsTest
 from single_kernel_kafka.core.literals import (

@@ -10,7 +10,7 @@ import tempfile
 
 import kafka
 import pytest
-from charms.tls_certificates_interface.v4.tls_certificates import PrivateKey, generate_private_key
+from charmlibs.interfaces.tls_certificates import PrivateKey, generate_private_key
 from pytest_operator.plugin import OpsTest
 from single_kernel_kafka.core.literals import (
     CERTIFICATE_TRANSFER_RELATION,
