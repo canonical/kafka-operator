@@ -1,0 +1,5 @@
+summary: k8s balancer-controller
+environment:
+  TEST_ENV: balancer-controller
+execute: |
+  tox run -e "integration-k8s-$TEST_ENV" -- --model testing -m 'not unstable' --kraft-mode multi

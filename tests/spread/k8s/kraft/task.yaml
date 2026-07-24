@@ -1,0 +1,7 @@
+summary: k8s kraft
+environment:
+  TEST_ENV: kraft
+  KRAFT/single: single
+  KRAFT/multi: multi
+execute: |
+  tox run -e "integration-k8s-$TEST_ENV" -- --model testing -m 'not unstable' --kraft-mode "$KRAFT"

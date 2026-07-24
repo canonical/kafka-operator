@@ -1,0 +1,6 @@
+summary: machine terraform
+environment:
+  TEST_ENV: terraform
+execute: |
+  sudo snap install --classic terraform
+  tox run -e "integration-machine-$TEST_ENV" -- --model testing -m 'not unstable' --kraft-mode single

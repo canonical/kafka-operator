@@ -1,0 +1,7 @@
+summary: machine provider
+environment:
+  TEST_ENV: provider
+  KRAFT/single: single
+  KRAFT/multi: multi
+execute: |
+  tox run -e "integration-machine-$TEST_ENV" -- --model testing -m 'not unstable' --kraft-mode "$KRAFT"

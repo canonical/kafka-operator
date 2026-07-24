@@ -1,0 +1,7 @@
+summary: k8s tls-complex
+environment:
+  TEST_ENV: tls-complex
+  KRAFT/single: single
+  KRAFT/multi: multi
+execute: |
+  tox run -e "integration-k8s-$TEST_ENV" -- --model testing -m 'not unstable' --kraft-mode "$KRAFT"
