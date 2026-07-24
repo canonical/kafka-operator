@@ -267,6 +267,9 @@ async def test_certificate_transfer(ops_test: OpsTest, kafka_apps):
         f"{APP_NAME}:{CERTIFICATE_TRANSFER_RELATION}", "other-ca:send-ca-cert"
     )
 
+    async with ops_test.fast_forward(fast_interval="60s"):
+        await asyncio.sleep(120)
+
     await ops_test.model.wait_for_idle(
         apps=kafka_apps, idle_period=60, timeout=2000, status="active"
     )
@@ -345,6 +348,11 @@ async def test_mtls_broken(ops_test: OpsTest, kafka_apps):
     await ops_test.model.applications[APP_NAME].remove_relation(
         f"{APP_NAME}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_PRODUCER}"
     )
+
+    # ensuring enough update-status
+    async with ops_test.fast_forward(fast_interval="60s"):
+        await asyncio.sleep(120)
+
     await ops_test.model.wait_for_idle(apps=kafka_apps, idle_period=60, status="active")
     for unit_num in range(len(ops_test.model.applications[APP_NAME].units)):
         kafka_address = await get_address(ops_test=ops_test, app_name=APP_NAME, unit_num=unit_num)
