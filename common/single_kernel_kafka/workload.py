@@ -17,8 +17,7 @@ from dataclasses import dataclass
 from io import StringIO
 from typing import BinaryIO, Mapping, cast
 
-from charmlibs import pathops
-from charms.operator_libs_linux.v2 import snap
+from charmlibs import pathops, snap
 from ops import Container, pebble
 from ops.pebble import ExecError, FileType
 from tenacity import (

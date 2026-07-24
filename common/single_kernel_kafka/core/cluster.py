@@ -11,13 +11,13 @@ from functools import cached_property
 from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, Any
 
+from charmlibs.interfaces.tls_certificates import Certificate, PrivateKey
 from charms.data_platform_libs.v0.data_interfaces import (
     DataPeerData,
     DataPeerOtherUnitData,
     DataPeerUnitData,
     KafkaProviderData,
 )
-from charms.tls_certificates_interface.v4.tls_certificates import Certificate, PrivateKey
 from lightkube.core.exceptions import ApiError as LightKubeApiError
 from ops import Object, Relation
 from ops.model import Unit

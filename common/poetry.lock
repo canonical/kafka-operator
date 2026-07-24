@@ -204,6 +204,23 @@ pyyaml = ">=6.0.2"
 tomli = ">=2.0.1"
 
 [[package]]
+name = "charmlibs-interfaces-tls-certificates"
+version = "1.0.0"
+description = "The charmlibs.interfaces.tls_certificates package."
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = [
+    {file = "charmlibs_interfaces_tls_certificates-1.0.0-py3-none-any.whl", hash = "sha256:280421af7ca491d15621163a3c6e9454084b248ab2027256795f9946b642ddbd"},
+    {file = "charmlibs_interfaces_tls_certificates-1.0.0.tar.gz", hash = "sha256:4e7729c88f4095912ea9a3a7941cde2583f51dfec43ff346ed6ead8597c35eb8"},
+]
+
+[package.dependencies]
+cryptography = ">=43.0.0"
+ops = "*"
+pydantic = "*"
+
+[[package]]
 name = "charmlibs-pathops"
 version = "1.2.1"
 description = "A pathlib-like interface for Juju K8s charms to interact with files in their workload container."
@@ -217,6 +234,21 @@ files = [
 
 [package.dependencies]
 ops = ">=2.19,<4"
+
+[[package]]
+name = "charmlibs-snap"
+version = "1.0.1.post0"
+description = "The charmlibs.snap package."
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = [
+    {file = "charmlibs_snap-1.0.1.post0-py3-none-any.whl", hash = "sha256:655041096952c63e92c8d25a6183149f0594d4888be4be62a9635cb96897aa01"},
+    {file = "charmlibs_snap-1.0.1.post0.tar.gz", hash = "sha256:1e8da752ee405aa981665da8c4772016236baf80d2d902b02ec8c1c640fb2844"},
+]
+
+[package.dependencies]
+opentelemetry-api = "*"
 
 [[package]]
 name = "charset-normalizer"
@@ -451,6 +483,22 @@ sdist = ["build (>=1.0.0)"]
 ssh = ["bcrypt (>=3.1.5)"]
 test = ["certifi (>=2024)", "cryptography-vectors (==46.0.7)", "pretend (>=0.7)", "pytest (>=7.4.0)", "pytest-benchmark (>=4.0)", "pytest-cov (>=2.10.1)", "pytest-xdist (>=3.5.0)"]
 test-randomorder = ["pytest-randomly"]
+
+[[package]]
+name = "dpcharmlibs-interfaces"
+version = "1.0.2"
+description = "The dpcharmlibs.interfaces package."
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = [
+    {file = "dpcharmlibs_interfaces-1.0.2-py3-none-any.whl", hash = "sha256:1fa1005e55a0fa000bcf340831ab33ff7e7f6225678d6d07ca1383c36a658326"},
+    {file = "dpcharmlibs_interfaces-1.0.2.tar.gz", hash = "sha256:5cc88791d4844c1d485188e10c04fbc6651de16b841fe2fb09da5643bf3af981"},
+]
+
+[package.dependencies]
+ops = ">=3,<4"
+pydantic = ">=2.11,<3"
 
 [[package]]
 name = "exceptiongroup"
@@ -1335,4 +1383,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<4.0"
-content-hash = "44ab9daacc933faebe39f34b3f0e72003a55553f697547ba86d296dacc1c9742"
+content-hash = "4b758ef1ba2f97993271167fc40157339f1a3db0c8091db340d426fc31f8f072"

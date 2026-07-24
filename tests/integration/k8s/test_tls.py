@@ -11,7 +11,7 @@ import time
 import jubilant
 import kafka
 import pytest
-from charms.tls_certificates_interface.v4.tls_certificates import PrivateKey, generate_private_key
+from charmlibs.interfaces.tls_certificates import PrivateKey, generate_private_key
 from single_kernel_kafka.core.literals import (
     CERTIFICATE_TRANSFER_RELATION,
     SECURITY_PROTOCOL_PORTS,
@@ -260,6 +260,16 @@ def test_certificate_transfer(juju: jubilant.Juju, kafka_apps):
     # We don't expect a broker restart here because of truststore live reload
     juju.integrate(f"{APP_NAME}:{CERTIFICATE_TRANSFER_RELATION}", "other-ca:send-ca-cert")
 
+    with fast_forward(juju, fast_interval="60s"):
+        time.sleep(120)
+
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps),
+        delay=3,
+        successes=10,
+        timeout=900,
+    )
+
     address = get_address(juju, app_name=APP_NAME, unit_num=0)
     sasl_port = SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].internal
     sasl_bootstrap_server = f"{address}:{sasl_port}"
@@ -340,6 +350,11 @@ def test_kafka_tls_scaling(juju: jubilant.Juju, kafka_apps):
 def test_mtls_broken(juju: jubilant.Juju, kafka_apps):
     # remove relation and check connection again
     juju.remove_relation(APP_NAME, DUMMY_NAME)
+
+    # ensuring enough update-status
+    with fast_forward(juju, fast_interval="60s"):
+        time.sleep(120)
+
     juju.wait(
         lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME),
         delay=3,
