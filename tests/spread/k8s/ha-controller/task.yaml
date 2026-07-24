@@ -1,0 +1,5 @@
+summary: k8s ha-controller
+environment:
+  TEST_ENV: ha-controller
+execute: |
+  tox run -e "integration-k8s-$TEST_ENV" -- --model testing -m 'not unstable' --kraft-mode multi

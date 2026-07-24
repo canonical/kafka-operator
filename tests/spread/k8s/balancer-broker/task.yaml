@@ -1,0 +1,5 @@
+summary: k8s balancer-broker
+environment:
+  TEST_ENV: balancer-broker
+execute: |
+  tox run -e "integration-k8s-$TEST_ENV" -- --model testing -m 'not unstable' --kraft-mode multi

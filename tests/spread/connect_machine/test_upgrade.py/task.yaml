@@ -1,0 +1,7 @@
+summary: connect_machine test_upgrade.py
+environment:
+  TEST_ENV: upgrade
+  KAFKA/v3: "3"
+  KAFKA/v4: "4"
+execute: |
+  tox run -e "integration-connect-machine-$TEST_ENV" -- --model testing -m 'not unstable' --kafka "$KAFKA"

@@ -1,0 +1,6 @@
+summary: connect_machine test_terraform.py
+environment:
+  TEST_ENV: terraform
+execute: |
+  sudo snap install --classic terraform
+  tox run -e "integration-connect-machine-$TEST_ENV" -- --model testing -m 'not unstable'
