@@ -9,6 +9,13 @@ if [ -z "${chaos_mesh_ns}" ]; then
 	exit 1
 fi
 
+# Check if microk8s is available
+if command -v microk8s.helm3 >/dev/null 2>&1; then
+  helm_cmd="microk8s.helm3"
+else
+  helm_cmd="k8s helm"
+fi
+
 destroy_chaos_mesh() {
 	echo "deleting api-resources"
 	for i in $(kubectl api-resources | awk '/chaos-mesh/ {print $1}'); do
@@ -45,9 +52,9 @@ destroy_chaos_mesh() {
 		timeout 30 kubectl delete crd "${args[@]}" || true
 	fi
 
-	if [ -n "${chaos_mesh_ns}" ] && microk8s.helm3 repo list --namespace="${chaos_mesh_ns}" | grep -q 'chaos-mesh'; then
+	if [ -n "${chaos_mesh_ns}" ] && $helm_cmd repo list --namespace="${chaos_mesh_ns}" | grep -q 'chaos-mesh'; then
 		echo "uninstalling chaos-mesh helm repo"
-		microk8s.helm3 uninstall chaos-mesh --namespace="${chaos_mesh_ns}" || true
+		$helm_cmd uninstall chaos-mesh --namespace="${chaos_mesh_ns}" || true
 	fi
 }
 
