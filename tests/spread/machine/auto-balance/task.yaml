@@ -1,0 +1,7 @@
+summary: machine auto-balance
+environment:
+  TEST_ENV: auto-balance
+  KRAFT/single: single
+  KRAFT/multi: multi
+execute: |
+  tox run -e "integration-machine-$TEST_ENV" -- --model testing -m 'not unstable' --kraft-mode "$KRAFT"

@@ -98,461 +98,66 @@ jobs:
       actions: read
       contents: read
 
-  integration-kafka-machine-single:
+  # Collects one spread job per tests/spread/connect_k8s/*/task.yaml and fans them
+  # out across runners.
+  collect-connect-k8s-spread:
+    name: Collect spread jobs - Connect k8s
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Install spread
+        run: |
+          sudo snap install go --classic
+          go install github.com/canonical/spread/cmd/spread@latest
+      - name: Collect spread jobs
+        id: collect-jobs
+        shell: python
+        run: |
+          import json
+          import os
+          import pathlib
+          import subprocess
+
+          spread_jobs = (
+              subprocess.run(
+                  [pathlib.Path.home() / "go/bin/spread", "-list", "github-ci"],
+                  capture_output=True,
+                  check=True,
+                  text=True,
+              )
+              .stdout.strip()
+              .split("\n")
+          )
+          jobs = []
+          for job in spread_jobs:
+              # Example: "github-ci:ubuntu-24.04:tests/spread/connect_k8s/test_charm.py"
+              if "tests/spread/connect_k8s/" not in job:
+                  continue
+              task = job.split(":")[2].removeprefix("tests/spread/connect_k8s/")
+              jobs.append({"spread_job": job, "name": task})
+          output = f"jobs={json.dumps(jobs)}"
+          print(output)
+          with open(os.environ["GITHUB_OUTPUT"], "a") as file:
+              file.write(output)
+    outputs:
+      jobs: ${{ steps.collect-jobs.outputs.jobs }}
+
+  integration-connect-k8s-spread:
     permissions:
       contents: read
     strategy:
       fail-fast: false
       matrix:
-        tox-environments:
-          - auto-balance
-          - charm
-          - provider
-          - provider-v1
-          - password-rotation
-          - tls
-          - refresh
-          - tls-complex
-          - kraft
-          - kraft-tls
-          - ha
-          - spaces
-          - terraform
-        kraft-mode:
-          - single
-    name: "Kafka | machine | ${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}"
+        job: ${{ fromJSON(needs.collect-connect-k8s-spread.outputs.jobs) }}
+    name: "Connect | k8s | ${{ matrix.job.name }}"
     needs:
       - lint
       - unit-test
       - build-dev
       - build-release
-    if: |
-      always() &&
-      !cancelled() &&
-      (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
-    runs-on: [self-hosted, linux, AMD64, X64, large, noble]
-    timeout-minutes: 120
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-      - name: Setup operator environment
-        uses: charmed-kubernetes/actions-operator@main
-        with:
-          provider: lxd
-          juju-channel: 3.6/stable
-      - name: Download packed charm(s)
-        uses: actions/download-artifact@v6
-        with:
-          pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
-          merge-multiple: true
-      - name: Setup terraform if needed
-        if: ${{ matrix.tox-environments == 'terraform' }}
-        run: |
-          sudo snap install --classic terraform
-      - name: Select tests
-        id: select-tests
-        run: |
-          if [ "${{ github.event_name }}" == "schedule" ]
-          then
-            echo Running unstable and stable tests
-            echo "mark_expression=" >> $GITHUB_OUTPUT
-          else
-            echo Skipping unstable tests
-            echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
-          fi
-      - name: Run integration tests
-        run: tox run -e integration-machine-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --kraft-mode ${{ matrix.kraft-mode }}
-        env:
-          CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
-
-  integration-kafka-machine-multi:
-    permissions:
-      contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        tox-environments:
-          - auto-balance
-          - charm
-          - provider
-          - provider-v1
-          - password-rotation
-          - tls
-          - refresh
-          - tls-complex
-          - balancer-broker
-          - balancer-controller
-          - kraft
-          - kraft-tls
-          - ha
-          - ha-controller
-          - spaces
-          - oauth
-        kraft-mode:
-          - multi
-    name: "Kafka | machine | ${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}"
-    needs:
-      - lint
-      - unit-test
-      - build-dev
-      - build-release
-    if: |
-      always() &&
-      !cancelled() &&
-      (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
-    runs-on: [self-hosted, linux, AMD64, X64, xlarge, noble]
-    timeout-minutes: 120
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-      - name: Setup operator environment
-        uses: charmed-kubernetes/actions-operator@main
-        with:
-          provider: lxd
-          juju-channel: 3.6/stable
-      - name: Download packed charm(s)
-        uses: actions/download-artifact@v6
-        with:
-          pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
-          merge-multiple: true
-      - name: Setup terraform & microk8s controller (for OAuth tests)
-        if: ${{ matrix.tox-environments == 'oauth' }}
-        run: |
-          LXD_CONTROLLER=$(juju models --format json | jq -r '.models[0]."controller-name"')
-          sudo snap install --classic terraform
-
-          # calico has issues with strict confinements, so remove -strict
-          sudo snap install microk8s --channel 1.32 --classic
-
-          sudo usermod -a -G microk8s $USER
-          mkdir -p ~/.kube
-          chmod 0700 ~/.kube
-
-          sudo tee /var/snap/microk8s/current/args/certs.d/docker.io/hosts.toml << EOF
-          server = "$DOCKERHUB_MIRROR"
-          [host."${DOCKERHUB_MIRROR#'https://'}"]
-          capabilities = ["pull", "resolve"]
-          EOF
-
-          sudo microk8s stop
-          sudo microk8s start
-
-          # make juju work with microk8s --classic
-          sudo mkdir -p /var/snap/juju/current/microk8s/credentials
-          sudo microk8s config | sudo tee /var/snap/juju/current/microk8s/credentials/client.config
-          sudo chown -R $USER:$USER /var/snap/juju/current/microk8s/credentials
-
-          IP_ADDR=$(ip -4 -j route get 2.2.2.2 | jq -r '.[] | .prefsrc')
-          sudo microk8s enable dns
-          sudo microk8s enable hostpath-storage
-          sudo microk8s enable metallb:$IP_ADDR-$IP_ADDR
-
-          juju bootstrap microk8s
-          juju switch $LXD_CONTROLLER
-
-      - name: Select tests
-        id: select-tests
-        run: |
-          if [ "${{ github.event_name }}" == "schedule" ]
-          then
-            echo Running unstable and stable tests
-            echo "mark_expression=" >> $GITHUB_OUTPUT
-          else
-            echo Skipping unstable tests
-            echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
-          fi
-      - name: Run integration tests
-        run: tox run -e integration-machine-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kraft-mode ${{ matrix.kraft-mode }}
-        env:
-          CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
-
-  integration-kafka-k8s-single:
-    permissions:
-      contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        tox-environments:
-          - auto-balance
-          - charm
-          - provider
-          - provider-v1
-          - password-rotation
-          - tls
-          - tls-complex
-          - kraft
-          - kraft-tls
-          - ha
-          - refresh
-        kraft-mode:
-          - single
-    name: "Kafka | k8s | ${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}"
-    needs:
-      - lint
-      - unit-test
-      - build-dev
-      - build-release
-    if: |
-      always() &&
-      !cancelled() &&
-      (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
-    runs-on: [self-hosted, linux, AMD64, X64, large, noble]
-    timeout-minutes: 120
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-      - name: Setup operator environment
-        run: |
-          sudo snap install concierge --classic
-          # calico has issues with strict confinements, so remove -strict
-          sudo snap install microk8s --channel ${MICROK8S_CHANNEL//"-strict"/} --classic
-          sudo snap install juju --channel $JUJU_CHANNEL
-
-          sudo usermod -a -G microk8s $USER
-          mkdir -p ~/.kube
-          chmod 0700 ~/.kube
-
-          sudo tee /var/snap/microk8s/current/args/certs.d/docker.io/hosts.toml << EOF
-          server = "$DOCKERHUB_MIRROR"
-          [host."${DOCKERHUB_MIRROR#'https://'}"]
-          capabilities = ["pull", "resolve"]
-          EOF
-
-          sudo microk8s stop
-          sudo microk8s start
-
-          # make juju work with microk8s --classic
-          sudo mkdir -p /var/snap/juju/current/microk8s/credentials
-          sudo microk8s config | sudo tee /var/snap/juju/current/microk8s/credentials/client.config
-          sudo chown -R $USER:$USER /var/snap/juju/current/microk8s/credentials
-
-          sudo concierge prepare \
-            -p microk8s \
-            --microk8s-channel ${MICROK8S_CHANNEL//"-strict"/} \
-            --juju-channel $JUJU_CHANNEL \
-            --extra-debs pipx
-
-          pipx ensurepath
-          pipx install tox poetry
-      # FIXME: remove this step when the previously installed charmcraft snap supports monorepos.
-      - name: Install charmcraft with monorepo feature
-        run: |
-          sudo snap install --classic astral-uv
-          git clone https://github.com/canonical/charmcraft \
-            --branch work/CHARMCRAFT-710-prototype \
-            ~/charmcraft
-
-          pushd ~/charmcraft && uv run charmcraft --version && popd
-          echo "CHARMCRAFT_BIN=$(realpath ~/charmcraft/.venv/bin/charmcraft)" >> $GITHUB_ENV
-      - name: Download packed charm(s)
-        uses: actions/download-artifact@v6
-        with:
-          pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
-          merge-multiple: true
-      - name: Select tests
-        id: select-tests
-        run: |
-          if [ "${{ github.event_name }}" == "schedule" ]
-          then
-            echo Running unstable and stable tests
-            echo "mark_expression=" >> $GITHUB_OUTPUT
-          else
-            echo Skipping unstable tests
-            echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
-          fi
-      - name: Run integration tests
-        run: tox run -e integration-k8s-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kraft-mode ${{ matrix.kraft-mode }}
-        env:
-          CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
-
-  integration-kafka-k8s-multi:
-    permissions:
-      contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        tox-environments:
-          - auto-balance
-          - charm
-          - provider
-          - provider-v1
-          - password-rotation
-          - tls
-          - tls-complex
-          - balancer-broker
-          - balancer-controller
-          - kraft
-          - kraft-tls
-          - ha
-          - ha-controller
-          - refresh
-        kraft-mode:
-          - multi
-    name: "Kafka | k8s | ${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}"
-    needs:
-      - lint
-      - unit-test
-      - build-dev
-      - build-release
-    if: |
-      always() &&
-      !cancelled() &&
-      (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
-    runs-on: [self-hosted, linux, AMD64, X64, xlarge, noble]
-    timeout-minutes: 120
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-      - name: Setup operator environment
-        run: |
-          sudo snap install concierge --classic
-          # calico has issues with strict confinements, so remove -strict
-          sudo snap install microk8s --channel ${MICROK8S_CHANNEL//"-strict"/} --classic
-          sudo snap install juju --channel $JUJU_CHANNEL
-
-          sudo usermod -a -G microk8s $USER
-          mkdir -p ~/.kube
-          chmod 0700 ~/.kube
-
-          sudo tee /var/snap/microk8s/current/args/certs.d/docker.io/hosts.toml << EOF
-          server = "$DOCKERHUB_MIRROR"
-          [host."${DOCKERHUB_MIRROR#'https://'}"]
-          capabilities = ["pull", "resolve"]
-          EOF
-
-          sudo microk8s stop
-          sudo microk8s start
-
-          # make juju work with microk8s --classic
-          sudo mkdir -p /var/snap/juju/current/microk8s/credentials
-          sudo microk8s config | sudo tee /var/snap/juju/current/microk8s/credentials/client.config
-          sudo chown -R $USER:$USER /var/snap/juju/current/microk8s/credentials
-
-          sudo concierge prepare \
-            -p microk8s \
-            --microk8s-channel ${MICROK8S_CHANNEL//"-strict"/} \
-            --juju-channel $JUJU_CHANNEL \
-            --extra-debs pipx
-          
-          pipx ensurepath
-          pipx install tox poetry
-      # FIXME: remove this step when the previously installed charmcraft snap supports monorepos.
-      - name: Install charmcraft with monorepo feature
-        run: |
-          sudo snap install --classic astral-uv
-          git clone https://github.com/canonical/charmcraft \
-            --branch work/CHARMCRAFT-710-prototype \
-            ~/charmcraft
-
-          pushd ~/charmcraft && uv run charmcraft --version && popd
-          echo "CHARMCRAFT_BIN=$(realpath ~/charmcraft/.venv/bin/charmcraft)" >> $GITHUB_ENV
-      - name: Download packed charm(s)
-        uses: actions/download-artifact@v6
-        with:
-          pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
-          merge-multiple: true
-      - name: Select tests
-        id: select-tests
-        run: |
-          if [ "${{ github.event_name }}" == "schedule" ]
-          then
-            echo Running unstable and stable tests
-            echo "mark_expression=" >> $GITHUB_OUTPUT
-          else
-            echo Skipping unstable tests
-            echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
-          fi
-      - name: Run integration tests
-        run: tox run -e integration-k8s-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kraft-mode ${{ matrix.kraft-mode }}
-        env:
-          CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
-
-  integration-connect-machine:
-    permissions:
-      contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        tox-environments:
-          - charm
-          - tls
-          - plugins
-          - provider
-          - upgrade
-          - requirer
-          - scaling
-          - secrets
-          - terraform
-        kafka-version:
-          - "3"
-          - "4"
-        exclude:
-          # TF tests don't involve Kafka
-          - tox-environments: terraform
-            kafka-version: 3
-    name: Connect | machine | ${{ matrix.tox-environments }} | Kafka ${{ matrix.kafka-version }}
-    needs:
-      - lint
-      - unit-test
-      - build-dev
-      - build-release
-    if: |
-      always() &&
-      !cancelled() &&
-      (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
-    runs-on: [self-hosted, linux, AMD64, X64, large, noble]
-    timeout-minutes: 90
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-      - name: Setup operator environment
-        uses: charmed-kubernetes/actions-operator@main
-        with:
-          provider: lxd
-          juju-channel: 3.6/stable
-      - name: Download packed charm(s)
-        uses: actions/download-artifact@v6
-        with:
-          pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
-          merge-multiple: true
-      - name: Setup terraform if needed
-        if: ${{ matrix.tox-environments == 'terraform' }}
-        run: |
-          sudo snap install --classic terraform
-      - name: Select tests
-        id: select-tests
-        run: |
-          if [ "${{ github.event_name }}" == "schedule" ]
-          then
-            echo Running unstable and stable tests
-            echo "mark_expression=" >> $GITHUB_OUTPUT
-          else
-            echo Skipping unstable tests
-            echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
-          fi
-      - name: Run integration tests
-        run: tox run -e integration-connect-machine-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kafka ${{ matrix.kafka-version }}
-        env:
-          CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
-
-  integration-connect-k8s:
-    strategy:
-      fail-fast: false
-      matrix:
-        tox-environments:
-          - charm
-          - tls
-          - plugins
-          - provider
-          - scaling
-          - secrets
-          - upgrade
-    name: Connect | k8s | ${{ matrix.tox-environments }}
-    needs:
-      - lint
-      - unit-test
-      - build-dev
-      - build-release
+      - collect-connect-k8s-spread
     if: |
       always() &&
       !cancelled() &&
@@ -562,31 +167,277 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-      - name: Setup operator environment
+      - name: Install spread
         run: |
-          sudo snap install concierge --classic
-          sudo concierge prepare --trace --extra-debs pipx
-      - name: Install dependencies
-        run: |
-          pipx install tox
-          pipx ensurepath
+          sudo snap install go --classic
+          go install github.com/canonical/spread/cmd/spread@latest
       - name: Download packed charm(s)
         uses: actions/download-artifact@v6
         with:
           pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
           merge-multiple: true
-      - name: Select tests
-        id: select-tests
-        run: |
-          if [ "${{ github.event_name }}" == "schedule" ]
-          then
-            echo Running unstable and stable tests
-            echo "mark_expression=" >> $GITHUB_OUTPUT
-          else
-            echo Skipping unstable tests
-            echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
-          fi
-      - name: Run integration tests
-        run: tox run -e integration-connect-k8s-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}'
+      - name: Run spread job
+        run: ~/go/bin/spread -vv "${VAR_SPREAD_JOB}"
         env:
-          CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
+          VAR_SPREAD_JOB: ${{ matrix.job.spread_job }}
+
+  # Collects one spread job per tests/spread/connect_machine/*/task.yaml (x Kafka
+  # variant) and fans them out across runners.
+  collect-connect-machine-spread:
+    name: Collect spread jobs - Connect machine
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Install spread
+        run: |
+          sudo snap install go --classic
+          go install github.com/canonical/spread/cmd/spread@latest
+      - name: Collect spread jobs
+        id: collect-jobs
+        shell: python
+        run: |
+          import json
+          import os
+          import pathlib
+          import subprocess
+
+          spread_jobs = (
+              subprocess.run(
+                  [pathlib.Path.home() / "go/bin/spread", "-list", "github-ci"],
+                  capture_output=True,
+                  check=True,
+                  text=True,
+              )
+              .stdout.strip()
+              .split("\n")
+          )
+          jobs = []
+          for job in spread_jobs:
+              # Kafka-parametrized: "github-ci:ubuntu-24.04:tests/spread/connect_machine/test_charm.py:v4"
+              # terraform (no variant): "github-ci:ubuntu-24.04:tests/spread/connect_machine/test_terraform.py"
+              if "tests/spread/connect_machine/" not in job:
+                  continue
+              parts = job.split(":")
+              task = parts[2].removeprefix("tests/spread/connect_machine/")
+              variant = parts[3] if len(parts) > 3 else ""
+              name = f"{task}:{variant}" if variant else task
+              jobs.append({"spread_job": job, "name": name})
+          output = f"jobs={json.dumps(jobs)}"
+          print(output)
+          with open(os.environ["GITHUB_OUTPUT"], "a") as file:
+              file.write(output)
+    outputs:
+      jobs: ${{ steps.collect-jobs.outputs.jobs }}
+
+  integration-connect-machine-spread:
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        job: ${{ fromJSON(needs.collect-connect-machine-spread.outputs.jobs) }}
+    name: "Connect | machine | ${{ matrix.job.name }}"
+    needs:
+      - lint
+      - unit-test
+      - build-dev
+      - build-release
+      - collect-connect-machine-spread
+    if: |
+      always() &&
+      !cancelled() &&
+      (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
+    runs-on: [self-hosted, linux, AMD64, X64, large, noble]
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Install spread
+        run: |
+          sudo snap install go --classic
+          go install github.com/canonical/spread/cmd/spread@latest
+      - name: Download packed charm(s)
+        uses: actions/download-artifact@v6
+        with:
+          pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
+          merge-multiple: true
+      - name: Run spread job
+        run: ~/go/bin/spread -vv "${VAR_SPREAD_JOB}"
+        env:
+          VAR_SPREAD_JOB: ${{ matrix.job.spread_job }}
+
+  # Collects one spread job per tests/spread/machine/*/task.yaml (x kraft-mode
+  # variant) and fans them out across runners.
+  collect-machine-spread:
+    name: Collect spread jobs - Kafka machine
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Install spread
+        run: |
+          sudo snap install go --classic
+          go install github.com/canonical/spread/cmd/spread@latest
+      - name: Collect spread jobs
+        id: collect-jobs
+        shell: python
+        run: |
+          import json
+          import os
+          import pathlib
+          import subprocess
+
+          spread_jobs = (
+              subprocess.run(
+                  [pathlib.Path.home() / "go/bin/spread", "-list", "github-ci"],
+                  capture_output=True,
+                  check=True,
+                  text=True,
+              )
+              .stdout.strip()
+              .split("\n")
+          )
+          jobs = []
+          for job in spread_jobs:
+              # kraft-parametrized: "github-ci:ubuntu-24.04:tests/spread/machine/charm:single"
+              # single/multi-only (no variant): "github-ci:ubuntu-24.04:tests/spread/machine/terraform"
+              # The literal "tests/spread/machine/" never appears in connect_machine paths.
+              if "tests/spread/machine/" not in job:
+                  continue
+              parts = job.split(":")
+              task = parts[2].removeprefix("tests/spread/machine/")
+              variant = parts[3] if len(parts) > 3 else ""
+              name = f"{task}:{variant}" if variant else task
+              jobs.append({"spread_job": job, "name": name})
+          output = f"jobs={json.dumps(jobs)}"
+          print(output)
+          with open(os.environ["GITHUB_OUTPUT"], "a") as file:
+              file.write(output)
+    outputs:
+      jobs: ${{ steps.collect-jobs.outputs.jobs }}
+
+  integration-machine-spread:
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        job: ${{ fromJSON(needs.collect-machine-spread.outputs.jobs) }}
+    name: "Kafka | machine | ${{ matrix.job.name }}"
+    needs:
+      - lint
+      - unit-test
+      - build-dev
+      - build-release
+      - collect-machine-spread
+    if: |
+      always() &&
+      !cancelled() &&
+      (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
+    runs-on: [self-hosted, linux, AMD64, X64, xlarge, noble]
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Install spread
+        run: |
+          sudo snap install go --classic
+          go install github.com/canonical/spread/cmd/spread@latest
+      - name: Download packed charm(s)
+        uses: actions/download-artifact@v6
+        with:
+          pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
+          merge-multiple: true
+      - name: Run spread job
+        run: ~/go/bin/spread -vv "${VAR_SPREAD_JOB}"
+        env:
+          VAR_SPREAD_JOB: ${{ matrix.job.spread_job }}
+
+  collect-k8s-spread:
+    name: Collect spread jobs - Kafka k8s
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Install spread
+        run: |
+          sudo snap install go --classic
+          go install github.com/canonical/spread/cmd/spread@latest
+      - name: Collect spread jobs
+        id: collect-jobs
+        shell: python
+        run: |
+          import json
+          import os
+          import pathlib
+          import subprocess
+
+          spread_jobs = (
+              subprocess.run(
+                  [pathlib.Path.home() / "go/bin/spread", "-list", "github-ci"],
+                  capture_output=True,
+                  check=True,
+                  text=True,
+              )
+              .stdout.strip()
+              .split("\n")
+          )
+          jobs = []
+          for job in spread_jobs:
+              # kraft-parametrized: "github-ci:ubuntu-24.04:tests/spread/k8s/charm:single"
+              # multi-only (no variant): "github-ci:ubuntu-24.04:tests/spread/k8s/balancer-broker"
+              # The literal "tests/spread/k8s/" never appears in connect_k8s paths.
+              if "tests/spread/k8s/" not in job:
+                  continue
+              parts = job.split(":")
+              task = parts[2].removeprefix("tests/spread/k8s/")
+              variant = parts[3] if len(parts) > 3 else ""
+              name = f"{task}:{variant}" if variant else task
+              jobs.append({"spread_job": job, "name": name})
+          output = f"jobs={json.dumps(jobs)}"
+          print(output)
+          with open(os.environ["GITHUB_OUTPUT"], "a") as file:
+              file.write(output)
+    outputs:
+      jobs: ${{ steps.collect-jobs.outputs.jobs }}
+
+  integration-k8s-spread:
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        job: ${{ fromJSON(needs.collect-k8s-spread.outputs.jobs) }}
+    name: "Kafka | k8s | ${{ matrix.job.name }}"
+    needs:
+      - lint
+      - unit-test
+      - build-dev
+      - build-release
+      - collect-k8s-spread
+    if: |
+      always() &&
+      !cancelled() &&
+      (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
+    runs-on: [self-hosted, linux, AMD64, X64, xlarge, noble]
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Install spread
+        run: |
+          sudo snap install go --classic
+          go install github.com/canonical/spread/cmd/spread@latest
+      - name: Download packed charm(s)
+        uses: actions/download-artifact@v6
+        with:
+          pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
+          merge-multiple: true
+      - name: Run spread job
+        run: ~/go/bin/spread -vv "${VAR_SPREAD_JOB}"
+        env:
+          VAR_SPREAD_JOB: ${{ matrix.job.spread_job }}

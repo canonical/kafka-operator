@@ -1,0 +1,5 @@
+summary: connect_k8s test_user_secrets.py
+environment:
+  TEST_ENV: secrets
+execute: |
+  tox run -e "integration-connect-k8s-$TEST_ENV" -- --model testing -m 'not unstable'

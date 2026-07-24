@@ -1,0 +1,5 @@
+summary: connect_k8s test_provider.py
+environment:
+  TEST_ENV: provider
+execute: |
+  tox run -e "integration-connect-k8s-$TEST_ENV" -- --model testing -m 'not unstable'

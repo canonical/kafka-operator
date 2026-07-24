@@ -1,9 +1,10 @@
-project: charmed-kafka-docs-tutorial
+project: kafka-operator
 
-# The project root is mirrored to this path inside the test VM.
+# The project root is mirrored to this path inside the test VM / on the CI runner.
 path: /charmed-kafka
 
 backends:
+  # Tutorial end-to-end suite, run in a Multipass VM sized for a 6-unit cluster.
   multipass:
     type: adhoc
     allocate: |
@@ -36,6 +37,83 @@ backends:
       - ubuntu-24.04-64:
           workers: 1
 
+  # Local integration testing in a throwaway LXD VM.
+  # Requires charms to be packed on the host first (e.g. `charmcraft pack` in
+  # connect_k8s/ and tests/integration/connect_k8s/app-charm/); CI=true makes the
+  # tests locate those prebuilt *.charm files instead of packing inside the VM.
+  # Derived from https://github.com/canonical/postgresql-operator spread.yaml
+  lxd-vm:
+    type: adhoc
+    allocate: |
+      hash=$(python3 -c "import hashlib; print(hashlib.sha256('$SPREAD_PASSWORD'.encode()).hexdigest()[:6])")
+      VM_NAME="${VM_NAME:-${SPREAD_SYSTEM//./-}-${hash}}"
+      DISK="${DISK:-40}"
+      CPU="${CPU:-4}"
+      MEM="${MEM:-8}"
+
+      cloud_config="#cloud-config
+      ssh_pwauth: true
+      users:
+        - default
+        - name: runner
+          plain_text_passwd: $SPREAD_PASSWORD
+          lock_passwd: false
+          sudo: ALL=(ALL) NOPASSWD:ALL
+      "
+
+      lxc launch --vm \
+        "${SPREAD_SYSTEM//-/:}" \
+        "${VM_NAME}" \
+        -c user.user-data="${cloud_config}" \
+        -c limits.cpu="${CPU}" \
+        -c limits.memory="${MEM}GiB" \
+        -d root,size="${DISK}GiB"
+
+      # Wait for the runner user to be created by cloud-init.
+      while ! lxc exec "${VM_NAME}" -- id -u runner &>/dev/null; do sleep 0.5; done
+
+      ADDRESS "$(lxc ls -f csv | grep "${VM_NAME}" | cut -d"," -f3 | cut -d" " -f1)"
+    discard: |
+      hash=$(python3 -c "import hashlib; print(hashlib.sha256('$SPREAD_PASSWORD'.encode()).hexdigest()[:6])")
+      VM_NAME="${VM_NAME:-${SPREAD_SYSTEM//./-}-${hash}}"
+      lxc delete --force "${VM_NAME}"
+    environment:
+      # Tests locate prebuilt *.charm files instead of packing them in the VM.
+      CI: "true"
+    systems:
+      - ubuntu-24.04:
+          username: runner
+
+  # CI backend. Spread cannot provision GitHub Actions runners, so each spread
+  # job runs on the same runner it was launched from (ADDRESS localhost) and the
+  # workflow selects a single job per runner.
+  # Derived from https://github.com/canonical/postgresql-operator spread.yaml
+  github-ci:
+    type: adhoc
+    manual: true
+    allocate: |
+      sudo tee /etc/ssh/sshd_config.d/10-spread-github-ci.conf << 'EOF'
+      PasswordAuthentication yes
+      PermitEmptyPasswords yes
+      EOF
+
+      sudo systemctl daemon-reload
+      sudo systemctl start ssh
+
+      sudo passwd -d ubuntu
+      sudo systemctl reload ssh || sudo systemctl restart ssh
+
+      # Remove the preinstalled lxd; concierge installs its own.
+      sudo snap remove --purge --terminate lxd 2>/dev/null || true
+
+      ADDRESS localhost
+    # Spread does not forward the runner's environment; pass through what we need.
+    environment:
+      CI: '$(HOST: echo $CI)'
+    systems:
+      - ubuntu-24.04:
+          username: ubuntu
+
 suites:
   tests/tutorial/:
     summary: Charmed Apache Kafka tutorial
@@ -45,3 +123,74 @@ suites:
       # Spread SSHs in as root but does not always set HOME=/root.
       export HOME=/root
       mkdir -p /root/.local/share/juju
+
+  tests/spread/connect_k8s/:
+    summary: Kafka Connect (k8s) integration tests driven by Spread
+    systems:
+      - ubuntu-24.04
+    environment:
+      PATH: $PATH:$(pipx environment --value PIPX_BIN_DIR 2>/dev/null || echo "$HOME/.local/bin")
+    prepare: |
+      sudo snap install concierge --classic
+      # Reads the repo concierge.yaml (bootstraps k8s + lxd, installs charmcraft).
+      sudo concierge prepare --trace --extra-debs pipx
+      juju switch concierge-k8s
+      pipx install tox
+      pipx ensurepath
+    restore-each: |
+      # Reset the model between tasks without a full `concierge restore`.
+      juju destroy-model --force --no-wait --destroy-storage --no-prompt testing 2>/dev/null || true
+
+  tests/spread/connect_machine/:
+    summary: Kafka Connect (machine) integration tests driven by Spread
+    systems:
+      - ubuntu-24.04
+    environment:
+      PATH: $PATH:$(pipx environment --value PIPX_BIN_DIR 2>/dev/null || echo "$HOME/.local/bin")
+    prepare: |
+      sudo snap install concierge --classic
+      # `-p machine` bootstraps LXD; the repo concierge.yaml bootstraps k8s.
+      sudo concierge prepare -p machine --trace --extra-debs pipx
+      juju switch concierge-lxd
+      pipx install tox
+      pipx ensurepath
+    restore-each: |
+      # Reset the model between tasks without a full `concierge restore`.
+      juju destroy-model --force --no-wait --destroy-storage --no-prompt testing 2>/dev/null || true
+
+  tests/spread/machine/:
+    summary: Kafka (machine) integration tests driven by Spread
+    systems:
+      - ubuntu-24.04
+    environment:
+      PATH: $PATH:$(pipx environment --value PIPX_BIN_DIR 2>/dev/null || echo "$HOME/.local/bin")
+    prepare: |
+      sudo snap install concierge --classic
+      # `-p machine` bootstraps LXD; the repo concierge.yaml bootstraps k8s.
+      sudo concierge prepare -p machine --trace --extra-debs pipx
+      juju switch concierge-lxd
+      pipx install tox
+      pipx ensurepath
+    restore-each: |
+      # Reset the model between tasks without a full `concierge restore`.
+      juju destroy-model --force --no-wait --destroy-storage --no-prompt testing 2>/dev/null || true
+
+  tests/spread/k8s/:
+    summary: Kafka (k8s) integration tests driven by Spread
+    systems:
+      - ubuntu-24.04
+    environment:
+      PATH: $PATH:$(pipx environment --value PIPX_BIN_DIR 2>/dev/null || echo "$HOME/.local/bin")
+    prepare: |
+      sudo snap install concierge --classic
+      # Reads the repo concierge.yaml (bootstraps k8s + lxd, installs charmcraft).
+      sudo concierge prepare --trace --extra-debs pipx
+      juju switch concierge-k8s
+      pipx install tox
+      pipx ensurepath
+    restore-each: |
+      # Reset the model between tasks without a full `concierge restore`.
+      juju destroy-model --force --no-wait --destroy-storage --no-prompt testing 2>/dev/null || true
+
+kill-timeout: 120m
+warn-timeout: 1m
