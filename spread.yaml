@@ -181,8 +181,6 @@ suites:
       - ubuntu-24.04
     environment:
       PATH: $PATH:$(pipx environment --value PIPX_BIN_DIR 2>/dev/null || echo "$HOME/.local/bin")
-      # FIXME: remove this when the FIXME below is resolved.
-      CHARMCRAFT_BIN: charmcraft-monorepo
     prepare: |
       sudo snap install concierge --classic
       # Reads the repo concierge.yaml (bootstraps k8s + lxd, installs charmcraft).
@@ -190,13 +188,6 @@ suites:
       juju switch concierge-k8s
       pipx install tox
       pipx ensurepath
-      # FIXME: remove this when the previously installed charmcraft snap supports monorepos.
-      sudo snap install --classic astral-uv
-      git clone https://github.com/canonical/charmcraft \
-        --branch work/CHARMCRAFT-710-prototype \
-        ~/charmcraft
-      pushd ~/charmcraft && uv run charmcraft --version && popd
-      ln -sf $(realpath ~/charmcraft/.venv/bin/charmcraft) /usr/local/bin/charmcraft-monorepo
     restore-each: |
       # Reset the model between tasks without a full `concierge restore`.
       juju destroy-model --force --no-wait --destroy-storage --no-prompt testing 2>/dev/null || true
