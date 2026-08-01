@@ -426,7 +426,7 @@ CONNECT_DEPENDENCIES = {
     "connect_service": {
         "dependencies": {},  # do not need to check Kafka, backwards compatible since 0.10
         "name": "connect",
-        "upgrade_supported": "^4.0",
+        "upgrade_supported": ">=3.9",
         "version": "4.2.0",
     },
 }
