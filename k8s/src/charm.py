@@ -77,7 +77,7 @@ class KafkaCharm(KafkaCharmBase):
 
         self.restart = RollingOpsManager(
             self,
-            peer_relation_name="restart",
+            peer_relation_name="restart-v1",
             callback_targets={
                 "restart": self._restart_broker,
                 "disable_enable": self._disable_enable_restart_broker,

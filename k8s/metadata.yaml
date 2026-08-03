@@ -43,6 +43,8 @@ peers:
     interface: rolling_op
   refresh-v-three:
     interface: refresh
+  restart-v1:
+    interface: rolling_op
 
 provides:
   kafka-client:

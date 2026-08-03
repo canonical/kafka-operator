@@ -275,7 +275,7 @@ def test_leader_change(charm_configuration, base_state: State):
             "bootstrap-unit-id": "1",
         },
     )
-    restart_peer = PeerRelation("restart", "rolling_op")
+    restart_peer = PeerRelation("restart-v1", "rolling_op")
 
     state_in = dataclasses.replace(base_state, relations=[cluster_peer, restart_peer])
 

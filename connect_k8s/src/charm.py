@@ -103,7 +103,7 @@ class ConnectCharm(ConnectCharmBase):
 
         self.restart = RollingOpsManager(
             self,
-            peer_relation_name="restart",
+            peer_relation_name="restart-v1",
             callback_targets={"restart": self._restart_callback},
         )
 
