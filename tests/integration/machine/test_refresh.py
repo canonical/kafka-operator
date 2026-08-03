@@ -3,10 +3,15 @@
 # See LICENSE file for licensing details.
 
 import logging
+import os
+import subprocess
 import time
+import zipfile
+from pathlib import Path
 
 import jubilant
 import pytest
+import tomlkit
 
 from integration.machine.helpers import (
     APP_NAME,
@@ -24,11 +29,57 @@ from integration.machine.helpers.jubilant import (
 logger = logging.getLogger(__name__)
 
 pytestmark = pytest.mark.broker
+CHANNEL = "4/stable"
+
+
+def test_repack_charm(
+    tmp_path_factory: pytest.TempPathFactory,
+    kafka_charm,
+):
+    """Unpack the built charm and repack using a refresh-able version."""
+    base = tmp_path_factory.mktemp("refresh-charm-")
+    os.system(f"unzip -q {kafka_charm} -d {base}")
+
+    # get the latest refresh git tag, i.e. v4/1.##.#
+    current_tag_cmd = "git tag -l 'v4*' | sed 's|v4/1.||g' | sort -n | tail -n 1"
+    current_tag = subprocess.check_output(
+        current_tag_cmd,
+        shell=True,
+        stderr=subprocess.PIPE,
+    )
+
+    # compute the next refresh version, which will be released to edge.
+    # same logic as .github/workflows/release.yaml
+    next_ver = int(float(current_tag) + 1)
+    refresh_version = f"4/1.{next_ver}.0"
+
+    # rewrite the refresh_versions.toml file using the new computed version.
+    with open(f"{base}/refresh_versions.toml") as file:
+        versions = tomlkit.load(file)
+    versions["charm"] = refresh_version
+    with open(f"{base}/refresh_versions.toml", "w") as file:
+        tomlkit.dump(versions, file)
+
+    # this is equivalent to charmcraft pack,
+    # and uses the updated refresh_versions.toml file.
+    # basically, we're using the `base` folder as the prime dir.
+    # see: https://github.com/canonical/charmcraft/blob/a2503a34fad32de497b95c19ae355121a54327a8/charmcraft/utils/file.py#L59-L72
+    output_file = f"kafka_refresh_{refresh_version.replace('/', '_')}.charm"
+    with zipfile.ZipFile(
+        output_file, mode="w", compression=zipfile.ZIP_DEFLATED
+    ) as charm_zip:
+        for root, _, files in os.walk(base, followlinks=True):
+            for file in files:
+                file_path = Path(root) / file
+                archive_name = file_path.relative_to(base)
+                charm_zip.write(file_path, arcname=archive_name)
+
+    os.environ.update({"REFRESH_CHARM": f"./{output_file}"})
 
 
 @pytest.mark.abort_on_fail
-def test_in_place_upgrade(juju: jubilant.Juju, kafka_charm, app_charm, kraft_mode, controller_app):
-    deploy_cluster(juju=juju, charm=kafka_charm, kraft_mode=kraft_mode, num_broker=3)
+def test_in_place_upgrade(juju: jubilant.Juju, app_charm, kraft_mode, controller_app):
+    deploy_cluster(juju=juju, charm="kafka", kraft_mode=kraft_mode, num_broker=3, channel=CHANNEL)
     juju.deploy(app_charm, app=DUMMY_NAME, num_units=1, base=BASE)
 
     # Get kafka apps list for waiting
@@ -79,7 +130,8 @@ def test_in_place_upgrade(juju: jubilant.Juju, kafka_charm, app_charm, kraft_mod
     time.sleep(10)
 
     logger.info("Upgrading Kafka...")
-    juju.refresh(APP_NAME, path=str(kafka_charm))
+    refresh_charm = os.environ.get("REFRESH_CHARM")
+    juju.refresh(APP_NAME, path=str(refresh_charm))
     juju.wait(
         lambda status: all_active_idle(status, *kafka_apps),
         delay=3,
@@ -97,7 +149,7 @@ def test_in_place_upgrade(juju: jubilant.Juju, kafka_charm, app_charm, kraft_mod
 
 @pytest.mark.abort_on_fail
 def test_controller_upgrade_multinode(
-    juju: jubilant.Juju, kafka_charm, kraft_mode, controller_app
+    juju: jubilant.Juju, kraft_mode, controller_app
 ):
     """Test upgrading the controller separately in multi-node mode."""
     if kraft_mode != "multi":
@@ -130,7 +182,8 @@ def test_controller_upgrade_multinode(
     time.sleep(10)
 
     logger.info("Upgrading Controller...")
-    juju.refresh(controller_app, path=str(kafka_charm))
+    refresh_charm = os.environ.get("REFRESH_CHARM")
+    juju.refresh(controller_app, path=str(refresh_charm))
     juju.wait(
         lambda status: all_active_idle(status, controller_app, APP_NAME),
         delay=3,

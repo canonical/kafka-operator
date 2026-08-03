@@ -2,16 +2,15 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-import glob
 import logging
 import os
-import shutil
 import subprocess
-from typing import Literal
+import zipfile
+from pathlib import Path
 
 import jubilant
 import pytest
-import yaml
+import tomlkit
 from single_kernel_kafka.core.literals import TLS_RELATION
 
 from integration.k8s.helpers import (
@@ -27,74 +26,67 @@ from integration.k8s.helpers.jubilant import all_active_idle, check_logs, deploy
 
 logger = logging.getLogger(__name__)
 
-CHANNEL = "3/stable"
+CHANNEL = "4/stable"
 CHARMCRAFT = os.environ.get("CHARMCRAFT_BIN", "charmcraft")
 
 
-def _build_pinned_refresh_charm(
-    juju: jubilant.Juju,
+def test_repack_charm(
     tmp_path_factory: pytest.TempPathFactory,
-    version: Literal["pre", "post"] = "post",
+    kafka_charm,
 ):
-    """Build charms used for refresh tests."""
+    """Unpack the built charm and repack using a refresh-able version."""
+    base = tmp_path_factory.mktemp("refresh-charm-")
+    os.system(f"unzip -q {kafka_charm} -d {base}")
 
-    def ignore_hidden(path, names):
-        return [name for name in names if name.startswith(".")]
-
-    # create a charmcraft.yaml without the write-charm-version override
-    with open("k8s/charmcraft.yaml") as f:
-        cc = yaml.safe_load(f)
-        cc["parts"]["files"].pop("override-build")
-
-    tmp_dir = tmp_path_factory.mktemp(f"refresh-charm-{version}")
-    os.makedirs(tmp_dir, exist_ok=True)
-    # Copy repo files to the tmp_dir
-    os.system(f"rsync -avq --exclude .tox --exclude venv . {tmp_dir}/")
-    shutil.copyfile(
-        f"tests/integration/k8s/refresh-charm/refresh_versions.{version}.toml",
-        f"{tmp_dir}/k8s/refresh_versions.toml",
-    )
-    with open(f"{tmp_dir}/k8s/charmcraft.yaml", "w") as f:
-        f.write(yaml.safe_dump(cc))
-
-    logger.info(f"Building {version} refresh charm, using {tmp_dir}. might take a while...")
-    subprocess.check_output(
-        f"{CHARMCRAFT} pack",
+    # get the latest refresh git tag, i.e. v4/1.##.#
+    current_tag_cmd = "git tag -l 'v4*' | sed 's|v4/1.||g' | sort -n | tail -n 1"
+    current_tag = subprocess.check_output(
+        current_tag_cmd,
         shell=True,
         stderr=subprocess.PIPE,
-        cwd=f"{tmp_dir}/k8s",
-        env=os.environ | {"CHARMCRAFT_EXPERIMENTAL_MONOREPO": "true"},
     )
-    if not (paths := glob.glob(f"{tmp_dir}/k8s/*.charm")):
-        raise RuntimeError("Can not find built charm path!")
 
-    return paths[0]
+    # compute the next refresh version, which will be released to edge.
+    # same logic as .github/workflows/release.yaml
+    next_ver = int(float(current_tag) + 1)
+    refresh_version = f"4/1.{next_ver}.0"
 
+    # rewrite the refresh_versions.toml file using the new computed version.
+    with open(f"{base}/refresh_versions.toml") as file:
+        versions = tomlkit.load(file)
+    versions["charm"] = refresh_version
+    with open(f"{base}/refresh_versions.toml", "w") as file:
+        tomlkit.dump(versions, file)
 
-@pytest.fixture(scope="module")
-def pre_refresh_charm(juju: jubilant.Juju, tmp_path_factory):
-    return _build_pinned_refresh_charm(juju, tmp_path_factory=tmp_path_factory, version="pre")
+    # this is equivalent to charmcraft pack, which uses the updated refresh_versions.toml file.
+    # basically, we're using the `base` folder as the prime dir.
+    # see: https://github.com/canonical/charmcraft/blob/a2503a34fad32de497b95c19ae355121a54327a8/charmcraft/utils/file.py#L59-L72
+    output_file = f"kafka_refresh_{refresh_version.replace('/', '_')}.charm"
+    with zipfile.ZipFile(
+        output_file, mode="w", compression=zipfile.ZIP_DEFLATED
+    ) as charm_zip:
+        for root, _, files in os.walk(base, followlinks=True):
+            for file in files:
+                file_path = Path(root) / file
+                archive_name = file_path.relative_to(base)
+                charm_zip.write(file_path, arcname=archive_name)
 
-
-@pytest.fixture(scope="module")
-def post_refresh_charm(juju: jubilant.Juju, tmp_path_factory):
-    return _build_pinned_refresh_charm(juju, tmp_path_factory=tmp_path_factory, version="post")
+    os.environ.update({"REFRESH_CHARM": f"./{output_file}"})
 
 
 @pytest.mark.abort_on_fail
-def test_in_place_refresh(
-    juju: jubilant.Juju, kraft_mode: KRaftMode, pre_refresh_charm, post_refresh_charm
-):
+def test_in_place_refresh(juju: jubilant.Juju, kraft_mode: KRaftMode):
     """Tests happy path refresh with TLS in KRaft mode."""
     kafka_apps = [APP_NAME] if kraft_mode == "single" else [APP_NAME, CONTROLLER_NAME]
     tls_config = {"ca-common-name": "kafka"}
 
     deploy_cluster(
         juju=juju,
-        charm=pre_refresh_charm,
+        charm="kafka-k8s",
         kraft_mode=kraft_mode,
         num_broker=1,
         num_controller=1,
+        channel=CHANNEL,
     )
 
     juju.deploy(TLS_NAME, channel="edge", config=tls_config, revision=163, trust=True)
@@ -142,9 +134,10 @@ def test_in_place_refresh(
     )
 
     logger.info("Upgrading Kafka...")
+    refresh_charm = os.environ.get("REFRESH_CHARM")
     juju.refresh(
         APP_NAME,
-        path=post_refresh_charm,
+        path=refresh_charm,
         resources={"kafka-image": KAFKA_CONTAINER},
     )
 
