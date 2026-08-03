@@ -29,6 +29,8 @@ peers:
     interface: worker
   upgrade:
     interface: upgrade
+  restart-v1:
+    interface: rolling_op
 
 provides:
   connect-client:
