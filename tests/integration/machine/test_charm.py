@@ -156,9 +156,17 @@ async def test_client_properties_makes_admin_connection(ops_test: OpsTest, kafka
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
     assert ops_test.model.applications[APP_NAME].status == "active"
     assert ops_test.model.applications[DUMMY_NAME].status == "active"
-    await ops_test.model.wait_for_idle(
-        apps=[*kafka_apps, DUMMY_NAME], idle_period=60, status="active"
-    )
+
+    address = await get_address(ops_test=ops_test)
+    for attempt in Retrying(stop=stop_after_attempt(6), wait=wait_fixed(15), reraise=True):
+        with attempt:
+            await ops_test.model.wait_for_idle(
+                apps=[*kafka_apps, DUMMY_NAME], idle_period=30, status="active"
+            )
+            assert check_socket(
+                address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
+            )
+
     result = await run_client_properties(ops_test=ops_test)
     assert result
     logger.debug(f"{result=}")
@@ -168,6 +176,10 @@ async def test_client_properties_makes_admin_connection(ops_test: OpsTest, kafka
     # we explicitly test that:
     credentials = get_client_credentials(ops_test=ops_test)
     for username, password in credentials.items():
+        if username == "controller":
+            # controller user is defined on separate listener (9098)
+            continue
+        logger.info(f"Testing {username} has admin privileges:")
         produce_and_check_logs(
             ops_test=ops_test,
             kafka_unit_name=f"{APP_NAME}/0",
