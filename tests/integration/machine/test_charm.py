@@ -30,6 +30,7 @@ from integration.machine.helpers.pytest_operator import (
     count_lines_with,
     deploy_cluster,
     get_address,
+    get_client_credentials,
     get_machine,
     produce_and_check_logs,
     run_client_properties,
@@ -162,14 +163,19 @@ async def test_client_properties_makes_admin_connection(ops_test: OpsTest, kafka
     assert result
     logger.debug(f"{result=}")
 
-    acls = 0
-    for line in result.strip().split("\n"):
-        if "SCRAM credential configs for user-principal" in line:
-            acls += 1
-
-    # single mode: operator, replication, relation-# => 3
-    # multi mode: operator, relation-# => 2
-    assert acls == 2 + int(kraft_mode == "single")
+    # At this stage, all internal and client users should have admin privileges,
+    # i.e. they should be able to create topics, produce, and consume.
+    # we explicitly test that:
+    credentials = get_client_credentials(ops_test=ops_test)
+    for username, password in credentials.items():
+        produce_and_check_logs(
+            ops_test=ops_test,
+            kafka_unit_name=f"{APP_NAME}/0",
+            provider_unit_name=f"{DUMMY_NAME}/0",
+            topic=f"test-admin-{username}",
+            create_topic=True,
+            credentials=(username, password),
+        )
 
     await ops_test.model.applications[APP_NAME].remove_relation(
         f"{APP_NAME}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_ADMIN}"
