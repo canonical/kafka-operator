@@ -1,0 +1,73 @@
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+name: kafka-connect-k8s
+display-name: Apache Kafka Connect - K8s
+description: |
+  Description
+summary: Charmed Apache Kafka Connect Operator - K8s
+docs: https://discourse.charmhub.io/t/charmed-apache-kafka-k8s-documentation/10296
+source: https://github.com/canonical/kafka-connect-k8s-operator
+issues: https://github.com/canonical/kafka-connect-k8s-operator/issues
+website:
+  - https://github.com/canonical/kafka-connect-k8s-operator
+maintainers:
+  - Canonical Data Platform <data-platform@lists.launchpad.net>
+assumes:
+  - k8s-api
+
+containers:
+  kafka-connect:
+    resource: kafka-image
+    mounts:
+      - storage: plugins
+        location: /var/lib/connect/plugins
+
+peers:
+  restart:
+    interface: rolling_op
+  worker:
+    interface: worker
+  upgrade:
+    interface: upgrade
+
+provides:
+  connect-client:
+    interface: connect_client
+    optional: true
+  metrics-endpoint:
+    interface: prometheus_scrape
+  grafana-dashboard:
+    interface: grafana_dashboard
+
+requires:
+  kafka-client:
+    interface: kafka_client
+    optional: true
+    limit: 1
+  certificates:
+    interface: tls-certificates
+    limit: 1
+    optional: true
+  logging:
+    interface: loki_push_api
+    optional: true
+
+resources:
+  connect-plugin:
+    type: file
+    filename: "plugin.tar"
+    description: |
+      Path to a local TAR archive containing JAR file(s) with the implementation of one or more connectors, transformers, or converters.
+      This TAR archive will be added to Kafka Connect `plugin.path`.
+      The archive should not contain any libraries provided by the Kafka Connect runtime.
+  kafka-image:
+    type: oci-image
+    description: OCI Image for Apache Kafka
+    upstream-source: ghcr.io/canonical/charmed-kafka@sha256:8582c514c33b22fa8eb35475cf5c45732befe339307e7807ba4be03906460fa7
+
+storage:
+  plugins:
+    type: filesystem
+    description: Directory where the plugins are stored
+    minimum-size: 1G
+    location: /var/snap/charmed-kafka/common/var/lib/connect

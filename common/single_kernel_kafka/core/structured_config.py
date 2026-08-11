@@ -264,3 +264,35 @@ class CharmConfig(BaseConfigModel):
             )
 
         return value
+
+
+class ConnectCharmConfig(BaseConfigModel):
+    """Manager for the structured configuration."""
+
+    system_users: str | None = None
+    exactly_once_source_support: bool
+    key_converter: str
+    log_level: LogLevel
+    profile: Literal["testing", "production"]
+    rest_port: int
+    value_converter: str
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def blank_string(cls, value):
+        """Check for empty strings."""
+        if value == "":
+            return None
+        return value
+
+    @field_validator("system_users")
+    @classmethod
+    def system_users_secret_validator(cls, value: str) -> str:
+        """Check validity of `system-users` field which should be a user secret URI."""
+        if not SECRET_REGEX.match(value):
+            raise ValueError(
+                "Provided value for system-users config is not a valid secret URI, "
+                "accepted values are formatted like 'secret:cvnra0b1c2e3f4g5hi6j'"
+            )
+
+        return value

@@ -1,0 +1,71 @@
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+options:
+  system-users:
+    description: |
+      User-provided secret ID which defines custom username/passwords on the Kafka Connect
+      REST Interface. The secret ID format is like "secret:cvh7kruupa1s46bqvuig" and should
+      not be confused with secret name or label.
+
+      The secret could be defined using `juju add-secret <secret-name> u1=p1 u2=p2 ...`
+      command, where keys (u1..n) are usernames and values (p1..n) are passwords.
+      The `juju add-secret` command will output the secret ID, which can then be granted to
+      the charm and configured using `juju config` command. The following example 
+      shows the complete flow:
+
+        $ juju add-secret my-auth admin=adminpass user1=user1pass user2=user2pass
+        # some ID will be printed: e.g. "secret:cvh7kruupa1s46bqvuig". take note of that.
+        $ juju grant-secret my-auth kafka-connect
+        $ juju config kafka-connect auth=secret:cvh7kruupa1s46bqvuig
+    type: string
+  exactly_once_source_support:
+    description: |
+      Whether to enable exactly-once support for source connectors in the cluster by using 
+      transactions to write source records and their source offsets, and by proactively 
+      fencing out old task generations before bringing up new ones.      
+    type: boolean
+    default: false
+  key_converter:
+    description: |
+      Converter class used to convert between Kafka Connect format and the serialized form that
+      is written to Kafka. This controls the format of the keys in messages written to or read 
+      from Kafka, and since this is independent of connectors, it allows any connector to work 
+      with any serialization format. Examples of common formats include JSON and Avro.
+      
+      Note: For custom converters, the library files should be provided to the charm beforehand
+      using `juju attach-resource` command. Please refer to the docs for more details.
+    type: string
+    default: org.apache.kafka.connect.json.JsonConverter
+  log_level:
+    description: |
+      Level of logging for the Apache Kafka Connect service operated by the charm. 
+
+      Allowed values are: "ERROR", "WARNING", "INFO", and "DEBUG".
+    type: string
+    default: "INFO"
+  profile:
+    description: |
+      Profile representing the scope of deployment, and used to enable high-level customisation of 
+      configs, resource checks/allocation, logging levels, etc. 
+      
+      Allowed values are: "production" and "testing".
+    type: string
+    default: production
+  rest_port:
+    description: |
+      Port used for Apache Kafka Connect REST API endpoint.
+    type: int
+    default: 8083
+  value_converter:
+    description: |
+      Converter class used to convert between Kafka Connect format and the serialized form that 
+      is written to Kafka. This controls the format of the values in messages written to or read 
+      from Kafka, and since this is independent of connectors, it allows any connector to work 
+      with any serialization format. Examples of common formats include JSON and Avro.
+
+      Note: For custom converters, the library files should be provided to the charm beforehand
+      using `juju attach-resource` command. Please refer to the docs for more details.
+    type: string
+    default: org.apache.kafka.connect.json.JsonConverter
+ 

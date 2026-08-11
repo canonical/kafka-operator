@@ -1,0 +1,14 @@
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+options:
+  mode:
+    type: string
+    default: sink
+    description: Either `source` or `sink`
+  insert_mode:
+    type: string
+    default: insert
+  topics_regex:
+    type: string
+    default: prefix.+

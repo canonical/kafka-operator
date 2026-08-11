@@ -62,11 +62,49 @@ MIN_REPLICAS = 3
 KRAFT_VERSION = 1
 
 
+class ConnectLiterals:
+    """Kafka Connect specific literals."""
+
+    DEFAULT_API_PORT = 8083
+    DEFAULT_API_PROTOCOL = "http"
+    DEFAULT_AUTH_CLASS = (
+        "org.apache.kafka.connect.rest.basic.auth.extension.BasicAuthSecurityRestExtension"
+    )
+    DEFAULT_CONVERTER_CLASS = "org.apache.kafka.connect.json.JsonConverter"
+    DEFAULT_SECURITY_MECHANISM = "SCRAM-SHA-512"
+    GROUP_ID = "connect-cluster"
+
+    SERVICE_NAME = "connect-distributed"
+    PLUGIN_RESOURCE_KEY = "connect-plugin"
+    JMX_EXPORTER_PORT = 9100
+    METRICS_RULES_DIR = "./src/alert_rules/prometheus"
+    EMPTY_PLUGIN_CHECKSUM = "84ff92691f909a05b224e1c56abb4864f01b4f8e3c854e4bb4c7baf1d3f6d652"
+
+    TOPICS = {"offset": "connect-offset", "config": "connect-config", "status": "connect-status"}
+    REPLICATION_FACTOR = -1  # -1 uses broker's default replication factor
+
+    # NOTE: This key is used on a file to set the truststore password. The mirrormaker integrator charm
+    # then points to this file to avoid sending the password over the API request config.
+    TRUSTSTORE_PASSWORD_KEY = "truststore"
+
+    # Relations
+    KAFKA_CLIENT_REL = "kafka-client"
+    PEER_REL = "worker"
+    CLIENT_REL = "connect-client"
+    TLS_REL = "certificates"
+
+    CharmProfile = Literal["testing", "production"]
+    ClientModes = Literal["worker", "producer", "consumer"]
+    Converters = Literal["key", "value"]
+    InternalTopics = Literal["offset", "config", "status"]
+
+
 class TLSScope(str, Enum):
     """Enum for TLS scopes."""
 
     PEER = "peer"  # for internal communications
     CLIENT = "client"  # for external/client communications
+    CONNECT = "connect"
 
 
 INTER_BROKER_USER = "replication"
@@ -365,3 +403,30 @@ class Status(Enum):
         ),
         "WARNING",
     )
+
+
+class ConnectStatus(Enum):
+    """Collection of possible statuses for the charm."""
+
+    SNAP_NOT_INSTALLED = StatusLevel(BlockedStatus(f"unable to install {SNAP_NAME} snap"), "ERROR")
+    INSTALLING = StatusLevel(MaintenanceStatus(f"installing {SNAP_NAME}"), "DEBUG")
+    MISSING_KAFKA = StatusLevel(BlockedStatus("application needs Kafka client relation"), "DEBUG")
+    NO_KAFKA_CREDENTIALS = StatusLevel(
+        WaitingStatus("waiting for Kafka cluster credentials"), "DEBUG"
+    )
+    SERVICE_NOT_RUNNING = StatusLevel(BlockedStatus("worker service is not running"), "WARNING")
+    SERVICE_STARTING = StatusLevel(WaitingStatus("worker is still starting up"), "INFO")
+    SERVICE_UNHEALTHY = StatusLevel(BlockedStatus("worker is unable to handle requests"), "ERROR")
+    NO_CERT = StatusLevel(WaitingStatus("unit waiting for signed certificates"), "INFO")
+
+    ACTIVE = StatusLevel(ActiveStatus(), "DEBUG")
+
+
+CONNECT_DEPENDENCIES = {
+    "connect_service": {
+        "dependencies": {},  # do not need to check Kafka, backwards compatible since 0.10
+        "name": "connect",
+        "upgrade_supported": "^4.0",
+        "version": "4.2.0",
+    },
+}

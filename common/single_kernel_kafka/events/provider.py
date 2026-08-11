@@ -226,7 +226,7 @@ class KafkaProvider(Object):
             # Then remove the cert on all units
             logger.info(f"Removing {alias=} from truststore...")
             self.dependent.tls_manager.remove_cert(alias=alias)
-            self.dependent.tls_manager.reload_truststore()
+            self.dependent.tls_manager.reload_truststore(self.charm.state)
 
         # we remove broken clients here:
         self.reconcile()

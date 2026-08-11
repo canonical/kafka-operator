@@ -125,6 +125,7 @@ jobs:
         run: sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- lxc image list --all-projects
       - name: Check charm refresh compatibility version tags were present
         run: check-charm-contains-valid-refresh-version --directory="${VAR_DIRECTORY}"
+        if: "${{ !contains(inputs.path-to-charm-directory, 'connect') }}"
         env:
           VAR_DIRECTORY: ${{ inputs.path-to-charm-directory }}
       - run: touch .empty

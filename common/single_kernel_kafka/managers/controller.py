@@ -11,7 +11,7 @@ from subprocess import CalledProcessError
 from ops.pebble import ExecError
 from tenacity import retry, stop_after_attempt, wait_fixed
 
-from ..core.cluster import ClusterState
+from ..core.cluster import KafkaContext
 from ..core.literals import (
     GROUP,
     KRAFT_NODE_ID_OFFSET,
@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 class ControllerManager:
     """Manager for handling KRaft controller functions."""
 
-    def __init__(self, state: ClusterState, workload: WorkloadBase):
+    def __init__(self, state: KafkaContext, workload: WorkloadBase):
         self.state = state
         self.workload = workload
 
