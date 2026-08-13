@@ -259,6 +259,11 @@ class WorkloadBase(ABC):
         ...
 
     @abstractmethod
+    def restart_python_exporter(self) -> None:
+        """Restart the custom Python exporter service."""
+        ...
+
+    @abstractmethod
     def read(self, path: str) -> list[str]:
         """Reads a file from the workload.
 
@@ -404,6 +409,19 @@ class WorkloadBase(ABC):
                 # only check for keys, as we can have an empty value for a variable
                 map_env[key] = value
         return map_env
+
+    def read_env(self, env_file: pathops.PathProtocol) -> dict[str, str]:
+        """Read environment variables from the specified env_file and parse them as dict."""
+        if not env_file.exists():
+            return {}
+
+        lines = [
+            line.strip()
+            for line in env_file.read_text().split("\n")
+            if not line.strip().startswith("#")
+        ]
+
+        return self.map_env(lines)
 
     @staticmethod
     def ping(bootstrap_nodes: str) -> bool:

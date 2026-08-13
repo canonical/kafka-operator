@@ -39,6 +39,7 @@ from .core.literals import (
     GROUP,
     JMX_CC_PORT,
     JMX_EXPORTER_PORT,
+    PYTHON_EXPORTER_SERVICE,
     SECURITY_PROTOCOL_PORTS,
     SNAP_NAME,
     USER_NAME,
@@ -96,6 +97,10 @@ class WorkloadMachine(WorkloadBase):
             self.kafka.restart(services=[self.service])
         except snap.SnapError as e:
             logger.exception(str(e))
+
+    @override
+    def restart_python_exporter(self) -> None:
+        self.kafka.restart(services=[PYTHON_EXPORTER_SERVICE])
 
     @override
     def read(self, path: str) -> list[str]:
@@ -463,6 +468,11 @@ class WorkloadK8s(WorkloadBase):
     @override
     def restart(self) -> None:
         self.start()
+
+    @override
+    def restart_python_exporter(self) -> None:
+        # FIXME: implement
+        return
 
     @override
     def read(self, path: str) -> list[str]:
