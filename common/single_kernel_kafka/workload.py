@@ -471,8 +471,7 @@ class WorkloadK8s(WorkloadBase):
 
     @override
     def restart_python_exporter(self) -> None:
-        # FIXME: implement
-        return
+        self.container.restart(PYTHON_EXPORTER_SERVICE)
 
     @override
     def read(self, path: str) -> list[str]:
@@ -635,6 +634,11 @@ class KafkaWorkloadK8s(WorkloadK8s):
         command = (
             f"{self.paths.binaries_path}/bin/kafka-server-start.sh {self.paths.server_properties}"
         )
+        extra_env = {
+            k: v
+            for k, v in self.read_env(self.root / "etc" / "environment").items()
+            if k in ["OTEL_EXPORTER_OTLP_METRICS_ENDPOINT"]
+        }
 
         layer_config: pebble.LayerDict = {
             "summary": "kafka layer",
@@ -652,8 +656,21 @@ class KafkaWorkloadK8s(WorkloadK8s):
                         # FIXME https://github.com/canonical/kafka-k8s-operator/issues/80
                         "JAVA_HOME": "/usr/lib/jvm/java-21-openjdk-amd64",
                         "LOG_DIR": self.paths.logs_path,
+                    }
+                    | extra_env,
+                },
+                PYTHON_EXPORTER_SERVICE: {
+                    "override": "merge",
+                    "summary": "Python exporter service",
+                    "command": "python3 -c 'import ckp; ckp.main()'",
+                    "startup": "enabled",
+                    "environment": {
+                        "PYTHONPATH": "/opt/python-exporter/lib/python3.12/site-packages/",
+                        "BOOTSTRAP_SERVER": extra_env.get("BOOTSTRAP_SERVER", "localhost:19093"),
+                        "SUBSTRATE": "k8s",
+                        "CONFIG_FILE": self.paths.client_properties,
                     },
-                }
+                },
             },
         }
         return pebble.Layer(layer_config)

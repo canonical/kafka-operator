@@ -31,6 +31,7 @@ from .literals import (
     CONTROLLER,
     CONTROLLER_USER,
     COS_RELATION,
+    CUSTOM_METRICS_OTLP_PORT,
     INTERNAL_TLS_RELATION,
     INTERNAL_USERS,
     KRAFT_NODE_ID_OFFSET,
@@ -107,11 +108,28 @@ class KafkaContext(Object):
 
     @property
     def cos_relation(self) -> Relation | None:
-        """The cos-agent relation."""
-        if self.substrate == "vm":
-            return self.model.get_relation(COS_RELATION)
+        """The OTel-collector charm relation, conditional on substrate."""
+        return self.model.get_relation(COS_RELATION)
 
-        return None
+    @property
+    def otlp_endpoint(self) -> str | None:
+        """Return the OTLP endpoint to push metrics."""
+        if not self.cos_relation:
+            return None
+
+        if self.substrate == "vm":
+            return f"localhost:{CUSTOM_METRICS_OTLP_PORT}"
+
+        if not self.cos_relation.units:
+            return None
+
+        unit = next(iter(self.cos_relation.units))
+        address = self.cos_relation.data[unit].get("ingress-address")
+
+        if not address:
+            return None
+
+        return f"{address}:{CUSTOM_METRICS_OTLP_PORT}"
 
     @property
     def peer_cluster_orchestrator(self) -> PeerCluster:
