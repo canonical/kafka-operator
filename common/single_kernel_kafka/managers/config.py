@@ -22,7 +22,6 @@ from ..core.literals import (
     BALANCER_GOALS_TESTING,
     BROKER,
     CONTROLLER_USER,
-    CUSTOM_METRICS_OTLP_PORT,
     DEFAULT_BALANCER_GOALS,
     HARD_BALANCER_GOALS,
     INTER_BROKER_USER,
@@ -618,7 +617,7 @@ class ConfigManager(CommonConfigManager):
             return []
 
         return [
-            f"OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://localhost:{CUSTOM_METRICS_OTLP_PORT}/v1/metrics"
+            f"OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://{self.state.otlp_endpoint}/v1/metrics"
         ]
 
     @property

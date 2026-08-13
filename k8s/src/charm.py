@@ -31,6 +31,7 @@ from single_kernel_kafka.core.literals import (
     JMX_EXPORTER_PORT,
     LOGS_RULES_DIR,
     METRICS_RULES_DIR,
+    PYTHON_EXPORTER_PORT,
     SUBSTRATE,
     DebugLevel,
     Status,
@@ -110,7 +111,17 @@ class KafkaCharm(KafkaCharmBase):
         self.metrics_endpoint = MetricsEndpointProvider(
             self,
             jobs=[
-                {"static_configs": [{"targets": [f"*:{JMX_EXPORTER_PORT}", f"*:{JMX_CC_PORT}"]}]}
+                {
+                    "static_configs": [
+                        {
+                            "targets": [
+                                f"*:{JMX_EXPORTER_PORT}",
+                                f"*:{JMX_CC_PORT}",
+                                f"*:{PYTHON_EXPORTER_PORT}",
+                            ]
+                        }
+                    ]
+                }
             ],
             alert_rules_path=METRICS_RULES_DIR,
         )

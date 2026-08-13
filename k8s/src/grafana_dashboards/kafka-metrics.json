@@ -4264,6 +4264,104 @@
       "type": "timeseries"
     },
     {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      },
+      "description": "Total consumer offset lag summed across partitions, per consumer group and topic.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Total Lag Across Partitions",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 173
+      },
+      "id": 700,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "7.4.5",
+      "targets": [
+        {
+          "datasource": "${prometheusds}",
+          "editorMode": "code",
+          "expr": "avg by (group, topic) (sum by (group, topic, juju_unit) (kafka_consumer_offset_lag_total{juju_application=~\"$juju_application\",juju_model=~\"$juju_model\",juju_model_uuid=~\"$juju_model_uuid\",juju_unit=~\"$juju_unit\"}))",
+          "format": "time_series",
+          "hide": false,
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Consumer Group Lags",
+      "type": "timeseries"
+    },
+    {
       "collapsed": false,
       "datasource": {
         "uid": "${prometheusds}"
@@ -4272,7 +4370,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 173
+        "y": 183
       },
       "id": 159,
       "panels": [],
@@ -4350,7 +4448,7 @@
         "h": 10,
         "w": 12,
         "x": 0,
-        "y": 174
+        "y": 184
       },
       "id": 93,
       "options": {
@@ -4449,7 +4547,7 @@
         "h": 10,
         "w": 12,
         "x": 12,
-        "y": 174
+        "y": 184
       },
       "id": 95,
       "options": {
@@ -4546,7 +4644,7 @@
         "h": 10,
         "w": 12,
         "x": 0,
-        "y": 184
+        "y": 194
       },
       "id": 108,
       "options": {
@@ -4643,7 +4741,7 @@
         "h": 10,
         "w": 12,
         "x": 12,
-        "y": 184
+        "y": 194
       },
       "id": 97,
       "options": {
