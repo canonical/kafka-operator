@@ -15,7 +15,6 @@ Charmhub generated content:
 
 * [Actions](https://charmhub.io/kafka/actions?channel=4/stable)
 * [Configurations](https://charmhub.io/kafka/configure?channel=4/stable)
-* [Libraries](https://charmhub.io/kafka/libraries/kafka_libs?channel=4/stable)
 
 Charm-specific reference materials:
 
