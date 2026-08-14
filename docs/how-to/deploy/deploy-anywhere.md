@@ -48,7 +48,7 @@ To deploy a Charmed Apache Kafka cluster on a bare environment, it is necessary 
 In the next subsections, we cover these steps separately by referring to
 relevant Juju documentation and providing details on the Charmed Apache Kafka
 specifics for each substrate. If you already have a Juju controller and/or a
-Juju model, you can skip the associated steps.
+Juju model, skip the associated steps.
 
 ## Juju controller setup
 
@@ -80,7 +80,7 @@ juju bootstrap <cloud> <controller>
 ```
 
 Make sure that the controller's back-end cloud is **not** Kubernetes-based.
-The cloud information can be retrieved with `juju list-controllers`.
+Retrieve the cloud information with `juju list-controllers`.
 
 `<cloud>` -- the cloud to deploy the controller to, e.g. `localhost` if using
 a LXD cloud.
@@ -108,13 +108,13 @@ guide.
 
 ## Juju model setup
 
-You can create a new Juju model using:
+Create a new Juju model using:
 
 ```shell
 juju add-model <model>
 ```
 
-Alternatively, you can switch to any existing Juju model:
+Alternatively, switch to any existing Juju model:
 
 ```shell
 juju switch <model-name>
@@ -180,8 +180,8 @@ juju deploy kafka-k8s -n <controller-units> --config roles=controller --channel 
 - `<controller-units>` -- the number of units to deploy for KRaft controllers
 
 ```{note}
-The `--trust` flag is required so the charm can manage the Kubernetes resources
-it needs (e.g. Services, StatefulSets).
+The `--trust` flag grants the charm the permissions it needs to manage
+Kubernetes resources (e.g. Services, StatefulSets).
 ```
 ````
 
