@@ -438,25 +438,28 @@ class BrokerOperator(Object):
             # broker not up yet.
             return
 
-        current_subscriptions = self.client_metrics.current_subscriptions
-        current_metrics = {sub.metric_name for sub in current_subscriptions}
-        metrics_changed = set(self.charm.config.client_metrics_list) != current_metrics
-        interval_changed = any(
-            sub.interval_ms != self.charm.config.client_metrics_interval_ms
-            for sub in current_subscriptions
-        )
-
-        if not any([metrics_changed, interval_changed]):
-            return
-
-        removed = current_metrics - set(self.charm.config.client_metrics_list)
-        for sub in removed:
-            self.client_metrics.remove_subscription(sub)
-
-        for metric in self.charm.config.client_metrics_list:
-            self.client_metrics.add_subscription(
-                metric_name=metric, interval=self.charm.config.client_metrics_interval_ms
+        try:
+            current_subscriptions = self.client_metrics.current_subscriptions
+            current_metrics = {sub.metric_name for sub in current_subscriptions}
+            metrics_changed = set(self.charm.config.client_metrics_list) != current_metrics
+            interval_changed = any(
+                sub.interval_ms != self.charm.config.client_metrics_interval_ms
+                for sub in current_subscriptions
             )
+
+            if not any([metrics_changed, interval_changed]):
+                return
+
+            removed = current_metrics - set(self.charm.config.client_metrics_list)
+            for sub in removed:
+                self.client_metrics.remove_subscription(sub)
+
+            for metric in self.charm.config.client_metrics_list:
+                self.client_metrics.add_subscription(
+                    metric_name=metric, interval=self.charm.config.client_metrics_interval_ms
+                )
+        except (CalledProcessError | ExecError):
+            logger.error("Client metrics configuration update failed, details in logs.")
 
     def setup_internal_tls(self, event: EventBase) -> None:
         """Generates a self-signed certificate if required and writes all necessary TLS configuration for internal TLS."""
