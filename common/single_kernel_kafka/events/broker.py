@@ -458,7 +458,7 @@ class BrokerOperator(Object):
                 self.client_metrics.add_subscription(
                     metric_name=metric, interval=self.charm.config.client_metrics_interval_ms
                 )
-        except (CalledProcessError | ExecError):
+        except CalledProcessError | ExecError:
             logger.error("Client metrics configuration update failed, details in logs.")
 
     def setup_internal_tls(self, event: EventBase) -> None:

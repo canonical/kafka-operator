@@ -24,12 +24,17 @@ from single_kernel_kafka.core.literals import (
     PEER,
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
     PEER_CLUSTER_RELATION,
+    SECURITY_PROTOCOL_PORTS,
     KRaftUnitStatus,
 )
 from single_kernel_kafka.core.models import JSON
 from single_kernel_kafka.lib.v0.client import KafkaClient
 from single_kernel_kafka.managers.auth import Acl, AuthManager
-from tenacity import retry
+from single_kernel_kafka.managers.client_metrics import (
+    ClientMetricsManager,
+    ClientMetricsSubscription,
+)
+from tenacity import Retrying, retry
 from tenacity.retry import retry_if_result
 from tenacity.stop import stop_after_attempt
 from tenacity.wait import wait_fixed
@@ -766,3 +771,31 @@ async def list_truststore_aliases(
         trusted_aliases.append(line.split(",")[0])
 
     return trusted_aliases
+
+
+async def assert_broker_is_running(ops_test: OpsTest, apps: list[str]):
+    """Wait for the broker listeners to come up after a potential restart."""
+    address = await get_address(ops_test=ops_test)
+    for attempt in Retrying(stop=stop_after_attempt(6), wait=wait_fixed(15), reraise=True):
+        with attempt:
+            await ops_test.model.wait_for_idle(apps=apps, idle_period=30, status="active")
+            assert check_socket(
+                address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
+            )
+
+
+def get_client_metrics_subscriptions(ops_test: OpsTest) -> list[ClientMetricsSubscription]:
+    """Return a list of parsed client metrics subscriptions using the `ClientMetricsManager`."""
+    metrics_cmd = (
+        "charmed-kafka.configs "
+        "--bootstrap-server $(hostname -i):19093 "
+        "--command-config $CONF/client.properties "
+        "--describe --entity-type client-metrics"
+    )
+    raw = subprocess.check_output(
+        f"JUJU_MODEL={ops_test.model_full_name} juju ssh {APP_NAME}/leader 'sudo {metrics_cmd}'",
+        shell=True,
+        stderr=subprocess.PIPE,
+        universal_newlines=True,
+    )
+    return ClientMetricsManager._parse_subscriptions(raw)
