@@ -339,6 +339,7 @@ def produce_and_check_logs(
     create_topic: bool = True,
     replication_factor: int = 1,
     num_partitions: int = 5,
+    credentials: tuple[str, str] | None = None,
 ) -> None:
     """Produces 15 messages from HN to chosen Kafka topic.
 
@@ -350,6 +351,8 @@ def produce_and_check_logs(
         create_topic: if the topic needs to be created
         replication_factor: replication factor of the created topic
         num_partitions: number of partitions for the topic
+        credentials: client (username, password) tuple to be used, if not provided,
+          it will be read from relation data.
 
     Raises:
         KeyError: if missing relation data
@@ -360,10 +363,17 @@ def produce_and_check_logs(
         unit_name=provider_unit_name,
         owner=APP_NAME,
     )
+
+    if credentials:
+        username, password = credentials
+    else:
+        username = relation_data["username"]
+        password = relation_data["password"]
+
     client = KafkaClient(
         servers=relation_data["endpoints"].split(","),
-        username=relation_data["username"],
-        password=relation_data["password"],
+        username=username,
+        password=password,
         security_protocol="SASL_PLAINTEXT",
     )
 
@@ -525,17 +535,23 @@ def show_unit(ops_test: OpsTest, unit_name: str) -> Any:
     return yaml.safe_load(result)
 
 
-def get_client_usernames(ops_test: OpsTest, owner: str = APP_NAME) -> set[str]:
+def get_client_credentials(ops_test: OpsTest, owner: str = APP_NAME) -> dict[str, str]:
     app_secret = get_secret_by_label(ops_test, label=f"cluster.{owner}.app", owner=owner)
 
-    usernames = set()
+    credentials = {}
     for key in app_secret.keys():
         if "password" in key:
-            usernames.add(key.split("-")[0])
+            username = key.split("-")[0]
+            credentials[username] = app_secret[key]
         if "relation" in key:
-            usernames.add(key)
+            username = key
+            credentials[username] = app_secret[key]
 
-    return usernames
+    return credentials
+
+
+def get_client_usernames(ops_test: OpsTest, owner: str = APP_NAME) -> set[str]:
+    return set(get_client_credentials(ops_test, owner=owner))
 
 
 def get_provider_data(

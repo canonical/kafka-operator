@@ -22,6 +22,7 @@ from single_kernel_kafka.core.literals import (
     REL_NAME,
     SECURITY_PROTOCOL_PORTS,
 )
+from tenacity import Retrying, stop_after_attempt, wait_fixed
 
 from integration.machine.helpers import APP_NAME, DUMMY_NAME, REL_NAME_ADMIN, SERIES
 from integration.machine.helpers.pytest_operator import (
@@ -29,6 +30,7 @@ from integration.machine.helpers.pytest_operator import (
     count_lines_with,
     deploy_cluster,
     get_address,
+    get_client_credentials,
     get_machine,
     produce_and_check_logs,
     run_client_properties,
@@ -120,8 +122,18 @@ async def test_listeners(ops_test: OpsTest, app_charm, kafka_apps):
         apps=[*kafka_apps, DUMMY_NAME], idle_period=60, status="active"
     )
 
-    # check that client listener is active
-    assert check_socket(address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client)
+    # Opening the client listener is applied via a rolling restart that the
+    # rollingops library processes in a background worker, which Juju idle
+    # detection does not gate on. Retry briefly until the listener settles.
+    for attempt in Retrying(stop=stop_after_attempt(6), wait=wait_fixed(15), reraise=True):
+        with attempt:
+            await ops_test.model.wait_for_idle(
+                apps=[*kafka_apps, DUMMY_NAME], idle_period=30, status="active"
+            )
+            # check that client listener is active
+            assert check_socket(
+                address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
+            )
 
     # remove relation and check that client listener is not active
     await ops_test.model.applications[APP_NAME].remove_relation(
@@ -129,9 +141,14 @@ async def test_listeners(ops_test: OpsTest, app_charm, kafka_apps):
     )
     await ops_test.model.wait_for_idle(apps=kafka_apps, idle_period=60)
 
-    assert not check_socket(
-        address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
-    )
+    # Likewise, tearing down the listener is applied via a background rolling
+    # restart, so retry until it is actually closed.
+    for attempt in Retrying(stop=stop_after_attempt(6), wait=wait_fixed(15), reraise=True):
+        with attempt:
+            await ops_test.model.wait_for_idle(apps=kafka_apps, idle_period=30)
+            assert not check_socket(
+                address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
+            )
 
 
 @pytest.mark.abort_on_fail
@@ -139,21 +156,38 @@ async def test_client_properties_makes_admin_connection(ops_test: OpsTest, kafka
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
     assert ops_test.model.applications[APP_NAME].status == "active"
     assert ops_test.model.applications[DUMMY_NAME].status == "active"
-    await ops_test.model.wait_for_idle(
-        apps=[*kafka_apps, DUMMY_NAME], idle_period=60, status="active"
-    )
+
+    address = await get_address(ops_test=ops_test)
+    for attempt in Retrying(stop=stop_after_attempt(6), wait=wait_fixed(15), reraise=True):
+        with attempt:
+            await ops_test.model.wait_for_idle(
+                apps=[*kafka_apps, DUMMY_NAME], idle_period=30, status="active"
+            )
+            assert check_socket(
+                address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
+            )
+
     result = await run_client_properties(ops_test=ops_test)
     assert result
     logger.debug(f"{result=}")
 
-    acls = 0
-    for line in result.strip().split("\n"):
-        if "SCRAM credential configs for user-principal" in line:
-            acls += 1
-
-    # single mode: operator, replication, relation-# => 3
-    # multi mode: operator, relation-# => 2
-    assert acls == 2 + int(kraft_mode == "single")
+    # At this stage, all internal and client users should have admin privileges,
+    # i.e. they should be able to create topics, produce, and consume.
+    # we explicitly test that:
+    credentials = get_client_credentials(ops_test=ops_test)
+    for username, password in credentials.items():
+        if username == "controller":
+            # controller user is defined on separate listener (9098)
+            continue
+        logger.info(f"Testing {username} has admin privileges:")
+        produce_and_check_logs(
+            ops_test=ops_test,
+            kafka_unit_name=f"{APP_NAME}/0",
+            provider_unit_name=f"{DUMMY_NAME}/0",
+            topic=f"test-admin-{username}",
+            create_topic=True,
+            credentials=(username, password),
+        )
 
     await ops_test.model.applications[APP_NAME].remove_relation(
         f"{APP_NAME}:{REL_NAME}", f"{DUMMY_NAME}:{REL_NAME_ADMIN}"
