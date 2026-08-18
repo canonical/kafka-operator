@@ -70,7 +70,7 @@ See the documentation for how to migrate data between Charmed Apache Kafka clust
 - [DPE-6436](https://warthogs.atlassian.net/browse/DPE-6436) - fix: use `pathops` for proper cleanup of TLS artefacts [#334](https://github.com/canonical/kafka-operator/pull/334)
 - [DPE-7846](https://warthogs.atlassian.net/browse/DPE-7846) - fix: secrets not set issue in `RelationState` update [#387](https://github.com/canonical/kafka-operator/pull/387)
 - [DPE-7987](https://warthogs.atlassian.net/browse/DPE-7987) - fix: race condition in internal TLS setup [#399](https://github.com/canonical/kafka-operator/pull/399)
-- [DPE-4546](https://warthogs.atlassian.net/browse/DPE-4546) - fix: juju remove-unit app/leader breaks TLS [#400](https://github.com/canonical/kafka-operator/pull/400)
+- [DPE-4546](https://warthogs.atlassian.net/browse/DPE-4546) - fix: Juju `remove-unit` app/leader breaks TLS [#400](https://github.com/canonical/kafka-operator/pull/400)
 
 ## Compatibility
 

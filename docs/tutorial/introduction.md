@@ -32,7 +32,7 @@ While this tutorial intends to guide and teach you as you deploy Charmed Apache 
 
 Before we start, make sure your machine meets the following requirements:
 
-- Ubuntu 24.04 (Noble) or later.
+- Ubuntu 24.04 LTS (Noble) or later.
 - `8` GB of RAM.
 - `2` CPU cores.
 - At least `20` GB of available storage.
