@@ -30,6 +30,7 @@ from .literals import (
     CERTIFICATE_TRANSFER_RELATION,
     CONTROLLER,
     CONTROLLER_USER,
+    COS_RELATION,
     INTERNAL_TLS_RELATION,
     INTERNAL_USERS,
     KRAFT_NODE_ID_OFFSET,
@@ -103,6 +104,14 @@ class KafkaContext(Object):
     def peer_cluster_relation(self) -> Relation | None:
         """The `peer-cluster` relation that this charm is requiring."""
         return self.model.get_relation(PEER_CLUSTER_RELATION)
+
+    @property
+    def cos_relation(self) -> Relation | None:
+        """The cos-agent relation."""
+        if self.substrate == "vm":
+            return self.model.get_relation(COS_RELATION)
+
+        return None
 
     @property
     def peer_cluster_orchestrator(self) -> PeerCluster:

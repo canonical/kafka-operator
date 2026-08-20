@@ -22,6 +22,7 @@ from ..core.literals import (
     BALANCER_GOALS_TESTING,
     BROKER,
     CONTROLLER_USER,
+    CUSTOM_METRICS_OTLP_PORT,
     DEFAULT_BALANCER_GOALS,
     HARD_BALANCER_GOALS,
     INTER_BROKER_USER,
@@ -603,6 +604,24 @@ class ConfigManager(CommonConfigManager):
         ]
 
     @property
+    def client_metrics_reporter_properties(self) -> list[str]:
+        """Return the metric reporters class config."""
+        if not self.state.cos_relation:
+            return []
+
+        return ["metric.reporters=com.canonical.kafka.CustomMetricsReporter"]
+
+    @property
+    def client_metrics_otlp_env(self) -> list[str]:
+        """Set the OTLP port for the custom metrics exporter."""
+        if not self.state.cos_relation:
+            return []
+
+        return [
+            f"OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://localhost:{CUSTOM_METRICS_OTLP_PORT}/v1/metrics"
+        ]
+
+    @property
     def external_listeners(self) -> list[Listener]:
         """Return a list of extra listeners."""
         if not self.config.expose_external:
@@ -802,6 +821,7 @@ class ConfigManager(CommonConfigManager):
             + self.controller_properties
             + self.tls_properties
             + self.mtls_properties
+            + self.client_metrics_reporter_properties
         )
 
         if self.state.runs_balancer or BALANCER.value in self.peer_cluster_state.roles:
@@ -840,14 +860,19 @@ class ConfigManager(CommonConfigManager):
 
     def set_environment(self) -> None:
         """Writes the env-vars needed for passing to charmed-kafka service."""
-        updated_env_list = [
-            self.kafka_opts,
-            self.kafka_jmx_opts,
-            self.cc_jmx_opts,
-            self.jvm_performance_opts,
-            self.heap_opts,
-            self.log_level,
-        ] + self.auxiliary_paths
+        updated_env_list = (
+            [
+                self.kafka_opts,
+                self.kafka_jmx_opts,
+                self.cc_jmx_opts,
+                self.jvm_performance_opts,
+                self.heap_opts,
+                self.log_level,
+                f"BOOTSTRAP_SERVER={self.state.bootstrap_server_internal}",
+            ]
+            + self.auxiliary_paths
+            + self.client_metrics_otlp_env
+        )
 
         raw_current_env = self.workload.read("/etc/environment")
         current_env = map_env(raw_current_env)

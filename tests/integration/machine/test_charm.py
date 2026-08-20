@@ -26,11 +26,13 @@ from tenacity import Retrying, stop_after_attempt, wait_fixed
 
 from integration.machine.helpers import APP_NAME, DUMMY_NAME, REL_NAME_ADMIN, SERIES
 from integration.machine.helpers.pytest_operator import (
+    assert_broker_is_running,
     check_socket,
     count_lines_with,
     deploy_cluster,
     get_address,
     get_client_credentials,
+    get_client_metrics_subscriptions,
     get_machine,
     produce_and_check_logs,
     run_client_properties,
@@ -125,15 +127,7 @@ async def test_listeners(ops_test: OpsTest, app_charm, kafka_apps):
     # Opening the client listener is applied via a rolling restart that the
     # rollingops library processes in a background worker, which Juju idle
     # detection does not gate on. Retry briefly until the listener settles.
-    for attempt in Retrying(stop=stop_after_attempt(6), wait=wait_fixed(15), reraise=True):
-        with attempt:
-            await ops_test.model.wait_for_idle(
-                apps=[*kafka_apps, DUMMY_NAME], idle_period=30, status="active"
-            )
-            # check that client listener is active
-            assert check_socket(
-                address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
-            )
+    await assert_broker_is_running(ops_test=ops_test, apps=kafka_apps)
 
     # remove relation and check that client listener is not active
     await ops_test.model.applications[APP_NAME].remove_relation(
@@ -157,15 +151,7 @@ async def test_client_properties_makes_admin_connection(ops_test: OpsTest, kafka
     assert ops_test.model.applications[APP_NAME].status == "active"
     assert ops_test.model.applications[DUMMY_NAME].status == "active"
 
-    address = await get_address(ops_test=ops_test)
-    for attempt in Retrying(stop=stop_after_attempt(6), wait=wait_fixed(15), reraise=True):
-        with attempt:
-            await ops_test.model.wait_for_idle(
-                apps=[*kafka_apps, DUMMY_NAME], idle_period=30, status="active"
-            )
-            assert check_socket(
-                address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
-            )
+    await assert_broker_is_running(ops_test=ops_test, apps=kafka_apps)
 
     result = await run_client_properties(ops_test=ops_test)
     assert result
@@ -202,12 +188,39 @@ async def test_logs_write_to_storage(ops_test: OpsTest, kafka_apps):
         apps=[*kafka_apps, DUMMY_NAME], idle_period=60, status="active"
     )
 
+    await assert_broker_is_running(ops_test=ops_test, apps=kafka_apps)
+
     produce_and_check_logs(
         ops_test=ops_test,
         kafka_unit_name=f"{APP_NAME}/0",
         provider_unit_name=f"{DUMMY_NAME}/0",
         topic="warm-topic",
     )
+
+
+@pytest.mark.abort_on_fail
+async def test_client_metrics(ops_test: OpsTest, kafka_apps):
+    """Test client metrics subscriptions exist and are up-to-date."""
+    subscriptions = get_client_metrics_subscriptions(ops_test)
+    assert len(subscriptions) == 2
+    metrics = {sub.metric_name for sub in subscriptions}
+    for type_ in ("producer", "consumer"):
+        assert f"org.apache.kafka.{type_}." in metrics
+
+    await ops_test.model.applications[APP_NAME].set_config(
+        {"client-metrics-list": "com.canonical.kafka."}
+    )
+    # to prevent instant passing of the wait test.
+    await asyncio.sleep(30)
+
+    await ops_test.model.wait_for_idle(
+        apps=kafka_apps, status="active", timeout=1000, idle_period=30
+    )
+    await assert_broker_is_running(ops_test=ops_test, apps=kafka_apps)
+
+    subscriptions = get_client_metrics_subscriptions(ops_test)
+    metrics = {sub.metric_name for sub in subscriptions}
+    assert metrics == {"com.canonical.kafka."}
 
 
 async def test_rack_awareness_integration(ops_test: OpsTest):
