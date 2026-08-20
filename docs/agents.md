@@ -9,6 +9,37 @@ make clean   # remove build artifacts and virtual environment
 make run     # install dependencies, build, and serve with live reload at http://127.0.0.1:8000
 ```
 
+## Auto-generated reference pages
+
+Three reference pages are generated at build time from charm source files,
+not hand-written:
+
+| Page | Source file | Generator |
+|------|-------------|-----------|
+| `reference/_generated/actions.md` | `machine/actions.yaml` | `docs/_dev/generate_charm_reference.py` |
+| `reference/_generated/configurations.md` | `machine/config.yaml` | `docs/_dev/generate_charm_reference.py` |
+| `reference/_generated/statuses.md` | `common/single_kernel_kafka/core/literals.py` | `docs/_dev/generate_statuses.py` |
+
+The `Status` enum in `literals.py` carries documentation prose
+(`expectations`, `actions`) as fields on each `StatusLevel`. These
+fields are not used at runtime — they exist solely to feed the statuses
+reference page generator, which imports the enum directly. Members
+with no `expectations` and no `actions` are automatically excluded from
+the generated table.
+
+Generated output lives in `docs/reference/_generated/` (gitignored).
+The `make generate` target (also run automatically by `make html`,
+`make run`, and `make pdf`) regenerates all pages.
+
+Both generators use Jinja2 templates from `docs/_dev/templates/`
+(`actions.md.j2`, `configurations.md.j2`, `statuses.md.j2`) to render
+the Markdown output.  Edit the templates to change page layout; edit
+the source files (or `StatusLevel` fields) to change content.
+
+On Read the Docs, the `pre_build` job in `.readthedocs.yaml` runs the
+generators before Sphinx. PR builds are only cancelled when no changes
+affect `docs/`, `.readthedocs.yaml`, or the source files listed above.
+
 ## Stack
 
 - **Sphinx** built and hosted on **Read the Docs**

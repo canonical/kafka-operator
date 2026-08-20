@@ -320,28 +320,81 @@ class KRaftQuorumInfo:
 
 @dataclass
 class StatusLevel:
-    """Status object helper."""
+    """Status object helper.
+
+    The ``expectations`` and ``actions`` fields hold documentation prose
+    for auto-generated pages. They are NOT used by the charm at runtime.
+    A status with empty ``expectations`` and ``actions`` is
+    automatically excluded from the docs table.
+
+    Attributes:
+        status: The ops status object (Active/Blocked/Waiting/Maintenance).
+        log_level: The log level at which the status message is emitted.
+        expectations: What this status means to the operator (docs only).
+        actions: What the operator should do about it (docs only).
+    """
 
     status: StatusBase
     log_level: DebugLevel
+    expectations: str = ""
+    actions: str = ""
 
 
 class Status(Enum):
     """Collection of possible statuses for the charm."""
 
-    ACTIVE = StatusLevel(ActiveStatus(), "DEBUG")
-    NO_PEER_RELATION = StatusLevel(MaintenanceStatus("no peer relation yet"), "DEBUG")
+    ACTIVE = StatusLevel(
+        ActiveStatus(),
+        "DEBUG"
+    )
+    NO_PEER_RELATION = StatusLevel(
+        MaintenanceStatus("no peer relation yet"), "DEBUG"
+    )
     NO_PEER_CLUSTER_RELATION = StatusLevel(
         BlockedStatus("missing required peer-cluster relation"), "DEBUG"
     )
-    SNAP_NOT_INSTALLED = StatusLevel(BlockedStatus(f"unable to install {SNAP_NAME} snap"), "ERROR")
-    SERVICE_NOT_RUNNING = StatusLevel(BlockedStatus("service not running"), "WARNING")
-    NOT_ALL_RELATED = StatusLevel(MaintenanceStatus("not all units related"), "DEBUG")
-    CC_NOT_RUNNING = StatusLevel(BlockedStatus("Cruise Control not running"), "WARNING")
-    MISSING_MODE = StatusLevel(
-        BlockedStatus("application needs to be related with a KRaft controller"), "DEBUG"
+    SNAP_NOT_INSTALLED = StatusLevel(
+        BlockedStatus(f"unable to install {SNAP_NAME} snap"),
+        "ERROR",
+        expectations=(
+            "There are issues with the network connection and/or the snap Store"
+        ),
+        actions=(
+            "Check your internet connection and Snapcraft.io status. Remove the "
+            "application and when everything is OK, deploy the charm again"
+        ),
     )
-    NO_CLUSTER_UUID = StatusLevel(WaitingStatus("waiting for cluster uuid"), "DEBUG")
+    SERVICE_NOT_RUNNING = StatusLevel(
+        BlockedStatus("service not running"),
+        "WARNING",
+        expectations="The charm failed to start the Apache Kafka snap daemon processes",
+        actions="Check the Apache Kafka logs for insights on the issue",
+    )
+    NOT_ALL_RELATED = StatusLevel(
+        MaintenanceStatus("not all units related"), "DEBUG"
+    )
+    CC_NOT_RUNNING = StatusLevel(
+        BlockedStatus("Cruise Control not running"),
+        "WARNING",
+        expectations="The charm failed to start the Cruise Control snap daemon process",
+        actions="Check the Cruise Control logs for insights on the issue",
+    )
+    MISSING_MODE = StatusLevel(
+        BlockedStatus("application needs to be related with a KRaft controller"),
+        "DEBUG",
+        expectations=(
+            "The Apache Kafka brokers do not have information on where the KRaft "
+            "controller to connect to is"
+        ),
+        actions=(
+            "Ensure that there is an active relation between the broker and KRaft "
+            "controllers, or that the broker application has configuration "
+            "`roles=broker,controller`"
+        ),
+    )
+    NO_CLUSTER_UUID = StatusLevel(
+        WaitingStatus("waiting for cluster uuid"), "DEBUG"
+    )
     NO_BOOTSTRAP_CONTROLLER = StatusLevel(
         WaitingStatus("waiting for bootstrap controller"), "DEBUG"
     )
@@ -349,59 +402,178 @@ class Status(Enum):
         WaitingStatus("waiting for controller user credentials"), "DEBUG"
     )
     BROKER_NOT_CONNECTED = StatusLevel(
-        BlockedStatus("unit not connected to the controller"), "ERROR"
+        BlockedStatus("unit not connected to the controller"),
+        "ERROR",
+        expectations=(
+            "The Apache Kafka broker unit is unable to authenticate to the KRaft "
+            "controllers"
+        ),
+        actions=(
+            "May self-resolve after 5-15m. Otherwise, check the Apache Kafka logs "
+            "for insights on the issue"
+        ),
     )
     ADDED_STORAGE = StatusLevel(
         ActiveStatus("manual partition reassignment may be needed to utilize new storage volumes"),
         "WARNING",
+        expectations=(
+            "Existing data is not automatically rebalanced when new storage is "
+            "attached. New storage will be used for newly created topics and/or "
+            "partitions"
+        ),
+        actions=(
+            "Inspect the storage utilisation and based on the need, and rebalance "
+            "data across multiple storages/brokers"
+        ),
     )
     REMOVED_STORAGE = StatusLevel(
         ActiveStatus(
             "manual partition reassignment from replicated brokers recommended due to lost partitions on removed storage volumes"
         ),
         "ERROR",
+        expectations=(
+            "Storage volumes were removed from a broker that still has replicas "
+            "elsewhere. Partitions that lived on the removed storage may be "
+            "under-replicated until a rebalance is run."
+        ),
+        actions=(
+            "Run a partition reassignment / rebalance to restore replication "
+            "factors on the affected partitions."
+        ),
     )
     REMOVED_STORAGE_NO_REPL = StatusLevel(
         ActiveStatus("potential data loss due to storage removal without replication"),
         "ERROR",
+        expectations=(
+            "Some partition/topics are not replicated on multiple storages, "
+            "therefore potentially leading to data loss"
+        ),
+        actions=(
+            "Add new storage, increase replication of topics/partitions and/or "
+            "rebalance data across multiple storages/brokers"
+        ),
     )
     NO_BROKER_CREDS = StatusLevel(
-        WaitingStatus("internal broker credentials not yet added"), "DEBUG"
+        WaitingStatus("internal broker credentials not yet added"),
+        "DEBUG",
+        expectations=(
+            "Intrabroker credentials being created to enable communication and "
+            "syncing among brokers belonging to the Apache Kafka clusters."
+        ),
     )
-    NO_CERT = StatusLevel(WaitingStatus("unit waiting for signed certificates"), "INFO")
-    NO_INTERNAL_TLS = StatusLevel(WaitingStatus("waiting for internal TLS setup"), "INFO")
-    NO_PEER_CLUSTER_CA = StatusLevel(WaitingStatus("waiting for peer-cluster TLS setup"), "INFO")
+    NO_CERT = StatusLevel(
+        WaitingStatus("unit waiting for signed certificates"),
+        "INFO",
+        expectations=(
+            "Unit has requested a CSR request via the certificates relation and "
+            "it is waiting to receive the signed certificate"
+        ),
+    )
+    NO_INTERNAL_TLS = StatusLevel(
+        WaitingStatus("waiting for internal TLS setup"), "INFO"
+    )
+    NO_PEER_CLUSTER_CA = StatusLevel(
+        WaitingStatus("waiting for peer-cluster TLS setup"), "INFO"
+    )
     MTLS_REQUIRES_TLS = StatusLevel(
-        BlockedStatus("can't setup mTLS client without a TLS relation first."), "ERROR"
+        BlockedStatus("can't setup mTLS client without a TLS relation first."),
+        "ERROR",
+        expectations=(
+            "The units do not have the necessary client keystore and truststore "
+            "to trust provided mTLS certificates"
+        ),
+        actions=(
+            "Ensure that there is an active `certificates` relation with a "
+            "`tls-certificates` relation interface provider application"
+        ),
     )
     INVALID_CLIENT_CERTIFICATE = StatusLevel(
-        BlockedStatus("mTLS client's certificate is not a valid leaf certificate."), "ERROR"
+        BlockedStatus("mTLS client's certificate is not a valid leaf certificate."),
+        "ERROR",
+        expectations=(
+            "The certificate provided in a `kafka_client` relation across the "
+            "`mtls-cert` relation data field is not a valid certificate"
+        ),
+        actions=(
+            "Ensure that the client application is sending a valid certificate, "
+            "and not a CA"
+        ),
     )
     SYSCONF_NOT_OPTIMAL = StatusLevel(
         ActiveStatus("machine system settings are not optimal - see logs for info"),
         "WARNING",
+        expectations=(
+            "The broker is running on a machine that has sub-optimal OS settings. "
+            "Although this may not preclude Apache Kafka to work, it may result in "
+            "sub-optimal performances"
+        ),
+        actions=(
+            "Check the Juju debug-log for insights on which settings are "
+            "sub-optimal and may be changed"
+        ),
     )
     SYSCONF_NOT_POSSIBLE = StatusLevel(
         BlockedStatus("sysctl params cannot be set. Is the machine running on a container?"),
         "WARNING",
+        expectations=(
+            "Some of the sysctl settings required by Apache Kafka could not be "
+            "set, therefore affecting Apache Kafka performance and correct "
+            "settings. This can also be due to the charm being deployed on the "
+            "wrong substrate"
+        ),
+        actions=(
+            "Remove the deployment and make sure that the selected charm is "
+            "correct given the Juju cloud substrate"
+        ),
     )
     NOT_IMPLEMENTED = StatusLevel(
-        BlockedStatus("feature not yet implemented"),
-        "WARNING",
+        BlockedStatus("feature not yet implemented"), "WARNING"
     )
-    NO_BALANCER_RELATION = StatusLevel(MaintenanceStatus("no balancer relation yet"), "DEBUG")
-    NO_BROKER_DATA = StatusLevel(MaintenanceStatus("missing broker data"), "DEBUG")
+    NO_BALANCER_RELATION = StatusLevel(
+        MaintenanceStatus("no balancer relation yet"), "DEBUG"
+    )
+    NO_BROKER_DATA = StatusLevel(
+        MaintenanceStatus("missing broker data"),
+        "DEBUG",
+        expectations=(
+            "The KRaft controller or Cruise Control rebalancer does not have "
+            "sufficient Apache Kafka broker data to make a valid connection"
+        ),
+        actions=(
+            "Ensure that KRaft controller and/or Cruise Control rebalancer "
+            "applications are related to a Apache Kafka broker application"
+        ),
+    )
     NOT_ENOUGH_BROKERS = StatusLevel(
-        WaitingStatus(f"waiting for {MIN_REPLICAS} online brokers"), "DEBUG"
+        WaitingStatus(f"waiting for {MIN_REPLICAS} online brokers"),
+        "DEBUG",
+        expectations=(
+            "The Cruise Control rebalancer application is not provided with the "
+            "minimum number of brokers' data - 3"
+        ),
+        actions=(
+            "Ensure that the Apache Kafka broker application has at least 3 units. "
+            "Less than 3 units will result in Cruise Control not functioning"
+        ),
     )
     WAITING_FOR_REBALANCE = StatusLevel(
-        WaitingStatus("awaiting completion of rebalance task"), "DEBUG"
+        WaitingStatus("awaiting completion of rebalance task"),
+        "DEBUG",
+        expectations=(
+            "The Cruise Control rebalancer application is currently running a "
+            "rebalance task, and is busy"
+        ),
     )
     SCALING_WARNING = StatusLevel(
         MaintenanceStatus(
             "Apache Kafka cluster is scaling, it is advised to postpone potentially disruptive actions like refresh."
         ),
         "WARNING",
+        expectations=(
+            "The Apache Kafka cluster is scaling. Potentially disruptive actions "
+            "such as refresh should be postponed until scaling completes."
+        ),
+        actions="Wait for the scaling operation to complete.",
     )
 
 

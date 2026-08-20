@@ -24,6 +24,9 @@ sphinx-youtube-links~=0.1
 
 # Other dependencies
 packaging~=26.1
+pyyaml~=6.0  # Required by docs/_dev/generate_charm_reference.py
+ops>=2.17.0  # Required by common/single_kernel_kafka/core/literals.py
+toml~=0.10  # Required by common/single_kernel_kafka/core/literals.py
 sphinxcontrib-svg2pdfconverter[CairoSVG]~=2.1
 sphinx-last-updated-by-git~=0.3
 sphinx-sitemap~=2.9
