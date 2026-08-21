@@ -1103,6 +1103,23 @@ class KafkaBroker(RelationState):
         return addr
 
     @property
+    def client_address(self) -> str:
+        """The address that client applications should connect to.
+
+        Unlike `internal_address`, this is fully qualified. The short
+        `<unit>.<app>-endpoints` form only resolves through the DNS search path
+        of pods in the same namespace, so a client in any other namespace can
+        resolve neither the bootstrap servers nor the advertised listeners
+        returned to it in cluster metadata.
+        """
+        if self.substrate != "k8s":
+            return self.internal_address
+
+        # Taken from this pod's own FQDN since the domain is configurable.
+        domain = socket.getfqdn().partition(".svc.")[2] or "cluster.local"
+        return f"{self.internal_address}.{self.k8s.namespace}.svc.{domain}"
+
+    @property
     def peer_ip_address(self) -> str:
         """The IP address of the unit on the peer relation."""
         return self.relation_data.get("ip", "")
@@ -1121,7 +1138,7 @@ class KafkaBroker(RelationState):
             return ""
 
         if self.substrate == "k8s":
-            return self.internal_address
+            return self.client_address
 
         return self.relation_data.get(f"ip-{relation.id}", "")
 
