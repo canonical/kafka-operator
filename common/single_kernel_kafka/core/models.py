@@ -1115,9 +1115,19 @@ class KafkaBroker(RelationState):
         if self.substrate != "k8s":
             return self.internal_address
 
-        # Taken from this pod's own FQDN since the domain is configurable.
-        domain = socket.getfqdn().partition(".svc.")[2] or "cluster.local"
-        return f"{self.internal_address}.{self.k8s.namespace}.svc.{domain}"
+        return self.k8s.build_fqdn(self.internal_address, cluster_domain=self.cluster_domain)
+
+    @property
+    def cluster_domain(self) -> str:
+        """The DNS domain of the K8s cluster the unit runs on."""
+        return self.relation_data.get("cluster-domain", "")
+
+    def update_cluster_domain(self) -> None:
+        """Caches the K8s cluster domain on the unit databag."""
+        if self.substrate != "k8s":
+            return
+
+        self.update({"cluster-domain": self.k8s.cluster_domain})
 
     @property
     def peer_ip_address(self) -> str:

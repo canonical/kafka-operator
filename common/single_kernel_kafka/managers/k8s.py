@@ -7,6 +7,7 @@
 import json
 import logging
 import math
+import socket
 import time
 from functools import cache
 
@@ -24,6 +25,8 @@ logging.getLogger("httpx").setLevel(logging.CRITICAL)
 logging.getLogger("httpcore").setLevel(logging.CRITICAL)
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_CLUSTER_DOMAIN = "cluster.local"
 
 
 class K8sManager:
@@ -66,6 +69,24 @@ class K8sManager:
             field_manager=self.pod_name,
             namespace=self.namespace,
         )
+
+    @property
+    def cluster_domain(self) -> str:
+        """The DNS domain of the K8s cluster, e.g `cluster.local`.
+
+        Taken from this Pod's own FQDN, as the domain is cluster-configurable.
+        """
+        return socket.getfqdn().partition(".svc.")[2] or DEFAULT_CLUSTER_DOMAIN
+
+    def build_fqdn(self, hostname: str, cluster_domain: str = "") -> str:
+        """Builds the fully-qualified DNS name of a Service-backed hostname.
+
+        Args:
+            hostname: the namespace-relative name, e.g `kafka-k8s-0.kafka-k8s-endpoints`
+            cluster_domain: the cluster domain to use, if already known.
+                Defaults to resolving it, which costs a DNS lookup.
+        """
+        return f"{hostname}.{self.namespace}.svc.{cluster_domain or self.cluster_domain}"
 
     @staticmethod
     def get_ttl_hash(seconds=60 * 2) -> int:
