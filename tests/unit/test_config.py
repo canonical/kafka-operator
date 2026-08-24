@@ -24,6 +24,7 @@ from common.single_kernel_kafka.core.literals import (
     REL_NAME,
     TLS_RELATION,
 )
+from common.single_kernel_kafka.managers.k8s import DEFAULT_CLUSTER_DOMAIN
 from ops import CharmMeta
 from ops.testing import Container, Context, Model, PeerRelation, Relation, Secret, State, Storage
 from tests.unit.helpers import ACTIONS, CONFIG, METADATA, MODEL_NAME, SUBSTRATE, KafkaCharm
@@ -552,7 +553,7 @@ def test_client_addresses_are_fully_qualified(ctx: Context, base_state: State) -
     """Client-facing addresses must resolve from outside the charm's namespace."""
     # Given
     client_rel = Relation(REL_NAME)
-    cluster_peer = PeerRelation(PEER, PEER)
+    cluster_peer = PeerRelation(PEER, PEER, local_unit_data={"cluster-domain": "k8s.example"})
     state_in = dataclasses.replace(base_state, relations=[cluster_peer, client_rel])
 
     # When
@@ -562,11 +563,17 @@ def test_client_addresses_are_fully_qualified(ctx: Context, base_state: State) -
         # Then
         assert (
             charm.state.bootstrap_server_client(client_rel)
-            == f"kafka-k8s-0.kafka-k8s-endpoints.{MODEL_NAME}.svc.cluster.local:9092"
-        )
+            == f"kafka-k8s-0.kafka-k8s-endpoints.{MODEL_NAME}.svc.k8s.example:9092"
+        ), "the cached cluster domain is used, rather than being resolved on every hook"
         assert (
             charm.state.unit_broker.internal_address == "kafka-k8s-0.kafka-k8s-endpoints"
         ), "inter-broker traffic never leaves the namespace, so it keeps the short name"
+
+        # When
+        charm.state.unit_broker.update_cluster_domain()
+
+        # Then
+        assert charm.state.unit_broker.cluster_domain == DEFAULT_CLUSTER_DOMAIN
 
 
 def test_default_replication_properties_less_than_three(ctx: Context, base_state: State) -> None:
