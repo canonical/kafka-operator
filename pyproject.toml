@@ -56,6 +56,8 @@ pytest = ">=7.2"
 coverage = { extras = ["toml"], version = ">7.0" }
 pytest-mock = "^3.11.1"
 ops = { version = ">=2.17.0", extras = ["testing"] }
+# charm libs under */lib are imported by the unit tests
+cosl = ">=1.9.1"
 
 [tool.poetry.group.integration]
 optional = true

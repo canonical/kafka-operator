@@ -15,6 +15,8 @@ single_kernel_kafka = { git = "https://github.com/canonical/kafka-operator", bra
 ops = ">=2.0.0"
 poetry-core = "*"
 pydantic = "^2.11"
+# prometheus_k8s/v0/prometheus_scrape.py, grafana_k8s/v0/grafana_dashboard.py, loki_k8s/v1/loki_push_api.py
+cosl = ">=1.9.1"
 # tls_certificates_interface/v3/tls_certificates.py
 cryptography = ">=42.0.5"
 # hydra/v0/oauth.py
