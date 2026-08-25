@@ -12,6 +12,7 @@ from common.single_kernel_kafka.core.connect_models import PeerWorkersContext
 from common.single_kernel_kafka.core.literals import ConnectStatus as Status
 from ops.testing import Context, PeerRelation, Relation, State
 
+from ..helpers import CLUSTER_DOMAIN
 from .helpers import KAFKA_CLIENT_REL, PEER_REL, SUBSTRATE, SUBSTRATE_CLS, ConnectCharm
 
 logger = logging.getLogger(__name__)
@@ -45,6 +46,20 @@ def test_ready_to_start_maintenance_no_kafka_client_relation(
 
     # Then
     assert state_out.unit_status == Status.MISSING_KAFKA.value.status
+
+
+@pytest.mark.skipif(SUBSTRATE == "vm", reason="cluster-domain only set on Kubernetes")
+def test_start_caches_cluster_domain(ctx: Context, base_state: State) -> None:
+    """Checks the K8s cluster-domain is cached to the unit databag on start."""
+    # Given
+    state_in = base_state
+
+    # When
+    state_out = ctx.run(ctx.on.start(), state_in)
+
+    # Then
+    peer_rel = state_out.get_relations(PEER_REL)[0]
+    assert peer_rel.local_unit_data.get("cluster-domain") == CLUSTER_DOMAIN
 
 
 def test_kafka_client_relation_created_waits_for_credentials(

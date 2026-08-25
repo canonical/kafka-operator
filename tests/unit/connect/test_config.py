@@ -2,6 +2,7 @@
 # Copyright 2025 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import dataclasses
 import logging
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,11 +12,12 @@ import pytest
 import yaml
 from common.single_kernel_kafka.core.structured_config import ConnectCharmConfig as CharmConfig
 from common.single_kernel_kafka.managers.connect_config import DEFAULT_CONFIG_OPTIONS
-from ops.testing import Context, State
+from ops.testing import Context, PeerRelation, State
 from pydantic import ValidationError
 from typing_extensions import override
 
-from .helpers import SUBSTRATE_CLS, ConnectCharm
+from ..helpers import CLUSTER_DOMAIN, MODEL_NAME
+from .helpers import PEER_REL, SUBSTRATE, SUBSTRATE_CLS, ConnectCharm
 
 logger = logging.getLogger(__name__)
 
@@ -117,3 +119,27 @@ def test_empty_string_validator() -> None:
 
     with pytest.raises(ValidationError):
         _ = CharmConfig(**defaults | {"key_converter": ""})
+
+
+@pytest.mark.skipif(SUBSTRATE == "vm", reason="Kubernetes DNS resolution only")
+def test_rest_endpoints_are_fully_qualified(ctx: Context, base_state: State) -> None:
+    """Client-facing REST endpoints must resolve from outside the charm's namespace."""
+    # Given
+    peer_rel = PeerRelation(
+        PEER_REL, PEER_REL, local_unit_data={"cluster-domain": CLUSTER_DOMAIN}
+    )
+    state_in = dataclasses.replace(base_state, relations=[peer_rel])
+
+    # When
+    with ctx(ctx.on.config_changed(), state_in) as manager:
+        charm = cast(ConnectCharm, manager.charm)
+
+        # Then
+        assert charm.context.rest_endpoints == (
+            f"http://kafka-connect-k8s-0.kafka-connect-k8s-endpoints."
+            f"{MODEL_NAME}.svc.{CLUSTER_DOMAIN}:8083"
+        ), "the cached cluster domain is used, rather than being resolved on every hook"
+        assert (
+            charm.context.worker_unit.internal_address
+            == "kafka-connect-k8s-0.kafka-connect-k8s-endpoints"
+        ), "inter-worker REST traffic never leaves the namespace, so it keeps the short name"

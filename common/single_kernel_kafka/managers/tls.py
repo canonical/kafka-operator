@@ -142,7 +142,7 @@ class ConnectSansBuilder(SansBuilderBase):
                     [
                         self.unit_context.internal_address.split(".")[0],
                         self.unit_context.internal_address,
-                        socket.getfqdn(),
+                        self.unit_context.client_address,
                     ]
                 ),
             }

@@ -23,6 +23,7 @@ from ops import Object
 from ops.model import Application, Relation, RelationDataAccessError, Unit
 from typing_extensions import override
 
+from ..managers.k8s import K8sManager
 from .literals import SUBSTRATE, ConnectLiterals, ConnectStatus, Substrates, TLSScope
 from .models import TLSContextBase, TLSManagerSettings
 from .structured_config import ConnectCharmConfig
@@ -345,11 +346,23 @@ class WorkerUnitContext(RelationContext):
         super().__init__(relation, data_interface, component)
         self.data_interface = data_interface
         self.unit = component
+        self.k8s = K8sManager(
+            pod_name=self.pod_name,
+            namespace=self.unit._backend.model_name,
+        )
 
     @property
     def unit_id(self) -> int:
         """The id of the unit from the unit name."""
         return int(self.unit.name.split("/")[1])
+
+    @property
+    def pod_name(self) -> str:
+        """The name of the K8s Pod for the unit.
+
+        K8s-only.
+        """
+        return self.unit.name.replace("/", "-")
 
     @property
     def tls(self) -> TLSContext:
@@ -371,6 +384,35 @@ class WorkerUnitContext(RelationContext):
         return addr
 
     @property
+    def client_address(self) -> str:
+        """The address that client applications should connect to.
+
+        Unlike `internal_address`, this is fully qualified. The short
+        `<unit>.<app>-endpoints` form only resolves through the DNS search path
+        of pods in the same namespace, so a client in any other namespace can
+        resolve neither the REST endpoints advertised to it over the relation.
+        """
+        if not self.substrate == "k8s":
+            return self.internal_address
+
+        return self.k8s.build_fqdn(self.internal_address, cluster_domain=self.cluster_domain)
+
+    @property
+    def cluster_domain(self) -> str:
+        """The DNS domain of the K8s cluster the unit runs on."""
+        return self.relation_data.get("cluster-domain", "")
+
+    def update_cluster_domain(self) -> None:
+        """Caches the K8s cluster domain on the unit databag.
+
+        Only runs once on assumption cluster-domain is static.
+        """
+        if not self.substrate == "k8s":
+            return
+
+        self.update({"cluster-domain": self.k8s.cluster_domain})
+
+    @property
     def should_restart(self) -> bool:
         """Determines whether a restart of service is required or not."""
         if not self.relation:
@@ -389,15 +431,22 @@ class WorkerUnitContext(RelationContext):
         return ConnectStatus.ACTIVE
 
     def get_rest_endpoint(
-        self, protocol: str = "http", port: int = ConnectLiterals.DEFAULT_API_PORT
+        self,
+        protocol: str = "http",
+        port: int = ConnectLiterals.DEFAULT_API_PORT,
+        fully_qualified: bool = False,
     ) -> str:
         """Returns the REST endpoint of the unit.
 
         Args:
             protocol (str, optional): REST protocol. Defaults to "http".
             port (int, optional): REST port. Defaults to DEFAULT_API_PORT.
+            fully_qualified (bool, optional): whether to use the fully-qualified
+                `client_address` (resolvable across namespaces) rather than the
+                namespace-relative `internal_address`. Defaults to False.
         """
-        return f"{protocol}://{self.internal_address}:{port}"
+        host = self.client_address if fully_qualified else self.internal_address
+        return f"{protocol}://{host}:{port}"
 
 
 class PeerWorkersContext(RelationContext):
@@ -524,7 +573,9 @@ class ConnectContext(WithStatus, Object):
         """Returns all Kafka Connect REST endpoints available on the cluster."""
         return ",".join(
             [
-                unit_context.get_rest_endpoint(protocol=self.rest_protocol, port=self.rest_port)
+                unit_context.get_rest_endpoint(
+                    protocol=self.rest_protocol, port=self.rest_port, fully_qualified=True
+                )
                 for unit_context in self.units
             ]
         )
