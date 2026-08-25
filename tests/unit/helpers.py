@@ -20,7 +20,8 @@ SUBSTRATE_CLS = "Machine" if SUBSTRATE == "vm" else "K8s"
 CONFIG = yaml.safe_load(Path(f"./{SUBSTRATE_CLS.lower()}/config.yaml").read_text())
 ACTIONS = yaml.safe_load(Path(f"./{SUBSTRATE_CLS.lower()}/actions.yaml").read_text())
 METADATA = yaml.safe_load(Path(f"./{SUBSTRATE_CLS.lower()}/metadata.yaml").read_text())
-MODEL_NAME = "kafka-model"
+MODEL_NAME = "middlearth"
+CLUSTER_DOMAIN = "eriador.shire"
 
 if SUBSTRATE == "vm":
     from machine.src.charm import KafkaCharm

@@ -26,8 +26,6 @@ logging.getLogger("httpcore").setLevel(logging.CRITICAL)
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_CLUSTER_DOMAIN = "cluster.local"
-
 
 class K8sManager:
     """Manager for handling Kafka Kubernetes resources for a single Kafka pod."""
@@ -76,7 +74,22 @@ class K8sManager:
 
         Taken from this Pod's own FQDN, as the domain is cluster-configurable.
         """
-        return socket.getfqdn().partition(".svc.")[2] or DEFAULT_CLUSTER_DOMAIN
+        try:
+            addrinfo_domain = socket.getaddrinfo(
+                    self.pod_name,
+                    None,
+                    family=socket.AF_UNSPEC,
+                    flags=socket.AI_CANONNAME,
+                    type=socket.SOCK_STREAM,
+                )
+            addrinfo_domain = addrinfo_domain[0][3].split(".svc.")[1]
+        except socket.gaierror:
+            logger.exception("Unable to getaddrinfo, possibly coredns not up")
+            addrinfo_domain = ""  # fallback to getfqdn
+
+        getfqdn_domain = socket.getfqdn().split(".svc.")[1]
+
+        return addrinfo_domain or getfqdn_domain
 
     def build_fqdn(self, hostname: str, cluster_domain: str = "") -> str:
         """Builds the fully-qualified DNS name of a Service-backed hostname.

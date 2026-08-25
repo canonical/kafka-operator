@@ -2,6 +2,7 @@
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 import json
+import socket
 import time
 from collections import defaultdict
 from unittest.mock import Mock, PropertyMock, patch
@@ -17,7 +18,13 @@ from common.single_kernel_kafka.core.literals import (
 from common.single_kernel_kafka.managers.balancer import CruiseControlClient
 from ops import JujuVersion
 from ops.testing import Relation
-from tests.unit.helpers import SUBSTRATE_CLS, TLSArtifacts, generate_tls_artifacts
+from tests.unit.helpers import (
+    CLUSTER_DOMAIN,
+    MODEL_NAME,
+    SUBSTRATE_CLS,
+    TLSArtifacts,
+    generate_tls_artifacts,
+)
 
 
 @pytest.fixture(scope="module")
@@ -288,4 +295,33 @@ def mock_refresh():
         ),
         patch("charm_refresh._main._RefreshVersions", Mock(return_value=versions_mock)),
     ):
+        yield
+
+
+@pytest.fixture(autouse=True)
+def patched_addrinfo():
+    with patch(
+        "socket.getaddrinfo",
+        return_value=[
+            (
+                socket.AF_INET6,
+                socket.SOCK_STREAM,
+                6,
+                f"kafka-k8s-0.kafka-k8s-endpoints.{MODEL_NAME}.svc.{CLUSTER_DOMAIN}",
+                ("10.1.90.155", 0),
+            )
+        ],
+    ) as addrinfo:
+        yield addrinfo
+
+
+@pytest.fixture(autouse=True)
+def patched_getfqdn():
+    if SUBSTRATE == "k8s":
+        with patch(
+            "socket.getfqdn",
+            return_value=f"kafka-k8s-0.kafka-k8s-endpoints.{MODEL_NAME}.svc.{CLUSTER_DOMAIN}",
+        ) as getfqdn:
+            yield getfqdn
+    else:
         yield

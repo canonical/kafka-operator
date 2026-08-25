@@ -1112,7 +1112,7 @@ class KafkaBroker(RelationState):
         resolve neither the bootstrap servers nor the advertised listeners
         returned to it in cluster metadata.
         """
-        if self.substrate != "k8s":
+        if not self.substrate == "k8s":
             return self.internal_address
 
         return self.k8s.build_fqdn(self.internal_address, cluster_domain=self.cluster_domain)
@@ -1123,8 +1123,11 @@ class KafkaBroker(RelationState):
         return self.relation_data.get("cluster-domain", "")
 
     def update_cluster_domain(self) -> None:
-        """Caches the K8s cluster domain on the unit databag."""
-        if self.substrate != "k8s":
+        """Caches the K8s cluster domain on the unit databag.
+
+        Only runs once on assumption cluster-domain is static.
+        """
+        if not self.substrate == "k8s":
             return
 
         self.update({"cluster-domain": self.k8s.cluster_domain})
