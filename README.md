@@ -253,7 +253,7 @@ of the COS relations. The [offers-overlay](https://github.com/canonical/cos-lite
 can be used, and this step is shown in the COS tutorial.
 
 Next, deploy [Opentelemetry collector](https://charmhub.io/opentelemetry-collector) and follow the
-[tutorial](https://discourse.charmhub.io/t/using-the-grafana-agent-machine-charm/8896)
+[how-to guide](https://documentation.ubuntu.com/observability/latest/how-to/integrate/instrument-machine-charms/)
 to relate it to the COS Lite offers.
 
 Now, integrate Apache Kafka with the Opentelemetry collector:

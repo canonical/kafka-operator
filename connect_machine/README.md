@@ -166,14 +166,14 @@ Since the Charmed Kafka Connect Operator is deployed on a machine environment, i
 for the COS relations. The [offers-overlay](https://github.com/canonical/cos-lite-bundle/blob/main/overlays/offers-overlay.yaml)
 can be used for that, see the COS deployment tutorial link above for guidance.
 
-Next, deploy [grafana-agent](https://charmhub.io/grafana-agent) and follow the
-[tutorial](https://discourse.charmhub.io/t/using-the-grafana-agent-machine-charm/8896)
+Next, deploy [Opentelemetry collector](https://charmhub.io/opentelemetry-collector) and follow the
+[how-to guide](https://documentation.ubuntu.com/observability/latest/how-to/integrate/instrument-machine-charms/)
 to relate it to the COS Lite offers.
 
-Now, integrate `kafka-connect` and `grafana-agent` charms:
+Now, integrate `kafka-connect` and `opentelemetry-collector` charms:
 
 ```bash
-juju integrate kafka-connect grafana-agent
+juju integrate kafka-connect opentelemetry-collector
 ```
 
 After this is complete, Grafana will have the `Kafka Connect Cluster` dashboard available.

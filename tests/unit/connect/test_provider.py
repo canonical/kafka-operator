@@ -90,7 +90,7 @@ def test_provider_on_relation_changed(
         CLIENT_REL,
         id=relation_id,
         remote_app_data={"plugin-url": "http://10.10.10.10:8080"},
-        remote_units_data={0: initial_data | {"secret-user": secret.id} if secrets else {}},
+        remote_units_data={0: (initial_data | {"secret-user": secret.id}) if secrets else {}},
     )
     peer_rel = PeerRelation(PEER_REL, PEER_REL)
     connect_manager_mock = MagicMock()
