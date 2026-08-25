@@ -131,6 +131,7 @@ class KafkaCharm(KafkaCharmBase):
             alert_rules_path=LOGS_RULES_DIR,
             relation_name="logging",
         )
+        self.loki_endpoints = self.loki_push.loki_endpoints
 
     def _on_roles_changed(self, _):
         """Handler for `config_changed` events.
