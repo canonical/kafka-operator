@@ -9,6 +9,7 @@ import logging
 import time
 from subprocess import CalledProcessError
 from typing import TYPE_CHECKING
+from urllib.parse import urlparse
 
 from charms.operator_libs_linux.v2.snap import SnapError
 from ops import (
@@ -30,6 +31,7 @@ from ..core.literals import (
     BROKER,
     CONTAINER,
     CONTROLLER,
+    CUSTOM_METRICS_OTLP_PORT,
     GROUP,
     PEER,
     PROFILE_TESTING,
@@ -267,6 +269,9 @@ class BrokerOperator(Object):
         # Update IP addresses based on current network bindings.
         self.update_ip_addresses()
 
+        # Update OTLP service name if needed
+        self.update_otlp_service()
+
         # The order is important here, first update the credentials cache,
         # then the client relation data.
         self.update_credentials_cache()
@@ -458,7 +463,7 @@ class BrokerOperator(Object):
                 self.client_metrics.add_subscription(
                     metric_name=metric, interval=self.charm.config.client_metrics_interval_ms
                 )
-        except CalledProcessError | ExecError:
+        except (CalledProcessError, ExecError):
             logger.error("Client metrics configuration update failed, details in logs.")
 
     def setup_internal_tls(self, event: EventBase) -> None:
@@ -628,3 +633,31 @@ class BrokerOperator(Object):
         for broker_id in removed_brokers:
             if broker_id not in self.charm.state.active_brokers_on_relation:
                 self.charm.state.cluster.remove_broker(broker_id)
+
+    def update_otlp_service(self) -> None:
+        """Update the state of OTLP service name (K8s-only)."""
+        if not all(
+            [
+                self.charm.substrate == "k8s",
+                self.charm.state.cos_relation,
+                self.charm.unit.is_leader(),
+            ]
+        ):
+            return
+
+        if self.charm.state.otlp_dns_name and self.workload.ping(
+            f"{self.charm.state.otlp_dns_name}:{CUSTOM_METRICS_OTLP_PORT}"
+        ):
+            # Service is defined and reachable, nothing left to do.
+            return
+
+        if not (loki_endpoints := self.charm.loki_endpoints):
+            return
+
+        if not (loki_url := loki_endpoints[0].get("url")):
+            return
+
+        parsed = urlparse(loki_url)
+        # ParseResult(scheme='http', netloc='ot-0.ot-endpoints.kafka.svc.cluster.local:3500',
+        #   path='/loki/api/v1/push', params='', query='', fragment='')
+        self.charm.state.otlp_dns_name = parsed.netloc.split(":")[0]

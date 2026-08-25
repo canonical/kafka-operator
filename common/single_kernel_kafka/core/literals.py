@@ -47,7 +47,7 @@ else:
 PEER = "cluster"
 REL_NAME = "kafka-client"
 OAUTH_REL_NAME = "oauth"
-COS_RELATION = "cos-agent"
+COS_RELATION = "cos-agent" if SUBSTRATE == "vm" else "logging"
 
 TLS_RELATION = "certificates"
 INTERNAL_TLS_RELATION = "peer-certificates"

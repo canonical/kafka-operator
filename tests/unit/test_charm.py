@@ -298,6 +298,17 @@ def test_start_sets_pebble_layer(
                         "LOG_DIR": charm.workload.paths.logs_path,
                     },
                 },
+                "python-exporter": {
+                    "command": "python3 -c 'import ckp; ckp.main()'",
+                    "environment": {
+                        "CONFIG_FILE": charm.workload.paths.client_properties,
+                        "PYTHONPATH": "/opt/python-exporter/lib/python3.12/site-packages/",
+                        "SUBSTRATE": "k8s",
+                    },
+                    "override": "merge",
+                    "startup": "enabled",
+                    "summary": "Python exporter service",
+                },
             },
             "summary": "kafka layer",
         }

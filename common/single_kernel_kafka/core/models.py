@@ -126,6 +126,7 @@ class KafkaCharmBase(TypedCharmBase[CharmConfig], abc.ABC):
     substrate: Substrates
     tls: "TLSHandler"
     workload: "KafkaWorkloadMachine | KafkaWorkloadK8s"
+    loki_endpoints: list[dict[str, str]] = []  # [{'url': '...'}]
 
     @abc.abstractmethod
     def _set_status(self, key: Status) -> None: ...
