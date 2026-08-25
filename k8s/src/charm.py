@@ -23,7 +23,7 @@ from ops import (
 )
 from ops.log import JujuLogHandler
 from ops.main import main
-from ops.tracing import Tracing
+from ops_tracing import Tracing
 from single_kernel_kafka.core.cluster import KafkaContext
 from single_kernel_kafka.core.literals import (
     CHARM_KEY,
