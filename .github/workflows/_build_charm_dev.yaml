@@ -102,7 +102,6 @@ jobs:
           # sudo snap install charmcraft --classic --channel ${{ inputs.charmcraft-snap-channel }}
           sudo snap install --classic astral-uv
           git clone https://github.com/canonical/charmcraft \
-            --branch work/CHARMCRAFT-710-prototype \
             ~/charmcraft
 
           pushd ~/charmcraft && uv run charmcraft --version && popd
