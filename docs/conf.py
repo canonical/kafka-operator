@@ -2,6 +2,7 @@
 
 import datetime
 import os
+import pathlib
 import textwrap
 
 import yaml
@@ -37,8 +38,18 @@ copyright = f"{datetime.date.today().year}"
 # To disable the title, set it to an empty string.
 html_title = project + " documentation"
 
+# Project slug; see https://meta.discourse.org/t/what-is-category-slug/87897
+slug = "data/kafka/docs"
+
+# Read the Docs version segment ('4', 'latest', ...); 'local' for local builds
+version_slug = os.environ.get("READTHEDOCS_VERSION", "local")
+
 # Documentation website URL
 ogp_site_url = "https://canonical.com/data/kafka/docs/"
+
+# NOTE: 'ogp_site_url' is intentionally version-less so social previews point at
+#       the default version. 'html_baseurl' (below) is version-qualified because
+#       sitemap.xml and llms.txt links must resolve to real pages.
 
 # Preview name of the documentation website
 ogp_site_name = project
@@ -81,6 +92,9 @@ html_context = {
     "github_issues": "enabled",
     # Passes the top-level 'author' value to the theme
     "author": author,
+    # Absolute URL of llms.txt; used by '_templates/header.html' to render the
+    # agent-facing discovery directive on every page
+    "llms_txt_url": f"https://canonical.com/{slug}/{version_slug}/llms.txt",
     # Documentation license information
     "license": {
         "name": "CC-BY-SA",
@@ -98,15 +112,22 @@ html_theme_options = {
     "source_edit_link": "https://github.com/canonical/kafka-operator",
 }
 
-# Project slug; see https://meta.discourse.org/t/what-is-category-slug/87897
-slug = "data/kafka/docs"
-
 #######################
 # Sitemap configuration: https://sphinx-sitemap.readthedocs.io/
 #######################
 
-# Base URL of RTD hosted project
-html_baseurl = "https://canonical.com/data/kafka/docs/"
+# Base URL of RTD hosted project.
+#
+# NOTE: The version segment (e.g. '4', 'latest') MUST be included, because the
+#       published docs are served under 'https://canonical.com/<slug>/<version>/'.
+#       Without it, every URL emitted into sitemap.xml and llms.txt points at a
+#       non-existent path and returns 404.
+#
+# NOTE: The trailing slash is REQUIRED. sphinx-sitemap concatenates
+#       'html_baseurl' with each page's relative link (see 'sitemap_url_scheme'
+#       below); without the trailing slash the version segment merges into the
+#       next path segment (e.g. '.../docs/4how-to/monitoring/').
+html_baseurl = f"https://canonical.com/{slug}/{version_slug}/"
 
 # sphinx-sitemap uses html_baseurl to generate the full URL for each page
 sitemap_url_scheme = "{link}"
@@ -244,6 +265,7 @@ exclude_patterns = [
 # Adds custom CSS files, located under 'html_static_path'
 html_css_files = [
     "cookie-banner.css",
+    "agent-directive.css",
 ]
 
 # Adds custom JavaScript files, located under 'html_static_path'
@@ -294,3 +316,54 @@ if "discourse_prefix" not in html_context and "discourse" in html_context:
 if os.path.exists("./reuse/substitutions.yaml"):
     with open("./reuse/substitutions.yaml", "r") as fd:
         myst_substitutions = yaml.safe_load(fd.read())
+
+
+#############################################
+# Agent-facing directive in Markdown output #
+#############################################
+
+# The Agent-Friendly Docs spec (https://agentdocsspec.com/spec/) requires an
+# llms.txt pointer in *both* the HTML and the Markdown representation of every
+# page.  The HTML side is handled by '_templates/header.html'; this hook handles
+# the Markdown side.
+#
+# The directive is injected as a post-processing step on the finished build
+# output rather than via a 'source-read' hook, because sphinx-llm derives each
+# llms.txt entry's title and fallback description from the *first* heading and
+# paragraph of the generated Markdown.  Prepending a blockquote to the sources
+# would be picked up as the page description for any page without an explicit
+# 'html_meta' description.
+
+_AGENT_DIRECTIVE_MARKER = "<!-- agent-directive -->"
+
+_AGENT_DIRECTIVE = textwrap.dedent(f"""\
+    {_AGENT_DIRECTIVE_MARKER}
+    > For the complete documentation index, see
+    > [llms.txt](https://canonical.com/{slug}/{version_slug}/llms.txt).
+    > Every page is also available as Markdown: append `index.html.md` to any
+    > page URL, or request it with the `Accept: text/markdown` header.
+    """)
+
+
+def _inject_agent_directive(app, exception):
+    """Prepend the agent-facing llms.txt directive to each generated .md file."""
+    if exception is not None:
+        return
+    if not getattr(app.config, "llms_txt_enabled", True):
+        return
+    if app.builder.name not in ("html", "dirhtml"):
+        return
+
+    outdir = pathlib.Path(app.builder.outdir)
+    for md_file in outdir.rglob("*.md"):
+        content = md_file.read_text(encoding="utf-8")
+        if _AGENT_DIRECTIVE_MARKER in content:
+            continue
+        md_file.write_text(f"{_AGENT_DIRECTIVE}\n{content}", encoding="utf-8")
+
+
+def setup(app):
+    """Register local Sphinx hooks."""
+    # Priority 900 ensures this runs after sphinx-llm's 'combine_builds'
+    # (priority 101), which is what creates the .md files in the output dir.
+    app.connect("build-finished", _inject_agent_directive, priority=900)
