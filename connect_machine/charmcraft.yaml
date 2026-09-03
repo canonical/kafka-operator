@@ -101,4 +101,8 @@ parts:
     source: .
     prime:
       - LICENSE
-      - refresh_versions.toml
+      - connect_machine/refresh_versions.toml
+    override-prime: |
+      craftctl default
+      mv connect_machine/refresh_versions.toml .
+      rm -rf connect_machine
