@@ -84,8 +84,4 @@ parts:
     source: .
     prime:
       - LICENSE
-      - connect_k8s/refresh_versions.toml
-    override-prime: |
-      craftctl default
-      mv connect_k8s/refresh_versions.toml .
-      rm -rf connect_k8s
+      - refresh_versions.toml
