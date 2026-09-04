@@ -125,9 +125,7 @@ def test_empty_string_validator() -> None:
 def test_rest_endpoints_are_fully_qualified(ctx: Context, base_state: State) -> None:
     """Client-facing REST endpoints must resolve from outside the charm's namespace."""
     # Given
-    peer_rel = PeerRelation(
-        PEER_REL, PEER_REL, local_unit_data={"cluster-domain": CLUSTER_DOMAIN}
-    )
+    peer_rel = PeerRelation(PEER_REL, PEER_REL, local_unit_data={"cluster-domain": CLUSTER_DOMAIN})
     state_in = dataclasses.replace(base_state, relations=[peer_rel])
 
     # When

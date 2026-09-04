@@ -76,12 +76,12 @@ class K8sManager:
         """
         try:
             addrinfo_domain = socket.getaddrinfo(
-                    self.pod_name,
-                    None,
-                    family=socket.AF_UNSPEC,
-                    flags=socket.AI_CANONNAME,
-                    type=socket.SOCK_STREAM,
-                )
+                self.pod_name,
+                None,
+                family=socket.AF_UNSPEC,
+                flags=socket.AI_CANONNAME,
+                type=socket.SOCK_STREAM,
+            )
             addrinfo_domain = addrinfo_domain[0][3].split(".svc.")[1]
         except socket.gaierror:
             logger.exception("Unable to getaddrinfo, possibly coredns not up")

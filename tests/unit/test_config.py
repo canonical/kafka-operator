@@ -151,7 +151,11 @@ def test_listeners_in_server_properties(charm_configuration: dict, base_state: S
     """Checks that listeners are split into INTERNAL, CLIENT and EXTERNAL."""
     # Given
     charm_configuration["options"]["expose-external"]["default"] = "nodeport"
-    cluster_peer = PeerRelation(PEER, PEER, local_unit_data={"private-address": "treebeard", "cluster-domain": CLUSTER_DOMAIN})
+    cluster_peer = PeerRelation(
+        PEER,
+        PEER,
+        local_unit_data={"private-address": "treebeard", "cluster-domain": CLUSTER_DOMAIN},
+    )
     client_relation = Relation(REL_NAME, "app")
     state_in = dataclasses.replace(base_state, relations=[cluster_peer, client_relation])
     ctx = Context(
@@ -318,7 +322,11 @@ def test_extra_listeners_in_server_properties(charm_configuration: dict, base_st
 def test_oauth_client_listeners_in_server_properties(ctx: Context, base_state: State) -> None:
     """Checks that oauth client listeners are properly set when a relating through oauth."""
     # Given
-    cluster_peer = PeerRelation(PEER, PEER, local_unit_data={"private-address": "treebeard", "cluster-domain": CLUSTER_DOMAIN})
+    cluster_peer = PeerRelation(
+        PEER,
+        PEER,
+        local_unit_data={"private-address": "treebeard", "cluster-domain": CLUSTER_DOMAIN},
+    )
     oauth_relation = Relation(
         OAUTH_REL_NAME,
         "hydra",

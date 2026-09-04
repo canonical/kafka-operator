@@ -343,22 +343,15 @@ class StatusLevel:
 class Status(Enum):
     """Collection of possible statuses for the charm."""
 
-    ACTIVE = StatusLevel(
-        ActiveStatus(),
-        "DEBUG"
-    )
-    NO_PEER_RELATION = StatusLevel(
-        MaintenanceStatus("no peer relation yet"), "DEBUG"
-    )
+    ACTIVE = StatusLevel(ActiveStatus(), "DEBUG")
+    NO_PEER_RELATION = StatusLevel(MaintenanceStatus("no peer relation yet"), "DEBUG")
     NO_PEER_CLUSTER_RELATION = StatusLevel(
         BlockedStatus("missing required peer-cluster relation"), "DEBUG"
     )
     SNAP_NOT_INSTALLED = StatusLevel(
         BlockedStatus(f"unable to install {SNAP_NAME} snap"),
         "ERROR",
-        expectations=(
-            "There are issues with the network connection and/or the snap Store"
-        ),
+        expectations=("There are issues with the network connection and/or the snap Store"),
         actions=(
             "Check your internet connection and Snapcraft.io status. Remove the "
             "application and when everything is OK, deploy the charm again"
@@ -370,9 +363,7 @@ class Status(Enum):
         expectations="The charm failed to start the Apache Kafka snap daemon processes",
         actions="Check the Apache Kafka logs for insights on the issue",
     )
-    NOT_ALL_RELATED = StatusLevel(
-        MaintenanceStatus("not all units related"), "DEBUG"
-    )
+    NOT_ALL_RELATED = StatusLevel(MaintenanceStatus("not all units related"), "DEBUG")
     CC_NOT_RUNNING = StatusLevel(
         BlockedStatus("Cruise Control not running"),
         "WARNING",
@@ -392,9 +383,7 @@ class Status(Enum):
             "`roles=broker,controller`"
         ),
     )
-    NO_CLUSTER_UUID = StatusLevel(
-        WaitingStatus("waiting for cluster uuid"), "DEBUG"
-    )
+    NO_CLUSTER_UUID = StatusLevel(WaitingStatus("waiting for cluster uuid"), "DEBUG")
     NO_BOOTSTRAP_CONTROLLER = StatusLevel(
         WaitingStatus("waiting for bootstrap controller"), "DEBUG"
     )
@@ -405,8 +394,7 @@ class Status(Enum):
         BlockedStatus("unit not connected to the controller"),
         "ERROR",
         expectations=(
-            "The Apache Kafka broker unit is unable to authenticate to the KRaft "
-            "controllers"
+            "The Apache Kafka broker unit is unable to authenticate to the KRaft " "controllers"
         ),
         actions=(
             "May self-resolve after 5-15m. Otherwise, check the Apache Kafka logs "
@@ -469,12 +457,8 @@ class Status(Enum):
             "it is waiting to receive the signed certificate"
         ),
     )
-    NO_INTERNAL_TLS = StatusLevel(
-        WaitingStatus("waiting for internal TLS setup"), "INFO"
-    )
-    NO_PEER_CLUSTER_CA = StatusLevel(
-        WaitingStatus("waiting for peer-cluster TLS setup"), "INFO"
-    )
+    NO_INTERNAL_TLS = StatusLevel(WaitingStatus("waiting for internal TLS setup"), "INFO")
+    NO_PEER_CLUSTER_CA = StatusLevel(WaitingStatus("waiting for peer-cluster TLS setup"), "INFO")
     MTLS_REQUIRES_TLS = StatusLevel(
         BlockedStatus("can't setup mTLS client without a TLS relation first."),
         "ERROR",
@@ -495,8 +479,7 @@ class Status(Enum):
             "`mtls-cert` relation data field is not a valid certificate"
         ),
         actions=(
-            "Ensure that the client application is sending a valid certificate, "
-            "and not a CA"
+            "Ensure that the client application is sending a valid certificate, " "and not a CA"
         ),
     )
     SYSCONF_NOT_OPTIMAL = StatusLevel(
@@ -526,12 +509,8 @@ class Status(Enum):
             "correct given the Juju cloud substrate"
         ),
     )
-    NOT_IMPLEMENTED = StatusLevel(
-        BlockedStatus("feature not yet implemented"), "WARNING"
-    )
-    NO_BALANCER_RELATION = StatusLevel(
-        MaintenanceStatus("no balancer relation yet"), "DEBUG"
-    )
+    NOT_IMPLEMENTED = StatusLevel(BlockedStatus("feature not yet implemented"), "WARNING")
+    NO_BALANCER_RELATION = StatusLevel(MaintenanceStatus("no balancer relation yet"), "DEBUG")
     NO_BROKER_DATA = StatusLevel(
         MaintenanceStatus("missing broker data"),
         "DEBUG",
