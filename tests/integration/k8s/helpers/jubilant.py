@@ -277,7 +277,7 @@ def kraft_quorum_status(
 
 
 def check_log_dirs(model: str | None):
-    bootstrap_server = f'{get_k8s_host_from_unit("kafka-k8s/0")}:19093'
+    bootstrap_server = f'{get_k8s_host_from_unit(model, "kafka-k8s/0")}:19093'
     container_command = f"{BROKER.paths['BIN']}/bin/kafka-log-dirs.sh --command-config {BROKER.paths['CONF']}/client.properties --bootstrap-server {bootstrap_server} --describe"
 
     result = check_output(
