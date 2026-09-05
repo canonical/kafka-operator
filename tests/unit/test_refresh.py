@@ -5,7 +5,7 @@
 import dataclasses
 import logging
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 from unittest.mock import MagicMock, Mock, PropertyMock, patch
 
 import pytest
@@ -16,8 +16,10 @@ from common.single_kernel_kafka.events.refresh import (
     MachinesKafkaRefresh,
     is_workload_compatible,
 )
-from machine.src.charm import KafkaCharm
 from ops.testing import Container, Context, PeerRelation, State
+
+if TYPE_CHECKING:
+    from machine.src.charm import KafkaCharm
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +42,9 @@ def base_state():
 
 @pytest.fixture()
 def ctx() -> Context:
+    # Imported lazily: every test using this fixture is machine-only.
+    from machine.src.charm import KafkaCharm
+
     ctx = Context(KafkaCharm, meta=METADATA, config=CONFIG, actions=ACTIONS, unit_id=0)
     return ctx
 
@@ -66,7 +71,7 @@ def test_post_snap_refresh_healthy_cluster(ctx: Context, base_state: State) -> N
 
     # When
     with (ctx(ctx.on.config_changed(), state_in) as manager,):
-        charm = cast(KafkaCharm, manager.charm)
+        charm = cast("KafkaCharm", manager.charm)
         mock_refresh = MagicMock()
         mock_refresh.next_unit_allowed_to_refresh = False
 
@@ -88,7 +93,7 @@ def test_post_snap_refresh_unhealthy_cluster(ctx: Context, base_state: State) ->
 
     # When
     with (ctx(ctx.on.config_changed(), state_in) as manager,):
-        charm = cast(KafkaCharm, manager.charm)
+        charm = cast("KafkaCharm", manager.charm)
         mock_refresh = MagicMock()
         mock_refresh.next_unit_allowed_to_refresh = False
 
@@ -137,7 +142,7 @@ def test_refresh_snap_successful(
         patch("time.sleep"),
         ctx(ctx.on.config_changed(), state_in) as manager,
     ):
-        charm = cast(KafkaCharm, manager.charm)
+        charm = cast("KafkaCharm", manager.charm)
         charm.post_snap_refresh = Mock()
         mock_refresh = MagicMock()
 
@@ -179,7 +184,7 @@ def test_refresh_snap_install_failure_revision_unchanged(ctx: Context, base_stat
         ) as mock_install,
         ctx(ctx.on.config_changed(), state_in) as manager,
     ):
-        charm = cast(KafkaCharm, manager.charm)
+        charm = cast("KafkaCharm", manager.charm)
         mock_refresh = MagicMock()
 
         # Set the revision on the kafka snap mock to remain unchanged
@@ -215,7 +220,7 @@ def test_refresh_snap_install_failure_revision_changed(ctx: Context, base_state:
         patch("single_kernel_kafka.workload.KafkaWorkloadMachine.start") as mock_start,
         ctx(ctx.on.config_changed(), state_in) as manager,
     ):
-        charm = cast(KafkaCharm, manager.charm)
+        charm = cast("KafkaCharm", manager.charm)
         mock_refresh = MagicMock()
 
         # Set initial revision to something different from snap_revision

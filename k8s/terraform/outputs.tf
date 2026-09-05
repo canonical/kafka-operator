@@ -8,7 +8,8 @@ output "provides_endpoints" {
   description = "Relation endpoints this charm provides"
   value = [
     "kafka-client",
-    "cos-agent",
+    "metrics-endpoint",
+    "grafana-dashboard",
   ]
 }
 

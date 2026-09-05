@@ -379,7 +379,7 @@ version = "1.9.1"
 description = "Utils for COS Lite charms"
 optional = false
 python-versions = ">=3.8"
-groups = ["main"]
+groups = ["main", "charm-libs"]
 files = [
     {file = "cosl-1.9.1-py3-none-any.whl", hash = "sha256:201107a68f398b8a5f5e91f6dcaeb1777e7b2816a1592c8eea4a491d1750e1a6"},
     {file = "cosl-1.9.1.tar.gz", hash = "sha256:80d899b5f278bf64252eb94bfb1bbd03dade5073c2cbc0ea43e9abc68be9ee1e"},
@@ -1220,7 +1220,7 @@ version = "9.1.4"
 description = "Retry code until it succeeds"
 optional = false
 python-versions = ">=3.10"
-groups = ["main"]
+groups = ["main", "charm-libs"]
 files = [
     {file = "tenacity-9.1.4-py3-none-any.whl", hash = "sha256:6095a360c919085f28c6527de529e76a06ad89b23659fa881ae0649b867a9d55"},
     {file = "tenacity-9.1.4.tar.gz", hash = "sha256:adb31d4c263f2bd041081ab33b498309a57c77f9acf2db65aadf0898179cf93a"},
@@ -1412,4 +1412,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<4.0"
-content-hash = "c67b31bf975a715b2e10f2202f4a82538a793a5f747814d3d3ae5d40f900e663"
+content-hash = "a2c4912418ece471a83cce0f5dec41bba4f61a7d6c4495e73613556c76f6c554"

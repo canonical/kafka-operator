@@ -358,28 +358,6 @@ files = [
 ]
 
 [[package]]
-name = "cosl"
-version = "1.9.1"
-description = "Utils for COS Lite charms"
-optional = false
-python-versions = ">=3.8"
-groups = ["main"]
-files = [
-    {file = "cosl-1.9.1-py3-none-any.whl", hash = "sha256:201107a68f398b8a5f5e91f6dcaeb1777e7b2816a1592c8eea4a491d1750e1a6"},
-    {file = "cosl-1.9.1.tar.gz", hash = "sha256:80d899b5f278bf64252eb94bfb1bbd03dade5073c2cbc0ea43e9abc68be9ee1e"},
-]
-
-[package.dependencies]
-ops = "*"
-pydantic = "*"
-pyyaml = "*"
-tenacity = "*"
-typing-extensions = "*"
-
-[package.extras]
-dev = ["black", "codespell", "deepdiff", "fs", "ops[testing]", "orderly-set (==5.3.0)", "pyright", "pytest", "pytest-cov", "ruff", "setuptools (<82)"]
-
-[[package]]
 name = "cryptography"
 version = "46.0.7"
 description = "cryptography is a package which provides cryptographic recipes and primitives to Python developers."
@@ -1335,4 +1313,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<4.0"
-content-hash = "44ab9daacc933faebe39f34b3f0e72003a55553f697547ba86d296dacc1c9742"
+content-hash = "5c317927c40fd29d833efc28c1e1521479f4b588a038ae22a2d445f6b12698b0"
