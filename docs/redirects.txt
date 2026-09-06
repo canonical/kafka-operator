@@ -6,3 +6,7 @@ reference/release-notes/revision-248.md reference/release-notes/machine/revision
 reference/release-notes/k8s-revision-82.md reference/release-notes/k8s/revision-82.md
 reference/release-notes/k8s-revision-56-51.md reference/release-notes/k8s/revision-56-51.md
 reference/contact.md contributing.md
+reference/release-notes/revision-82.md reference/release-notes/k8s/revision-82.md
+reference/release-notes/revision-56-51.md reference/release-notes/k8s/revision-56-51.md
+how-to/deploy/deploy-aks.md how-to/deploy/deploy-azure.md
+how-to/deploy/deploy-eks.md how-to/deploy/deploy-aws.md

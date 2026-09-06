@@ -109,7 +109,7 @@ To test the compatibility of a schema with the latest schema version, for exampl
 
 ```bash
 curl -u operator:<password> -X POST -H "Content-Type: application/vnd.schemaregistry.v1+json" \
-     http://<karapace-unit-ip>:8081/subjects/<schema-name>/versions/latest \
+     http://<karapace-unit-ip>:8081/compatibility/subjects/<schema-name>/versions/latest \
     --data '{"schema": "{\"type\": \"record\", \"name\": \"Obj\", \"fields\":[{\"name\": \"<field1>\", \"type\": \"string\"}]}"}'
 ```
 

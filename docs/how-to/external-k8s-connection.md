@@ -90,6 +90,15 @@ NodePort for the selected protocol. If service port `29092` maps to NodePort
 10.155.67.110:31982,10.155.67.120:31982,10.155.67.130:31982
 ```
 
+```{note}
+The charm creates the NodePort Services with `externalTrafficPolicy=Local`:
+traffic is only forwarded to nodes that run a Kafka broker pod. Prefer node IPs
+that host broker units, and verify each node you list actually forwards
+connections. Also note that each broker advertises its own per-broker NodePort
+Service, so clients must be able to reach **all** advertised broker endpoints,
+not only the bootstrap address.
+```
+
 Whether node IPs are reachable and which firewall rules apply depends on the
 Kubernetes provider. On managed clouds, allow the selected NodePort range only
 from trusted client networks.

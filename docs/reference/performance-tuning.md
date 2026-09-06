@@ -18,15 +18,21 @@ This section contains some suggested values to get a better performance from Cha
 
 Apache Kafka brokers make heavy use of the OS page cache to maintain performance. They never normally explicitly issue a command to ensure messages have been persisted to disk (`sync`), relying instead on the underlying OS to ensure that larger chunks (pages) of data are persisted from the page cache to the disk when the OS deems it efficient and/or necessary to do so. As such, there is a range of runtime kernel parameter tuning that is recommended to be set on machines running Apache Kafka to improve performance.
 
-To configure these settings, one can write them to `/etc/sysctl.conf` using `sudo echo $SETTING >> /etc/sysctl.conf`. Note that the settings shown below are simply sensible defaults that may not apply to every workload:
+To configure these settings, write them to a dedicated sysctl drop-in file and apply it:
+
 ```bash
+sudo tee /etc/sysctl.d/99-kafka.conf > /dev/null <<'EOF'
 # ensures a low likelihood of memory being assigned to swap space rather than drop pages from the page cache
 vm.swappiness=1
 
 # higher ratio results in less frequent disk flushes and better disk I/O performance
 vm.dirty_ratio=80
 vm.dirty_background_ratio=5
+EOF
+sudo sysctl --system
 ```
+
+Note that the settings shown above are simply sensible defaults that may not apply to every workload.
 
 ## Memory maps (recommended)
 

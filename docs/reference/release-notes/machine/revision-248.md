@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Charmed Apache Kafka revision 248 release notes - Upgraded Apache Kafka to 4.1.0, Cruise Control, Karapace, Kafka Connect and Kafka UI stable releases, removed Apache ZooKeeper."
+    description: "Charmed Apache Kafka revision 248 release notes - Upgraded Apache Kafka to 4.1.1, Cruise Control, Karapace, Kafka Connect and Kafka UI stable releases, removed Apache ZooKeeper."
 ---
 
 (reference-release-notes-revision-248)=

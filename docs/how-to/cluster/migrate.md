@@ -9,7 +9,17 @@ myst:
 
 This How-To guide covers executing a cluster migration from an existing Kafka cluster, to a Charmed Apache Kafka deployment using MirrorMaker 2.0.
 
-The MirrorMaker tasks run on a distributed Charmed Apache Kafka Connect cluster of workers. These tasks act as consumer clients reading data from an existing cluster (source), and as producer clients writing data to the Charmed Apache Kafka cluster (target). Data and consumer offsets for specified topics will be synced **one-way** in parallel (one process on each unit) until both clusters are in-sync, with all data replicated across both in real-time.
+The MirrorMaker tasks run on a distributed Charmed Apache Kafka Connect cluster of workers. These tasks act as consumer clients reading data from an existing cluster (source), and as producer clients writing data to the Charmed Apache Kafka cluster (target). Data for specified topics will be synced **one-way** until both clusters are in-sync, with all data replicated across both in real-time.
+
+```{note}
+This guide uses the `MirrorSourceConnector`, which replicates topic data and topic
+configurations. Synchronising **consumer group offsets** to the target cluster
+requires additionally deploying a `MirrorCheckpointConnector` (and, for automatic
+offset translation, a `MirrorHeartbeatConnector`). After replication has caught up,
+plan an explicit cutover: stop producers on the source cluster, verify replication
+lag has reached zero, validate the translated offsets on the target cluster, then
+switch consumers and producers over to the Charmed Apache Kafka cluster.
+```
 
 ```{note}
 For a brief explanation of how MirrorMaker works, see the [MirrorMaker explanation](explanation-mirrormaker2-0) page.
@@ -26,8 +36,8 @@ To migrate a cluster we need:
   - The [How-to use Kafka Connect for ETL workloads guide](how-to-use-kafka-connect-for-etl-workloads)
 - A Charmed Apache Kafka to migrate data to. For guidance on how to deploy a new Charmed Apache Kafka, see:
   - The [How to deploy guide](how-to-deploy-anywhere) for Charmed Apache Kafka
-- The CLI tool `yq` - [GitHub repository](https://github.com/mikefarah/yq)
-  - `snap install yq --channel=v3/stable`
+- The CLI tool `yq` (v4) - [GitHub repository](https://github.com/mikefarah/yq)
+  - `snap install yq --channel=v4/stable`
 - The CLI tool [`jq`](https://jqlang.org/download/)
 
 ## Get new charm cluster endpoints and credentials
@@ -89,7 +99,7 @@ juju integrate kafka-connect-k8s kafka-k8s
 As we will need full access to both Kafka clusters, we will use credentials provided to the `data-integrator`. Get the SASL credentials to connect to the target Charmed Apache Kafka cluster:
 
 ```bash
-SECRET=$(juju show-unit data-integrator/0 --format yaml | yq -r '.. | ."secret-user"? // empty' | grep -oP "[^\/]*$")
+SECRET=$(juju show-unit data-integrator/0 --format yaml | yq -r '.. | select(has("secret-user")) | ."secret-user"' | head -n 1)
 export NEW_USERNAME=$(juju show-secret --reveal $SECRET | yq -r '.. | .username? // empty')
 export NEW_PASSWORD=$(juju show-secret --reveal $SECRET | yq -r '.. | .password? // empty')
 ```
@@ -131,7 +141,7 @@ First, get the `admin` credentials for the Charmed Apache Kafka Connect applicat
 :sync: vm
 
 ```bash
-CONNECT_SECRET_KEY=$(juju list-secrets | grep kafka-connect | awk '{ print $1}')
+CONNECT_SECRET_KEY=$(juju list-secrets --format json | jq -r '.secrets[] | select(.owner == "kafka-connect") | .uri' | head -n 1)
 export CONNECT_USERNAME=admin
 export CONNECT_PASSWORD=$(juju show-secret --reveal $CONNECT_SECRET_KEY --format yaml | yq '.. | ."admin-password"? // empty' | tr -d '"')
 export CONNECT_ENDPOINTS=$(juju show-unit kafka-connect/0 --format json | yq '.. | ."public-address"? // empty' | tr -d '"')
@@ -143,10 +153,16 @@ export CONNECT_ENDPOINTS=$(juju show-unit kafka-connect/0 --format json | yq '..
 :sync: k8s
 
 ```bash
-CONNECT_SECRET_KEY=$(juju list-secrets | grep kafka-connect-k8s | awk '{ print $1}')
+CONNECT_SECRET_KEY=$(juju list-secrets --format json | jq -r '.secrets[] | select(.owner == "kafka-connect-k8s") | .uri' | head -n 1)
 export CONNECT_USERNAME=admin
 export CONNECT_PASSWORD=$(juju show-secret --reveal $CONNECT_SECRET_KEY --format yaml | yq '.. | ."admin-password"? // empty' | tr -d '"')
-export CONNECT_ENDPOINTS=$(juju show-unit kafka-connect-k8s/0 --format json | yq '.. | ."public-address"? // empty' | tr -d '"')
+export CONNECT_ENDPOINTS=$(juju show-unit kafka-connect-k8s/0 --format json | yq '."kafka-connect-k8s/0".address' | tr -d '"')
+```
+
+```{note}
+On Kubernetes, the Connect REST API is exposed on the unit's pod address. Run the
+`curl` command below from a machine with network access to the Kafka model — for
+example from inside the model using `kubectl port-forward`, or with `juju ssh`.
 ```
 
 ````
@@ -202,7 +218,6 @@ jq -n \
             "source.cluster.sasl.mechanism": "SCRAM-SHA-512",
             "target.cluster.alias": "new",
             "groups.exclude": "console-consumer-.*, connect-.*, __.*",
-            "name": "mirror_source_mirrormaker_r19",
             "target.cluster.bootstrap.servers": $new_servers,
             "producer.override.sasl.jaas.config": $new_jaas,
             "producer.override.sasl.mechanism": "SCRAM-SHA-512",

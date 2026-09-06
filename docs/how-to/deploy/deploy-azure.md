@@ -170,7 +170,15 @@ juju model-config logging-config='<root>=INFO;unit=DEBUG'
 Deploy Charmed Apache Kafka:
 
 ```shell
-juju deploy kafka -n 3 --config roles=broker,controller [--constraints "instance-type=<INSTANCE_TYPE>"]
+juju deploy kafka -n 3 --channel 4/stable --config roles=broker,controller
+```
+
+To use a specific instance type, add `--constraints "instance-type=<INSTANCE_TYPE>"`.
+
+```{caution}
+This co-located broker/controller topology is for evaluation. For a production
+deployment, use separate broker and controller applications as described in the
+[general deployment guide](how-to-deploy-anywhere).
 ```
 
 ```{caution}
@@ -335,12 +343,31 @@ Always remove AKS resources that are no longer needed; they can be costly.
 
 ```shell
 juju destroy-controller <CONTROLLER_NAME> --destroy-all-models --destroy-storage --force
+```
+
+Before deleting the cluster, check for Services with external IPs that Juju may
+not remove automatically — they continue to incur Azure charges while the cluster
+exists:
+
+```shell
+kubectl get svc --all-namespaces | grep -v "ClusterIP"
+```
+
+Delete any remaining Services with an `EXTERNAL-IP` (for example, the Kafka
+NodePort/LoadBalancer Services created by the charm) before deleting the cluster:
+
+```shell
+kubectl delete svc <service-name> -n <MODEL_NAME>
+```
+
+Then delete the AKS cluster itself:
+
+```shell
 az aks delete --resource-group <RESOURCE_GROUP> --name <K8S_CLUSTER_NAME>
 az logout
 ```
 
-Check for Services with external IPs and other cloud resources that were not
-removed automatically.
+Check for other cloud resources that were not removed automatically.
 
 ````
 

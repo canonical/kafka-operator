@@ -110,7 +110,7 @@ In this tutorial, we've successfully deployed Apache Kafka, added/removed replic
 You may now keep your Charmed Apache Kafka deployment running or remove it entirely using the steps in [Remove Charmed Apache Kafka and Juju](remove-kafka-and-juju).
 If you're looking for what to do next you can:
 
-- Run [Charmed Apache Kafka on Kubernetes](https://github.com/canonical/kafka-k8s-operator).
+- Deploy Charmed Apache Kafka on Kubernetes with the [deployment guide](how-to-deploy-anywhere).
 - Check out our other Charmed offerings from [Canonical's Data Platform team](https://canonical.com/data)
 - Read about [High Availability Best Practices](https://canonical.com/blog/database-high-availability)
 - [Report](https://github.com/canonical/kafka-operator/issues) any problems you encountered.

@@ -44,14 +44,14 @@ First, create the Juju secret with the new password you wish to use:
 
 <!-- test:skip -->
 ```shell
-juju add-secret internal-kafka-users admin=mynewpassword
+juju add-secret internal-kafka-users operator=mynewpassword
 ```
 
 Note the generated secret ID that you see as a response.
 It will look something like `secret:d5nc29hlshbc45lnf07g`.
 
 <!-- test:set-variables
-command: juju add-secret internal-kafka-users admin=mynewpassword | awk '{print "secret-uri: " $0}'
+command: juju add-secret internal-kafka-users operator=mynewpassword | awk '{print "secret-uri: " $0}'
 SECRET_URI: secret-uri
 -->
 

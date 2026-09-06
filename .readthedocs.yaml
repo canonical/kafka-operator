@@ -25,6 +25,12 @@ build:
         '.readthedocs.yaml' \
         'machine/actions.yaml' \
         'machine/config.yaml' \
+        'k8s/actions.yaml' \
+        'k8s/config.yaml' \
+        'connect_machine/actions.yaml' \
+        'connect_machine/config.yaml' \
+        'connect_k8s/actions.yaml' \
+        'connect_k8s/config.yaml' \
         'common/single_kernel_kafka/core/literals.py';
       then
         exit 183;

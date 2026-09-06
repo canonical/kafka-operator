@@ -2,6 +2,12 @@
 
 # Enable OAuth through Canonical Identity Platform
 
+```{note}
+This guide currently covers **VM (Machine) deployments only**. The Canonical
+Identity Platform runs on Kubernetes, but the Kafka workflow below deploys
+Charmed Apache Kafka on a VM (LXD) cloud.
+```
+
 Charmed Apache Kafka can integrate with charmed OAuth providers through the `oauth` interface.
 In this guide, you will integrate Charmed Apache Kafka with Canonical Identity Platform.
 
@@ -156,7 +162,13 @@ EOF
 sudo mv oauth-client.properties /var/snap/charmed-kafka/current/etc/kafka/
 ```
 
-Now try to create a topic using the CLI client:
+Now try to create a topic using the CLI client. First, set the `KAFKA_BROKER_IP`
+environment variable to the address of one of the Kafka broker units
+(e.g. from `juju status`):
+
+```bash
+KAFKA_BROKER_IP=$(juju status --format json | jq -r '.applications.kafka.units."kafka/0"."public-address"')
+```
 
 ```bash
 sudo charmed-kafka.topics \

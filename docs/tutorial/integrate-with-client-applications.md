@@ -234,6 +234,13 @@ Since we know that no more messages will be produced now, we can stop the script
 Now you know how to use credentials provided by related charms to successfully read/write data
 from Charmed Apache Kafka!
 
+Exit the SSH session on the `kafka-test-app` unit to return to your local machine
+before continuing:
+
+```bash
+exit
+```
+
 ## Charmed applications
 
 The Data Integrator is a very special client charm,

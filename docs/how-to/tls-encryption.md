@@ -76,6 +76,12 @@ To replace the auto-generated self-signed certificates used for inter-broker and
 juju integrate kafka:peer-certificates <TLS-provider-charm>
 ```
 
+If the KRaft controllers run in a separate application, integrate it as well:
+
+```bash
+juju integrate <controller-app>:peer-certificates <TLS-provider-charm>
+```
+
 ````
 
 ````{tab-item} K8s
@@ -83,6 +89,12 @@ juju integrate kafka:peer-certificates <TLS-provider-charm>
 
 ```bash
 juju integrate kafka-k8s:peer-certificates <TLS-provider-charm>
+```
+
+If the KRaft controllers run in a separate application, integrate it as well:
+
+```bash
+juju integrate <controller-app>:peer-certificates <TLS-provider-charm>
 ```
 
 ````
@@ -115,6 +127,9 @@ Then, add these external private keys to a new Juju secret:
 juju add-secret external-kafka-pks kafka-0="$(cat kafka-0.key)" kafka-1="$(cat kafka-1.key)" kafka-2="$(cat kafka-2.key)"
 ```
 
+Take note of the `secret-id` in the response — it will be needed in the final
+configuration step below.
+
 ````
 
 ````{tab-item} K8s
@@ -134,6 +149,9 @@ juju add-secret external-kafka-pks \
   kafka-k8s-1="$(cat kafka-k8s-1.key)" \
   kafka-k8s-2="$(cat kafka-k8s-2.key)"
 ```
+
+Take note of the `secret-id` in the response — it will be needed in the final
+configuration step below.
 
 ````
 
@@ -167,8 +185,6 @@ juju grant-secret external-kafka-pks kafka-k8s
 ````
 
 `````
-
-Take note of the `secret-id` in the response.
 
 <details> <summary> Output example</summary>
 
@@ -209,7 +225,7 @@ Charmed Apache Kafka will read the new secret, and re-request new TLS certificat
 
 ## Disable TLS encryption for client communication
 
-To disable TLS encryption, remove the relation with the `tls-certificates` provider application:
+To disable TLS encryption, remove the `certificates` relation with the `tls-certificates` provider application:
 
 `````{tab-set}
 :sync-group: substrate
@@ -218,7 +234,7 @@ To disable TLS encryption, remove the relation with the `tls-certificates` provi
 :sync: vm
 
 ```bash
-juju remove-relation kafka <tls-certificates>
+juju remove-relation kafka:certificates <tls-certificates>
 ```
 
 ````
@@ -227,9 +243,16 @@ juju remove-relation kafka <tls-certificates>
 :sync: k8s
 
 ```bash
-juju remove-relation kafka-k8s <tls-certificates>
+juju remove-relation kafka-k8s:certificates <tls-certificates>
 ```
 
 ````
 
 `````
+
+```{note}
+If the same TLS provider application also provides internal certificates via the
+`peer-certificates` relation, specify the endpoint explicitly as shown above.
+Removing the relation by application name alone (`juju remove-relation kafka
+<tls-certificates>`) is ambiguous in that case and may remove the wrong relation.
+```

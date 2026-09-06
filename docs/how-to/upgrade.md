@@ -47,7 +47,7 @@ When performing an in-place upgrade process, the full process is composed of the
 
 For highly available, stateful applications, it is often desirable to upgrade a single unit first, then pause to perform manual validations before continuing. If the upgrade fails, for example, due to a bug or an unforeseen version incompatibility, the impact is limited to that single unit. When the application is replicated across multiple nodes, this approach ensures no measurable disruption to the production service.
 
-Charmed Apache Kafka exposes the `pause-after-unit-refresh` configuration option to help control this pausing behavior. By default, this option is set to `none`, meaning that a refresh will complete without a pause for manual checks.
+Charmed Apache Kafka exposes the `pause-after-unit-refresh` configuration option to help control this pausing behavior. Its default differs by substrate: the VM charm defaults to `none` (no pause), while the K8s charm defaults to `first` (pause once, after the first refreshed unit).
 
 To change refresh pausing behavior, set this configuration option **before** triggering a Juju refresh:
 
@@ -238,7 +238,21 @@ kafka/2       active    idle   5        10.193.41.221          Upgrade completed
 
 #### Rollbacks
 
-At any point in the upgrade, it is possible to safely rollback to the original charm revision.
+While the upgrade is in progress, it is possible to roll back to the original
+charm revision.
+
+```{warning}
+Rolling back the charm revision does not automatically roll back the workload:
+minor workload version downgrades are rejected by the charm, and KRaft metadata
+version downgrades are not supported by Apache Kafka. A rollback is therefore
+only safe while the workload itself has not yet been upgraded on the paused
+units, or when the original and target workload versions are compatible.
+```{note}
+On Kubernetes, also record the `kafka-image` resource in use before the
+upgrade (`juju status --format json | yq .applications.<KAFKA_APP_NAME>.resources`),
+and pass it back with `juju refresh ... --resource kafka-image=<image>` when
+rolling back a locally deployed charm.
+```
 
 To rollback, use the `juju refresh` command with the original charm revision:
 

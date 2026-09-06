@@ -41,9 +41,14 @@ juju ssh kafka/0 sudo -i 'ls $LOGS'
 | Variable | Path | Description | Permission |
 |---|---|---|---|
 | `BIN` | `/opt/kafka` | Apache Kafka binaries bundled in the `charmed-kafka` OCI image | read-only |
-| `CONF` | `/etc/kafka/` | Configuration managed by the charm | owned by `_daemon_`, managed by the charm |
-| `LOGS` | `/var/log/kafka/` | Workload logs | owned and managed by `_daemon_` |
-| `DATA` | `/var/lib/kafka/` | Persistent message data | owned and managed by `_daemon_` |
+| `CONF` | `/etc/kafka/` | Configuration managed by the charm | managed by the charm |
+| `LOGS` | `/var/log/kafka/` | Workload logs | written by the workload process |
+| `DATA` | `/var/lib/kafka/` | Persistent message data | written by the workload process |
+
+```{note}
+Unlike on VM, these variables are not exported as environment variables inside
+the container. Use the literal paths shown in the table.
+```
 
 The same layout is used for Cruise Control under `/opt/cruise-control`,
 `/etc/cruise-control`, `/var/log/cruise-control`, and `/var/lib/cruise-control`.

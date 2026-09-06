@@ -103,6 +103,12 @@ To retrieve information, enter:
 juju run data-integrator/leader get-credentials
 ```
 
+```{note}
+On Kubernetes, the returned endpoints are cluster-internal DNS names. Clients
+outside the Kubernetes cluster need the NodePort setup described in
+[How to connect to Charmed Apache Kafka K8s externally](how-to-external-k8s-connection).
+```
+
 This should output something like:
 
 `````{tab-set}
@@ -114,7 +120,7 @@ This should output something like:
 ```yaml
 kafka:
   consumer-group-prefix: relation-27-
-  endpoints: 10.123.8.133:19092
+  endpoints: 10.123.8.133:9092
   password: ejMp4SblzxkMCF0yUXjaspneflXqcyXK
   tls: disabled
   username: relation-27

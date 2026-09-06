@@ -103,8 +103,9 @@ Authentication between brokers and between brokers and KRaft controllers are bas
 The Apache Kafka username and password, used by brokers and controllers to authenticate one another, are stored in JAAS configuration files on the Charmed Apache Kafka units in plain text format.
 
 These files are readable and writable by `root` (as they are created by the charm)
-and readable by the `_daemon_` user running Apache Kafka. On VM that user runs
-the snap services; on K8s it runs the workload process in the container.
+and readable by the user running Apache Kafka. On VM that is the `_daemon_` user
+running the snap services; on K8s it is the `kafka` user running the workload
+process in the container.
 
 ### Client authentication to Apache Kafka
 
@@ -117,5 +118,9 @@ Clients can authenticate to Apache Kafka using:
 The current [Canonical Identity Platform OAuth guide](how-to-enable-oauth)
 covers VM deployment only.
 
-When using SCRAM, usernames and passwords are stored in the KRaft controller metadata logs, in plain text in configuration files on the broker and controller units, and in Juju secrets. 
+When using SCRAM, the credentials are stored in three places: SCRAM **verifier
+material** (salt, iteration count, and derived keys — not the plaintext
+password) is stored in the KRaft controller metadata logs; the plaintext
+username and password appear in configuration files on the broker and
+controller units; and the credentials are also held in Juju secrets.
 When using mTLS, client certificates provided to the Apache Kafka cluster via Juju secrets by related charms are stored in password-protected JKS truststores.

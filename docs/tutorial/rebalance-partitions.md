@@ -229,10 +229,12 @@ replicas for a given partition.
 ```
 
 To remove the most recent broker unit `3` from the previous example,
-re-run the `rebalance` action with `mode=remove`:
+re-run the `rebalance` action with `mode=remove`. Note that the `brokerid`
+parameter takes the **broker ID**, which is the unit ID offset by `100`
+(for example, unit `kafka/3` is broker `103`):
 
 ```shell
-juju run kraft/leader rebalance mode=remove dryrun=false brokerid=3 --wait=10m
+juju run kraft/leader rebalance mode=remove dryrun=false brokerid=103 --wait=10m
 ```
 
 <!-- test:await-idle --timeout 1200 --allow-blocked opensearch -->

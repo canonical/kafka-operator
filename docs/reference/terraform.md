@@ -46,7 +46,10 @@ The `broker`, `controller`, `connect`, `karapace`, `ui`, and `integrator` variab
 | `storage` | `map(string)` | Storage directives (broker and controller only) |
 | `machines` | `set(string)` | Machine: list of machine resources for deployment |
 
-All fields are optional — defaults are set per application. See the
+All fields are optional — defaults are set per application. Note that some
+defaults differ between the VM and K8s modules (for example, `controller.units`
+defaults to `0` on VM but `3` on K8s, and the default `channel` is `4/edge`).
+See the
 [VM source](https://github.com/canonical/kafka-bundle/tree/main/terraform) or
 [K8s source](https://github.com/canonical/kafka-k8s-bundle/tree/main/terraform)
 for the exact inputs and defaults.

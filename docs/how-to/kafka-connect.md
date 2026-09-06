@@ -270,4 +270,4 @@ These charmed operators support use cases such as loading data to and from MySQL
 
 To learn more about integrator charms, see the tutorial for machine deployments,
 [Use Kafka Connect for ETL](tutorial-kafka-connect), which covers a practical
-use case of moving data from MySQL to OpenSearch.
+use case of moving data from PostgreSQL to OpenSearch.

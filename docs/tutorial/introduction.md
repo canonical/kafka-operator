@@ -7,6 +7,12 @@ myst:
 # Tutorial
 <!-- # Charmed Apache Kafka tutorial -->
 
+```{note}
+This tutorial covers **VM (Machine) deployments only**, using a local LXD
+environment. For Kubernetes deployments, see the
+[deployment guide](how-to-deploy-anywhere) instead.
+```
+
 The Charmed Apache Kafka Operator delivers automated operations management from [Day 0 to Day 2](https://codilime.com/blog/day-0-day-1-day-2-the-software-lifecycle-in-the-cloud-age/) on the [Apache Kafka](https://kafka.apache.org/) event streaming platform.
 It is an open source, end-to-end, production-ready data platform [on top of Juju](https://juju.is/). As a first step this tutorial shows you how to get Charmed Apache Kafka up and running, but the tutorial does not stop there.
 Through this tutorial, you will learn a variety of operations, everything from adding replicas to advanced operations such as enabling SSL encryption, cross-cluster asynchronous replication and more.
@@ -20,7 +26,6 @@ In this tutorial, we will walk through how to:
 - Change the admin password.
 - Automatically create Apache Kafka users via Juju relations.
 - Use Cruise Control for cluster rebalancing.
-- Use Karapace for schema management and message serialisation.
 - Use Apache Kafka Connect for moving data between data applications.
 
 While this tutorial intends to guide and teach you as you deploy Charmed Apache Kafka, it will be most beneficial if you already have a familiarity with:

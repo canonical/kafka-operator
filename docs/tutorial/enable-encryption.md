@@ -177,16 +177,18 @@ is indeed established with the encrypted port `9093`.
 
 ## Remove external TLS certificate
 
-To remove the external TLS and return to the locally generated one,
-remove relation with certificates provider:
+To remove the external TLS encryption for client connections,
+remove the `certificates` relation with the certificates provider:
 
 ```shell
-juju remove-relation kafka self-signed-certificates
+juju remove-relation kafka:certificates self-signed-certificates
 ```
 
 <!-- test:await-idle --timeout 600 -->
 
-The Charmed Apache Kafka application is not using TLS anymore for client connections.
+The Charmed Apache Kafka application is not using the external certificates
+anymore for client connections. Internal communication between brokers and
+controllers remains encrypted with the auto-generated self-signed certificates.
 
 ## Clean up
 

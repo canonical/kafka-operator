@@ -137,7 +137,14 @@ module "kafka" {
 
 </details>
 
-When `controller` includes `units > 0`, the module deploys separate broker and controller applications. When `controller` is omitted or has `units = 0` (the default), the broker co-locates both the broker and controller roles in a single application.
+When `controller` includes `units > 0`, the module deploys separate broker and controller applications. When `controller` has `units = 0`, the broker co-locates both the broker and controller roles in a single application.
+
+```{warning}
+The default value of `controller.units` differs between the modules: the VM
+module defaults to `0` (co-located), while the K8s module defaults to `3`
+(separate controllers). Always set `controller.units` explicitly to get the
+topology you intend.
+```
 
 ## Deploy for production
 
@@ -215,6 +222,10 @@ broker = {
   channel  = "4/stable"
   units    = 3
 }
+
+controller = {
+  units = 0
+}
 ```
 
 ````
@@ -230,13 +241,18 @@ broker = {
   channel  = "4/stable"
   units    = 3
 }
+
+controller = {
+  units = 0
+}
 ```
 
 ````
 
 `````
 
-Since `controller` is omitted, the module defaults to zero controller units and co-locates the controller role within the broker application. The `profile` defaults to `"testing"`.
+With `controller.units = 0`, the controller role is co-located within the broker
+application. The `profile` defaults to `"testing"`.
 
 ## Deploy
 
@@ -325,12 +341,12 @@ To connect the cluster to the [Canonical Observability Stack (COS)](https://docu
 ```hcl
 cos_offers = {
   dashboard = "<controller>:<owner>/<cos-model>.grafana-dashboards"
-  metrics   = "<controller>:<owner>/<cos-model>.prometheus-scrape"
+  metrics   = "<controller>:<owner>/<cos-model>.prometheus-receive-remote-write"
   logging   = "<controller>:<owner>/<cos-model>.loki-logging"
 }
 ```
 
-All three fields must be set together — the module validates that either all or none are provided.
+All three fields must be set together — the module validates that either all or none are provided. The `metrics` offer must be the Prometheus `receive-remote-write` endpoint: the module deploys an `opentelemetry-collector` that scrapes Kafka metrics and forwards them to COS via remote write.
 
 ## Terraform module reference
 
