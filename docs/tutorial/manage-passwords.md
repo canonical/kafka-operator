@@ -31,9 +31,28 @@ the Charmed Apache Kafka application. The password in in the `operator-password`
 
 Get the current value of the admin user password from the secret:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju show-secret --reveal cluster.kafka.app | yq -r '.[].content["operator-password"]'
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju show-secret --reveal cluster.kafka-k8s.app | yq -r '.[].content["operator-password"]'
+```
+
+````
+
+`````
 
 ### Change the password
 
@@ -57,16 +76,54 @@ SECRET_URI: secret-uri
 
 Now, grant Charmed Apache Kafka access to the new secret:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju grant-secret internal-kafka-users kafka
 ```
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju grant-secret internal-kafka-users kafka-k8s
+```
+
+````
+
+`````
+
 Finally, inform Charmed Apache Kafka of the new secret to use for it's internal system users
 using the secret ID saved earlier:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```shell
 juju config kafka system-users=<secret-uri>
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju config kafka-k8s system-users=<secret-uri>
+```
+
+````
+
+`````
 
 <!-- test:wait --seconds 60 -->
 <!-- test:await-idle --timeout 600 -->
@@ -115,19 +172,57 @@ ok: "True"
 ### Rotate the password
 
 The easiest way to rotate user credentials using the `data-integrator` is by removing
-and then re-integrating the `data-integrator` with the `kafka` charm:
+and then re-integrating the `data-integrator` with the Charmed Apache Kafka application:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```shell
 juju remove-relation kafka data-integrator
 ```
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju remove-relation kafka-k8s data-integrator
+```
+
+````
+
+`````
+
 <!-- test:await-idle --timeout 600 --allow-blocked data-integrator -->
 
 Wait for the relation to be torn down and add integration again:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju integrate kafka data-integrator
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju integrate kafka-k8s data-integrator
+```
+
+````
+
+`````
 
 <!-- test:await-idle --timeout 600 -->
 
@@ -169,9 +264,28 @@ see the how-to guide on [app management](how-to-client-connections).
 Removing the relation automatically removes the user that was created when the relation was created.
 To remove the user, remove the relation:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju remove-relation kafka data-integrator
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju remove-relation kafka-k8s data-integrator
+```
+
+````
+
+`````
 
 <!-- test:await-idle --timeout 600 --allow-blocked data-integrator -->
 

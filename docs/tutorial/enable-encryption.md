@@ -76,9 +76,28 @@ Machine  State    Address         Inst id        Base          AZ          Messa
 
 To enable TLS on Charmed Apache Kafka, integrate with `self-signed-certificates` charm:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju integrate kafka:certificates self-signed-certificates
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju integrate kafka-k8s:certificates self-signed-certificates
+```
+
+````
+
+`````
 
 <!-- test:await-idle --timeout 1200 --allow-blocked data-integrator -->
 
@@ -109,9 +128,28 @@ thus preventing any external incoming connection.
 
 Let's integrate the `data-integrator` application to the Apache Kafka cluster:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju integrate data-integrator kafka
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju integrate data-integrator kafka-k8s
+```
+
+````
+
+`````
 
 <!-- test:await-idle --timeout 1200 -->
 
@@ -157,11 +195,30 @@ We can then set up the `kafka-test-app` to produce messages with the usual confi
 juju config kafka-test-app topic_name=HOT-TOPIC role=producer num_messages=20
 ```
 
-Finally, relate with the `kafka` cluster:
+Finally, relate with the Charmed Apache Kafka cluster:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```shell
 juju integrate kafka kafka-test-app
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju integrate kafka-k8s kafka-test-app
+```
+
+````
+
+`````
 
 <!-- test:await-idle --timeout 600 -->
 
@@ -180,9 +237,28 @@ is indeed established with the encrypted port `9093`.
 To remove the external TLS encryption for client connections,
 remove the `certificates` relation with the certificates provider:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju remove-relation kafka:certificates self-signed-certificates
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju remove-relation kafka-k8s:certificates self-signed-certificates
+```
+
+````
+
+`````
 
 <!-- test:await-idle --timeout 600 -->
 
@@ -194,10 +270,31 @@ controllers remains encrypted with the auto-generated self-signed certificates.
 
 Before proceeding further, let's remove the `kafka-test-app` application:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju remove-relation kafka-test-app kafka
 juju remove-relation kafka-test-app self-signed-certificates
 juju remove-application kafka-test-app --destroy-storage --no-prompt
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju remove-relation kafka-test-app kafka-k8s
+juju remove-relation kafka-test-app self-signed-certificates
+juju remove-application kafka-test-app --destroy-storage --no-prompt
+```
+
+````
+
+`````
 
 <!-- test:await-idle --timeout 600 -->

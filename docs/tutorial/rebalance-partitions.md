@@ -53,6 +53,11 @@ Let's add the role `balancer` to the existing `kraft` Juju application:
 juju config kraft roles=balancer,controller
 ```
 
+```{note}
+The `kraft` application name is the same on both substrates, so this command is
+identical for VM and Kubernetes deployments.
+```
+
 <!-- test:await-idle --timeout 1200 --allow-blocked opensearch -->
 
 Wait for the status to become `active`/`idle`:
@@ -64,11 +69,32 @@ watch juju status --color
 
 ## Adding new brokers
 
-Let's scale-out the `kafka` application to four units (add one more):
+Let's scale-out the Charmed Apache Kafka application to four units (add one more):
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```shell
 juju add-unit kafka
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+On Kubernetes, set the desired total number of units instead of adding one:
+
+```bash
+juju scale-application kafka-k8s 4
+```
+
+````
+
+`````
 
 <!-- test:await-idle --timeout 1200 --allow-blocked opensearch -->
 
@@ -92,6 +118,12 @@ By default, no partitions are allocated for the new unit `3`,
 that should have broker id `103`.
 Check that via the log directory assignment:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju ssh kafka/leader sudo -i charmed-kafka.log-dirs --describe \
   --bootstrap-server <unit-ip>:19093 \
@@ -100,6 +132,25 @@ juju ssh kafka/leader sudo -i charmed-kafka.log-dirs --describe \
   | sed -n '/^{/p' \
   | jq '.brokers[] | select(.broker == 103)'
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju ssh --container kafka kafka-k8s/leader \
+  "/opt/kafka/bin/kafka-log-dirs.sh --describe \
+  --bootstrap-server <unit-ip>:19093 \
+  --command-config /etc/kafka/client.properties" \
+  2>/dev/null \
+  | sed -n '/^{/p' \
+  | jq '.brokers[] | select(.broker == 103)'
+```
+
+````
+
+`````
 
 This should produce output similar to the result seen below,
 with no partitions allocated by default:
@@ -183,6 +234,12 @@ unit-kraft-0: 22:19:12 INFO unit.kraft/0.juju-log Waiting for task execution to 
 Once the action is complete, verify the partitions on the newly added unit
 using the same commands as before:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju ssh kafka/leader sudo -i charmed-kafka.log-dirs --describe \
   --bootstrap-server <unit-ip>:19093 \
@@ -191,6 +248,25 @@ juju ssh kafka/leader sudo -i charmed-kafka.log-dirs --describe \
   | sed -n '/^{/p' \
   | jq '.brokers[] | select(.broker == 103)'
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju ssh --container kafka kafka-k8s/leader \
+  "/opt/kafka/bin/kafka-log-dirs.sh --describe \
+  --bootstrap-server <unit-ip>:19093 \
+  --command-config /etc/kafka/client.properties" \
+  2>/dev/null \
+  | sed -n '/^{/p' \
+  | jq '.brokers[] | select(.broker == 103)'
+```
+
+````
+
+`````
 
 This should produce an output similar to the result seen below, with broker `3` now having assigned partitions present, completing the adding of a new broker to the cluster:
 
@@ -244,6 +320,12 @@ to other brokers within the cluster.
 
 Once the action has been completed, verify that broker `3` no longer has any assigned partitions:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju ssh kafka/leader sudo -i charmed-kafka.log-dirs --describe \
   --bootstrap-server <unit-ip>:19093 \
@@ -252,6 +334,25 @@ juju ssh kafka/leader sudo -i charmed-kafka.log-dirs --describe \
   | sed -n '/^{/p' \
   | jq '.brokers[] | select(.broker == 103)'
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju ssh --container kafka kafka-k8s/leader \
+  "/opt/kafka/bin/kafka-log-dirs.sh --describe \
+  --bootstrap-server <unit-ip>:19093 \
+  --command-config /etc/kafka/client.properties" \
+  2>/dev/null \
+  | sed -n '/^{/p' \
+  | jq '.brokers[] | select(.broker == 103)'
+```
+
+````
+
+`````
 
 Make sure that the broker has no partitions assigned, for example:
 
@@ -270,9 +371,31 @@ Make sure that the broker has no partitions assigned, for example:
 
 Now, it is safe to scale-in the cluster by removing the broker number `3` completely:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju remove-unit kafka/3 --no-prompt
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+On Kubernetes, scale the application back down. Kubernetes removes the
+highest-numbered unit, which is the broker that was just drained:
+
+```bash
+juju scale-application kafka-k8s 3
+```
+
+````
+
+`````
 
 <!-- test:await-idle --timeout 1200 --allow-blocked opensearch -->
 

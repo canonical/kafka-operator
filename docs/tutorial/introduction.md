@@ -7,19 +7,24 @@ myst:
 # Tutorial
 <!-- # Charmed Apache Kafka tutorial -->
 
-```{note}
-This tutorial covers **VM (Machine) deployments only**, using a local LXD
-environment. For Kubernetes deployments, see the
-[deployment guide](how-to-deploy-anywhere) instead.
-```
-
 The Charmed Apache Kafka Operator delivers automated operations management from [Day 0 to Day 2](https://codilime.com/blog/day-0-day-1-day-2-the-software-lifecycle-in-the-cloud-age/) on the [Apache Kafka](https://kafka.apache.org/) event streaming platform.
 It is an open source, end-to-end, production-ready data platform [on top of Juju](https://juju.is/). As a first step this tutorial shows you how to get Charmed Apache Kafka up and running, but the tutorial does not stop there.
 Through this tutorial, you will learn a variety of operations, everything from adding replicas to advanced operations such as enabling SSL encryption, cross-cluster asynchronous replication and more.
 
+This tutorial covers both substrates: the **VM (Machine)** charm `kafka` on a
+local LXD cloud, and the **Kubernetes** charm `kafka-k8s` on a local MicroK8s
+cloud. Each page has `VM` and `K8s` tabs, and your selection is remembered as
+you move between pages.
+
+```{note}
+The commands and example outputs in the VM tabs are the ones exercised by the
+automated tutorial tests. The K8s tabs show the equivalent commands for the
+`kafka-k8s` charm.
+```
+
 In this tutorial, we will walk through how to:
 
-- Set up your local environment using LXD and Juju.
+- Set up your local environment using LXD or MicroK8s, and Juju.
 - Deploy Charmed Apache Kafka using only a few commands.
 - Get the admin credentials directly.
 - Add high-availability with replication.
@@ -42,3 +47,10 @@ Before we start, make sure your machine meets the following requirements:
 - `2` CPU cores.
 - At least `20` GB of available storage.
 - Access to the internet for downloading the required snaps and charms.
+
+```{note}
+The full tutorial deploys several applications (Apache Kafka, KRaft
+controllers, Kafka Connect, PostgreSQL and OpenSearch). If you plan to
+complete the ETL and rebalancing chapters, allow more RAM than the minimum
+above, and prefer the `testing` profile shown in the deployment steps.
+```

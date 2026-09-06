@@ -40,9 +40,28 @@ Deployed "data-integrator" from charm-hub charm "data-integrator", revision 362 
 To automatically create a username, password, and database for the Database Integrator charm,
 integrate it to the Charmed Apache Kafka:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju integrate data-integrator kafka
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju integrate data-integrator kafka-k8s
+```
+
+````
+
+`````
 
 <!-- test:await-idle --timeout 1200 -->
 
@@ -112,6 +131,14 @@ ok: "True"
 ```
 
 Make note of the values for `endpoints`, `username` and `password`, we'll be using them later.
+
+```{note}
+On Kubernetes, the returned `endpoints` are cluster-internal DNS names such as
+`kafka-k8s-0.kafka-k8s-endpoints:9092`. They are reachable from inside the
+Kubernetes cluster, which is where the client application in this chapter runs.
+To reach the cluster from outside, see
+[How to connect to Charmed Apache Kafka K8s externally](how-to-external-k8s-connection).
+```
 
 <!-- test:set-variables
 command: juju run data-integrator/leader get-credentials
@@ -264,9 +291,28 @@ juju config kafka-test-app topic_name=TOP-PICK role=producer num_messages=20
 To start producing messages to Apache Kafka, we simply integrate the Apache Kafka Test App
 with Apache Kafka:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju integrate kafka-test-app kafka
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju integrate kafka-test-app kafka-k8s
+```
+
+````
+
+`````
 
 <!-- test:await-idle --timeout 1200 -->
 
@@ -333,9 +379,28 @@ To stop the process (although it is very likely that the process has already sto
 given the low number of messages that were provided) and remove the user,
 you can just remove the relation:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju remove-relation kafka-test-app kafka
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju remove-relation kafka-test-app kafka-k8s
+```
+
+````
+
+`````
 
 <!-- test:await-idle --timeout 1200 --allow-blocked kafka-test-app -->
 <!-- test:wait --seconds 30 -->
@@ -351,9 +416,28 @@ juju config kafka-test-app topic_name=TOP-PICK role=consumer consumer_group_pref
 
 After configuring the Apache Kafka Test App, just relate it again with the Charmed Apache Kafka.
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju integrate kafka-test-app kafka
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju integrate kafka-test-app kafka-k8s
+```
+
+````
+
+`````
 
 <!-- test:await-idle --timeout 1200 -->
 

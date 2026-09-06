@@ -16,12 +16,19 @@ This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
 For this tutorial, we will need to set up the environment with two main components, and extra command-line tooling:
 
-* [LXD](https://github.com/canonical/lxd) - a simple and lightweight virtual machine provisioner
+* A cloud provisioner -- [LXD](https://github.com/canonical/lxd) for the VM
+  substrate, or [MicroK8s](https://microk8s.io/) for the Kubernetes substrate
 * [Juju](https://github.com/juju/juju) - enables us to deploy and manage Charmed Apache Kafka and related applications
 * [yq](https://github.com/mikefarah/yq) - a command-line YAML processor
 * [jq](https://github.com/jqlang/jq) - a command-line JSON processor
 
-## Prepare LXD
+## Prepare the cloud
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 The fastest, simplest way to get started with Charmed Apache Kafka is to set up a local LXD cloud.
 LXD is a system container and virtual machine manager;
@@ -49,6 +56,48 @@ You can list all LXD containers by entering the command `lxc list` into the comm
 +------+-------+------+------+------+-----------+
 ```
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+For the Kubernetes substrate, the simplest way to get started is a local
+MicroK8s cloud. Apache Kafka will run in pods on this cluster and be managed
+by Juju.
+
+Install MicroK8s and add your user to its group:
+
+```bash
+sudo snap install microk8s --channel 1.32-strict/stable
+sudo usermod -a -G snap_microk8s $USER
+newgrp snap_microk8s
+```
+
+Enable the add-ons required by Charmed Apache Kafka K8s. The `hostpath-storage`
+add-on provides the persistent volumes used by broker storage:
+
+```bash
+sudo microk8s enable dns hostpath-storage
+sudo microk8s status --wait-ready
+```
+
+```{caution}
+`hostpath-storage` is suitable for this tutorial only. Production deployments
+require a proper storage class -- see the
+[deployment guide](how-to-deploy-anywhere).
+```
+
+List all pods to confirm the cluster is running. At this point of the tutorial,
+only system pods should exist:
+
+```bash
+sudo microk8s kubectl get pods -A
+```
+
+````
+
+`````
+
 ## Install and prepare Juju
 
 [Juju](https://juju.is/) is an Operator Lifecycle Manager (OLM) for clouds, bare metal,
@@ -71,11 +120,18 @@ Install `jq`, a JSON processor used in later steps:
 sudo snap install jq
 ```
 
-Juju already has built-in knowledge of LXD and how it works, so there is no additional setup
-or configuration needed. A Juju controller will be deployed, which will in turn
-manage the operations of Charmed Apache Kafka. All we need to do is run the following command
-to bootstrap a Juju controller named `overlord` to LXD. This bootstrapping process can take
-several minutes depending on the resources available on your machine:
+Juju already has built-in knowledge of LXD and MicroK8s and how they work, so
+there is no additional cloud setup or configuration needed. A Juju controller
+will be deployed, which will in turn manage the operations of Charmed Apache
+Kafka. All we need to do is bootstrap a Juju controller named `overlord`. This
+bootstrapping process can take several minutes depending on the resources
+available on your machine:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```shell
 juju bootstrap localhost overlord
@@ -101,6 +157,35 @@ lxc list
 where `<id>` is a unique combination of numbers and letters such as `9d7e4e-0`.
 
 </details>
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju bootstrap microk8s overlord
+```
+
+The Juju controller runs as a pod in the `controller-overlord` namespace.
+To verify this, list the pods:
+
+```bash
+sudo microk8s kubectl get pods -n controller-overlord
+```
+
+<details> <summary> Output example</summary>
+
+```text
+NAME           READY   STATUS    RESTARTS   AGE
+controller-0   3/3     Running   0          2m
+```
+
+</details>
+
+````
+
+`````
 
 The controller can work with different models;
 models host applications such as Charmed Apache Kafka.
