@@ -158,32 +158,13 @@ templates_path = [
 # Redirects #
 #############
 
-# To set up redirects using sphinx-reredirects:
-# https://documatt.gitlab.io/sphinx-reredirects/usage.html
-# For example: 'explanation/old-name.html': '../how-to/prettify.html',
-
 # To set up redirects using sphinx-rerediraffe:
 # https://sphinxext-rediraffe.readthedocs.io/en/latest/
 
 # To set up redirects in the Read the Docs project dashboard:
 # https://docs.readthedocs.io/en/stable/guides/redirects.html
 
-# NOTE: sphinx_reredirects is disabled when 'redirects' is empty.
-# NOTE: Do not add sphinx_rerediraffe to extensions unless redirects are
-#       configured — it emits a warning that breaks the build under
-#       --fail-on-warning. Uncomment when redirects are needed:
-# rediraffe_redirects = "redirects.txt"
-
-# Redirects for pages that moved during the VM/K8s docs unification, and for
-# the former contact page that was replaced by the top-level Contribute page.
-# Targets are relative to the source page (dirhtml builder).
-redirects = {
-    "reference/contact": "../../contributing/",
-    "reference/snap-commands": "../cli-utilities/",
-    "reference/release-notes/revision-248": "../machine/revision-248/",
-    "reference/release-notes/k8s-revision-82": "../k8s/revision-82/",
-    "reference/release-notes/k8s-revision-56-51": "../k8s/revision-56-51/",
-}
+rediraffe_redirects = "redirects.txt"
 
 
 ############################
@@ -245,7 +226,7 @@ extensions = [
     "canonical_sphinx",
     "notfound.extension",
     "sphinx_design",
-    "sphinx_reredirects",
+    "sphinx_rerediraffe",
     "sphinx_tabs.tabs",
     "sphinxcontrib.jquery",
     "sphinxext.opengraph",

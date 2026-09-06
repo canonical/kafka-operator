@@ -1,0 +1,8 @@
+# Redirect source paths to their current documentation pages.
+# Paths are relative to the Sphinx source directory.
+
+reference/snap-commands.md reference/cli-utilities.md
+reference/release-notes/revision-248.md reference/release-notes/machine/revision-248.md
+reference/release-notes/k8s-revision-82.md reference/release-notes/k8s/revision-82.md
+reference/release-notes/k8s-revision-56-51.md reference/release-notes/k8s/revision-56-51.md
+reference/contact.md contributing.md
