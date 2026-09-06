@@ -7,6 +7,15 @@ myst:
 (reference-file-system-paths)=
 # File system paths
 
+Paths differ because the VM charm installs the workload as a snap while the K8s
+charm runs it in an OCI workload container.
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 In the following table, we summarise some of the most relevant file paths used in Charmed Apache Kafka:
 
 | Environment Variable |                       Path                       |                                                                                                                   Description                                                                                                                   |                Permission                |
@@ -24,6 +33,30 @@ For example, to list the files and directories in the `$LOGS` directory on a par
 juju ssh kafka/0 sudo -i 'ls $LOGS'
 ```
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+| Variable | Path | Description | Permission |
+|---|---|---|---|
+| `BIN` | `/opt/kafka` | Apache Kafka binaries bundled in the `charmed-kafka` OCI image | read-only |
+| `CONF` | `/etc/kafka/` | Configuration managed by the charm | owned by `_daemon_`, managed by the charm |
+| `LOGS` | `/var/log/kafka/` | Workload logs | owned and managed by `_daemon_` |
+| `DATA` | `/var/lib/kafka/` | Persistent message data | owned and managed by `_daemon_` |
+
+The same layout is used for Cruise Control under `/opt/cruise-control`,
+`/etc/cruise-control`, `/var/log/cruise-control`, and `/var/lib/cruise-control`.
+Use the workload container when inspecting a path:
+
+```shell
+juju ssh --container kafka kafka-k8s/leader 'ls /var/log/kafka'
+```
+
+````
+
+`````
+
 ## Configuration
 
 - **`$CONF/server.properties`** - the full configuration file for the broker and KRaft controller services
@@ -36,6 +69,9 @@ juju ssh kafka/0 sudo -i 'ls $LOGS'
   - Passwords to the keystore and truststore are stored in Juju secrets
 - **`$CONF/client-keystore.p12` + `$CONF/client-truststore.jks`** - the Java keystore and truststore used for client SSL encryption
   - Passwords to the keystore and truststore are stored in Juju secrets
+- **`$CONF/cruisecontrol.properties`**, **`$CONF/cruise_control_jaas.conf`**, and
+  **`$CONF/capacityJBOD.json`** contain the Cruise Control configuration.
+- **`$CONF/jmx_prometheus.yaml`** configures the broker's JMX exporter.
 
 ## System logs
 
@@ -48,10 +84,13 @@ juju ssh kafka/0 sudo -i 'ls $LOGS'
 ## Apache Kafka binaries
 
 - **`$BIN/bin/*.sh`** - general bash scripts provided from upstream Apache Kafka, with utilities for managing and interacting with the cluster
-  - These files are typically accessible directly via Snap commands - e.g, `kafka-topics.sh` can be invoked by running `charmed-kafka.topics`
+  - On VM, these are typically exposed as snap commands; for example,
+    `kafka-topics.sh` can be invoked with `charmed-kafka.topics`.
+  - On K8s, run the scripts in the `kafka` workload container.
 
 ## Message data and cluster metadata
 
 - **`$DATA/data/*`** - the `data` storage directory where the raw Apache Kafka message data is persisted to disk
   - Each Juju mounted JBOD storage directory will have an integer identifier matching a subdirectory in `$DATA/data/`
-  - Find these directories with `juju status --storage kafka | grep data/`
+  - Find these directories with `juju status --storage kafka | grep data/` on VM
+    or `juju status --storage kafka-k8s | grep data/` on K8s.

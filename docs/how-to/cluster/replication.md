@@ -19,7 +19,7 @@ see the [MirrorMaker explanation](explanation-mirrormaker2-0) page.
 
 To set up cluster replication we need:
 
-- Two Charmed Apache Kafka clusters:
+- Two Charmed Apache Kafka clusters on a common substrate:
   - A source cluster to replicate from.
   - A target cluster to replicate to.
 - A Charmed Kafka Connect cluster to run the MirrorMaker connectors.
@@ -31,9 +31,11 @@ for example, in the same cloud region.
 
 For guidance on how to set up Charmed Apache Kafka, please refer to the following resources:
 
-- The [Charmed Apache Kafka Tutorial](tutorial-introduction)
 - The [How to deploy guide](how-to-deploy-anywhere) for Charmed Apache Kafka
-- The [Charmed Kafka Connect Tutorial](tutorial-kafka-connect)
+- The [Kafka Connect guide](how-to-use-kafka-connect-for-etl-workloads)
+
+The commands below use the VM application names. For K8s, use `kafka-k8s`
+applications and `kafka-connect-k8s` as shown in the synchronized command tabs.
 
 ## Set up active-passive replication
 
@@ -41,8 +43,9 @@ The [MirrorMaker integrator charm](https://charmhub.io/mirrormaker-connect-integ
 manages tasks on a Charmed Kafka Connect cluster that replicates data from an active
 Apache Kafka cluster to a passive cluster.
 
-Check the status of deployed applications by running `juju status` command.
-The result should be similar to:
+Check the status of deployed applications by running `juju status`. The
+following VM output illustrates the expected application state; Kubernetes
+output uses pod addresses and omits the machine column:
 
 ```text
 Model  Controller  Cloud/Region         Version  SLA          Timestamp
@@ -63,9 +66,28 @@ The `active` cluster serves as a source and `passive` as a target for replicatio
 
 Integrate Kafka Connect with the passive cluster (as recommended for active-passive replication):
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```bash
 juju integrate kafka-connect passive
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju integrate kafka-connect-k8s passive
+```
+
+````
+
+`````
 
 ## Deploy a MirrorMaker integrator
 
@@ -84,13 +106,35 @@ mirrormaker/0*    blocked   idle   4        10.86.75.16                     Inte
 
 Set up the necessary relations:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```bash
 juju integrate kafka-connect mirrormaker
 juju integrate mirrormaker:source active
 juju integrate mirrormaker:target passive
 ```
 
-After some time, the `mirrormaker` application should show up as `active/idle` in the `juju status`:
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju integrate kafka-connect-k8s mirrormaker
+juju integrate mirrormaker:source active
+juju integrate mirrormaker:target passive
+```
+
+````
+
+`````
+
+After some time, the `mirrormaker` application should show up as `active/idle`
+in `juju status`. The following example is from a VM model:
 
 ```text
 Model  Controller  Cloud/Region         Version  SLA          Timestamp
@@ -134,7 +178,9 @@ juju deploy mirrormaker-connect-integrator --config prefix_topics=true mirrormak
 juju deploy mirrormaker-connect-integrator --config prefix_topics=true mirrormaker-b-a
 ```
 
-Check the status of deployed applications by running `juju status` command. The result should be similar to:
+Check the status of deployed applications by running `juju status`. The
+following example is from a VM model; Kubernetes output uses pod addresses and
+the deployed charms are `kafka-k8s` and `kafka-connect-k8s`:
 
 ```text
 Model  Controller  Cloud/Region         Version  SLA          Timestamp
@@ -159,6 +205,12 @@ mirrormaker-b-a/0*  active    idle   3        10.86.75.190    8080/tcp        Ta
 
 Then the integrations needed should be done like follows:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```bash
 # active-passive  A -> B
 juju integrate kafka-connect-b kafka-b
@@ -173,5 +225,32 @@ juju integrate mirrormaker-b-a:source kafka-b
 juju integrate mirrormaker-b-a:target kafka-a
 ```
 
-With this, the deployment is complete. There will be two bi-directional replication flows between `kafka-a` and `kafka-b`. The topics will be prefixed with the cluster name, so that they do not collide with each other.
-For example, a topic called `demo` created on `kafka-a` will be replicated as a new topic on `kafka-b` named `kafka-a.replica.demo`, and vice versa.
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+# active-passive A -> B
+juju integrate kafka-connect-k8s-b kafka-k8s-b
+juju integrate kafka-connect-k8s-b mirrormaker-a-b
+juju integrate mirrormaker-a-b:source kafka-k8s-a
+juju integrate mirrormaker-a-b:target kafka-k8s-b
+
+# active-passive B -> A
+juju integrate kafka-connect-k8s-a kafka-k8s-a
+juju integrate kafka-connect-k8s-a mirrormaker-b-a
+juju integrate mirrormaker-b-a:source kafka-k8s-b
+juju integrate mirrormaker-b-a:target kafka-k8s-a
+```
+
+````
+
+`````
+
+With this, the deployment is complete. There will be two bidirectional
+replication flows between the A and B applications (`kafka-a`/`kafka-b` on VM,
+or `kafka-k8s-a`/`kafka-k8s-b` on Kubernetes). Topics are prefixed with the
+source application name so that they do not collide. For example, a `demo`
+topic created on VM application `kafka-a` is replicated to `kafka-b` as
+`kafka-a.replica.demo`, and vice versa.

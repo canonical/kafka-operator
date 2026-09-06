@@ -13,15 +13,53 @@ Relations to new applications are supported via the "[{spellexception}`kafka_cli
 
 If the charm supports the `kafka_client` relation interface, just create an integration between the two charms:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju integrate kafka application
 ```
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```shell
+juju integrate kafka-k8s application
+```
+
+````
+
+`````
+
 To remove a relation:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```shell
 juju remove-relation kafka application
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```shell
+juju remove-relation kafka-k8s application
+```
+
+````
+
+`````
 
 ## Non-charmed applications and external clients
 
@@ -34,11 +72,30 @@ juju deploy data-integrator
 juju config data-integrator topic-name=test-topic extra-user-roles=producer,consumer
 ```
 
-Relate the two applications with:
+Integrate the two applications with:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```shell
 juju integrate data-integrator kafka
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```shell
+juju integrate data-integrator kafka-k8s
+```
+
+````
+
+`````
 
 To retrieve information, enter:
 
@@ -47,6 +104,12 @@ juju run data-integrator/leader get-credentials
 ```
 
 This should output something like:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```yaml
 kafka:
@@ -57,6 +120,26 @@ kafka:
   username: relation-27
 ok: "True"
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```yaml
+kafka:
+  consumer-group-prefix: relation-8-
+  endpoints: kafka-k8s-0.kafka-k8s-endpoints:9092,kafka-k8s-1.kafka-k8s-endpoints:9092,kafka-k8s-2.kafka-k8s-endpoints:9092
+  password: fm2E0oBidzcnpav1WSNfJXKn0vtgn44G
+  tls: disabled
+  topic: test-topic
+  username: relation-8
+ok: "True"
+```
+
+````
+
+`````
 
 ## Password rotation
 
@@ -69,7 +152,13 @@ There are two ways to rotate credentials of an external client. One is simply to
 #### With client application downtime
 
 The easiest way to rotate user credentials of client applications is by removing and then re-relating 
-the application (either a charm supporting the `kafka-client` interface or a `data-integrator`) with the `kafka` charm:
+the application (either a charm supporting the `kafka-client` interface or a `data-integrator`) with the Apache Kafka charm:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```shell
 juju remove-relation kafka <charm-or-data-integrator>
@@ -77,6 +166,22 @@ juju remove-relation kafka <charm-or-data-integrator>
 # wait for the relation to be torn down 
 juju integrate kafka <charm-or-data-integrator>
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```shell
+juju remove-relation kafka-k8s <charm-or-data-integrator>
+
+# wait for the relation to be torn down
+juju integrate kafka-k8s <charm-or-data-integrator>
+```
+
+````
+
+`````
 
 The successful credential rotation can be confirmed by retrieving the new password with the action `get-credentials`.
 
@@ -91,11 +196,30 @@ juju deploy data-integrator rotated-user \
   --config extra-user-roles=producer,consumer
 ```
 
-The `data-integrator` charm can then be related to the `kafka` charm to create a new user:
+The `data-integrator` charm can then be integrated with the Apache Kafka charm to create a new user:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```shell
 juju integrate kafka rotated-user
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```shell
+juju integrate kafka-k8s rotated-user
+```
+
+````
+
+`````
 
 At this point, we effectively have two overlapping users, so that applications can swap the password
 from one to another.

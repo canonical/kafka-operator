@@ -10,7 +10,7 @@ myst:
 This guide applies for in-place upgrades that involve (at most) minor version upgrade of Apache Kafka workload, e.g. between Apache Kafka 4.0.x to 4.1.x.
 
 ```{warning}
-In-place upgrades across major workload versions are **NOT SUPPORTED*.
+In-place upgrades across major workload versions are **NOT SUPPORTED**.
 See [full cluster-to-cluster migrations](how-to-cluster-migration) for major version upgrades (for example, from Apache Kafka 3.x to 4.x).
 ```
 
@@ -25,7 +25,10 @@ When upgrading a Charmed Apache Kafka cluster, ensure that no other major operat
 
 The concurrency with other operations is not supported, and it can lead the cluster into inconsistent states.
 
-Note that the process for upgrading a Charmed Apache Kafka KRaft controller cluster is identical to that of a Charmed Apache Kafka broker cluster. Follow the [Deploy Apache Kafka](tutorial-deploy) tutorial to see possible deployment topologies.
+Note that the process for upgrading a Charmed Apache Kafka KRaft controller
+cluster is identical to that of a Charmed Apache Kafka broker cluster. See the
+[deployment guide](how-to-deploy-anywhere) for the supported topologies on each
+substrate.
 
 ```{warning}
 Always upgrade the KRaft controller application before upgrading the Kafka broker application to avoid metadata missmatches.
@@ -48,6 +51,12 @@ Charmed Apache Kafka exposes the `pause-after-unit-refresh` configuration option
 
 To change refresh pausing behavior, set this configuration option **before** triggering a Juju refresh:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju config kafka pause-after-unit-refresh="all"
 ```
@@ -61,6 +70,30 @@ juju config kafka pause-after-unit-refresh="first"
 ```
 
 This will only pause after the first unit has completed it's upgrade.
+
+The VM charm defaults to `none`.
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```shell
+juju config kafka-k8s pause-after-unit-refresh="all"
+```
+
+This pauses after every unit. To proceed without pauses, set:
+
+```shell
+juju config kafka-k8s pause-after-unit-refresh="none"
+```
+
+The K8s charm defaults to `first`, which pauses once after the first refreshed
+unit.
+
+````
+
+`````
 
 (step-2-collect)=
 ### Step 2: Collect
@@ -77,9 +110,28 @@ Next, perform preparatory tasks to define the upgrade plan, ensuring the process
 
 To do so, run the `pre-refresh-check` action against the leader unit:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju run kafka/leader pre-refresh-check
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```shell
+juju run kafka-k8s/leader pre-refresh-check
+```
+
+````
+
+`````
 
 Make sure that the output of the action is successful.
 
@@ -91,6 +143,12 @@ Although optional, this action should always be run before Charmed Apache Kafka 
 
 Use the [`juju refresh`](https://canonical.com/juju/docs/juju-cli/3.6/reference/juju-cli/list-of-juju-cli-commands/refresh/) command to trigger the charm upgrade process.
 Note that the upgrade can be performed against:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 * selected channel/track, therefore upgrading to the latest revision published on that track:
 
@@ -108,15 +166,59 @@ Note that the upgrade can be performed against:
   juju refresh kafka --path ./kafka_ubuntu-24.04-amd64.charm
   ```
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+* selected channel/track:
+
+  ```shell
+  juju refresh kafka-k8s --channel 4/stable
+  ```
+* selected revision:
+
+  ```shell
+  juju refresh kafka-k8s --revision=<REVISION>
+  ```
+* a local charm file:
+
+  ```shell
+  juju refresh kafka-k8s --path ./kafka-k8s_ubuntu-24.04-amd64.charm
+  ```
+
+````
+
+`````
+
 When issuing the commands, all units will refresh (i.e. receive new charm content), and the upgrade charm event will be fired. The charm will take care of executing an update (if required) and a restart of the workload one unit at a time to not lose high availability. 
 
 If the `pause-after-unit-refresh` configuration is either `all` or `first`, at some point during the refresh, human intervention will be needed in order to resume the upgrade.
 
 Once all checks, both from the charm and any additional checks determined by the administrator have successfully completed, resume the upgrade by running a Juju action:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju run kafka/<unit-id> resume-refresh
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```shell
+juju run kafka-k8s/<unit-id> resume-refresh
+```
+
+````
+
+`````
 
 ```{note}
 Run this action on the next unit scheduled for refresh, as indicated in the application status.
@@ -140,8 +242,27 @@ At any point in the upgrade, it is possible to safely rollback to the original c
 
 To rollback, use the `juju refresh` command with the original charm revision:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju refresh kafka --revision $KAFKA_CHARM_REVISION
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```shell
+juju refresh kafka-k8s --revision $KAFKA_CHARM_REVISION
+```
+
+````
+
+`````
 
 where `KAFKA_CHARM_REVISION` was obtained earlier in [Step 2: Collect](step-2-collect) before the refresh was triggered.

@@ -7,7 +7,9 @@ myst:
 (reference-terraform)=
 # Terraform module reference
 
-Reference for the [Charmed Apache Kafka Terraform module](https://github.com/canonical/kafka-bundle/tree/main/terraform), used with the [Juju Terraform provider](https://registry.terraform.io/providers/juju/juju/latest/docs).
+Reference for the [VM Terraform module](https://github.com/canonical/kafka-bundle/tree/main/terraform)
+and [K8s Terraform module](https://github.com/canonical/kafka-k8s-bundle/tree/main/terraform),
+used with the [Juju Terraform provider](https://registry.terraform.io/providers/juju/juju/latest/docs).
 
 See also: [How to deploy via Terraform](how-to-deploy-terraform).
 
@@ -24,6 +26,7 @@ See also: [How to deploy via Terraform](how-to-deploy-terraform).
 | `karapace` | `object` | `{}` | Karapace Schema Registry application configuration |
 | `ui` | `object` | `{}` | Kafbat Kafka UI application configuration |
 | `tls_offer` | `string` | `null` | TLS provider endpoint for client relations |
+| `ingress_offer` | `string` | `null` | Kubernetes: ingress provider endpoint for Kafka UI |
 | `cos_offers` | `object` | `{}` | COS offers for observability (`dashboard`, `metrics`, `logging`, `tracing`) |
 
 ### Application configuration objects
@@ -38,12 +41,15 @@ The `broker`, `controller`, `connect`, `karapace`, `ui`, and `integrator` variab
 | `constraints` | `string` | Juju constraints (default: `"arch=amd64"`) |
 | `resources` | `map(string)` | Charm resources |
 | `revision` | `number` | Charm revision to deploy |
-| `base` | `string` | Application base (default: `"ubuntu@24.04"`) |
+| `base` | `string` | Application base (default: `"ubuntu@24.04"`; dependent charms can define their own defaults) |
 | `units` | `number` | Number of units to deploy |
 | `storage` | `map(string)` | Storage directives (broker and controller only) |
-| `machines` | `set(string)` | List of machine resources for deployment |
+| `machines` | `set(string)` | Machine: list of machine resources for deployment |
 
-All fields are optional — defaults are set per application. See the [module source](https://github.com/canonical/kafka-bundle/tree/main/terraform) for the full list of defaults.
+All fields are optional — defaults are set per application. See the
+[VM source](https://github.com/canonical/kafka-bundle/tree/main/terraform) or
+[K8s source](https://github.com/canonical/kafka-k8s-bundle/tree/main/terraform)
+for the exact inputs and defaults.
 
 ## Outputs
 

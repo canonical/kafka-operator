@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Charmed Apache Kafka reference materials - release notes, actions, configurations, file paths, snap commands, and status reference."
+    description: "Charmed Apache Kafka reference materials - release notes, actions, configurations, file paths, command-line utilities, and status reference."
 ---
 
 (reference-index)=
@@ -9,7 +9,8 @@ myst:
 
 This section contains the following reference materials.
 
-[Release notes](reference-release-notes-index) for all stable releases of Charmed Apache Kafka.
+[Release notes](reference-release-notes-index) for Machine and Kubernetes
+releases.
 
 Auto-generated from charm source files:
 
@@ -17,17 +18,17 @@ Auto-generated from charm source files:
 * {ref}`reference-configurations`
 * {ref}`reference-statuses`
 
-Charm-specific reference materials:
+Substrate-specific and shared reference materials:
 
 * {ref}`reference-file-system-paths`
-* {ref}`reference-snap-commands`
+* {ref}`reference-cli-utilities`
 * {ref}`reference-requirements`
 * {ref}`reference-terraform`
 
 General useful references:
 
 * {ref}`reference-broker-listeners`
-* {ref}`reference-performance-tuning`
+* {ref}`reference-performance-tuning` (Machine)
 
 ```{toctree}
 :titlesonly:
@@ -39,7 +40,7 @@ _generated/actions.md
 _generated/configurations.md
 _generated/statuses.md
 file-system-paths.md
-snap-commands.md
+Command-line utilities<cli-utilities.md>
 listeners.md
 Terraform module<terraform.md>
 requirements.md

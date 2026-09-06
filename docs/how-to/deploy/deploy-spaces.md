@@ -7,6 +7,11 @@ myst:
 (how-to-deploy-spaces)=
 # Deploy on Juju spaces
 
+```{note}
+Juju spaces are supported by the IAAS/VM charm only. They do not apply to the
+Kubernetes charm; use Kubernetes networking and Services instead.
+```
+
 The Charmed Apache Kafka operator supports [Juju spaces](https://canonical.com/juju/docs/juju-cli/latest/reference/space/index.html) to separate network traffic for:
 
 - **Internal communications**, including inter-broker and broker-to-controller communications.

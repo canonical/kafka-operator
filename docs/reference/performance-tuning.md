@@ -7,6 +7,11 @@ myst:
 (reference-performance-tuning)=
 # Performance tuning
 
+```{note}
+This page applies to IAAS/VM deployments. For Kubernetes deployments, tune the
+worker nodes and Kubernetes resource allocation through the cluster provider.
+```
+
 This section contains some suggested values to get a better performance from Charmed Apache Kafka.
 
 ## Virtual memory handling (recommended)

@@ -5,9 +5,19 @@ myst:
 ---
 
 (how-to-deploy-on-aws)=
+(how-to-deploy-on-eks)=
 # How to deploy on AWS
 
 [Amazon Web Services](https://aws.amazon.com/) is a popular subsidiary of Amazon that provides on-demand cloud computing platforms on a metered pay-as-you-go basis. Access the AWS web console at [{spellexception}`console.aws.amazon.com`](https://console.aws.amazon.com/).
+
+Choose the target substrate. The VM procedure uses EC2 through Juju's AWS cloud;
+the K8s procedure creates an Amazon Elastic Kubernetes Service (EKS) cluster.
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ## Install AWS and Juju tooling
 
@@ -202,3 +212,105 @@ Finally, remove AWS CLI user credentials (to avoid forgetting and leaking):
 ```shell
 rm -f ~/.aws/credentials.yaml
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+## Install tooling and authenticate
+
+Install Juju and `kubectl`, then follow the installation instructions for
+[`eksctl`](https://eksctl.io/installation/) and the
+[AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html):
+
+```shell
+sudo snap install juju --channel 3.6/stable
+sudo snap install kubectl --classic
+aws configure
+aws sts get-caller-identity
+```
+
+## Create an EKS cluster
+
+Choose a unique cluster name and create an `eksctl` configuration. This example
+enables the EBS CSI driver required for persistent volumes and uses three
+workers for a non-production evaluation deployment:
+
+```shell
+export JUJU_NAME=eks-$USER-$RANDOM
+```
+
+```yaml
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+metadata:
+  name: <K8S_CLUSTER_NAME>
+  region: eu-west-3
+iam:
+  withOIDC: true
+addons:
+  - name: aws-ebs-csi-driver
+    wellKnownPolicies:
+      ebsCSIController: true
+nodeGroups:
+  - name: kafka
+    minSize: 3
+    maxSize: 5
+    instanceType: m5.xlarge
+```
+
+Create the cluster:
+
+```shell
+eksctl create cluster -f cluster.yaml
+```
+
+Set `JUJU_NAME` to the name used in `cluster.yaml` before bootstrapping Juju:
+
+```shell
+export JUJU_NAME=<K8S_CLUSTER_NAME>
+```
+
+Select a currently supported EKS/Kubernetes version for your region rather than
+copying an old version from an example.
+
+## Bootstrap Juju and deploy
+
+```shell
+juju add-k8s $JUJU_NAME
+juju bootstrap $JUJU_NAME
+juju add-model <MODEL_NAME>
+juju deploy kafka-k8s -n 3 --channel 4/stable --trust --config roles=broker,controller
+juju deploy data-integrator admin --channel stable \
+  --config extra-user-roles=admin \
+  --config topic-name=admin-topic
+juju integrate kafka-k8s admin
+```
+
+This co-located broker/controller topology is for testing. For a production
+deployment, use separate broker and controller applications and size the worker
+nodes according to the [requirements](reference-requirements), as described in
+the [general deployment guide](how-to-deploy-anywhere).
+
+Inspect the environment with `kubectl cluster-info`, `eksctl get cluster -A`,
+and `kubectl get nodes`.
+
+## Clean up
+
+```{caution}
+Always remove EKS resources that are no longer needed; they can be costly.
+```
+
+```shell
+juju destroy-controller $JUJU_NAME --yes --destroy-all-models --destroy-storage --force
+juju remove-cloud $JUJU_NAME
+eksctl delete cluster $JUJU_NAME --region eu-west-3 --force --disable-nodegroup-eviction
+```
+
+Check for cloud resources that were not removed automatically before deleting
+local AWS credentials.
+
+````
+
+`````

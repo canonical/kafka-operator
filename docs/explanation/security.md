@@ -7,24 +7,28 @@ myst:
 (explanation-security)=
 # Security
 
-This document provides an overview of security features and guidance for hardening the security of [Charmed Apache Kafka](https://charmhub.io/kafka) deployments, including setting up and managing a secure environment.
+This document provides an overview of security features and guidance for hardening
+[Charmed Apache Kafka for VM](https://charmhub.io/kafka) and
+[Charmed Apache Kafka K8s](https://charmhub.io/kafka-k8s) deployments.
 
 ## Environment
 
 The environment where Charmed Apache Kafka operates can be divided into two components:
 
-1. Cloud
+1. Cloud or Kubernetes substrate
 2. Juju
 
-### Cloud
+### Cloud or Kubernetes substrate
 
-Charmed Apache Kafka can be deployed on top of several clouds and virtualisation layers:
+Charmed Apache Kafka can be deployed on clouds, virtualisation layers, and
+Kubernetes distributions:
 
-| Cloud     | Security guides                                                                                                                                                                                                                                                         |
-|-----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| OpenStack | [OpenStack Security Guide](https://docs.openstack.org/security-guide/)                                                                                                                                                                                                 |
-| AWS       | [Best Practices for Security, Identity and Compliance](https://aws.amazon.com/architecture/security-identity-compliance), [AWS security credentials](https://docs.aws.amazon.com/IAM/latest/UserGuide/security-creds.html)          | 
-| Azure     | [Azure security best practices and patterns](https://learn.microsoft.com/en-us/azure/security/fundamentals/best-practices-and-patterns), [Managed identities for Azure resource](https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/) |
+| Substrate | Security guides |
+|---|---|
+| OpenStack | [OpenStack Security Guide](https://docs.openstack.org/security-guide/) |
+| AWS | [Best Practices for Security, Identity and Compliance](https://aws.amazon.com/architecture/security-identity-compliance), [AWS security credentials](https://docs.aws.amazon.com/IAM/latest/UserGuide/security-creds.html), [Security in EKS](https://docs.aws.amazon.com/eks/latest/userguide/security.html) |
+| Azure | [Azure security best practices and patterns](https://learn.microsoft.com/en-us/azure/security/fundamentals/best-practices-and-patterns), [Managed identities for Azure resources](https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/), [Security in AKS](https://learn.microsoft.com/en-us/azure/aks/concepts-security) |
+| Charmed Kubernetes | [Security in Charmed Kubernetes](https://ubuntu.com/kubernetes/docs/security) |
 
 ### Juju
 
@@ -32,15 +36,20 @@ Juju is the component responsible for orchestrating the entire lifecycle, from d
 
 #### Cloud credentials
 
-When configuring cloud credentials to be used with Juju, ensure that users have correct permissions to operate at the required level. 
-Juju superusers responsible for bootstrapping and managing controllers require elevated permissions to manage several kinds of resources, such as
-virtual machines, networks, storages, etc. Please refer to the links below for more information on the policies required to be used depending on the cloud. 
+When configuring credentials for Juju, ensure that users have only the permissions
+needed to operate the target substrate. Juju superusers responsible for bootstrapping
+and managing controllers require elevated permissions.
 
 | Cloud     | Cloud user policies                                                                                                                                                                                                                            |
 |-----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | OpenStack | N/A                                                                                                                                                                                                                                            |
 | AWS       | [Juju on AWS](https://canonical.com/juju/docs/juju-cli/3.6/reference/cloud/list-of-supported-clouds/amazon-ec2/) | 
 | Azure     | [Juju on Azure](https://canonical.com/juju/docs/juju-cli/3.6/reference/cloud/list-of-supported-clouds/microsoft-azure/)                                                         |
+
+On Kubernetes, the Juju identity used to bootstrap and manage deployments must
+be able to create, delete, patch, and list the required namespaces, Services,
+Deployments, StatefulSets, Pods, and PersistentVolumeClaims. An administrative
+Kubernetes role is commonly used for this purpose.
 
 #### Juju users
 
@@ -59,15 +68,21 @@ In the following, we provide guidance on how to harden your deployment using:
 4. Authentication
 5. Monitoring and auditing
 
-### Operating system
+### Operating system and base image
 
-Charmed Apache Kafka operators currently run on top of Ubuntu 24.04 LTS. Deploy a [Landscape Client Charm](https://charmhub.io/landscape-client?) to 
-connect the underlying VM to a Landscape User Account to manage security upgrades and integrate [Ubuntu Pro](https://ubuntu.com/pro) subscriptions. 
+Both charms use Ubuntu 24.04 LTS. On VM, deploy a
+[Landscape Client Charm](https://charmhub.io/landscape-client) to connect the
+underlying machine to Landscape and manage security upgrades and Ubuntu Pro
+subscriptions. On K8s, the workload runs in the
+[Charmed Apache Kafka rock](https://github.com/canonical/charmed-kafka-rock/pkgs/container/charmed-kafka),
+a Rockcraft-based OCI image containing Canonical's Apache Kafka distribution.
 
 ### Security upgrades
 
-Charmed Apache Kafka operators install a pinned revision of the [Charmed Apache Kafka snap](https://snapcraft.io/charmed-kafka),
-to provide reproducible and secure environments. 
+The VM charm installs a pinned revision of the
+[Charmed Apache Kafka snap](https://snapcraft.io/charmed-kafka), while the K8s
+charm uses a pinned revision of the OCI image. Both approaches provide a
+reproducible and secure environment.
 
 New versions of Charmed Apache Kafka may be released to provide patching of vulnerabilities (CVEs).
 It is important to refresh the charm regularly to make sure the workload is as secure as possible. 
@@ -88,7 +103,10 @@ Charmed Apache Kafka supports the following authentication layers:
 
 1. [SCRAM-based SASL Authentication](how-to-client-connections)
 2. [certificate-based Authentication (mTLS)](how-to-create-mtls-client-credentials)
-3. [OAuth Authentication](how-to-enable-oauth) through Canonical Identity Platform
+3. OAuth authentication through an identity provider
+
+The current [Canonical Identity Platform OAuth guide](how-to-enable-oauth)
+covers VM deployment only.
 
 Each combination of authentication scheme and encryption is associated with the dedicated listener and it maps to a well-defined port. See the [listeners reference documentation](reference-broker-listeners) for more information.
 
@@ -104,7 +122,7 @@ External user access to Apache Kafka is logged to the `kafka-authorizer.log` tha
 
 Access denials are logged at the `INFO` level, whereas allowed accesses are logged at the `DEBUG` level.
 Depending on the auditing needs, customise the logging level either for all logs via the
-[log-level](https://charmhub.io/kafka/configure?channel=4/stable#log-level) configuration option or
+`log-level` configuration option ([VM](https://charmhub.io/kafka/configure?channel=4/stable#log-level), [K8s](https://charmhub.io/kafka-k8s/configure?channel=4/stable#log-level)) or
 only tune the logging level of the `authorizerAppender` in the `log4j2.yaml` file. See
 the [file system paths](reference-file-system-paths) for further information.
 

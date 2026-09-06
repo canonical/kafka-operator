@@ -5,13 +5,17 @@ myst:
 ---
 
 (how-to-use-kafka-connect-for-etl-workloads)=
+(how-to-use-kafka-connect)=
 # How to use Kafka Connect for ETL workloads
 
 [Kafka Connect](https://kafka.apache.org/41/kafka-connect/overview/) is a framework for easy deployment of Apache Kafka clients for common ETL tasks on different data sources and sinks, managed through multiple jobs running on a distributed cluster of workers.
 
 The Kafka Connect charm delivers automated operations management from day 0 to day 2 on *Kafka Connect*, which hugely simplifies the deployment and administrative tasks on Kafka Connect clusters.
 
-This operator can be found on [Charmhub](https://charmhub.io/kafka-connect) and it comes with production-ready features such as automated and manual plugin management, replication and scalability, authentication, TLS support, and seamless integration with Charmed Apache Kafka set of operators.
+The operator is available for [VM](https://charmhub.io/kafka-connect) and
+[K8s](https://charmhub.io/kafka-connect-k8s). It comes with production-ready
+features such as automated and manual plugin management, replication and scalability,
+authentication, TLS support, and seamless integration with Charmed Apache Kafka.
 
 This How-to guide covers deploying Kafka Connect, integrating it with Charmed Apache Kafka, and running a connector—either manually or using an integrator charm.
 
@@ -23,10 +27,30 @@ For this guide, we will need an active Charmed Apache Kafka application. Follow 
 
 To deploy [Kafka Connect charm](https://charmhub.io/kafka-connect) and integrate it with Charmed Apache Kafka, use the following commands:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```bash
 juju deploy kafka-connect --channel edge
 juju integrate kafka-connect kafka
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju deploy kafka-connect-k8s --channel 4/stable
+juju integrate kafka-connect-k8s kafka-k8s
+```
+
+````
+
+`````
 
 ## Use REST API
 
@@ -46,6 +70,12 @@ secret:cvh7kruupa1s46bqvuig
 
 Now, grant the secret to the Kafka Connect charm using `juju grant-secret` command:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```
 juju grant-secret mysecret kafka-connect
 ```
@@ -55,6 +85,20 @@ Finally, the Kafka Connect charm should be configured to use the newly provided 
 ```bash
 juju config kafka-connect system-users=secret:cvh7kruupa1s46bqvuig
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju grant-secret mysecret kafka-connect-k8s
+juju config kafka-connect-k8s system-users=secret:cvh7kruupa1s46bqvuig
+```
+
+````
+
+`````
 
 To verify that Kafka Connect is properly configured and functioning, send a request to the REST interface to list all registered connectors using the password set in Juju secret:
 
@@ -96,9 +140,28 @@ wget https://github.com/Aiven-Open/cloud-storage-connectors-for-apache-kafka/rel
 
 Once downloaded, attach the connector to the charm using the `juju attach-resource` command.
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```bash
 juju attach-resource kafka-connect connect-plugin=./s3-source-connector-for-apache-kafka-3.2.0.tar
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju attach-resource kafka-connect-k8s connect-plugin=./s3-source-connector-for-apache-kafka-3.2.0.tar
+```
+
+````
+
+`````
 
 This triggers a restart of Charmed Kafka Connect application. Once all units show `active|idle` status, the plugin is ready to use. To verify using the Kafka Connect REST API:
 
@@ -205,4 +268,6 @@ A curated set of integrators for common ETL use cases on [Canonical Data Platfor
 
 These charmed operators support use cases such as loading data to and from MySQL, PostgreSQL, OpenSearch, S3-compatible storage services, and active/passive replication of Apache Kafka topics using MirrorMaker.
 
-To learn more about integrator charms, please refer to the tutorial [Use Kafka Connect for ETL](tutorial-kafka-connect) which covers a practical use-case of moving data from MySQL to OpenSearch using integrator charms.
+To learn more about integrator charms, see the tutorial for machine deployments,
+[Use Kafka Connect for ETL](tutorial-kafka-connect), which covers a practical
+use case of moving data from MySQL to OpenSearch.

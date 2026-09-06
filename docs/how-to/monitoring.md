@@ -8,7 +8,9 @@ myst:
 # How to set up monitoring
 
 Charmed Apache Kafka comes with the [JMX exporter](https://github.com/prometheus/jmx_exporter/).
-The metrics can be queried by accessing the `http://<kafka-unit-ip>:9101/metrics` endpoint.
+Broker metrics can be queried at `http://<kafka-unit-ip>:9101/metrics`. On K8s,
+Cruise Control balancer metrics are also available at
+`http://<kafka-unit-ip>:9102/metrics`.
 
 Additionally, the charm provides integration with the [Canonical Observability Stack](https://charmhub.io/topics/canonical-observability-stack).
 
@@ -17,7 +19,36 @@ Additionally, the charm provides integration with the [Canonical Observability S
 
 Deploy the `cos-lite` bundle in a Kubernetes environment. This can be done by following the
 [deployment tutorial](https://charmhub.io/topics/canonical-observability-stack/tutorials/install-microk8s).
-Since the Charmed Apache Kafka is deployed directly on a cloud infrastructure environment, it is needed to offer the endpoints of the COS relations.
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
+Because Charmed Apache Kafka is deployed in a VM model, offer the endpoints of
+the COS relations from the Kubernetes COS model and consume them in the VM model.
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+If Charmed Apache Kafka K8s is deployed in the same model as COS, integrate the
+applications directly:
+
+```shell
+juju integrate kafka-k8s:metrics-endpoint prometheus
+juju integrate kafka-k8s:grafana-dashboard grafana
+juju integrate kafka-k8s:logging loki
+```
+
+If COS is in a separate model, use the cross-model procedure below.
+
+````
+
+`````
+
 The [offers-overlay](https://github.com/canonical/cos-lite-bundle/blob/main/overlays/offers-overlay.yaml)
 can be used, and this step is shown in the COS tutorial.
 
@@ -35,7 +66,7 @@ juju offer prometheus:receive-remote-write prometheus-receive-remote-write
 
 ### Consume offers via the Apache Kafka model
 
-Switch back to the Charmed Apache Kafka model, find offers and relate with them:
+Switch back to the Charmed Apache Kafka model, find offers and integrate with them:
 
 ```shell
 juju switch <machine_controller_name>:<kafka_model_name>
@@ -61,7 +92,13 @@ juju consume <k8s_controller>:admin/<cos_model_name>.loki-logging
 juju consume <k8s_controller>:admin/<cos_model_name>.grafana-dashboards
 ```
 
-Now, deploy `opentelemetry-collector` (subordinate charm) and relate it with Charmed Apache Kafka:
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
+Deploy `opentelemetry-collector` (a subordinate charm) and integrate it with Charmed Apache Kafka:
 
 ```shell
 juju deploy opentelemetry-collector
@@ -75,6 +112,23 @@ juju integrate opentelemetry-collector grafana-dashboards
 juju integrate opentelemetry-collector loki-logging
 juju integrate opentelemetry-collector prometheus-receive-remote-write
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+Integrate Charmed Apache Kafka K8s directly with the consumed offers:
+
+```shell
+juju integrate kafka-k8s:metrics-endpoint prometheus-receive-remote-write
+juju integrate kafka-k8s:grafana-dashboard grafana-dashboards
+juju integrate kafka-k8s:logging loki-logging
+```
+
+````
+
+`````
 
 Wait for all components to settle down on a `active/idle` state on both models, e.g. `<kafka_model_name>` and `<cos_model_name>`.
 
@@ -97,7 +151,8 @@ juju config <KAFKA_APP_NAME> log-level=<LOG_LEVEL>
 ```
 
 ```{tip}
-See also: `log-level` configuration parameter [reference](https://charmhub.io/kafka/configurations#log-level).
+See the `log-level` configuration reference for [VM](https://charmhub.io/kafka/configure?channel=4/stable#log-level)
+or [K8s](https://charmhub.io/kafka-k8s/configurations?channel=4/stable#log-level).
 ```
 
 Possible `LOG_LEVEL` values are: `ERROR`, `WARNING`, `INFO`, and `DEBUG`.
@@ -114,8 +169,8 @@ Deploy the `cos-lite` bundle in a Kubernetes environment and integrate Charmed A
 This guide will refer to the models that charms are deployed into as:
 
 * `<cos-model>` for the model containing observability charms (and deployed on K8s)
-* `<apps-model>` for the model containing Charmed Apache Kafka
-* `<apps-model>` for other optional charms (e.g. TLS-certificates operators, `opentelemetry-collector`, `data-integrator`, etc.).
+* `<apps-model>` for the model containing Charmed Apache Kafka and optional charms
+  (e.g. TLS certificate operators, `opentelemetry-collector`, and `data-integrator`).
 
 ### Create a repository with a custom monitoring setup
 

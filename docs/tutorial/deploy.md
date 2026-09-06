@@ -248,7 +248,7 @@ juju ssh kafka/0 sudo -i \
 ```
 
 For a full list of the available Charmed Kafka command-line tools, please refer to
-[snap commands](reference-snap-commands) reference.
+[command-line utilities](reference-cli-utilities) reference.
 
 ## What's next?
 

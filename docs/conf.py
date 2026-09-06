@@ -174,10 +174,15 @@ templates_path = [
 #       --fail-on-warning. Uncomment when redirects are needed:
 # rediraffe_redirects = "redirects.txt"
 
-# The former contact page was replaced by the top-level Contribute page.
+# Redirects for pages that moved during the VM/K8s docs unification, and for
+# the former contact page that was replaced by the top-level Contribute page.
 # Targets are relative to the source page (dirhtml builder).
 redirects = {
     "reference/contact": "../../contributing/",
+    "reference/snap-commands": "../cli-utilities/",
+    "reference/release-notes/revision-248": "../machine/revision-248/",
+    "reference/release-notes/k8s-revision-82": "../k8s/revision-82/",
+    "reference/release-notes/k8s-revision-56-51": "../k8s/revision-56-51/",
 }
 
 

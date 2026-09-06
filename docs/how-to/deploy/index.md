@@ -7,7 +7,9 @@ myst:
 (how-to-deploy-index)=
 # Deploy
 
-This section covers deploying Charmed Apache Kafka using different methods and on different platforms.
+This section covers deploying Charmed Apache Kafka on VM and Kubernetes using
+different methods and cloud platforms. Synchronized tabs retain the selected
+substrate across guides.
 
 **Deployment methods:**
 
@@ -18,7 +20,8 @@ This section covers deploying Charmed Apache Kafka using different methods and o
 
 * [AWS](how-to-deploy-on-aws)
 * [Azure](how-to-deploy-on-azure)
-* [Juju Spaces](how-to-deploy-spaces)
+* [Juju Spaces (Machine)](how-to-deploy-spaces)
+* [External connections (Kubernetes)](how-to-external-k8s-connection)
 
 ```{toctree}
 :titlesonly:
@@ -30,4 +33,5 @@ via Terraform<deploy-terraform.md>
 AWS<deploy-aws.md>
 Azure<deploy-azure.md>
 Spaces<deploy-spaces.md>
+External K8s connections<../external-k8s-connection.md>
 ```

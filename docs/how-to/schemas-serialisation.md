@@ -17,16 +17,55 @@ Follow the steps of the [How to deploy Charmed Apache Kafka](how-to-deploy-anywh
 
 To deploy Karapace and integrate it with Apache Kafka, use the following commands:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```bash
 juju deploy karapace --channel stable
 juju integrate karapace kafka
 ```
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju deploy karapace-k8s --channel stable
+juju integrate karapace-k8s kafka-k8s
+```
+
+````
+
+`````
+
 Once deployed, the password to access the Karapace REST API can be obtained:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```bash
 juju run karapace/leader get-password username="operator"
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju run karapace-k8s/leader get-password username="operator"
+```
+
+````
+
+`````
 
 To check that Karapace works correctly, list all registered schemas using the password from the previous command's output:
 

@@ -4,6 +4,8 @@ myst:
     description: "Platform-independent guide to deploy Charmed Apache Kafka on VM or Kubernetes - set up Juju controller, model, and create admin users."
 ---
 
+(how-to-deploy-anywhere)=
+(how-to-deploy-deploy-anywhere)=
 # How to deploy Charmed Apache Kafka
 
 This guide provides deployment instructions for Charmed Apache Kafka using the
@@ -30,13 +32,10 @@ Platform-specific steps are also available:
 
 - [AWS](how-to-deploy-on-aws)
 - [Azure](how-to-deploy-on-azure)
-- [Juju spaces](how-to-deploy-spaces)
 - [Terraform](how-to-deploy-terraform)
 ````
 
 `````
-
-(how-to-deploy-anywhere)=
 
 To deploy a Charmed Apache Kafka cluster on a bare environment, it is necessary to:
 
@@ -129,20 +128,20 @@ Make sure that the model is of the correct type:
 :sync: vm
 
 ```shell
-juju show-model | yq '.[].type'
+juju show-model | yq '.[]."model-type"'
 ```
 
-The type must **not** be `k8s`.
+The model type must be `iaas`.
 ````
 
 ````{tab-item} K8s
 :sync: k8s
 
 ```shell
-juju show-model | yq '.[].type'
+juju show-model | yq '.[]."model-type"'
 ```
 
-The type must be `k8s`.
+The model type must be `caas`.
 ````
 
 `````
@@ -172,8 +171,8 @@ juju deploy kafka -n <controller-units> --config roles=controller --channel 4/st
 Charmed Apache Kafka K8s for production use-cases is deployed as follows:
 
 ```shell
-juju deploy kafka-k8s -n <broker-units> --config roles=broker --channel 4/edge --trust
-juju deploy kafka-k8s -n <controller-units> --config roles=controller --channel 4/edge controller --trust
+juju deploy kafka-k8s -n <broker-units> --config roles=broker --channel 4/stable --trust
+juju deploy kafka-k8s -n <controller-units> --config roles=controller --channel 4/stable controller --trust
 ```
 
 - `<broker-units>` -- the number of units to deploy for Charmed Apache Kafka K8s brokers
@@ -255,7 +254,7 @@ juju deploy kafka -n <kafka-units> --config roles=broker,controller --channel 4/
 Charmed Apache Kafka K8s for testing use-cases is deployed as follows:
 
 ```shell
-juju deploy kafka-k8s -n <kafka-units> --config roles=broker,controller --channel 4/edge --trust
+juju deploy kafka-k8s -n <kafka-units> --config roles=broker,controller --channel 4/stable --trust
 ```
 
 - `<kafka-units>` -- the number of units to deploy for Charmed Apache Kafka K8s
