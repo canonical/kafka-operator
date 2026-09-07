@@ -75,6 +75,18 @@ Although Discourse content can be edited directly, unless the modifications are 
 4. Discourse Gatekeeper will raise a new PR or add new commits to an open Discourse PR, tracking the `discourse-gatekeeper/migrate` branch. The [sync_docs.yaml](https://github.com/canonical/kafka-operator/actions/workflows/sync_docs.yaml) GitHub Actions provides further details on the Gatekeeper integration that can be run (a) in a scheduled fashion every night; (b) as a part of pull request CI, and (c) can be triggered manually. If new topics are referenced in the main index file on Discourse, these will be added to `docs/index.md` and the new topics pulled from Discourse.
 5. Once Gatekeeper has raised a new or updated an existing PR, feel free to close the initial PR manually created in step 2, with a comment referring to the PR created by Gatekeeper. If the initial PR was referring to a ticket, add the ticket to either the title or the description of the GateKeeper PR.
 
+### Markdown formatting
+
+All Markdown files under `docs/` are formatted automatically with [mdformat](https://mdformat.readthedocs.io/en/stable/) (configured in [docs/.mdformat.toml](docs/.mdformat.toml)), enforced via [pre-commit](https://pre-commit.com/) and in CI.
+
+Once pre-commit is installed (`pip install pre-commit`), the formatter runs automatically on every commit. To apply it manually to all files:
+
+```shell
+pre-commit run mdformat --all-files
+```
+
+CI fails if a pull request contains Markdown that is not formatted according to the configuration — always run the command above (or simply commit, letting the hook reformat) before pushing.
+
 ### Terminology
 
 Apache®, [Apache Kafka, Kafka®](https://kafka.apache.org/), [Apache ZooKeeper, ZooKeeper™](https://zookeeper.apache.org/) and their respective logos are either registered trademarks or trademarks of the [Apache Software Foundation](https://www.apache.org/) in the United States and/or other countries.

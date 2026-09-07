@@ -1,4 +1,4 @@
-wrap = 100        # KEEP = keep your existing line breaks or INTEGER = line wrap
-number = true   # Make lists have consequential numbers in code
+wrap = 100
+number = true
 end_of_line = "lf"
 validate = true
