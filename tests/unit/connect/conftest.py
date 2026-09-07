@@ -18,11 +18,16 @@ from .helpers import ACTIONS, CONFIG, METADATA, ConnectCharm
 def workload(monkeypatch):
     """Workload with completely mocked functionality."""
     monkeypatch.undo()
+    monkeypatch.setattr("charmlibs.pathops.LocalPath.exists", lambda _: True)
+    monkeypatch.setattr("charmlibs.pathops.ContainerPath.exists", lambda _: True)
     monkeypatch.setattr(
         f"single_kernel_kafka.workload.ConnectWorkload{SUBSTRATE_CLS}.exec", Mock()
     )
     monkeypatch.setattr(
         f"single_kernel_kafka.workload.ConnectWorkload{SUBSTRATE_CLS}.installed", True
+    )
+    monkeypatch.setattr(
+        f"single_kernel_kafka.workload.ConnectWorkload{SUBSTRATE_CLS}.read", lambda _, path: []
     )
     monkeypatch.setattr(
         f"single_kernel_kafka.workload.ConnectWorkload{SUBSTRATE_CLS}.write", Mock()

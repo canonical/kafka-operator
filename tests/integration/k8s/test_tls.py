@@ -11,7 +11,7 @@ import time
 import jubilant
 import kafka
 import pytest
-from charms.tls_certificates_interface.v4.tls_certificates import PrivateKey, generate_private_key
+from charmlibs.interfaces.tls_certificates import PrivateKey, generate_private_key
 from single_kernel_kafka.core.literals import (
     CERTIFICATE_TRANSFER_RELATION,
     SECURITY_PROTOCOL_PORTS,

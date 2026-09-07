@@ -21,8 +21,8 @@ from ops.testing import Container, Context, PeerRelation, Relation, State, Stora
 from tests.unit.helpers import ACTIONS, CONFIG, METADATA, SUBSTRATE, SUBSTRATE_CLS, KafkaCharm
 
 if SUBSTRATE == "vm":
+    from charmlibs.snap import SnapError
     from charms.operator_libs_linux.v0.sysctl import ApplyError
-    from charms.operator_libs_linux.v2.snap import SnapError
     from common.single_kernel_kafka.core.literals import OS_REQUIREMENTS
 
 pytestmark = pytest.mark.broker

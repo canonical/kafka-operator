@@ -8,6 +8,7 @@ import abc
 import json
 import logging
 import socket
+import warnings
 from dataclasses import dataclass
 from functools import cached_property
 from typing import (
@@ -19,6 +20,10 @@ from typing import (
 )
 
 import requests
+from charmlibs.interfaces.tls_certificates import (
+    Certificate,
+    PrivateKey,
+)
 from charms.data_platform_libs.v0.data_interfaces import (
     PROV_SECRET_PREFIX,
     SECRET_GROUPS,
@@ -29,26 +34,26 @@ from charms.data_platform_libs.v0.data_interfaces import (
     RequirerData,
 )
 from charms.data_platform_libs.v0.data_models import TypedCharmBase
-from charms.data_platform_libs.v1.data_interfaces import (
-    SECRET_PREFIX,
-    BaseModel,
-    EntityPermissionModel,
-    KafkaRequestModel,
-    KafkaResponseModel,
-    OpsPeerRepository,
-    OpsRelationRepository,
-    OptionalSecrets,
-    OptionalSecretStr,
-    SecretGroup,
-    SecretNotFoundError,
-)
-from charms.tls_certificates_interface.v4.tls_certificates import (
-    Certificate,
-    PrivateKey,
-)
+
+# FIXME: remove this when the following issue is fixed:
+# https://github.com/canonical/data-platform-charmlibs/issues/21
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    from dpcharmlibs.interfaces import (
+        SECRET_PREFIX,
+        EntityPermissionModel,
+        KafkaRequestModel,
+        KafkaResponseModel,
+        OpsPeerRepository,
+        OpsRelationRepository,
+        OptionalSecrets,
+        OptionalSecretStr,
+        SecretGroup,
+    )
 from lightkube.resources.core_v1 import Node, Pod
+from ops import SecretNotFoundError
 from ops.model import Application, Model, ModelError, Relation, Unit
-from pydantic import ValidationError, field_validator
+from pydantic import BaseModel, ValidationError, field_validator
 from typing_extensions import override
 
 from ..managers.k8s import K8sManager
