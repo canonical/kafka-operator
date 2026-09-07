@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Step-by-step tutorial for deploying and managing Charmed Apache Kafka - from environment setup to encryption, ETL, and cluster rebalancing."
+    description: Step-by-step tutorial for deploying and managing Charmed Apache Kafka - from environment setup to encryption, ETL, and cluster rebalancing.
 ---
 
 (tutorial-introduction)=

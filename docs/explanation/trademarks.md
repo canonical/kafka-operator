@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Apache Kafka trademarks and terminology - official trademark information and usage guidelines."
+    description: Apache Kafka trademarks and terminology - official trademark information and usage guidelines.
 ---
 
 (explanation-trademarks)=

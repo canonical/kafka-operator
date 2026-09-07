@@ -1,10 +1,11 @@
 ---
 myst:
   html_meta:
-    description: "Deploy Charmed Apache Kafka using Juju network spaces - separate internal and client traffic with network space binding."
+    description: Deploy Charmed Apache Kafka using Juju network spaces - separate internal and client traffic with network space binding.
 ---
 
 (how-to-deploy-spaces)=
+
 # Deploy on Juju spaces
 
 The Charmed Apache Kafka operator supports

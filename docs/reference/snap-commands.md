@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Charmed Apache Kafka snap commands reference - complete mapping of snap commands to executable scripts."
+    description: Charmed Apache Kafka snap commands reference - complete mapping of snap commands to executable scripts.
 ---
 
 (reference-snap-commands)=

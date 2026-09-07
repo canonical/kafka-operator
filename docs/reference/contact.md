@@ -1,10 +1,11 @@
 ---
 myst:
   html_meta:
-    description: "Canonical Data Platform team contact information - Matrix, GitHub issues, security reporting, and useful Apache Kafka links."
+    description: Canonical Data Platform team contact information - Matrix, GitHub issues, security reporting, and useful Apache Kafka links.
 ---
 
 (reference-contact)=
+
 # Contacts
 
 Contact Canonical Data Platform team in
@@ -19,8 +20,8 @@ Please do NOT file GitHub issues on security topics.
 
 ## Useful links
 
-* [Canonical Data solutions](https://canonical.com/data)
-* [Charmed Apache Kafka](https://charmhub.io/kafka)
-* [Git sources for Charmed Apache Kafka](https://github.com/canonical/kafka-operator)
-* [Canonical Data on Launchpad](https://launchpad.net/~data-platform)
-* [Canonical Data on Matrix](https://matrix.to/#/#charmhub-data-platform:ubuntu.com)
+- [Canonical Data solutions](https://canonical.com/data)
+- [Charmed Apache Kafka](https://charmhub.io/kafka)
+- [Git sources for Charmed Apache Kafka](https://github.com/canonical/kafka-operator)
+- [Canonical Data on Launchpad](https://launchpad.net/~data-platform)
+- [Canonical Data on Matrix](https://matrix.to/#/#charmhub-data-platform:ubuntu.com)

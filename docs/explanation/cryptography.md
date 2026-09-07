@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Cryptography in Charmed Apache Kafka - resource checksums, source verification, encryption, and authentication protocols."
+    description: Cryptography in Charmed Apache Kafka - resource checksums, source verification, encryption, and authentication protocols.
 ---
 
 (explanation-cryptography)=

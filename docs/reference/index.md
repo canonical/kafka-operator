@@ -1,10 +1,11 @@
 ---
 myst:
   html_meta:
-    description: "Charmed Apache Kafka reference materials - release notes, actions, configurations, file paths, snap commands, and status reference."
+    description: Charmed Apache Kafka reference materials - release notes, actions, configurations, file paths, snap commands, and status reference.
 ---
 
 (reference-index)=
+
 # Reference
 
 This section contains the following reference materials.
@@ -13,28 +14,29 @@ This section contains the following reference materials.
 
 Charmhub generated content:
 
-* [Actions](https://charmhub.io/kafka/actions?channel=4/stable)
-* [Configurations](https://charmhub.io/kafka/configure?channel=4/stable)
-* [Libraries](https://charmhub.io/kafka/libraries/kafka_libs?channel=4/stable)
+- [Actions](https://charmhub.io/kafka/actions?channel=4/stable)
+- [Configurations](https://charmhub.io/kafka/configure?channel=4/stable)
+- [Libraries](https://charmhub.io/kafka/libraries/kafka_libs?channel=4/stable)
 
 Charm-specific reference materials:
 
-* {ref}`reference-file-system-paths`
-* {ref}`reference-snap-commands`
-* {ref}`reference-statuses`
-* {ref}`reference-requirements`
+- {ref}`reference-file-system-paths`
+- {ref}`reference-snap-commands`
+- {ref}`reference-statuses`
+- {ref}`reference-requirements`
 
 General useful references:
 
-* {ref}`reference-broker-listeners`
-* {ref}`reference-performance-tuning`
-* {ref}`Contact information <reference-contact>`
+- {ref}`reference-broker-listeners`
+- {ref}`reference-performance-tuning`
+- {ref}`Contact information <reference-contact>`
 
 ```{toctree}
-:titlesonly:
-:maxdepth: 2
-:hidden:
-
+---
+titlesonly:
+maxdepth: 2
+hidden:
+---
 release-notes/index.md
 Actions<https://charmhub.io/kafka/actions?channel=4/stable>
 Configurations<https://charmhub.io/kafka/configure?channel=4/stable>

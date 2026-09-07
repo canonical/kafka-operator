@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Learn to deploy and manage Charmed Apache Kafka - automated operations from Day 0 to Day 2, including replication, SSL encryption, and Kafka Connect."
+    description: Learn to deploy and manage Charmed Apache Kafka - automated operations from Day 0 to Day 2, including replication, SSL encryption, and Kafka Connect.
 ---
 
 # Tutorial
