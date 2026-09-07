@@ -1,0 +1,6 @@
+options:
+  topic-name:
+    description: |
+      The topic-name to request when relating to the Kafka application
+    type: string
+    default: test-topic

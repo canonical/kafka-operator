@@ -1,0 +1,57 @@
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+name: kafka-connect
+display-name: Apache Kafka Connect
+description: |
+  Description
+summary: Charmed Apache Kafka Connect Operator
+docs: https://discourse.charmhub.io/t/charmed-kafka-documentation/10288
+source: https://github.com/canonical/kafka-connect-operator
+issues: https://github.com/canonical/kafka-connect-operator/issues
+website:
+  - https://github.com/canonical/kafka-connect-operator
+maintainers:
+  - Canonical Data Platform <data-platform@lists.launchpad.net>
+series:
+  - noble
+
+peers:
+  restart:
+    interface: rolling_op
+  worker:
+    interface: worker
+  upgrade:
+    interface: upgrade
+
+provides:
+  connect-client:
+    interface: connect_client
+    optional: true
+  cos-agent:
+    interface: cos_agent
+
+requires:
+  kafka-client:
+    interface: kafka_client
+    optional: true
+    limit: 1
+  certificates:
+    interface: tls-certificates
+    limit: 1
+    optional: true
+
+resources:
+  connect-plugin:
+    type: file
+    filename: "plugin.tar"
+    description: |
+      Path to a local TAR archive containing JAR file(s) with the implementation of one or more connectors, transformers, or converters.
+      This TAR archive will be added to Kafka Connect `plugin.path`.
+      The archive should not contain any libraries provided by the Kafka Connect runtime.
+
+storage:
+  plugins:
+    type: filesystem
+    description: Directory where the plugins are stored
+    minimum-size: 1G
+    location: /var/snap/charmed-kafka/common/var/lib/connect

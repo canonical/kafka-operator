@@ -5,13 +5,12 @@
 import datetime
 import inspect
 import time
-from unittest.mock import mock_open, patch
+from unittest.mock import Mock, mock_open, patch
 
 import pytest
-
-from core.workload import WorkloadBase
-from literals import SUBSTRATE
-from workload import KafkaWorkload
+from common.single_kernel_kafka.core.literals import SUBSTRATE
+from common.single_kernel_kafka.core.workload import WorkloadBase
+from common.single_kernel_kafka.workload import KafkaWorkloadMachine as KafkaWorkload
 
 if SUBSTRATE == "vm":
     from charms.operator_libs_linux.v2.snap import SnapError
@@ -27,6 +26,7 @@ def fake_workload(tmp_path_factory, monkeypatch) -> WorkloadBase:
     monkeypatch.undo()
     workload = KafkaWorkload()
     workload.paths.conf_path = tmp_path_factory.mktemp("workload")
+    workload.exec = Mock()
     return workload
 
 
@@ -48,10 +48,8 @@ def test_modify_time_functionality(fake_workload: WorkloadBase):
     assert fake_workload.modify_time(test_path) > first_modified
 
 
-def test_last_restart_parses_snap_changes_correctly(patched_exec, monkeypatch):
-    monkeypatch.undo()
-    patched_exec.return_value = inspect.cleandoc(
-        """
+def test_last_restart_parses_snap_changes_correctly(fake_workload):
+    fake_workload.exec.return_value = inspect.cleandoc("""
     ID   Status  Spawn                 Ready                 Summary
     4    Done    2025-07-14T16:15:32Z  2025-07-14T16:18:34Z  Install "charmed-kafka" snap
     6    Done    2025-07-14T16:18:34Z  2025-07-14T16:18:34Z  Connect charmed-kafka:removable-media to snapd:removable-media
@@ -59,22 +57,21 @@ def test_last_restart_parses_snap_changes_correctly(patched_exec, monkeypatch):
     8    Done    2025-07-14T16:20:04Z  2025-07-14T16:20:04Z  Running service command
     9    Done    2025-07-14T16:24:06Z  2025-07-14T16:24:07Z  Running service command
     10   Done    2025-07-14T16:26:11Z  2025-07-14T16:26:12Z  Running service command
-    """
-    )
+    """)
 
     assert (
-        KafkaWorkload().last_restart
+        fake_workload.last_restart
         == datetime.datetime(2025, 7, 14, 16, 26, 12, tzinfo=datetime.timezone.utc).timestamp()
     )
 
 
-def test_run_bin_command_args(patched_exec):
+def test_run_bin_command_args(fake_workload):
     """Checks KAFKA_OPTS env-var and zk-tls flag present in all snap commands."""
-    KafkaWorkload().run_bin_command(bin_keyword="configs", bin_args=["--list"], opts=["-Djava"])
+    fake_workload.run_bin_command(bin_keyword="configs", bin_args=["--list"], opts=["-Djava"])
 
-    assert "charmed-kafka.configs" in patched_exec.call_args.args[0].split()
-    assert "-Djava" == patched_exec.call_args.args[0].split()[0]
-    assert "--list" == patched_exec.call_args.args[0].split()[-1]
+    assert "charmed-kafka.configs" in fake_workload.exec.call_args.args[0].split()
+    assert "-Djava" == fake_workload.exec.call_args.args[0].split()[0]
+    assert "--list" == fake_workload.exec.call_args.args[0].split()[-1]
 
 
 def test_get_service_pid_raises(monkeypatch):

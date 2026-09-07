@@ -1,0 +1,28 @@
+# Copyright 2023 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+produce:
+  description: Produces messages to a test-topic
+
+consume:
+  description: Consumes messages from a test-topic
+
+create-certificate:
+  description: Creates JKS keystore and signed certificate on unit
+
+run-mtls-producer:
+  description: Runs producer
+  params:
+    num-messages:
+      type: integer
+      description: The number of messages to be sent for testing
+
+get-offsets:
+  description: Retrieve offset for test topic
+
+create-topic:
+  description: Attempts the configured topic
+  params:
+    bootstrap-server:
+      type: string
+      description: The address for SASL_PLAINTEXT Kafka

@@ -71,8 +71,9 @@ topic for more information and guidance on selecting a TLS provider charm.
 By default, Charmed Apache Kafka applications will generate their own internal private key for
 identifying brokers for client connections. While this is secure for most production deployments,
 you may wish to specify your own private key to use.
-[Juju secrets](https://documentation.ubuntu.com/juju/3.6/reference/secret/) can be provided by users
-to specify external private keys for certificate signing requests (CSRs) and generated certificates.
+[Juju secrets](https://canonical.com/juju/docs/juju-cli/3.6/reference/secret/) can be provided by
+users to specify external private keys for certificate signing requests (CSRs) and generated
+certificates.
 
 First, generate (or otherwise obtain) a private keys for each Charmed Apache Kafka unit. For
 example, if you have three `kafka` units, generate external private keys for each one:
@@ -96,7 +97,7 @@ The Juju secret keys **MUST** follow the naming constraint of `<kafka-applicatio
 Grant the Charmed Apache Kafka application access to the new Juju secret:
 
 ```bash
-juju grant-secret external-kafka-pks
+juju grant-secret external-kafka-pks kafka
 ```
 
 Take note of the `secret-id` in the response.

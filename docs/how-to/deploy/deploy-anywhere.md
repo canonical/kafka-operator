@@ -6,14 +6,13 @@ myst:
 
 # How to deploy Charmed Apache Kafka
 
-This guide provides platform-independent deployment instructions. For specific guides, see:
-[AWS](how-to-deploy-on-aws) and [Azure](how-to-deploy-on-azure).
+This guide provides platform-independent deployment instructions for the **IAAS/VM** operator using
+the Juju CLI. Kubernetes deployments are covered in the
+[Charmed Apache Kafka K8s documentation](https://charmhub.io/kafka-k8s). Platform-specific steps are
+available for [AWS](how-to-deploy-on-aws) and [Azure](how-to-deploy-on-azure). Alternatively, you
+can [deploy via Terraform](how-to-deploy-terraform).
 
 (how-to-deploy-anywhere)=
-
-```{caution}
-For K8s Charmed Apache Kafka, see the [Charmed Apache Kafka K8s documentation](https://charmhub.io/kafka-k8s) instead.
-```
 
 To deploy a Charmed Apache Kafka cluster on a bare environment, it is necessary to:
 
@@ -52,11 +51,11 @@ juju bootstrap <cloud> <controller>
 
 where `<cloud>` -- the cloud to deploy controller to, e.g. `localhost` if using a LXD cloud. For
 more information on how to set up a new cloud, see the
-[How to manage clouds](https://documentation.ubuntu.com/juju/latest/howto/manage-clouds/index.html)
+[How to manage clouds](https://canonical.com/juju/docs/juju-cli/latest/howto/manage-clouds/index.html)
 guide in Juju documentation.
 
 For more Juju controller setup guidance, see the
-[How to manage controllers](https://documentation.ubuntu.com/juju/3.6/howto/manage-controllers/)
+[How to manage controllers](https://canonical.com/juju/docs/juju-cli/3.6/howto/manage-controllers/)
 guide in Juju documentation.
 
 ## Juju model setup

@@ -24,7 +24,7 @@ The following are some of the most important planned features and their implemen
 - [x] Horizontally scale brokers
 - [x] Username/Password creation for related applications
 - [x] Automatic topic creation with associated user ACLs
-- [x] Persistent storage support with [Juju Storage](https://juju.is/docs/olm/defining-and-using-persistent-storage)
+- [x] Persistent storage support with [Juju Storage](https://canonical.com/juju/docs/juju-cli/3.6/reference/storage/)
 - [x] TLS/SSL encrypted connections
 - [x] mTLS
 - [ ] Multi-application clusters
@@ -41,12 +41,12 @@ The following requirements are meant to be for production environment:
 - 12 storage devices
 - 10 Gb Ethernet card
 
-The charm can be deployed in much smaller environments if needed. For more information on requirements and version compartibility, see the [Requirements](https://discourse.charmhub.io/t/charmed-kafka-documentation-reference-requirements/10563) page.
+The charm can be deployed in much smaller environments if needed. For more information on requirements and version compartibility, see the [Requirements](https://canonical.com/data/kafka/docs/4/reference/requirements/) page.
 
 ## Usage
 
 This section demonstrates basic usage of the Charmed Apache Kafka operator. 
-For more information on how to perform typical tasks, see the How to guides section of the [Charmed Apache Kafka documentation](https://canonical.com/data/docs/kafka/iaas).
+For more information on how to perform typical tasks, see the How to guides section of the [Charmed Apache Kafka documentation](https://canonical.com/data/kafka/docs/).
 
 ### Deployment
 
@@ -138,7 +138,7 @@ When storage is added or removed, the Apache Kafka service will restart to ensur
 
 ## Relations
 
-The Charmed Apache Kafka Operator supports Juju [relations (integrations)](https://documentation.ubuntu.com/juju/latest/reference/relation/) for interfaces listed below.
+The Charmed Apache Kafka Operator supports Juju [relations (integrations)](https://canonical.com/juju/docs/juju-cli/latest/reference/relation/) for interfaces listed below.
 
 #### The Kafka_client interface
 
@@ -176,7 +176,6 @@ unit-data-integrator-0:
       password: ejMp4SblzxkMCF0yUXjaspneflXqcyXK
       tls: disabled
       username: relation-27
-      zookeeper-uris: 10.123.8.154:2181,10.123.8.181:2181,10.123.8.61:2181/kafka
     ok: "True"
   status: completed
   timing:
@@ -253,31 +252,47 @@ Since the Charmed Apache Kafka Operator is deployed on a machine environment, it
 of the COS relations. The [offers-overlay](https://github.com/canonical/cos-lite-bundle/blob/main/overlays/offers-overlay.yaml)
 can be used, and this step is shown in the COS tutorial.
 
-Next, deploy [Grafana Agent](https://charmhub.io/grafana-agent) and follow the
+Next, deploy [Opentelemetry collector](https://charmhub.io/opentelemetry-collector) and follow the
 [tutorial](https://discourse.charmhub.io/t/using-the-grafana-agent-machine-charm/8896)
 to relate it to the COS Lite offers.
 
-Now, integrate Apache Kafka with the Grafana Agent:
+Now, integrate Apache Kafka with the Opentelemetry collector:
 
 ```bash
-juju integrate kafka grafana-agent
+juju integrate kafka opentelemetry-collector
 ```
 
 After this is complete, Grafana will show two new dashboards: `Kafka Metrics` and `Node Exporter Kafka`.
 
 ## Security
 
-For an overview of security features of the Charmed Apache Kafka Operator, see the [Security page](https://canonical.com/data/docs/kafka/iaas/e-security) in the Explanation section of the documentation.
+For an overview of security features of the Charmed Apache Kafka Operator, see the [Security page](https://canonical.com/data/kafka/docs/4/explanation/security/) in the Explanation section of the documentation.
 
 Security issues in the Charmed Apache Kafka Operator can be reported through [Launchpad](https://wiki.ubuntu.com/DebuggingSecurity#How_to_File). Please do not file GitHub issues about security issues.
 
 ## Performance tuning
 
-For information on tuning performance of Charmed Apache Kafka, see the [Performance tuning reference](https://discourse.charmhub.io/t/charmed-kafka-documentation-reference-performace-tuning/10561) page.
+For information on tuning performance of Charmed Apache Kafka, see the [Performance tuning reference](https://canonical.com/data/kafka/docs/4/reference/performance-tuning/) page.
 
 ## Contributing
 
-Please see the [Juju SDK docs](https://juju.is/docs/sdk) for guidelines on enhancements to this charm following best practice guidelines, and [CONTRIBUTING.md](https://github.com/canonical/kafka-operator/blob/main/CONTRIBUTING.md) for developer guidance. 
+Please see the [Juju SDK docs](https://juju.is/docs/sdk) for guidelines on enhancements to this charm following best practice guidelines, and [CONTRIBUTING.md](https://github.com/canonical/kafka-operator/blob/main/CONTRIBUTING.md) for developer guidance.
+
+Unit and lint checks use the standard tox environments:
+
+```bash
+tox -e lint
+tox -e unit
+```
+
+The tutorial end-to-end test suite (requires [Multipass](https://documentation.ubuntu.com/multipass/) and [Spread](https://github.com/canonical/spread)) can be run with:
+
+```bash
+tox -e tutorial           # extract scripts + run Spread tests
+tox -e tutorial-extract   # generate test scripts only
+```
+
+See [tests/tutorial/TESTING.md](tests/tutorial/TESTING.md) for full setup instructions and run modes.
 
 Also, if you truly enjoy working on open-source projects like this one, check out the [career options](https://canonical.com/careers/all) we have at [Canonical](https://canonical.com/). 
 

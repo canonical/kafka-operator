@@ -63,7 +63,7 @@ The client needs to trust the broker's certificate. If you have followed the
 charmed operator and can retrieve the root CA certificate executing the following command:
 
 ```bash
-juju run self-signed-certificates/0 get-ca-certifictae
+juju run self-signed-certificates/0 get-ca-certificate
 ```
 
 The result would be like below:

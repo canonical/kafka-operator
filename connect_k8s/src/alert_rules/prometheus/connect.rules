@@ -1,0 +1,36 @@
+groups:
+- name: connect.alerts
+  rules:
+  # ==============
+  # Base JMX Rules
+  # ==============
+  - alert: Kafka Connect Missing
+    expr: up{juju_charm!=".*"} == 0
+    for: 0m
+    labels:
+      severity: critical
+    annotations:
+      summary: Prometheus target missing (instance {{ $labels.instance }})
+      description: "Kafka Connect target has disappeared. An exporter might be crashed.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+  - alert: JVM Memory Filling Up
+    expr: (sum by (instance)(jvm_memory_bytes_used{area="heap",juju_charm!=".*"}) / sum by (instance)(jvm_memory_bytes_max{area="heap",juju_charm!=".*"})) * 100 > 80
+    for: 2m
+    labels:
+        severity: warning
+    annotations:
+        summary: JVM memory filling up (instance {{ $labels.instance }})
+        description: "JVM memory is filling up (> 80%)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+  - alert: Threads Dead Locked
+    expr: jvm_threads_deadlocked{juju_charm!=".*"} > 0
+    labels:
+      severity: warning
+    annotations:
+      summary: "Kafka Connect JVM threads Deadlock occurred."
+      description: |-
+        JVM Thread Deadlock means a situation where two or more JVM threads are blocked forever, waiting for each other.
+        Deadlock occurs when multiple threads need the same locks but obtain them in different order.
+
+        Also look to JVM documentation about threads state:
+        https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Thread.State.html

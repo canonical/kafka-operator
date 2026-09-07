@@ -8,10 +8,17 @@ from unittest.mock import MagicMock
 
 import pytest
 from charmlibs import pathops
-from src.core.workload import CharmedKafkaPaths, WorkloadBase
-from src.literals import BROKER, KRaftQuorumInfo, KRaftUnitStatus
-from src.managers.controller import ControllerManager
+from common.single_kernel_kafka.core.literals import BROKER, KRaftQuorumInfo, KRaftUnitStatus
+from common.single_kernel_kafka.core.workload import CharmedKafkaPaths, WorkloadBase
+from common.single_kernel_kafka.managers.controller import ControllerManager
 from tests.unit.data.metadata_quorum_stub import METADATA_QUORUM_STUB
+from tests.unit.helpers import SUBSTRATE
+
+pytestmark = [
+    pytest.mark.skipif(
+        SUBSTRATE == "k8s", reason="No need to run substrate-agnostic tests on K8s."
+    )
+]
 
 
 @pytest.fixture()

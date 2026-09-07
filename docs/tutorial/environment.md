@@ -4,6 +4,11 @@ myst:
     description: Set up your development environment for Charmed Apache Kafka using LXD, Juju, and command-line tools on Ubuntu.
 ---
 
+<!-- test:spread
+priority: 300
+kill-timeout: 15m
+-->
+
 (tutorial-environment)=
 
 # 1. Set up the environment
@@ -24,7 +29,7 @@ command-line tooling:
 The fastest, simplest way to get started with Charmed Apache Kafka is to set up a local LXD cloud.
 LXD is a system container and virtual machine manager; Apache Kafka will be run in one of these
 containers and managed by Juju. While this tutorial covers the basics of LXD, you can
-[learn more about LXD here](https://documentation.ubuntu.com/lxd/stable-5.21/).
+[learn more about LXD here](https://canonical.com/lxd/docs/stable-5.21/).
 
 LXD comes pre-installed on Ubuntu 24.04 LTS. Verify that LXD is installed by entering the command
 `which lxd`. This will output `/snap/bin/lxd` or, for some systems, `/usr/sbin/lxd`.
@@ -55,6 +60,18 @@ Juju is installed from a snap package:
 
 ```shell
 sudo snap install juju
+```
+
+Install `yq`, a YAML processor used to parse Juju output in later steps:
+
+```shell
+sudo snap install yq
+```
+
+Install `jq`, a JSON processor used in later steps:
+
+```shell
+sudo snap install jq
 ```
 
 Juju already has built-in knowledge of LXD and how it works, so there is no additional setup or
@@ -99,6 +116,10 @@ Check the status of the model you created:
 ```shell
 juju status
 ```
+
+<!-- test:assert
+juju models | grep -q tutorial
+-->
 
 <details> <summary> Output example</summary>
 

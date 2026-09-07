@@ -9,7 +9,7 @@ myst:
 # How to manage units
 
 For general Juju unit management process, see the
-[Juju documentation](https://juju.is/docs/juju/manage-units).
+[Juju documentation](https://canonical.com/juju/docs/juju-cli/3.6/howto/manage-units/).
 
 ## Scaling
 
@@ -26,7 +26,7 @@ juju add-unit kafka -n <num_brokers_to_add>
 ```
 
 See the `juju add-unit`
-[command reference](https://documentation.ubuntu.com/juju/latest/reference/juju-cli/list-of-juju-cli-commands/add-unit/).
+[command reference](https://canonical.com/juju/docs/juju-cli/latest/reference/juju-cli/list-of-juju-cli-commands/add-unit/).
 
 Make sure to reassign partitions and topics to use newly added units. See below for guidance.
 
@@ -44,7 +44,7 @@ juju remove-unit kafka/1 kafka/2
 ```
 
 See the `juju remove-unit`
-[command reference](https://documentation.ubuntu.com/juju/latest/reference/juju-cli/list-of-juju-cli-commands/remove-unit/).
+[command reference](https://canonical.com/juju/docs/juju-cli/latest/reference/juju-cli/list-of-juju-cli-commands/remove-unit/).
 
 ### Partition reassignment
 
@@ -113,7 +113,7 @@ Admin client authentication information is stored in the
 Kafka broker. The content of the file can be accessed using `juju ssh` command:
 
 ```shell
-juju ssh kafka/leader `cat /etc/kafka/client.properties`
+juju ssh kafka/leader 'cat /var/snap/charmed-kafka/common/etc/kafka/client.properties'
 ```
 
 This file can be provided to the Apache Kafka bin commands via the `--command-config` argument. Note
@@ -130,7 +130,7 @@ To list the current topics on the Apache Kafka cluster, using credentials from i
 run:
 
 ```shell
-juju ssh kafka/leader 'charmed-kafka.topics --bootstrap-server $BOOTSTRAP_SERVERS --list --command-config /var/snap/charmed-kafka/common/etc/kafka/client.properties'
+juju ssh kafka/leader "charmed-kafka.topics --bootstrap-server $BOOTSTRAP_SERVERS --list --command-config /var/snap/charmed-kafka/common/etc/kafka/client.properties"
 ```
 
 The `BOOTSTRAP_SERVERS` variable contains the information we retrieved earlier in the previous

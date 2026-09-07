@@ -3,30 +3,19 @@
 # See LICENSE file for licensing details.
 
 import logging
-from pathlib import Path
 from typing import Iterable
 
 import pytest
-import yaml
+from common.single_kernel_kafka.core.literals import CONTAINER
+from common.single_kernel_kafka.core.structured_config import CharmConfig
 from ops.testing import Container, Context, State
 from pydantic import ValidationError
-
-from charm import KafkaCharm
-from core.structured_config import CharmConfig
-from literals import (
-    CONTAINER,
-    SUBSTRATE,
-)
+from tests.unit.helpers import ACTIONS, CONFIG, METADATA, SUBSTRATE, KafkaCharm
 
 pytestmark = [pytest.mark.broker, pytest.mark.balancer]
 
 
 logger = logging.getLogger(__name__)
-
-
-CONFIG = yaml.safe_load(Path("./config.yaml").read_text())
-ACTIONS = yaml.safe_load(Path("./actions.yaml").read_text())
-METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
 
 
 @pytest.fixture()

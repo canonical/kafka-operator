@@ -1,0 +1,47 @@
+project: charmed-kafka-docs-tutorial
+
+# The project root is mirrored to this path inside the test VM.
+path: /charmed-kafka
+
+backends:
+  multipass:
+    type: adhoc
+    allocate: |
+      instance_name="kafka-tutorial-vm"
+      multipass delete --purge "$instance_name" 2>/dev/null || true
+
+      # 8 CPUs / 16 GB RAM / 50 GB disk – sized for a 6-unit Juju/LXD cluster.
+      multipass launch --cpus "${SPREAD_VM_CPUS:-8}" --disk "${SPREAD_VM_DISK:-50G}" \
+        --memory "${SPREAD_VM_MEM:-16G}" --name "$instance_name" 24.04
+
+      # Pre-install snaps and enable root SSH for Spread.
+      multipass exec "$instance_name" -- sudo sh -c "
+        set -e
+        snap install lxd --channel=5.21/stable
+        snap install juju --channel=3/stable
+        echo root:${SPREAD_PASSWORD} | chpasswd
+        printf 'PasswordAuthentication yes\nPermitRootLogin yes\n' \
+          > /etc/ssh/sshd_config.d/10-spread.conf
+        systemctl restart ssh
+      "
+
+      ip=$(multipass info --format csv "$instance_name" | tail -1 | cut -d, -f3)
+      ADDRESS "$ip"
+
+    discard: |
+      instance_name="kafka-tutorial-vm"
+      multipass delete --purge "$instance_name"
+
+    systems:
+      - ubuntu-24.04-64:
+          workers: 1
+
+suites:
+  tests/tutorial/:
+    summary: Charmed Apache Kafka tutorial
+    systems:
+      - ubuntu-24.04-64
+    prepare: |
+      # Spread SSHs in as root but does not always set HOME=/root.
+      export HOME=/root
+      mkdir -p /root/.local/share/juju

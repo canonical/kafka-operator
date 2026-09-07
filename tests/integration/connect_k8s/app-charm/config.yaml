@@ -1,0 +1,17 @@
+# Copyright 2025 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+options:
+  mode:
+    type: string
+    default: source
+    description: Either `source` or `sink`
+  topic_prefix:
+    type: string
+    default: test_
+  select_mode:
+    type: string
+    default: incrementing
+  incrementing_column:
+    type: string
+    default: id

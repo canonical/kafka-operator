@@ -30,13 +30,21 @@ until the upgrade is complete. This includes, but is not limited to, the followi
 The concurrency with other operations is not supported, and it can lead the cluster into
 inconsistent states.
 
+Note that the process for upgrading a Charmed Apache Kafka KRaft controller cluster is identical to
+that of a Charmed Apache Kafka broker cluster. Follow the [Deploy Apache Kafka](tutorial-deploy)
+tutorial to see possible deployment topologies.
+
+```{warning}
+Always upgrade the KRaft controller application before upgrading the Kafka broker application to avoid metadata missmatches.
+```
+
 ## Minor upgrade process
 
 When performing an in-place upgrade process, the full process is composed of the following
 high-level steps:
 
 1. **Configure** desired refresh behavior with `pause-after-unit-refresh`
-2. **Collect** all necessary pre-upgrade information, necessary for a rollback (if ever needed)
+2. **Collect** all necessary pre-refresh information, necessary for a rollback (if ever needed)
 3. **Prepare** the charm for the in-place upgrade, by running some preparatory tasks
 4. **Upgrade** the charm and/or the workload. Once started, all units in a cluster will refresh the
    charm code and undergo a workload restart/update. The upgrade will be halted if the unit upgrade
@@ -88,10 +96,10 @@ KAFKA_CHARM_REVISION=$(juju status --format json | yq .applications.<KAFKA_APP_N
 
 Next, perform preparatory tasks to define the upgrade plan, ensuring the process can proceed safely.
 
-To do so, run the `pre-upgrade-check` action against the leader unit:
+To do so, run the `pre-refresh-check` action against the leader unit:
 
 ```shell
-juju run kafka/leader pre-upgrade-check 
+juju run kafka/leader pre-refresh-check
 ```
 
 Make sure that the output of the action is successful.
@@ -102,8 +110,9 @@ Although optional, this action should always be run before Charmed Apache Kafka 
 
 ### Step 4: Upgrade
 
-Use the [`juju refresh`](https://juju.is/docs/juju/juju-refresh) command to trigger the charm
-upgrade process. Note that the upgrade can be performed against:
+Use the
+[`juju refresh`](https://canonical.com/juju/docs/juju-cli/3.6/reference/juju-cli/list-of-juju-cli-commands/refresh/)
+command to trigger the charm upgrade process. Note that the upgrade can be performed against:
 
 - selected channel/track, therefore upgrading to the latest revision published on that track:
 
@@ -162,7 +171,7 @@ At any point in the upgrade, it is possible to safely rollback to the original c
 To rollback, use the `juju refresh` command with the original charm revision:
 
 ```shell
-juju refresh kafka --revision KAFKA_CHARM_REVISION
+juju refresh kafka --revision $KAFKA_CHARM_REVISION
 ```
 
 where `KAFKA_CHARM_REVISION` was obtained earlier in [Step 2: Collect](step-2-collect) before the

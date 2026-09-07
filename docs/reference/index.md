@@ -12,18 +12,18 @@ This section contains the following reference materials.
 
 [Release notes](reference-release-notes-index) for all stable releases of Charmed Apache Kafka.
 
-Charmhub generated content:
+Auto-generated from charm source files:
 
-- [Actions](https://charmhub.io/kafka/actions?channel=4/stable)
-- [Configurations](https://charmhub.io/kafka/configure?channel=4/stable)
-- [Libraries](https://charmhub.io/kafka/libraries/kafka_libs?channel=4/stable)
+- {ref}`reference-actions`
+- {ref}`reference-configurations`
+- {ref}`reference-statuses`
 
 Charm-specific reference materials:
 
 - {ref}`reference-file-system-paths`
 - {ref}`reference-snap-commands`
-- {ref}`reference-statuses`
 - {ref}`reference-requirements`
+- {ref}`reference-terraform`
 
 General useful references:
 
@@ -38,13 +38,13 @@ maxdepth: 2
 hidden:
 ---
 release-notes/index.md
-Actions<https://charmhub.io/kafka/actions?channel=4/stable>
-Configurations<https://charmhub.io/kafka/configure?channel=4/stable>
-Libraries<https://charmhub.io/kafka/libraries/kafka_libs?channel=4/stable>
+_generated/actions.md
+_generated/configurations.md
+_generated/statuses.md
 file-system-paths.md
 snap-commands.md
 listeners.md
-Statuses<statuses.md>
+Terraform module<terraform.md>
 requirements.md
 performance-tuning.md
 Contact<contact.md>

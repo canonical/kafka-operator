@@ -68,7 +68,7 @@ juju add-credential aws -f ~/.aws/credentials.yaml
 ```
 
 Bootstrap Juju controller
-([check all supported configuration options](https://juju.is/docs/juju/amazon-ec2)):
+([check all supported configuration options](https://canonical.com/juju/docs/juju-cli/3.6/reference/cloud/list-of-supported-clouds/amazon-ec2/)):
 
 ```shell
 juju bootstrap aws <CONTROLLER_NAME>

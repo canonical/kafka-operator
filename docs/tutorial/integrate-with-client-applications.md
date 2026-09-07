@@ -4,6 +4,11 @@ myst:
     description: Connect client applications to Charmed Apache Kafka using Data Integrator charm - automatic user management and credential rotation.
 ---
 
+<!-- test:spread
+priority: 100
+kill-timeout: 60m
+-->
+
 (tutorial-integrate-with-client-applications)=
 
 # 3. Integrate with client applications
@@ -16,7 +21,7 @@ lets us to encode users directly in the Juju model, and - as shown in the follow
 credentials with and without application downtime using relations.
 
 ```{note}
-Relations, or what Juju documentation describes also as [Integrations](https://documentation.ubuntu.com/juju/3.6/reference/relation/), let two charms to exchange information and interact with one another. Creating a relation between Charmed Apache Kafka and the Data Integrator will automatically generate a username, password, and assign relevant permissions on a given topic. This is the simplest method to create and manage users in Charmed Apache Kafka.
+Relations, or what Juju documentation describes also as [Integrations](https://canonical.com/juju/docs/juju-cli/3.6/reference/relation/), let two charms to exchange information and interact with one another. Creating a relation between Charmed Apache Kafka and the Data Integrator will automatically generate a username, password, and assign relevant permissions on a given topic. This is the simplest method to create and manage users in Charmed Apache Kafka.
 ```
 
 ## Data Integrator charm
@@ -33,6 +38,8 @@ juju deploy data-integrator --config topic-name=test-topic --config extra-user-r
 
 <details> <summary> Output example</summary>
 
+<!-- test:skip -->
+
 ```shell
 Deployed "data-integrator" from charm-hub charm "data-integrator", revision 362 in channel latest/stable on ubuntu@24.04/stable
 ```
@@ -46,11 +53,13 @@ integrate it to the Charmed Apache Kafka:
 juju integrate data-integrator kafka
 ```
 
+<!-- test:await-idle --timeout 1200 -->
+
 Wait for the status to become `active`/`idle` with the `watch juju status --color` command.
 
 <details> <summary> Output example</summary>
 
-```shell
+```text
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
 tutorial  overlord    localhost/localhost  3.6.20   unsupported  13:50:02Z
 
@@ -112,6 +121,17 @@ ok: "True"
 
 Make note of the values for `endpoints`, `username` and `password`, we'll be using them later.
 
+<!-- test:set-variables
+command: juju run data-integrator/leader get-credentials
+KAFKA_USERNAME: username
+KAFKA_PASSWORD: password
+KAFKA_ENDPOINTS: endpoints
+-->
+
+<!-- test:assert
+test -n "${KAFKA_USERNAME}" && test -n "${KAFKA_PASSWORD}" && test -n "${KAFKA_ENDPOINTS}"
+-->
+
 ## Non-charmed applications
 
 We will now use the username and password to produce some messages to Apache Kafka. To do so, we
@@ -124,13 +144,15 @@ juju deploy kafka-test-app --channel edge
 
 Wait for the charm to become `active`/`idle`, and log into the container:
 
-```shell
+<!-- test:await-idle --timeout 1200 --allow-blocked kafka-test-app -->
+
+```bash
 juju ssh kafka-test-app/0 /bin/bash
 ```
 
 Make sure that the Python virtual environment libraries are visible:
 
-```shell
+```bash
 export PYTHONPATH="/var/lib/juju/agents/unit-kafka-test-app-0/charm/venv:/var/lib/juju/agents/unit-kafka-test-app-0/charm/lib"
 ```
 
@@ -139,7 +161,7 @@ and consume messages.
 
 Let's try that script runs:
 
-```shell
+```bash
 python3 -m charms.kafka.v0.client --help
 ```
 
@@ -187,7 +209,7 @@ Now let's try producing and then consuming some messages.
 Change the values of `username`, `password` and `endpoints` to the ones obtained from the
 `data-integrator` application in the previous section and run the script to produce message:
 
-```shell
+```bash
 python3 -m charms.kafka.v0.client \
   -u <username> \
   -p <password> \
@@ -203,7 +225,7 @@ Let this run for a few seconds, then halt the process by pushing `Ctrl+C`.
 
 Now, consume them with:
 
-```shell
+```bash
 python3 -m charms.kafka.v0.client \
   -u <username> \
   -p <password> \
@@ -245,6 +267,8 @@ Apache Kafka:
 juju integrate kafka-test-app kafka
 ```
 
+<!-- test:await-idle --timeout 1200 -->
+
 ```{note}
 This will both take care of creating a dedicated user (as was done for the `data-integrator`)
 as well as start a producer process publishing messages to the `TOP-PICK` topic,
@@ -259,7 +283,7 @@ juju status
 
 <details> <summary> Output example</summary>
 
-```shell
+```text
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
 tutorial  overlord    localhost/localhost  3.6.20   unsupported  14:27:10Z
 
@@ -311,6 +335,10 @@ number of messages that were provided) and remove the user, you can just remove 
 juju remove-relation kafka-test-app kafka
 ```
 
+<!-- test:await-idle --timeout 1200 --allow-blocked kafka-test-app -->
+
+<!-- test:wait --seconds 30 -->
+
 ### Consuming messages
 
 The `kafka-test-app` charm can be used to consume messages by changing its configuration:
@@ -319,11 +347,15 @@ The `kafka-test-app` charm can be used to consume messages by changing its confi
 juju config kafka-test-app topic_name=TOP-PICK role=consumer consumer_group_prefix=cg
 ```
 
+<!-- test:wait --seconds 5 -->
+
 After configuring the Apache Kafka Test App, just relate it again with the Charmed Apache Kafka.
 
 ```shell
 juju integrate kafka-test-app kafka
 ```
+
+<!-- test:await-idle --timeout 1200 -->
 
 This will again create a new user and start the consumer process. You can check progress with
 `juju status`.
@@ -332,9 +364,10 @@ Wait for everything to be `active` and `idle` again. Now you can remove the rela
 `kafka-test-app` application entirely as we won't need them anymore.
 
 ```shell
-juju remove-relation kafka-test-app kafka
-juju remove-application kafka-test-app --destroy-storage
+juju remove-application kafka-test-app --destroy-storage --no-prompt
 ```
+
+<!-- test:await-idle --timeout 1200 -->
 
 ## What's next?
 

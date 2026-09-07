@@ -33,8 +33,9 @@ Charmed Apache Kafka can be deployed on top of several clouds and virtualisation
 
 Juju is the component responsible for orchestrating the entire lifecycle, from deployment to Day 2
 operations. For more information on Juju security hardening, see the
-[Juju security](https://documentation.ubuntu.com/juju/3.6/explanation/juju-security/) page and the
-[How to harden your deployment](https://documentation.ubuntu.com/juju/latest/howto/manage-your-juju-deployment/harden-your-juju-deployment/)
+[Juju security](https://canonical.com/juju/docs/juju-cli/3.6/explanation/juju-security/) page and
+the
+[How to harden your deployment](https://canonical.com/juju/docs/juju-cli/latest/howto/manage-your-juju-deployment/harden-your-juju-deployment/)
 guide.
 
 #### Cloud credentials
@@ -45,18 +46,18 @@ controllers require elevated permissions to manage several kinds of resources, s
 machines, networks, storages, etc. Please refer to the links below for more information on the
 policies required to be used depending on the cloud.
 
-| Cloud     | Cloud user policies                                                                                                                                                                                                                            |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| OpenStack | N/A                                                                                                                                                                                                                                            |
-| AWS       | [Juju AWS Permission](https://discourse.charmhub.io/t/juju-aws-permissions/5307), [AWS Instance Profiles](https://discourse.charmhub.io/t/using-aws-instance-profiles-with-juju-2-9/5185), [Juju on AWS](https://juju.is/docs/juju/amazon-ec2) |
-| Azure     | [Juju Azure Permission](https://juju.is/docs/juju/microsoft-azure), [How to use Juju with Microsoft Azure](https://discourse.charmhub.io/t/how-to-use-juju-with-microsoft-azure/15219)                                                         |
+| Cloud     | Cloud user policies                                                                                                     |
+| --------- | ----------------------------------------------------------------------------------------------------------------------- |
+| OpenStack | N/A                                                                                                                     |
+| AWS       | [Juju on AWS](https://canonical.com/juju/docs/juju-cli/3.6/reference/cloud/list-of-supported-clouds/amazon-ec2/)        |
+| Azure     | [Juju on Azure](https://canonical.com/juju/docs/juju-cli/3.6/reference/cloud/list-of-supported-clouds/microsoft-azure/) |
 
 #### Juju users
 
 It is very important that Juju users are set up with minimal permissions depending on the scope of
 their operations. Please refer to the
-[User access levels](https://juju.is/docs/juju/user-permissions) documentation for more information
-on the access levels and corresponding abilities.
+[User access levels](https://canonical.com/juju/docs/juju-cli/3.6/reference/user/) documentation for
+more information on the access levels and corresponding abilities.
 
 Juju user credentials must be stored securely and rotated regularly to limit the chances of
 unauthorised access due to credentials leakage.
@@ -73,7 +74,7 @@ In the following, we provide guidance on how to harden your deployment using:
 
 ### Operating system
 
-Charmed Apache Kafka operators currently run on top of Ubuntu 24.04. Deploy a
+Charmed Apache Kafka operators currently run on top of Ubuntu 24.04 LTS. Deploy a
 [Landscape Client Charm](https://charmhub.io/landscape-client?) to connect the underlying VM to a
 Landscape User Account to manage security upgrades and integrate
 [Ubuntu Pro](https://ubuntu.com/pro) subscriptions.
@@ -86,8 +87,7 @@ environments.
 
 New versions of Charmed Apache Kafka may be released to provide patching of vulnerabilities (CVEs).
 It is important to refresh the charm regularly to make sure the workload is as secure as possible.
-For more information on how to refresh the charm, see the
-[how-to upgrade](https://charmhub.io/kafka/docs/h-upgrade) guide.
+For more information on how to refresh the charm, see the [how-to upgrade](how-to-upgrade) guide.
 
 ### Encryption
 
@@ -105,10 +105,7 @@ Charmed Apache Kafka supports the following authentication layers:
 
 1. [SCRAM-based SASL Authentication](how-to-client-connections)
 2. [certificate-based Authentication (mTLS)](how-to-create-mtls-client-credentials)
-3. OAuth Authentication using
-   [Hydra](https://discourse.charmhub.io/t/how-to-connect-to-kafka-using-hydra-as-oidc-provider/14610)
-   or
-   [Google](https://discourse.charmhub.io/t/how-to-connect-to-kafka-using-google-as-oidc-provider/14611)
+3. [OAuth Authentication](how-to-enable-oauth) through Canonical Identity Platform
 
 Each combination of authentication scheme and encryption is associated with the dedicated listener
 and it maps to a well-defined port. See the
@@ -135,11 +132,9 @@ External user access to Apache Kafka is logged to the `kafka-authorizer.log` tha
 
 Access denials are logged at the `INFO` level, whereas allowed accesses are logged at the `DEBUG`
 level. Depending on the auditing needs, customise the logging level either for all logs via the
-[log-level](https://charmhub.io/kafka/configurations) configuration option or only tune the logging
-level of the `authorizerAppender` in the `log4j.properties` file. See the
+[log-level](https://charmhub.io/kafka/configure?channel=4/stable#log-level) configuration option or
+only tune the logging level of the `authorizerAppender` in the `log4j2.yaml` file. See the
 [file system paths](reference-file-system-paths) for further information.
-
-<!-- #TODO Add the version to the log-level link, e.g., 4/stable -->
 
 ## Additional resources
 

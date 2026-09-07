@@ -4,6 +4,11 @@ myst:
     description: Deploy Charmed Apache Kafka clusters with KRaft controllers using Juju - complete guide for broker and controller deployment.
 ---
 
+<!-- test:spread
+priority: 200
+kill-timeout: 30m
+-->
+
 (tutorial-deploy)=
 
 # 2. Deploy Apache Kafka
@@ -28,6 +33,8 @@ juju deploy kafka -n 3 --channel 4/stable --config roles=broker
 
 Juju will now fetch Charmed Apache Kafka and begin deploying it to the LXD cloud. Now check the Juju
 model status:
+
+<!-- test:skip -->
 
 ```shell
 juju status
@@ -55,9 +62,22 @@ cluster is the orchestrator by selecting the specific relation types:
 juju integrate kafka:peer-cluster-orchestrator kraft:peer-cluster
 ```
 
+<!-- test:await-idle --timeout 1200 -->
+
+<!-- test:run
+juju wait-for model tutorial --query='forEach(applications, app => app.status == "active")' --timeout 10m
+-->
+
+<!-- test:assert
+test "$(juju status --format json | jq '.applications.kafka.units | length')" -eq 3
+test "$(juju status --format json | jq '.applications.kraft.units | length')" -eq 3
+-->
+
 Juju will now connect applications to exchange access credentials and machine endpoints. This
 process can take several minutes depending on the resources available on your machine. You can track
 the progress by running:
+
+<!-- test:skip -->
 
 ```shell
 watch juju status --color
@@ -70,6 +90,8 @@ the cluster every two seconds and as the application starts you can watch the st
 both applications change.
 
 Wait until the applications are `active` and all units show `active`/`idle` status:
+
+<!-- test:skip -->
 
 ```shell
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
@@ -104,8 +126,8 @@ Once all the units are shown as `active`/`idle`, the credentials can be retrieve
 
 All sensitive configuration data used by Charmed Apache Kafka, such as passwords and SSL
 certificates, is stored in Juju secrets. See the
-[Juju secrets documentation](https://documentation.ubuntu.com/juju/3.6/reference/secret/) for more
-information.
+[Juju secrets documentation](https://canonical.com/juju/docs/juju-cli/3.6/reference/secret/) for
+more information.
 
 To reveal the contents of the Juju secret containing sensitive cluster data for the Charmed Apache
 Kafka application, you can run:
@@ -115,6 +137,8 @@ juju show-secret --reveal cluster.kafka.app
 ```
 
 The output of the previous command will look something like this:
+
+<!-- test:skip -->
 
 ```shell
 d5ipahpdormt02antvpg:

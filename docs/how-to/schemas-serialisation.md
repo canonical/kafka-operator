@@ -16,10 +16,8 @@ serialise and deserialise messages written to Apache Kafka.
 
 ## Prerequisites
 
-Follow the steps of the
-[How to deploy Charmed Apache Kafka](https://discourse.charmhub.io/t/charmed-kafka-documentation-how-to-deploy/13261)
-guide to set up the environment. For this guide, we will need an active Charmed Apache Kafka
-application, related to an active Charmed Apache ZooKeeper application.
+Follow the steps of the [How to deploy Charmed Apache Kafka](how-to-deploy-anywhere) guide to set up
+the environment. For this guide, we will need an active Charmed Apache Kafka application.
 
 ## Deploy and set up Karapace
 
@@ -50,7 +48,8 @@ and `<field2>` which is an integer using Avro schema, run:
 
 ```bash
 curl -u operator:<password> -X POST -H "Content-Type: application/vnd.schemaregistry.v1+json" \
-     http://<karapace-unit-ip>:8081/subjects/<schema-name>/versions \ --data '{"schema": "{\"type\": \"record\", \"name\": \"Obj\", \"fields\":[{\"name\": \"<field1>\", \"type\": \"string\"},{\"name\": \"<field2>\", \"type\": \"int\"}]}"}'
+     http://<karapace-unit-ip>:8081/subjects/<schema-name>/versions \
+     --data '{"schema": "{\"type\": \"record\", \"name\": \"Obj\", \"fields\":[{\"name\": \"<field1>\", \"type\": \"string\"},{\"name\": \"<field2>\", \"type\": \"int\"}]}"}'
 ```
 
 If successful, this should result in an output showing the global ID for this new schema:

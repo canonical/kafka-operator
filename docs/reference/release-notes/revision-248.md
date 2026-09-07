@@ -15,7 +15,7 @@ major-version changes. For more detail on the upstream changes, see the official
 
 Apache ZooKeeper has now been fully removed as a dependency. For guidance on deploying Charmed
 Apache Kafka in production without ZooKeeper, see the
-[deployment documentation](https://documentation.ubuntu.com/charmed-kafka/4/how-to/deploy/#deploy-charmed-apache-kafka-for-production).
+[deployment documentation](https://documentation.ubuntu.com/charmed-kafka/4/how-to/deploy/deploy-anywhere/#deploy-charmed-apache-kafka-for-production).
 
 Cruise Control is now available as a stable feature for partition rebalancing. To learn how to
 rebalance partitions with Cruise Control, follow the
@@ -123,7 +123,7 @@ See the documentation for how to migrate data between Charmed Apache Kafka clust
   `RelationState` update [#387](https://github.com/canonical/kafka-operator/pull/387)
 - [DPE-7987](https://warthogs.atlassian.net/browse/DPE-7987) - fix: race condition in internal TLS
   setup [#399](https://github.com/canonical/kafka-operator/pull/399)
-- [DPE-4546](https://warthogs.atlassian.net/browse/DPE-4546) - fix: juju remove-unit app/leader
+- [DPE-4546](https://warthogs.atlassian.net/browse/DPE-4546) - fix: Juju `remove-unit` app/leader
   breaks TLS [#400](https://github.com/canonical/kafka-operator/pull/400)
 
 ## Compatibility
@@ -133,7 +133,7 @@ Principal charms support the latest LTS series `24.04` only.
 | Charm                        | Revision                                                                     | Hardware architecture | Juju version | Artefacts                                                                                                                                            |
 | ---------------------------- | ---------------------------------------------------------------------------- | --------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Charmed Apache Kafka         | [248](https://github.com/canonical/kafka-operator/releases/tag/rev248)       | AMD64                 | Juju 3.6+    | Distribution: [4.1.1-ubuntu4](https://launchpad.net/kafka-releases/4.x/4.1.1-ubuntu4). <br> Snap: [revision 67](https://snapcraft.io/charmed-kafka). |
-| Charmed Apache Kafka Connect | [33](https://github.com/canonical/kafka-connect-operator/releases/tag/rev33) | AMD64                 | Juju 3.6+    | Distribution: [4.1.1-ubuntu4](https://launchpad.net/kafka-releases/4.x/4.1.1-ubuntu4). <br> Snap: [revision 48](https://snapcraft.io/charmed-kafka). |
+| Charmed Apache Kafka Connect | [33](https://github.com/canonical/kafka-connect-operator/releases/tag/rev33) | AMD64                 | Juju 3.6+    | Distribution: [4.1.1-ubuntu4](https://launchpad.net/kafka-releases/4.x/4.1.1-ubuntu4). <br> Snap: [revision 67](https://snapcraft.io/charmed-kafka). |
 | Charmed Karapace             | [21](https://github.com/canonical/karapace-operator/releases/tag/rev21)      | AMD64                 | Juju 3.6+    | Snap: [revision 16](https://snapcraft.io/charmed-karapace).                                                                                          |
 | Charmed Kafka UI             | [6](https://github.com/canonical/kafka-ui-operator/releases/tag/rev6)        | AMD64                 | Juju 3.6+    | Snap: [revision 3](https://snapcraft.io/charmed-kafka-ui).                                                                                           |
 

@@ -1,0 +1,87 @@
+#!/usr/bin/env python3
+# Copyright 2023 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+import asyncio
+import logging
+
+import pytest
+from pytest_operator.plugin import OpsTest
+from single_kernel_kafka.core.literals import INTER_BROKER_USER
+
+from integration.machine.helpers import APP_NAME, SERIES
+from integration.machine.helpers.pytest_operator import (
+    AUTH_SECRET_NAME,
+    deploy_cluster,
+    get_user,
+    set_password,
+)
+
+logger = logging.getLogger(__name__)
+
+pytestmark = pytest.mark.broker
+
+DUMMY_NAME = "app"
+REL_NAME_ADMIN = "kafka-client-admin"
+
+
+@pytest.mark.abort_on_fail
+@pytest.mark.skip_if_deployed
+async def test_build_and_deploy(ops_test: OpsTest, kraft_mode, kafka_charm, app_charm, kafka_apps):
+    await asyncio.gather(
+        deploy_cluster(
+            ops_test=ops_test,
+            charm=kafka_charm,
+            kraft_mode=kraft_mode,
+            num_broker=3,
+        ),
+        ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series=SERIES),
+    )
+    await ops_test.model.wait_for_idle(
+        apps=[*kafka_apps, DUMMY_NAME], timeout=2000, idle_period=30, raise_on_error=False
+    )
+
+    # needed to open localhost ports
+    await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
+
+    async with ops_test.fast_forward(fast_interval="30s"):
+        await asyncio.sleep(90)
+
+    await ops_test.model.wait_for_idle(
+        apps=[*kafka_apps, DUMMY_NAME], status="active", idle_period=30, timeout=3600
+    )
+
+
+async def test_password_rotation(ops_test: OpsTest, kafka_apps):
+    """Check that password stored on cluster has changed after a password rotation."""
+    initial_replication_user = get_user(
+        username=INTER_BROKER_USER,
+        model_full_name=ops_test.model_full_name,
+    )
+
+    await set_password(ops_test, username=INTER_BROKER_USER, password="newpass123")
+
+    await ops_test.model.wait_for_idle(apps=kafka_apps, status="active", idle_period=30)
+
+    new_replication_user = get_user(
+        username=INTER_BROKER_USER,
+        model_full_name=ops_test.model_full_name,
+    )
+
+    assert initial_replication_user != new_replication_user
+    assert "newpass123" in new_replication_user
+
+    # Update secret
+    await ops_test.model.update_secret(
+        name=AUTH_SECRET_NAME, data_args=["replication=updatedpass"]
+    )
+
+    await ops_test.model.wait_for_idle(apps=kafka_apps, status="active", idle_period=30)
+
+    updated_replication_user = get_user(
+        username=INTER_BROKER_USER,
+        model_full_name=ops_test.model_full_name,
+    )
+
+    assert new_replication_user != updated_replication_user
+    assert "updatedpass" in updated_replication_user

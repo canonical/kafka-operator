@@ -7,11 +7,15 @@
 import logging
 
 import pytest
-
-from managers.ssl_principal_mapper import SslPrincipalMapper
+from common.single_kernel_kafka.managers.ssl_principal_mapper import SslPrincipalMapper
+from tests.unit.helpers import SUBSTRATE
 
 logger = logging.getLogger(__name__)
-pytestmark = pytest.mark.broker
+pytestmark = [
+    pytest.mark.skipif(
+        SUBSTRATE == "k8s", reason="No need to run substrate-agnostic tests on K8s."
+    )
+]
 
 
 def test_ssl_principal_mapper():
