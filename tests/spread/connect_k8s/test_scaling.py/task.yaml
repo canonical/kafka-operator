@@ -1,0 +1,5 @@
+summary: connect_k8s test_scaling.py
+environment:
+  TEST_ENV: scaling
+execute: |
+  tox run -e "integration-connect-k8s-$TEST_ENV" -- --model testing -m 'not unstable'

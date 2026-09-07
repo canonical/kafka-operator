@@ -1,0 +1,7 @@
+summary: machine charm
+environment:
+  TEST_ENV: charm
+  KRAFT/single: single
+  KRAFT/multi: multi
+execute: |
+  tox run -e "integration-machine-$TEST_ENV" -- --model testing -m 'not unstable' --kraft-mode "$KRAFT"
