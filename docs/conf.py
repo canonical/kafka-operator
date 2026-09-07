@@ -210,6 +210,7 @@ linkcheck_ignore = [
     "https://cwiki.apache.org/*",
     "https://archive.apache.org/*",
     r"http://worker-\d+\.domain\.com.*",
+    "https://canonical.com/data/kafka#get-in-touch",
 ]
 
 # A regex list of URLs where anchors are ignored by 'make linkcheck'

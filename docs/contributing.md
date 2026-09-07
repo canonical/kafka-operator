@@ -22,8 +22,6 @@ first so we can help you shape the contribution.
   [Matrix](https://matrix.to/#/#charmhub-data-platform:ubuntu.com).
 * Ask questions and share feedback on the
   [Discourse forum](https://discourse.charmhub.io/tag/kafka).
-* Reach the charm developers on the
-  [Charmhub Mattermost `charm-dev` channel](https://chat.charmhub.io/charmhub/channels/charm-dev).
 * To talk to Canonical about your use case or commercial support, use the
   [business form](https://canonical.com/data/kafka#get-in-touch).
 

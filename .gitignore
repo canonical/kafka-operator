@@ -10,9 +10,14 @@ __pycache__/
 .vscode
 .idea
 .python-version
-last_written_value
+.last_written_value
 *.srl
 .common/
+
+# Sphinx build artifacts
+docs/_build/
+docs/.sphinx/.doctrees/
+docs/.sphinx/warnings.txt
 
 # Terraform state files
 *.tfstate
