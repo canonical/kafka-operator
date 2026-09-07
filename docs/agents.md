@@ -40,6 +40,49 @@ On Read the Docs, the `pre_build` job in `.readthedocs.yaml` runs the
 generators before Sphinx. PR builds are only cancelled when no changes
 affect `docs/`, `.readthedocs.yaml`, or the source files listed above.
 
+## Agent-friendly docs (llms.txt)
+
+The `sphinx-llm` extension generates `llms.txt`, `llms-full.txt`, and a
+Markdown variant of every page (`<page>/index.html.md`). Three pieces of
+configuration keep these discoverable and correct:
+
+1. **`html_baseurl` must include the Read the Docs version segment.**
+   Published docs are served under
+   `https://canonical.com/data/kafka/docs/<version>/`. `conf.py` builds
+   `html_baseurl` from `slug` and `version_slug`
+   (`READTHEDOCS_VERSION`, defaulting to `local`). A trailing slash is
+   required. Omitting either the version segment or the trailing slash
+   makes every URL in `sitemap.xml` and `llms.txt` return 404.
+2. **HTML directive** — `_templates/header.html` renders a
+   visually-hidden `<div data-agent-directive>` pointing at `llms.txt`
+   and explaining the `.md` URL convention. It is hidden with the
+   clip-rect technique in `_static/agent-directive.css`, not
+   `display: none`, so it stays in the accessibility tree.
+3. **Markdown directive** — the `setup()` hook at the bottom of
+   `conf.py` adds the same directive as a quoted block at the top of every
+   generated `.md` file. This runs as a `build-finished` post-processing
+   step (priority 900, after `sphinx-llm`) rather than via `source-read`,
+   because `sphinx-llm` derives each `llms.txt` entry's title and
+   fallback description from the first heading and paragraph of the
+   generated Markdown — injecting into the sources would corrupt those
+   descriptions.
+
+To reproduce a production-like build locally:
+
+```bash
+READTHEDOCS=True READTHEDOCS_VERSION=4 READTHEDOCS_VERSION_TYPE=tag \
+  READTHEDOCS_PROJECT=kafka READTHEDOCS_LANGUAGE=en \
+  READTHEDOCS_GIT_IDENTIFIER=4 \
+  READTHEDOCS_CANONICAL_URL=https://canonical.com/data/kafka/docs/4/ \
+  make html
+```
+
+Audit the result with `npx afdocs check <url> --format scorecard`.
+
+**Not fixable in this repository:** content negotiation for
+`Accept: text/markdown` and cache-header lifetimes are handled by the
+Canonical web platform / CDN in front of Read the Docs, not by Sphinx.
+
 ## Stack
 
 - **Sphinx** built and hosted on **Read the Docs**

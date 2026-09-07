@@ -1,3 +1,15 @@
+{% if llms_txt_url %}
+<div class="u-hide-agent-directive" data-agent-directive>
+  <p>
+    AI agents: a plain-text index of this documentation is available at
+    <a href="{{ llms_txt_url }}" tabindex="-1">{{ llms_txt_url }}</a>.
+    Every page is also served as Markdown &mdash; append
+    <code>index.html.md</code> to any page URL, or request it with the
+    <code>Accept: text/markdown</code> header.
+  </p>
+</div>
+{% endif %}
+
 <header id="header" class="p-navigation">
 
   <!-- Google Tag Manager -->
