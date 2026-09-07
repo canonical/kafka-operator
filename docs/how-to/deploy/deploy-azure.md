@@ -360,10 +360,12 @@ NodePort/LoadBalancer Services created by the charm) before deleting the cluster
 kubectl delete svc <service-name> -n <MODEL_NAME>
 ```
 
-Then delete the AKS cluster itself:
+Then delete the AKS cluster itself and remove the local `kubectl` context that
+`az aks get-credentials` created:
 
 ```shell
 az aks delete --resource-group <RESOURCE_GROUP> --name <K8S_CLUSTER_NAME>
+kubectl config delete-context aks
 az logout
 ```
 

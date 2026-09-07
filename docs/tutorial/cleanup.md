@@ -116,7 +116,8 @@ LXD may be managing other containers or VMs on your system.
 :sync: k8s
 
 If you also want to remove the MicroK8s cluster and free up all resources,
-first check the remaining namespaces:
+first confirm that no namespaces are left over from the Juju models removed
+above (Juju creates one Kubernetes namespace per model):
 
 ```bash
 sudo microk8s kubectl get namespaces

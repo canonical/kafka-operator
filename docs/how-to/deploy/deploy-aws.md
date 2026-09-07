@@ -113,11 +113,10 @@ Create a new Juju model, if needed:
 juju add-model <MODEL_NAME>
 ```
 
-```{caution}
-(Optional) Increase the debug level if you are troubleshooting charms:
+(Optional) If you are troubleshooting charms and wish to see DEBUG logs:
+
 ```shell
 juju model-config logging-config='<root>=INFO;unit=DEBUG'
-```
 ```
 
 Deploy Charmed Apache Kafka:
@@ -241,19 +240,21 @@ aws sts get-caller-identity
 
 ## Create an EKS cluster
 
-Choose a unique cluster name and create an `eksctl` configuration. This example
-enables the EBS CSI driver required for persistent volumes and uses three
-workers for a non-production evaluation deployment:
+Export a unique cluster name for further use:
 
 ```shell
 export JUJU_NAME=eks-$USER-$RANDOM
 ```
 
+Save the following as `cluster.yaml`. This example enables the EBS CSI driver
+required for persistent volumes and uses three workers for a non-production
+evaluation deployment:
+
 ```yaml
 apiVersion: eksctl.io/v1alpha5
 kind: ClusterConfig
 metadata:
-  name: <K8S_CLUSTER_NAME>
+  name: ${JUJU_NAME}
   region: eu-west-3
 iam:
   withOIDC: true
@@ -272,12 +273,6 @@ Create the cluster:
 
 ```shell
 eksctl create cluster -f cluster.yaml
-```
-
-Set `JUJU_NAME` to the name used in `cluster.yaml` before bootstrapping Juju:
-
-```shell
-export JUJU_NAME=<K8S_CLUSTER_NAME>
 ```
 
 Select a currently supported EKS/Kubernetes version for your region rather than

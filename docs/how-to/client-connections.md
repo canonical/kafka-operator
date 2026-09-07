@@ -123,6 +123,7 @@ kafka:
   endpoints: 10.123.8.133:9092
   password: ejMp4SblzxkMCF0yUXjaspneflXqcyXK
   tls: disabled
+  topic: test-topic
   username: relation-27
 ok: "True"
 ```

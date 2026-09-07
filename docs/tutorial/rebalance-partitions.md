@@ -168,6 +168,12 @@ with no partitions allocated by default:
 }
 ```
 
+```{note}
+The `logDir` above is the VM path. On Kubernetes, the data directory is
+`/var/lib/kafka/data/<id>/log` instead. See
+[File system paths](reference-file-system-paths).
+```
+
 Now, let's run the `rebalance` action to allocate some existing partitions
 from other brokers (`0`, `1` and `2`) to broker `3`:
 
@@ -367,6 +373,11 @@ Make sure that the broker has no partitions assigned, for example:
     }
   ]
 }
+```
+
+```{note}
+As above, the `logDir` shown is the VM path; on Kubernetes it is
+`/var/lib/kafka/data/<id>/log`.
 ```
 
 Now, it is safe to scale-in the cluster by removing the broker number `3` completely:

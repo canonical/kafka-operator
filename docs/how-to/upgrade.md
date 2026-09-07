@@ -247,11 +247,13 @@ minor workload version downgrades are rejected by the charm, and KRaft metadata
 version downgrades are not supported by Apache Kafka. A rollback is therefore
 only safe while the workload itself has not yet been upgraded on the paused
 units, or when the original and target workload versions are compatible.
+```
+
 ```{note}
-On Kubernetes, also record the `kafka-image` resource in use before the
-upgrade (`juju status --format json | yq .applications.<KAFKA_APP_NAME>.resources`),
-and pass it back with `juju refresh ... --resource kafka-image=<image>` when
-rolling back a locally deployed charm.
+On Kubernetes, also record the `kafka-image` resource in use before the upgrade
+with `juju resources <KAFKA_APP_NAME>`, and pass it back with
+`juju refresh ... --resource kafka-image=<image>` when rolling back a locally
+deployed charm.
 ```
 
 To rollback, use the `juju refresh` command with the original charm revision:

@@ -28,7 +28,7 @@ application integration, and monitoring.
 
 | | |
 |---|---|
-| **Getting started** | [Introduction (Machine)](tutorial-introduction) • [Environment setup (Machine)](tutorial-environment) • [Requirements](reference-requirements) |
+| **Getting started** | [Introduction](tutorial-introduction) • [Environment setup](tutorial-environment) • [Requirements](reference-requirements) |
 | **Deployment** | [Deploy](how-to-deploy-index) • [Juju CLI](how-to-deploy-anywhere) • [Terraform](how-to-deploy-terraform) • [AWS](how-to-deploy-on-aws) • [Azure](how-to-deploy-on-azure) • [External connections (Kubernetes)](how-to-external-k8s-connection) • [Juju Spaces (Machine)](how-to-deploy-spaces) |
 | **Operations** | [Connections management](how-to-client-connections) • [Unit management](how-to-manage-units) • [Monitoring](how-to-monitoring) • [Listeners](reference-broker-listeners) • [Statuses](reference-statuses) |
 | **Maintenance** | [Version upgrade](how-to-upgrade) • [Migration](how-to-cluster-migration) • [Replication](how-to-cluster-replication) • [MirrorMaker](explanation-mirrormaker2-0) • [Backups](explanation-backups) |
@@ -41,7 +41,7 @@ application integration, and monitoring.
 
 This documentation uses the [Diátaxis documentation structure](https://diataxis.fr/):
 
-- The [tutorial for machine deployments](tutorial-introduction) walks you through deploying your first Charmed Apache Kafka cluster from scratch, step by step.
+- The [tutorial](tutorial-introduction) walks you through deploying your first Charmed Apache Kafka cluster from scratch, step by step, on either substrate.
 - [How-to guides](how-to-index) help you solve specific operational tasks such as enabling TLS, connecting clients, or scaling brokers.
 - [Reference](reference-index) lets you look up configuration options, status codes, file paths, and system requirements.
 - [Explanation](explanation-index) helps you understand the design decisions behind security, replication, and integration architecture.

@@ -111,11 +111,13 @@ This can be tested by testing whether the ports are open/closed with `telnet`:
 
 <!-- test:skip -->
 ```shell
-telnet <Public IP address> 9092 
-telnet <Public IP address> 9093
+telnet <IP address> 9092 
+telnet <IP address> 9093
 ```
 
-where `Public IP address` is the IP of any Charmed Apache Kafka application units.
+where `IP address` is the address of any Charmed Apache Kafka unit, as shown in
+the `juju status` output above (the `Public address` column on VM, or the
+`Address` column on Kubernetes).
 
 Both commands will be **unable to connect** now, as our Apache Kafka cluster
 has no active listeners due to absence of integrated applications.
@@ -158,8 +160,8 @@ Now try connecting with `telnet` again:
 
 <!-- test:skip -->
 ```shell
-telnet <Public IP address> 9092 
-telnet <Public IP address> 9093
+telnet <IP address> 9092 
+telnet <IP address> 9093
 ```
 
 The `9092` port connection now should show a connection error,
