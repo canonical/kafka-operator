@@ -91,10 +91,13 @@ jobs:
           - tests/integration/connect_machine/source-integrator-charm
           - tests/integration/connect_k8s/app-charm
     name: Build charm for release | ${{ matrix.path }}
-    uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v32.2.2
+    # FIXME: update once monorepo feature reaches DPW
+    # uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v32.2.2
+    uses: ./.github/workflows/_build_charm_dev.yaml
     with:
       path-to-charm-directory: ${{ matrix.path }}
-      cache: false  # TODO: remove after re-added to ccc-hub
+      # FIXME: _build_charm_dev.yaml doesn't accept `cache`; restore alongside build_charm.yaml above
+      # cache: false  # TODO: remove after re-added to ccc-hub
     permissions:
       actions: read
       contents: read
