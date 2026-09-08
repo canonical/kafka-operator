@@ -1,5 +1,5 @@
 ---
-relatedlinks: "[GitHub&#32;repo](https://github.com/canonical/kafka-operator), [Charmhub](https://charmhub.io/kafka), [Charmhub&#32;K8s](https://charmhub.io/kafka-k8s)"
+relatedlinks: "[GitHub](https://github.com/canonical/kafka-operator), [Charmhub](https://charmhub.io/kafka), [Charmhub&#32;(K8s)](https://charmhub.io/kafka-k8s)"
 myst:
   html_meta:
     description: "How to contribute to Charmed Apache Kafka - report issues, contribute code and documentation, get in touch with the team, and learn about Canonical career opportunities."
