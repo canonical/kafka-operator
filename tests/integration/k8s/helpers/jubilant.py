@@ -83,7 +83,8 @@ def deploy_cluster(
             "profile": "testing",
         }
         | config_broker,
-        resources={"kafka-image": KAFKA_CONTAINER},
+        # add `kafka-image` only for local charms.
+        resources=None if channel else {"kafka-image": KAFKA_CONTAINER},
         trust=True,
         channel=channel if channel else None,
     )
@@ -99,7 +100,8 @@ def deploy_cluster(
                 "profile": "testing",
             }
             | config_controller,
-            resources={"kafka-image": KAFKA_CONTAINER},
+            # add `kafka-image` only for local charms.
+            resources=None if channel else {"kafka-image": KAFKA_CONTAINER},
             trust=True,
             channel=channel if channel else None,
         )
