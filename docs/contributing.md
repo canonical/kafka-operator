@@ -6,32 +6,21 @@ myst:
 ---
 
 (contributing-guide)=
-# Contribute
+# How to contribute
 
 Charmed Apache Kafka is an open-source project developed and supported by
 [Canonical](https://canonical.com/) that welcomes community contributions,
 suggestions, fixes, and constructive feedback.
 
-If you would like to contribute a larger change, please get in touch with us
-first so we can help you shape the contribution.
-
-(contributing-contact)=
-## Get in touch
-
-* Chat with the Data team directly on
-  [Matrix](https://matrix.to/#/#charmhub-data-platform:ubuntu.com).
-* Ask questions and share feedback on the
-  [Discourse forum](https://discourse.charmhub.io/tag/kafka).
-* To talk to Canonical about your use case or commercial support, use the
-  [business form](https://canonical.com/data/kafka#get-in-touch).
+If you would like to contribute a larger change, please [get in touch](contributing-contact)
+with us first so we can help you shape the contribution.
 
 ## Report an issue
 
 Report bugs and feature requests on
-[GitHub](https://github.com/canonical/kafka-operator/issues/new). When
-reporting a problem with the documentation, you can also use the
-**Give feedback** button at the top of any documentation page — it opens a
-pre-filled GitHub issue for that page.
+[GitHub](https://github.com/canonical/kafka-operator/issues/new). For
+documentation issues, use the **Give feedback** button at the top of the
+relevant page to open a pre-filled GitHub issue.
 
 ```{note}
 Please do **not** use GitHub issues for security topics. See
@@ -39,7 +28,7 @@ Please do **not** use GitHub issues for security topics. See
 ```
 
 (contributing-security)=
-## Report a security issue
+### Report a security issue
 
 Security issues should be reported through
 [Launchpad](https://wiki.ubuntu.com/DebuggingSecurity#How_to_File), following
@@ -48,6 +37,19 @@ on security topics.
 
 See also [SECURITY.md](https://github.com/canonical/kafka-operator/blob/main/SECURITY.md)
 in the repository.
+
+(contributing-contact)=
+## Get in touch
+
+If you have questions after reading this documentation or would like to discuss
+Charmed Apache Kafka, get in touch through one of the following channels:
+
+* Chat with the Data team directly on
+  [Matrix](https://matrix.to/#/#charmhub-data-platform:ubuntu.com).
+* Ask questions and share feedback on the
+  [Discourse forum](https://discourse.charmhub.io/tag/kafka).
+* To talk to Canonical about your use case or commercial support, use the
+  [business form](https://canonical.com/data/kafka#get-in-touch).
 
 (contributing-code)=
 ## Contribute code
@@ -67,10 +69,12 @@ manager. Instructions for running Juju on LXD can be found
 
 ### Build and deploy
 
+To build and deploy the machine charm:
+
 ```bash
 # Clone and enter the repository
 git clone https://github.com/canonical/kafka-operator.git
-cd kafka-operator/
+cd kafka-operator/machine
 
 # Create a working model
 juju add-model kafka
@@ -79,7 +83,7 @@ juju add-model kafka
 juju model-config logging-config="<root>=INFO;unit=DEBUG"
 
 # Build the charm locally
-charmcraft pack
+CHARMCRAFT_EXPERIMENTAL_MONOREPO=true charmcraft pack
 
 # Deploy the charm
 juju deploy ./*.charm -n 3 --config roles=broker,controller
@@ -92,6 +96,7 @@ You can create an environment for development with `tox`:
 ```bash
 tox devenv -e integration
 source venv/bin/activate
+poetry install --with integration
 ```
 
 Run the test suites with:
@@ -127,8 +132,8 @@ request branch onto the `main` branch. This also avoids merge commits and
 creates a linear Git commit history.
 
 Familiarising yourself with the
-[Charmed Operator Framework](https://canonical.com/juju/docs/juju-cli/3.6/howto/manage-charms/)
-library will help you a lot when working on new features or bug fixes.
+[Ops framework](https://canonical.com/juju/docs/ops/latest/) will help you when
+working on new features or bug fixes.
 
 (contributing-docs)=
 ## Contribute documentation

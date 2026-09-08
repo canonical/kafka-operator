@@ -1,5 +1,5 @@
 ---
-relatedlinks: "[GitHub&#32;repo](https://github.com/canonical/kafka-operator), [Charmhub](https://charmhub.io/kafka), [Charmhub&#32;K8s](https://charmhub.io/kafka-k8s)"
+relatedlinks: "[GitHub](https://github.com/canonical/kafka-operator), [Charmhub](https://charmhub.io/kafka), [Charmhub&#32;(K8s)](https://charmhub.io/kafka-k8s)"
 myst:
   html_meta:
     description: "Complete documentation for Charmed Apache Kafka operator - deploy, manage, and scale Charmed Apache Kafka clusters on VMs, AWS, Azure, and OpenStack."
@@ -90,5 +90,5 @@ tutorial/index
 how-to/index
 reference/index
 explanation/index
-contributing
+Contributor's guide<contributing>
 ```
