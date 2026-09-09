@@ -7,6 +7,7 @@
 import json
 import logging
 import math
+import socket
 import time
 from functools import cache
 
@@ -66,6 +67,39 @@ class K8sManager:
             field_manager=self.pod_name,
             namespace=self.namespace,
         )
+
+    @property
+    def cluster_domain(self) -> str:
+        """The DNS domain of the K8s cluster, e.g `cluster.local`.
+
+        Taken from this Pod's own FQDN, as the domain is cluster-configurable.
+        """
+        try:
+            addrinfo_domain = socket.getaddrinfo(
+                self.pod_name,
+                None,
+                family=socket.AF_UNSPEC,
+                flags=socket.AI_CANONNAME,
+                type=socket.SOCK_STREAM,
+            )
+            addrinfo_domain = addrinfo_domain[0][3].split(".svc.")[1]
+        except socket.gaierror:
+            logger.exception("Unable to getaddrinfo, possibly coredns not up")
+            addrinfo_domain = ""  # fallback to getfqdn
+
+        getfqdn_domain = socket.getfqdn().split(".svc.")[1]
+
+        return addrinfo_domain or getfqdn_domain
+
+    def build_fqdn(self, hostname: str, cluster_domain: str = "") -> str:
+        """Builds the fully-qualified DNS name of a Service-backed hostname.
+
+        Args:
+            hostname: the namespace-relative name, e.g `kafka-k8s-0.kafka-k8s-endpoints`
+            cluster_domain: the cluster domain to use, if already known.
+                Defaults to resolving it, which costs a DNS lookup.
+        """
+        return f"{hostname}.{self.namespace}.svc.{cluster_domain or self.cluster_domain}"
 
     @staticmethod
     def get_ttl_hash(seconds=60 * 2) -> int:

@@ -2,15 +2,16 @@
 # Copyright 2025 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import socket
 from unittest.mock import MagicMock, Mock, PropertyMock, patch
 
 import pytest
 from common.single_kernel_kafka.core.literals import ConnectLiterals
 from common.single_kernel_kafka.managers.connect import HealthResponse
 from ops import EventBase
-from ops.testing import Container, Context, PeerRelation, Resource, State
+from ops.testing import Container, Context, Model, PeerRelation, Resource, State
 
-from ..helpers import SUBSTRATE, SUBSTRATE_CLS
+from ..helpers import CLUSTER_DOMAIN, MODEL_NAME, SUBSTRATE, SUBSTRATE_CLS
 from .helpers import ACTIONS, CONFIG, METADATA, ConnectCharm
 
 
@@ -40,6 +41,35 @@ def workload(monkeypatch):
 def tenacity_wait():
     with patch("tenacity.nap.time") as patched_nap:
         yield patched_nap
+
+
+@pytest.fixture(autouse=True)
+def patched_addrinfo():
+    with patch(
+        "socket.getaddrinfo",
+        return_value=[
+            (
+                socket.AF_INET6,
+                socket.SOCK_STREAM,
+                6,
+                f"kafka-connect-k8s-0.kafka-connect-k8s-endpoints.{MODEL_NAME}.svc.{CLUSTER_DOMAIN}",
+                ("10.1.90.155", 0),
+            )
+        ],
+    ) as addrinfo:
+        yield addrinfo
+
+
+@pytest.fixture(autouse=True)
+def patched_getfqdn():
+    if SUBSTRATE == "k8s":
+        with patch(
+            "socket.getfqdn",
+            return_value=f"kafka-connect-k8s-0.kafka-connect-k8s-endpoints.{MODEL_NAME}.svc.{CLUSTER_DOMAIN}",
+        ) as getfqdn:
+            yield getfqdn
+    else:
+        yield
 
 
 @pytest.fixture(scope="module")
@@ -128,9 +158,10 @@ def base_state(restart_rel):
             leader=True,
             containers=[Container(name=ConnectCharm.container_name, can_connect=True)],
             relations=[restart_rel, peer_rel],
+            model=Model(name=MODEL_NAME),
         )
     else:
-        state = State(leader=True, relations=[restart_rel, peer_rel])
+        state = State(leader=True, relations=[restart_rel, peer_rel], model=Model(name=MODEL_NAME))
 
     return state
 

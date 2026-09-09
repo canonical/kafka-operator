@@ -5,6 +5,7 @@
 import dataclasses
 import json
 import logging
+import socket
 from typing import cast
 from unittest.mock import PropertyMock, mock_open, patch
 
@@ -25,8 +26,16 @@ from common.single_kernel_kafka.core.literals import (
     TLS_RELATION,
 )
 from ops import CharmMeta
-from ops.testing import Container, Context, PeerRelation, Relation, Secret, State, Storage
-from tests.unit.helpers import ACTIONS, CONFIG, METADATA, SUBSTRATE, KafkaCharm
+from ops.testing import Container, Context, Model, PeerRelation, Relation, Secret, State, Storage
+from tests.unit.helpers import (
+    ACTIONS,
+    CLUSTER_DOMAIN,
+    CONFIG,
+    METADATA,
+    MODEL_NAME,
+    SUBSTRATE,
+    KafkaCharm,
+)
 
 pytestmark = pytest.mark.broker
 
@@ -43,10 +52,14 @@ def charm_configuration():
 @pytest.fixture()
 def base_state():
     if SUBSTRATE == "k8s":
-        state = State(leader=True, containers=[Container(name=CONTAINER, can_connect=True)])
+        state = State(
+            leader=True,
+            containers=[Container(name=CONTAINER, can_connect=True)],
+            model=Model(name=MODEL_NAME),
+        )
 
     else:
-        state = State(leader=True)
+        state = State(leader=True, model=Model(name=MODEL_NAME))
 
     return state
 
@@ -138,7 +151,11 @@ def test_listeners_in_server_properties(charm_configuration: dict, base_state: S
     """Checks that listeners are split into INTERNAL, CLIENT and EXTERNAL."""
     # Given
     charm_configuration["options"]["expose-external"]["default"] = "nodeport"
-    cluster_peer = PeerRelation(PEER, PEER, local_unit_data={"private-address": "treebeard"})
+    cluster_peer = PeerRelation(
+        PEER,
+        PEER,
+        local_unit_data={"private-address": "treebeard", "cluster-domain": CLUSTER_DOMAIN},
+    )
     client_relation = Relation(REL_NAME, "app")
     state_in = dataclasses.replace(base_state, relations=[cluster_peer, client_relation])
     ctx = Context(
@@ -146,6 +163,7 @@ def test_listeners_in_server_properties(charm_configuration: dict, base_state: S
     )
 
     host = "treebeard" if SUBSTRATE == "vm" else "kafka-k8s-0.kafka-k8s-endpoints"
+    client_host = host if SUBSTRATE == "vm" else f"{host}.{MODEL_NAME}.svc.{CLUSTER_DOMAIN}"
     sasl_pm = "SASL_PLAINTEXT_SCRAM_SHA_512"
     ssl_pm = "SASL_SSL_SCRAM_SHA_512"
 
@@ -155,7 +173,7 @@ def test_listeners_in_server_properties(charm_configuration: dict, base_state: S
     ]
     expected_advertised_listeners = [
         f"INTERNAL_{ssl_pm}://{host}:19093",
-        f"CLIENT_{sasl_pm}://{host}:9092",
+        f"CLIENT_{sasl_pm}://{client_host}:9092",
     ]
     if SUBSTRATE == "k8s":
         expected_listeners += [f"EXTERNAL_{sasl_pm}://0.0.0.0:29092"]
@@ -304,7 +322,11 @@ def test_extra_listeners_in_server_properties(charm_configuration: dict, base_st
 def test_oauth_client_listeners_in_server_properties(ctx: Context, base_state: State) -> None:
     """Checks that oauth client listeners are properly set when a relating through oauth."""
     # Given
-    cluster_peer = PeerRelation(PEER, PEER, local_unit_data={"private-address": "treebeard"})
+    cluster_peer = PeerRelation(
+        PEER,
+        PEER,
+        local_unit_data={"private-address": "treebeard", "cluster-domain": CLUSTER_DOMAIN},
+    )
     oauth_relation = Relation(
         OAUTH_REL_NAME,
         "hydra",
@@ -327,6 +349,7 @@ def test_oauth_client_listeners_in_server_properties(ctx: Context, base_state: S
     )
 
     host = "treebeard" if SUBSTRATE == "vm" else "kafka-k8s-0.kafka-k8s-endpoints"
+    client_host = host if SUBSTRATE == "vm" else f"{host}.{MODEL_NAME}.svc.{CLUSTER_DOMAIN}"
     internal_protocol, internal_port = "INTERNAL_SASL_SSL_SCRAM_SHA_512", "19093"
     scram_client_protocol, scram_client_port = "CLIENT_SASL_PLAINTEXT_SCRAM_SHA_512", "9092"
     oauth_client_protocol, oauth_client_port = "CLIENT_SASL_PLAINTEXT_OAUTHBEARER", "9095"
@@ -338,8 +361,8 @@ def test_oauth_client_listeners_in_server_properties(ctx: Context, base_state: S
     )
     expected_advertised_listeners = (
         f"advertised.listeners={internal_protocol}://{host}:{internal_port},"
-        f"{scram_client_protocol}://{host}:{scram_client_port},"
-        f"{oauth_client_protocol}://{host}:{oauth_client_port}"
+        f"{scram_client_protocol}://{client_host}:{scram_client_port},"
+        f"{oauth_client_protocol}://{client_host}:{oauth_client_port}"
     )
 
     # When
@@ -358,7 +381,11 @@ def test_ssl_listeners_in_server_properties(ctx: Context, base_state: State, pat
     cluster_peer = PeerRelation(
         PEER,
         PEER,
-        local_unit_data={"private-address": "treebeard", "client-certificate": "keepitsecret"},
+        local_unit_data={
+            "private-address": "treebeard",
+            "client-certificate": "keepitsecret",
+            "cluster-domain": CLUSTER_DOMAIN,
+        },
     )
     # Simulate data-integrator relation
     client_relation = Relation(
@@ -375,10 +402,15 @@ def test_ssl_listeners_in_server_properties(ctx: Context, base_state: State, pat
     )
 
     host = "treebeard" if SUBSTRATE == "vm" else "kafka-k8s-0.kafka-k8s-endpoints"
+    client_host = host if SUBSTRATE == "vm" else f"{host}.{MODEL_NAME}.svc.{CLUSTER_DOMAIN}"
     sasl_pm = "SASL_SSL_SCRAM_SHA_512"
     ssl_pm = "SSL_SSL"
     expected_listeners = f"listeners=INTERNAL_{sasl_pm}://0.0.0.0:19093,CLIENT_{sasl_pm}://0.0.0.0:9093,CLIENT_{ssl_pm}://0.0.0.0:9094"
-    expected_advertised_listeners = f"advertised.listeners=INTERNAL_{sasl_pm}://{host}:19093,CLIENT_{sasl_pm}://{host}:9093,CLIENT_{ssl_pm}://{host}:9094"
+    expected_advertised_listeners = (
+        f"advertised.listeners=INTERNAL_{sasl_pm}://{host}:19093,"
+        f"CLIENT_{sasl_pm}://{client_host}:9093,"
+        f"CLIENT_{ssl_pm}://{client_host}:9094"
+    )
 
     # When
     with (
@@ -501,8 +533,18 @@ def test_bootstrap_server(ctx: Context, base_state: State) -> None:
     cluster_peer = PeerRelation(
         PEER,
         PEER,
-        local_unit_data={"private-address": "treebeard", f"ip-{client_rel.id}": "draebeert"},
-        peers_data={1: {"private-address": "shelob", f"ip-{client_rel.id}": "bolehs"}},
+        local_unit_data={
+            "private-address": "treebeard",
+            f"ip-{client_rel.id}": "draebeert",
+            "cluster-domain": CLUSTER_DOMAIN,
+        },
+        peers_data={
+            1: {
+                "private-address": "shelob",
+                f"ip-{client_rel.id}": "bolehs",
+                "cluster-domain": CLUSTER_DOMAIN,
+            }
+        },
     )
     state_in = dataclasses.replace(base_state, relations=[cluster_peer, client_rel])
 
@@ -522,13 +564,83 @@ def test_bootstrap_server(ctx: Context, base_state: State) -> None:
             }
         else:
             assert set(bootstrap_servers_client.split(",")) == {
-                "kafka-k8s-0.kafka-k8s-endpoints:9092",
-                "kafka-k8s-1.kafka-k8s-endpoints:9092",
+                f"kafka-k8s-0.kafka-k8s-endpoints.{MODEL_NAME}.svc.{CLUSTER_DOMAIN}:9092",
+                f"kafka-k8s-1.kafka-k8s-endpoints.{MODEL_NAME}.svc.{CLUSTER_DOMAIN}:9092",
             }
             assert set(bootstrap_servers_internal.split(",")) == {
                 "kafka-k8s-0.kafka-k8s-endpoints:19093",
                 "kafka-k8s-1.kafka-k8s-endpoints:19093",
             }
+
+
+@pytest.mark.skipif(SUBSTRATE == "vm", reason="Kubernetes DNS resolution only")
+def test_client_addresses_are_fully_qualified(ctx: Context, base_state: State) -> None:
+    """Client-facing addresses must resolve from outside the charm's namespace."""
+    # Given
+    client_rel = Relation(REL_NAME)
+    cluster_peer = PeerRelation(PEER, PEER, local_unit_data={"cluster-domain": CLUSTER_DOMAIN})
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, client_rel])
+
+    # When
+    with ctx(ctx.on.config_changed(), state_in) as manager:
+        charm = cast(KafkaCharm, manager.charm)
+
+        # Then
+        assert (
+            charm.state.bootstrap_server_client(client_rel)
+            == f"kafka-k8s-0.kafka-k8s-endpoints.{MODEL_NAME}.svc.{CLUSTER_DOMAIN}:9092"
+        ), "the cached cluster domain is used, rather than being resolved on every hook"
+        assert (
+            charm.state.unit_broker.internal_address == "kafka-k8s-0.kafka-k8s-endpoints"
+        ), "inter-broker traffic never leaves the namespace, so it keeps the short name"
+
+
+@pytest.mark.skipif(SUBSTRATE == "vm", reason="Kubernetes DNS resolution only")
+def test_cluster_domain_prefers_addrinfo_then_falls_back_to_getfqdn(
+    ctx: Context, base_state: State
+) -> None:
+    """The cached cluster-domain is resolved via `getaddrinfo`, falling back to `getfqdn`."""
+    # Given
+    addrinfo_domain = "addrinfo.shire"
+    getfqdn_domain = "getfqdn.shire"
+    addrinfo_result = [
+        (
+            socket.AF_INET6,
+            socket.SOCK_STREAM,
+            6,
+            f"kafka-k8s-0.kafka-k8s-endpoints.{MODEL_NAME}.svc.{addrinfo_domain}",
+            ("10.1.90.155", 0),
+        )
+    ]
+    getfqdn_return = f"kafka-k8s-0.kafka-k8s-endpoints.{MODEL_NAME}.svc.{getfqdn_domain}"
+
+    # When
+    cluster_peer = PeerRelation(PEER, PEER)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer])
+    with (
+        patch("socket.getaddrinfo", return_value=addrinfo_result),
+        patch("socket.getfqdn", return_value=getfqdn_return),
+        ctx(ctx.on.config_changed(), state_in) as manager,
+    ):
+        charm = cast(KafkaCharm, manager.charm)
+        charm.state.unit_broker.update_cluster_domain()
+
+        # Then
+        assert charm.state.unit_broker.cluster_domain == addrinfo_domain
+
+    # When
+    cluster_peer = PeerRelation(PEER, PEER)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer])
+    with (
+        patch("socket.getaddrinfo", side_effect=socket.gaierror),
+        patch("socket.getfqdn", return_value=getfqdn_return),
+        ctx(ctx.on.config_changed(), state_in) as manager,
+    ):
+        charm = cast(KafkaCharm, manager.charm)
+        charm.state.unit_broker.update_cluster_domain()
+
+        # Then
+        assert charm.state.unit_broker.cluster_domain == getfqdn_domain
 
 
 def test_default_replication_properties_less_than_three(ctx: Context, base_state: State) -> None:
