@@ -55,19 +55,35 @@ Charmed Apache Kafka, get in touch through one of the following channels:
 ## Contribute code
 
 If you would like to contribute, the following sections
-cover the building and testing for both source code and documentation. 
+cover the building and testing for both source code and documentation.
+
+This repository contains both the machine (VM) charm (`machine/`) and the
+Kubernetes (K8s) charm (`k8s/`), along with their Kafka Connect counterparts
+(`connect_machine/` and `connect_k8s/`). Instructions below apply to both
+substrates; VM/K8s differences are called out with separate tabs or notes.
 
 ### Requirements
 
 To build the charm locally, you will need to install
 [Charmcraft](https://snapcraft.io/charmcraft).
 
-To run the charm locally with Juju, it is recommended to use
+To run the **VM** charm locally with Juju, it is recommended to use
 [LXD](https://linuxcontainers.org/lxd/introduction/) as your virtual machine
 manager. Instructions for running Juju on LXD can be found
 [here](https://canonical.com/juju/docs/juju-cli/3.6/reference/cloud/list-of-supported-clouds/lxd/).
 
+To run the **K8s** charm locally with Juju, you will additionally need a
+Kubernetes cluster registered with Juju, such as
+[MicroK8s](https://microk8s.io/) (`1.32-strict/stable` with the `dns` and
+`hostpath-storage` addons enabled).
+
 ### Build and deploy
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 To build and deploy the machine charm:
 
@@ -89,6 +105,39 @@ CHARMCRAFT_EXPERIMENTAL_MONOREPO=true charmcraft pack
 juju deploy ./*.charm -n 3 --config roles=broker,controller
 ```
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+To build and deploy the K8s charm:
+
+```bash
+# Clone and enter the repository
+git clone https://github.com/canonical/kafka-operator.git
+cd kafka-operator/k8s
+
+# Switch to a Kubernetes-backed controller and create a working model
+juju switch <k8s-controller>
+juju add-model kafka
+
+# Enable DEBUG logging for the model
+juju model-config logging-config="<root>=INFO;unit=DEBUG"
+
+# Build the charm locally
+CHARMCRAFT_EXPERIMENTAL_MONOREPO=true charmcraft pack
+
+# Deploy the charm
+juju deploy ./*.charm -n 3 --config roles=broker,controller --trust
+```
+
+The `--trust` flag is required so Juju can manage the Kubernetes resources
+(Services, StatefulSet) the charm creates.
+
+````
+
+`````
+
 ### Develop and test
 
 You can create an environment for development with `tox`:
@@ -104,14 +153,23 @@ Run the test suites with:
 ```bash
 tox run -e format        # update your code according to linting rules
 tox run -e lint          # code style
-tox run -e unit          # unit tests
+tox run -e unit          # unit tests (both VM and K8s substrates)
 tox run -e integration   # integration tests
 tox                      # runs 'lint' and 'unit' environments
 ```
 
+Integration tests are split by substrate using the `integration-machine-*`
+and `integration-k8s-*` tox environments, for example:
+
+```bash
+tox run -e integration-machine-charm   # VM
+tox run -e integration-k8s-charm       # K8s
+```
+
 The tutorial end-to-end test suite (requires
 [Multipass](https://documentation.ubuntu.com/multipass/) and
-[Spread](https://github.com/canonical/spread)) can be run with:
+[Spread](https://github.com/canonical/spread)) covers the **VM charm only**
+and can be run with:
 
 ```bash
 tox -e tutorial           # extract scripts + run Spread tests
