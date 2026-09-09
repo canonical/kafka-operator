@@ -27,3 +27,9 @@ pydantic = ">=2"
 cryptography = ">=42.0.5"
 # hydra/v0/oauth.py
 jsonschema = "*"
+
+[tool.poetry.group.build-refresh-version]
+optional = true
+
+[tool.poetry.group.build-refresh-version.dependencies]
+charm-refresh-build-version = "^0.2.0"
