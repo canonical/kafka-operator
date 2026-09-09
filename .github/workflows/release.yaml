@@ -37,6 +37,8 @@ jobs:
         path:
           - machine
           - k8s
+          - connect_machine
+          - connect_k8s
     needs:
       - tag
       - ci-tests
