@@ -79,6 +79,8 @@ IAAS
 IPs
 IPv
 Integrations
+Aiven
+Debezium
 JMX
 JRE
 JVMFLAGS
