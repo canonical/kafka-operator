@@ -133,6 +133,10 @@ Both are also recorded in `conf.py` at the point where they matter:
   overrides must reproduce the idiom to outrank it — `!important` alone loses,
   because the upstream declarations are important too and the more specific
   selector then wins.
+- The dark stylesheet restyles edge-label *text* (`color`, `fill`) but never
+  resets the `background-color` that Mermaid paints on the `span` and `p` inside
+  each label's `<foreignObject>`. Without the patch, every edge label keeps a
+  white box behind it in dark mode.
 
 ### Authoring diagrams
 
@@ -168,6 +172,17 @@ make html && python3 -m http.server --directory _build 8000
 | Edge-label ink | `#666666` | `#B3B3B3` |
 | Connectors and arrowheads | `#E95420` | `#E95420` |
 | Diagram canvas | `#FFFFFF` | transparent |
+
+Checking a handful of named selectors is not enough: labels are HTML inside
+`<foreignObject>`, so a stray `background-color` can hide on a `span` or `p` that
+no palette rule mentions. Sweep the whole subtree for light backgrounds instead,
+which should return nothing in dark mode:
+
+```js
+[...document.querySelectorAll('.mermaid svg *')]
+  .filter(el => /^rgb\((2[0-9]{2}|19[0-9])/.test(getComputedStyle(el).backgroundColor))
+  .map(el => `${el.tagName}.${el.getAttribute('class') || ''}`);
+```
 
 ## Porting this styling to another Sphinx Stack repository
 

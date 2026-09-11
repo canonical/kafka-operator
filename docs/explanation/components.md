@@ -108,9 +108,6 @@ The following diagram shows how the components connect to each other in a full d
 
 ```{mermaid}
 flowchart TB
-    client["<b>Client applications</b><br>producers · consumers"]
-    di["<b>data-integrator</b>"]
-
     subgraph kafka-model["Kafka Juju model"]
         direction TB
 
@@ -131,8 +128,14 @@ flowchart TB
         ui["<b>kafka-ui</b>"]
     end
 
-    client -->|"kafka_client"| broker
-    di -->|"kafka_client"| broker
+    subgraph clients[" "]
+        direction LR
+        client["<b>Client applications</b><br>producers · consumers"]
+        di["<b>data-integrator</b>"]
+    end
+
+    broker -->|"kafka_client"| client
+    broker -->|"kafka_client"| di
     kraft <-->|"peer-cluster"| broker
     balancer <-->|"rebalancing"| broker
     workers <-->|"kafka-connect"| broker

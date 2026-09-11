@@ -58,6 +58,31 @@
   background: var(--color-background-primary) !important;
 }
 
+/*
+ * Edge labels are HTML inside a <foreignObject>, and Mermaid's inline stylesheet
+ * paints 'background-color: #FFFFFF' on the wrapping '.edgeLabel' span and on
+ * its '<p>'. The upstream stylesheet restyles the *text* of those same elements
+ * ('color' and 'fill') but never resets their background, so in dark mode each
+ * label keeps a white box behind it.
+ *
+ * Clear those backgrounds and let the sibling '.labelBkg' element (handled by
+ * the rule above) be the only thing that paints the plate.
+ *
+ * Upstream: the dark stylesheet's edge-label rules set only 'fill' and 'color'
+ * on '.edgeLabel text, tspan, foreignObject div|span|p'.
+ */
+:is(#_mermaid_patch_a, body[data-theme="dark"]):not(#_mermaid_patch_b):not(#_mermaid_patch_c)
+  .mermaid
+  svg[aria-roledescription]
+  :is(
+    .edgeLabel,
+    .edgeLabel foreignObject div,
+    .edgeLabel foreignObject span,
+    .edgeLabel foreignObject p
+  ) {
+  background-color: transparent !important;
+}
+
 /* Furo's automatic mode follows the operating system preference. */
 @media (prefers-color-scheme: dark) {
   :is(#_mermaid_patch_a, body[data-theme="auto"]):not(#_mermaid_patch_b):not(#_mermaid_patch_c)
@@ -74,5 +99,17 @@
     svg[aria-roledescription] :is(.edgeLabel rect, .edgeLabel .labelBkg) {
     fill: var(--color-background-primary) !important;
     background: var(--color-background-primary) !important;
+  }
+
+  :is(#_mermaid_patch_a, body[data-theme="auto"]):not(#_mermaid_patch_b):not(#_mermaid_patch_c)
+    .mermaid
+    svg[aria-roledescription]
+    :is(
+      .edgeLabel,
+      .edgeLabel foreignObject div,
+      .edgeLabel foreignObject span,
+      .edgeLabel foreignObject p
+    ) {
+    background-color: transparent !important;
   }
 }
