@@ -111,10 +111,7 @@ flowchart TB
     subgraph kafka-model["Kafka Juju model"]
         direction TB
 
-        subgraph kafka-cluster["kafka (roles=broker)"]
-            broker["<b>Brokers</b>"]
-        end
-
+        broker["<b>kafka</b><br>roles=broker"]
         kraft["<b>kafka</b><br>roles=controller"]
         balancer["<b>kafka</b><br>roles=balancer"]
 
