@@ -196,3 +196,9 @@ gzip
 sysconfigs
 uncompacted
 zstd
+vendored
+Furo
+Furo.s
+dagre
+subgraph
+subgraphs

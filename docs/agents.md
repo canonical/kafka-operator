@@ -272,6 +272,17 @@ Place content in the correct directory:
 - MyST front matter (`---`) is used for SEO metadata (`html_meta.description`)
 - All documentation pages should be added to a toc-tree of a parent page to be included in the Nav Menu
 
+## Spellcheck vocabulary
+
+Vale spelling runs via `make spelling` in `docs/` (rules from the
+canonical/documentation-style-guide repository, fetched by
+`_dev/get_vale_conf.py`).
+Do **not** edit `_dev/styles/config/vocabularies/Canonical/accept.txt` — it is
+generated and overwritten. Add project-specific words to
+`docs/.custom_wordlist.txt` instead; the `vale`, `woke`, and `spelling` Make
+targets concatenate it into the vocabulary temporarily, then restore the
+upstream file (see `docs/Makefile` for the backup/restore pattern).
+
 ## Tutorial testing annotations
 
 Pages under `docs/tutorial/` are the single source of truth for both rendered
