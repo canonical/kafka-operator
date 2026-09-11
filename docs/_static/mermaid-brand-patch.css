@@ -1,0 +1,78 @@
+/*
+ * Local patches on top of 'brand-theme.sphinx-dark.css' from the Canonical
+ * Mermaid brand kit (https://github.com/canonical/mermaid-brand-kit).
+ *
+ * Keep this file as small as possible. Anything the upstream artifact already
+ * handles must stay there, so that taking a newer release of the kit picks up
+ * design changes automatically. Each rule below records the upstream limitation
+ * it works around, so it can be deleted once the kit covers it.
+ *
+ * SPECIFICITY
+ * -----------
+ * The upstream artifact deliberately inflates its own specificity, twice over.
+ * Every selector is of the form:
+ *
+ *     :is(#_sphinx_mermaid_overlay_specificity, <real selectors>)
+ *       :not(#_sphinx_mermaid_overlay_specificity_guard)
+ *       .mermaid svg:is([aria-roledescription="flowchart-v2"], [...])
+ *
+ * Because ':is()' and ':not()' each take the specificity of their most specific
+ * argument, those two never-matching IDs score (2,0,0) before the real selectors
+ * are counted, giving (2,2,1) overall. '!important' does not help on its own:
+ * the upstream declarations are important too, and among equally important
+ * declarations the more specific selector wins.
+ *
+ * The rules below therefore reproduce the same idiom with local sentinel IDs to
+ * reach (3,2,1), so they override upstream regardless of stylesheet order.
+ * Without this, they are silently ignored.
+ */
+
+/*
+ * The brand kit assumes a '#262626' page background and paints that colour onto
+ * the diagram canvas. Furo's dark background is '#131416', so the diagram would
+ * otherwise appear as a lighter grey plate floating on the page. Node and
+ * subgraph fills keep their brand values; only the canvas becomes transparent.
+ *
+ * Upstream: the assumed background is stated in
+ * 'docs/brand-theme-for-hand-authored-mermaid.md' and is not configurable in the
+ * generated artifact.
+ */
+:is(#_mermaid_patch_a, body[data-theme="dark"]):not(#_mermaid_patch_b):not(#_mermaid_patch_c)
+  .mermaid
+  svg[aria-roledescription],
+:is(#_mermaid_patch_a, body[data-theme="dark"]):not(#_mermaid_patch_b):not(#_mermaid_patch_c)
+  .mermaid
+  svg[aria-roledescription] svg {
+  background: transparent !important;
+}
+
+/*
+ * Edge-label plates are painted '#262626' upstream to match that same assumed
+ * background. Re-point them at Furo's real page background, so a label sitting
+ * on top of a connector does not show a lighter box behind its text.
+ */
+:is(#_mermaid_patch_a, body[data-theme="dark"]):not(#_mermaid_patch_b):not(#_mermaid_patch_c)
+  .mermaid
+  svg[aria-roledescription] :is(.edgeLabel rect, .edgeLabel .labelBkg) {
+  fill: var(--color-background-primary) !important;
+  background: var(--color-background-primary) !important;
+}
+
+/* Furo's automatic mode follows the operating system preference. */
+@media (prefers-color-scheme: dark) {
+  :is(#_mermaid_patch_a, body[data-theme="auto"]):not(#_mermaid_patch_b):not(#_mermaid_patch_c)
+    .mermaid
+    svg[aria-roledescription],
+  :is(#_mermaid_patch_a, body[data-theme="auto"]):not(#_mermaid_patch_b):not(#_mermaid_patch_c)
+    .mermaid
+    svg[aria-roledescription] svg {
+    background: transparent !important;
+  }
+
+  :is(#_mermaid_patch_a, body[data-theme="auto"]):not(#_mermaid_patch_b):not(#_mermaid_patch_c)
+    .mermaid
+    svg[aria-roledescription] :is(.edgeLabel rect, .edgeLabel .labelBkg) {
+    fill: var(--color-background-primary) !important;
+    background: var(--color-background-primary) !important;
+  }
+}

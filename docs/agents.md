@@ -83,6 +83,61 @@ Audit the result with `npx afdocs check <url> --format scorecard`.
 `Accept: text/markdown` and cache-header lifetimes are handled by the
 Canonical web platform / CDN in front of Read the Docs, not by Sphinx.
 
+## Mermaid diagrams
+
+Diagrams use the `{mermaid}` directive and are rendered live in the browser by
+`sphinxcontrib-mermaid` (`raw` output mode).
+
+Styling comes from the [Canonical Mermaid brand
+kit](https://github.com/canonical/mermaid-brand-kit), following its
+`docs/live-mermaid-in-sphinx.md` recipe, so design changes are picked up from
+upstream rather than maintained here. Two generated artifacts are vendored into
+`_static/` and must not be edited by hand — see `_static/VENDORED.md` for how to
+update them:
+
+| File | Role |
+|------|------|
+| `brand-theme.light.config.json` | Light palette, loaded into `mermaid_init_config` |
+| `brand-theme.sphinx-dark.css` | Repaints diagrams for dark mode |
+
+`_static/mermaid-brand-patch.css` holds the few local overrides the generated
+artifacts cannot express (adapting the kit's assumed `#262626` page background to
+Furo's `#131416`). Keep it minimal; each rule documents the upstream limitation
+it works around, so it can be deleted when a newer kit release covers it.
+
+Two upstream constraints are worth knowing about, both recorded in `conf.py`:
+
+- The brand config requests the **ELK** renderer, but ELK flowcharts emit
+  `aria-roledescription="flowchart-elk"` while the dark stylesheet only matches
+  `flowchart-v2` and `sequence`. Left alone, dark mode silently does not apply to
+  any flowchart. `conf.py` forces the dagre renderer as a workaround. This is a
+  known upstream defect (blocker `B1` in the kit's own `AGENT-INBOX.md`).
+- The dark stylesheet wins the cascade using `:is(#id, ...)` plus `:not(#guard)`
+  to reach ID-level specificity. Local overrides must reproduce that idiom or
+  they are silently ignored, `!important` notwithstanding.
+
+**When authoring diagrams:** do not put `theme`, `themeVariables`, `themeCSS`,
+`classDef`, `style`, or `linkStyle` in the Mermaid source — a per-diagram palette
+drifts from the site theme and breaks dark mode. Semantic structure (subgraphs,
+edge labels, `accTitle`/`accDescr`) is fine. The kit ships a lint for exactly
+this, runnable from a kit checkout:
+
+```bash
+node scripts/audit-sphinx-adaptive-sources.mjs <path-to>/docs
+```
+
+**Verifying a change:** build, serve over HTTP, and compare computed styles in
+both modes rather than trusting a screenshot — the page background can lag behind
+a theme toggle and make a correct diagram look wrong:
+
+```bash
+make html && python3 -m http.server --directory _build 8000
+```
+
+Expected: nodes `#FFFFFF`/`#262626`, subgraphs `#F3F3F3`/`#3A3A3A`, ink
+`#000000`/`#FFFFFF`, edge labels `#666666`/`#B3B3B3`, connectors `#E95420` in
+both modes, and a transparent diagram canvas in dark mode.
+
 ## Stack
 
 - **Sphinx** built and hosted on **Read the Docs**
