@@ -133,14 +133,14 @@ flowchart TB
 
     broker -->|"kafka_client"| client
     broker -->|"kafka_client"| di
-    kraft <-->|"peer-cluster"| broker
-    balancer <-->|"rebalancing"| broker
-    workers <-->|"kafka-connect"| broker
-    integrators -->|"connect-plugin"| workers
-    karapace <-->|"schema-registry"| broker
-    ui -->|"administration"| broker
-    ui --> karapace
-    ui --> workers
+    kraft <-->|"peer_cluster"| broker
+    balancer <-->|"peer_cluster"| broker
+    workers <-->|"kafka_client"| broker
+    integrators -->|"connect_client"| workers
+    karapace <-->|"kafka_client"| broker
+    ui -->|"kafka_client"| broker
+    ui -->|"karapace_client"| karapace
+    ui -->|"connect_client"| workers
 ```
 
 (explanation-components-compatibility)=
