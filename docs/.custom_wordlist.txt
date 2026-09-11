@@ -182,6 +182,7 @@ requirer
 spellexception
 stateful
 subdirectory
+subtree
 truststores
 unhandled
 Kafbat
