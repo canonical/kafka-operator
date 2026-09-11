@@ -28,7 +28,6 @@ General useful references:
 
 * {ref}`reference-broker-listeners`
 * {ref}`reference-performance-tuning`
-* {ref}`Contact information <reference-contact>`
 
 ```{toctree}
 :titlesonly:
@@ -45,5 +44,4 @@ listeners.md
 Terraform module<terraform.md>
 requirements.md
 performance-tuning.md
-Contact<contact.md>
 ```

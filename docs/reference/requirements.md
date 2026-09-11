@@ -34,5 +34,5 @@ For production deployments, ensure that all nodes are deployed on separate physi
 
 The `charmed-kafka` [snap](https://snapcraft.io/charmed-kafka) currently supports `amd64` only. The support for `arm64` is in development.
 
-Please [contact us](contact) if you are interested in a new architecture to be supported!
+Please [get in touch](contributing-contact) if you are interested in a new architecture to be supported!
 

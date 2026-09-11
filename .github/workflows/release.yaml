@@ -25,24 +25,25 @@ jobs:
     needs:
       - tag
     uses: ./.github/workflows/ci.yaml
+    with:
+      # To remove
+      skip-integration: true
     secrets: inherit
     permissions:
       contents: read
       actions: read # Needed by build-dev workflow
 
-  release:
-    name: Release charm | ${{ matrix.path }}
-    strategy:
-      matrix:
-        path:
-          - machine
-          - k8s
+  # NOTE: a matrix job has a single set of outputs, so the
+  # four `charm-revisions` values would overwrite each other. One job per charm
+  # keeps all four readable by `collect-revisions` below.
+  release-machine:
+    name: Release charm | machine
     needs:
       - tag
       - ci-tests
     uses: canonical/data-platform-workflows/.github/workflows/release_charm_edge.yaml@v49.0.1
     with:
-      path-to-charm-directory: ${{ matrix.path }}
+      path-to-charm-directory: machine
       track: ${{ needs.tag.outputs.track }}
       artifact-prefix: ${{ needs.ci-tests.outputs.artifact-prefix }}
     secrets:
@@ -51,47 +52,147 @@ jobs:
       contents: write  # Needed to create git tags
       actions: read # Needed by reusable workflow
 
-# TODO: should be enabled after Airflow DAGs are updated.
-  # trigger-release-ci:
-  #   name: Trigger release CI
-  #   runs-on: ubuntu-latest
-  #   needs: release
-  #   steps:
-  #     - name: Trigger Airflow DAG
-  #       env:
-  #         CHARM_REVISIONS: ${{ needs.release.outputs.charm-revisions }}
-  #         VERSION: ${{ github.ref_name }}
-  #         RUN_ID: ${{ github.run_id }}
-  #         AIRFLOW_TOKEN: ${{ secrets.AIRFLOW_API_TOKEN }}
-  #       run: |
-  #         body=$(jq -nc \
-  #           --arg dag_run_id "promote-${RUN_ID}" \
-  #           --arg logical_date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-  #           --arg version "$VERSION" \
-  #           --argjson charm_revisions "$CHARM_REVISIONS" \
-  #           '{
-  #             dag_run_id: $dag_run_id,
-  #             logical_date: $logical_date,
-  #             conf: {
-  #               charm: "kafka",
-  #               version: $version,
-  #               charm_revisions: $charm_revisions
-  #             }
-  #           }')
-  #         response=$(curl -s -w "\n%{http_code}" -X POST \
-  #           "https://airflow.data-platform.ps7.canonical.com/api/v2/dags/kafka_4.x_vm/dagRuns" \
-  #           -H "Content-Type: application/json" \
-  #           -H "Authorization: Bearer ${AIRFLOW_TOKEN}" \
-  #           -d "$body")
-  #         http_code=$(echo "$response" | tail -n1)
-  #         resp_body=$(echo "$response" | sed '$d')
-  #         echo "$resp_body"
-  #         if echo "$resp_body" | grep -q '"detail":"Token Expired"'; then
-  #           echo "::error::Airflow API token has expired"
-  #           exit 1
-  #         fi
-  #         if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
-  #           echo "::error::Airflow API request failed with status $http_code"
-  #           exit 1
-  #         fi
-  #   permissions: {}
+  release-k8s:
+    name: Release charm | k8s
+    needs:
+      - tag
+      - ci-tests
+    uses: canonical/data-platform-workflows/.github/workflows/release_charm_edge.yaml@v49.0.1
+    with:
+      path-to-charm-directory: k8s
+      track: ${{ needs.tag.outputs.track }}
+      artifact-prefix: ${{ needs.ci-tests.outputs.artifact-prefix }}
+    secrets:
+      charmhub-token: ${{ secrets.CHARMHUB_TOKEN }}
+    permissions:
+      contents: write  # Needed to create git tags
+      actions: read # Needed by reusable workflow
+
+  release-connect-machine:
+    name: Release charm | connect_machine
+    needs:
+      - tag
+      - ci-tests
+    uses: canonical/data-platform-workflows/.github/workflows/release_charm_edge.yaml@v49.0.1
+    with:
+      path-to-charm-directory: connect_machine
+      track: ${{ needs.tag.outputs.track }}
+      artifact-prefix: ${{ needs.ci-tests.outputs.artifact-prefix }}
+    secrets:
+      charmhub-token: ${{ secrets.CHARMHUB_TOKEN }}
+    permissions:
+      contents: write  # Needed to create git tags
+      actions: read # Needed by reusable workflow
+
+  release-connect-k8s:
+    name: Release charm | connect_k8s
+    needs:
+      - tag
+      - ci-tests
+    uses: canonical/data-platform-workflows/.github/workflows/release_charm.yaml@29.3.0-rc.1
+    with:
+      path-to-charm-directory: connect_k8s
+      track: ${{ needs.tag.outputs.track }}
+      artifact-prefix: ${{ needs.ci-tests.outputs.artifact-prefix }}
+      path-to-file-resource: connect_k8s/empty.tar
+    secrets:
+      charmhub-token: ${{ secrets.CHARMHUB_TOKEN }}
+    permissions:
+      contents: write  # Needed to create git tags
+      actions: read # Needed by reusable workflow
+
+  collect-revisions:
+    name: Collect released revisions
+    runs-on: ubuntu-latest
+    needs:
+      - release-machine
+      - release-k8s
+      - release-connect-machine
+      - release-connect-k8s
+    outputs:
+      charm-revisions: ${{ steps.collect.outputs.charm-revisions }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0  # find the charm refresh compatibility version
+      - name: Merge per-charm revisions
+        id: collect
+        env:
+          KAFKA: ${{ needs.release-machine.outputs.charm-revisions }}
+          KAFKA_K8S: ${{ needs.release-k8s.outputs.charm-revisions }}
+          KAFKA_CONNECT: ${{ needs.release-connect-machine.outputs.charm-revisions }}
+          KAFKA_CONNECT_K8S: ${{ needs.release-connect-k8s.outputs.charm-revisions }}
+        run: |
+          revisions=$(jq -nc \
+            --argjson kafka "$KAFKA" \
+            --argjson kafka_k8s "$KAFKA_K8S" \
+            --argjson kafka_connect "$KAFKA_CONNECT" \
+            --argjson kafka_connect_k8s "$KAFKA_CONNECT_K8S" \
+            '{
+              "kafka": $kafka,
+              "kafka-k8s": $kafka_k8s,
+              "kafka-connect": $kafka_connect,
+              "kafka-connect-k8s": $kafka_connect_k8s
+            }')
+          echo "Collected revisions: $revisions"
+          echo "charm-revisions=$revisions" >> "$GITHUB_OUTPUT"
+      # mirrors `get_release_tag_for_commit` in data-platform-workflows.
+      - name: Get charm refresh compatibility version
+        id: version
+        run: |
+          git fetch --tags --force
+          version="$(git tag --list 'v*/*' --points-at HEAD)"
+          if [ -z "$version" ] || [ "$(echo "$version" | wc -l)" -ne 1 ]; then
+            echo "::error::Expected exactly 1 'v*/*' tag on HEAD, got: ${version:-none}"
+            exit 1
+          fi
+          echo "Version: $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+    permissions:
+      contents: read
+
+  trigger-release-ci:
+    name: Trigger release CI
+    runs-on: ubuntu-latest
+    needs:
+      - collect-revisions
+    steps:
+      - name: Trigger Airflow DAG
+        env:
+          CHARM_REVISIONS: ${{ needs.collect-revisions.outputs.charm-revisions }}
+          VERSION: ${{ needs.collect-revisions.outputs.version }}
+          RUN_ID: ${{ github.run_id }}
+          AIRFLOW_TOKEN: ${{ secrets.AIRFLOW_API_TOKEN }}
+        run: |
+          body=$(jq -nc \
+            --arg dag_run_id "promote-${RUN_ID}" \
+            --arg logical_date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg version "$VERSION" \
+            --argjson charm_revisions "$CHARM_REVISIONS" \
+            '{
+              dag_run_id: $dag_run_id,
+              logical_date: $logical_date,
+              conf: {
+                version: $version,
+                charm_revisions: $charm_revisions
+              }
+            }')
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            "https://airflow.data-platform.ps7.canonical.com/api/v2/dags/kafka_4.x/dagRuns" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${AIRFLOW_TOKEN}" \
+            -d "$body")
+          http_code=$(echo "$response" | tail -n1)
+          resp_body=$(echo "$response" | sed '$d')
+          echo "$resp_body"
+          if echo "$resp_body" | grep -q '"detail":"Token Expired"'; then
+            echo "::error::Airflow API token has expired"
+            exit 1
+          fi
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            echo "::error::Airflow API request failed with status $http_code"
+            exit 1
+          fi
+    permissions: {}
