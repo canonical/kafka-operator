@@ -7,7 +7,7 @@ myst:
 (how-to-index)=
 # How-to guides
 
-The following guides cover key processes and common tasks for Charmed Apache Kafka. If you are missing a particular how-to guide, feel free to leave us feedback via button above, or [contact](reference-contact) directly.
+The following guides cover key processes and common tasks for Charmed Apache Kafka. If you are missing a particular how-to guide, feel free to leave us feedback via button above, or [get in touch](contributing-contact) directly.
 
 ## Deployment
 
