@@ -1,6 +1,7 @@
 """Configuration for the Sphinx documentation builder."""
 
 import datetime
+import json
 import os
 import pathlib
 import textwrap
@@ -243,6 +244,7 @@ extensions = [
     "sphinx_reredirects",
     "sphinx_tabs.tabs",
     "sphinxcontrib.jquery",
+    "sphinxcontrib.mermaid",
     "sphinxext.opengraph",
     "sphinx_config_options",
     "sphinx_contributor_listing",
@@ -271,6 +273,8 @@ exclude_patterns = [
 html_css_files = [
     "cookie-banner.css",
     "agent-directive.css",
+    "brand-theme.sphinx-dark.css",
+    "mermaid-brand-patch.css",
 ]
 
 # Adds custom JavaScript files, located under 'html_static_path'
@@ -278,6 +282,65 @@ html_js_files = [
     "bundle.js",
     "overwritelinks.js",
 ]
+
+#########################
+# Mermaid configuration #
+#########################
+
+# Diagram styling comes from the Canonical Mermaid brand kit, so that design
+# changes are picked up from upstream instead of being maintained here:
+# https://github.com/canonical/mermaid-brand-kit
+#
+# Two generated artifacts are vendored into '_static/' from it:
+#   - 'brand-theme.light.config.json'  -> the light palette, loaded below
+#   - 'brand-theme.sphinx-dark.css'    -> repaints diagrams for dark mode
+#
+# '_static/mermaid-brand-patch.css' carries the few local overrides that the
+# generated artifacts cannot express; see the comments in that file.
+#
+# Setup follows 'docs/live-mermaid-in-sphinx.md' in the kit.
+
+_brand_theme = json.loads(
+    (pathlib.Path(__file__).parent / "_static" / "brand-theme.light.config.json").read_text(
+        encoding="utf-8"
+    )
+)
+
+# Render client-side, so diagrams follow the reader's light/dark preference.
+mermaid_output_format = "raw"
+
+# The extension overwrites 'theme' after 'mermaid_init_config' is applied. Pin
+# both modes to 'base' so any variable the brand config leaves derived is
+# resolved from a neutral theme rather than a stock Mermaid palette.
+mermaid_light_theme = "base"
+mermaid_dark_theme = "base"
+
+# The Mermaid release the vendored artifacts are validated against.
+mermaid_version = "11.15.0"
+
+# NOTE: The brand config sets 'flowchart.defaultRenderer = "elk"', but an ELK
+#       flowchart emits 'aria-roledescription="flowchart-elk"' while the
+#       vendored dark stylesheet only matches 'flowchart-v2' and 'sequence'.
+#       Left as-is, dark mode silently does not apply to any flowchart. Force
+#       the dagre renderer so the emitted role matches the stylesheet.
+#
+#       This is a known upstream defect, recorded as blocker 'B1' in the kit's
+#       own 'AGENT-INBOX.md'. Remove this override, and set
+#       'mermaid_include_elk = True' with 'mermaid_elk_version = "0.2.1"', once
+#       a kit release adds 'flowchart-elk' to the stylesheet's family gate.
+mermaid_include_elk = False
+mermaid_init_config = {
+    **_brand_theme,
+    "startOnLoad": False,
+    "flowchart": {**_brand_theme["flowchart"], "defaultRenderer": "dagre"},
+}
+
+# The extension owns the render lifecycle; 'startOnLoad' must stay false above.
+#
+# The fullscreen modal clones SVG IDs and adds another render surface. The kit
+# recommends leaving it off until that modal has been tested for focus handling,
+# accessible names, duplicate IDs, and theme switching.
+mermaid_fullscreen = False
 
 # Appends extra markup to the end of every document written in reST
 rst_epilog = """
