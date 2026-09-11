@@ -175,7 +175,11 @@ templates_path = [
 #       --fail-on-warning. Uncomment when redirects are needed:
 # rediraffe_redirects = "redirects.txt"
 
-redirects = {}
+# The former contact page was replaced by the top-level Contribute page.
+# Targets are relative to the source page (dirhtml builder).
+redirects = {
+    "reference/contact": "../../contributing/",
+}
 
 
 ############################
@@ -207,6 +211,7 @@ linkcheck_ignore = [
     "https://cwiki.apache.org/*",
     "https://archive.apache.org/*",
     r"http://worker-\d+\.domain\.com.*",
+    "https://canonical.com/data/kafka#get-in-touch",
 ]
 
 # A regex list of URLs where anchors are ignored by 'make linkcheck'

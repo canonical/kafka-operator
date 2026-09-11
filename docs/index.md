@@ -1,4 +1,5 @@
 ---
+relatedlinks: "[GitHub](https://github.com/canonical/kafka-operator), [Charmhub](https://charmhub.io/kafka), [Charmhub&#32;(K8s)](https://charmhub.io/kafka-k8s)"
 myst:
   html_meta:
     description: "Complete documentation for Charmed Apache Kafka operator - deploy, manage, and scale Charmed Apache Kafka clusters on VMs, AWS, Azure, and OpenStack."
@@ -34,6 +35,7 @@ application integration, and monitoring.
 | **Security** | [Overview](explanation-security) • [Enable encryption](how-to-tls-encryption) • [mTLS](how-to-create-mtls-client-credentials) • [OAuth](how-to-enable-oauth) • [Cryptography](explanation-cryptography) |
 | **Extensions** | [Components](explanation-components) • [Kafka Connect](how-to-use-kafka-connect-for-etl-workloads) • [Schema registry](how-to-schemas-serialisation) • [Kafka UI](how-to-kafka-ui) |
 | **Internals** | [Snap commands](reference-snap-commands) • [File paths](reference-file-system-paths) • [Performance tuning](reference-performance-tuning) • [Terraform module](reference-terraform) • [Release notes](reference-release-notes-index) |
+| **Contributing** | [Contribute](contributing-guide) |
 
 ## How the documentation is organised
 
@@ -53,11 +55,19 @@ also available on [Charmhub](https://charmhub.io/).
 It’s an open-source project developed and supported by [Canonical](https://canonical.com/)
 that welcomes community contributions, suggestions, fixes and constructive feedback.
 
-- [Read our Code of Conduct](https://ubuntu.com/community/code-of-conduct)
+### Get involved
+
 - [Join the Discourse forum](https://discourse.charmhub.io/tag/kafka)
-- [Contribute](https://github.com/canonical/kafka-operator/blob/main/CONTRIBUTING.md) and report [issues](https://github.com/canonical/kafka-operator/issues/new)
+- [Chat with us on Matrix](https://matrix.to/#/#charmhub-data-platform:ubuntu.com)
+- [Report an issue](https://github.com/canonical/kafka-operator/issues/new)
+- [Contribute](contributing-guide) to the code and documentation
 - Explore [Canonical's open-source data platform](https://canonical.com/data)
-- [Contact us](reference-contact) for all further questions
+
+### Governance and policies
+
+- [Read our Code of Conduct](https://ubuntu.com/community/code-of-conduct)
+- [Report a security issue](https://wiki.ubuntu.com/DebuggingSecurity#How_to_File) — please do not use GitHub issues for security topics
+- [Canonical Contributor Agreement](https://ubuntu.com/legal/contributors)
 
 ## License and trademarks
 
@@ -80,4 +90,5 @@ tutorial/index
 how-to/index
 reference/index
 explanation/index
+Contributor's guide<contributing>
 ```
