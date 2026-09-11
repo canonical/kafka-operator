@@ -92,7 +92,7 @@ jobs:
     uses: canonical/data-platform-workflows/.github/workflows/release_charm.yaml@29.3.0-rc.1
     with:
       path-to-charm-directory: connect_k8s
-      track: ${{ needs.tag.outputs.track }}
+      channel: ${{ needs.tag.outputs.track }}/edge
       artifact-prefix: ${{ needs.ci-tests.outputs.artifact-prefix }}
       path-to-file-resource: connect_k8s/empty.tar
     secrets:
@@ -107,8 +107,6 @@ jobs:
     needs:
       - release-machine
       - release-k8s
-      - release-connect-machine
-      - release-connect-k8s
     outputs:
       charm-revisions: ${{ steps.collect.outputs.charm-revisions }}
       version: ${{ steps.version.outputs.version }}
@@ -122,19 +120,13 @@ jobs:
         env:
           KAFKA: ${{ needs.release-machine.outputs.charm-revisions }}
           KAFKA_K8S: ${{ needs.release-k8s.outputs.charm-revisions }}
-          KAFKA_CONNECT: ${{ needs.release-connect-machine.outputs.charm-revisions }}
-          KAFKA_CONNECT_K8S: ${{ needs.release-connect-k8s.outputs.charm-revisions }}
         run: |
           revisions=$(jq -nc \
             --argjson kafka "$KAFKA" \
             --argjson kafka_k8s "$KAFKA_K8S" \
-            --argjson kafka_connect "$KAFKA_CONNECT" \
-            --argjson kafka_connect_k8s "$KAFKA_CONNECT_K8S" \
             '{
               "kafka": $kafka,
-              "kafka-k8s": $kafka_k8s,
-              "kafka-connect": $kafka_connect,
-              "kafka-connect-k8s": $kafka_connect_k8s
+              "kafka-k8s": $kafka_k8s
             }')
           echo "Collected revisions: $revisions"
           echo "charm-revisions=$revisions" >> "$GITHUB_OUTPUT"
