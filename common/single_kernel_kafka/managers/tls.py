@@ -100,7 +100,7 @@ class KafkaSansBuilder(SansBuilderBase):
                     [
                         self.state.unit_broker.internal_address.split(".")[0],
                         self.state.unit_broker.internal_address,
-                        socket.getfqdn(),
+                        self.state.unit_broker.client_address,
                     ]
                     + self._build_extra_sans()
                 ),
@@ -142,7 +142,7 @@ class ConnectSansBuilder(SansBuilderBase):
                     [
                         self.unit_context.internal_address.split(".")[0],
                         self.unit_context.internal_address,
-                        socket.getfqdn(),
+                        self.unit_context.client_address,
                     ]
                 ),
             }

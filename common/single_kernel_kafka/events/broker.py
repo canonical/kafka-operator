@@ -162,6 +162,7 @@ class BrokerOperator(Object):
             self.charm.state.unit_broker.update(
                 {"cores": str(self.balancer_manager.cores), "rack": self.config_manager.rack}
             )
+            self.charm.state.unit_broker.update_cluster_domain()
 
         # don't want to run default start/pebble-ready events during upgrades
         if self.charm.refresh.in_progress:

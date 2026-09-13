@@ -18,7 +18,15 @@ from common.single_kernel_kafka.core.literals import (
     Status,
 )
 from ops.testing import Container, Context, PeerRelation, Relation, State, Storage
-from tests.unit.helpers import ACTIONS, CONFIG, METADATA, SUBSTRATE, SUBSTRATE_CLS, KafkaCharm
+from tests.unit.helpers import (
+    ACTIONS,
+    CLUSTER_DOMAIN,
+    CONFIG,
+    METADATA,
+    SUBSTRATE,
+    SUBSTRATE_CLS,
+    KafkaCharm,
+)
 
 if SUBSTRATE == "vm":
     from charms.operator_libs_linux.v0.sysctl import ApplyError
@@ -254,6 +262,31 @@ def test_start_sets_necessary_config(
     # Then
     patched_server_properties.assert_called()
     patched_client_properties.assert_called()
+
+
+@pytest.mark.skipif(SUBSTRATE == "vm", reason="cluster-domain only set on Kubernetes")
+def test_start_sets_cluster_domain(
+    ctx: Context, base_state: State, passwords_data: dict[str, str]
+) -> None:
+    """Checks the K8s cluster-domain is cached to the unit databag on start."""
+    # Given
+    cluster_peer = PeerRelation(PEER, PEER, local_app_data=passwords_data)
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer])
+
+    # When
+    with (
+        patch(
+            f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.active", return_value=False
+        ),
+        patch(f"single_kernel_kafka.workload.KafkaWorkload{SUBSTRATE_CLS}.start"),
+    ):
+        state_out = ctx.run(ctx.on.start(), state_in)
+
+    # Then
+    assert (
+        state_out.get_relation(cluster_peer.id).local_unit_data.get("cluster-domain")
+        == CLUSTER_DOMAIN
+    )
 
 
 @pytest.mark.skipif(SUBSTRATE == "vm", reason="pebble layer not used on vm")

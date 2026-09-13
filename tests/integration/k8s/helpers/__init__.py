@@ -93,10 +93,11 @@ def get_bootstrap_servers(model: str, app_name: str = APP_NAME, port: int = 1909
     return ",".join(f"{host}:{port}" for host in get_unit_address_map(model, app_name).values())
 
 
-def get_k8s_host_from_unit(unit_name: str, app_name: str = APP_NAME) -> str:
+def get_k8s_host_from_unit(model: str | None, unit_name: str, app_name: str = APP_NAME) -> str:
     """Builds K8s host address for a given unit.
 
     Args:
+        model: Juju model name
         unit_name: name of the Juju unit
         app_name: the Juju application the Kafka server belongs to
             Defaults to `kafka-k8s`
@@ -106,7 +107,7 @@ def get_k8s_host_from_unit(unit_name: str, app_name: str = APP_NAME) -> str:
     """
     broker_id = unit_name.split("/")[1]
 
-    return f"{app_name}-{broker_id}.{app_name}-endpoints"
+    return f"{app_name}-{broker_id}.{app_name}-endpoints.{model}.svc.cluster.local"
 
 
 def get_unit_host(model: str, unit_name: str, app_name: str = APP_NAME, port: int = 9098) -> str:

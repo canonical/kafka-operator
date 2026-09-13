@@ -140,6 +140,9 @@ class ConnectCharm(ConnectCharmBase):
             event.defer()
             return
 
+        if self.context.peer_workers:
+            self.context.worker_unit.update_cluster_domain()
+
         if not self.context.kafka_client.relation:
             self._set_status(ConnectStatus.MISSING_KAFKA)
 
