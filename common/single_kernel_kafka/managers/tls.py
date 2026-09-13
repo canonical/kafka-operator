@@ -11,7 +11,7 @@ import subprocess
 from dataclasses import dataclass
 from datetime import timedelta
 
-from charms.tls_certificates_interface.v4.tls_certificates import (
+from charmlibs.interfaces.tls_certificates import (
     PrivateKey,
     generate_ca,
     generate_certificate,

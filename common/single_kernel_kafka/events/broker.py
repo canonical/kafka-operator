@@ -10,7 +10,7 @@ import time
 from subprocess import CalledProcessError
 from typing import TYPE_CHECKING
 
-from charms.operator_libs_linux.v2.snap import SnapError
+from charmlibs.snap import SnapError
 from ops import (
     EventBase,
     InstallEvent,

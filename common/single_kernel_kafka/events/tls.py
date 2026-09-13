@@ -11,16 +11,16 @@ import logging
 import re
 from typing import TYPE_CHECKING
 
-from charms.certificate_transfer_interface.v1.certificate_transfer import (
-    CertificatesAvailableEvent,
-    CertificatesRemovedEvent,
-    CertificateTransferRequires,
-)
-from charms.tls_certificates_interface.v4.tls_certificates import (
+from charmlibs.interfaces.tls_certificates import (
     CertificateAvailableEvent,
     CertificateRequestAttributes,
     PrivateKey,
     TLSCertificatesRequiresV4,
+)
+from charms.certificate_transfer_interface.v1.certificate_transfer import (
+    CertificatesAvailableEvent,
+    CertificatesRemovedEvent,
+    CertificateTransferRequires,
 )
 from ops.charm import (
     RelationBrokenEvent,

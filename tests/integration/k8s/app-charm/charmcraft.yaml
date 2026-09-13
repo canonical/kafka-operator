@@ -6,4 +6,7 @@ platforms:
   ubuntu@22.04:amd64:
 parts:
   charm:
+    build-packages:
+      - pkg-config
+      - libssl-dev
     plugin: charm
