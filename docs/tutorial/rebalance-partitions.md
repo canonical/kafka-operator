@@ -155,6 +155,12 @@ juju ssh --container kafka kafka-k8s/leader \
 This should produce output similar to the result seen below,
 with no partitions allocated by default:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```json
 {
   "broker": 103,
@@ -168,11 +174,30 @@ with no partitions allocated by default:
 }
 ```
 
-```{note}
-The `logDir` above is the VM path. On Kubernetes, the data directory is
-`/var/lib/kafka/data/<id>/log` instead. See
-[File system paths](reference-file-system-paths).
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```json
+{
+  "broker": 103,
+  "logDirs": [
+    {
+      "error": null,
+      "logDir": "/var/lib/kafka/data/11/log",
+      "partitions": []
+    }
+  ]
+}
 ```
+
+````
+
+`````
+
+See [File system paths](reference-file-system-paths) for the full mapping of
+VM snap paths to container paths.
 
 Now, let's run the `rebalance` action to allocate some existing partitions
 from other brokers (`0`, `1` and `2`) to broker `3`:
@@ -362,6 +387,12 @@ juju ssh --container kafka kafka-k8s/leader \
 
 Make sure that the broker has no partitions assigned, for example:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```json
 {
   "broker": 103,
@@ -375,10 +406,27 @@ Make sure that the broker has no partitions assigned, for example:
 }
 ```
 
-```{note}
-As above, the `logDir` shown is the VM path; on Kubernetes it is
-`/var/lib/kafka/data/<id>/log`.
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```json
+{
+  "broker": 103,
+  "logDirs": [
+    {
+      "partitions": [],
+      "error": null,
+      "logDir": "/var/lib/kafka/data/11/log"
+    }
+  ]
+}
 ```
+
+````
+
+`````
 
 Now, it is safe to scale-in the cluster by removing the broker number `3` completely:
 

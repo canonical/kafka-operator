@@ -39,6 +39,12 @@ juju deploy self-signed-certificates --config ca-common-name="Tutorial CA"
 
 Wait for the charm to settle into an `active`/`idle` state, as shown by the `juju status` command.
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 <details> <summary> Output example</summary>
 
 ```text
@@ -73,6 +79,40 @@ Machine  State    Address         Inst id        Base          AZ          Messa
 ```
 
 </details>
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+<details> <summary> Output example</summary>
+
+```text
+Model     Controller  Cloud/Region         Version  SLA          Timestamp
+tutorial  overlord    microk8s/localhost   3.6.20   unsupported  23:27:35Z
+
+App                       Version  Status   Scale  Charm                     Channel        Rev  Exposed  Message
+data-integrator                    blocked      1  data-integrator           latest/stable  362  no       Please relate the data-integrator with the desired product
+kafka-k8s                 4.1.1    active       3  kafka-k8s                 4/stable       111  no       
+kraft                     4.1.1    active       3  kafka-k8s                 4/stable       111  no       
+self-signed-certificates           active       1  self-signed-certificates  1/stable       317  no       
+
+Unit                         Workload  Agent  Address        Ports      Message
+data-integrator/0*           blocked   idle   10.233.204.111             Please relate the data-integrator with the desired product
+kafka-k8s/0*                 active    idle   10.233.204.241  19093/tcp  
+kafka-k8s/1                  active    idle   10.233.204.196  19093/tcp  
+kafka-k8s/2                  active    idle   10.233.204.148  19093/tcp  
+kraft/0                      active    idle   10.233.204.125  9098/tcp   
+kraft/1*                     active    idle   10.233.204.36   9098/tcp   
+kraft/2                      active    idle   10.233.204.225  9098/tcp   
+self-signed-certificates/0*  active    idle   10.233.204.134             
+```
+
+</details>
+
+````
+
+`````
 
 To enable TLS on Charmed Apache Kafka, integrate with `self-signed-certificates` charm:
 

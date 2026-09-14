@@ -144,6 +144,12 @@ you can watch the status and messages both applications change.
 
 Wait until the applications are `active` and all units show `active`/`idle` status:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 <!-- test:skip -->
 ```shell
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
@@ -169,6 +175,32 @@ Machine  State    Address         Inst id        Base          AZ          Messa
 4        started  10.157.174.127  juju-29b29f-4  ubuntu@24.04  kafka-test  Running
 5        started  10.157.174.24   juju-29b29f-5  ubuntu@24.04  kafka-test  Running
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```text
+Model     Controller  Cloud/Region         Version  SLA          Timestamp
+tutorial  overlord    microk8s/localhost   3.6.20   unsupported  17:30:56Z
+
+App        Version  Status  Scale  Charm      Channel   Rev  Exposed  Message
+kafka-k8s  4.1.1    active      3  kafka-k8s  4/stable  111  no       
+kraft      4.1.1    active      3  kafka-k8s  4/stable  111  no       
+
+Unit          Workload  Agent  Address       Ports      Message
+kafka-k8s/0*  active    idle   10.1.188.228  19093/tcp  
+kafka-k8s/1   active    idle   10.1.188.227  19093/tcp  
+kafka-k8s/2   active    idle   10.1.188.231  19093/tcp  
+kraft/0*      active    idle   10.1.188.230  9098/tcp   
+kraft/1       active    idle   10.1.188.229  9098/tcp   
+kraft/2       active    idle   10.1.188.232  9098/tcp   
+```
+
+````
+
+`````
 
 To exit the screen, push `Ctrl+C`.
 
@@ -212,6 +244,12 @@ reflects the `kafka-k8s` application name used on Kubernetes.
 
 The output of the previous command will look something like this:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 <!-- test:skip -->
 ```shell
 d5ipahpdormt02antvpg:
@@ -233,6 +271,36 @@ d5ipahpdormt02antvpg:
     operator-password: 0g7010iwtBrChk00Ad1pznzaZW0i2Pdt
     replication-password: tatsvzFV3de4Ce2NEL2HVQWAlSpx7gyv
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```text
+d5ipahpdormt02antvpg:
+  revision: 1
+  checksum: f84bf383e76ddda391543d57a8b76dbef4e95813b820a466fb4815b098bda3b2
+  owner: kafka-k8s
+  label: cluster.kafka-k8s.app
+  created: 2026-01-13T00:43:58Z
+  updated: 2026-01-13T00:43:58Z
+  content:
+    internal-ca: |-
+      -----BEGIN CERTIFICATE-----
+        ...
+      -----END CERTIFICATE-----
+    internal-ca-key: |-
+      -----BEGIN RSA PRIVATE KEY-----
+        ...
+      -----END RSA PRIVATE KEY-----
+    operator-password: 0g7010iwtBrChk00Ad1pznzaZW0i2Pdt
+    replication-password: tatsvzFV3de4Ce2NEL2HVQWAlSpx7gyv
+```
+
+````
+
+`````
 
 The important line here for accessing the Apache Kafka cluster itself is `operator-password`,
 which tells us that `username=operator` and `password=0g7010iwtBrChk00Ad1pznzaZW0i2Pdt`.

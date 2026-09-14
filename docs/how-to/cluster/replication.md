@@ -43,9 +43,13 @@ The [MirrorMaker integrator charm](https://charmhub.io/mirrormaker-connect-integ
 manages tasks on a Charmed Kafka Connect cluster that replicates data from an active
 Apache Kafka cluster to a passive cluster.
 
-Check the status of deployed applications by running `juju status`. The
-following VM output illustrates the expected application state; Kubernetes
-output uses pod addresses and omits the machine column:
+Check the status of deployed applications by running `juju status`:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```text
 Model  Controller  Cloud/Region         Version  SLA          Timestamp
@@ -61,6 +65,30 @@ active/0*         active    idle   0        10.86.75.171    19092/tcp
 passive/0*        active    idle   1        10.86.75.153    9092,19092/tcp
 kafka-connect/0*  active    idle   2        10.86.75.45     8083/tcp
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```text
+Model  Controller  Cloud/Region         Version  SLA          Timestamp
+k      vms         microk8s/localhost   3.6.3    unsupported  10:45:37+02:00
+
+App            Version  Status  Scale  Charm              Channel       Rev  Exposed  Message
+active         3.9.0    active      1  kafka-k8s          3/stable      240  no
+passive        3.9.0    active      1  kafka-k8s          3/stable      240  no
+kafka-connect           active      1  kafka-connect-k8s  latest/edge    20  no
+
+Unit              Workload  Agent  Address      Ports           Message
+active/0*         active    idle   10.1.75.171  19092/tcp
+passive/0*        active    idle   10.1.75.153  9092,19092/tcp
+kafka-connect/0*  active    idle   10.1.75.45   8083/tcp
+```
+
+````
+
+`````
 
 The `active` cluster serves as a source and `passive` as a target for replication.
 
@@ -134,7 +162,13 @@ juju integrate mirrormaker:target passive
 `````
 
 After some time, the `mirrormaker` application should show up as `active/idle`
-in `juju status`. The following example is from a VM model:
+in `juju status`:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```text
 Model  Controller  Cloud/Region         Version  SLA          Timestamp
@@ -152,6 +186,32 @@ kafka-connect/0*  active    idle   2        10.86.75.45     8083/tcp
 mirrormaker/0*    active    idle   3        10.86.75.189    8080/tcp        Task Status: UNASSIGNED
 passive/0*        active    idle   1        10.86.75.153    9092,19092/tcp  
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```text
+Model  Controller  Cloud/Region         Version  SLA          Timestamp
+k      vms         microk8s/localhost   3.6.3    unsupported  10:59:37+02:00
+
+App            Version  Status  Scale  Charm              Channel       Rev  Exposed  Message
+active         3.9.0    active      1  kafka-k8s          3/stable      240  no       
+kafka-connect           active      1  kafka-connect-k8s  latest/edge    20  no       
+mirrormaker             active      1  mirrormaker                    0  no       Task Status: UNASSIGNED
+passive        3.9.0    active      1  kafka-k8s          3/stable      240  no       
+
+Unit              Workload  Agent  Address      Ports           Message
+active/0*         active    idle   10.1.75.171  9092,19092/tcp  
+kafka-connect/0*  active    idle   10.1.75.45   8083/tcp        
+mirrormaker/0*    active    idle   10.1.75.189  8080/tcp        Task Status: UNASSIGNED
+passive/0*        active    idle   10.1.75.153  9092,19092/tcp  
+```
+
+````
+
+`````
 
 ```{note}
 Task status might show as UNASSIGNED since there are no replication tasks running yet. 
@@ -178,9 +238,13 @@ juju deploy mirrormaker-connect-integrator --config prefix_topics=true mirrormak
 juju deploy mirrormaker-connect-integrator --config prefix_topics=true mirrormaker-b-a
 ```
 
-Check the status of deployed applications by running `juju status`. The
-following example is from a VM model; Kubernetes output uses pod addresses and
-the deployed charms are `kafka-k8s` and `kafka-connect-k8s`:
+Check the status of deployed applications by running `juju status`:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```text
 Model  Controller  Cloud/Region         Version  SLA          Timestamp
@@ -202,6 +266,36 @@ kafka-connect-b/0*  active    idle   2        10.86.75.46     8083/tcp
 mirrormaker-a-b/0*  active    idle   3        10.86.75.189    8080/tcp        Task Status: UNASSIGNED
 mirrormaker-b-a/0*  active    idle   3        10.86.75.190    8080/tcp        Task Status: UNASSIGNED
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```text
+Model  Controller  Cloud/Region         Version  SLA          Timestamp
+k      vms         microk8s/localhost   3.6.3    unsupported  10:59:37+02:00
+
+App              Version  Status  Scale  Charm              Channel       Rev  Exposed  Message
+kafka-k8s-a      3.9.0    active      1  kafka-k8s          3/stable      240  no       
+kafka-k8s-b      3.9.0    active      1  kafka-k8s          3/stable      240  no       
+kafka-connect-a           active      1  kafka-connect-k8s  latest/edge    20  no       
+kafka-connect-b           active      1  kafka-connect-k8s  latest/edge    20  no       
+mirrormaker-a-b           active      1  mirrormaker                   0  no       Task Status: UNASSIGNED
+mirrormaker-b-a           active      1  mirrormaker                   0  no       Task Status: UNASSIGNED
+
+Unit                Workload  Agent  Address      Ports           Message
+kafka-k8s-a/0*      active    idle   10.1.75.171  9092,19092/tcp  
+kafka-k8s-b/0*      active    idle   10.1.75.153  9092,19092/tcp  
+kafka-connect-a/0*  active    idle   10.1.75.45   8083/tcp        
+kafka-connect-b/0*  active    idle   10.1.75.46   8083/tcp        
+mirrormaker-a-b/0*  active    idle   10.1.75.189  8080/tcp        Task Status: UNASSIGNED
+mirrormaker-b-a/0*  active    idle   10.1.75.190  8080/tcp        Task Status: UNASSIGNED
+```
+
+````
+
+`````
 
 Then the integrations needed should be done like follows:
 

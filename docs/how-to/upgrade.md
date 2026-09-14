@@ -224,7 +224,13 @@ juju run kafka-k8s/<unit-id> resume-refresh
 Run this action on the next unit scheduled for refresh, as indicated in the application status.
 ```
 
-The upgrade process can be monitored using `juju status` command, where the message of the units will provide information about which units have been upgraded already, which unit is currently upgrading and which units are waiting for the upgrade to be triggered, as shown below: 
+The upgrade process can be monitored using `juju status` command, where the message of the units will provide information about which units have been upgraded already, which unit is currently upgrading and which units are waiting for the upgrade to be triggered, as shown below:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```shell
 App        Version  Status  Scale  Charm      Channel   Rev  Exposed  Message
@@ -235,6 +241,25 @@ kafka/0       active    idle   3        10.193.41.131          Other units upgra
 kafka/1*      active    idle   4        10.193.41.109          Upgrading...
 kafka/2       active    idle   5        10.193.41.221          Upgrade completed
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```text
+App        Version  Status  Scale  Charm      Channel   Rev  Exposed  Message
+kafka-k8s           active      4  kafka-k8s  4/stable  111  no
+
+Unit            Workload  Agent  Address       Ports  Message
+kafka-k8s/0     active    idle   10.1.41.131          Other units upgrading first...
+kafka-k8s/1*    active    idle   10.1.41.109          Upgrading...
+kafka-k8s/2     active    idle   10.1.41.221          Upgrade completed
+```
+
+````
+
+`````
 
 #### Rollbacks
 

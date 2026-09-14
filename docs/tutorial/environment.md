@@ -205,6 +205,12 @@ juju status
 juju models | grep -q tutorial
 -->
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 <details> <summary> Output example</summary>
 
 ```text
@@ -215,3 +221,23 @@ Model "admin/tutorial" is empty.
 ```
 
 </details>
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+<details> <summary> Output example</summary>
+
+```text
+Model     Controller  Cloud/Region         Version  SLA          Timestamp
+tutorial  overlord    microk8s/localhost   3.6.13   unsupported  12:10:54Z
+
+Model "admin/tutorial" is empty.
+```
+
+</details>
+
+````
+
+`````

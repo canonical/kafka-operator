@@ -76,12 +76,6 @@ To replace the auto-generated self-signed certificates used for inter-broker and
 juju integrate kafka:peer-certificates <TLS-provider-charm>
 ```
 
-If the KRaft controllers run in a separate application, integrate it as well:
-
-```bash
-juju integrate <controller-app>:peer-certificates <TLS-provider-charm>
-```
-
 ````
 
 ````{tab-item} K8s
@@ -91,15 +85,15 @@ juju integrate <controller-app>:peer-certificates <TLS-provider-charm>
 juju integrate kafka-k8s:peer-certificates <TLS-provider-charm>
 ```
 
+````
+
+`````
+
 If the KRaft controllers run in a separate application, integrate it as well:
 
 ```bash
 juju integrate <controller-app>:peer-certificates <TLS-provider-charm>
 ```
-
-````
-
-`````
 
 The old self-signed certificates will be removed, and new certificates will be issued using the certificate authority in the provider application. See [Security with x.509 certificates](https://charmhub.io/topics/security-with-x-509-certificates) topic for more information and guidance on selecting a TLS provider charm.
 
@@ -127,9 +121,6 @@ Then, add these external private keys to a new Juju secret:
 juju add-secret external-kafka-pks kafka-0="$(cat kafka-0.key)" kafka-1="$(cat kafka-1.key)" kafka-2="$(cat kafka-2.key)"
 ```
 
-Take note of the `secret-id` in the response — it will be needed in the final
-configuration step below.
-
 ````
 
 ````{tab-item} K8s
@@ -150,12 +141,12 @@ juju add-secret external-kafka-pks \
   kafka-k8s-2="$(cat kafka-k8s-2.key)"
 ```
 
-Take note of the `secret-id` in the response — it will be needed in the final
-configuration step below.
-
 ````
 
 `````
+
+Take note of the `secret-id` in the response — it will be needed in the final
+configuration step below.
 
 ```{note}
 The Juju secret keys **MUST** follow the naming constraint of `<kafka-application-name>-<unit-id>`.
