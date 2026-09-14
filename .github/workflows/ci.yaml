@@ -80,6 +80,7 @@ jobs:
       path-to-charm-directory: ${{ matrix.path }}
       charmcraft-snap-channel: latest/edge
       monorepo: true
+      cache: false
     permissions:
       actions: read
       contents: read
