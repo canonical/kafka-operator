@@ -2,7 +2,7 @@
 relatedlinks: "[GitHub](https://github.com/canonical/kafka-operator), [Charmhub](https://charmhub.io/kafka), [Charmhub&#32;(K8s)](https://charmhub.io/kafka-k8s)"
 myst:
   html_meta:
-    description: "Complete documentation for Charmed Apache Kafka operator - deploy, manage, and scale Charmed Apache Kafka clusters on VMs, AWS, Azure, and OpenStack."
+    description: "Complete documentation for Charmed Apache Kafka operators - deploy, manage, and scale Apache Kafka clusters on VMs and Kubernetes."
 ---
 
 (index)=
@@ -12,12 +12,12 @@ Charmed Apache Kafka is an open-source operator, packaged as a
 [Juju charm](https://documentation.ubuntu.com/juju/3.6/reference/charm/),
 that simplifies the deployment, scaling, and management of
 [Apache Kafka](https://kafka.apache.org) clusters on physical hardware, VMs,
-and cloud environments including AWS, Azure, OpenStack, and VMware.
+and Kubernetes, including deployments on AWS, Azure, OpenStack, and VMware.
 
-```{note}
-This is an **IAAS/VM** charmed operator.
-To deploy on Kubernetes, see [Charmed Apache Kafka K8s operator](https://documentation.ubuntu.com/charmed-kafka-k8s/4/).
-```
+This documentation covers both the
+[IAAS/VM charm](https://charmhub.io/kafka) and the
+[Kubernetes charm](https://charmhub.io/kafka-k8s). Select the VM or K8s tab in
+the guides; the selection is synchronized across each page.
 
 The charm automates Apache Kafka operations from
 [Day 0 to Day 2](https://codilime.com/blog/day-0-day-1-day-2-the-software-lifecycle-in-the-cloud-age/)
@@ -29,19 +29,19 @@ application integration, and monitoring.
 | | |
 |---|---|
 | **Getting started** | [Introduction](tutorial-introduction) • [Environment setup](tutorial-environment) • [Requirements](reference-requirements) |
-| **Deployment** | [Deploy](how-to-deploy-index) • [Juju CLI](how-to-deploy-anywhere) • [Terraform](how-to-deploy-terraform) • [AWS](how-to-deploy-on-aws) • [Azure](how-to-deploy-on-azure) • [Juju Spaces](how-to-deploy-spaces) |
+| **Deployment** | [Deploy](how-to-deploy-index) • [Juju CLI](how-to-deploy-anywhere) • [Terraform](how-to-deploy-terraform) • [AWS](how-to-deploy-on-aws) • [Azure](how-to-deploy-on-azure) • [External connections (Kubernetes)](how-to-external-k8s-connection) • [Juju Spaces (Machine)](how-to-deploy-spaces) |
 | **Operations** | [Connections management](how-to-client-connections) • [Unit management](how-to-manage-units) • [Monitoring](how-to-monitoring) • [Listeners](reference-broker-listeners) • [Statuses](reference-statuses) |
 | **Maintenance** | [Version upgrade](how-to-upgrade) • [Migration](how-to-cluster-migration) • [Replication](how-to-cluster-replication) • [MirrorMaker](explanation-mirrormaker2-0) • [Backups](explanation-backups) |
-| **Security** | [Overview](explanation-security) • [Enable encryption](how-to-tls-encryption) • [mTLS](how-to-create-mtls-client-credentials) • [OAuth](how-to-enable-oauth) • [Cryptography](explanation-cryptography) |
+| **Security** | [Overview](explanation-security) • [Enable encryption](how-to-tls-encryption) • [mTLS](how-to-create-mtls-client-credentials) • [OAuth (Machine)](how-to-enable-oauth) • [Cryptography](explanation-cryptography) |
 | **Extensions** | [Kafka Connect](how-to-use-kafka-connect-for-etl-workloads) • [Schema registry](how-to-schemas-serialisation) • [Kafka UI](how-to-kafka-ui) |
-| **Internals** | [Snap commands](reference-snap-commands) • [File paths](reference-file-system-paths) • [Performance tuning](reference-performance-tuning) • [Terraform module](reference-terraform) • [Release notes](reference-release-notes-index) |
+| **Internals** | [Command-line utilities](reference-cli-utilities) • [File paths](reference-file-system-paths) • [Performance tuning (Machine)](reference-performance-tuning) • [Terraform module](reference-terraform) • [Release notes](reference-release-notes-index) |
 | **Contributing** | [Contribute](contributing-guide) |
 
 ## How the documentation is organised
 
 This documentation uses the [Diátaxis documentation structure](https://diataxis.fr/):
 
-- The [Tutorial](tutorial-introduction) walks you through deploying your first Charmed Apache Kafka cluster from scratch, step by step.
+- The [tutorial](tutorial-introduction) walks you through deploying your first Charmed Apache Kafka cluster from scratch, step by step, on either substrate.
 - [How-to guides](how-to-index) help you solve specific operational tasks such as enabling TLS, connecting clients, or scaling brokers.
 - [Reference](reference-index) lets you look up configuration options, status codes, file paths, and system requirements.
 - [Explanation](explanation-index) helps you understand the design decisions behind security, replication, and integration architecture.

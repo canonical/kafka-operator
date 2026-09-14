@@ -40,14 +40,39 @@ Deployed "data-integrator" from charm-hub charm "data-integrator", revision 362 
 To automatically create a username, password, and database for the Database Integrator charm,
 integrate it to the Charmed Apache Kafka:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju integrate data-integrator kafka
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju integrate data-integrator kafka-k8s
+```
+
+````
+
+`````
 
 <!-- test:await-idle --timeout 1200 -->
 
 Wait for the status to become `active`/`idle` with the
 `watch juju status --color` command.
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 <details> <summary> Output example</summary>
 
@@ -81,6 +106,38 @@ Machine  State    Address         Inst id        Base          AZ          Messa
 
 </details>
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+<details> <summary> Output example</summary>
+
+```text
+Model     Controller  Cloud/Region         Version  SLA          Timestamp
+tutorial  overlord    microk8s/localhost   3.6.20   unsupported  17:00:08Z
+
+App              Version  Status  Scale  Charm            Channel        Rev  Exposed  Message
+data-integrator           active      1  data-integrator  latest/stable  362  no       
+kafka-k8s        4.1.1    active      3  kafka-k8s        4/stable       111  no       
+kraft            4.1.1    active      3  kafka-k8s        4/stable       111  no       
+
+Unit                Workload  Agent  Address        Ports           Message
+data-integrator/0*  active    idle   10.233.204.111                 
+kafka-k8s/0*        active    idle   10.233.204.241  9092,19093/tcp  
+kafka-k8s/1         active    idle   10.233.204.196  9092,19093/tcp  
+kafka-k8s/2         active    idle   10.233.204.148  9092,19093/tcp  
+kraft/0             active    idle   10.233.204.125  9098/tcp        
+kraft/1*            active    idle   10.233.204.36   9098/tcp        
+kraft/2             active    idle   10.233.204.225  9098/tcp        
+```
+
+</details>
+
+````
+
+`````
+
 After the integration is all set, try retrieving credentials such as the username,
 password, and topic:
 
@@ -89,6 +146,12 @@ juju run data-integrator/leader get-credentials
 ```
 
 This should output something like:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```yaml
 Running operation 1 with 1 task
@@ -111,7 +174,45 @@ kafka:
 ok: "True"
 ```
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```yaml
+Running operation 1 with 1 task
+  - task 2 on unit-data-integrator-0
+
+Waiting for task 2...
+kafka:
+  consumer-group-prefix: relation-8-
+  data: '{"resource": "test-topic", "salt": "qQUy7AFgV0rdBwT4", "extra-user-roles":
+    "producer,consumer", "provided-secrets": ["mtls-cert"], "requested-secrets": ["username",
+    "password", "tls", "tls-ca", "uris", "read-only-uris", "entity-name", "entity-password"]}'
+  endpoints: kafka-k8s-0.kafka-k8s-endpoints:9092,kafka-k8s-1.kafka-k8s-endpoints:9092,kafka-k8s-2.kafka-k8s-endpoints:9092
+  password: LxupRA4MxzNwINXnn5X9De9XFSNnvU9g
+  resource: test-topic
+  salt: JhHr4OXyim47GHsb
+  tls: disabled
+  topic: test-topic
+  username: relation-8
+  version: v0
+ok: "True"
+```
+
+````
+
+`````
+
 Make note of the values for `endpoints`, `username` and `password`, we'll be using them later.
+
+```{note}
+On Kubernetes, the returned `endpoints` are cluster-internal DNS names such as
+`kafka-k8s-0.kafka-k8s-endpoints:9092`. They are reachable from inside the
+Kubernetes cluster, which is where the client application in this chapter runs.
+To reach the cluster from outside, see
+[How to connect to Charmed Apache Kafka K8s externally](how-to-external-k8s-connection).
+```
 
 <!-- test:set-variables
 command: juju run data-integrator/leader get-credentials
@@ -234,6 +335,13 @@ Since we know that no more messages will be produced now, we can stop the script
 Now you know how to use credentials provided by related charms to successfully read/write data
 from Charmed Apache Kafka!
 
+Exit the SSH session on the `kafka-test-app` unit to return to your local machine
+before continuing:
+
+```bash
+exit
+```
+
 ## Charmed applications
 
 The Data Integrator is a very special client charm,
@@ -257,9 +365,28 @@ juju config kafka-test-app topic_name=TOP-PICK role=producer num_messages=20
 To start producing messages to Apache Kafka, we simply integrate the Apache Kafka Test App
 with Apache Kafka:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju integrate kafka-test-app kafka
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju integrate kafka-test-app kafka-k8s
+```
+
+````
+
+`````
 
 <!-- test:await-idle --timeout 1200 -->
 
@@ -274,6 +401,12 @@ After some time, check the status:
 ```shell
 juju status
 ```
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 <details> <summary> Output example</summary>
 
@@ -310,6 +443,40 @@ Machine  State    Address         Inst id        Base          AZ          Messa
 
 </details>
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+<details> <summary> Output example</summary>
+
+```text
+Model     Controller  Cloud/Region         Version  SLA          Timestamp
+tutorial  overlord    microk8s/localhost   3.6.20   unsupported  18:58:47Z
+
+App              Version  Status  Scale  Charm            Channel         Rev  Exposed  Message
+data-integrator           active      1  data-integrator  latest/stable   362  no       
+kafka-k8s        4.1.1    active      3  kafka-k8s        4/stable        111  no       
+kafka-test-app            active      1  kafka-test-app   latest/edge      16  no       Topic TOP-PICK enabled with process producer
+kraft            4.1.1    active      3  kafka-k8s        4/stable        111  no       
+
+Unit                Workload  Agent  Address        Ports           Message
+data-integrator/0*  active    idle   10.233.204.111                 
+kafka-k8s/0*        active    idle   10.233.204.241  9092,19093/tcp  
+kafka-k8s/1         active    idle   10.233.204.196  9092,19093/tcp  
+kafka-k8s/2         active    idle   10.233.204.148  9092,19093/tcp  
+kraft/0             active    idle   10.233.204.125  9098/tcp        
+kraft/1*            active    idle   10.233.204.36   9098/tcp        
+kraft/2             active    idle   10.233.204.225  9098/tcp        
+kafka-test-app/0*   active    idle   10.1.36.88                     Topic TOP-PICK enabled with process producer
+```
+
+</details>
+
+````
+
+`````
+
 To make sure that the process has started, check the logs of the process:
 
 ```shell
@@ -326,9 +493,28 @@ To stop the process (although it is very likely that the process has already sto
 given the low number of messages that were provided) and remove the user,
 you can just remove the relation:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju remove-relation kafka-test-app kafka
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju remove-relation kafka-test-app kafka-k8s
+```
+
+````
+
+`````
 
 <!-- test:await-idle --timeout 1200 --allow-blocked kafka-test-app -->
 <!-- test:wait --seconds 30 -->
@@ -344,9 +530,28 @@ juju config kafka-test-app topic_name=TOP-PICK role=consumer consumer_group_pref
 
 After configuring the Apache Kafka Test App, just relate it again with the Charmed Apache Kafka.
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju integrate kafka-test-app kafka
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju integrate kafka-test-app kafka-k8s
+```
+
+````
+
+`````
 
 <!-- test:await-idle --timeout 1200 -->
 

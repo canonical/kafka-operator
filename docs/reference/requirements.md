@@ -11,7 +11,7 @@ myst:
 
 The charm currently runs on and is tested against [Juju 3.6 LTS](https://github.com/juju/juju/releases).
 
-The minimum supported Juju version is [Juju 3.5+](https://github.com/juju/juju/releases). 
+The minimum supported Juju version is [Juju 3.6+](https://github.com/juju/juju/releases).
 
 ## Recommended hardware
 
@@ -27,12 +27,35 @@ Note that while these requirements are recommended for a broad-range of producti
 |     Karapace     |   2   |         -         |  6 GB RAM | Typically not CPU-bound. More cores is better than faster cores. |
 
 ```{note}
-For production deployments, ensure that all nodes are deployed on separate physical machines and that each component node is in a different availability-zone (AZ) for redundancy.
+For production VM deployments, ensure that all nodes are deployed on separate
+physical machines and that each component node is in a different availability
+zone (AZ). For K8s, schedule units on separate Kubernetes worker nodes and spread
+each component's units across availability zones.
 ```
 
 ## Supported architectures
 
-The `charmed-kafka` [snap](https://snapcraft.io/charmed-kafka) currently supports `amd64` only. The support for `arm64` is in development.
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
+The `charmed-kafka` [snap](https://snapcraft.io/charmed-kafka) is published for
+`amd64` and `arm64`. Verify that the selected charm channel contains a revision
+for the target architecture before deployment.
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+The `charmed-kafka` OCI image (rock) used by the K8s charm is currently available
+for `amd64` only.
+
+````
+
+`````
 
 Please [get in touch](contributing-contact) if you are interested in a new architecture to be supported!
 

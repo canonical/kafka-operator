@@ -5,9 +5,19 @@ myst:
 ---
 
 (how-to-deploy-on-aws)=
+(how-to-deploy-on-eks)=
 # How to deploy on AWS
 
 [Amazon Web Services](https://aws.amazon.com/) is a popular subsidiary of Amazon that provides on-demand cloud computing platforms on a metered pay-as-you-go basis. Access the AWS web console at [{spellexception}`console.aws.amazon.com`](https://console.aws.amazon.com/).
+
+Choose the target substrate. The VM procedure uses EC2 through Juju's AWS cloud;
+the K8s procedure creates an Amazon Elastic Kubernetes Service (EKS) cluster.
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ## Install AWS and Juju tooling
 
@@ -103,17 +113,24 @@ Create a new Juju model, if needed:
 juju add-model <MODEL_NAME>
 ```
 
-```{caution}
-(Optional) Increase the debug level if you are troubleshooting charms:
+(Optional) If you are troubleshooting charms and wish to see DEBUG logs:
+
 ```shell
 juju model-config logging-config='<root>=INFO;unit=DEBUG'
-```
 ```
 
 Deploy Charmed Apache Kafka:
 
 ```shell
-juju deploy kafka -n 3 --config roles=broker,controller [--constraints "instance-type=<INSTANCE_TYPE>"]
+juju deploy kafka -n 3 --channel 4/stable --config roles=broker,controller
+```
+
+To use a specific instance type, add `--constraints "instance-type=<INSTANCE_TYPE>"`.
+
+```{caution}
+This co-located broker/controller topology is for evaluation. For a production
+deployment, use separate broker and controller applications as described in the
+[general deployment guide](how-to-deploy-anywhere).
 ```
 
 ```{caution}
@@ -202,3 +219,121 @@ Finally, remove AWS CLI user credentials (to avoid forgetting and leaking):
 ```shell
 rm -f ~/.aws/credentials.yaml
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+## Install tooling and authenticate
+
+Install Juju and `kubectl`, then follow the installation instructions for
+[`eksctl`](https://eksctl.io/installation/) and the
+[AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html):
+
+```shell
+sudo snap install juju --channel 3.6/stable
+sudo snap install kubectl --classic
+aws configure
+aws sts get-caller-identity
+```
+
+## Create an EKS cluster
+
+Export a unique cluster name for further use:
+
+```shell
+export JUJU_NAME=eks-$USER-$RANDOM
+```
+
+Save the following as `cluster.yaml`. This example enables the EBS CSI driver
+required for persistent volumes and uses three workers for a non-production
+evaluation deployment:
+
+```yaml
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+metadata:
+  name: ${JUJU_NAME}
+  region: eu-west-3
+iam:
+  withOIDC: true
+addons:
+  - name: aws-ebs-csi-driver
+    wellKnownPolicies:
+      ebsCSIController: true
+nodeGroups:
+  - name: kafka
+    minSize: 3
+    maxSize: 5
+    instanceType: m5.xlarge
+```
+
+Create the cluster:
+
+```shell
+eksctl create cluster -f cluster.yaml
+```
+
+Select a currently supported EKS/Kubernetes version for your region rather than
+copying an old version from an example.
+
+## Bootstrap Juju and deploy
+
+```shell
+juju add-k8s $JUJU_NAME
+juju bootstrap $JUJU_NAME
+juju add-model <MODEL_NAME>
+juju deploy kafka-k8s -n 3 --channel 4/stable --trust --config roles=broker,controller
+juju deploy data-integrator admin --channel stable \
+  --config extra-user-roles=admin \
+  --config topic-name=admin-topic
+juju integrate kafka-k8s admin
+```
+
+This co-located broker/controller topology is for testing. For a production
+deployment, use separate broker and controller applications and size the worker
+nodes according to the [requirements](reference-requirements), as described in
+the [general deployment guide](how-to-deploy-anywhere).
+
+Inspect the environment with `kubectl cluster-info`, `eksctl get cluster -A`,
+and `kubectl get nodes`.
+
+## Clean up
+
+```{caution}
+Always remove EKS resources that are no longer needed; they can be costly.
+```
+
+```shell
+juju destroy-controller $JUJU_NAME --yes --destroy-all-models --destroy-storage --force
+juju remove-cloud $JUJU_NAME
+```
+
+Before deleting the cluster, check for Services with external load balancers that
+Juju may not remove automatically — they continue to incur AWS charges while the
+cluster exists:
+
+```shell
+kubectl get svc --all-namespaces | grep -v "ClusterIP"
+```
+
+Delete any remaining Services with an `EXTERNAL-IP` (for example, the Kafka
+NodePort/LoadBalancer Services created by the charm) before deleting the cluster:
+
+```shell
+kubectl delete svc <service-name> -n <MODEL_NAME>
+```
+
+Then delete the EKS cluster itself:
+
+```shell
+eksctl delete cluster $JUJU_NAME --region eu-west-3 --force --disable-nodegroup-eviction
+```
+
+Check for cloud resources that were not removed automatically before deleting
+local AWS credentials.
+
+````
+
+`````

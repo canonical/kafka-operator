@@ -39,7 +39,7 @@ Your Juju controller and other models (if any) will remain intact for future use
 <!-- vale Canonical.004-Canonical-product-names = NO -->
 (remove-juju)=
 <!-- vale Canonical.004-Canonical-product-names = YES -->
-## (Optional) Remove Juju and LXD
+## (Optional) Remove Juju and the cloud
 
 If you don't need Juju anymore and want to free up additional resources on your machine,
 you can remove the Juju controller and Juju itself.
@@ -74,7 +74,13 @@ To remove Juju altogether:
 sudo snap remove juju --purge
 ```
 
-### Clean up LXD
+### Clean up the cloud
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 If you also want to remove LXD containers and free up all resources:
 
@@ -104,13 +110,41 @@ Only remove LXD if you're not using it for other purposes.
 LXD may be managing other containers or VMs on your system.
 ```
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+If you also want to remove the MicroK8s cluster and free up all resources,
+first confirm that no namespaces are left over from the Juju models removed
+above (Juju creates one Kubernetes namespace per model):
+
+```bash
+sudo microk8s kubectl get namespaces
+```
+
+If you want to uninstall MicroK8s completely:
+
+```bash
+sudo snap remove microk8s --purge
+```
+
+```{warning}
+Only remove MicroK8s if you're not using it for other purposes.
+It may be hosting other workloads on your system.
+```
+
+````
+
+`````
+
 ## What's next?
 
 In this tutorial, we've successfully deployed Apache Kafka, added/removed replicas, added/removed users to/from the cluster, and even enabled and disabled TLS.
 You may now keep your Charmed Apache Kafka deployment running or remove it entirely using the steps in [Remove Charmed Apache Kafka and Juju](remove-kafka-and-juju).
 If you're looking for what to do next you can:
 
-- Run [Charmed Apache Kafka on Kubernetes](https://github.com/canonical/kafka-k8s-operator).
+- Deploy Charmed Apache Kafka on Kubernetes with the [deployment guide](how-to-deploy-anywhere).
 - Check out our other Charmed offerings from [Canonical's Data Platform team](https://canonical.com/data)
 - Read about [High Availability Best Practices](https://canonical.com/blog/database-high-availability)
 - [Report](https://github.com/canonical/kafka-operator/issues) any problems you encountered.

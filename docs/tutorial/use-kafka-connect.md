@@ -14,6 +14,17 @@ kill-timeout: 60m
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
+```{note}
+This chapter covers **VM (Machine) deployments only**. It uses the Charmed
+OpenSearch operator, which is published for machine clouds only, and sets
+VM-specific kernel parameters through `cloudinit-userdata`.
+
+If you are following the tutorial on Kubernetes, you can skip ahead to
+[Rebalance and reassign partitions](tutorial-rebalance-partitions), and read
+[How to use Kafka Connect](how-to-use-kafka-connect-for-etl-workloads) for the
+substrate-independent Kafka Connect workflow.
+```
+
 In this part of the tutorial, we are going to use
 [Kafka Connect](https://kafka.apache.org/41/kafka-connect/overview/), an ETL framework on top of
 Apache Kafka, to seamlessly move data between different charmed database technologies.
@@ -84,7 +95,8 @@ Machine  State    Address         Inst id        Base          AZ          Messa
 Since we will be deploying the OpenSearch charm, we need to make necessary kernel configurations
 required for OpenSearch charm to function properly,
 [described in detail here](https://canonical-charmed-opensearch.readthedocs-hosted.com/2/tutorial/1-set-up-the-environment/#set-kernel-parameters).
-This basically means running the following commands:
+This basically means running the following commands on the host, and setting
+the same parameters for the machines Juju creates through `cloudinit-userdata`:
 
 ```shell
 sudo tee -a /etc/sysctl.conf > /dev/null <<EOT
@@ -100,17 +112,17 @@ sudo sysctl -p
 Next, we should set the required model parameters using the `juju model-config` command:
 
 ```shell
-cat <<EOF > ~/cloudinit-userdata.yaml
+cat <<EOF > $HOME/cloudinit-userdata.yaml
 cloudinit-userdata: |
   postruncmd:
-    - [ 'echo', 'vm.max_map_count=262144', '>>', '/etc/sysctl.conf' ]
-    - [ 'echo', 'vm.swappiness=0', '>>', '/etc/sysctl.conf' ]
-    - [ 'echo', 'net.ipv4.tcp_retries2=5', '>>', '/etc/sysctl.conf' ]
-    - [ 'echo', 'fs.file-max=1048576', '>>', '/etc/sysctl.conf' ]
+    - [ 'sh', '-c', 'echo vm.max_map_count=262144 >> /etc/sysctl.conf' ]
+    - [ 'sh', '-c', 'echo vm.swappiness=0 >> /etc/sysctl.conf' ]
+    - [ 'sh', '-c', 'echo net.ipv4.tcp_retries2=5 >> /etc/sysctl.conf' ]
+    - [ 'sh', '-c', 'echo fs.file-max=1048576 >> /etc/sysctl.conf' ]
     - [ 'sysctl', '-p' ]
 EOF
 
-juju model-config --file=~/cloudinit-userdata.yaml
+juju model-config --file=$HOME/cloudinit-userdata.yaml
 ```
 
 ## Deploy the databases and Kafka Connect charms

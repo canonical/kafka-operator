@@ -53,6 +53,11 @@ Let's add the role `balancer` to the existing `kraft` Juju application:
 juju config kraft roles=balancer,controller
 ```
 
+```{note}
+The `kraft` application name is the same on both substrates, so this command is
+identical for VM and Kubernetes deployments.
+```
+
 <!-- test:await-idle --timeout 1200 --allow-blocked opensearch -->
 
 Wait for the status to become `active`/`idle`:
@@ -64,11 +69,32 @@ watch juju status --color
 
 ## Adding new brokers
 
-Let's scale-out the `kafka` application to four units (add one more):
+Let's scale-out the Charmed Apache Kafka application to four units (add one more):
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```shell
 juju add-unit kafka
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+On Kubernetes, set the desired total number of units instead of adding one:
+
+```bash
+juju scale-application kafka-k8s 4
+```
+
+````
+
+`````
 
 <!-- test:await-idle --timeout 1200 --allow-blocked opensearch -->
 
@@ -92,6 +118,12 @@ By default, no partitions are allocated for the new unit `3`,
 that should have broker id `103`.
 Check that via the log directory assignment:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju ssh kafka/leader sudo -i charmed-kafka.log-dirs --describe \
   --bootstrap-server <unit-ip>:19093 \
@@ -101,8 +133,33 @@ juju ssh kafka/leader sudo -i charmed-kafka.log-dirs --describe \
   | jq '.brokers[] | select(.broker == 103)'
 ```
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju ssh --container kafka kafka-k8s/leader \
+  "/opt/kafka/bin/kafka-log-dirs.sh --describe \
+  --bootstrap-server <unit-ip>:19093 \
+  --command-config /etc/kafka/client.properties" \
+  2>/dev/null \
+  | sed -n '/^{/p' \
+  | jq '.brokers[] | select(.broker == 103)'
+```
+
+````
+
+`````
+
 This should produce output similar to the result seen below,
 with no partitions allocated by default:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```json
 {
@@ -116,6 +173,31 @@ with no partitions allocated by default:
   ]
 }
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```json
+{
+  "broker": 103,
+  "logDirs": [
+    {
+      "error": null,
+      "logDir": "/var/lib/kafka/data/11/log",
+      "partitions": []
+    }
+  ]
+}
+```
+
+````
+
+`````
+
+See [File system paths](reference-file-system-paths) for the full mapping of
+VM snap paths to container paths.
 
 Now, let's run the `rebalance` action to allocate some existing partitions
 from other brokers (`0`, `1` and `2`) to broker `3`:
@@ -183,6 +265,12 @@ unit-kraft-0: 22:19:12 INFO unit.kraft/0.juju-log Waiting for task execution to 
 Once the action is complete, verify the partitions on the newly added unit
 using the same commands as before:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju ssh kafka/leader sudo -i charmed-kafka.log-dirs --describe \
   --bootstrap-server <unit-ip>:19093 \
@@ -191,6 +279,25 @@ juju ssh kafka/leader sudo -i charmed-kafka.log-dirs --describe \
   | sed -n '/^{/p' \
   | jq '.brokers[] | select(.broker == 103)'
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju ssh --container kafka kafka-k8s/leader \
+  "/opt/kafka/bin/kafka-log-dirs.sh --describe \
+  --bootstrap-server <unit-ip>:19093 \
+  --command-config /etc/kafka/client.properties" \
+  2>/dev/null \
+  | sed -n '/^{/p' \
+  | jq '.brokers[] | select(.broker == 103)'
+```
+
+````
+
+`````
 
 This should produce an output similar to the result seen below, with broker `3` now having assigned partitions present, completing the adding of a new broker to the cluster:
 
@@ -229,10 +336,12 @@ replicas for a given partition.
 ```
 
 To remove the most recent broker unit `3` from the previous example,
-re-run the `rebalance` action with `mode=remove`:
+re-run the `rebalance` action with `mode=remove`. Note that the `brokerid`
+parameter takes the **broker ID**, which is the unit ID offset by `100`
+(for example, unit `kafka/3` is broker `103`):
 
 ```shell
-juju run kraft/leader rebalance mode=remove dryrun=false brokerid=3 --wait=10m
+juju run kraft/leader rebalance mode=remove dryrun=false brokerid=103 --wait=10m
 ```
 
 <!-- test:await-idle --timeout 1200 --allow-blocked opensearch -->
@@ -241,6 +350,12 @@ This does not remove the unit, but moves the partitions from the broker on unit 
 to other brokers within the cluster.
 
 Once the action has been completed, verify that broker `3` no longer has any assigned partitions:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```shell
 juju ssh kafka/leader sudo -i charmed-kafka.log-dirs --describe \
@@ -251,7 +366,32 @@ juju ssh kafka/leader sudo -i charmed-kafka.log-dirs --describe \
   | jq '.brokers[] | select(.broker == 103)'
 ```
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju ssh --container kafka kafka-k8s/leader \
+  "/opt/kafka/bin/kafka-log-dirs.sh --describe \
+  --bootstrap-server <unit-ip>:19093 \
+  --command-config /etc/kafka/client.properties" \
+  2>/dev/null \
+  | sed -n '/^{/p' \
+  | jq '.brokers[] | select(.broker == 103)'
+```
+
+````
+
+`````
+
 Make sure that the broker has no partitions assigned, for example:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```json
 {
@@ -266,11 +406,55 @@ Make sure that the broker has no partitions assigned, for example:
 }
 ```
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```json
+{
+  "broker": 103,
+  "logDirs": [
+    {
+      "partitions": [],
+      "error": null,
+      "logDir": "/var/lib/kafka/data/11/log"
+    }
+  ]
+}
+```
+
+````
+
+`````
+
 Now, it is safe to scale-in the cluster by removing the broker number `3` completely:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```shell
 juju remove-unit kafka/3 --no-prompt
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+On Kubernetes, scale the application back down. Kubernetes removes the
+highest-numbered unit, which is the broker that was just drained:
+
+```bash
+juju scale-application kafka-k8s 3
+```
+
+````
+
+`````
 
 <!-- test:await-idle --timeout 1200 --allow-blocked opensearch -->
 

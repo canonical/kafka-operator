@@ -5,9 +5,19 @@ myst:
 ---
 
 (how-to-deploy-on-azure)=
+(how-to-deploy-on-aks)=
 # How to deploy on Azure
 
 [Azure](https://azure.com/) is the cloud computing platform developed by Microsoft. It has management, access and development of applications and services to individuals, companies, and governments through its global infrastructure. Access the Azure web console at [portal.azure.com](https://portal.azure.com/).
+
+Choose the target substrate. The VM procedure deploys machines through Juju's
+Azure cloud; the K8s procedure creates an Azure Kubernetes Service (AKS) cluster.
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ## Install client environment
 
@@ -160,7 +170,15 @@ juju model-config logging-config='<root>=INFO;unit=DEBUG'
 Deploy Charmed Apache Kafka:
 
 ```shell
-juju deploy kafka -n 3 --config roles=broker,controller [--constraints "instance-type=<INSTANCE_TYPE>"]
+juju deploy kafka -n 3 --channel 4/stable --config roles=broker,controller
+```
+
+To use a specific instance type, add `--constraints "instance-type=<INSTANCE_TYPE>"`.
+
+```{caution}
+This co-located broker/controller topology is for evaluation. For a production
+deployment, use separate broker and controller applications as described in the
+[general deployment guide](how-to-deploy-anywhere).
 ```
 
 ```{caution}
@@ -258,3 +276,101 @@ Finally, log out from Azure CLI:
 ```shell
 az logout 
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+## Install tooling and authenticate
+
+Install Juju 3.6 LTS and follow the
+[Azure CLI installation guide](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux?pivots=apt):
+
+```shell
+sudo snap install juju --channel 3.6/stable
+sudo snap install kubectl --classic
+az login
+```
+
+## Create an AKS cluster
+
+```shell
+az group create --name <RESOURCE_GROUP> --location <LOCATION>
+az aks create \
+  --resource-group <RESOURCE_GROUP> \
+  --name <K8S_CLUSTER_NAME> \
+  --enable-managed-identity \
+  --node-count 3 \
+  --node-vm-size <INSTANCE_TYPE> \
+  --generate-ssh-keys
+```
+
+This example is suitable only for evaluation. For production, size and spread
+the worker nodes according to the [requirements](reference-requirements).
+
+Download the cluster credentials and verify access:
+
+```shell
+az aks get-credentials --resource-group <RESOURCE_GROUP> --name <K8S_CLUSTER_NAME> --context aks
+kubectl get pods --all-namespaces
+```
+
+## Bootstrap Juju and deploy
+
+```shell
+juju bootstrap aks <CONTROLLER_NAME>
+juju add-model <MODEL_NAME>
+juju deploy kafka-k8s -n 3 --channel 4/stable --trust --config roles=broker,controller
+juju deploy data-integrator admin --channel stable \
+  --config extra-user-roles=admin \
+  --config topic-name=admin-topic
+juju integrate kafka-k8s admin
+```
+
+This co-located broker/controller topology is for testing. For a production
+deployment, use separate broker and controller applications as described in the
+[general deployment guide](how-to-deploy-anywhere).
+
+Inspect the environment with `kubectl cluster-info`, `az aks list`, and
+`kubectl get nodes`.
+
+## Clean up
+
+```{caution}
+Always remove AKS resources that are no longer needed; they can be costly.
+```
+
+```shell
+juju destroy-controller <CONTROLLER_NAME> --destroy-all-models --destroy-storage --force
+```
+
+Before deleting the cluster, check for Services with external IPs that Juju may
+not remove automatically — they continue to incur Azure charges while the cluster
+exists:
+
+```shell
+kubectl get svc --all-namespaces | grep -v "ClusterIP"
+```
+
+Delete any remaining Services with an `EXTERNAL-IP` (for example, the Kafka
+NodePort/LoadBalancer Services created by the charm) before deleting the cluster:
+
+```shell
+kubectl delete svc <service-name> -n <MODEL_NAME>
+```
+
+Then delete the AKS cluster itself and remove the local `kubectl` context that
+`az aks get-credentials` created:
+
+```shell
+az aks delete --resource-group <RESOURCE_GROUP> --name <K8S_CLUSTER_NAME>
+kubectl config delete-context aks
+az logout
+```
+
+Check for other cloud resources that were not removed automatically.
+
+````
+
+`````

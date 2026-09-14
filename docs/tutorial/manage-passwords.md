@@ -31,9 +31,28 @@ the Charmed Apache Kafka application. The password in in the `operator-password`
 
 Get the current value of the admin user password from the secret:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju show-secret --reveal cluster.kafka.app | yq -r '.[].content["operator-password"]'
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju show-secret --reveal cluster.kafka-k8s.app | yq -r '.[].content["operator-password"]'
+```
+
+````
+
+`````
 
 ### Change the password
 
@@ -44,29 +63,67 @@ First, create the Juju secret with the new password you wish to use:
 
 <!-- test:skip -->
 ```shell
-juju add-secret internal-kafka-users admin=mynewpassword
+juju add-secret internal-kafka-users operator=mynewpassword
 ```
 
 Note the generated secret ID that you see as a response.
 It will look something like `secret:d5nc29hlshbc45lnf07g`.
 
 <!-- test:set-variables
-command: juju add-secret internal-kafka-users admin=mynewpassword | awk '{print "secret-uri: " $0}'
+command: juju add-secret internal-kafka-users operator=mynewpassword | awk '{print "secret-uri: " $0}'
 SECRET_URI: secret-uri
 -->
 
 Now, grant Charmed Apache Kafka access to the new secret:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju grant-secret internal-kafka-users kafka
 ```
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju grant-secret internal-kafka-users kafka-k8s
+```
+
+````
+
+`````
+
 Finally, inform Charmed Apache Kafka of the new secret to use for it's internal system users
 using the secret ID saved earlier:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```shell
 juju config kafka system-users=<secret-uri>
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju config kafka-k8s system-users=<secret-uri>
+```
+
+````
+
+`````
 
 <!-- test:wait --seconds 60 -->
 <!-- test:await-idle --timeout 600 -->
@@ -93,6 +150,12 @@ juju run data-integrator/leader get-credentials
 
 Running the command should output:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```yaml
 kafka:
   consumer-group-prefix: relation-8-
@@ -110,24 +173,88 @@ kafka:
 ok: "True"
 ```
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```yaml
+kafka:
+  consumer-group-prefix: relation-8-
+  data: '{"resource": "test-topic", "salt": "yOIRb9uVUuJuKFVc", "extra-user-roles":
+    "producer,consumer", "provided-secrets": ["mtls-cert"], "requested-secrets": ["username",
+    "password", "tls", "tls-ca", "uris", "read-only-uris", "entity-name", "entity-password"]}'
+  endpoints: kafka-k8s-0.kafka-k8s-endpoints:9092,kafka-k8s-1.kafka-k8s-endpoints:9092,kafka-k8s-2.kafka-k8s-endpoints:9092
+  password: RdRjZkXUC3dAb5VRFw2470fnoKrsRIXU
+  resource: test-topic
+  salt: W34UoIPzckdMJ6DU
+  tls: disabled
+  topic: test-topic
+  username: relation-8
+  version: v0
+ok: "True"
+```
+
+````
+
+`````
+
 </details>
 
 ### Rotate the password
 
 The easiest way to rotate user credentials using the `data-integrator` is by removing
-and then re-integrating the `data-integrator` with the `kafka` charm:
+and then re-integrating the `data-integrator` with the Charmed Apache Kafka application:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```shell
 juju remove-relation kafka data-integrator
 ```
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju remove-relation kafka-k8s data-integrator
+```
+
+````
+
+`````
+
 <!-- test:await-idle --timeout 600 --allow-blocked data-integrator -->
 
 Wait for the relation to be torn down and add integration again:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju integrate kafka data-integrator
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju integrate kafka-k8s data-integrator
+```
+
+````
+
+`````
 
 <!-- test:await-idle --timeout 600 -->
 
@@ -141,6 +268,12 @@ juju run data-integrator/leader get-credentials
 <details> <summary> Output example</summary>
 
 Running the command should now output a different password:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```yaml
 kafka:
@@ -159,6 +292,32 @@ kafka:
 ok: "True"
 ```
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```yaml
+kafka:
+  consumer-group-prefix: relation-9-
+  data: '{"resource": "test-topic", "salt": "iGWWWoUwCy39ou6f", "extra-user-roles":
+    "producer,consumer", "provided-secrets": ["mtls-cert"], "requested-secrets": ["username",
+    "password", "tls", "tls-ca", "uris", "read-only-uris", "entity-name", "entity-password"]}'
+  endpoints: kafka-k8s-0.kafka-k8s-endpoints:9092,kafka-k8s-1.kafka-k8s-endpoints:9092,kafka-k8s-2.kafka-k8s-endpoints:9092
+  password: EEiI2gboTp2dF0NOcogtbrOWBTxkd5YB
+  resource: test-topic
+  salt: 7WqLjlZjeUvlEWrA
+  tls: disabled
+  topic: test-topic
+  username: relation-9
+  version: v0
+ok: "True"
+```
+
+````
+
+`````
+
 </details>
 
 To rotate external passwords with no or limited downtime,
@@ -169,11 +328,36 @@ see the how-to guide on [app management](how-to-client-connections).
 Removing the relation automatically removes the user that was created when the relation was created.
 To remove the user, remove the relation:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju remove-relation kafka data-integrator
 ```
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju remove-relation kafka-k8s data-integrator
+```
+
+````
+
+`````
+
 <!-- test:await-idle --timeout 600 --allow-blocked data-integrator -->
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 <details> <summary> Output example</summary>
 
@@ -208,6 +392,40 @@ Machine  State    Address         Inst id        Base          AZ          Messa
 ```
 
 </details>
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+<details> <summary> Output example</summary>
+
+The output of the Juju model should be something like this:
+
+```text
+Model     Controller  Cloud/Region         Version  SLA          Timestamp
+tutorial  overlord    microk8s/localhost   3.6.20   unsupported  23:12:02Z
+
+App              Version  Status   Scale  Charm            Channel        Rev  Exposed  Message
+data-integrator           blocked      1  data-integrator  latest/stable  362  no       Please relate the data-integrator with the desired product
+kafka-k8s        4.1.1    active       3  kafka-k8s        4/stable       111  no       
+kraft            4.1.1    active       3  kafka-k8s        4/stable       111  no       
+
+Unit                Workload  Agent  Address        Ports      Message
+data-integrator/0*  blocked   idle   10.233.204.111             Please relate the data-integrator with the desired product
+kafka-k8s/0*        active    idle   10.233.204.241  19093/tcp  
+kafka-k8s/1         active    idle   10.233.204.196  19093/tcp  
+kafka-k8s/2         active    idle   10.233.204.148  19093/tcp  
+kraft/0             active    idle   10.233.204.125  9098/tcp   
+kraft/1*            active    idle   10.233.204.36   9098/tcp   
+kraft/2             active    idle   10.233.204.225  9098/tcp   
+```
+
+</details>
+
+````
+
+`````
 
 ```{note}
 The operations above would also apply to charmed applications that implement

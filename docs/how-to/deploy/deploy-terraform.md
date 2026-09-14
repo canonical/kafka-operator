@@ -13,13 +13,18 @@ For Juju CLI-based deployment, see the [Juju CLI deployment guide](how-to-deploy
 
 ## Prerequisites
 
-* A Juju controller bootstrapped on a **non-Kubernetes** cloud (see [Juju CLI deployment guide](how-to-deploy-anywhere) for setup instructions)
+* A Juju controller bootstrapped on the target VM or Kubernetes cloud (see
+  [Juju CLI deployment guide](how-to-deploy-anywhere) for setup instructions)
 * A Juju model created on the controller
-* [Terraform](https://developer.hashicorp.com/terraform/install) (`>= 1.0.0`) installed
+* [Terraform](https://developer.hashicorp.com/terraform/install) (`>= 1.7.3`) installed
 
 ## Terraform configuration
 
-Save the following as `main.tf` in a new working directory. The module is sourced from the [`terraform/` directory](https://github.com/canonical/kafka-bundle/tree/main/terraform) in the Charmed Apache Kafka bundle repository.
+Select the module matching the Juju model substrate. The
+[VM module](https://github.com/canonical/kafka-bundle/tree/main/terraform) and
+[K8s module](https://github.com/canonical/kafka-k8s-bundle/tree/main/terraform)
+have the same deployment profile structure; K8s additionally supports an ingress
+offer for Kafka UI.
 
 The same `main.tf` is used for both production and testing deployments — the deployment mode is controlled via a `kafka.auto.tfvars` file.
 
@@ -97,13 +102,22 @@ variable "cos_offers" {
   default     = {}
 }
 
+variable "ingress_offer" {
+  description = "Ingress provider cross-model offer URL for Kafka UI (Kubernetes)"
+  type        = string
+  default     = null
+}
+
 data "juju_model" "kafka" {
   name  = var.model_name
   owner = var.model_owner
 }
 
 module "kafka" {
-  source = "git::https://github.com/canonical/kafka-bundle//terraform?ref=main"
+  # Select exactly one source for the target substrate:
+  # VM:  git::https://github.com/canonical/kafka-bundle//terraform?ref=main
+  # K8s: git::https://github.com/canonical/kafka-k8s-bundle//terraform?ref=main
+  source = "<substrate-module-source>"
 
   model_uuid = data.juju_model.kafka.uuid
   profile    = var.profile
@@ -115,18 +129,35 @@ module "kafka" {
   ui         = var.ui
   tls_offer  = var.tls_offer
   cos_offers = var.cos_offers
+
+  # Kubernetes: enable when using the K8s module.
+  # ingress_offer = var.ingress_offer
 }
 ```
 
 </details>
 
-When `controller` includes `units > 0`, the module deploys separate broker and controller applications. When `controller` is omitted or has `units = 0` (the default), the broker co-locates both the broker and controller roles in a single application.
+When `controller` includes `units > 0`, the module deploys separate broker and controller applications. When `controller` has `units = 0`, the broker co-locates both the broker and controller roles in a single application.
+
+```{warning}
+The default value of `controller.units` differs between the modules: the VM
+module defaults to `0` (co-located), while the K8s module defaults to `3`
+(separate controllers). Always set `controller.units` explicitly to get the
+topology you intend.
+```
 
 ## Deploy for production
 
 For production use, deploy separate `kafka` (broker) and `controller` (KRaft controller) applications and integrate them. To maintain high availability, 3+ broker units and 3 or 5 controller units are recommended.
 
-Save the following as `kafka.auto.tfvars`:
+Save the following as `kafka.auto.tfvars`. The application names are arbitrary;
+the examples use conventional names for each substrate:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```hcl
 model_name = "terraform"
@@ -145,11 +176,43 @@ controller = {
 }
 ```
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```hcl
+model_name = "terraform"
+profile    = "production"
+
+broker = {
+  app_name = "kafka-k8s"
+  channel  = "4/stable"
+  units    = 3
+}
+
+controller = {
+  app_name = "controller"
+  channel  = "4/stable"
+  units    = 3
+}
+```
+
+````
+
+`````
+
 ## (Alternative) Deploy for testing
 
 For non-production testing clusters, co-locate both KRaft controller and broker services in a single application to save resources.
 
 Save the following as `kafka.auto.tfvars`:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```hcl
 model_name = "terraform"
@@ -159,9 +222,37 @@ broker = {
   channel  = "4/stable"
   units    = 3
 }
+
+controller = {
+  units = 0
+}
 ```
 
-Since `controller` is omitted, the module defaults to zero controller units and co-locates the controller role within the broker application. The `profile` defaults to `"testing"`.
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```hcl
+model_name = "terraform"
+
+broker = {
+  app_name = "kafka-k8s"
+  channel  = "4/stable"
+  units    = 3
+}
+
+controller = {
+  units = 0
+}
+```
+
+````
+
+`````
+
+With `controller.units = 0`, the controller role is co-located within the broker
+application. The `profile` defaults to `"testing"`.
 
 ## Deploy
 
@@ -178,7 +269,9 @@ Review the plan output, then apply:
 terraform apply
 ```
 
-Terraform automatically loads the `.auto.tfvars` file in the working directory. See [profile reference](https://charmhub.io/kafka/configurations?channel=4/stable#profile).
+Terraform automatically loads the `.auto.tfvars` file in the working directory.
+See the profile reference for [VM](https://charmhub.io/kafka/configure?channel=4/stable#profile)
+or [K8s](https://charmhub.io/kafka-k8s/configurations?channel=4/stable#profile).
 
 Wait for Terraform to finish.
 Then, monitor the Juju model status with:
@@ -229,6 +322,18 @@ tls_offer = "<controller>:<owner>/<model>.certificates"
 
 The module will integrate all Kafka applications with the TLS provider automatically.
 
+## Enable ingress for Kafka UI on Kubernetes
+
+When deploying Kafka UI on K8s, provide an ingress offer:
+
+```hcl
+ingress_offer = "<controller>:<owner>/<model>.ingress"
+```
+
+Remove the comment marker from the `ingress_offer = var.ingress_offer` module
+argument in `main.tf`.
+The VM module does not accept or require this argument.
+
 ## (Optional) Enable observability with COS
 
 To connect the cluster to the [Canonical Observability Stack (COS)](https://documentation.ubuntu.com/observability/), provide the three required cross-model offer URLs. Add the following to your `kafka.auto.tfvars` file:
@@ -236,12 +341,12 @@ To connect the cluster to the [Canonical Observability Stack (COS)](https://docu
 ```hcl
 cos_offers = {
   dashboard = "<controller>:<owner>/<cos-model>.grafana-dashboards"
-  metrics   = "<controller>:<owner>/<cos-model>.prometheus-scrape"
+  metrics   = "<controller>:<owner>/<cos-model>.prometheus-receive-remote-write"
   logging   = "<controller>:<owner>/<cos-model>.loki-logging"
 }
 ```
 
-All three fields must be set together — the module validates that either all or none are provided.
+All three fields must be set together — the module validates that either all or none are provided. The `metrics` offer must be the Prometheus `receive-remote-write` endpoint: the module deploys an `opentelemetry-collector` that scrapes Kafka metrics and forwards them to COS via remote write.
 
 ## Terraform module reference
 

@@ -21,11 +21,33 @@ Charmed Apache Kafka can run both with `roles=broker` and/or `roles=controller`.
 For this tutorial, we will deploy brokers separately.
 To deploy a cluster of three Apache Kafka brokers:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju deploy kafka -n 3 --channel 4/stable --config roles=broker
 ```
 
-Juju will now fetch Charmed Apache Kafka and begin deploying it to the LXD cloud.
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju deploy kafka-k8s -n 3 --channel 4/stable --trust --config roles=broker
+```
+
+The `--trust` flag grants the charm permission to manage the Kubernetes
+resources (Services, StatefulSets) it needs.
+
+````
+
+`````
+
+Juju will now fetch Charmed Apache Kafka and begin deploying it to your cloud.
 Now check the Juju model status:
 
 <!-- test:skip -->
@@ -45,16 +67,54 @@ between the two solutions, please refer to the
 
 To deploy a cluster of three KRaft controllers, run:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju deploy kafka -n 3 --channel 4/stable --config roles=controller kraft
 ```
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju deploy kafka-k8s -n 3 --channel 4/stable --trust --config roles=controller kraft
+```
+
+````
+
+`````
+
 After this, it is necessary to connect the two deployed applications,
 taking care to specify which cluster is the orchestrator by selecting the specific relation types:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```shell
 juju integrate kafka:peer-cluster-orchestrator kraft:peer-cluster
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju integrate kafka-k8s:peer-cluster-orchestrator kraft:peer-cluster
+```
+
+````
+
+`````
 
 <!-- test:await-idle --timeout 1200 -->
 
@@ -84,6 +144,12 @@ you can watch the status and messages both applications change.
 
 Wait until the applications are `active` and all units show `active`/`idle` status:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 <!-- test:skip -->
 ```shell
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
@@ -110,6 +176,32 @@ Machine  State    Address         Inst id        Base          AZ          Messa
 5        started  10.157.174.24   juju-29b29f-5  ubuntu@24.04  kafka-test  Running
 ```
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```text
+Model     Controller  Cloud/Region         Version  SLA          Timestamp
+tutorial  overlord    microk8s/localhost   3.6.20   unsupported  17:30:56Z
+
+App        Version  Status  Scale  Charm      Channel   Rev  Exposed  Message
+kafka-k8s  4.1.1    active      3  kafka-k8s  4/stable  111  no       
+kraft      4.1.1    active      3  kafka-k8s  4/stable  111  no       
+
+Unit          Workload  Agent  Address       Ports      Message
+kafka-k8s/0*  active    idle   10.1.188.228  19093/tcp  
+kafka-k8s/1   active    idle   10.1.188.227  19093/tcp  
+kafka-k8s/2   active    idle   10.1.188.231  19093/tcp  
+kraft/0*      active    idle   10.1.188.230  9098/tcp   
+kraft/1       active    idle   10.1.188.229  9098/tcp   
+kraft/2       active    idle   10.1.188.232  9098/tcp   
+```
+
+````
+
+`````
+
 To exit the screen, push `Ctrl+C`.
 
 ## Access Apache Kafka brokers
@@ -124,11 +216,39 @@ for more information.
 To reveal the contents of the Juju secret containing sensitive cluster data
 for the Charmed Apache Kafka application, you can run:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju show-secret --reveal cluster.kafka.app
 ```
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju show-secret --reveal cluster.kafka-k8s.app
+```
+
+The secret label follows the pattern `cluster.<application-name>.app`, so it
+reflects the `kafka-k8s` application name used on Kubernetes.
+
+````
+
+`````
+
 The output of the previous command will look something like this:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 <!-- test:skip -->
 ```shell
@@ -152,15 +272,64 @@ d5ipahpdormt02antvpg:
     replication-password: tatsvzFV3de4Ce2NEL2HVQWAlSpx7gyv
 ```
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```text
+d5ipahpdormt02antvpg:
+  revision: 1
+  checksum: f84bf383e76ddda391543d57a8b76dbef4e95813b820a466fb4815b098bda3b2
+  owner: kafka-k8s
+  label: cluster.kafka-k8s.app
+  created: 2026-01-13T00:43:58Z
+  updated: 2026-01-13T00:43:58Z
+  content:
+    internal-ca: |-
+      -----BEGIN CERTIFICATE-----
+        ...
+      -----END CERTIFICATE-----
+    internal-ca-key: |-
+      -----BEGIN RSA PRIVATE KEY-----
+        ...
+      -----END RSA PRIVATE KEY-----
+    operator-password: 0g7010iwtBrChk00Ad1pznzaZW0i2Pdt
+    replication-password: tatsvzFV3de4Ce2NEL2HVQWAlSpx7gyv
+```
+
+````
+
+`````
+
 The important line here for accessing the Apache Kafka cluster itself is `operator-password`,
 which tells us that `username=operator` and `password=0g7010iwtBrChk00Ad1pznzaZW0i2Pdt`.
 These are the credentials to use to successfully authenticate to the cluster.
 
 For simplicity, the password can also be directly retrieved by parsing the YAML response from the previous command directly using `yq`:
 
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
 ```shell
 juju show-secret --reveal cluster.kafka.app | yq -r '.[].content["operator-password"]'
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju show-secret --reveal cluster.kafka-k8s.app | yq -r '.[].content["operator-password"]'
+```
+
+````
+
+`````
 
 ```{caution}
 When no other application is integrated to Charmed Apache Kafka,
@@ -173,13 +342,36 @@ When any application connects for the first time to a `bootstrap-server`,
 the client will automatically make a metadata request that returns the full set of
 Apache Kafka brokers with their addresses and ports.
 
-To use `kafka/0` as the `bootstrap-server`, retrieve its IP address and add a port with:
+To use the first broker unit as the `bootstrap-server`, retrieve its address and add a port with:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```shell
 bootstrap_address=$(juju show-unit kafka/0 | yq '.. | ."public-address"? // ""' | tr -d '"' | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
 
 export BOOTSTRAP_SERVER="${bootstrap_address}:19093"
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+On Kubernetes, `juju show-unit` reports the pod address in the `address` field:
+
+```bash
+bootstrap_address=$(juju show-unit kafka-k8s/0 --format json | jq -r '."kafka-k8s/0".address')
+
+export BOOTSTRAP_SERVER="${bootstrap_address}:19093"
+```
+
+````
+
+`````
 
 where `19093` refers to the available open internal port on the broker unit.
 
@@ -190,6 +382,12 @@ For an explanation of Charmed Apache Kafka listeners, please refer to
 
 To jump in to a running Charmed Apache Kafka unit and run a command,
 for example listing files in a directory, you can do the following:
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
 
 ```shell
 juju ssh kafka/leader sudo -i "ls \$BIN/bin"
@@ -205,7 +403,40 @@ referencing various file-system directories relevant to the workload,
 [File system paths](reference-file-system-paths).
 ```
 
-When the unit has started, the Charmed Apache Kafka Operator installs the
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+On Kubernetes the workload runs in the `kafka` container of each pod, so
+select that container and use absolute paths:
+
+```bash
+juju ssh --container kafka kafka-k8s/leader ls /opt/kafka/bin
+```
+
+```{note}
+Unlike on VM, the `$BIN`, `$LOGS`, `$CONF` and `$DATA` variables are not
+exported inside the container. Use the literal paths instead --
+`/opt/kafka`, `/var/log/kafka`, `/etc/kafka` and `/var/lib/kafka`. See
+[File system paths](reference-file-system-paths).
+```
+
+````
+
+`````
+
+When the unit has started, the charm makes the Apache Kafka administrative
+commands available on the unit, along with a `client.properties` file that
+already provides the relevant settings to connect to the cluster using the CLI.
+
+`````{tab-set}
+:sync-group: substrate
+
+````{tab-item} VM
+:sync: vm
+
+The Charmed Apache Kafka Operator installs the
 [`charmed-kafka`](https://snapcraft.io/charmed-kafka) snap in the unit that provides a number
 of snap commands (that corresponds to the shell-script `bin/kafka-*.sh` commands
 in the Apache Kafka distribution) for performing various administrative and operational tasks.
@@ -247,8 +478,56 @@ juju ssh kafka/0 sudo -i \
         --command-config \$CONF/client.properties"
 ```
 
-For a full list of the available Charmed Kafka command-line tools, please refer to
-[snap commands](reference-snap-commands) reference.
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+On Kubernetes, the upstream `bin/kafka-*.sh` scripts are available in
+`/opt/kafka/bin` inside the `kafka` workload container, and the charm writes
+`/etc/kafka/client.properties`.
+
+For example, in order to create a topic, you can run:
+
+```bash
+juju ssh --container kafka kafka-k8s/0 \
+    "/opt/kafka/bin/kafka-topics.sh \
+        --create \
+        --topic test-topic \
+        --bootstrap-server $BOOTSTRAP_SERVER \
+        --command-config /etc/kafka/client.properties"
+```
+
+You can similarly then list the topic, using:
+
+```bash
+juju ssh --container kafka kafka-k8s/0 \
+    "/opt/kafka/bin/kafka-topics.sh \
+        --list \
+        --bootstrap-server $BOOTSTRAP_SERVER \
+        --command-config /etc/kafka/client.properties"
+```
+
+making sure the topic was successfully created.
+
+You can finally delete the topic, using:
+
+```bash
+juju ssh --container kafka kafka-k8s/0 \
+    "/opt/kafka/bin/kafka-topics.sh \
+        --delete \
+        --topic test-topic \
+        --bootstrap-server $BOOTSTRAP_SERVER \
+        --command-config /etc/kafka/client.properties"
+```
+
+````
+
+`````
+
+For a full list of the available Charmed Kafka command-line tools and the
+mapping between snap commands and container executables, please refer to
+[command-line utilities](reference-cli-utilities) reference.
 
 ## What's next?
 

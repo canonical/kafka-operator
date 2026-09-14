@@ -11,7 +11,8 @@ The following guides cover key processes and common tasks for Charmed Apache Kaf
 
 ## Deployment
 
-Deployment follows a broadly similar pattern on all platforms, but due to differences in the platforms, configuration and deployment must be approached differently in each case.
+Deployment follows a broadly similar pattern on VM and Kubernetes, with
+substrate-specific commands shown in synchronized tabs.
 
 * Deployment methods:
   * [via Juju CLI](how-to-deploy-anywhere)
@@ -19,6 +20,8 @@ Deployment follows a broadly similar pattern on all platforms, but due to differ
 * Specific deployment guides:
   * [AWS](how-to-deploy-on-aws)
   * [Azure](how-to-deploy-on-azure)
+  * [External connections (Kubernetes)](how-to-external-k8s-connection)
+  * [Juju Spaces (Machine)](how-to-deploy-spaces)
 
 ## Management
 
@@ -60,7 +63,7 @@ Advanced features of Charmed Apache Kafka include:
 
 * [Schemas and serialisation](how-to-schemas-serialisation)
 * [Kafka Connect usage](how-to-use-kafka-connect-for-etl-workloads)
-* [Enable OAuth through Canonical Identity Platform](how-to-enable-oauth)
+* [Enable OAuth through Canonical Identity Platform (Machine)](how-to-enable-oauth)
 
 ```{toctree}
 :titlesonly:
