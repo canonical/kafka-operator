@@ -75,9 +75,11 @@ jobs:
           - tests/integration/connect_machine/source-integrator-charm
           - tests/integration/connect_k8s/app-charm
     name: Build charm for testing | ${{ matrix.path }}
-    uses: ./.github/workflows/_build_charm_dev.yaml
+    uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@feat/charm-monorepo
     with:
       path-to-charm-directory: ${{ matrix.path }}
+      charmcraft-snap-channel: latest/edge
+      monorepo: true
     permissions:
       actions: read
       contents: read
