@@ -17,7 +17,7 @@ The core of the platform is a single charm, [`kafka`](https://charmhub.io/kafka)
 
 - `broker`: standard Apache Kafka broker functionality
 - `controller`: KRaft (Kafka Raft) metadata quorum node
-- `balancer`: Cruise Control node for partition rebalancing (colocated with `broker` or `controller`, not deployed on its own)
+- `balancer`: Cruise Control node for partition rebalancing (co-located with `broker` or `controller`, not deployed on its own)
 
 This means the KRaft controller and the Cruise Control balancer are **not separate charms** — they are deployments of the same charm with a different `roles` value. For example, a split deployment runs brokers and controllers as separate applications of `kafka`, connected through the `peer-cluster-orchestrator` integration. For more detail, see the `roles` option in the [configurations reference](reference-configurations) and the [unit management guide](how-to-manage-units).
 
@@ -33,7 +33,7 @@ The source code for all four Kafka charms (machine and K8s, broker and Connect) 
 
 [Cruise Control](https://github.com/linkedin/cruise-control) is LinkedIn's open-source system for streamlining the operation of large Kafka clusters. It continuously monitors cluster health and computes optimisation proposals for partition and replica placement, which can then be applied to rebalance the cluster.
 
-In Charmed Apache Kafka, Cruise Control is bundled inside the `charmed-kafka` snap (as `charmed-kafka.cruise-control`) and enabled by adding the `balancer` role to an application that already runs the `broker` or `controller` role — the balancer is a colocated role and is not deployed as a separate application. For a step-by-step introduction, see the [partition rebalancing tutorial](tutorial-rebalance-partitions) and the [partition reassignment guide](how-to-manage-units).
+In Charmed Apache Kafka, Cruise Control is bundled inside the `charmed-kafka` snap (as `charmed-kafka.cruise-control`) and enabled by adding the `balancer` role to an application that already runs the `broker` or `controller` role — the balancer is a co-located role and is not deployed as a separate application. For a step-by-step introduction, see the [partition rebalancing tutorial](tutorial-rebalance-partitions) and the [partition reassignment guide](how-to-manage-units).
 
 ## Kafka Connect
 
