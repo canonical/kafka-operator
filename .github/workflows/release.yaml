@@ -73,11 +73,12 @@ jobs:
     needs:
       - tag
       - ci-tests
-    uses: canonical/data-platform-workflows/.github/workflows/release_charm_edge.yaml@v49.0.1
+    uses: canonical/data-platform-workflows/.github/workflows/release_charm.yaml@29.3.0-rc.1
     with:
       path-to-charm-directory: connect_machine
-      track: ${{ needs.tag.outputs.track }}
+      channel: ${{ needs.tag.outputs.track }}/edge
       artifact-prefix: ${{ needs.ci-tests.outputs.artifact-prefix }}
+      path-to-file-resource: connect_machine/empty.tar
     secrets:
       charmhub-token: ${{ secrets.CHARMHUB_TOKEN }}
     permissions:
@@ -92,7 +93,7 @@ jobs:
     uses: canonical/data-platform-workflows/.github/workflows/release_charm.yaml@29.3.0-rc.1
     with:
       path-to-charm-directory: connect_k8s
-      track: ${{ needs.tag.outputs.track }}
+      channel: ${{ needs.tag.outputs.track }}/edge
       artifact-prefix: ${{ needs.ci-tests.outputs.artifact-prefix }}
       path-to-file-resource: connect_k8s/empty.tar
     secrets:
