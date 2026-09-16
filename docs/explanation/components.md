@@ -17,15 +17,15 @@ The core of the platform is a single charm, [`kafka`](https://charmhub.io/kafka)
 
 - `broker`: standard Apache Kafka broker functionality
 - `controller`: KRaft (Kafka Raft) metadata quorum node
-- `balancer`: Cruise Control node for partition rebalancing
+- `balancer`: Cruise Control node for partition rebalancing (colocated with `broker` or `controller`, not deployed on its own)
 
 This means the KRaft controller and the Cruise Control balancer are **not separate charms** — they are deployments of the same charm with a different `roles` value. For example, a split deployment runs brokers and controllers as separate applications of `kafka`, connected through the `peer-cluster-orchestrator` integration. For more detail, see the `roles` option in the [configurations reference](reference-configurations) and the [unit management guide](how-to-manage-units).
 
 | Component | VM charm | K8s charm | Workload | Role |
 |---|---|---|---|---|
 | Apache Kafka broker | [`kafka`](https://charmhub.io/kafka) | [`kafka-k8s`](https://charmhub.io/kafka-k8s) | [charmed-kafka snap](https://snapcraft.io/charmed-kafka) / [OCI image](https://ghcr.io/canonical/charmed-kafka) | Runs the message brokers that store and serve data |
-| KRaft controller | `kafka` (`roles=controller`) | `kafka-k8s` (`roles=controller`) | same | Manages cluster metadata through the Kafka Raft quorum |
-| Cruise Control balancer | `kafka` (`roles=balancer`) | `kafka-k8s` (`roles=balancer`) | same | Monitors the cluster and rebalances partitions |
+| KRaft controller | `kafka` (`roles=controller`) | `kafka-k8s` (`roles=controller`) | [charmed-kafka snap](https://snapcraft.io/charmed-kafka) / [OCI image](https://ghcr.io/canonical/charmed-kafka) | Manages cluster metadata through the Kafka Raft quorum |
+| Cruise Control balancer | `kafka` (`roles=broker,balancer` or `roles=controller,balancer`) | `kafka-k8s` (`roles=broker,balancer` or `roles=controller,balancer`) | [charmed-kafka snap](https://snapcraft.io/charmed-kafka) / [OCI image](https://ghcr.io/canonical/charmed-kafka) | Monitors the cluster and rebalances partitions |
 
 The source code for all four Kafka charms (machine and K8s, broker and Connect) lives in a single repository, [canonical/kafka-operator](https://github.com/canonical/kafka-operator). The former separate repositories ([`kafka-k8s-operator`](https://github.com/canonical/kafka-k8s-operator), [`kafka-connect-operator`](https://github.com/canonical/kafka-connect-operator), and [`kafka-connect-k8s-operator`](https://github.com/canonical/kafka-connect-k8s-operator)) have been archived and are now read-only.
 
@@ -33,7 +33,7 @@ The source code for all four Kafka charms (machine and K8s, broker and Connect) 
 
 [Cruise Control](https://github.com/linkedin/cruise-control) is LinkedIn's open-source system for streamlining the operation of large Kafka clusters. It continuously monitors cluster health and computes optimisation proposals for partition and replica placement, which can then be applied to rebalance the cluster.
 
-In Charmed Apache Kafka, Cruise Control is bundled inside the `charmed-kafka` snap (as `charmed-kafka.cruise-control`) and enabled by deploying the charm with `roles=balancer`. For a step-by-step introduction, see the [partition rebalancing tutorial](tutorial-rebalance-partitions) and the [partition reassignment guide](how-to-manage-units).
+In Charmed Apache Kafka, Cruise Control is bundled inside the `charmed-kafka` snap (as `charmed-kafka.cruise-control`) and enabled by adding the `balancer` role to an application that already runs the `broker` or `controller` role — the balancer is a colocated role and is not deployed as a separate application. For a step-by-step introduction, see the [partition rebalancing tutorial](tutorial-rebalance-partitions) and the [partition reassignment guide](how-to-manage-units).
 
 ## Kafka Connect
 
@@ -112,12 +112,11 @@ flowchart TB
         direction TB
 
         broker["<b>kafka</b><br>roles=broker"]
-        kraft["<b>kafka</b><br>roles=controller"]
-        balancer["<b>kafka</b><br>roles=balancer"]
+        kraft["<b>kafka</b><br>roles=controller,balancer"]
 
-        subgraph connect["<b>kafka-connect</b>"]
+        subgraph connect["Kafka Connect"]
             direction LR
-            workers["<b>Connect workers</b>"]
+            workers["<b>kafka-connect</b><br>Connect workers"]
             integrators["<b>Connect integrators</b><br>mysql · postgresql · mongodb<br>opensearch · s3 · mirrormaker"]
         end
 
@@ -134,7 +133,6 @@ flowchart TB
     broker -->|"kafka_client"| client
     broker -->|"kafka_client"| di
     kraft <-->|"peer_cluster"| broker
-    balancer <-->|"peer_cluster"| broker
     workers <-->|"kafka_client"| broker
     integrators -->|"connect_client"| workers
     karapace <-->|"kafka_client"| broker
@@ -146,6 +144,6 @@ flowchart TB
 (explanation-components-compatibility)=
 ## Compatibility
 
-The components above are released together per Apache Kafka major track (for example, `4/stable`), so a deployment should use components from the same track: a `4/stable` Kafka charm with a `4/stable` Kafka Connect charm, and so on.
+The components above are released together per Apache Kafka major track (for example, `4/stable`), so a deployment should use components from the same track: a `4/stable` Kafka charm with a `4/stable` Kafka Connect charm, and so on. The Kafka UI and Karapace charms are an exception: they are published to the `latest/[risk]` tracks (for example, `latest/stable`) rather than to per-major tracks.
 
 The authoritative per-revision compatibility matrix — charm revisions, hardware architectures, Juju versions, and workload artefacts — is maintained in the [release notes](reference-release-notes-index) for each stable revision. The Connect integrator charms are published to `edge` only and are not covered by that matrix. For Juju versions, hardware requirements, and supported architectures, see the [system requirements](reference-requirements).
