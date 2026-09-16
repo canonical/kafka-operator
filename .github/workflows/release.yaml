@@ -108,6 +108,8 @@ jobs:
     needs:
       - release-machine
       - release-k8s
+      - release-connect-machine
+      - release-connect-k8s
     outputs:
       charm-revisions: ${{ steps.collect.outputs.charm-revisions }}
       version: ${{ steps.version.outputs.version }}
@@ -121,13 +123,19 @@ jobs:
         env:
           KAFKA: ${{ needs.release-machine.outputs.charm-revisions }}
           KAFKA_K8S: ${{ needs.release-k8s.outputs.charm-revisions }}
+          KAFKA_CONNECT: ${{ needs.release-connect-machine.outputs.charm-revisions }}
+          KAFKA_CONNECT_K8S: ${{ needs.release-connect-k8s.outputs.charm-revisions }}
         run: |
           revisions=$(jq -nc \
             --argjson kafka "$KAFKA" \
             --argjson kafka_k8s "$KAFKA_K8S" \
+            --argjson kafka_connect "$KAFKA_CONNECT" \
+            --argjson kafka_connect_k8s "$KAFKA_CONNECT_K8S" \
             '{
               "kafka": $kafka,
-              "kafka-k8s": $kafka_k8s
+              "kafka-k8s": $kafka_k8s,
+              "kafka-connect": $kafka_connect,
+              "kafka-connect-k8s": $kafka_connect_k8s
             }')
           echo "Collected revisions: $revisions"
           echo "charm-revisions=$revisions" >> "$GITHUB_OUTPUT"
