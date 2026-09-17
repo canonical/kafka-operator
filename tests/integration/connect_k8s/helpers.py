@@ -66,6 +66,20 @@ class DatabaseFixtureParams:
     no_records: int = 1000
 
 
+def charm_resources(channel: str | None, plugin_path: str | None = None) -> dict[str, str] | None:
+    """Resources to deploy the Kafka Connect charm under test with.
+
+    The `kafka-image` OCI resource is only needed for locally built charms, since a
+    Charmhub revision comes with its own published image.
+    """
+    resources = {} if channel else {IMAGE_RESOURCE_KEY: IMAGE_URI}
+
+    if plugin_path:
+        resources[PLUGIN_RESOURCE_KEY] = plugin_path
+
+    return resources or None
+
+
 def check_socket(host: str | None, port: int) -> bool:
     """Checks whether IPv4 socket is up or not."""
     if host is None:

@@ -90,7 +90,13 @@ class TestKRaft:
             else:
                 assert status == KRaftUnitStatus.OBSERVER
 
-    def test_build_and_deploy(self, juju: jubilant.Juju, kafka_charm):
+    def test_build_and_deploy(
+        self,
+        juju: jubilant.Juju,
+        kafka_charm,
+        test_charm_revision: int | None,
+        test_charm_channel: str | None,
+    ):
         juju.deploy(
             kafka_charm,
             app=APP_NAME,
@@ -99,8 +105,11 @@ class TestKRaft:
                 "roles": "broker,controller" if self.controller_app == APP_NAME else "broker",
                 "profile": "testing",
             },
-            resources={"kafka-image": KAFKA_CONTAINER},
+            # add `kafka-image` only for local charms.
+            resources=None if test_charm_channel else {"kafka-image": KAFKA_CONTAINER},
             trust=True,
+            revision=test_charm_revision,
+            channel=test_charm_channel,
         )
         juju.deploy(
             "kafka-test-app",
@@ -127,8 +136,11 @@ class TestKRaft:
                     "roles": self.controller_app,
                     "profile": "testing",
                 },
-                resources={"kafka-image": KAFKA_CONTAINER},
+                # add `kafka-image` only for local charms.
+                resources=None if test_charm_channel else {"kafka-image": KAFKA_CONTAINER},
                 trust=True,
+                revision=test_charm_revision,
+                channel=test_charm_channel,
             )
 
         status_check = all_active_idle if self.controller_app == APP_NAME else jubilant.all_blocked

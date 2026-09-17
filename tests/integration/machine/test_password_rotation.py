@@ -27,13 +27,23 @@ REL_NAME_ADMIN = "kafka-client-admin"
 
 @pytest.mark.abort_on_fail
 @pytest.mark.skip_if_deployed
-async def test_build_and_deploy(ops_test: OpsTest, kraft_mode, kafka_charm, app_charm, kafka_apps):
+async def test_build_and_deploy(
+    ops_test: OpsTest,
+    kraft_mode,
+    kafka_charm,
+    app_charm,
+    kafka_apps,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
+):
     await asyncio.gather(
         deploy_cluster(
             ops_test=ops_test,
             charm=kafka_charm,
             kraft_mode=kraft_mode,
             num_broker=3,
+            revision=test_charm_revision,
+            channel=test_charm_channel,
         ),
         ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series=SERIES),
     )

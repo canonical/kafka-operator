@@ -6,8 +6,6 @@ from jubilant_adapters import JujuFixture, gather
 
 from integration.connect_k8s.helpers import (
     APP_NAME,
-    IMAGE_RESOURCE_KEY,
-    IMAGE_URI,
     JDBC_CONNECTOR_DOWNLOAD_LINK,
     JDBC_SINK_CONNECTOR_CLASS,
     JDBC_SOURCE_CONNECTOR_CLASS,
@@ -19,6 +17,7 @@ from integration.connect_k8s.helpers import (
     S3_CONNECTOR_CLASS,
     S3_CONNECTOR_LINK,
     build_mysql_db_init_queries,
+    charm_resources,
     download_file,
     get_unit_ipv4_address,
     make_connect_api_request,
@@ -33,17 +32,24 @@ TEST_DB_NAME = "testdb"
 TEST_TASK_NAME = "test_task"
 
 
-def test_build_and_deploy(juju: JujuFixture, kafka_connect_charm):
+def test_build_and_deploy(
+    juju: JujuFixture,
+    kafka_connect_charm,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
+):
     """Deploys kafka-connect charm along kafka (in KRaft mode) & MySQL."""
     gather(
         juju.ext.model.deploy(
             kafka_connect_charm,
             application_name=APP_NAME,
-            resources={
-                IMAGE_RESOURCE_KEY: IMAGE_URI,
-                PLUGIN_RESOURCE_KEY: "./tests/integration/connect_k8s/resources/FakeResource.tar",
-            },
+            resources=charm_resources(
+                test_charm_channel,
+                plugin_path="./tests/integration/connect_k8s/resources/FakeResource.tar",
+            ),
             num_units=1,
+            revision=test_charm_revision,
+            channel=test_charm_channel,
         ),
         juju.ext.model.deploy(
             KAFKA_APP,
