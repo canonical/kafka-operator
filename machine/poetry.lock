@@ -375,17 +375,18 @@ files = [
 
 [[package]]
 name = "cosl"
-version = "1.9.1"
+version = "1.10.3"
 description = "Utils for COS Lite charms"
 optional = false
 python-versions = ">=3.8"
 groups = ["main", "charm-libs"]
 files = [
-    {file = "cosl-1.9.1-py3-none-any.whl", hash = "sha256:201107a68f398b8a5f5e91f6dcaeb1777e7b2816a1592c8eea4a491d1750e1a6"},
-    {file = "cosl-1.9.1.tar.gz", hash = "sha256:80d899b5f278bf64252eb94bfb1bbd03dade5073c2cbc0ea43e9abc68be9ee1e"},
+    {file = "cosl-1.10.3-py3-none-any.whl", hash = "sha256:7e514b161ca3d227a23c88377138176e16f23aff92bf218837bc3551dba1ebf7"},
+    {file = "cosl-1.10.3.tar.gz", hash = "sha256:95ac498d3820a7d1f4096e6662b22de639911d7f77e1a25b0cfad963f83836bc"},
 ]
 
 [package.dependencies]
+diskcache = "*"
 ops = "*"
 pydantic = "*"
 pyyaml = "*"
@@ -467,6 +468,18 @@ sdist = ["build (>=1.0.0)"]
 ssh = ["bcrypt (>=3.1.5)"]
 test = ["certifi (>=2024)", "cryptography-vectors (==46.0.7)", "pretend (>=0.7)", "pytest (>=7.4.0)", "pytest-benchmark (>=4.0)", "pytest-cov (>=2.10.1)", "pytest-xdist (>=3.5.0)"]
 test-randomorder = ["pytest-randomly"]
+
+[[package]]
+name = "diskcache"
+version = "5.6.3"
+description = "Disk Cache -- Disk and file backed persistent cache."
+optional = false
+python-versions = ">=3"
+groups = ["main", "charm-libs"]
+files = [
+    {file = "diskcache-5.6.3-py3-none-any.whl", hash = "sha256:5e31b2d5fbad117cc363ebaf6b689474db18a1f6438bc82358b024abd4c2ca19"},
+    {file = "diskcache-5.6.3.tar.gz", hash = "sha256:2c3a3fa2743d8535d832ec61c2054a1641f41775aa7c556758a109941e33e4fc"},
+]
 
 [[package]]
 name = "dunamai"
