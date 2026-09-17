@@ -183,12 +183,27 @@ micro  admin/cos.prometheus  admin   prometheus_scrape:metrics-endpoint
 . . .
 ```
 
-Now, integrate Kafka Connect application with the `metrics-endpoint`, `grafana-dashboard` and `logging` relations:
+Telemetry is routed to COS through the [Opentelemetry collector](https://charmhub.io/opentelemetry-collector-k8s). Deploy it in the Kafka Connect model:
 
 ```bash
-juju integrate micro:admin/cos.prometheus kafka-connect-k8s
-juju integrate micro:admin/cos.grafana kafka-connect-k8s
-juju integrate micro:admin/cos.loki kafka-connect-k8s
+juju deploy opentelemetry-collector-k8s --trust
+```
+
+Now, integrate Kafka Connect application with the collector over the `metrics-endpoint`,
+`grafana-dashboard` and `logging` relations:
+
+```bash
+juju integrate kafka-connect-k8s:metrics-endpoint opentelemetry-collector-k8s
+juju integrate kafka-connect-k8s:grafana-dashboard opentelemetry-collector-k8s
+juju integrate kafka-connect-k8s:logging opentelemetry-collector-k8s
+```
+
+And integrate the collector with the COS offers:
+
+```bash
+juju integrate micro:admin/cos.prometheus opentelemetry-collector-k8s
+juju integrate micro:admin/cos.grafana opentelemetry-collector-k8s
+juju integrate micro:admin/cos.loki opentelemetry-collector-k8s
 ```
 
 After this is complete, Grafana will show a new dashboard: `Kafka Connect Cluster`.
