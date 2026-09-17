@@ -80,6 +80,8 @@ IAAS
 IPs
 IPv
 Integrations
+Aiven
+Debezium
 JMX
 JRE
 JVMFLAGS
@@ -181,6 +183,7 @@ requirer
 spellexception
 stateful
 subdirectory
+subtree
 truststores
 unhandled
 Kafbat
@@ -195,3 +198,9 @@ gzip
 sysconfigs
 uncompacted
 zstd
+vendored
+Furo
+Furo.s
+dagre
+subgraph
+subgraphs
