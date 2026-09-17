@@ -236,22 +236,30 @@ python3 -m pip install pre-commit
 pre-commit install
 ```
 
-The hook automatically formats staged documentation Markdown files when you commit. To run it
-manually:
+The hook formats all tracked documentation Markdown files when you commit. If the formatter changes
+a file, review and stage it again before committing.
+
+You can also run the formatter directly:
 
 ```bash
-pre-commit run mdformat                 # staged files
-pre-commit run mdformat --all-files     # all documentation Markdown files
-pre-commit run mdformat --files docs/how-to/example.md
+cd docs
+make mdformat        # format all documentation Markdown files
+make mdformat-check  # report unformatted files without changing them
 ```
-
-If the formatter changes a file, review and stage it again before committing.
 
 Configure formatting in `docs/.mdformat.toml`. For example, set `wrap` to an integer to choose a
 line length, `"keep"` to preserve existing line breaks, or `"no"` to disable line wrapping. See the
 [mdformat configuration reference](https://mdformat.readthedocs.io/en/stable/users/configuration_file.html)
-for all available settings. The mdformat version, plugins, and included files are configured in the
-repository's `.pre-commit-config.yaml`.
+for all available settings.
+
+The formatter runs in its own virtual environment, installed from a hash-pinned lock file so that
+every dependency is verified. To change formatter versions, edit
+`docs/_dev/mdformat/requirements.in`, regenerate the lock file, and commit both files:
+
+```bash
+cd docs
+make mdformat-lock
+```
 
 To preview and test the documentation locally:
 
