@@ -1,0 +1,26 @@
+{# Configurations reference page template. #}
+---
+myst:
+  html_meta:
+    description: "{{ description }}"
+---
+
+{{ autogen_notice }}
+
+(reference-configurations)=
+# Configurations
+
+The following configuration options can be set on the Charmed Apache Kafka charm using `juju config`.
+
+{% if not options %}
+No configuration options defined.
+{% else %}
+| Name | Type | Default | Description |
+|---|---|---|---|
+{% for name, spec in options.items() %}
+| `{{ name }}` | `{{ spec.type }}` | {{ spec.default }} | {{ spec.description }} |
+{% endfor %}
+
+This page is generated at build time from [`machine/config.yaml`](https://github.com/canonical/kafka-operator/blob/main/machine/config.yaml).
+
+{% endif %}

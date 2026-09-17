@@ -18,7 +18,7 @@ In this guide, you will:
 ## Prerequisites
 
 This guide assumes you already have an Apache Kafka cluster deployed with the Charmed Apache Kafka operator.
-If not, follow the [Deploy Apache Kafka](https://github.com/canonical/kafka-operator/pull/433/tutorial-deploy) tutorial first.
+If not, follow the [Deploy Apache Kafka](tutorial-deploy) tutorial first.
 
 For reference, a cluster with three brokers and three KRaft controllers produces `juju status` output similar to the following:
 

@@ -123,7 +123,9 @@ class ConnectHandler(Object):
                     "password": client.password,
                     "tls": "enabled" if self.context.tls_enabled else "disabled",
                     "tls-ca": (
-                        self.context.worker_unit.tls.ca if self.context.tls_enabled else "disabled"
+                        self.context.worker_unit.tls.ca
+                        if self.context.tls_enabled
+                        else "disabled"
                     ),
                 }
             )

@@ -62,7 +62,7 @@ The integration also provides the CA certificate, which is loaded into a passwor
 
 When encryption is enabled, hostname verification is turned on for client connections, including both inter-broker and broker-controller communications. The cipher suite can 
 be customised by specifying a list of allowed cipher suites for external clients. This is done using the charm configuration option
-`ssl_cipher_suites` (see [reference documentation](https://charmhub.io/kafka/configurations)). 
+`ssl-cipher-suites` (see [reference documentation](https://charmhub.io/kafka/configurations?channel=4/stable#ssl-cipher-suites)). 
 
 Encryption-at-rest is currently not supported, although it can be provided by the substrate (cloud or on-premises).
 
@@ -88,7 +88,7 @@ Clients can authenticate to Apache Kafka using:
 
 1. username and password exchanged using SCRAM-SHA-512 protocols
 2. client certificates or CA (mTLS)
-3. OAuth Authentication using [Hydra](https://discourse.charmhub.io/t/how-to-connect-to-kafka-using-hydra-as-oidc-provider/14610) or [Google](https://discourse.charmhub.io/t/how-to-connect-to-kafka-using-google-as-oidc-provider/14611)
+3. [OAuth Authentication](how-to-enable-oauth) through Canonical Identity Platform
 
 When using SCRAM, usernames and passwords are stored in the KRaft controller metadata logs, in plain text in configuration files on the broker and controller units, and in Juju secrets. 
 When using mTLS, client certificates provided to the Apache Kafka cluster via Juju secrets by related charms are stored in password-protected JKS truststores.

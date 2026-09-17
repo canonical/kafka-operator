@@ -1,0 +1,25 @@
+{# Statuses reference page template. #}
+---
+myst:
+  html_meta:
+    description: "{{ description }}"
+---
+
+{{ autogen_notice }}
+
+(reference-statuses)=
+# Charm statuses
+
+A deployed charm follows [standard Juju applications statuses](https://canonical.com/juju/docs/juju-cli/3.6/reference/status/#application-status). Here you can find the expected reactions on many typical Charmed Apache Kafka statuses:
+
+| Juju Status | Message | Expectations | Actions |
+|---|---|---|---|
+{% for s in statuses %}
+| {{ s.label }} | {{ s.message }} | {{ s.expectations }} | {{ s.actions }} |
+{% endfor %}
+{% for fw in framework_statuses %}
+| {{ fw.label }} | {{ fw.message }} | {{ fw.expectations }} | {{ fw.actions }} |
+{% endfor %}
+
+This page is generated at build time from [`common/single_kernel_kafka/core/literals.py`](https://github.com/canonical/kafka-operator/blob/main/common/single_kernel_kafka/core/literals.py).
+

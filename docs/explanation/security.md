@@ -61,7 +61,7 @@ In the following, we provide guidance on how to harden your deployment using:
 
 ### Operating system
 
-Charmed Apache Kafka operators currently run on top of Ubuntu 24.04. Deploy a [Landscape Client Charm](https://charmhub.io/landscape-client?) to 
+Charmed Apache Kafka operators currently run on top of Ubuntu 24.04 LTS. Deploy a [Landscape Client Charm](https://charmhub.io/landscape-client?) to 
 connect the underlying VM to a Landscape User Account to manage security upgrades and integrate [Ubuntu Pro](https://ubuntu.com/pro) subscriptions. 
 
 ### Security upgrades
@@ -71,7 +71,7 @@ to provide reproducible and secure environments.
 
 New versions of Charmed Apache Kafka may be released to provide patching of vulnerabilities (CVEs).
 It is important to refresh the charm regularly to make sure the workload is as secure as possible. 
-For more information on how to refresh the charm, see the [how-to upgrade](https://charmhub.io/kafka/docs/h-upgrade) guide.
+For more information on how to refresh the charm, see the [how-to upgrade](how-to-upgrade) guide.
 
 ### Encryption
 
@@ -88,7 +88,7 @@ Charmed Apache Kafka supports the following authentication layers:
 
 1. [SCRAM-based SASL Authentication](how-to-client-connections)
 2. [certificate-based Authentication (mTLS)](how-to-create-mtls-client-credentials)
-3. OAuth Authentication using [Hydra](https://discourse.charmhub.io/t/how-to-connect-to-kafka-using-hydra-as-oidc-provider/14610) or [Google](https://discourse.charmhub.io/t/how-to-connect-to-kafka-using-google-as-oidc-provider/14611)
+3. [OAuth Authentication](how-to-enable-oauth) through Canonical Identity Platform
 
 Each combination of authentication scheme and encryption is associated with the dedicated listener and it maps to a well-defined port. See the [listeners reference documentation](reference-broker-listeners) for more information.
 
@@ -104,11 +104,9 @@ External user access to Apache Kafka is logged to the `kafka-authorizer.log` tha
 
 Access denials are logged at the `INFO` level, whereas allowed accesses are logged at the `DEBUG` level.
 Depending on the auditing needs, customise the logging level either for all logs via the
-[log-level](https://charmhub.io/kafka/configurations) configuration option or
-only tune the logging level of the `authorizerAppender` in the `log4j.properties` file. See
+[log-level](https://charmhub.io/kafka/configure?channel=4/stable#log-level) configuration option or
+only tune the logging level of the `authorizerAppender` in the `log4j2.yaml` file. See
 the [file system paths](reference-file-system-paths) for further information.
-
-<!-- #TODO Add the version to the log-level link, e.g., 4/stable -->
 
 ## Additional resources
 

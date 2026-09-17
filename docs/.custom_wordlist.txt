@@ -1,9 +1,12 @@
 # Leave a blank line at the end of this file to support concatenation
+addons
 backend
 backends
 Charmcraft
 cjk
 cryptographically
+docstring
+docstrings
 dvipng
 fonts
 freefont
@@ -183,3 +186,12 @@ unhandled
 Kafbat
 Kafbat's
 tf
+codec
+codecs
+cpu
+enum
+gitignored
+gzip
+sysconfigs
+uncompacted
+zstd

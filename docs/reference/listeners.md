@@ -29,5 +29,20 @@ opened.
 |            |                                                                  |                |         |               |
 |   Broker   |                          `kafka-client`                          | SASL_PLAINTEXT |  `9092` |     client    |
 |   Broker   |                  `kafka-client` + `certificates`                 |    SASL_SSL    |  `9093` |     client    |
-|   Broker   |              `certificate-transfer` + `certificates`             |       SSL      |  `9094` |     client    |
+|   Broker   |                    `client-cas` + `certificates`                 |       SSL      |  `9094` |     client    |
 |   Broker   | `kafka-client` (with `mtls-cert` relation-data) + `certificates` |       SSL      |  `9094` |     client    |
+|   Broker   |                          `oauth`                                 | SASL_PLAINTEXT |  `9095` |     client    |
+|   Broker   |                    `oauth` + `certificates`                      |    SASL_SSL    |  `9096` |     client    |
+
+Internal (broker-controller and inter-broker) communications always use `SASL_SSL`.
+When no `peer-certificates` relation is present, the charm uses auto-generated
+self-signed certificates instead of certificates provided by a
+TLS Certificate Provider charm.
+
+```{note}
+Additional listeners can be defined using the `extra-listeners` configuration option,
+which allocates a distinct port for each authentication scheme starting from a configurable
+base port (offset by 20001-50000).
+See the [configurations reference](https://charmhub.io/kafka/configure?channel=4/stable#extra-listeners)
+for details.
+```
