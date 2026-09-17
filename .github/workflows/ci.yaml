@@ -152,20 +152,7 @@ jobs:
           provider: lxd
           juju-channel: 3.6/stable
       - name: Pre-seed LXD base image with the workload snap
-        run: |
-          revision="$(sed -nE 's/^[[:space:]]*x86_64[[:space:]]*=[[:space:]]*"([0-9]+)".*/\1/p' refresh_versions.toml)"
-          echo "Pre-seeding charmed-kafka revision ${revision} into juju/noble/amd64"
-          lxc launch ubuntu:24.04 kafka-image-builder
-          lxc exec kafka-image-builder -- cloud-init status --wait
-          lxc exec kafka-image-builder -- snap wait system seed.loaded
-          lxc exec kafka-image-builder -- snap install charmed-kafka --revision "${revision}"
-          # reset cloud-init so juju's per-instance userdata runs cleanly on launch
-          lxc exec kafka-image-builder -- cloud-init clean --logs
-          lxc stop kafka-image-builder
-          # replace juju's cached base image so every unit launches pre-seeded
-          lxc image alias delete juju/noble/amd64 || true
-          lxc publish kafka-image-builder --alias juju/noble/amd64
-          lxc delete kafka-image-builder
+        uses: ./.github/actions/preseed-lxd-image
       - name: Download packed charm(s)
         uses: actions/download-artifact@v6
         with:
@@ -238,20 +225,7 @@ jobs:
           provider: lxd
           juju-channel: 3.6/stable
       - name: Pre-seed LXD base image with the workload snap
-        run: |
-          revision="$(sed -nE 's/^[[:space:]]*x86_64[[:space:]]*=[[:space:]]*"([0-9]+)".*/\1/p' refresh_versions.toml)"
-          echo "Pre-seeding charmed-kafka revision ${revision} into juju/noble/amd64"
-          lxc launch ubuntu:24.04 kafka-image-builder
-          lxc exec kafka-image-builder -- cloud-init status --wait
-          lxc exec kafka-image-builder -- snap wait system seed.loaded
-          lxc exec kafka-image-builder -- snap install charmed-kafka --revision "${revision}"
-          # reset cloud-init so juju's per-instance userdata runs cleanly on launch
-          lxc exec kafka-image-builder -- cloud-init clean --logs
-          lxc stop kafka-image-builder
-          # replace juju's cached base image so every unit launches pre-seeded
-          lxc image alias delete juju/noble/amd64 || true
-          lxc publish kafka-image-builder --alias juju/noble/amd64
-          lxc delete kafka-image-builder
+        uses: ./.github/actions/preseed-lxd-image
       - name: Download packed charm(s)
         uses: actions/download-artifact@v6
         with:
@@ -506,20 +480,7 @@ jobs:
           provider: lxd
           juju-channel: 3.6/stable
       - name: Pre-seed LXD base image with the workload snap
-        run: |
-          revision="$(sed -nE 's/^[[:space:]]*x86_64[[:space:]]*=[[:space:]]*"([0-9]+)".*/\1/p' refresh_versions.toml)"
-          echo "Pre-seeding charmed-kafka revision ${revision} into juju/noble/amd64"
-          lxc launch ubuntu:24.04 kafka-image-builder
-          lxc exec kafka-image-builder -- cloud-init status --wait
-          lxc exec kafka-image-builder -- snap wait system seed.loaded
-          lxc exec kafka-image-builder -- snap install charmed-kafka --revision "${revision}"
-          # reset cloud-init so juju's per-instance userdata runs cleanly on launch
-          lxc exec kafka-image-builder -- cloud-init clean --logs
-          lxc stop kafka-image-builder
-          # replace juju's cached base image so every unit launches pre-seeded
-          lxc image alias delete juju/noble/amd64 || true
-          lxc publish kafka-image-builder --alias juju/noble/amd64
-          lxc delete kafka-image-builder
+        uses: ./.github/actions/preseed-lxd-image
       - name: Download packed charm(s)
         uses: actions/download-artifact@v6
         with:
