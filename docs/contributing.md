@@ -224,6 +224,35 @@ For larger contributions:
 2. Raise a pull request against `main` to start the review process.
 3. Once the pull request is approved and all comments are addressed, it can be merged.
 
+### Format Markdown
+
+The repository uses [mdformat](https://mdformat.readthedocs.io/) and
+[pre-commit](https://pre-commit.com/) to automatically format Markdown files in `docs/`.
+
+From the repository root, install pre-commit and enable the hook:
+
+```bash
+python3 -m pip install pre-commit
+pre-commit install
+```
+
+The hook automatically formats staged documentation Markdown files when you commit. To run it
+manually:
+
+```bash
+pre-commit run mdformat                 # staged files
+pre-commit run mdformat --all-files     # all documentation Markdown files
+pre-commit run mdformat --files docs/how-to/example.md
+```
+
+If the formatter changes a file, review and stage it again before committing.
+
+Configure formatting in `docs/.mdformat.toml`. For example, set `wrap` to an integer to choose a
+line length, `"keep"` to preserve existing line breaks, or `"no"` to disable line wrapping. See the
+[mdformat configuration reference](https://mdformat.readthedocs.io/en/stable/users/configuration_file.html)
+for all available settings. The mdformat version, plugins, and included files are configured in the
+repository's `.pre-commit-config.yaml`.
+
 To preview and test the documentation locally:
 
 ```bash
