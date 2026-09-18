@@ -69,8 +69,13 @@ def test_build_and_deploy(
 
     juju.ext.model.add_relation(APP_NAME, KAFKA_APP)
     with juju.ext.fast_forward(fast_interval="60s"):
+        # mysql-k8s errors out on update-status if pebble not available, hence the raise_on_error=False.
         juju.ext.model.wait_for_idle(
-            apps=[APP_NAME, KAFKA_APP, MYSQL_APP], idle_period=30, timeout=1800, status="active"
+            apps=[APP_NAME, KAFKA_APP, MYSQL_APP],
+            idle_period=30,
+            timeout=1800,
+            status="active",
+            raise_on_error=False,
         )
 
 
