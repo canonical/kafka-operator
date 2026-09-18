@@ -88,6 +88,20 @@ def test_repack_charm(
     os.environ.update({"REFRESH_CHARM": f"./{output_file}"})
 
 
+def get_oci_image_of_rev(revision: int) -> str:
+    """Return the OCI image URL of a charm revision."""
+    # Kafka K8s releases are tagged kafka-k8s/rev### by DPW release workflow.
+    metadata_url = f"https://raw.githubusercontent.com/canonical/kafka-operator/refs/tags/kafka-k8s/rev{revision}/k8s/metadata.yaml"
+    cmd_pipeline = [f"curl {metadata_url}", 'yq -r \'.resources."kafka-image"."upstream-source"\'']
+    raw = subprocess.check_output(
+        " | ".join(cmd_pipeline), stderr=subprocess.PIPE, universal_newlines=True, shell=True
+    )
+    if "ghcr.io" not in raw:
+        raise Exception(f"Can not find the OCI image for rev. {revision}")
+
+    return raw.strip()
+
+
 @pytest.mark.abort_on_fail
 def test_in_place_refresh(
     juju: jubilant.Juju,
@@ -153,8 +167,15 @@ def test_in_place_refresh(
     )
 
     logger.info("Upgrading Kafka...")
-    if test_charm_channel:
-        juju.refresh(APP_NAME, channel=test_charm_channel, revision=test_charm_revision)
+    if test_charm_revision:
+        # The refresh lib is strict about refresh to a rev, when OCI image is not provided.
+        kafka_image = get_oci_image_of_rev(test_charm_revision)
+        juju.refresh(
+            APP_NAME,
+            channel=test_charm_channel,
+            revision=test_charm_revision,
+            resources={"kafka-image": kafka_image},
+        )
     else:
         refresh_charm = os.environ.get("REFRESH_CHARM")
         juju.refresh(
