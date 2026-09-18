@@ -105,7 +105,7 @@ def test_deployment_on_machines(
 ):
     """Test that `machines` TF variable work as expected."""
     # Add machines and wait for them to start
-    juju.juju("add-machine", "--base", "ubuntu@22.04", "-n", "3")
+    juju.juju("add-machine", "--base", "ubuntu@24.04", "-n", "3")
 
     juju.ext.model.block_until(
         lambda: len(juju.ext.model.machines) == 3
