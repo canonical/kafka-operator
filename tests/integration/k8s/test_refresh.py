@@ -33,8 +33,17 @@ CHARMCRAFT = os.environ.get("CHARMCRAFT_BIN", "charmcraft")
 def test_repack_charm(
     tmp_path_factory: pytest.TempPathFactory,
     kafka_charm,
+    test_charm_channel: str | None,
+    test_charm_revision: int | None,
 ):
     """Unpack the built charm and repack using a refresh-able version."""
+    if test_charm_channel:
+        logger.info(
+            "Skipping the repack step, will refresh to "
+            f"{test_charm_channel}, rev={test_charm_revision}"
+        )
+        return
+
     base = tmp_path_factory.mktemp("refresh-charm-")
     os.system(f"unzip -q {kafka_charm} -d {base}")
 
@@ -80,7 +89,12 @@ def test_repack_charm(
 
 
 @pytest.mark.abort_on_fail
-def test_in_place_refresh(juju: jubilant.Juju, kraft_mode: KRaftMode):
+def test_in_place_refresh(
+    juju: jubilant.Juju,
+    kraft_mode: KRaftMode,
+    test_charm_channel: str | None,
+    test_charm_revision: int | None,
+):
     """Tests happy path refresh with TLS in KRaft mode."""
     kafka_apps = [APP_NAME] if kraft_mode == "single" else [APP_NAME, CONTROLLER_NAME]
     tls_config = {"ca-common-name": "kafka"}
@@ -139,12 +153,15 @@ def test_in_place_refresh(juju: jubilant.Juju, kraft_mode: KRaftMode):
     )
 
     logger.info("Upgrading Kafka...")
-    refresh_charm = os.environ.get("REFRESH_CHARM")
-    juju.refresh(
-        APP_NAME,
-        path=refresh_charm,
-        resources={"kafka-image": KAFKA_CONTAINER},
-    )
+    if test_charm_channel:
+        juju.refresh(APP_NAME, channel=test_charm_channel, revision=test_charm_revision)
+    else:
+        refresh_charm = os.environ.get("REFRESH_CHARM")
+        juju.refresh(
+            APP_NAME,
+            path=refresh_charm,
+            resources={"kafka-image": KAFKA_CONTAINER},
+        )
 
     juju.wait(
         lambda status: jubilant.all_agents_idle(status, APP_NAME),
