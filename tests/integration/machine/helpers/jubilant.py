@@ -55,6 +55,7 @@ def deploy_cluster(
     app_name_controller: str = CONTROLLER_NAME,
     bind: Mapping[str, str] = {},
     channel: str | None = None,
+    revision: int | None = None,
 ):
     """Deploys an Apache Kafka cluster using the Charmed Apache Kafka operator in KRaft mode."""
     logger.info(f"Deploying Kafka cluster in '{kraft_mode}' mode")
@@ -75,6 +76,7 @@ def deploy_cluster(
         trust=True,
         bind=bind,
         channel=channel if channel else None,
+        revision=revision,
     )
 
     if kraft_mode == "multi":
@@ -91,6 +93,7 @@ def deploy_cluster(
             trust=True,
             bind=bind,
             channel=channel if channel else None,
+            revision=revision,
         )
 
     assert_status_func = jubilant.all_active if kraft_mode == "single" else jubilant.all_blocked

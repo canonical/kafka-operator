@@ -23,6 +23,18 @@ TFVARS_DEFAULTS = {
 TFVARS_FILENAME = "test.tfvars.json"
 
 
+def _pinned_tfvars(revision: int | None, channel: str | None) -> dict:
+    """Terraform variables pinning the charm under test, when `--revision` is given.
+
+    Nothing is overridden when no revision is pinned, so the module keeps using its
+    own default channel.
+    """
+    if not (revision and channel):
+        return {}
+
+    return {"revision": revision, "channel": channel}
+
+
 def _deploy_terraform(tmp_path, tfvars: dict = {}) -> str:
     """Deploy the charm Terraform module, using a provided set of variables."""
     tf_path = tmp_path / "terraform"
@@ -54,9 +66,19 @@ def _destroy_terraform(working_dir: str) -> None:
     os.system(f"rm -rf {working_dir}")
 
 
-def test_deployment_active(juju: JujuFixture, model_uuid: str, tmp_path):
+def test_deployment_active(
+    juju: JujuFixture,
+    model_uuid: str,
+    tmp_path,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
+):
     """Test that application is deployed and active."""
-    working_dir = _deploy_terraform(tmp_path, tfvars={"model_uuid": model_uuid})
+    working_dir = _deploy_terraform(
+        tmp_path,
+        tfvars={"model_uuid": model_uuid}
+        | _pinned_tfvars(revision=test_charm_revision, channel=test_charm_channel),
+    )
 
     juju.ext.model.wait_for_idle(apps=[APP_NAME], idle_period=30, timeout=900, status="blocked")
     assert (
@@ -74,10 +96,16 @@ def test_deployment_active(juju: JujuFixture, model_uuid: str, tmp_path):
     )
 
 
-def test_deployment_on_machines(juju: JujuFixture, model_uuid: str, tmp_path):
+def test_deployment_on_machines(
+    juju: JujuFixture,
+    model_uuid: str,
+    tmp_path,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
+):
     """Test that `machines` TF variable work as expected."""
     # Add machines and wait for them to start
-    juju.juju("add-machine", "--base", "ubuntu@22.04", "-n", "3")
+    juju.juju("add-machine", "--base", "ubuntu@24.04", "-n", "3")
 
     juju.ext.model.block_until(
         lambda: len(juju.ext.model.machines) == 3
@@ -90,7 +118,9 @@ def test_deployment_on_machines(juju: JujuFixture, model_uuid: str, tmp_path):
 
     # Deploy 1 unit on a target machine
     working_dir = _deploy_terraform(
-        tmp_path, tfvars={"model_uuid": model_uuid, "machines": [target_machine]}
+        tmp_path,
+        tfvars={"model_uuid": model_uuid, "machines": [target_machine]}
+        | _pinned_tfvars(revision=test_charm_revision, channel=test_charm_channel),
     )
 
     juju.ext.model.wait_for_idle(apps=[APP_NAME], idle_period=30, timeout=900, status="blocked")

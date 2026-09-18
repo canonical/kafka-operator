@@ -31,7 +31,13 @@ POSTGRES_DB = "sink_db"
 logger = logging.getLogger(__name__)
 
 
-def test_build_and_deploy(juju: JujuFixture, kafka_version: int, kafka_connect_charm):
+def test_build_and_deploy(
+    juju: JujuFixture,
+    kafka_version: int,
+    kafka_connect_charm,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
+):
     """Deploys a basic test setup with Kafka, Kafka Connect, MySQL, and PostgreSQL."""
     gather(
         juju.ext.model.deploy(
@@ -39,6 +45,8 @@ def test_build_and_deploy(juju: JujuFixture, kafka_version: int, kafka_connect_c
             application_name=APP_NAME,
             series="noble",
             config={"profile": "testing"},
+            revision=test_charm_revision,
+            channel=test_charm_channel,
         ),
         deploy_kafka(juju, kafka_version),
         juju.ext.model.deploy(

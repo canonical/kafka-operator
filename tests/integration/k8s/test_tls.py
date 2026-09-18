@@ -44,7 +44,14 @@ from integration.k8s.helpers.legacy import (
 logger = logging.getLogger(__name__)
 
 
-def test_deploy_tls(juju: jubilant.Juju, kafka_charm, kraft_mode, kafka_apps):
+def test_deploy_tls(
+    juju: jubilant.Juju,
+    kafka_charm,
+    kraft_mode,
+    kafka_apps,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
+):
     tls_config = {"ca-common-name": "kafka"}
 
     juju.deploy(TLS_NAME, channel="1/stable", config=tls_config, trust=True)
@@ -53,6 +60,8 @@ def test_deploy_tls(juju: jubilant.Juju, kafka_charm, kraft_mode, kafka_apps):
         charm=kafka_charm,
         kraft_mode=kraft_mode,
         # config_broker={"expose-external": "nodeport"},
+        revision=test_charm_revision,
+        channel=test_charm_channel,
     )
     juju.wait(
         lambda status: all_active_idle(status, *kafka_apps, TLS_NAME),

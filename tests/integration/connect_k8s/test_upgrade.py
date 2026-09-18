@@ -21,10 +21,15 @@ logger = logging.getLogger(__name__)
 
 pytestmark = pytest.mark.broker
 
-CHANNEL = "edge"
+CHANNEL = "4/stable"
 
 
-def test_in_place_upgrade(juju: JujuFixture, kafka_connect_charm):
+def test_in_place_upgrade(
+    juju: JujuFixture,
+    kafka_connect_charm,
+    test_charm_channel: str | None,
+    test_charm_revision: int | None,
+):
     # deploy kafka & kafka-connect
     gather(
         juju.ext.model.deploy(
@@ -63,10 +68,16 @@ def test_in_place_upgrade(juju: JujuFixture, kafka_connect_charm):
     juju.ext.model.wait_for_idle(apps=[APP_NAME], timeout=1000, idle_period=15, status="active")
 
     logger.info("Upgrading Connect...")
-    juju.ext.model.applications[APP_NAME].refresh(
-        path=kafka_connect_charm,
-        resources={IMAGE_RESOURCE_KEY: IMAGE_URI},
-    )
+    if test_charm_channel:
+        juju.ext.model.applications[APP_NAME].refresh(
+            channel=test_charm_channel,
+            revision=test_charm_revision,
+        )
+    else:
+        juju.ext.model.applications[APP_NAME].refresh(
+            path=kafka_connect_charm,
+            resources={IMAGE_RESOURCE_KEY: IMAGE_URI},
+        )
 
     with juju.ext.fast_forward(fast_interval="20s"):
         sleep(60)

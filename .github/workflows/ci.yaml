@@ -17,8 +17,42 @@ on:
   schedule:
     - cron: '53 0 * * *'  # Daily at 00:53 UTC
   workflow_dispatch:
+    inputs:
+      kafka-revision:
+        description: Test this Charmhub revision of `kafka` instead of building the charm
+        type: string
+        default: ''
+      kafka-k8s-revision:
+        description: Test this Charmhub revision of `kafka-k8s` instead of building the charm
+        type: string
+        default: ''
+      kafka-connect-revision:
+        description: Test this Charmhub revision of `kafka-connect` instead of building the charm
+        type: string
+        default: ''
+      kafka-connect-k8s-revision:
+        description: Test this Charmhub revision of `kafka-connect-k8s` instead of building the charm
+        type: string
+        default: ''
   # Triggered on push to branch "main" by .github/workflows/release.yaml
   workflow_call:
+    inputs:
+      kafka-revision:
+        description: Test this Charmhub revision of `kafka` instead of building the charm
+        type: string
+        default: ''
+      kafka-k8s-revision:
+        description: Test this Charmhub revision of `kafka-k8s` instead of building the charm
+        type: string
+        default: ''
+      kafka-connect-revision:
+        description: Test this Charmhub revision of `kafka-connect` instead of building the charm
+        type: string
+        default: ''
+      kafka-connect-k8s-revision:
+        description: Test this Charmhub revision of `kafka-connect-k8s` instead of building the charm
+        type: string
+        default: ''
     outputs:
       artifact-prefix:
         description: build_charm.yaml `artifact-prefix` output
@@ -53,21 +87,48 @@ jobs:
       - name: Run tests
         run: tox run -e unit
 
+  build-matrix:
+    name: Collect charms to build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      paths: ${{ steps.collect.outputs.paths }}
+    steps:
+      # A charm pinned to a Charmhub revision is deployed from the store, so there
+      # is nothing to build for it.
+      - name: Drop charms pinned to a Charmhub revision
+        id: collect
+        env:
+          KAFKA_REVISION: ${{ inputs.kafka-revision }}
+          KAFKA_K8S_REVISION: ${{ inputs.kafka-k8s-revision }}
+          KAFKA_CONNECT_REVISION: ${{ inputs.kafka-connect-revision }}
+          KAFKA_CONNECT_K8S_REVISION: ${{ inputs.kafka-connect-k8s-revision }}
+        run: |
+          paths=()
+          if [ -z "$KAFKA_REVISION" ]; then paths+=("machine"); fi
+          if [ -z "$KAFKA_K8S_REVISION" ]; then paths+=("k8s"); fi
+          if [ -z "$KAFKA_CONNECT_REVISION" ]; then paths+=("connect_machine"); fi
+          if [ -z "$KAFKA_CONNECT_K8S_REVISION" ]; then paths+=("connect_k8s"); fi
+          # test charms are never published, so they are always built from the branch
+          paths+=(
+            "tests/integration/machine/app-charm"
+            "tests/integration/k8s/app-charm"
+            "tests/integration/connect_machine/sink-integrator-charm"
+            "tests/integration/connect_machine/source-integrator-charm"
+            "tests/integration/connect_k8s/app-charm"
+          )
+          json="$(printf '%s\n' "${paths[@]}" | jq -Rsc 'split("\n")[:-1]')"
+          echo "Charms to build: $json"
+          echo "paths=$json" >> "$GITHUB_OUTPUT"
+
   # FIXME: remove this once charmcraft monorepo feature is released.
   build-dev:
     if: ${{ github.ref_name != 'main' }}
+    needs:
+      - build-matrix
     strategy:
       matrix:
-        path:
-          - machine
-          - k8s
-          - connect_machine
-          - connect_k8s
-          - tests/integration/machine/app-charm
-          - tests/integration/k8s/app-charm
-          - tests/integration/connect_machine/sink-integrator-charm
-          - tests/integration/connect_machine/source-integrator-charm
-          - tests/integration/connect_k8s/app-charm
+        path: ${{ fromJSON(needs.build-matrix.outputs.paths) }}
     name: Build charm for testing | ${{ matrix.path }}
     uses: ./.github/workflows/_build_charm_dev.yaml
     with:
@@ -78,18 +139,11 @@ jobs:
 
   build-release:
     if: ${{ github.ref_name == 'main' }}
+    needs:
+      - build-matrix
     strategy:
       matrix:
-        path:
-          - machine
-          - k8s
-          - connect_machine
-          - connect_k8s
-          - tests/integration/machine/app-charm
-          - tests/integration/k8s/app-charm
-          - tests/integration/connect_machine/sink-integrator-charm
-          - tests/integration/connect_machine/source-integrator-charm
-          - tests/integration/connect_k8s/app-charm
+        path: ${{ fromJSON(needs.build-matrix.outputs.paths) }}
     name: Build charm for release | ${{ matrix.path }}
     # FIXME: update once monorepo feature reaches DPW
     # uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v32.2.2
@@ -166,9 +220,10 @@ jobs:
             echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
           fi
       - name: Run integration tests
-        run: tox run -e integration-machine-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --kraft-mode ${{ matrix.kraft-mode }}
+        run: tox run -e integration-machine-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --kraft-mode ${{ matrix.kraft-mode }} $REVISION_ARG
         env:
           CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
+          REVISION_ARG: ${{ inputs.kafka-revision && format('--revision {0}', inputs.kafka-revision) || '' }}
 
   integration-kafka-machine-multi:
     permissions:
@@ -268,9 +323,10 @@ jobs:
             echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
           fi
       - name: Run integration tests
-        run: tox run -e integration-machine-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kraft-mode ${{ matrix.kraft-mode }}
+        run: tox run -e integration-machine-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kraft-mode ${{ matrix.kraft-mode }} $REVISION_ARG
         env:
           CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
+          REVISION_ARG: ${{ inputs.kafka-revision && format('--revision {0}', inputs.kafka-revision) || '' }}
 
   integration-kafka-k8s-single:
     permissions:
@@ -343,9 +399,10 @@ jobs:
             echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
           fi
       - name: Run integration tests
-        run: tox run -e integration-k8s-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kraft-mode ${{ matrix.kraft-mode }}
+        run: tox run -e integration-k8s-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kraft-mode ${{ matrix.kraft-mode }} $REVISION_ARG
         env:
           CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
+          REVISION_ARG: ${{ inputs.kafka-k8s-revision && format('--revision {0}', inputs.kafka-k8s-revision) || '' }}
 
   integration-kafka-k8s-multi:
     permissions:
@@ -421,9 +478,10 @@ jobs:
             echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
           fi
       - name: Run integration tests
-        run: tox run -e integration-k8s-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kraft-mode ${{ matrix.kraft-mode }}
+        run: tox run -e integration-k8s-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kraft-mode ${{ matrix.kraft-mode }} $REVISION_ARG
         env:
           CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
+          REVISION_ARG: ${{ inputs.kafka-k8s-revision && format('--revision {0}', inputs.kafka-k8s-revision) || '' }}
 
   integration-connect-machine:
     permissions:
@@ -490,9 +548,10 @@ jobs:
             echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
           fi
       - name: Run integration tests
-        run: tox run -e integration-connect-machine-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kafka ${{ matrix.kafka-version }}
+        run: tox run -e integration-connect-machine-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kafka ${{ matrix.kafka-version }} $REVISION_ARG
         env:
           CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
+          REVISION_ARG: ${{ inputs.kafka-connect-revision && format('--revision {0}', inputs.kafka-connect-revision) || '' }}
 
   integration-connect-k8s:
     strategy:
@@ -547,6 +606,7 @@ jobs:
             echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
           fi
       - name: Run integration tests
-        run: tox run -e integration-connect-k8s-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}'
+        run: tox run -e integration-connect-k8s-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' $REVISION_ARG
         env:
           CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
+          REVISION_ARG: ${{ inputs.kafka-connect-k8s-revision && format('--revision {0}', inputs.kafka-connect-k8s-revision) || '' }}

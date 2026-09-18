@@ -6,13 +6,12 @@ from jubilant_adapters import JujuFixture, gather
 
 from integration.connect_k8s.helpers import (
     APP_NAME,
-    IMAGE_RESOURCE_KEY,
-    IMAGE_URI,
     JDBC_CONNECTOR_DOWNLOAD_LINK,
     JDBC_SOURCE_CONNECTOR_CLASS,
     KAFKA_APP,
     KAFKA_CHANNEL,
     PLUGIN_RESOURCE_KEY,
+    charm_resources,
     download_file,
     make_api_request,
     make_connect_api_request,
@@ -27,7 +26,13 @@ USERNAME_CACHE_KEY = "integrator-username"
 PASSWORD_CACHE_KEY = "integrator-password"
 
 
-def test_deploy_app_and_integrator(juju: JujuFixture, kafka_connect_charm, integrator_charm):
+def test_deploy_app_and_integrator(
+    juju: JujuFixture,
+    kafka_connect_charm,
+    integrator_charm,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
+):
 
     # download JDBC connector plugin and deploy the integrator charm with it.
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -47,7 +52,9 @@ def test_deploy_app_and_integrator(juju: JujuFixture, kafka_connect_charm, integ
         juju.ext.model.deploy(
             kafka_connect_charm,
             application_name=APP_NAME,
-            resources={IMAGE_RESOURCE_KEY: IMAGE_URI},
+            resources=charm_resources(test_charm_channel),
+            revision=test_charm_revision,
+            channel=test_charm_channel,
         ),
         juju.ext.model.deploy(
             KAFKA_APP,

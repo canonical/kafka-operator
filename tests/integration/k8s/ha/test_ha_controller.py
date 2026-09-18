@@ -50,13 +50,22 @@ def raise_if_not_kraft_multi(kraft_mode: KRaftMode):
 
 @pytest.mark.skip_if_deployed
 @pytest.mark.abort_on_fail
-def test_deploy_active(juju: jubilant.Juju, kafka_charm, app_charm, kafka_apps):
+def test_deploy_active(
+    juju: jubilant.Juju,
+    kafka_charm,
+    app_charm,
+    kafka_apps,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
+):
     deploy_cluster(
         juju=juju,
         charm=kafka_charm,
         kraft_mode="multi",
         num_broker=3,
         num_controller=3,
+        revision=test_charm_revision,
+        channel=test_charm_channel,
     )
     juju.deploy(app_charm, app=DUMMY_NAME, num_units=1)
 
