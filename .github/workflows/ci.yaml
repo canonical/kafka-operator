@@ -37,11 +37,6 @@ on:
   # Triggered on push to branch "main" by .github/workflows/release.yaml
   workflow_call:
     inputs:
-      # To remove
-      skip-integration:
-        description: Skip integration tests (release-path testing only)
-        type: boolean
-        default: false
       kafka-revision:
         description: Test this Charmhub revision of `kafka` instead of building the charm
         type: string
@@ -190,9 +185,9 @@ jobs:
       - build-dev
       - build-release
     if: |
-      always() &&
       !cancelled() &&
-      !inputs.skip-integration &&
+      needs.lint.result == 'success' &&
+      needs.unit-test.result == 'success' &&
       (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
     runs-on: [self-hosted, linux, AMD64, X64, large, noble]
     timeout-minutes: 120
@@ -262,9 +257,9 @@ jobs:
       - build-dev
       - build-release
     if: |
-      always() &&
       !cancelled() &&
-      !inputs.skip-integration &&
+      needs.lint.result == 'success' &&
+      needs.unit-test.result == 'success' &&
       (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
     runs-on: [self-hosted, linux, AMD64, X64, xlarge, noble]
     timeout-minutes: 120
@@ -360,9 +355,9 @@ jobs:
       - build-dev
       - build-release
     if: |
-      always() &&
       !cancelled() &&
-      !inputs.skip-integration &&
+      needs.lint.result == 'success' &&
+      needs.unit-test.result == 'success' &&
       (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
     runs-on: [self-hosted, linux, AMD64, X64, large, noble]
     timeout-minutes: 120
@@ -439,9 +434,9 @@ jobs:
       - build-dev
       - build-release
     if: |
-      always() &&
       !cancelled() &&
-      !inputs.skip-integration &&
+      needs.lint.result == 'success' &&
+      needs.unit-test.result == 'success' &&
       (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
     runs-on: [self-hosted, linux, AMD64, X64, xlarge, noble]
     timeout-minutes: 120
@@ -518,9 +513,9 @@ jobs:
       - build-dev
       - build-release
     if: |
-      always() &&
       !cancelled() &&
-      !inputs.skip-integration &&
+      needs.lint.result == 'success' &&
+      needs.unit-test.result == 'success' &&
       (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
     runs-on: [self-hosted, linux, AMD64, X64, large, noble]
     timeout-minutes: 90
@@ -577,9 +572,9 @@ jobs:
       - build-dev
       - build-release
     if: |
-      always() &&
       !cancelled() &&
-      !inputs.skip-integration &&
+      needs.lint.result == 'success' &&
+      needs.unit-test.result == 'success' &&
       (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
     runs-on: [self-hosted, linux, AMD64, X64, medium, noble]
     timeout-minutes: 90
