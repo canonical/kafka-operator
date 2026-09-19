@@ -90,6 +90,7 @@ def patched_workload(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("time.sleep", lambda _: None)
     monkeypatch.setattr("charmlibs.pathops.LocalPath.exists", lambda _: True)
     monkeypatch.setattr("charmlibs.pathops.ContainerPath.exists", lambda _: True)
+    monkeypatch.setattr("charmlibs.pathops.ContainerPath.read_text", lambda _: "")
     monkeypatch.setattr(
         f"single_kernel_kafka.workload.Workload{SUBSTRATE_CLS}.active", lambda _: True
     )
