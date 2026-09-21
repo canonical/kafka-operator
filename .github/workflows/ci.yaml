@@ -35,7 +35,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Install tox
         run: pipx install tox
       - name: Run linters
@@ -47,7 +47,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Install tox
         run: pipx install tox
       - name: Run tests
@@ -139,14 +139,14 @@ jobs:
     timeout-minutes: 120
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
         with:
           provider: lxd
           juju-channel: 3.6/stable
       - name: Download packed charm(s)
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
           merge-multiple: true
@@ -210,14 +210,14 @@ jobs:
     timeout-minutes: 120
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
         with:
           provider: lxd
           juju-channel: 3.6/stable
       - name: Download packed charm(s)
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
           merge-multiple: true
@@ -307,7 +307,7 @@ jobs:
     timeout-minutes: 120
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Setup operator environment
         run: |
           sudo snap install concierge --classic
@@ -327,7 +327,7 @@ jobs:
           pushd ~/charmcraft && uv run charmcraft --version && popd
           echo "CHARMCRAFT_BIN=$(realpath ~/charmcraft/.venv/bin/charmcraft)" >> $GITHUB_ENV
       - name: Download packed charm(s)
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
           merge-multiple: true
@@ -385,7 +385,7 @@ jobs:
     timeout-minutes: 120
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Setup operator environment
         run: |
           sudo snap install concierge --classic
@@ -405,7 +405,7 @@ jobs:
           pushd ~/charmcraft && uv run charmcraft --version && popd
           echo "CHARMCRAFT_BIN=$(realpath ~/charmcraft/.venv/bin/charmcraft)" >> $GITHUB_ENV
       - name: Download packed charm(s)
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
           merge-multiple: true
@@ -463,14 +463,14 @@ jobs:
     timeout-minutes: 90
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
         with:
           provider: lxd
           juju-channel: 3.6/stable
       - name: Download packed charm(s)
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
           merge-multiple: true
@@ -521,7 +521,7 @@ jobs:
     timeout-minutes: 90
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Setup operator environment
         run: |
           sudo snap install concierge --classic
@@ -531,7 +531,7 @@ jobs:
           pipx install tox
           pipx ensurepath
       - name: Download packed charm(s)
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
           merge-multiple: true
@@ -548,5 +548,60 @@ jobs:
           fi
       - name: Run integration tests
         run: tox run -e integration-connect-k8s-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}'
+        env:
+          CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
+
+  integration-arm-smoke:
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        tox-environments:
+          - machine-charm
+          - machine-kraft
+          - machine-tls
+          - machine-balancer-broker
+          - connect-machine-plugins
+          - connect-machine-requirer
+    name: "ARM smoke tests | ${{ matrix.tox-environments }}"
+    needs:
+      - lint
+      - unit-test
+      - build-dev
+      - build-release
+    if: |
+      !cancelled() &&
+      needs.lint.result == 'success' &&
+      needs.unit-test.result == 'success' &&
+      (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
+    runs-on: [self-hosted, linux, ARM64, large, noble]
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup operator environment
+        uses: charmed-kubernetes/actions-operator@main
+        with:
+          provider: lxd
+          juju-channel: 3.6/stable
+      - name: Download packed charm(s)
+        uses: actions/download-artifact@v8
+        with:
+          pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
+          merge-multiple: true
+      - name: Select tests
+        id: select-tests
+        run: |
+          if [ "${{ github.event_name }}" == "schedule" ]
+          then
+            echo Running unstable and stable tests
+            echo "mark_expression=" >> $GITHUB_OUTPUT
+          else
+            echo Skipping unstable tests
+            echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
+          fi
+      - name: Run integration tests
+        run: tox run -e integration-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models
         env:
           CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
