@@ -44,9 +44,8 @@ def test_deploy_charms(
         ),
     )
 
-    juju.ext.model.wait_for_idle(apps=[APP_NAME, KAFKA_APP], timeout=3000)
-
-    assert juju.ext.model.applications[APP_NAME].status == "blocked"
+    juju.ext.model.wait_for_idle(apps=[APP_NAME], timeout=1000, status="blocked")
+    juju.ext.model.wait_for_idle(apps=[KAFKA_APP], timeout=1000, status="active")
 
     juju.ext.model.add_relation(APP_NAME, KAFKA_APP)
 
