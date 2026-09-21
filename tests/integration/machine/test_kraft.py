@@ -30,6 +30,7 @@ from integration.machine.helpers import (
 )
 from integration.machine.helpers.ha import assert_continuous_writes_consistency
 from integration.machine.helpers.pytest_operator import (
+    DEFAULT_CONSTRAINTS,
     KRaftMode,
     check_socket,
     create_test_topic,
@@ -113,6 +114,7 @@ class TestKRaft:
                     "profile": "testing",
                 },
                 trust=True,
+                constraints=DEFAULT_CONSTRAINTS,
             ),
             ops_test.model.deploy(
                 app_charm,
@@ -120,6 +122,7 @@ class TestKRaft:
                 series=SERIES,
                 num_units=1,
                 trust=True,
+                constraints=DEFAULT_CONSTRAINTS,
             ),
         )
 
@@ -134,6 +137,7 @@ class TestKRaft:
                     "profile": "testing",
                 },
                 trust=True,
+                constraints=DEFAULT_CONSTRAINTS,
             )
 
         status = "active" if self.controller_app == APP_NAME else "blocked"
@@ -313,7 +317,12 @@ class TestKRaft:
         c_writes = ContinuousWrites(model=ops_test.model_full_name, app=DUMMY_NAME, produce_rate=2)
         c_writes.start()
 
-        await ops_test.model.deploy(TLS_NAME, application_name=TLS_NAME, channel=TLS_CHANNEL)
+        await ops_test.model.deploy(
+            TLS_NAME,
+            application_name=TLS_NAME,
+            channel=TLS_CHANNEL,
+            constraints=DEFAULT_CONSTRAINTS,
+        )
         await ops_test.model.wait_for_idle(
             apps=[TLS_NAME], idle_period=30, timeout=600, status="active"
         )

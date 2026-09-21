@@ -4,6 +4,7 @@
 type: charm
 platforms:
   ubuntu@24.04:amd64:
+  ubuntu@24.04:arm64:
 # Files implicitly created by charmcraft without a part:
 # - dispatch (https://github.com/canonical/charmcraft/pull/1898)
 # - manifest.yaml
@@ -69,7 +70,7 @@ parts:
       - rustup      # Needed to build Python dependencies with Rust from source
       - git         # Needed for the git dependency (common lib)
     override-build: |
-      rustup default 1.93.1
+      rustup default 1.98.1
       craftctl default
       rm -rf $CRAFT_PART_INSTALL/src/single_kernel_kafka
       pip install -U \

@@ -26,6 +26,7 @@ from tenacity import Retrying, stop_after_attempt, wait_fixed
 
 from integration.machine.helpers import APP_NAME, DUMMY_NAME, REL_NAME_ADMIN, SERIES
 from integration.machine.helpers.pytest_operator import (
+    DEFAULT_CONSTRAINTS,
     check_socket,
     count_lines_with,
     deploy_cluster,
@@ -110,7 +111,13 @@ async def test_listeners(ops_test: OpsTest, app_charm, kafka_apps):
 
     # Add relation with dummy app
     await asyncio.gather(
-        ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series=SERIES),
+        ops_test.model.deploy(
+            app_charm,
+            application_name=DUMMY_NAME,
+            num_units=1,
+            series=SERIES,
+            constraints=DEFAULT_CONSTRAINTS,
+        ),
     )
     await ops_test.model.wait_for_idle(apps=[*kafka_apps, DUMMY_NAME])
 
@@ -220,6 +227,7 @@ async def test_rack_awareness_integration(ops_test: OpsTest):
         series=SERIES,
         to=kafka_machine_id,
         config={"broker-rack": "integration-zone"},
+        constraints=DEFAULT_CONSTRAINTS,
     )
     await ops_test.model.wait_for_idle(apps=["rack"], idle_period=30, timeout=3600)
     assert ops_test.model.applications["rack"].status == "active"

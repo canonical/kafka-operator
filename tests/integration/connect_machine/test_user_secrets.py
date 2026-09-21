@@ -7,6 +7,7 @@ from single_kernel_kafka.core.connect_models import PeerWorkersContext
 
 from integration.connect_machine.helpers import (
     APP_NAME,
+    DEFAULT_CONSTRAINTS,
     KAFKA_APP,
     PLUGIN_RESOURCE_KEY,
     deploy_kafka,
@@ -33,6 +34,7 @@ def test_build_and_deploy(juju: JujuFixture, kafka_version: int, kafka_connect_c
             num_units=1,
             series="noble",
             config={"profile": "testing"},
+            constraints=DEFAULT_CONSTRAINTS,
         ),
         deploy_kafka(juju, kafka_version),
     )

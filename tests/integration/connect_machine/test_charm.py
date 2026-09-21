@@ -9,6 +9,7 @@ from jubilant_adapters import JujuFixture, gather
 from integration.connect_machine.helpers import (
     APP_NAME,
     DEFAULT_API_PORT,
+    DEFAULT_CONSTRAINTS,
     KAFKA_APP,
     check_connect_endpoints_status,
     deploy_kafka,
@@ -28,6 +29,7 @@ def test_deploy_charms(juju: JujuFixture, kafka_version: int, kafka_connect_char
             num_units=1,
             series="noble",
             config={"profile": "testing"},
+            constraints=DEFAULT_CONSTRAINTS,
         ),
         deploy_kafka(juju, kafka_version),
     )

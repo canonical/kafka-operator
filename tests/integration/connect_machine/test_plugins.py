@@ -6,6 +6,7 @@ from jubilant_adapters import JujuFixture, gather
 
 from integration.connect_machine.helpers import (
     APP_NAME,
+    DEFAULT_CONSTRAINTS,
     JDBC_CONNECTOR_DOWNLOAD_LINK,
     JDBC_SINK_CONNECTOR_CLASS,
     JDBC_SOURCE_CONNECTOR_CLASS,
@@ -42,6 +43,7 @@ def test_build_and_deploy(juju: JujuFixture, kafka_version: int, kafka_connect_c
             num_units=1,
             series="noble",
             config={"profile": "testing"},
+            constraints=DEFAULT_CONSTRAINTS,
         ),
         deploy_kafka(juju, kafka_version),
         juju.ext.model.deploy(
@@ -50,6 +52,7 @@ def test_build_and_deploy(juju: JujuFixture, kafka_version: int, kafka_connect_c
             application_name=MYSQL_APP,
             num_units=1,
             series="jammy",
+            constraints=DEFAULT_CONSTRAINTS,
         ),
     )
 

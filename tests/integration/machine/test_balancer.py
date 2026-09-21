@@ -18,6 +18,7 @@ from tenacity import Retrying, stop_after_attempt, wait_fixed
 
 from integration.machine.helpers import APP_NAME, CONTROLLER_NAME, SERIES, TLS_CHANNEL, TLS_NAME
 from integration.machine.helpers.pytest_operator import (
+    DEFAULT_CONSTRAINTS,
     balancer_exporter_is_up,
     balancer_is_ready,
     balancer_is_running,
@@ -52,6 +53,7 @@ class TestBalancer:
                     "profile": "testing",
                 },
                 trust=True,
+                constraints=DEFAULT_CONSTRAINTS,
             ),
             ops_test.model.deploy(
                 kafka_charm,
@@ -65,6 +67,7 @@ class TestBalancer:
                     ),
                     "profile": "testing",
                 },
+                constraints=DEFAULT_CONSTRAINTS,
             ),
             ops_test.model.deploy(
                 "kafka-test-app",
@@ -80,6 +83,7 @@ class TestBalancer:
                     "replication_factor": "3",
                 },
                 trust=True,
+                constraints=DEFAULT_CONSTRAINTS,
             ),
         )
 
@@ -288,7 +292,9 @@ class TestBalancer:
         tls_config = {"ca-common-name": "kafka"}
 
         # FIXME (certs): Unpin the revision once the charm is fixed
-        await ops_test.model.deploy(TLS_NAME, channel=TLS_CHANNEL, config=tls_config)
+        await ops_test.model.deploy(
+            TLS_NAME, channel=TLS_CHANNEL, config=tls_config, constraints=DEFAULT_CONSTRAINTS
+        )
         await ops_test.model.wait_for_idle(apps=[TLS_NAME], idle_period=15)
         assert ops_test.model.applications[TLS_NAME].status == "active"
 

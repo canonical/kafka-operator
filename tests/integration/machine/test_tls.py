@@ -30,6 +30,7 @@ from integration.machine.helpers import (
     sign_manual_certs,
 )
 from integration.machine.helpers.pytest_operator import (
+    DEFAULT_CONSTRAINTS,
     check_tls,
     create_test_topic,
     deploy_cluster,
@@ -60,7 +61,9 @@ async def test_deploy_tls(ops_test: OpsTest, kafka_charm, kraft_mode, kafka_apps
 
     await asyncio.gather(
         # FIXME (certs): Unpin the revision once the charm is fixed
-        ops_test.model.deploy(TLS_NAME, channel=TLS_CHANNEL, config=tls_config),
+        ops_test.model.deploy(
+            TLS_NAME, channel=TLS_CHANNEL, config=tls_config, constraints=DEFAULT_CONSTRAINTS
+        ),
         deploy_cluster(
             ops_test=ops_test,
             charm=kafka_charm,
@@ -94,7 +97,13 @@ async def test_kafka_tls(ops_test: OpsTest, app_charm, kafka_apps):
     )
 
     await asyncio.gather(
-        ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series=SERIES),
+        ops_test.model.deploy(
+            app_charm,
+            application_name=DUMMY_NAME,
+            num_units=1,
+            series=SERIES,
+            constraints=DEFAULT_CONSTRAINTS,
+        ),
     )
     await ops_test.model.wait_for_idle(
         apps=[*kafka_apps, DUMMY_NAME], timeout=1000, idle_period=30
@@ -233,9 +242,14 @@ async def test_certificate_transfer(ops_test: OpsTest, kafka_apps):
         TLS_NAME,
         application_name="other-ca",
         channel=TLS_CHANNEL,
+        constraints=DEFAULT_CONSTRAINTS,
     )
     await ops_test.model.deploy(
-        TLS_REQUIRER, channel="stable", application_name="other-req", revision=102
+        TLS_REQUIRER,
+        channel="stable",
+        application_name="other-req",
+        revision=102,
+        constraints=DEFAULT_CONSTRAINTS,
     )
 
     await ops_test.model.add_relation("other-ca", "other-req")
@@ -394,7 +408,9 @@ async def test_tls_removed(ops_test: OpsTest, kafka_apps):
 
 @pytest.mark.abort_on_fail
 async def test_manual_tls_chain(ops_test: OpsTest, kafka_apps):
-    await ops_test.model.deploy(MANUAL_TLS_NAME, channel=MANUAL_TLS_CHANNEL)
+    await ops_test.model.deploy(
+        MANUAL_TLS_NAME, channel=MANUAL_TLS_CHANNEL, constraints=DEFAULT_CONSTRAINTS
+    )
 
     await ops_test.model.add_relation(f"{APP_NAME}:{TLS_RELATION}", MANUAL_TLS_NAME)
 

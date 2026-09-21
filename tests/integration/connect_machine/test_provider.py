@@ -6,6 +6,7 @@ from jubilant_adapters import JujuFixture, gather
 
 from integration.connect_machine.helpers import (
     APP_NAME,
+    DEFAULT_CONSTRAINTS,
     JDBC_CONNECTOR_DOWNLOAD_LINK,
     JDBC_SOURCE_CONNECTOR_CLASS,
     KAFKA_APP,
@@ -41,6 +42,7 @@ def test_deploy_app_and_integrator(
             application_name=INTEGRATOR_APP,
             resources={PLUGIN_RESOURCE_KEY: plugin_path},
             config={"mode": "source"},
+            constraints=DEFAULT_CONSTRAINTS,
         )
 
     # deploy kafka & kafka connect
@@ -50,6 +52,7 @@ def test_deploy_app_and_integrator(
             application_name=APP_NAME,
             series="noble",
             config={"profile": "testing"},
+            constraints=DEFAULT_CONSTRAINTS,
         ),
         deploy_kafka(juju, kafka_version),
     )
