@@ -15,6 +15,7 @@ import requests
 import toml
 from pytest_operator.plugin import OpsTest
 from single_kernel_kafka.core.literals import (
+    ARCHITECTURE,
     JMX_EXPORTER_PORT,
     PATHS,
     PEER_CLUSTER_ORCHESTRATOR_RELATION,
@@ -217,6 +218,10 @@ async def test_logs_write_to_storage(ops_test: OpsTest, kafka_apps):
     )
 
 
+# TODO: remove the marker when the rack awareness charm support ARM arch.
+@pytest.mark.skipif(
+    ARCHITECTURE == "arm64", reason="Rack awareness charm does not support arm64 yet."
+)
 async def test_rack_awareness_integration(ops_test: OpsTest):
     kafka_machine_id = await get_machine(ops_test)
 
