@@ -199,6 +199,8 @@ jobs:
         with:
           provider: lxd
           juju-channel: 3.6/stable
+      - name: Pre-seed LXD base image with the workload snap
+        uses: ./.github/actions/preseed-lxd-image
       - name: Download packed charm(s)
         uses: actions/download-artifact@v6
         with:
@@ -271,6 +273,8 @@ jobs:
         with:
           provider: lxd
           juju-channel: 3.6/stable
+      - name: Pre-seed LXD base image with the workload snap
+        uses: ./.github/actions/preseed-lxd-image
       - name: Download packed charm(s)
         uses: actions/download-artifact@v6
         with:
@@ -527,6 +531,8 @@ jobs:
         with:
           provider: lxd
           juju-channel: 3.6/stable
+      - name: Pre-seed LXD base image with the workload snap
+        uses: ./.github/actions/preseed-lxd-image
       - name: Download packed charm(s)
         uses: actions/download-artifact@v6
         with:
