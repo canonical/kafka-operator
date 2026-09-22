@@ -247,7 +247,6 @@ async def test_certificate_transfer(ops_test: OpsTest, kafka_apps):
         TLS_REQUIRER,
         channel="stable",
         application_name="other-req",
-        revision=102,
         constraints=DEFAULT_CONSTRAINTS,
     )
 
