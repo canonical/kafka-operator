@@ -12,6 +12,7 @@ from single_kernel_kafka.core.literals import INTER_BROKER_USER
 from integration.machine.helpers import APP_NAME, SERIES
 from integration.machine.helpers.pytest_operator import (
     AUTH_SECRET_NAME,
+    DEFAULT_CONSTRAINTS,
     deploy_cluster,
     get_user,
     set_password,
@@ -35,7 +36,13 @@ async def test_build_and_deploy(ops_test: OpsTest, kraft_mode, kafka_charm, app_
             kraft_mode=kraft_mode,
             num_broker=3,
         ),
-        ops_test.model.deploy(app_charm, application_name=DUMMY_NAME, num_units=1, series=SERIES),
+        ops_test.model.deploy(
+            app_charm,
+            application_name=DUMMY_NAME,
+            num_units=1,
+            series=SERIES,
+            constraints=DEFAULT_CONSTRAINTS,
+        ),
     )
     await ops_test.model.wait_for_idle(
         apps=[*kafka_apps, DUMMY_NAME], timeout=2000, idle_period=30, raise_on_error=False

@@ -11,6 +11,7 @@ from single_kernel_kafka.core.literals import CONTROLLER_USER, INTERNAL_USERS
 
 from integration.machine.helpers import SERIES, TLS_CHANNEL, TLS_NAME
 from integration.machine.helpers.pytest_operator import (
+    DEFAULT_CONSTRAINTS,
     check_user,
     deploy_cluster,
     get_client_usernames,
@@ -49,7 +50,11 @@ async def test_deploy_charms_relate_active(
             kraft_mode=kraft_mode,
         ),
         ops_test.model.deploy(
-            app_charm, application_name=DUMMY_NAME_1, num_units=1, series=SERIES
+            app_charm,
+            application_name=DUMMY_NAME_1,
+            num_units=1,
+            series=SERIES,
+            constraints=DEFAULT_CONSTRAINTS,
         ),
     )
 
@@ -87,7 +92,9 @@ async def test_deploy_multiple_charms_same_topic_relate_active(
     ops_test: OpsTest, app_charm, kafka_apps, usernames: set[str]
 ):
     """Test relation with multiple applications."""
-    await ops_test.model.deploy(app_charm, application_name=DUMMY_NAME_2, num_units=1)
+    await ops_test.model.deploy(
+        app_charm, application_name=DUMMY_NAME_2, num_units=1, constraints=DEFAULT_CONSTRAINTS
+    )
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_2}:{REL_NAME_CONSUMER}")
 
     async with ops_test.fast_forward(fast_interval="60s"):
@@ -143,7 +150,13 @@ async def test_deploy_producer_same_topic(
 ):
     """Test the correct deployment and relation with role producer."""
     await asyncio.gather(
-        ops_test.model.deploy(app_charm, application_name=DUMMY_NAME_1, num_units=1, series=SERIES)
+        ops_test.model.deploy(
+            app_charm,
+            application_name=DUMMY_NAME_1,
+            num_units=1,
+            series=SERIES,
+            constraints=DEFAULT_CONSTRAINTS,
+        )
     )
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_PRODUCER}")
 
@@ -178,7 +191,13 @@ async def test_admin_added_to_super_users(ops_test: OpsTest, app_charm, kafka_ap
     assert len(super_users) == 3  # controller, replication, operator
 
     await asyncio.gather(
-        ops_test.model.deploy(app_charm, application_name=DUMMY_NAME_1, num_units=1, series=SERIES)
+        ops_test.model.deploy(
+            app_charm,
+            application_name=DUMMY_NAME_1,
+            num_units=1,
+            series=SERIES,
+            constraints=DEFAULT_CONSTRAINTS,
+        )
     )
     await ops_test.model.wait_for_idle(apps=[*kafka_apps, DUMMY_NAME_1])
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_ADMIN}")
@@ -220,6 +239,7 @@ async def test_prefixed_topic_creation(ops_test: OpsTest, app_charm, kafka_apps)
             num_units=1,
             series=SERIES,
             config={"topic-name": "test-*"},
+            constraints=DEFAULT_CONSTRAINTS,
         )
     )
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_3}:{REL_NAME_PRODUCER}")
@@ -239,7 +259,9 @@ async def test_prefixed_topic_creation(ops_test: OpsTest, app_charm, kafka_apps)
 async def test_connection_updated_on_tls_enabled(ops_test: OpsTest, app_charm, kafka_apps):
     """Test relation when TLS is enabled."""
     # adding new app unit to validate
-    await ops_test.model.deploy(app_charm, application_name=DUMMY_NAME_1, num_units=1)
+    await ops_test.model.deploy(
+        app_charm, application_name=DUMMY_NAME_1, num_units=1, constraints=DEFAULT_CONSTRAINTS
+    )
     await ops_test.model.wait_for_idle(apps=[DUMMY_NAME_1])
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_CONSUMER}")
     await ops_test.model.wait_for_idle(
@@ -249,7 +271,9 @@ async def test_connection_updated_on_tls_enabled(ops_test: OpsTest, app_charm, k
     # deploying tls
     tls_config = {"ca-common-name": "kafka"}
     # FIXME (certs): Unpin the revision once the charm is fixed
-    await ops_test.model.deploy(TLS_NAME, channel=TLS_CHANNEL, config=tls_config)
+    await ops_test.model.deploy(
+        TLS_NAME, channel=TLS_CHANNEL, config=tls_config, constraints=DEFAULT_CONSTRAINTS
+    )
     await ops_test.model.wait_for_idle(
         apps=[TLS_NAME], idle_period=30, timeout=1800, status="active"
     )

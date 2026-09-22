@@ -11,6 +11,7 @@ from jubilant_adapters import JujuFixture, gather
 from integration.connect_machine.helpers import (
     APP_NAME,
     DEFAULT_API_PORT,
+    DEFAULT_CONSTRAINTS,
     KAFKA_APP,
     check_connect_endpoints_status,
     deploy_kafka,
@@ -32,6 +33,7 @@ def test_in_place_upgrade(juju: JujuFixture, kafka_version: int, kafka_connect_c
             application_name=APP_NAME,
             num_units=1,
             series="noble",
+            constraints=DEFAULT_CONSTRAINTS,
         ),
         deploy_kafka(juju, kafka_version),
     )

@@ -17,7 +17,7 @@ from integration.connect_machine.helpers import DatabaseFixtureParams
 
 def pytest_addoption(parser):
     """Defines pytest parsers."""
-    parser.addoption("--kafka", action="store", help="Kafka version", default="3")
+    parser.addoption("--kafka", action="store", help="Kafka version", default="4")
 
 
 @pytest.fixture(scope="module")
