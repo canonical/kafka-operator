@@ -31,7 +31,7 @@ Please do **not** use GitHub issues for security topics. See
 ### Report a security issue
 
 Security issues should be reported through
-[Launchpad](https://wiki.ubuntu.com/DebuggingSecurity#How_to_File), following
+[Launchpad](https://github.com/ubuntu/wiki-archives/blob/main/UbuntuWiki/D/DebuggingSecurity.wiki#how-to-file), following
 the Ubuntu security disclosure process. Please do **not** file GitHub issues
 on security topics.
 

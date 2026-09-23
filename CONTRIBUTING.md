@@ -19,7 +19,7 @@ A few quick pointers to get you started:
   us on [Matrix](https://matrix.to/#/#charmhub-data-platform:ubuntu.com), or
   ask questions on the [Discourse forum](https://discourse.charmhub.io/tag/kafka).
 - **Security issues** must be reported through
-  [Launchpad](https://wiki.ubuntu.com/DebuggingSecurity#How_to_File) — please
+  [Launchpad](https://github.com/ubuntu/wiki-archives/blob/main/UbuntuWiki/D/DebuggingSecurity.wiki#how-to-file) — please
   do **not** file GitHub issues on security topics.
 - **Contributions** are made under the
   [Canonical contributor agreement](https://ubuntu.com/legal/contributors) and
