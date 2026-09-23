@@ -25,6 +25,18 @@ TFVARS_DEFAULTS = {
 TFVARS_FILENAME = "test.tfvars.json"
 
 
+def _pinned_tfvars(revision: int | None, channel: str | None) -> dict:
+    """Terraform variables pinning the charm under test, when `--revision` is given.
+
+    The module already defaults to the latest revision of `4/edge`, so nothing is
+    overridden when no revision is pinned.
+    """
+    if not (revision and channel):
+        return {}
+
+    return {"revision": revision, "channel": channel}
+
+
 def _deploy_terraform(tmp_path, tfvars: dict = {}) -> str:
     """Deploy the charm Terraform module, using a provided set of variables."""
     tf_path = tmp_path / "terraform"
@@ -58,9 +70,19 @@ def _destroy_terraform(working_dir: str) -> None:
 
 @pytest.mark.skip_if_deployed
 @pytest.mark.abort_on_fail
-def test_deployment_active(juju: Juju, model_uuid: str, tmp_path):
+def test_deployment_active(
+    juju: Juju,
+    model_uuid: str,
+    tmp_path,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
+):
     """Test that Kafka is deployed and active."""
-    working_dir = _deploy_terraform(tmp_path, tfvars={"model_uuid": model_uuid})
+    working_dir = _deploy_terraform(
+        tmp_path,
+        tfvars={"model_uuid": model_uuid}
+        | _pinned_tfvars(revision=test_charm_revision, channel=test_charm_channel),
+    )
 
     juju.wait(
         lambda status: all_active_idle(status, APP_NAME),
@@ -81,7 +103,13 @@ def test_deployment_active(juju: Juju, model_uuid: str, tmp_path):
 
 @pytest.mark.skip_if_deployed
 @pytest.mark.abort_on_fail
-def test_deployment_on_machines(juju: Juju, model_uuid: str, tmp_path):
+def test_deployment_on_machines(
+    juju: Juju,
+    model_uuid: str,
+    tmp_path,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
+):
     """Test that `machines` TF variable work as expected."""
     # Add machines and wait for them to start
     juju.cli("add-machine", "-n", "3")
@@ -100,7 +128,9 @@ def test_deployment_on_machines(juju: Juju, model_uuid: str, tmp_path):
 
     # Deploy 1 Kafka unit on a target machine
     working_dir = _deploy_terraform(
-        tmp_path, tfvars={"model_uuid": model_uuid, "machines": [target_machine]}
+        tmp_path,
+        tfvars={"model_uuid": model_uuid, "machines": [target_machine]}
+        | _pinned_tfvars(revision=test_charm_revision, channel=test_charm_channel),
     )
 
     juju.wait(

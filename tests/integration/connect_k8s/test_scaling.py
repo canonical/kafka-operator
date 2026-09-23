@@ -7,8 +7,6 @@ from jubilant_adapters import JujuFixture, gather
 
 from integration.connect_k8s.helpers import (
     APP_NAME,
-    IMAGE_RESOURCE_KEY,
-    IMAGE_URI,
     JDBC_CONNECTOR_DOWNLOAD_LINK,
     KAFKA_APP,
     KAFKA_CHANNEL,
@@ -16,6 +14,7 @@ from integration.connect_k8s.helpers import (
     MYSQL_CHANNEL,
     PLUGIN_RESOURCE_KEY,
     DatabaseFixtureParams,
+    charm_resources,
     destroy_active_workers,
     download_file,
     make_connect_api_request,
@@ -28,17 +27,24 @@ MYSQL_DB = "test_db"
 INTEGRATOR = "integrator"
 
 
-def test_build_and_deploy(juju: JujuFixture, kafka_connect_charm):
+def test_build_and_deploy(
+    juju: JujuFixture,
+    kafka_connect_charm,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
+):
     """Deploys kafka-connect charm along kafka (in KRaft mode) & MySQL."""
     gather(
         juju.ext.model.deploy(
             kafka_connect_charm,
             application_name=APP_NAME,
-            resources={
-                IMAGE_RESOURCE_KEY: IMAGE_URI,
-                PLUGIN_RESOURCE_KEY: "./tests/integration/connect_k8s/resources/FakeResource.tar",
-            },
+            resources=charm_resources(
+                test_charm_channel,
+                plugin_path="./tests/integration/connect_k8s/resources/FakeResource.tar",
+            ),
             num_units=1,
+            revision=test_charm_revision,
+            channel=test_charm_channel,
         ),
         juju.ext.model.deploy(
             KAFKA_APP,
@@ -58,8 +64,13 @@ def test_build_and_deploy(juju: JujuFixture, kafka_connect_charm):
 
     juju.ext.model.add_relation(APP_NAME, KAFKA_APP)
     with juju.ext.fast_forward(fast_interval="60s"):
+        # mysql-k8s errors out on update-status if pebble not available, hence the raise_on_error=False.
         juju.ext.model.wait_for_idle(
-            apps=[APP_NAME, KAFKA_APP, MYSQL_APP], idle_period=30, timeout=1800, status="active"
+            apps=[APP_NAME, KAFKA_APP, MYSQL_APP],
+            idle_period=30,
+            timeout=1800,
+            status="active",
+            raise_on_error=False,
         )
 
 

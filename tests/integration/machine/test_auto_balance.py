@@ -54,6 +54,8 @@ def test_build_and_deploy(
     app_charm,
     kraft_mode,
     kafka_apps,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
 ):
     roles = "broker,controller,balancer" if kraft_mode == "single" else "broker,balancer"
     deploy_cluster(
@@ -63,6 +65,8 @@ def test_build_and_deploy(
         num_broker=3,
         num_controller=1,
         config_broker={"roles": roles},
+        revision=test_charm_revision,
+        channel=test_charm_channel,
     )
     juju.deploy(app_charm, app=DUMMY_NAME, num_units=1)
 

@@ -7,11 +7,9 @@ from single_kernel_kafka.core.connect_models import PeerWorkersContext
 
 from integration.connect_k8s.helpers import (
     APP_NAME,
-    IMAGE_RESOURCE_KEY,
-    IMAGE_URI,
     KAFKA_APP,
     KAFKA_CHANNEL,
-    PLUGIN_RESOURCE_KEY,
+    charm_resources,
     make_connect_api_request,
 )
 
@@ -23,18 +21,25 @@ INTERNAL_USER = PeerWorkersContext.ADMIN_USERNAME
 CUSTOM_AUTH = {INTERNAL_USER: "adminpass", "user1": "user1pass", "user2": "user2pass"}
 
 
-def test_build_and_deploy(juju: JujuFixture, kafka_connect_charm):
+def test_build_and_deploy(
+    juju: JujuFixture,
+    kafka_connect_charm,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
+):
     """Deploys kafka-connect charm along kafka (in KRaft mode)."""
     gather(
         juju.ext.model.deploy(
             kafka_connect_charm,
             application_name=APP_NAME,
-            resources={
-                IMAGE_RESOURCE_KEY: IMAGE_URI,
-                PLUGIN_RESOURCE_KEY: "./tests/integration/connect_k8s/resources/FakeResource.tar",
-            },
+            resources=charm_resources(
+                test_charm_channel,
+                plugin_path="./tests/integration/connect_k8s/resources/FakeResource.tar",
+            ),
             num_units=1,
             config={"profile": "testing"},
+            revision=test_charm_revision,
+            channel=test_charm_channel,
         ),
         juju.ext.model.deploy(
             KAFKA_APP,

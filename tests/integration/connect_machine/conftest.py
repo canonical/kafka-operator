@@ -12,7 +12,7 @@ from typing import cast
 import pytest
 from jubilant_adapters import JujuFixture, temp_model_fixture
 
-from integration.connect_machine.helpers import DatabaseFixtureParams
+from integration.connect_machine.helpers import APP_NAME, DatabaseFixtureParams
 
 
 def pytest_addoption(parser):
@@ -56,8 +56,15 @@ def switch_model(juju: JujuFixture):
 
 
 @pytest.fixture(scope="module")
-def kafka_connect_charm(juju: JujuFixture):
-    """Build the application charm."""
+def kafka_connect_charm(juju: JujuFixture, test_charm_revision: int | None):
+    """Kafka Connect charm used for integration testing.
+
+    Either a locally built .charm file, or the Charmhub charm name when a
+    revision is pinned with `--revision`.
+    """
+    if test_charm_revision:
+        return APP_NAME
+
     charm_path = "connect_machine"
     charm = juju.ext.build_charm(charm_path, use_cache=bool(os.environ.get("CI")))
     return charm

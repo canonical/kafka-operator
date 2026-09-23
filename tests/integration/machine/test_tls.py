@@ -55,7 +55,14 @@ MANUAL_TLS_CHANNEL = "1/stable"
 
 @pytest.mark.abort_on_fail
 @pytest.mark.skip_if_deployed
-async def test_deploy_tls(ops_test: OpsTest, kafka_charm, kraft_mode, kafka_apps):
+async def test_deploy_tls(
+    ops_test: OpsTest,
+    kafka_charm,
+    kraft_mode,
+    kafka_apps,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
+):
     tls_config = {"ca-common-name": "kafka"}
 
     await asyncio.gather(
@@ -68,6 +75,8 @@ async def test_deploy_tls(ops_test: OpsTest, kafka_charm, kraft_mode, kafka_apps
             config_broker={
                 "ssl-principal-mapping-rules": "RULE:^.*[Cc][Nn]=([a-zA-Z0-9.]*).*$/$1/L,DEFAULT"
             },
+            revision=test_charm_revision,
+            channel=test_charm_channel,
         ),
     )
     await ops_test.model.wait_for_idle(apps=[*kafka_apps, TLS_NAME], idle_period=15, timeout=1800)

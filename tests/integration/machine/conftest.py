@@ -82,9 +82,16 @@ def usernames():
 
 
 @pytest.fixture(scope="module")
-async def kafka_charm(ops_test: OpsTest):
-    """Kafka charm used for integration testing."""
-    return _locate_charm("machine")
+def kafka_charm(test_charm_revision: int | None):
+    """Kafka charm used for integration testing.
+
+    Either a locally built .charm file, or the Charmhub charm name when a
+    revision is pinned with `--revision`.
+    """
+    if not test_charm_revision:
+        return _locate_charm("machine")
+
+    return APP_NAME
 
 
 @pytest.fixture(scope="module")
