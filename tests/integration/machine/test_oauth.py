@@ -35,7 +35,7 @@ TRAEFIK_APP = "traefik-public"
 INTEGRATOR_APP = "data-integrator"
 
 LXD_CONTROLLER = get_controller_name("localhost")
-MICROK8S_CONTROLLER = get_controller_name("microk8s")
+MICROK8S_CONTROLLER = get_controller_name("k8s")
 assert MICROK8S_CONTROLLER, "No k8s controller detected!"
 
 OAUTH_OFFER = f"{MICROK8S_CONTROLLER}:admin/{IAM_MODEL}.oauth-offer"

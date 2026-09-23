@@ -1,0 +1,155 @@
+# Copyright 2026 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+# Shared workflow for every integration test job in ci.yaml.
+
+on:
+  workflow_call:
+    inputs:
+      substrate:
+        description: Test substrate; either `lxd` or `k8s`.
+        required: true
+        type: string
+      tox-environments:
+        description: |
+          JSON array of tox environment suffixes to fan out over, each joined to
+          `tox-env-prefix` with a `-`.
+        required: true
+        type: string
+      tox-env-prefix:
+        description: Tox environment prefix, joined to `matrix.tox-environment` with a `-`
+        required: true
+        type: string
+      artifact-prefix:
+        description: Prefix of the charm artifacts to download, from the build job
+        required: true
+        type: string
+      packed-charms:
+        description: Value for the CI_PACKED_CHARMS environment variable
+        required: false
+        default: ''
+        type: string
+      extra-tox-args:
+        description: |
+          Literal arguments appended to the pytest invocation, e.g.
+          `--kraft-mode multi` or `--kafka 4`. Anything that varies per job
+          belongs here rather than as a matrix dimension.
+        required: false
+        default: ''
+        type: string
+      charm-revision:
+        description: |
+          Charmhub revision of the charm under test. When set, the tests deploy
+          that revision from the store instead of a locally built charm, and
+          ci.yaml drops the charm from the build matrix.
+        required: false
+        default: ''
+        type: string
+      runner-size:
+        description: Size label of the self-hosted runner (`medium`, `large`, `xlarge`)
+        required: false
+        default: large
+        type: string
+      timeout-minutes:
+        description: Per-job timeout
+        required: false
+        default: 120
+        type: number
+
+env:
+  # Nightly runs exercise unstable tests too; everything else skips them.
+  # NB: written as `!= 'schedule' && <value> || ''` rather than the other way
+  # round because an empty string is falsy, so `== 'schedule' && '' || X` would
+  # always yield X.
+  MARK_EXPRESSION: ${{ github.event_name != 'schedule' && 'not unstable' || '' }}
+
+jobs:
+  integration-test:
+    name: ${{ matrix.tox-environment }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        tox-environment: ${{ fromJSON(inputs.tox-environments) }}
+    runs-on: ${{ fromJSON(format('["self-hosted","linux","AMD64","X64","{0}","noble"]', inputs.runner-size)) }}
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+    env:
+      # Workspace-relative rather than `~/logs`: actions/upload-artifact globs
+      # its `path` and does not expand `~`.
+      LOGS_DIR: ${{ github.workspace }}/logs
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup operator environment
+        run: |
+          sudo snap install concierge --classic
+          sudo concierge prepare --trace --extra-debs pipx
+      - name: Pre-seed LXD base image with the workload snap
+        if: ${{ inputs.substrate == 'lxd' }}
+        uses: ./.github/actions/preseed-lxd-image
+      - name: Install dependencies
+        run: |
+          pipx install tox poetry
+          pipx ensurepath
+          sudo snap install --classic terraform
+      - name: Download packed charm(s)
+        uses: actions/download-artifact@v8
+        with:
+          pattern: ${{ inputs.artifact-prefix }}-*
+          merge-multiple: true
+      # concierge bootstraps a controller per enabled provider, each with its own
+      # `testing` model, so the bare `--model testing` below would otherwise
+      # resolve against whichever controller happened to be current.
+      - name: Select the substrate's controller
+        env:
+          VAR_SUBSTRATE: ${{ inputs.substrate }}
+        run: juju switch "concierge-${VAR_SUBSTRATE}"
+      - name: Run integration tests
+        id: run-tests
+        env:
+          CI_PACKED_CHARMS: ${{ inputs.packed-charms }}
+          VAR_TOX_ENV: ${{ inputs.tox-env-prefix }}-${{ matrix.tox-environment }}
+          VAR_EXTRA_ARGS: ${{ inputs.extra-tox-args }}
+          VAR_REVISION: ${{ inputs.charm-revision }}
+        run: |
+          mkdir -p "$LOGS_DIR"
+          args=(-m "$MARK_EXPRESSION")
+          # Intentionally unquoted: extra-tox-args is a space-separated arg list
+          # shellcheck disable=SC2206
+          args+=($VAR_EXTRA_ARGS)
+          if [ -n "$VAR_REVISION" ]; then
+            args+=(--revision "$VAR_REVISION")
+          fi
+          tox run -e "$VAR_TOX_ENV" -- --model testing --keep-models "${args[@]}"
+      - name: juju status
+        timeout-minutes: 1
+        if: ${{ success() || (failure() && steps.run-tests.outcome == 'failure') }}
+        run: juju status --color --relations --storage | tee "$LOGS_DIR/juju-status.txt"
+      - name: juju debug-log
+        timeout-minutes: 3
+        if: ${{ success() || (failure() && steps.run-tests.outcome == 'failure') }}
+        run: juju debug-log --color --replay --no-tail | tee "$LOGS_DIR/juju-debug-log.txt"
+      - name: jhack tail
+        timeout-minutes: 3
+        if: ${{ success() || (failure() && steps.run-tests.outcome == 'failure') }}
+        run: jhack tail --printer raw --replay --no-watch | tee "$LOGS_DIR/jhack-tail.txt"
+      - name: Compute log artifact name
+        id: log-artifact
+        if: ${{ success() || (failure() && steps.run-tests.outcome == 'failure') }}
+        env:
+          VAR_TOX_ENV: ${{ inputs.tox-env-prefix }}-${{ matrix.tox-environment }}
+          VAR_EXTRA_ARGS: ${{ inputs.extra-tox-args }}
+        run: |
+          # Artifact names must be unique within a run, and several callers share
+          # a tox-env-prefix and tox-environment (single vs multi kraft mode,
+          # Kafka 3 vs 4), so fold extra-tox-args into the name.
+          suffix="$(echo "$VAR_EXTRA_ARGS" | sed -e 's/--//g' -e 's/[[:space:]]\+/-/g' -e 's/^-*//' -e 's/-*$//')"
+          echo "name=logs-${VAR_TOX_ENV}${suffix:+-${suffix}}" >> "$GITHUB_OUTPUT"
+      - name: Upload logs
+        if: ${{ success() || (failure() && steps.run-tests.outcome == 'failure') }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.log-artifact.outputs.name }}
+          path: logs/
+          if-no-files-found: warn

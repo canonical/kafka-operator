@@ -117,7 +117,7 @@ def juju(request: pytest.FixtureRequest):
 
             log = juju.debug_log(limit=1000)
     else:
-        juju = jubilant.Juju(model=model)
+        juju = jubilant.Juju(model=model, wait_timeout=600)
         yield juju
         log = juju.debug_log(limit=1000)
 
