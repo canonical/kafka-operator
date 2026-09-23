@@ -126,7 +126,7 @@ that welcomes community contributions, suggestions, fixes and constructive feedb
 ### Governance and policies
 
 - [Read our Code of Conduct](https://ubuntu.com/community/code-of-conduct)
-- [Report a security issue](https://github.com/ubuntu/wiki-archives/blob/main/UbuntuWiki/D/DebuggingSecurity.wiki#how-to-file) — please do not use GitHub issues for security topics
+- [Report a security issue](https://wiki.ubuntu.com/DebuggingSecurity#How_to_File) — please do not use GitHub issues for security topics
 - [Canonical Contributor Agreement](https://ubuntu.com/legal/contributors)
 
 ## License and trademarks
