@@ -262,9 +262,13 @@ class WorkloadMachine(WorkloadBase):
         Raises:
             SnapError if error occurs or if no pid string found in most recent log
         """
-        java_processes = subprocess.check_output(
-            "pidof java", stderr=subprocess.PIPE, universal_newlines=True, shell=True
-        )
+        try:
+            java_processes = subprocess.check_output(
+                "pidof java", stderr=subprocess.PIPE, universal_newlines=True, shell=True
+            )
+        except subprocess.CalledProcessError:
+            raise snap.SnapError(f"Snap {self.SNAP_NAME} pid not found")
+
         logger.debug(f"Java processes: {java_processes}")
 
         for pid in java_processes.split():
