@@ -7,10 +7,9 @@ from requests.exceptions import ConnectionError, SSLError
 from integration.connect_k8s.helpers import (
     APP_NAME,
     CONFIG_DIR,
-    IMAGE_RESOURCE_KEY,
-    IMAGE_URI,
     KAFKA_APP,
     KAFKA_CHANNEL,
+    charm_resources,
     extract_sans,
     get_certificate,
     make_connect_api_request,
@@ -28,14 +27,21 @@ MANUAL_TLS_NAME = "manual-tls-certificates"
 MANUAL_TLS_CHANNEL = "1/stable"
 
 
-def test_deploy_tls(juju: JujuFixture, kafka_connect_charm):
+def test_deploy_tls(
+    juju: JujuFixture,
+    kafka_connect_charm,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
+):
 
     gather(
         juju.ext.model.deploy(TLS_APP, channel=TLS_CHANNEL, config=TLS_CONFIG),
         juju.ext.model.deploy(
             kafka_connect_charm,
             application_name=APP_NAME,
-            resources={IMAGE_RESOURCE_KEY: IMAGE_URI},
+            resources=charm_resources(test_charm_channel),
+            revision=test_charm_revision,
+            channel=test_charm_channel,
         ),
         juju.ext.model.deploy(
             KAFKA_APP,

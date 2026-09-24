@@ -7,7 +7,7 @@ variable "app_name" {
 variable "channel" {
   description = "Charm channel to deploy from"
   type        = string
-  default     = "latest/edge"
+  default     = "4/edge"
 }
 
 variable "config" {
@@ -43,7 +43,7 @@ variable "units" {
 variable "base" {
   description = "Application base"
   type        = string
-  default     = "ubuntu@22.04"
+  default     = "ubuntu@24.04"
 }
 
 variable "machines" {

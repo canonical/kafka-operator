@@ -40,6 +40,8 @@ def test_deploy_charms_relate_active(
     usernames: Set[str],
     kraft_mode,
     kafka_apps,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
 ):
     """Test deploy and relate operations."""
     deploy_cluster(
@@ -48,6 +50,8 @@ def test_deploy_charms_relate_active(
         kraft_mode=kraft_mode,
         config_broker={"expose-external": "nodeport"},
         num_controller=3,
+        revision=test_charm_revision,
+        channel=test_charm_channel,
     )
     juju.deploy(app_charm, app=DUMMY_NAME_1, num_units=1, trust=True)
     juju.integrate(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_CONSUMER}")

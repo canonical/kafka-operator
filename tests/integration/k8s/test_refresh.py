@@ -33,8 +33,17 @@ CHARMCRAFT = os.environ.get("CHARMCRAFT_BIN", "charmcraft")
 def test_repack_charm(
     tmp_path_factory: pytest.TempPathFactory,
     kafka_charm,
+    test_charm_channel: str | None,
+    test_charm_revision: int | None,
 ):
     """Unpack the built charm and repack using a refresh-able version."""
+    if test_charm_channel:
+        logger.info(
+            "Skipping the repack step, will refresh to "
+            f"{test_charm_channel}, rev={test_charm_revision}"
+        )
+        return
+
     base = tmp_path_factory.mktemp("refresh-charm-")
     os.system(f"unzip -q {kafka_charm} -d {base}")
 
@@ -79,8 +88,27 @@ def test_repack_charm(
     os.environ.update({"REFRESH_CHARM": f"./{output_file}"})
 
 
+def get_oci_image_of_rev(revision: int) -> str:
+    """Return the OCI image URL of a charm revision."""
+    # Kafka K8s releases are tagged kafka-k8s/rev### by DPW release workflow.
+    metadata_url = f"https://raw.githubusercontent.com/canonical/kafka-operator/refs/tags/kafka-k8s/rev{revision}/k8s/metadata.yaml"
+    cmd_pipeline = [f"curl {metadata_url}", 'yq -r \'.resources."kafka-image"."upstream-source"\'']
+    raw = subprocess.check_output(
+        " | ".join(cmd_pipeline), stderr=subprocess.PIPE, universal_newlines=True, shell=True
+    )
+    if "ghcr.io" not in raw:
+        raise Exception(f"Can not find the OCI image for rev. {revision}")
+
+    return raw.strip()
+
+
 @pytest.mark.abort_on_fail
-def test_in_place_refresh(juju: jubilant.Juju, kraft_mode: KRaftMode):
+def test_in_place_refresh(
+    juju: jubilant.Juju,
+    kraft_mode: KRaftMode,
+    test_charm_channel: str | None,
+    test_charm_revision: int | None,
+):
     """Tests happy path refresh with TLS in KRaft mode."""
     kafka_apps = [APP_NAME] if kraft_mode == "single" else [APP_NAME, CONTROLLER_NAME]
     tls_config = {"ca-common-name": "kafka"}
@@ -139,12 +167,22 @@ def test_in_place_refresh(juju: jubilant.Juju, kraft_mode: KRaftMode):
     )
 
     logger.info("Upgrading Kafka...")
-    refresh_charm = os.environ.get("REFRESH_CHARM")
-    juju.refresh(
-        APP_NAME,
-        path=refresh_charm,
-        resources={"kafka-image": KAFKA_CONTAINER},
-    )
+    if test_charm_revision:
+        # The refresh lib is strict about refresh to a rev, when OCI image is not provided.
+        kafka_image = get_oci_image_of_rev(test_charm_revision)
+        juju.refresh(
+            APP_NAME,
+            channel=test_charm_channel,
+            revision=test_charm_revision,
+            resources={"kafka-image": kafka_image},
+        )
+    else:
+        refresh_charm = os.environ.get("REFRESH_CHARM")
+        juju.refresh(
+            APP_NAME,
+            path=refresh_charm,
+            resources={"kafka-image": KAFKA_CONTAINER},
+        )
 
     juju.wait(
         lambda status: jubilant.all_agents_idle(status, APP_NAME),

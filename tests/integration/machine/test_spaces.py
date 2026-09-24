@@ -94,7 +94,13 @@ def test_add_space(juju: jubilant.Juju, other_network: str) -> None:
 @pytest.mark.abort_on_fail
 @pytest.mark.skip_if_deployed
 def test_deploy_active(
-    juju: jubilant.Juju, kafka_charm, app_charm, kraft_mode, kafka_apps
+    juju: jubilant.Juju,
+    kafka_charm,
+    app_charm,
+    kraft_mode,
+    kafka_apps,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
 ) -> None:
     """Deploys a cluster of Kafka with 3 brokers and a test app, waits for `active|idle`."""
     deploy_cluster(
@@ -103,6 +109,8 @@ def test_deploy_active(
         kraft_mode=kraft_mode,
         num_broker=3,
         bind={"kafka-client": OTHER_SPACE},
+        revision=test_charm_revision,
+        channel=test_charm_channel,
     )
     juju.deploy(
         app_charm,

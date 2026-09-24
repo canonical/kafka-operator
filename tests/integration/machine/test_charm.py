@@ -43,7 +43,14 @@ pytestmark = pytest.mark.broker
 
 @pytest.mark.abort_on_fail
 @pytest.mark.skip_if_deployed
-async def test_build_and_deploy(ops_test: OpsTest, kafka_charm, kraft_mode, controller_app):
+async def test_build_and_deploy(
+    ops_test: OpsTest,
+    kafka_charm,
+    kraft_mode,
+    controller_app,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
+):
     await ops_test.model.create_storage_pool("test_pool", "lxd")
 
     await deploy_cluster(
@@ -51,6 +58,8 @@ async def test_build_and_deploy(ops_test: OpsTest, kafka_charm, kraft_mode, cont
         charm=kafka_charm,
         kraft_mode=kraft_mode,
         storage_broker={"data": {"pool": "test_pool", "size": 1024}},
+        revision=test_charm_revision,
+        channel=test_charm_channel,
     )
     assert ops_test.model.applications[APP_NAME].status == "active"
     assert ops_test.model.applications[controller_app].status == "active"

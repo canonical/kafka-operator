@@ -121,13 +121,21 @@ def _assert_acl_integrity(juju: jubilant.Juju):
 @pytest.mark.abort_on_fail
 @pytest.mark.skip_if_deployed
 def test_deploy_and_relate(
-    juju: jubilant.Juju, kafka_charm, app_charm, kraft_mode, kafka_apps
+    juju: jubilant.Juju,
+    kafka_charm,
+    app_charm,
+    kraft_mode,
+    kafka_apps,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
 ) -> None:
     """Deploys a cluster of Kafka with 3 brokers and a test app, waits for `active|idle`."""
     deploy_cluster(
         juju=juju,
         charm=kafka_charm,
         kraft_mode=kraft_mode,
+        revision=test_charm_revision,
+        channel=test_charm_channel,
     )
     juju.deploy(
         app_charm,

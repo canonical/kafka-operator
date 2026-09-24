@@ -41,7 +41,13 @@ class TestBalancer:
     deployment_strat: str = os.environ.get("DEPLOYMENT", "multi")
     balancer_app: str = {"single": APP_NAME, "multi": CONTROLLER_NAME}[deployment_strat]
 
-    def test_build_and_deploy(self, juju: jubilant.Juju, kafka_charm):
+    def test_build_and_deploy(
+        self,
+        juju: jubilant.Juju,
+        kafka_charm,
+        test_charm_revision: int | None,
+        test_charm_channel: str | None,
+    ):
         juju.deploy(
             kafka_charm,
             app=APP_NAME,
@@ -51,8 +57,11 @@ class TestBalancer:
                 "profile": "testing",
                 "expose-external": "nodeport",
             },
-            resources={"kafka-image": KAFKA_CONTAINER},
+            # add `kafka-image` only for local charms.
+            resources=None if test_charm_channel else {"kafka-image": KAFKA_CONTAINER},
             trust=True,
+            revision=test_charm_revision,
+            channel=test_charm_channel,
         )
         juju.deploy(
             kafka_charm,
@@ -63,8 +72,11 @@ class TestBalancer:
                 "profile": "testing",
                 "expose-external": "nodeport",
             },
-            resources={"kafka-image": KAFKA_CONTAINER},
+            # add `kafka-image` only for local charms.
+            resources=None if test_charm_channel else {"kafka-image": KAFKA_CONTAINER},
             trust=True,
+            revision=test_charm_revision,
+            channel=test_charm_channel,
         )
         juju.deploy(
             "kafka-test-app",
