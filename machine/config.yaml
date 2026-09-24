@@ -133,3 +133,13 @@ options:
       Allowed values: "all", "first", "none"
     type: string
     default: none
+  client-metrics-list:
+    type: string
+    default: "org.apache.kafka.producer.,org.apache.kafka.consumer."
+    description: |
+      A comma separated list of client telemetry metric name prefixes which specify the metrics of interest.
+  client-metrics-interval-ms:
+    type: int
+    default: 1000
+    description: |
+      The client metrics push interval in milliseconds.
