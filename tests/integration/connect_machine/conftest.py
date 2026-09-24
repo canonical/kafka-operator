@@ -40,7 +40,7 @@ def juju(request: pytest.FixtureRequest):
     keep_models = bool(request.config.getoption("--keep-models"))
 
     if model:
-        juju = JujuFixture(model=model)
+        juju = JujuFixture(model=model, wait_timeout=600)
         yield juju
     else:
         with temp_model_fixture(keep=keep_models) as juju:
