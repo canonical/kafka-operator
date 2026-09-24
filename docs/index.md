@@ -89,6 +89,7 @@ New to Charmed Apache Kafka? Start with the step-by-step Tutorial to learn the e
 ```
 
 ```{slice} Extensions
+{doc}`Components </explanation/components>`
 {doc}`Kafka Connect </how-to/kafka-connect>`
 {doc}`Schema registry </how-to/schemas-serialisation>`
 {doc}`Kafka UI </how-to/kafka-ui>`
