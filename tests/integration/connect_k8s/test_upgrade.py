@@ -10,6 +10,7 @@ from jubilant_adapters import JujuFixture, gather
 from integration.connect_k8s.helpers import (
     APP_NAME,
     DEFAULT_API_PORT,
+    DEFAULT_CONSTRAINTS,
     IMAGE_RESOURCE_KEY,
     IMAGE_URI,
     KAFKA_APP,
@@ -33,6 +34,7 @@ def test_in_place_upgrade(juju: JujuFixture, kafka_connect_charm):
             application_name=APP_NAME,
             num_units=3,
             trust=True,
+            constraints=DEFAULT_CONSTRAINTS,
         ),
         juju.ext.model.deploy(
             KAFKA_APP,
@@ -40,6 +42,7 @@ def test_in_place_upgrade(juju: JujuFixture, kafka_connect_charm):
             application_name=KAFKA_APP,
             num_units=1,
             config={"roles": "broker,controller"},
+            constraints=DEFAULT_CONSTRAINTS,
         ),
     )
 

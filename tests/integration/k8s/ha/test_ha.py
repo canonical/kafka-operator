@@ -12,6 +12,7 @@ from integration.k8s.ha.continuous_writes import ContinuousWrites
 from integration.k8s.helpers import (
     APP_NAME,
     CONTROLLER_NAME,
+    DEFAULT_CONSTRAINTS,
     DUMMY_NAME,
     REL_NAME_ADMIN,
     broker_id_to_unit_id,
@@ -45,7 +46,7 @@ def test_build_and_deploy(juju: jubilant.Juju, kafka_charm, app_charm, kraft_mod
         kraft_mode=kraft_mode,
         config_broker={"expose-external": "nodeport"},
     )
-    juju.deploy(app_charm, app=DUMMY_NAME, trust=True)
+    juju.deploy(app_charm, app=DUMMY_NAME, trust=True, constraints=DEFAULT_CONSTRAINTS)
 
     juju.wait(
         lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME),

@@ -10,7 +10,7 @@ import pytest
 from single_kernel_kafka.core.literals import REL_NAME, TLS_RELATION
 from single_kernel_kafka.managers.auth import Acl
 
-from integration.k8s.helpers import TLS_CHANNEL, TLS_NAME
+from integration.k8s.helpers import DEFAULT_CONSTRAINTS, TLS_CHANNEL, TLS_NAME
 from integration.k8s.helpers.jubilant import (
     all_active_idle,
     deploy_cluster,
@@ -134,8 +134,9 @@ def test_deploy_and_relate(
         app=DUMMY_NAME_1,
         num_units=1,
         base=BASE,
+        constraints=DEFAULT_CONSTRAINTS,
     )
-    juju.deploy(TLS_NAME, channel=TLS_CHANNEL)
+    juju.deploy(TLS_NAME, channel=TLS_CHANNEL, constraints=DEFAULT_CONSTRAINTS)
 
     juju.integrate(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_V1}")
 

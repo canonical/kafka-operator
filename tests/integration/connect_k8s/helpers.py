@@ -24,12 +24,13 @@ from jubilant_adapters import JujuFixture
 from jubilant_adapters.adapters import UnitAdapter as Unit
 from requests.auth import HTTPBasicAuth
 from single_kernel_kafka.core.connect_models import PeerWorkersContext
-from single_kernel_kafka.core.literals import ConnectLiterals
+from single_kernel_kafka.core.literals import ARCHITECTURE, ConnectLiterals
 
 logger = logging.getLogger(__name__)
 
 METADATA = yaml.safe_load(Path("connect_k8s/metadata.yaml").read_text())
 APP_NAME = METADATA["name"]
+DEFAULT_CONSTRAINTS = {"arch": ARCHITECTURE}
 CONFIG_DIR = "/etc/connect"
 DEFAULT_API_PORT = ConnectLiterals.DEFAULT_API_PORT
 PLUGIN_RESOURCE_KEY = ConnectLiterals.PLUGIN_RESOURCE_KEY

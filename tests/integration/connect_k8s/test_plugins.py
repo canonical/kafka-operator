@@ -6,6 +6,7 @@ from jubilant_adapters import JujuFixture, gather
 
 from integration.connect_k8s.helpers import (
     APP_NAME,
+    DEFAULT_CONSTRAINTS,
     IMAGE_RESOURCE_KEY,
     IMAGE_URI,
     JDBC_CONNECTOR_DOWNLOAD_LINK,
@@ -44,6 +45,7 @@ def test_build_and_deploy(juju: JujuFixture, kafka_connect_charm):
                 PLUGIN_RESOURCE_KEY: "./tests/integration/connect_k8s/resources/FakeResource.tar",
             },
             num_units=1,
+            constraints=DEFAULT_CONSTRAINTS,
         ),
         juju.ext.model.deploy(
             KAFKA_APP,
@@ -51,6 +53,7 @@ def test_build_and_deploy(juju: JujuFixture, kafka_connect_charm):
             application_name=KAFKA_APP,
             num_units=1,
             config={"roles": "broker,controller"},
+            constraints=DEFAULT_CONSTRAINTS,
         ),
         juju.ext.model.deploy(
             MYSQL_APP,
@@ -58,6 +61,7 @@ def test_build_and_deploy(juju: JujuFixture, kafka_connect_charm):
             application_name=MYSQL_APP,
             num_units=1,
             trust=True,
+            constraints=DEFAULT_CONSTRAINTS,
         ),
     )
 

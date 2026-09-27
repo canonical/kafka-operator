@@ -12,6 +12,7 @@ from integration.k8s.ha.continuous_writes import ContinuousWrites
 from integration.k8s.helpers import (
     APP_NAME,
     CONTROLLER_NAME,
+    DEFAULT_CONSTRAINTS,
     DUMMY_NAME,
     REL_NAME_ADMIN,
     TLS_CHANNEL,
@@ -66,10 +67,14 @@ def test_build_and_deploy(
         num_broker=3,
         num_controller=3,
     )
-    juju.deploy(app_charm, app=DUMMY_NAME, num_units=1)
-    juju.deploy(TLS_NAME, app=TLS_APP_CLIENT, channel=TLS_CHANNEL)
-    juju.deploy(MANUAL_TLS_NAME, app=TLS_APP_BROKER, channel="1/stable")
-    juju.deploy(TLS_NAME, app=TLS_APP_CONTROLLER, channel=TLS_CHANNEL)
+    juju.deploy(app_charm, app=DUMMY_NAME, num_units=1, constraints=DEFAULT_CONSTRAINTS)
+    juju.deploy(TLS_NAME, app=TLS_APP_CLIENT, channel=TLS_CHANNEL, constraints=DEFAULT_CONSTRAINTS)
+    juju.deploy(
+        MANUAL_TLS_NAME, app=TLS_APP_BROKER, channel="1/stable", constraints=DEFAULT_CONSTRAINTS
+    )
+    juju.deploy(
+        TLS_NAME, app=TLS_APP_CONTROLLER, channel=TLS_CHANNEL, constraints=DEFAULT_CONSTRAINTS
+    )
 
     juju.wait(
         lambda status: all_active_idle(status, *kafka_apps, *tls_apps, DUMMY_NAME),

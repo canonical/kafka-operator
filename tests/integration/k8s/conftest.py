@@ -7,6 +7,7 @@ import typing
 
 import jubilant
 import pytest
+from single_kernel_kafka.core.literals import ARCHITECTURE
 
 from .helpers import APP_NAME, CONTROLLER_NAME, KRaftMode
 
@@ -52,7 +53,7 @@ def usernames():
 @pytest.fixture(scope="module")
 def kafka_charm():
     """Kafka charm used for integration testing."""
-    charms = glob.glob("./k8s/*.charm")
+    charms = glob.glob(f"./k8s/*{ARCHITECTURE}.charm")
     if not charms:
         raise RuntimeError("Can not find Kafka charm, did you run charmcraft pack?")
     return charms[0]
@@ -62,7 +63,7 @@ def kafka_charm():
 def app_charm():
     """Build the application charm."""
     charm_path = "tests/integration/k8s/app-charm"
-    charms = glob.glob(f"./{charm_path}/*.charm")
+    charms = glob.glob(f"./{charm_path}/*{ARCHITECTURE}.charm")
     if not charms:
         raise RuntimeError("Can not find Kafka charm, did you run charmcraft pack?")
     return charms[0]

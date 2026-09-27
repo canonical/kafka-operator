@@ -26,6 +26,7 @@ from tenacity.wait import wait_fixed
 from . import (
     APP_NAME,
     CONTROLLER_NAME,
+    DEFAULT_CONSTRAINTS,
     KAFKA_CONTAINER,
     KRaftMode,
     KRaftUnitStatus,
@@ -87,6 +88,7 @@ def deploy_cluster(
         resources=None if channel else {"kafka-image": KAFKA_CONTAINER},
         trust=True,
         channel=channel if channel else None,
+        constraints=DEFAULT_CONSTRAINTS,
     )
 
     if kraft_mode == "multi":
@@ -104,6 +106,7 @@ def deploy_cluster(
             resources=None if channel else {"kafka-image": KAFKA_CONTAINER},
             trust=True,
             channel=channel if channel else None,
+            constraints=DEFAULT_CONSTRAINTS,
         )
 
     assert_status_func = jubilant.all_active if kraft_mode == "single" else jubilant.all_blocked
