@@ -16,7 +16,7 @@ from single_kernel_kafka.core.literals import (
 )
 from tenacity import Retrying, stop_after_attempt, wait_fixed
 
-from integration.k8s.helpers import TLS_CHANNEL, TLS_NAME
+from integration.k8s.helpers import DEFAULT_CONSTRAINTS, TLS_CHANNEL, TLS_NAME
 from integration.k8s.helpers.jubilant import all_active_idle, fast_forward
 from integration.k8s.helpers.legacy import (
     APP_NAME,
@@ -53,6 +53,7 @@ class TestBalancer:
             },
             resources={"kafka-image": KAFKA_CONTAINER},
             trust=True,
+            constraints=DEFAULT_CONSTRAINTS,
         )
         juju.deploy(
             kafka_charm,
@@ -65,6 +66,7 @@ class TestBalancer:
             },
             resources={"kafka-image": KAFKA_CONTAINER},
             trust=True,
+            constraints=DEFAULT_CONSTRAINTS,
         )
         juju.deploy(
             "kafka-test-app",
@@ -79,6 +81,7 @@ class TestBalancer:
                 "replication_factor": "3",
             },
             trust=True,
+            constraints=DEFAULT_CONSTRAINTS,
         )
 
         juju.wait(
@@ -263,7 +266,9 @@ class TestBalancer:
         tls_config = {"ca-common-name": "kafka"}
 
         # FIXME (certs): Unpin the revision once the charm is fixed
-        juju.deploy(TLS_NAME, channel=TLS_CHANNEL, config=tls_config)
+        juju.deploy(
+            TLS_NAME, channel=TLS_CHANNEL, config=tls_config, constraints=DEFAULT_CONSTRAINTS
+        )
         juju.wait(all_active_idle, delay=3, successes=10)
 
         juju.integrate(TLS_NAME, f"{APP_NAME}:{INTERNAL_TLS_RELATION}")

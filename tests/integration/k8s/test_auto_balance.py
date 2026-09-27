@@ -7,6 +7,7 @@ import pytest
 from integration.k8s.ha.continuous_writes import ContinuousWrites
 from integration.k8s.helpers import (
     APP_NAME,
+    DEFAULT_CONSTRAINTS,
     DUMMY_NAME,
     REL_NAME_ADMIN,
 )
@@ -73,7 +74,7 @@ def test_build_and_deploy(
         num_controller=1,
         config_broker={"roles": roles},
     )
-    juju.deploy(app_charm, app=DUMMY_NAME, num_units=1)
+    juju.deploy(app_charm, app=DUMMY_NAME, num_units=1, constraints=DEFAULT_CONSTRAINTS)
 
     juju.wait(
         lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME),

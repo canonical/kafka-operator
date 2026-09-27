@@ -16,7 +16,7 @@ from single_kernel_kafka.core.literals import (
     SECURITY_PROTOCOL_PORTS,
 )
 
-from integration.k8s.helpers import TLS_CHANNEL, TLS_NAME
+from integration.k8s.helpers import DEFAULT_CONSTRAINTS, TLS_CHANNEL, TLS_NAME
 from integration.k8s.helpers.jubilant import all_active_idle, fast_forward
 from integration.k8s.helpers.legacy import (
     APP_NAME,
@@ -101,6 +101,7 @@ class TestKRaft:
             },
             resources={"kafka-image": KAFKA_CONTAINER},
             trust=True,
+            constraints=DEFAULT_CONSTRAINTS,
         )
         juju.deploy(
             "kafka-test-app",
@@ -116,6 +117,7 @@ class TestKRaft:
                 "replication_factor": "1",
             },
             trust=True,
+            constraints=DEFAULT_CONSTRAINTS,
         )
 
         if self.controller_app != APP_NAME:
@@ -129,6 +131,7 @@ class TestKRaft:
                 },
                 resources={"kafka-image": KAFKA_CONTAINER},
                 trust=True,
+                constraints=DEFAULT_CONSTRAINTS,
             )
 
         status_check = all_active_idle if self.controller_app == APP_NAME else jubilant.all_blocked
@@ -240,7 +243,7 @@ class TestKRaft:
 
     @pytest.mark.skipif(not tls_enabled, reason="only required when TLS is on.")
     def test_relate_peer_tls(self, juju: jubilant.Juju):
-        juju.deploy(TLS_NAME, app=TLS_NAME, channel=TLS_CHANNEL)
+        juju.deploy(TLS_NAME, app=TLS_NAME, channel=TLS_CHANNEL, constraints=DEFAULT_CONSTRAINTS)
         juju.wait(
             lambda status: all_active_idle(status, TLS_NAME),
             delay=3,

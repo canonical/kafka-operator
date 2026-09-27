@@ -13,6 +13,7 @@ from integration.k8s.ha.continuous_writes import ContinuousWrites
 from integration.k8s.helpers import (
     APP_NAME,
     CONTROLLER_NAME,
+    DEFAULT_CONSTRAINTS,
     DUMMY_NAME,
     REL_NAME_ADMIN,
     KRaftMode,
@@ -58,7 +59,7 @@ def test_deploy_active(juju: jubilant.Juju, kafka_charm, app_charm, kafka_apps):
         num_broker=3,
         num_controller=3,
     )
-    juju.deploy(app_charm, app=DUMMY_NAME, num_units=1)
+    juju.deploy(app_charm, app=DUMMY_NAME, num_units=1, constraints=DEFAULT_CONSTRAINTS)
 
     juju.wait(
         lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME),
