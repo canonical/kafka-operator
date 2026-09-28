@@ -21,11 +21,13 @@ The core of the platform is a single charm, [`kafka`](https://charmhub.io/kafka)
 
 This means the KRaft controller and the Cruise Control balancer are **not separate charms** — they are deployments of the same charm with a different `roles` value. For example, a split deployment runs brokers and controllers as separate applications of `kafka`, connected through the `peer-cluster-orchestrator` integration. For more detail, see the `roles` option in the [configurations reference](reference-configurations) and the [unit management guide](how-to-manage-units).
 
-| Component | VM charm | K8s charm | Workload | Role |
-|---|---|---|---|---|
-| Apache Kafka broker | [`kafka`](https://charmhub.io/kafka) | [`kafka-k8s`](https://charmhub.io/kafka-k8s) | [charmed-kafka snap](https://snapcraft.io/charmed-kafka) / [OCI image](https://ghcr.io/canonical/charmed-kafka) | Runs the message brokers that store and serve data |
-| KRaft controller | `kafka` (`roles=controller`) | `kafka-k8s` (`roles=controller`) | [charmed-kafka snap](https://snapcraft.io/charmed-kafka) / [OCI image](https://ghcr.io/canonical/charmed-kafka) | Manages cluster metadata through the Kafka Raft quorum |
-| Cruise Control balancer | `kafka` (`roles=broker,balancer` or `roles=controller,balancer`) | `kafka-k8s` (`roles=broker,balancer` or `roles=controller,balancer`) | [charmed-kafka snap](https://snapcraft.io/charmed-kafka) / [OCI image](https://ghcr.io/canonical/charmed-kafka) | Monitors the cluster and rebalances partitions |
+| Component | `roles` value | Purpose |
+|---|---|---|
+| Apache Kafka broker | `broker` | Runs the message brokers that store and serve data |
+| KRaft controller | `controller` | Manages cluster metadata through the Kafka Raft quorum |
+| Cruise Control balancer | `balancer` (co-located with `broker` or `controller`) | Monitors the cluster and rebalances partitions |
+
+All three components run the same workload: the [`charmed-kafka` snap](https://snapcraft.io/charmed-kafka) on machines, or the [OCI image](https://ghcr.io/canonical/charmed-kafka) on Kubernetes.
 
 The source code for all four Kafka charms (machine and K8s, broker and Connect) lives in a single repository, [canonical/kafka-operator](https://github.com/canonical/kafka-operator). The former separate repositories ([`kafka-k8s-operator`](https://github.com/canonical/kafka-k8s-operator), [`kafka-connect-operator`](https://github.com/canonical/kafka-connect-operator), and [`kafka-connect-k8s-operator`](https://github.com/canonical/kafka-connect-k8s-operator)) have been archived and are now read-only.
 
