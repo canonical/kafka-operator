@@ -19,7 +19,7 @@ Charmed Apache Kafka uses a pinned workload artefact to provide reproducible and
 ````{tab-item} VM
 :sync: vm
 
-The [Charmed Apache Kafka snap](https://snapstore.io/charmed-kafka) packages the Apache Kafka workload along with the necessary dependencies and utilities for operator lifecycle management.
+The [Charmed Apache Kafka snap](https://snapcraft.io/charmed-kafka) packages the Apache Kafka workload along with the necessary dependencies and utilities for operator lifecycle management.
 
 ````
 

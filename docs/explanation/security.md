@@ -28,7 +28,7 @@ Kubernetes distributions:
 | OpenStack | [OpenStack Security Guide](https://docs.openstack.org/security-guide/) |
 | AWS | [Best Practices for Security, Identity and Compliance](https://aws.amazon.com/architecture/security-identity-compliance), [AWS security credentials](https://docs.aws.amazon.com/IAM/latest/UserGuide/security-creds.html), [Security in EKS](https://docs.aws.amazon.com/eks/latest/userguide/security.html) |
 | Azure | [Azure security best practices and patterns](https://learn.microsoft.com/en-us/azure/security/fundamentals/best-practices-and-patterns), [Managed identities for Azure resources](https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/), [Security in AKS](https://learn.microsoft.com/en-us/azure/aks/concepts-security) |
-| Charmed Kubernetes | [Security in Charmed Kubernetes](https://ubuntu.com/kubernetes/docs/security) |
+| Canonical Kubernetes | [Security in Canonical Kubernetes](https://documentation.ubuntu.com/canonical-kubernetes/latest/snap/explanation/security/) |
 
 ### Juju
 
