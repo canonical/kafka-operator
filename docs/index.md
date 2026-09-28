@@ -15,9 +15,17 @@ that simplifies the deployment, scaling, and management of
 and Kubernetes, including deployments on AWS, Azure, OpenStack, and VMware.
 
 This documentation covers both the
-[IAAS/VM charm](https://charmhub.io/kafka) and the
+[VM charm](https://charmhub.io/kafka) and the
 [Kubernetes charm](https://charmhub.io/kafka-k8s). Select the VM or K8s tab in
 the guides; the selection is synchronized across each page.
+
+```{note}
+**Terminology:** the docs use *VM* as shorthand for *machine* charm
+deployments (Juju's [machine
+charms](https://canonical.com/juju/docs/juju-cli/3.6/reference/charm/#machine-charm)
+run directly on virtual machines or bare-metal hosts), and *K8s* as shorthand
+for *Kubernetes*. The two terms refer to the same substrate in each case.
+```
 
 The charm automates Apache Kafka operations from
 [Day 0 to Day 2](https://codilime.com/blog/day-0-day-1-day-2-the-software-lifecycle-in-the-cloud-age/)

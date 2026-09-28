@@ -8,7 +8,7 @@ myst:
 # Performance tuning
 
 ```{note}
-This page applies to IAAS/VM deployments. For Kubernetes deployments, tune the
+This page applies to VM deployments. For Kubernetes deployments, tune the
 worker nodes and Kubernetes resource allocation through the cluster provider.
 ```
 

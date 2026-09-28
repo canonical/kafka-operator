@@ -80,8 +80,8 @@ By default, a Charmed Apache Kafka application will always use auto-generated se
 To support encrypted client connections, a Charmed Apache Kafka application needs to be integrated with TLS Certificate Provider charm, e.g. 
 `self-signed-certificates` operator. Certificate Signing Requests (CSRs) are generated for every unit using the `tls_certificates_interface` library that uses the `cryptography`
 Python library to create X.509 compatible certificates. The CSR is signed by the TLS Certificate Provider, returned to the units, and 
-stored in a password-protected keystore file. The password of the keystore is stored in Juju secrets.
-The integration also provides the CA certificate, which is loaded into a password-protected truststore file.
+stored in a password-protected PKCS 12 keystore file. The password of the keystore is stored in Juju secrets.
+The integration also provides the CA certificate, which is loaded into a password-protected JKS truststore file.
 
 When encryption is enabled, hostname verification is turned on for client connections, including both inter-broker and broker-controller communications. The cipher suite can 
 be customised by specifying a list of allowed cipher suites for external clients. This is done using the `ssl-cipher-suites` charm configuration option; see the configuration reference for [VM](https://charmhub.io/kafka/configure?channel=4/stable#ssl-cipher-suites) or [K8s](https://charmhub.io/kafka-k8s/configure?channel=4/stable#ssl-cipher-suites).
@@ -116,7 +116,7 @@ Clients can authenticate to Apache Kafka using:
 3. OAuth authentication through an identity provider
 
 The current [Canonical Identity Platform OAuth guide](how-to-enable-oauth)
-covers VM deployment only.
+covers VM deployments only; K8s OAuth support is tracked separately.
 
 When using SCRAM, the credentials are stored in three places: SCRAM **verifier
 material** (salt, iteration count, and derived keys — not the plaintext

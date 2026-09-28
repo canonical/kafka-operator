@@ -15,7 +15,7 @@ kill-timeout: 60m
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
 ```{note}
-This chapter covers **VM (Machine) deployments only**. It uses the Charmed
+This chapter covers **VM deployments only**. It uses the Charmed
 OpenSearch operator, which is published for machine clouds only, and sets
 VM-specific kernel parameters through `cloudinit-userdata`.
 

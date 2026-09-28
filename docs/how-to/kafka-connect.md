@@ -27,30 +27,14 @@ For this guide, we will need an active Charmed Apache Kafka application. Follow 
 
 To deploy [Kafka Connect charm](https://charmhub.io/kafka-connect) and integrate it with Charmed Apache Kafka, use the following commands:
 
-`````{tab-set}
-:sync-group: substrate
-
-````{tab-item} VM
-:sync: vm
-
 ```bash
-juju deploy kafka-connect --channel edge
+juju deploy <connect-charm> --channel 4/stable --trust
 juju integrate kafka-connect kafka
 ```
 
-````
-
-````{tab-item} K8s
-:sync: k8s
-
-```bash
-juju deploy kafka-connect-k8s --channel 4/stable
-juju integrate kafka-connect-k8s kafka-k8s
-```
-
-````
-
-`````
+where `<connect-charm>` is `kafka-connect` on VM and `kafka-connect-k8s` on
+K8s. The `--trust` flag grants the charm the permissions it needs on
+Kubernetes; it is accepted and harmless on VM.
 
 ## Use REST API
 
@@ -70,13 +54,7 @@ secret:cvh7kruupa1s46bqvuig
 
 Now, grant the secret to the Kafka Connect charm using `juju grant-secret` command:
 
-`````{tab-set}
-:sync-group: substrate
-
-````{tab-item} VM
-:sync: vm
-
-```
+```bash
 juju grant-secret mysecret kafka-connect
 ```
 
@@ -85,20 +63,6 @@ Finally, the Kafka Connect charm should be configured to use the newly provided 
 ```bash
 juju config kafka-connect system-users=secret:cvh7kruupa1s46bqvuig
 ```
-
-````
-
-````{tab-item} K8s
-:sync: k8s
-
-```bash
-juju grant-secret mysecret kafka-connect-k8s
-juju config kafka-connect-k8s system-users=secret:cvh7kruupa1s46bqvuig
-```
-
-````
-
-`````
 
 To verify that Kafka Connect is properly configured and functioning, send a request to the REST interface to list all registered connectors using the password set in Juju secret:
 
@@ -140,28 +104,9 @@ wget https://github.com/Aiven-Open/cloud-storage-connectors-for-apache-kafka/rel
 
 Once downloaded, attach the connector to the charm using the `juju attach-resource` command.
 
-`````{tab-set}
-:sync-group: substrate
-
-````{tab-item} VM
-:sync: vm
-
 ```bash
 juju attach-resource kafka-connect connect-plugin=./s3-source-connector-for-apache-kafka-3.2.0.tar
 ```
-
-````
-
-````{tab-item} K8s
-:sync: k8s
-
-```bash
-juju attach-resource kafka-connect-k8s connect-plugin=./s3-source-connector-for-apache-kafka-3.2.0.tar
-```
-
-````
-
-`````
 
 This triggers a restart of Charmed Kafka Connect application. Once all units show `active|idle` status, the plugin is ready to use. To verify using the Kafka Connect REST API:
 

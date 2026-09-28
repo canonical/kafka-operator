@@ -11,15 +11,16 @@ The Charmed Apache Kafka Operator delivers automated operations management from 
 It is an open source, end-to-end, production-ready data platform [on top of Juju](https://juju.is/). As a first step this tutorial shows you how to get Charmed Apache Kafka up and running, but the tutorial does not stop there.
 Through this tutorial, you will learn a variety of operations, everything from adding replicas to advanced operations such as enabling SSL encryption, cross-cluster asynchronous replication and more.
 
-This tutorial covers both substrates: the **VM (Machine)** charm `kafka` on a
-local LXD cloud, and the **Kubernetes** charm `kafka-k8s` on a local MicroK8s
-cloud. Each page has `VM` and `K8s` tabs, and your selection is remembered as
-you move between pages.
+This tutorial covers both substrates: the **VM** charm `kafka` on a local LXD
+cloud, and the **K8s** charm `kafka-k8s` on a local MicroK8s cloud. Each page
+has `VM` and `K8s` tabs, and your selection is remembered as you move between
+pages. Both substrates deploy the application under the same `kafka` alias, so
+the commands are identical unless the substrates genuinely differ.
 
 ```{note}
-The commands and example outputs in the VM tabs are the ones exercised by the
-automated tutorial tests. The K8s tabs show the equivalent commands for the
-`kafka-k8s` charm.
+The example outputs in this tutorial are captured from a VM deployment; the
+automated tutorial tests exercise this path end-to-end. Outputs on K8s may
+differ slightly (for example, pod addresses instead of machine addresses).
 ```
 
 In this tutorial, we will walk through how to:
@@ -51,6 +52,7 @@ Before we start, make sure your machine meets the following requirements:
 ```{note}
 The full tutorial deploys several applications (Apache Kafka, KRaft
 controllers, Kafka Connect, PostgreSQL and OpenSearch). If you plan to
-complete the ETL and rebalancing chapters, allow more RAM than the minimum
-above, and prefer the `testing` profile shown in the deployment steps.
+complete the ETL and rebalancing chapters, ensure at least 4 GB more RAM is
+available than the minimum above, and prefer the `testing` profile shown in
+the deployment steps.
 ```

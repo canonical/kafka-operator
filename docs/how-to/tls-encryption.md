@@ -50,7 +50,7 @@ juju integrate kafka:certificates self-signed-certificates
 :sync: k8s
 
 ```bash
-juju integrate kafka-k8s:certificates self-signed-certificates
+juju integrate kafka:certificates self-signed-certificates
 ```
 
 ````
@@ -82,7 +82,7 @@ juju integrate kafka:peer-certificates <TLS-provider-charm>
 :sync: k8s
 
 ```bash
-juju integrate kafka-k8s:peer-certificates <TLS-provider-charm>
+juju integrate kafka:peer-certificates <TLS-provider-charm>
 ```
 
 ````
@@ -170,7 +170,7 @@ juju grant-secret external-kafka-pks kafka
 :sync: k8s
 
 ```bash
-juju grant-secret external-kafka-pks kafka-k8s
+juju grant-secret external-kafka-pks kafka
 ```
 
 ````
@@ -205,7 +205,7 @@ juju config kafka tls-private-key=secret:d2k6hv8co3bs4tge0c8g
 :sync: k8s
 
 ```bash
-juju config kafka-k8s tls-private-key=secret:d2k6hv8co3bs4tge0c8g
+juju config kafka tls-private-key=secret:d2k6hv8co3bs4tge0c8g
 ```
 
 ````
@@ -234,7 +234,7 @@ juju remove-relation kafka:certificates <tls-certificates>
 :sync: k8s
 
 ```bash
-juju remove-relation kafka-k8s:certificates <tls-certificates>
+juju remove-relation kafka:certificates <tls-certificates>
 ```
 
 ````

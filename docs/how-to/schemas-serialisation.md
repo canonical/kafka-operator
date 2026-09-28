@@ -35,7 +35,7 @@ juju integrate karapace kafka
 
 ```bash
 juju deploy karapace-k8s --channel stable
-juju integrate karapace-k8s kafka-k8s
+juju integrate karapace-k8s kafka
 ```
 
 ````

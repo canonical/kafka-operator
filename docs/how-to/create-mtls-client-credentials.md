@@ -61,7 +61,7 @@ juju integrate kafka:client-cas mtls-app
 :sync: k8s
 
 ```bash
-juju integrate kafka-k8s:client-cas mtls-app
+juju integrate kafka:client-cas mtls-app
 ```
 
 ````
@@ -187,7 +187,7 @@ juju config kafka ssl-principal-mapping-rules='RULE:^.*[Cc][Nn]=([a-zA-Z0-9\.-]*
 :sync: k8s
 
 ```bash
-juju config kafka-k8s ssl-principal-mapping-rules='RULE:^.*[Cc][Nn]=([a-zA-Z0-9\.-]*).*$/$1/L,DEFAULT'
+juju config kafka ssl-principal-mapping-rules='RULE:^.*[Cc][Nn]=([a-zA-Z0-9\.-]*).*$/$1/L,DEFAULT'
 ```
 
 ````
@@ -219,7 +219,7 @@ SNAP_KAFKA_PATH=/var/snap/charmed-kafka/current/etc/kafka
 :sync: k8s
 
 ```bash
-BROKER_IP=$(juju show-unit kafka-k8s/0 --format json | jq -r '."kafka-k8s/0".address')
+BROKER_IP=$(juju show-unit kafka/0 --format json | jq -r '."kafka/0".address')
 KAFKA_SERVERS_SASL="$BROKER_IP:19093"
 KAFKA_SERVERS_MTLS="$BROKER_IP:9094"
 KAFKA_CFG_PATH=/etc/kafka
@@ -267,7 +267,7 @@ sudo charmed-kafka.acls --bootstrap-server $KAFKA_SERVERS_SASL --command-config 
 :sync: k8s
 
 ```bash
-juju ssh --container kafka kafka-k8s/leader "
+juju ssh --container kafka kafka/leader "
 /opt/kafka/bin/kafka-acls.sh --bootstrap-server $KAFKA_SERVERS_SASL --command-config $KAFKA_CFG_PATH/client.properties \\
 --add --allow-principal User:$KAFKA_CLIENT_MTLS_CN \\
 --operation READ --operation DESCRIBE --group='*'
@@ -355,15 +355,15 @@ EOF
 Copy the files into the workload container:
 
 ```bash
-juju scp --container kafka client.truststore.jks kafka-k8s/0:/etc/kafka/
-juju scp --container kafka client.keystore.p12 kafka-k8s/0:/etc/kafka/
-juju scp --container kafka client-mtls.properties kafka-k8s/0:/etc/kafka/
+juju scp --container kafka client.truststore.jks kafka/0:/etc/kafka/
+juju scp --container kafka client.keystore.p12 kafka/0:/etc/kafka/
+juju scp --container kafka client-mtls.properties kafka/0:/etc/kafka/
 ```
 
 Then create the test topic:
 
 ```bash
-juju ssh --container kafka kafka-k8s/0 \
+juju ssh --container kafka kafka/0 \
   "/opt/kafka/bin/kafka-topics.sh --create --topic TEST \
   --bootstrap-server $KAFKA_SERVERS_MTLS \
   --command-config /etc/kafka/client-mtls.properties"

@@ -22,7 +22,7 @@ Apache Kafka.
 Configure the broker application:
 
 ```shell
-juju config kafka-k8s expose-external=nodeport
+juju config kafka expose-external=nodeport
 ```
 
 At least one client listener must also be active. Integrate a client through
@@ -36,13 +36,14 @@ Inspect the resulting Services in the Juju model namespace:
 kubectl get services -n <model>
 ```
 
-The charm creates `kafka-k8s-bootstrap` and per-unit Services whose names include
+The charm creates `<application-name>-bootstrap` (for example,
+`kafka-bootstrap`) and per-unit Services whose names include
 the unit ID, protocol, and authentication mechanism. Kubernetes allocates the
 NodePort values, so discover them from the Service rather than assuming a fixed
 NodePort:
 
 ```shell
-kubectl get service kafka-k8s-bootstrap -n <model>
+kubectl get service kafka-bootstrap -n <model>
 ```
 
 The service ports identify the protocol before translation to a NodePort:
@@ -55,7 +56,7 @@ The service ports identify the protocol before translation to a NodePort:
 | `29095` | SASL_PLAINTEXT with OAuth |
 | `29096` | SASL_SSL with OAuth |
 
-The ordinary `kafka-k8s` and `kafka-k8s-endpoints` ClusterIP Services are part of
+The ordinary `kafka` and `kafka-endpoints` ClusterIP Services are part of
 the application's StatefulSet networking and are not external entry points.
 
 ## Configure the client
@@ -78,7 +79,7 @@ node-2      10.155.67.130
 Map the desired service port to its allocated NodePort. For example:
 
 ```shell
-kubectl get service kafka-k8s-bootstrap -n <model> \
+kubectl get service kafka-bootstrap -n <model> \
   -o jsonpath='{range .spec.ports[*]}{.port}{" -> "}{.nodePort}{"\n"}{end}'
 ```
 

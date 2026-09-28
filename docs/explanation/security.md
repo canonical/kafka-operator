@@ -15,10 +15,10 @@ This document provides an overview of security features and guidance for hardeni
 
 The environment where Charmed Apache Kafka operates can be divided into two components:
 
-1. Cloud or Kubernetes substrate
+1. Cloud (including Kubernetes clouds)
 2. Juju
 
-### Cloud or Kubernetes substrate
+### Cloud (including Kubernetes clouds)
 
 Charmed Apache Kafka can be deployed on clouds, virtualisation layers, and
 Kubernetes distributions:
@@ -74,7 +74,7 @@ Both charms use Ubuntu 24.04 LTS. On VM, deploy a
 [Landscape Client Charm](https://charmhub.io/landscape-client) to connect the
 underlying machine to Landscape and manage security upgrades and Ubuntu Pro
 subscriptions. On K8s, the workload runs in the
-[Charmed Apache Kafka rock](https://github.com/canonical/charmed-kafka-rock/pkgs/container/charmed-kafka),
+[Charmed Apache Kafka Charmed Rock](https://github.com/canonical/charmed-kafka-rock/pkgs/container/charmed-kafka),
 a Rockcraft-based OCI image containing Canonical's Apache Kafka distribution.
 
 ### Security upgrades
@@ -106,7 +106,7 @@ Charmed Apache Kafka supports the following authentication layers:
 3. OAuth authentication through an identity provider
 
 The current [Canonical Identity Platform OAuth guide](how-to-enable-oauth)
-covers VM deployment only.
+covers VM deployments only; K8s OAuth support is tracked separately.
 
 Each combination of authentication scheme and encryption is associated with the dedicated listener and it maps to a well-defined port. See the [listeners reference documentation](reference-broker-listeners) for more information.
 

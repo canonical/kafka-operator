@@ -38,9 +38,9 @@ If Charmed Apache Kafka K8s is deployed in the same model as COS, integrate the
 applications directly:
 
 ```shell
-juju integrate kafka-k8s:metrics-endpoint prometheus
-juju integrate kafka-k8s:grafana-dashboard grafana
-juju integrate kafka-k8s:logging loki
+juju integrate kafka:metrics-endpoint prometheus
+juju integrate kafka:grafana-dashboard grafana
+juju integrate kafka:logging loki
 ```
 
 If COS is in a separate model, use the cross-model procedure below. On K8s,
@@ -125,9 +125,9 @@ Charmed Apache Kafka K8s:
 
 ```shell
 juju deploy opentelemetry-collector-k8s kafka-cos-agent
-juju integrate kafka-k8s:metrics-endpoint kafka-cos-agent
-juju integrate kafka-k8s:grafana-dashboard kafka-cos-agent:grafana-dashboards-consumer
-juju integrate kafka-k8s:logging kafka-cos-agent:receive-loki-logs
+juju integrate kafka:metrics-endpoint kafka-cos-agent
+juju integrate kafka:grafana-dashboard kafka-cos-agent:grafana-dashboards-consumer
+juju integrate kafka:logging kafka-cos-agent:receive-loki-logs
 ```
 
 ```{note}

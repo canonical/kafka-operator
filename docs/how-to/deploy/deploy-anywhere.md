@@ -9,7 +9,7 @@ myst:
 # How to deploy Charmed Apache Kafka
 
 This guide provides deployment instructions for Charmed Apache Kafka using the
-Juju CLI, covering both the **IAAS/VM** operator and the **Kubernetes** operator.
+Juju CLI, covering both the **VM** operator and the **Kubernetes** operator.
 Use the tabs below to switch between the two substrates -- your selection is
 remembered as you scroll through the rest of the page.
 
@@ -171,7 +171,7 @@ juju deploy kafka -n <controller-units> --config roles=controller --channel 4/st
 Charmed Apache Kafka K8s for production use-cases is deployed as follows:
 
 ```shell
-juju deploy kafka-k8s -n <broker-units> --config roles=broker --channel 4/stable --trust
+juju deploy kafka-k8s -n <broker-units> --config roles=broker --channel 4/stable --trust kafka
 juju deploy kafka-k8s -n <controller-units> --config roles=controller --channel 4/stable controller --trust
 ```
 
@@ -180,7 +180,9 @@ juju deploy kafka-k8s -n <controller-units> --config roles=controller --channel 
 
 ```{note}
 The `--trust` flag grants the charm the permissions it needs to manage
-Kubernetes resources (e.g. Services, StatefulSets).
+Kubernetes resources (e.g. Services, StatefulSets). The trailing `kafka`
+assigns the same application name as on VM, so the rest of this guide uses
+`kafka` on both substrates.
 ```
 ````
 
@@ -192,26 +194,9 @@ To maintain high-availability of topic partitions, `3+` broker units and `3` or
 To exchange credentials and endpoints between the two clusters, integrate the
 broker and controller applications:
 
-`````{tab-set}
-:sync-group: substrate
-
-````{tab-item} VM
-:sync: vm
-
 ```shell
 juju integrate kafka:peer-cluster-orchestrator controller:peer-cluster
 ```
-````
-
-````{tab-item} K8s
-:sync: k8s
-
-```shell
-juju integrate kafka-k8s:peer-cluster-orchestrator controller:peer-cluster
-```
-````
-
-`````
 
 Check the status of the deployment:
 
@@ -254,7 +239,7 @@ juju deploy kafka -n <kafka-units> --config roles=broker,controller --channel 4/
 Charmed Apache Kafka K8s for testing use-cases is deployed as follows:
 
 ```shell
-juju deploy kafka-k8s -n <kafka-units> --config roles=broker,controller --channel 4/stable --trust
+juju deploy kafka-k8s -n <kafka-units> --config roles=broker,controller --channel 4/stable --trust kafka
 ```
 
 - `<kafka-units>` -- the number of units to deploy for Charmed Apache Kafka K8s
@@ -294,26 +279,9 @@ juju deploy data-integrator --config topic-name="__admin-user" --config extra-us
 
 Now, integrate it with the Apache Kafka charm:
 
-`````{tab-set}
-:sync-group: substrate
-
-````{tab-item} VM
-:sync: vm
-
 ```shell
 juju integrate data-integrator kafka
 ```
-````
-
-````{tab-item} K8s
-:sync: k8s
-
-```shell
-juju integrate data-integrator kafka-k8s
-```
-````
-
-`````
 
 To retrieve authentication information, such as the username and password, use:
 

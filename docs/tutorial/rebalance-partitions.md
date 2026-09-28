@@ -89,7 +89,7 @@ juju add-unit kafka
 On Kubernetes, set the desired total number of units instead of adding one:
 
 ```bash
-juju scale-application kafka-k8s 4
+juju scale-application kafka 4
 ```
 
 ````
@@ -139,7 +139,7 @@ juju ssh kafka/leader sudo -i charmed-kafka.log-dirs --describe \
 :sync: k8s
 
 ```bash
-juju ssh --container kafka kafka-k8s/leader \
+juju ssh --container kafka kafka/leader \
   "/opt/kafka/bin/kafka-log-dirs.sh --describe \
   --bootstrap-server <unit-ip>:19093 \
   --command-config /etc/kafka/client.properties" \
@@ -286,7 +286,7 @@ juju ssh kafka/leader sudo -i charmed-kafka.log-dirs --describe \
 :sync: k8s
 
 ```bash
-juju ssh --container kafka kafka-k8s/leader \
+juju ssh --container kafka kafka/leader \
   "/opt/kafka/bin/kafka-log-dirs.sh --describe \
   --bootstrap-server <unit-ip>:19093 \
   --command-config /etc/kafka/client.properties" \
@@ -372,7 +372,7 @@ juju ssh kafka/leader sudo -i charmed-kafka.log-dirs --describe \
 :sync: k8s
 
 ```bash
-juju ssh --container kafka kafka-k8s/leader \
+juju ssh --container kafka kafka/leader \
   "/opt/kafka/bin/kafka-log-dirs.sh --describe \
   --bootstrap-server <unit-ip>:19093 \
   --command-config /etc/kafka/client.properties" \
@@ -449,7 +449,7 @@ On Kubernetes, scale the application back down. Kubernetes removes the
 highest-numbered unit, which is the broker that was just drained:
 
 ```bash
-juju scale-application kafka-k8s 3
+juju scale-application kafka 3
 ```
 
 ````

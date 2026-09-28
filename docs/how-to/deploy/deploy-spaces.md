@@ -8,7 +8,7 @@ myst:
 # Deploy on Juju spaces
 
 ```{note}
-Juju spaces are supported by the IAAS/VM charm only. They do not apply to the
+Juju spaces are supported by the VM charm only. They do not apply to the
 Kubernetes charm; use Kubernetes networking and Services instead.
 ```
 

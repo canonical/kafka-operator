@@ -28,7 +28,7 @@ To deploy a cluster of three Apache Kafka brokers:
 :sync: vm
 
 ```shell
-juju deploy kafka -n 3 --channel 4/stable --config roles=broker
+juju deploy kafka -n 3 --channel 4/stable --trust --config roles=broker
 ```
 
 ````
@@ -37,15 +37,21 @@ juju deploy kafka -n 3 --channel 4/stable --config roles=broker
 :sync: k8s
 
 ```bash
-juju deploy kafka-k8s -n 3 --channel 4/stable --trust --config roles=broker
+juju deploy kafka-k8s -n 3 --channel 4/stable --trust --config roles=broker kafka
 ```
 
-The `--trust` flag grants the charm permission to manage the Kubernetes
-resources (Services, StatefulSets) it needs.
+The trailing `kafka` assigns the same application name as on VM, so the rest
+of the tutorial uses `kafka` on both substrates.
 
 ````
 
 `````
+
+```{note}
+The `--trust` flag grants the charm permission to manage the Kubernetes
+resources (Services, StatefulSets) it needs on K8s; it is accepted and
+harmless on VM.
+```
 
 Juju will now fetch Charmed Apache Kafka and begin deploying it to your cloud.
 Now check the Juju model status:
@@ -74,7 +80,7 @@ To deploy a cluster of three KRaft controllers, run:
 :sync: vm
 
 ```shell
-juju deploy kafka -n 3 --channel 4/stable --config roles=controller kraft
+juju deploy kafka -n 3 --channel 4/stable --trust --config roles=controller kraft
 ```
 
 ````
@@ -93,28 +99,9 @@ juju deploy kafka-k8s -n 3 --channel 4/stable --trust --config roles=controller 
 After this, it is necessary to connect the two deployed applications,
 taking care to specify which cluster is the orchestrator by selecting the specific relation types:
 
-`````{tab-set}
-:sync-group: substrate
-
-````{tab-item} VM
-:sync: vm
-
 ```shell
 juju integrate kafka:peer-cluster-orchestrator kraft:peer-cluster
 ```
-
-````
-
-````{tab-item} K8s
-:sync: k8s
-
-```bash
-juju integrate kafka-k8s:peer-cluster-orchestrator kraft:peer-cluster
-```
-
-````
-
-`````
 
 <!-- test:await-idle --timeout 1200 -->
 
@@ -185,17 +172,17 @@ Machine  State    Address         Inst id        Base          AZ          Messa
 Model     Controller  Cloud/Region         Version  SLA          Timestamp
 tutorial  overlord    microk8s/localhost   3.6.20   unsupported  17:30:56Z
 
-App        Version  Status  Scale  Charm      Channel   Rev  Exposed  Message
-kafka-k8s  4.1.1    active      3  kafka-k8s  4/stable  111  no       
-kraft      4.1.1    active      3  kafka-k8s  4/stable  111  no       
+App    Version  Status  Scale  Charm      Channel   Rev  Exposed  Message
+kafka  4.1.1    active      3  kafka-k8s  4/stable  111  no       
+kraft  4.1.1    active      3  kafka-k8s  4/stable  111  no       
 
-Unit          Workload  Agent  Address       Ports      Message
-kafka-k8s/0*  active    idle   10.1.188.228  19093/tcp  
-kafka-k8s/1   active    idle   10.1.188.227  19093/tcp  
-kafka-k8s/2   active    idle   10.1.188.231  19093/tcp  
-kraft/0*      active    idle   10.1.188.230  9098/tcp   
-kraft/1       active    idle   10.1.188.229  9098/tcp   
-kraft/2       active    idle   10.1.188.232  9098/tcp   
+Unit      Workload  Agent  Address       Ports      Message
+kafka/0*  active    idle   10.1.188.228  19093/tcp  
+kafka/1   active    idle   10.1.188.227  19093/tcp  
+kafka/2   active    idle   10.1.188.231  19093/tcp  
+kraft/0*  active    idle   10.1.188.230  9098/tcp   
+kraft/1   active    idle   10.1.188.229  9098/tcp   
+kraft/2   active    idle   10.1.188.232  9098/tcp   
 ```
 
 ````
@@ -216,31 +203,11 @@ for more information.
 To reveal the contents of the Juju secret containing sensitive cluster data
 for the Charmed Apache Kafka application, you can run:
 
-`````{tab-set}
-:sync-group: substrate
-
-````{tab-item} VM
-:sync: vm
-
 ```shell
 juju show-secret --reveal cluster.kafka.app
 ```
 
-````
-
-````{tab-item} K8s
-:sync: k8s
-
-```bash
-juju show-secret --reveal cluster.kafka-k8s.app
-```
-
-The secret label follows the pattern `cluster.<application-name>.app`, so it
-reflects the `kafka-k8s` application name used on Kubernetes.
-
-````
-
-`````
+The secret label follows the pattern `cluster.<application-name>.app`.
 
 The output of the previous command will look something like this:
 
@@ -281,8 +248,8 @@ d5ipahpdormt02antvpg:
 d5ipahpdormt02antvpg:
   revision: 1
   checksum: f84bf383e76ddda391543d57a8b76dbef4e95813b820a466fb4815b098bda3b2
-  owner: kafka-k8s
-  label: cluster.kafka-k8s.app
+  owner: kafka
+  label: cluster.kafka.app
   created: 2026-01-13T00:43:58Z
   updated: 2026-01-13T00:43:58Z
   content:
@@ -308,28 +275,9 @@ These are the credentials to use to successfully authenticate to the cluster.
 
 For simplicity, the password can also be directly retrieved by parsing the YAML response from the previous command directly using `yq`:
 
-`````{tab-set}
-:sync-group: substrate
-
-````{tab-item} VM
-:sync: vm
-
 ```shell
 juju show-secret --reveal cluster.kafka.app | yq -r '.[].content["operator-password"]'
 ```
-
-````
-
-````{tab-item} K8s
-:sync: k8s
-
-```bash
-juju show-secret --reveal cluster.kafka-k8s.app | yq -r '.[].content["operator-password"]'
-```
-
-````
-
-`````
 
 ```{caution}
 When no other application is integrated to Charmed Apache Kafka,
@@ -364,7 +312,7 @@ export BOOTSTRAP_SERVER="${bootstrap_address}:19093"
 On Kubernetes, `juju show-unit` reports the pod address in the `address` field:
 
 ```bash
-bootstrap_address=$(juju show-unit kafka-k8s/0 --format json | jq -r '."kafka-k8s/0".address')
+bootstrap_address=$(juju show-unit kafka/0 --format json | jq -r '."kafka/0".address')
 
 export BOOTSTRAP_SERVER="${bootstrap_address}:19093"
 ```
@@ -412,7 +360,7 @@ On Kubernetes the workload runs in the `kafka` container of each pod, so
 select that container and use absolute paths:
 
 ```bash
-juju ssh --container kafka kafka-k8s/leader ls /opt/kafka/bin
+juju ssh --container kafka kafka/leader ls /opt/kafka/bin
 ```
 
 ```{note}
@@ -490,7 +438,7 @@ On Kubernetes, the upstream `bin/kafka-*.sh` scripts are available in
 For example, in order to create a topic, you can run:
 
 ```bash
-juju ssh --container kafka kafka-k8s/0 \
+juju ssh --container kafka kafka/0 \
     "/opt/kafka/bin/kafka-topics.sh \
         --create \
         --topic test-topic \
@@ -501,7 +449,7 @@ juju ssh --container kafka kafka-k8s/0 \
 You can similarly then list the topic, using:
 
 ```bash
-juju ssh --container kafka kafka-k8s/0 \
+juju ssh --container kafka kafka/0 \
     "/opt/kafka/bin/kafka-topics.sh \
         --list \
         --bootstrap-server $BOOTSTRAP_SERVER \
@@ -513,7 +461,7 @@ making sure the topic was successfully created.
 You can finally delete the topic, using:
 
 ```bash
-juju ssh --container kafka kafka-k8s/0 \
+juju ssh --container kafka kafka/0 \
     "/opt/kafka/bin/kafka-topics.sh \
         --delete \
         --topic test-topic \

@@ -93,15 +93,15 @@ tutorial  overlord    microk8s/localhost   3.6.20   unsupported  23:27:35Z
 
 App                       Version  Status   Scale  Charm                     Channel        Rev  Exposed  Message
 data-integrator                    blocked      1  data-integrator           latest/stable  362  no       Please relate the data-integrator with the desired product
-kafka-k8s                 4.1.1    active       3  kafka-k8s                 4/stable       111  no       
-kraft                     4.1.1    active       3  kafka-k8s                 4/stable       111  no       
+kafka                     4.1.1    active       3  kafka-k8s                 4/stable       111  no
+kraft                     4.1.1    active       3  kafka-k8s                 4/stable       111  no
 self-signed-certificates           active       1  self-signed-certificates  1/stable       317  no       
 
 Unit                         Workload  Agent  Address        Ports      Message
 data-integrator/0*           blocked   idle   10.233.204.111             Please relate the data-integrator with the desired product
-kafka-k8s/0*                 active    idle   10.233.204.241  19093/tcp  
-kafka-k8s/1                  active    idle   10.233.204.196  19093/tcp  
-kafka-k8s/2                  active    idle   10.233.204.148  19093/tcp  
+kafka/0*                     active    idle   10.233.204.241  19093/tcp
+kafka/1                      active    idle   10.233.204.196  19093/tcp
+kafka/2                      active    idle   10.233.204.148  19093/tcp
 kraft/0                      active    idle   10.233.204.125  9098/tcp   
 kraft/1*                     active    idle   10.233.204.36   9098/tcp   
 kraft/2                      active    idle   10.233.204.225  9098/tcp   
@@ -116,28 +116,9 @@ self-signed-certificates/0*  active    idle   10.233.204.134
 
 To enable TLS on Charmed Apache Kafka, integrate with `self-signed-certificates` charm:
 
-`````{tab-set}
-:sync-group: substrate
-
-````{tab-item} VM
-:sync: vm
-
 ```shell
 juju integrate kafka:certificates self-signed-certificates
 ```
-
-````
-
-````{tab-item} K8s
-:sync: k8s
-
-```bash
-juju integrate kafka-k8s:certificates self-signed-certificates
-```
-
-````
-
-`````
 
 <!-- test:await-idle --timeout 1200 --allow-blocked data-integrator -->
 
@@ -170,28 +151,9 @@ thus preventing any external incoming connection.
 
 Let's integrate the `data-integrator` application to the Apache Kafka cluster:
 
-`````{tab-set}
-:sync-group: substrate
-
-````{tab-item} VM
-:sync: vm
-
 ```shell
 juju integrate data-integrator kafka
 ```
-
-````
-
-````{tab-item} K8s
-:sync: k8s
-
-```bash
-juju integrate data-integrator kafka-k8s
-```
-
-````
-
-`````
 
 <!-- test:await-idle --timeout 1200 -->
 
@@ -237,30 +199,11 @@ We can then set up the `kafka-test-app` to produce messages with the usual confi
 juju config kafka-test-app topic_name=HOT-TOPIC role=producer num_messages=20
 ```
 
-Finally, relate with the Charmed Apache Kafka cluster:
-
-`````{tab-set}
-:sync-group: substrate
-
-````{tab-item} VM
-:sync: vm
+Finally, integrate with the Charmed Apache Kafka cluster:
 
 ```shell
 juju integrate kafka kafka-test-app
 ```
-
-````
-
-````{tab-item} K8s
-:sync: k8s
-
-```bash
-juju integrate kafka-k8s kafka-test-app
-```
-
-````
-
-`````
 
 <!-- test:await-idle --timeout 600 -->
 
@@ -279,28 +222,9 @@ is indeed established with the encrypted port `9093`.
 To remove the external TLS encryption for client connections,
 remove the `certificates` relation with the certificates provider:
 
-`````{tab-set}
-:sync-group: substrate
-
-````{tab-item} VM
-:sync: vm
-
 ```shell
 juju remove-relation kafka:certificates self-signed-certificates
 ```
-
-````
-
-````{tab-item} K8s
-:sync: k8s
-
-```bash
-juju remove-relation kafka-k8s:certificates self-signed-certificates
-```
-
-````
-
-`````
 
 <!-- test:await-idle --timeout 600 -->
 
@@ -312,31 +236,10 @@ controllers remains encrypted with the auto-generated self-signed certificates.
 
 Before proceeding further, let's remove the `kafka-test-app` application:
 
-`````{tab-set}
-:sync-group: substrate
-
-````{tab-item} VM
-:sync: vm
-
 ```shell
 juju remove-relation kafka-test-app kafka
 juju remove-relation kafka-test-app self-signed-certificates
 juju remove-application kafka-test-app --destroy-storage --no-prompt
 ```
-
-````
-
-````{tab-item} K8s
-:sync: k8s
-
-```bash
-juju remove-relation kafka-test-app kafka-k8s
-juju remove-relation kafka-test-app self-signed-certificates
-juju remove-application kafka-test-app --destroy-storage --no-prompt
-```
-
-````
-
-`````
 
 <!-- test:await-idle --timeout 600 -->

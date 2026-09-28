@@ -41,17 +41,18 @@ each component's units across availability zones.
 ````{tab-item} VM
 :sync: vm
 
-The `charmed-kafka` [snap](https://snapcraft.io/charmed-kafka) is published for
-`amd64` and `arm64`. Verify that the selected charm channel contains a revision
-for the target architecture before deployment.
+The `charmed-kafka` [snap](https://snapcraft.io/charmed-kafka) is fully tested
+and supported on `amd64`. Builds for `arm64` are published but not yet validated
+for production use.
 
 ````
 
 ````{tab-item} K8s
 :sync: k8s
 
-The `charmed-kafka` OCI image (rock) used by the K8s charm is currently available
-for `amd64` only.
+The `charmed-kafka` OCI image (rock) used by the K8s charm is fully tested and
+supported on `amd64`. Builds for `arm64` are available but not yet validated
+for production use.
 
 ````
 

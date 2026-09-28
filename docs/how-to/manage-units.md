@@ -37,7 +37,7 @@ See the `juju add-unit` [command reference](https://canonical.com/juju/docs/juju
 :sync: k8s
 
 ```shell
-juju scale-application kafka-k8s <desired-units>
+juju scale-application kafka <desired-units>
 ```
 
 See the `juju scale-application` [command reference](https://documentation.ubuntu.com/juju/latest/reference/juju-cli/list-of-juju-cli-commands/scale-application/index.html).
@@ -74,7 +74,7 @@ See the `juju remove-unit` [command reference](https://canonical.com/juju/docs/j
 :sync: k8s
 
 ```shell
-juju scale-application kafka-k8s <desired-units>
+juju scale-application kafka <desired-units>
 ```
 
 ````
@@ -118,7 +118,7 @@ For more information on the script usage, refer to [Apache Kafka documentation](
 [LinkedIn’s Cruise Control](https://github.com/linkedin/cruise-control) can be
 used for semi-automatic rebalancing. The [partition rebalancing tutorial](tutorial-rebalance-partitions)
 demonstrates the workflow for VM deployments; use the same charm actions with
-the `kafka-k8s` application on Kubernetes.
+the `kafka` application on Kubernetes.
 
 ## Admin utility scripts
 
@@ -203,14 +203,14 @@ Admin client authentication information is stored in
 `/etc/kafka/client.properties` in each broker's workload container:
 
 ```shell
-juju ssh --container kafka kafka-k8s/leader 'cat /etc/kafka/client.properties'
+juju ssh --container kafka kafka/leader 'cat /etc/kafka/client.properties'
 ```
 
 The file contains the `bootstrap.servers` entry for the internal listener,
 which can be extracted as follows:
 
 ```shell
-BOOTSTRAP_SERVERS=$(juju ssh --container kafka kafka-k8s/leader 'grep "^bootstrap.servers=" /etc/kafka/client.properties' | cut -d "=" -f 2)
+BOOTSTRAP_SERVERS=$(juju ssh --container kafka kafka/leader 'grep "^bootstrap.servers=" /etc/kafka/client.properties' | cut -d "=" -f 2)
 ```
 
 ```{note}
@@ -253,7 +253,7 @@ juju ssh kafka/leader "charmed-kafka.topics --bootstrap-server $BOOTSTRAP_SERVER
 :sync: k8s
 
 ```shell
-juju ssh --container kafka kafka-k8s/leader \
+juju ssh --container kafka kafka/leader \
   "/opt/kafka/bin/kafka-topics.sh --bootstrap-server $BOOTSTRAP_SERVERS --list --command-config /etc/kafka/client.properties"
 ```
 

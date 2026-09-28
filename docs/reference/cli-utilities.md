@@ -57,14 +57,14 @@ Run an Apache Kafka or Cruise Control executable in the `kafka` workload
 container:
 
 ```shell
-juju ssh --container kafka kafka-k8s/leader \
+juju ssh --container kafka kafka/leader \
   '<absolute-path> <arguments>'
 ```
 
 For example:
 
 ```shell
-juju ssh --container kafka kafka-k8s/leader \
+juju ssh --container kafka kafka/leader \
   '/opt/kafka/bin/kafka-topics.sh \
     --bootstrap-server <bootstrap-server> \
     --command-config /etc/kafka/client.properties \

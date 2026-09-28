@@ -79,13 +79,13 @@ The VM charm defaults to `none`.
 :sync: k8s
 
 ```shell
-juju config kafka-k8s pause-after-unit-refresh="all"
+juju config kafka pause-after-unit-refresh="all"
 ```
 
 This pauses after every unit. To proceed without pauses, set:
 
 ```shell
-juju config kafka-k8s pause-after-unit-refresh="none"
+juju config kafka pause-after-unit-refresh="none"
 ```
 
 The K8s charm defaults to `first`, which pauses once after the first refreshed
@@ -126,7 +126,7 @@ juju run kafka/leader pre-refresh-check
 :sync: k8s
 
 ```shell
-juju run kafka-k8s/leader pre-refresh-check
+juju run kafka/leader pre-refresh-check
 ```
 
 ````
@@ -160,11 +160,6 @@ Note that the upgrade can be performed against:
   ```shell
   juju refresh kafka --revision=<REVISION>
   ```
-* a local charm file:
-
-  ```shell
-  juju refresh kafka --path ./kafka_ubuntu-24.04-amd64.charm
-  ```
 
 ````
 
@@ -174,22 +169,24 @@ Note that the upgrade can be performed against:
 * selected channel/track:
 
   ```shell
-  juju refresh kafka-k8s --channel 4/stable
+  juju refresh kafka --channel 4/stable
   ```
 * selected revision:
 
   ```shell
-  juju refresh kafka-k8s --revision=<REVISION>
-  ```
-* a local charm file:
-
-  ```shell
-  juju refresh kafka-k8s --path ./kafka-k8s_ubuntu-24.04-amd64.charm
+  juju refresh kafka --revision=<REVISION>
   ```
 
 ````
 
 `````
+
+```{note}
+Refreshing from a local charm file (`juju refresh --path`) is not a supported
+user workflow; it is only relevant when developing the charm. See the
+[contributing guide](contributing-guide) for building and deploying a charm
+from source.
+```
 
 When issuing the commands, all units will refresh (i.e. receive new charm content), and the upgrade charm event will be fired. The charm will take care of executing an update (if required) and a restart of the workload one unit at a time to not lose high availability. 
 
@@ -213,7 +210,7 @@ juju run kafka/<unit-id> resume-refresh
 :sync: k8s
 
 ```shell
-juju run kafka-k8s/<unit-id> resume-refresh
+juju run kafka/<unit-id> resume-refresh
 ```
 
 ````
@@ -249,12 +246,12 @@ kafka/2       active    idle   5        10.193.41.221          Upgrade completed
 
 ```text
 App        Version  Status  Scale  Charm      Channel   Rev  Exposed  Message
-kafka-k8s           active      4  kafka-k8s  4/stable  111  no
+kafka               active      4  kafka-k8s  4/stable  111  no
 
 Unit            Workload  Agent  Address       Ports  Message
-kafka-k8s/0     active    idle   10.1.41.131          Other units upgrading first...
-kafka-k8s/1*    active    idle   10.1.41.109          Upgrading...
-kafka-k8s/2     active    idle   10.1.41.221          Upgrade completed
+kafka/0         active    idle   10.1.41.131          Other units upgrading first...
+kafka/1*        active    idle   10.1.41.109          Upgrading...
+kafka/2         active    idle   10.1.41.221          Upgrade completed
 ```
 
 ````
@@ -299,7 +296,7 @@ juju refresh kafka --revision $KAFKA_CHARM_REVISION
 :sync: k8s
 
 ```shell
-juju refresh kafka-k8s --revision $KAFKA_CHARM_REVISION
+juju refresh kafka --revision $KAFKA_CHARM_REVISION
 ```
 
 ````

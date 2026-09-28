@@ -139,13 +139,6 @@ module "kafka" {
 
 When `controller` includes `units > 0`, the module deploys separate broker and controller applications. When `controller` has `units = 0`, the broker co-locates both the broker and controller roles in a single application.
 
-```{warning}
-The default value of `controller.units` differs between the modules: the VM
-module defaults to `0` (co-located), while the K8s module defaults to `3`
-(separate controllers). Always set `controller.units` explicitly to get the
-topology you intend.
-```
-
 ## Deploy for production
 
 For production use, deploy separate `kafka` (broker) and `controller` (KRaft controller) applications and integrate them. To maintain high availability, 3+ broker units and 3 or 5 controller units are recommended.

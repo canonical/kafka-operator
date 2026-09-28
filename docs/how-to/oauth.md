@@ -3,7 +3,7 @@
 # Enable OAuth through Canonical Identity Platform
 
 ```{note}
-This guide currently covers **VM (Machine) deployments only**. The Canonical
+This guide currently covers **VM deployments only**. The Canonical
 Identity Platform runs on Kubernetes, but the Kafka workflow below deploys
 Charmed Apache Kafka on a VM (LXD) cloud.
 ```

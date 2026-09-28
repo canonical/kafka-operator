@@ -77,15 +77,15 @@ ui     lxd         microk8s/localhost   3.6.9    unsupported  08:37:59+01:00
 
 App         Version  Status  Scale  Charm      Channel   Rev  Exposed  Message
 controller  4.1.1    active      3  kafka-k8s  4/stable  111  no
-kafka-k8s   4.1.1    active      3  kafka-k8s  4/stable  111  no
+kafka       4.1.1    active      3  kafka-k8s  4/stable  111  no
 
 Unit           Workload  Agent  Address        Ports      Message
 controller/0   active    idle   10.1.12.43     9098/tcp
 controller/1*  active    idle   10.1.12.30     9098/tcp
 controller/2   active    idle   10.1.12.64     9098/tcp
-kafka-k8s/0    active    idle   10.1.12.42     19093/tcp
-kafka-k8s/1   active    idle   10.1.12.90     19093/tcp
-kafka-k8s/2*   active    idle   10.1.12.114    19093/tcp
+kafka/0       active    idle   10.1.12.42     19093/tcp
+kafka/1       active    idle   10.1.12.90     19093/tcp
+kafka/2*      active    idle   10.1.12.114    19093/tcp
 ```
 
 </details>
@@ -149,7 +149,7 @@ juju integrate kafka-ui kafka
 :sync: k8s
 
 ```bash
-juju integrate kafka-ui-k8s kafka-k8s
+juju integrate kafka-ui-k8s kafka
 juju integrate kafka-ui-k8s <traefik-offer-or-application>
 ```
 

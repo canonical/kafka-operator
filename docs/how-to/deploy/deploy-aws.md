@@ -284,11 +284,11 @@ copying an old version from an example.
 juju add-k8s $JUJU_NAME
 juju bootstrap $JUJU_NAME
 juju add-model <MODEL_NAME>
-juju deploy kafka-k8s -n 3 --channel 4/stable --trust --config roles=broker,controller
+juju deploy kafka-k8s -n 3 --channel 4/stable --trust --config roles=broker,controller kafka
 juju deploy data-integrator admin --channel stable \
   --config extra-user-roles=admin \
   --config topic-name=admin-topic
-juju integrate kafka-k8s admin
+juju integrate kafka admin
 ```
 
 This co-located broker/controller topology is for testing. For a production

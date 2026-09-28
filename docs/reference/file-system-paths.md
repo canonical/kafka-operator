@@ -55,7 +55,7 @@ The same layout is used for Cruise Control under `/opt/cruise-control`,
 Use the workload container when inspecting a path:
 
 ```shell
-juju ssh --container kafka kafka-k8s/leader 'ls /var/log/kafka'
+juju ssh --container kafka kafka/leader 'ls /var/log/kafka'
 ```
 
 ````
@@ -98,4 +98,4 @@ juju ssh --container kafka kafka-k8s/leader 'ls /var/log/kafka'
 - **`$DATA/data/*`** - the `data` storage directory where the raw Apache Kafka message data is persisted to disk
   - Each Juju mounted JBOD storage directory will have an integer identifier matching a subdirectory in `$DATA/data/`
   - Find these directories with `juju status --storage kafka | grep data/` on VM
-    or `juju status --storage kafka-k8s | grep data/` on K8s.
+    or `juju status --storage kafka | grep data/` on K8s.

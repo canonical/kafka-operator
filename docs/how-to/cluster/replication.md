@@ -34,8 +34,10 @@ For guidance on how to set up Charmed Apache Kafka, please refer to the followin
 - The [How to deploy guide](how-to-deploy-anywhere) for Charmed Apache Kafka
 - The [Kafka Connect guide](how-to-use-kafka-connect-for-etl-workloads)
 
-The commands below use the VM application names. For K8s, use `kafka-k8s`
-applications and `kafka-connect-k8s` as shown in the synchronized command tabs.
+The commands below use the application names `active`, `passive`, `kafka-a`
+and `kafka-b`. Deploy the charm for your substrate (`kafka` on VM, `kafka-k8s`
+on K8s) under these application names, as shown in the synchronized command
+tabs.
 
 ## Set up active-passive replication
 
@@ -56,8 +58,8 @@ Model  Controller  Cloud/Region         Version  SLA          Timestamp
 k      vms         localhost/localhost  3.6.3    unsupported  10:45:37+02:00
 
 App            Version  Status  Scale  Charm          Channel       Rev  Exposed  Message
-active         3.9.0    active      1  kafka          3/stable      240  no
-passive        3.9.0    active      1  kafka          3/stable      240  no
+active         4.1.1    active      1  kafka          4/stable      111  no
+passive        4.1.1    active      1  kafka          4/stable      111  no
 kafka-connect           active      1  kafka-connect  latest/edge    20  no
 
 Unit              Workload  Agent  Machine  Public address  Ports           Message
@@ -76,8 +78,8 @@ Model  Controller  Cloud/Region         Version  SLA          Timestamp
 k      vms         microk8s/localhost   3.6.3    unsupported  10:45:37+02:00
 
 App            Version  Status  Scale  Charm              Channel       Rev  Exposed  Message
-active         3.9.0    active      1  kafka-k8s          3/stable      240  no
-passive        3.9.0    active      1  kafka-k8s          3/stable      240  no
+active         4.1.1    active      1  kafka-k8s          4/stable      111  no
+passive        4.1.1    active      1  kafka-k8s          4/stable      111  no
 kafka-connect           active      1  kafka-connect-k8s  latest/edge    20  no
 
 Unit              Workload  Agent  Address      Ports           Message
@@ -94,28 +96,9 @@ The `active` cluster serves as a source and `passive` as a target for replicatio
 
 Integrate Kafka Connect with the passive cluster (as recommended for active-passive replication):
 
-`````{tab-set}
-:sync-group: substrate
-
-````{tab-item} VM
-:sync: vm
-
 ```bash
 juju integrate kafka-connect passive
 ```
-
-````
-
-````{tab-item} K8s
-:sync: k8s
-
-```bash
-juju integrate kafka-connect-k8s passive
-```
-
-````
-
-`````
 
 ## Deploy a MirrorMaker integrator
 
@@ -134,32 +117,11 @@ mirrormaker/0*    blocked   idle   4        10.86.75.16                     Inte
 
 Set up the necessary relations:
 
-`````{tab-set}
-:sync-group: substrate
-
-````{tab-item} VM
-:sync: vm
-
 ```bash
 juju integrate kafka-connect mirrormaker
 juju integrate mirrormaker:source active
 juju integrate mirrormaker:target passive
 ```
-
-````
-
-````{tab-item} K8s
-:sync: k8s
-
-```bash
-juju integrate kafka-connect-k8s mirrormaker
-juju integrate mirrormaker:source active
-juju integrate mirrormaker:target passive
-```
-
-````
-
-`````
 
 After some time, the `mirrormaker` application should show up as `active/idle`
 in `juju status`:
@@ -175,10 +137,10 @@ Model  Controller  Cloud/Region         Version  SLA          Timestamp
 k      vms         localhost/localhost  3.6.3    unsupported  10:59:37+02:00
 
 App            Version  Status  Scale  Charm          Channel       Rev  Exposed  Message
-active         3.9.0    active      1  kafka          3/stable      240  no       
+active         4.1.1    active      1  kafka          4/stable      111  no       
 kafka-connect           active      1  kafka-connect  latest/edge    20  no       
 mirrormaker             active      1  mirrormaker                    0  no       Task Status: UNASSIGNED
-passive        3.9.0    active      1  kafka          3/stable      240  no       
+passive        4.1.1    active      1  kafka          4/stable      111  no       
 
 Unit              Workload  Agent  Machine  Public address  Ports           Message
 active/0*         active    idle   0        10.86.75.171    9092,19092/tcp  
@@ -197,10 +159,10 @@ Model  Controller  Cloud/Region         Version  SLA          Timestamp
 k      vms         microk8s/localhost   3.6.3    unsupported  10:59:37+02:00
 
 App            Version  Status  Scale  Charm              Channel       Rev  Exposed  Message
-active         3.9.0    active      1  kafka-k8s          3/stable      240  no       
+active         4.1.1    active      1  kafka-k8s          4/stable      111  no       
 kafka-connect           active      1  kafka-connect-k8s  latest/edge    20  no       
 mirrormaker             active      1  mirrormaker                    0  no       Task Status: UNASSIGNED
-passive        3.9.0    active      1  kafka-k8s          3/stable      240  no       
+passive        4.1.1    active      1  kafka-k8s          4/stable      111  no       
 
 Unit              Workload  Agent  Address      Ports           Message
 active/0*         active    idle   10.1.75.171  9092,19092/tcp  
@@ -251,8 +213,8 @@ Model  Controller  Cloud/Region         Version  SLA          Timestamp
 k      vms         localhost/localhost  3.6.3    unsupported  10:59:37+02:00
 
 App              Version  Status  Scale  Charm          Channel       Rev  Exposed  Message
-kafka-a          3.9.0    active      1  kafka          3/stable      240  no       
-kafka-b          3.9.0    active      1  kafka          3/stable      240  no       
+kafka-a          4.1.1    active      1  kafka          4/stable      111  no       
+kafka-b          4.1.1    active      1  kafka          4/stable      111  no       
 kafka-connect-a           active      1  kafka-connect  latest/edge    20  no       
 kafka-connect-b           active      1  kafka-connect  latest/edge    20  no       
 mirrormaker-a-b           active      1  mirrormaker                   0  no       Task Status: UNASSIGNED
@@ -277,16 +239,16 @@ Model  Controller  Cloud/Region         Version  SLA          Timestamp
 k      vms         microk8s/localhost   3.6.3    unsupported  10:59:37+02:00
 
 App              Version  Status  Scale  Charm              Channel       Rev  Exposed  Message
-kafka-k8s-a      3.9.0    active      1  kafka-k8s          3/stable      240  no       
-kafka-k8s-b      3.9.0    active      1  kafka-k8s          3/stable      240  no       
+kafka-a      4.1.1    active      1  kafka-k8s          4/stable      111  no       
+kafka-b      4.1.1    active      1  kafka-k8s          4/stable      111  no       
 kafka-connect-a           active      1  kafka-connect-k8s  latest/edge    20  no       
 kafka-connect-b           active      1  kafka-connect-k8s  latest/edge    20  no       
 mirrormaker-a-b           active      1  mirrormaker                   0  no       Task Status: UNASSIGNED
 mirrormaker-b-a           active      1  mirrormaker                   0  no       Task Status: UNASSIGNED
 
 Unit                Workload  Agent  Address      Ports           Message
-kafka-k8s-a/0*      active    idle   10.1.75.171  9092,19092/tcp  
-kafka-k8s-b/0*      active    idle   10.1.75.153  9092,19092/tcp  
+kafka-a/0*      active    idle   10.1.75.171  9092,19092/tcp  
+kafka-b/0*      active    idle   10.1.75.153  9092,19092/tcp  
 kafka-connect-a/0*  active    idle   10.1.75.45   8083/tcp        
 kafka-connect-b/0*  active    idle   10.1.75.46   8083/tcp        
 mirrormaker-a-b/0*  active    idle   10.1.75.189  8080/tcp        Task Status: UNASSIGNED
@@ -298,12 +260,6 @@ mirrormaker-b-a/0*  active    idle   10.1.75.190  8080/tcp        Task Status: U
 `````
 
 Then the integrations needed should be done like follows:
-
-`````{tab-set}
-:sync-group: substrate
-
-````{tab-item} VM
-:sync: vm
 
 ```bash
 # active-passive  A -> B
@@ -319,32 +275,8 @@ juju integrate mirrormaker-b-a:source kafka-b
 juju integrate mirrormaker-b-a:target kafka-a
 ```
 
-````
-
-````{tab-item} K8s
-:sync: k8s
-
-```bash
-# active-passive A -> B
-juju integrate kafka-connect-k8s-b kafka-k8s-b
-juju integrate kafka-connect-k8s-b mirrormaker-a-b
-juju integrate mirrormaker-a-b:source kafka-k8s-a
-juju integrate mirrormaker-a-b:target kafka-k8s-b
-
-# active-passive B -> A
-juju integrate kafka-connect-k8s-a kafka-k8s-a
-juju integrate kafka-connect-k8s-a mirrormaker-b-a
-juju integrate mirrormaker-b-a:source kafka-k8s-b
-juju integrate mirrormaker-b-a:target kafka-k8s-a
-```
-
-````
-
-`````
-
 With this, the deployment is complete. There will be two bidirectional
-replication flows between the A and B applications (`kafka-a`/`kafka-b` on VM,
-or `kafka-k8s-a`/`kafka-k8s-b` on Kubernetes). Topics are prefixed with the
-source application name so that they do not collide. For example, a `demo`
-topic created on VM application `kafka-a` is replicated to `kafka-b` as
-`kafka-a.replica.demo`, and vice versa.
+replication flows between the A and B applications (`kafka-a`/`kafka-b`). Topics
+are prefixed with the source application name so that they do not collide. For
+example, a `demo` topic created on application `kafka-a` is replicated to
+`kafka-b` as `kafka-a.replica.demo`, and vice versa.
