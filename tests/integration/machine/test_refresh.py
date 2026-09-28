@@ -35,8 +35,17 @@ CHANNEL = "4/stable"
 def test_repack_charm(
     tmp_path_factory: pytest.TempPathFactory,
     kafka_charm,
+    test_charm_channel: str | None,
+    test_charm_revision: int | None,
 ):
     """Unpack the built charm and repack using a refresh-able version."""
+    if test_charm_channel:
+        logger.info(
+            "Skipping the repack step, will refresh to "
+            f"{test_charm_channel}, rev={test_charm_revision}"
+        )
+        return
+
     base = tmp_path_factory.mktemp("refresh-charm-")
     os.system(f"unzip -q {kafka_charm} -d {base}")
 
@@ -83,7 +92,14 @@ def test_repack_charm(
 
 
 @pytest.mark.abort_on_fail
-def test_in_place_upgrade(juju: jubilant.Juju, app_charm, kraft_mode, controller_app):
+def test_in_place_upgrade(
+    juju: jubilant.Juju,
+    app_charm,
+    kraft_mode,
+    controller_app,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
+):
     deploy_cluster(juju=juju, charm="kafka", kraft_mode=kraft_mode, num_broker=3, channel=CHANNEL)
     juju.deploy(app_charm, app=DUMMY_NAME, num_units=1, base=BASE)
 
@@ -135,8 +151,11 @@ def test_in_place_upgrade(juju: jubilant.Juju, app_charm, kraft_mode, controller
     time.sleep(10)
 
     logger.info("Upgrading Kafka...")
-    refresh_charm = os.environ.get("REFRESH_CHARM")
-    juju.refresh(APP_NAME, path=str(refresh_charm))
+    if test_charm_channel:
+        juju.refresh(APP_NAME, channel=test_charm_channel, revision=test_charm_revision)
+    else:
+        refresh_charm = os.environ.get("REFRESH_CHARM")
+        juju.refresh(APP_NAME, path=str(refresh_charm))
     juju.wait(
         lambda status: all_active_idle(status, *kafka_apps),
         delay=3,
@@ -153,7 +172,13 @@ def test_in_place_upgrade(juju: jubilant.Juju, app_charm, kraft_mode, controller
 
 
 @pytest.mark.abort_on_fail
-def test_controller_upgrade_multinode(juju: jubilant.Juju, kraft_mode, controller_app):
+def test_controller_upgrade_multinode(
+    juju: jubilant.Juju,
+    kraft_mode,
+    controller_app,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
+):
     """Test upgrading the controller separately in multi-node mode."""
     if kraft_mode != "multi":
         logger.info(f"Skipping controller upgrade test because we're using {kraft_mode} mode.")
@@ -185,8 +210,11 @@ def test_controller_upgrade_multinode(juju: jubilant.Juju, kraft_mode, controlle
     time.sleep(10)
 
     logger.info("Upgrading Controller...")
-    refresh_charm = os.environ.get("REFRESH_CHARM")
-    juju.refresh(controller_app, path=str(refresh_charm))
+    if test_charm_channel:
+        juju.refresh(controller_app, channel=test_charm_channel, revision=test_charm_revision)
+    else:
+        refresh_charm = os.environ.get("REFRESH_CHARM")
+        juju.refresh(controller_app, path=str(refresh_charm))
     juju.wait(
         lambda status: all_active_idle(status, controller_app, APP_NAME),
         delay=3,

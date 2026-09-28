@@ -39,7 +39,13 @@ class TestBalancer:
 
     @pytest.mark.abort_on_fail
     @pytest.mark.skip_if_deployed
-    async def test_build_and_deploy(self, ops_test: OpsTest, kafka_charm):
+    async def test_build_and_deploy(
+        self,
+        ops_test: OpsTest,
+        kafka_charm,
+        test_charm_revision: int | None,
+        test_charm_channel: str | None,
+    ):
 
         await asyncio.gather(
             ops_test.model.deploy(
@@ -52,6 +58,8 @@ class TestBalancer:
                     "profile": "testing",
                 },
                 trust=True,
+                revision=test_charm_revision,
+                channel=test_charm_channel,
             ),
             ops_test.model.deploy(
                 kafka_charm,
@@ -65,6 +73,8 @@ class TestBalancer:
                     ),
                     "profile": "testing",
                 },
+                revision=test_charm_revision,
+                channel=test_charm_channel,
             ),
             ops_test.model.deploy(
                 "kafka-test-app",

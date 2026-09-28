@@ -38,12 +38,22 @@ logger = logging.getLogger(__name__)
 
 @pytest.mark.skip_if_deployed
 @pytest.mark.abort_on_fail
-def test_build_and_deploy(juju: jubilant.Juju, kafka_charm, app_charm, kraft_mode, kafka_apps):
+def test_build_and_deploy(
+    juju: jubilant.Juju,
+    kafka_charm,
+    app_charm,
+    kraft_mode,
+    kafka_apps,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
+):
     deploy_cluster(
         juju=juju,
         charm=kafka_charm,
         kraft_mode=kraft_mode,
         config_broker={"expose-external": "nodeport"},
+        revision=test_charm_revision,
+        channel=test_charm_channel,
     )
     juju.deploy(app_charm, app=DUMMY_NAME, trust=True)
 
@@ -69,7 +79,13 @@ def test_build_and_deploy(juju: jubilant.Juju, kafka_charm, app_charm, kraft_mod
 
 
 # run this test early, in case of resource limits on runners with too many units
-def test_multi_cluster_isolation(juju: jubilant.Juju, kafka_charm, kafka_apps):
+def test_multi_cluster_isolation(
+    juju: jubilant.Juju,
+    kafka_charm,
+    kafka_apps,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
+):
     second_kafka_name = f"{APP_NAME}-two"
     second_controller_name = f"{CONTROLLER_NAME}-two"
 
@@ -79,6 +95,8 @@ def test_multi_cluster_isolation(juju: jubilant.Juju, kafka_charm, kafka_apps):
         kraft_mode="multi",
         app_name_broker=second_kafka_name,
         app_name_controller=second_controller_name,
+        revision=test_charm_revision,
+        channel=test_charm_channel,
     )
 
     status = juju.status()

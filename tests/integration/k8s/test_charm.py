@@ -34,12 +34,21 @@ from integration.k8s.helpers.legacy import (
 logger = logging.getLogger(__name__)
 
 
-def test_build_and_deploy(juju: jubilant.Juju, kafka_charm, kraft_mode, controller_app):
+def test_build_and_deploy(
+    juju: jubilant.Juju,
+    kafka_charm,
+    kraft_mode,
+    controller_app,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
+):
     deploy_cluster(
         juju=juju,
         charm=kafka_charm,
         kraft_mode=kraft_mode,
         config_broker={"expose-external": "nodeport"},
+        revision=test_charm_revision,
+        channel=test_charm_channel,
     )
 
     status = juju.status()
