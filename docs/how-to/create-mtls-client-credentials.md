@@ -45,28 +45,9 @@ juju deploy tls-certificates-operator \
 
 Next, integrate the operator application with the Charmed Apache Kafka application:
 
-`````{tab-set}
-:sync-group: substrate
-
-````{tab-item} VM
-:sync: vm
-
 ```bash
 juju integrate kafka:client-cas mtls-app
 ```
-
-````
-
-````{tab-item} K8s
-:sync: k8s
-
-```bash
-juju integrate kafka:client-cas mtls-app
-```
-
-````
-
-`````
 
 Alternatively, a charmed client supporting the `kafka_client` interface can
 provide its certificate directly in relation data through the `mtls-cert` field.
@@ -171,28 +152,9 @@ Since you are using TLS certificates for authentication, you need to provide a w
 
 In Charmed Apache Kafka, this is done using the `ssl-principal-mapping-rules` configuration option, which defines how the certificate's common name is translated into a username, using a regex (see [Apache Kafka's official documentation](https://kafka.apache.org/41/security/encryption-and-authentication-using-ssl/) for more details on the syntax):
 
-`````{tab-set}
-:sync-group: substrate
-
-````{tab-item} VM
-:sync: vm
-
 ```bash
 juju config kafka ssl-principal-mapping-rules='RULE:^.*[Cc][Nn]=([a-zA-Z0-9\.-]*).*$/$1/L,DEFAULT'
 ```
-
-````
-
-````{tab-item} K8s
-:sync: k8s
-
-```bash
-juju config kafka ssl-principal-mapping-rules='RULE:^.*[Cc][Nn]=([a-zA-Z0-9\.-]*).*$/$1/L,DEFAULT'
-```
-
-````
-
-`````
 
 This command will trigger a rolling restart of the charmed Apache Kafka application. Once the application settles to `active|idle` status, you can proceed to the next step.
 

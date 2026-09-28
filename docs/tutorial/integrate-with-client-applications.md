@@ -346,12 +346,6 @@ juju config kafka-test-app topic_name=TOP-PICK role=producer num_messages=20
 To start producing messages to Apache Kafka, we simply integrate the Apache Kafka Test App
 with Apache Kafka:
 
-`````{tab-set}
-:sync-group: substrate
-
-````{tab-item} VM
-:sync: vm
-
 ```shell
 juju integrate kafka-test-app kafka
 ```

@@ -68,37 +68,17 @@ juju switch <controller>
 
 If there are no suitable controllers, create a new one:
 
-`````{tab-set}
-:sync-group: substrate
-
-````{tab-item} VM
-:sync: vm
-
 ```shell
 juju bootstrap <cloud> <controller>
 ```
 
-Make sure that the controller's back-end cloud is **not** Kubernetes-based.
-Retrieve the cloud information with `juju list-controllers`.
-
-`<cloud>` -- the cloud to deploy the controller to, e.g. `localhost` if using
-a LXD cloud.
-````
-
-````{tab-item} K8s
-:sync: k8s
-
-```shell
-juju bootstrap <cloud> <controller>
-```
-
-Make sure that the controller's back-end cloud **is** Kubernetes-based (e.g.
-`microk8s`).
+The command is the same on both substrates; only the backing cloud differs.
+On VM, the controller's back-end cloud must **not** be Kubernetes-based
+(e.g. `localhost` for a LXD cloud). On K8s, it must **be** Kubernetes-based
+(e.g. `microk8s`). Retrieve the cloud information with
+`juju list-controllers`.
 
 `<cloud>` -- the cloud to deploy the controller to.
-````
-
-`````
 
 For more information on how to set up a new cloud, see the [How to manage clouds](https://documentation.ubuntu.com/juju/latest/howto/manage-clouds/index.html)
 guide in the Juju documentation. For more controller setup guidance, see the
@@ -121,30 +101,11 @@ juju switch <model-name>
 
 Make sure that the model is of the correct type:
 
-`````{tab-set}
-:sync-group: substrate
-
-````{tab-item} VM
-:sync: vm
-
 ```shell
 juju show-model | yq '.[]."model-type"'
 ```
 
-The model type must be `iaas`.
-````
-
-````{tab-item} K8s
-:sync: k8s
-
-```shell
-juju show-model | yq '.[]."model-type"'
-```
-
-The model type must be `caas`.
-````
-
-`````
+The model type must be `iaas` on VM and `caas` on K8s.
 
 ## Deploy Charmed Apache Kafka for production
 

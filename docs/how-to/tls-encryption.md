@@ -34,28 +34,9 @@ juju deploy self-signed-certificates --config ca-common-name="Test CA"
 
 To enable TLS encryption for client connections with Charmed Apache Kafka, integrate the Charmed Apache Kafka application to the `tls-certificates` provider application via the `certificates` relation interface:
 
-`````{tab-set}
-:sync-group: substrate
-
-````{tab-item} VM
-:sync: vm
-
 ```bash
 juju integrate kafka:certificates self-signed-certificates
 ```
-
-````
-
-````{tab-item} K8s
-:sync: k8s
-
-```bash
-juju integrate kafka:certificates self-signed-certificates
-```
-
-````
-
-`````
 
 ## (Optional) Trust external CAs for mTLS authentication
 
@@ -66,28 +47,9 @@ See the [mTLS client encryption](how-to-create-mtls-client-credentials) guide.
 
 To replace the auto-generated self-signed certificates used for inter-broker and broker-controller communication, integrate the Charmed Apache Kafka applications to the `tls-certificates` provider application via the `peer-certificates` relation interface:
 
-`````{tab-set}
-:sync-group: substrate
-
-````{tab-item} VM
-:sync: vm
-
 ```bash
 juju integrate kafka:peer-certificates <TLS-provider-charm>
 ```
-
-````
-
-````{tab-item} K8s
-:sync: k8s
-
-```bash
-juju integrate kafka:peer-certificates <TLS-provider-charm>
-```
-
-````
-
-`````
 
 If the KRaft controllers run in a separate application, integrate it as well:
 
@@ -103,12 +65,6 @@ By default, Charmed Apache Kafka applications will generate their own internal p
 
 First, generate (or otherwise obtain) a private keys for each Charmed Apache Kafka unit. For example, if you have three `kafka` units, generate external private keys for each one:
 
-`````{tab-set}
-:sync-group: substrate
-
-````{tab-item} VM
-:sync: vm
-
 ```bash
 openssl genrsa -out kafka-0.key 4096
 openssl genrsa -out kafka-1.key 4096
@@ -121,30 +77,6 @@ Then, add these external private keys to a new Juju secret:
 juju add-secret external-kafka-pks kafka-0="$(cat kafka-0.key)" kafka-1="$(cat kafka-1.key)" kafka-2="$(cat kafka-2.key)"
 ```
 
-````
-
-````{tab-item} K8s
-:sync: k8s
-
-```bash
-openssl genrsa -out kafka-k8s-0.key 4096
-openssl genrsa -out kafka-k8s-1.key 4096
-openssl genrsa -out kafka-k8s-2.key 4096
-```
-
-Then add the keys to a Juju secret:
-
-```bash
-juju add-secret external-kafka-pks \
-  kafka-k8s-0="$(cat kafka-k8s-0.key)" \
-  kafka-k8s-1="$(cat kafka-k8s-1.key)" \
-  kafka-k8s-2="$(cat kafka-k8s-2.key)"
-```
-
-````
-
-`````
-
 Take note of the `secret-id` in the response — it will be needed in the final
 configuration step below.
 
@@ -154,28 +86,9 @@ The Juju secret keys **MUST** follow the naming constraint of `<kafka-applicatio
 
 Grant the Charmed Apache Kafka application access to the new Juju secret:
 
-`````{tab-set}
-:sync-group: substrate
-
-````{tab-item} VM
-:sync: vm
-
 ```bash
 juju grant-secret external-kafka-pks kafka
 ```
-
-````
-
-````{tab-item} K8s
-:sync: k8s
-
-```bash
-juju grant-secret external-kafka-pks kafka
-```
-
-````
-
-`````
 
 <details> <summary> Output example</summary>
 
@@ -189,28 +102,9 @@ secret:d2k6hv8co3bs4tge0c8g
 
 Finally, update the Charmed Apache Kafka application configuration to notify it of the new secret:
 
-`````{tab-set}
-:sync-group: substrate
-
-````{tab-item} VM
-:sync: vm
-
 ```bash
 juju config kafka tls-private-key=secret:d2k6hv8co3bs4tge0c8g
 ```
-
-````
-
-````{tab-item} K8s
-:sync: k8s
-
-```bash
-juju config kafka tls-private-key=secret:d2k6hv8co3bs4tge0c8g
-```
-
-````
-
-`````
 
 Charmed Apache Kafka will read the new secret, and re-request new TLS certificates using the externally provided private key created earlier.
 
@@ -218,28 +112,9 @@ Charmed Apache Kafka will read the new secret, and re-request new TLS certificat
 
 To disable TLS encryption, remove the `certificates` relation with the `tls-certificates` provider application:
 
-`````{tab-set}
-:sync-group: substrate
-
-````{tab-item} VM
-:sync: vm
-
 ```bash
 juju remove-relation kafka:certificates <tls-certificates>
 ```
-
-````
-
-````{tab-item} K8s
-:sync: k8s
-
-```bash
-juju remove-relation kafka:certificates <tls-certificates>
-```
-
-````
-
-`````
 
 ```{note}
 If the same TLS provider application also provides internal certificates via the
