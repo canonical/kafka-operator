@@ -50,7 +50,14 @@ def tls_apps(kraft_mode):
 @pytest.mark.skip_if_deployed
 @pytest.mark.abort_on_fail
 def test_build_and_deploy(
-    juju: jubilant.Juju, kafka_charm, app_charm, kraft_mode, kafka_apps, tls_apps
+    juju: jubilant.Juju,
+    kafka_charm,
+    app_charm,
+    kraft_mode,
+    kafka_apps,
+    tls_apps,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
 ):
     deploy_cluster(
         juju=juju,
@@ -58,6 +65,8 @@ def test_build_and_deploy(
         kraft_mode=kraft_mode,
         num_broker=3,
         num_controller=3,
+        revision=test_charm_revision,
+        channel=test_charm_channel,
     )
     juju.deploy(app_charm, app=DUMMY_NAME, num_units=1, base=BASE)
     juju.deploy(TLS_NAME, app=TLS_APP_CLIENT, to="0", channel=TLS_CHANNEL)

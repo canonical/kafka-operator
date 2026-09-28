@@ -38,7 +38,13 @@ def _assert_password_updated(model_full_name: str, old_user: str, expected_passw
         assert False, "Password update assertion failed after 5 attempts."
 
 
-def test_build_and_deploy(juju: jubilant.Juju, kafka_charm, kraft_mode):
+def test_build_and_deploy(
+    juju: jubilant.Juju,
+    kafka_charm,
+    kraft_mode,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
+):
     deploy_cluster(
         juju=juju,
         charm=kafka_charm,
@@ -46,6 +52,8 @@ def test_build_and_deploy(juju: jubilant.Juju, kafka_charm, kraft_mode):
         config_broker={"expose-external": "nodeport"},
         num_broker=3,
         num_controller=3,
+        revision=test_charm_revision,
+        channel=test_charm_channel,
     )
 
 

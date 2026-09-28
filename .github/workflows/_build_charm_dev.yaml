@@ -18,7 +18,7 @@ on:
         description: |
           charmcraft snap channel
         required: false
-        default: latest/stable
+        default: latest/edge  # FIXME: bump to stable when monorepo feature lands there.
         type: string
       lxd-snap-channel:
         description: |
@@ -98,15 +98,8 @@ jobs:
           sudo iptables -F FORWARD
           sudo iptables -P FORWARD ACCEPT
 
-          # FIXME: install from a channel
-          # sudo snap install charmcraft --classic --channel ${{ inputs.charmcraft-snap-channel }}
+          sudo snap install charmcraft --classic --channel ${{ inputs.charmcraft-snap-channel }}
           sudo snap install --classic astral-uv
-          git clone https://github.com/canonical/charmcraft \
-            --branch work/CHARMCRAFT-710-prototype \
-            ~/charmcraft
-
-          pushd ~/charmcraft && uv run charmcraft --version && popd
-          ln -sf $(realpath ~/charmcraft/.venv/bin/charmcraft) /usr/local/bin/charmcraft
       - run: snap list
       - name: Pack charm
         id: pack

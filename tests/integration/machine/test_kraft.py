@@ -100,7 +100,15 @@ class TestKRaft:
 
     @pytest.mark.abort_on_fail
     @pytest.mark.skip_if_deployed
-    async def test_build_and_deploy(self, ops_test: OpsTest, kafka_charm, app_charm, kraft_mode):
+    async def test_build_and_deploy(
+        self,
+        ops_test: OpsTest,
+        kafka_charm,
+        app_charm,
+        kraft_mode,
+        test_charm_revision: int | None,
+        test_charm_channel: str | None,
+    ):
 
         await asyncio.gather(
             ops_test.model.deploy(
@@ -113,6 +121,8 @@ class TestKRaft:
                     "profile": "testing",
                 },
                 trust=True,
+                revision=test_charm_revision,
+                channel=test_charm_channel,
             ),
             ops_test.model.deploy(
                 app_charm,
@@ -134,6 +144,8 @@ class TestKRaft:
                     "profile": "testing",
                 },
                 trust=True,
+                revision=test_charm_revision,
+                channel=test_charm_channel,
             )
 
         status = "active" if self.controller_app == APP_NAME else "blocked"

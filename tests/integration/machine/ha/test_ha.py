@@ -53,11 +53,21 @@ BROKER_PORT = SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
 
 @pytest.mark.skip_if_deployed
 @pytest.mark.abort_on_fail
-def test_build_and_deploy(juju: jubilant.Juju, kafka_charm, app_charm, kraft_mode, kafka_apps):
+def test_build_and_deploy(
+    juju: jubilant.Juju,
+    kafka_charm,
+    app_charm,
+    kraft_mode,
+    kafka_apps,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
+):
     deploy_cluster(
         juju=juju,
         charm=kafka_charm,
         kraft_mode=kraft_mode,
+        revision=test_charm_revision,
+        channel=test_charm_channel,
     )
     juju.deploy(app_charm, app=DUMMY_NAME, num_units=1, base=BASE)
 
@@ -110,7 +120,12 @@ def test_replicated_events(juju: jubilant.Juju, kafka_apps):
     ]
 
 
-def test_multi_cluster_isolation(juju: jubilant.Juju, kafka_charm):
+def test_multi_cluster_isolation(
+    juju: jubilant.Juju,
+    kafka_charm,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
+):
     second_kafka_name = f"{APP_NAME}-two"
     second_controller_name = f"{CONTROLLER_NAME}-two"
 
@@ -120,6 +135,8 @@ def test_multi_cluster_isolation(juju: jubilant.Juju, kafka_charm):
         kraft_mode="multi",
         app_name_broker=second_kafka_name,
         app_name_controller=second_controller_name,
+        revision=test_charm_revision,
+        channel=test_charm_channel,
     )
 
     produce_and_check_logs(
