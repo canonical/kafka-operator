@@ -1,14 +1,16 @@
 ---
 myst:
   html_meta:
-    description: "Platform-independent guide to deploy Charmed Apache Kafka - set up Juju controller, model, and create admin users."
+    description: Platform-independent guide to deploy Charmed Apache Kafka - set up Juju controller, model, and create admin users.
 ---
 
 # How to deploy Charmed Apache Kafka
 
-This guide provides platform-independent deployment instructions for the **IAAS/VM** operator using the Juju CLI.
-Kubernetes deployments are covered in the [Charmed Apache Kafka K8s documentation](https://charmhub.io/kafka-k8s).
-Platform-specific steps are available for [AWS](how-to-deploy-on-aws) and [Azure](how-to-deploy-on-azure). Alternatively, you can [deploy via Terraform](how-to-deploy-terraform).
+This guide provides platform-independent deployment instructions for the **IAAS/VM** operator using
+the Juju CLI. Kubernetes deployments are covered in the
+[Charmed Apache Kafka K8s documentation](https://charmhub.io/kafka-k8s). Platform-specific steps are
+available for [AWS](how-to-deploy-on-aws) and [Azure](how-to-deploy-on-azure). Alternatively, you
+can [deploy via Terraform](how-to-deploy-terraform).
 
 (how-to-deploy-anywhere)=
 
@@ -19,18 +21,17 @@ To deploy a Charmed Apache Kafka cluster on a bare environment, it is necessary 
 3. Deploy Charmed Apache Kafka
 4. Create an external admin user
 
-In the next subsections, we will cover these steps separately by referring to
-relevant Juju documentation and providing details on the Charmed Apache Kafka specifics.
-If you already have a Juju controller and/or a Juju model, you can skip the associated steps.
+In the next subsections, we will cover these steps separately by referring to relevant Juju
+documentation and providing details on the Charmed Apache Kafka specifics. If you already have a
+Juju controller and/or a Juju model, you can skip the associated steps.
 
 ## Juju controller setup
 
-Make sure you have a Juju controller accessible from
-your local environment using the [Juju client snap](https://snapcraft.io/juju).
+Make sure you have a Juju controller accessible from your local environment using the
+[Juju client snap](https://snapcraft.io/juju).
 
-List available controllers:
-Make sure that the controller's back-end cloud is **not** Kubernetes-based.
-The cloud information can be retrieved with the following command
+List available controllers: Make sure that the controller's back-end cloud is **not**
+Kubernetes-based. The cloud information can be retrieved with the following command
 
 ```shell
 juju list-controllers
@@ -48,9 +49,14 @@ If there are no suitable controllers, create a new one:
 juju bootstrap <cloud> <controller>
 ```
 
-where `<cloud>` -- the cloud to deploy controller to, e.g. `localhost` if using a LXD cloud. For more information on how to set up a new cloud, see the [How to manage clouds](https://canonical.com/juju/docs/juju-cli/latest/howto/manage-clouds/index.html) guide in Juju documentation.
+where `<cloud>` -- the cloud to deploy controller to, e.g. `localhost` if using a LXD cloud. For
+more information on how to set up a new cloud, see the
+[How to manage clouds](https://canonical.com/juju/docs/juju-cli/latest/howto/manage-clouds/index.html)
+guide in Juju documentation.
 
-For more Juju controller setup guidance, see the [How to manage controllers](https://canonical.com/juju/docs/juju-cli/3.6/howto/manage-controllers/) guide in Juju documentation.
+For more Juju controller setup guidance, see the
+[How to manage controllers](https://canonical.com/juju/docs/juju-cli/3.6/howto/manage-controllers/)
+guide in Juju documentation.
 
 ## Juju model setup
 
@@ -84,9 +90,11 @@ juju deploy kafka -n <controller-units> --config roles=controller --channel 4/st
 - `<broker-units>` -- the number of units to deploy for Charmed Apache Kafka brokers
 - `<controller-units>` -- the number of units to deploy for KRaft controllers
 
-To maintain high-availability of topic partitions, `3+` broker units and `3` or `5` controller units are recommended.
+To maintain high-availability of topic partitions, `3+` broker units and `3` or `5` controller units
+are recommended.
 
-To exchange credentials and endpoints between the two clusters, integrate the broker and controller applications:
+To exchange credentials and endpoints between the two clusters, integrate the broker and controller
+applications:
 
 ```shell
 juju integrate kafka:peer-cluster-orchestrator controller:peer-cluster
@@ -102,7 +110,8 @@ The deployment should be complete once all the units show `active` and `idle` st
 
 ## (Alternative) Deploy Charmed Apache Kafka for testing
 
-In order to save resources for very-small, non-production test and staging clusters, it is possible to co-locate both the KRaft controller services and the broker services in to a single application.
+In order to save resources for very-small, non-production test and staging clusters, it is possible
+to co-locate both the KRaft controller services and the broker services in to a single application.
 
 ```{warning}
 This is not recommended for any production deployments. Apache Kafka brokers rely on the KRaft controllers to coordinate -- if both services go down at the same time, the risk of cluster instability increases
@@ -126,19 +135,19 @@ The deployment should be complete once all the units show `active` or `idle` sta
 
 ## (Optional) Create an external admin user
 
-Charmed Apache Kafka aims to follow the _secure by default_ paradigm.
-As a consequence, after being deployed the Apache Kafka cluster
-won't expose any external listeners -- the cluster will be unreachable.
-Ports are only opened when client applications are integrated.
+Charmed Apache Kafka aims to follow the _secure by default_ paradigm. As a consequence, after being
+deployed the Apache Kafka cluster won't expose any external listeners -- the cluster will be
+unreachable. Ports are only opened when client applications are integrated.
 
 ```{note}
 For more information about the available listeners and protocols please refer to [this table](reference-broker-listeners). 
 ```
 
-For most cluster administrators, it may be most helpful to create a user with the `admin` role, which has `super.user` permissions on the Apache Kafka cluster.
+For most cluster administrators, it may be most helpful to create a user with the `admin` role,
+which has `super.user` permissions on the Apache Kafka cluster.
 
-To create an admin user, deploy the [Data Integrator Charm](https://charmhub.io/data-integrator) with
-`extra-user-roles` set to `admin`:
+To create an admin user, deploy the [Data Integrator Charm](https://charmhub.io/data-integrator)
+with `extra-user-roles` set to `admin`:
 
 ```shell
 juju deploy data-integrator --config topic-name="__admin-user" --config extra-user-roles="admin"
