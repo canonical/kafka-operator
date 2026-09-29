@@ -11,6 +11,12 @@ myst:
 The pages in this section aim to provide additional context and deeper understanding of foundational
 topics and concepts relevant to Charmed Apache Kafka.
 
+## Components
+
+The [Components overview](explanation-components) page maps out the whole family of Charmed Apache
+Kafka components — core charms, Kafka Connect and its integrators, Karapace, Kafka UI, Data
+Integrator, and the Terraform modules — with links to Charmhub, GitHub, and the Snap Store.
+
 ## Security
 
 Secure deployments of Charmed Apache Kafka can be achieved through using recommended configurations,
@@ -40,6 +46,7 @@ titlesonly:
 maxdepth: 2
 hidden:
 ---
+Components<components.md>
 Security<security.md>
 Cryptography<cryptography.md>
 Backups<backups.md>
