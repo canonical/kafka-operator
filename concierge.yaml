@@ -19,10 +19,14 @@ providers:
 
   lxd:
     enable: true
-    bootstrap: false
+    bootstrap: true
     channel: latest/stable
 
 host:
   snaps:
     charmcraft:
       channel: 3.x/stable
+    jhack:
+      channel: latest/edge
+      connections:
+        - jhack:dot-local-share-juju snapd

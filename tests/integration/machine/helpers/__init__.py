@@ -70,7 +70,7 @@ def deploy_identity_platform(git_tag: str = "v1.0.0") -> None:
     """)
 
 
-def get_controller_name(cloud: Literal["localhost", "microk8s"]) -> str | None:
+def get_controller_name(cloud: Literal["localhost", "microk8s", "k8s"]) -> str | None:
     """Gets controller name for specified cloud, i.e. localhost, microk8s."""
     res = json.loads(_exec("juju controllers --format json"))
     for controller in res.get("controllers", {}):
