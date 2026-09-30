@@ -53,7 +53,7 @@ env:
 
 jobs:
   integration-test:
-    name: Integration test
+    name: ${{ inputs.tox-env }} ${{ inputs.extra-tox-args }}
     permissions:
       contents: read
     runs-on: ${{ fromJSON(format('["self-hosted","linux","AMD64","X64","{0}","noble"]', inputs.runner-size)) }}
