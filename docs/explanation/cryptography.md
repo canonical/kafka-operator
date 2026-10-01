@@ -1,21 +1,24 @@
 ---
 myst:
   html_meta:
-    description: "Cryptography in Charmed Apache Kafka - resource checksums, source verification, encryption, and authentication protocols."
+    description: Cryptography in Charmed Apache Kafka - resource checksums, source verification, encryption, and authentication protocols.
 ---
 
 (explanation-cryptography)=
+
 # Cryptography
 
 This document describes the cryptography used by Charmed Apache Kafka.
 
 ## Resource checksums
 
-Charmed Apache Kafka uses a pinned workload artefact to provide reproducible and secure environments.
+Charmed Apache Kafka uses a pinned workload artefact to provide reproducible and secure
+environments.
 
 `````{tab-set}
-:sync-group: substrate
-
+---
+sync-group: substrate
+---
 ````{tab-item} VM
 :sync: vm
 
@@ -34,59 +37,72 @@ workload image for the K8s charm.
 
 `````
 
-For details, refer to the [`snapcraft.yaml`](https://github.com/canonical/charmed-kafka-snap/blob/4/edge/snap/snapcraft.yaml).
+For details, refer to the
+[`snapcraft.yaml`](https://github.com/canonical/charmed-kafka-snap/blob/4/edge/snap/snapcraft.yaml).
 
-Every artefact included in the snap is verified against its SHA-256 or SHA-512 checksum after download.
-For K8s, installation of the certified snap into the rock is additionally verified
-through snap assertions and Squashfs GPG signatures. See the
+Every artefact included in the snap is verified against its SHA-256 or SHA-512 checksum after
+download. For K8s, installation of the certified snap into the rock is additionally verified through
+snap assertions and Squashfs GPG signatures. See the
 [Snapcraft assertion documentation](https://snapcraft.io/docs/assertions).
 
 ## Sources verification
 
 Charmed Apache Kafka sources are stored in:
 
-* GitHub repositories for snaps, rocks, and charms
-* Launchpad repositories for the Apache Kafka upstream fork for building from the source
+- GitHub repositories for snaps, rocks, and charms
+- Launchpad repositories for the Apache Kafka upstream fork for building from the source
 
 ### Launchpad
 
-Distributions are built using private repositories only, hosted as part of the [SOSS namespace](https://launchpad.net/soss) (private) to eventually
-integrate with Canonical's standard process for fixing CVE.
-Branches associated with releases are mirrored to a public repository, hosted in the [Data Platform namespace](https://launchpad.net/~data-platform)
-to also provide the community with the patched source code.
+Distributions are built using private repositories only, hosted as part of the
+[SOSS namespace](https://launchpad.net/soss) (private) to eventually integrate with Canonical's
+standard process for fixing CVE. Branches associated with releases are mirrored to a public
+repository, hosted in the [Data Platform namespace](https://launchpad.net/~data-platform) to also
+provide the community with the patched source code.
 
 ### GitHub
 
-All Apache Kafka artefacts built by Canonical are published and released programmatically using GitHub Actions release pipelines. 
-Distributions are published as both GitHub and Launchpad releases via the [central-uploader repository](https://github.com/canonical/central-uploader), while 
-charms, snaps and rocks are published using the workflows of their respective repositories. 
+All Apache Kafka artefacts built by Canonical are published and released programmatically using
+GitHub Actions release pipelines. Distributions are published as both GitHub and Launchpad releases
+via the [central-uploader repository](https://github.com/canonical/central-uploader), while charms,
+snaps and rocks are published using the workflows of their respective repositories.
 
 All repositories in GitHub are set up with branch protection rules, requiring:
 
-* new commits to be merged to main branches via pull request with at least 2 approvals from repository maintainers
-* new commits to be signed (e.g. using GPG keys)
-* developers to sign the [Canonical Contributor License Agreement (CLA)](https://ubuntu.com/legal/contributors)
+- new commits to be merged to main branches via pull request with at least 2 approvals from
+  repository maintainers
+- new commits to be signed (e.g. using GPG keys)
+- developers to sign the
+  [Canonical Contributor License Agreement (CLA)](https://ubuntu.com/legal/contributors)
 
 ## Encryption
 
-Charmed Apache Kafka can be used to deploy a secure Apache Kafka cluster that provides encryption-in-transit capabilities out of the box 
-for:
+Charmed Apache Kafka can be used to deploy a secure Apache Kafka cluster that provides
+encryption-in-transit capabilities out of the box for:
 
-* Inter-broker communications
-* Broker-controller communications
-* Client connections
+- Inter-broker communications
+- Broker-controller communications
+- Client connections
 
-By default, a Charmed Apache Kafka application will always use auto-generated self-signed TLS/SSL certificates for inter-broker and broker-controller communications.
-To support encrypted client connections, a Charmed Apache Kafka application needs to be integrated with TLS Certificate Provider charm, e.g. 
-`self-signed-certificates` operator. Certificate Signing Requests (CSRs) are generated for every unit using the `tls_certificates_interface` library that uses the `cryptography`
-Python library to create X.509 compatible certificates. The CSR is signed by the TLS Certificate Provider, returned to the units, and 
-stored in a password-protected PKCS 12 keystore file. The password of the keystore is stored in Juju secrets.
-The integration also provides the CA certificate, which is loaded into a password-protected JKS truststore file.
+By default, a Charmed Apache Kafka application will always use auto-generated self-signed TLS/SSL
+certificates for inter-broker and broker-controller communications. To support encrypted client
+connections, a Charmed Apache Kafka application needs to be integrated with TLS Certificate Provider
+charm, e.g. `self-signed-certificates` operator. Certificate Signing Requests (CSRs) are generated
+for every unit using the `tls_certificates_interface` library that uses the `cryptography` Python
+library to create X.509 compatible certificates. The CSR is signed by the TLS Certificate Provider,
+returned to the units, and stored in a password-protected PKCS 12 keystore file. The password of the
+keystore is stored in Juju secrets. The integration also provides the CA certificate, which is
+loaded into a password-protected JKS truststore file.
 
-When encryption is enabled, hostname verification is turned on for client connections, including both inter-broker and broker-controller communications. The cipher suite can 
-be customised by specifying a list of allowed cipher suites for external clients. This is done using the `ssl-cipher-suites` charm configuration option; see the configuration reference for [VM](https://charmhub.io/kafka/configure?channel=4/stable#ssl-cipher-suites) or [K8s](https://charmhub.io/kafka-k8s/configure?channel=4/stable#ssl-cipher-suites).
+When encryption is enabled, hostname verification is turned on for client connections, including
+both inter-broker and broker-controller communications. The cipher suite can be customised by
+specifying a list of allowed cipher suites for external clients. This is done using the
+`ssl-cipher-suites` charm configuration option; see the configuration reference for
+[VM](https://charmhub.io/kafka/configure?channel=4/stable#ssl-cipher-suites) or
+[K8s](https://charmhub.io/kafka-k8s/configure?channel=4/stable#ssl-cipher-suites).
 
-Encryption-at-rest is currently not supported, although it can be provided by the substrate (cloud or on-premises).
+Encryption-at-rest is currently not supported, although it can be provided by the substrate (cloud
+or on-premises).
 
 ## Authentication
 
@@ -98,14 +114,15 @@ In Charmed Apache Kafka, authentication layers can be enabled for:
 
 ### Inter-broker and broker-controller authentication
 
-Authentication between brokers and between brokers and KRaft controllers are based on the SCRAM-SHA-512 protocol. Usernames and passwords are exchanged via Juju secrets.
+Authentication between brokers and between brokers and KRaft controllers are based on the
+SCRAM-SHA-512 protocol. Usernames and passwords are exchanged via Juju secrets.
 
-The Apache Kafka username and password, used by brokers and controllers to authenticate one another, are stored in JAAS configuration files on the Charmed Apache Kafka units in plain text format.
+The Apache Kafka username and password, used by brokers and controllers to authenticate one another,
+are stored in JAAS configuration files on the Charmed Apache Kafka units in plain text format.
 
-These files are readable and writable by `root` (as they are created by the charm)
-and readable by the user running Apache Kafka. On VM that is the `_daemon_` user
-running the snap services; on K8s it is the `kafka` user running the workload
-process in the container.
+These files are readable and writable by `root` (as they are created by the charm) and readable by
+the user running Apache Kafka. On VM that is the `_daemon_` user running the snap services; on K8s
+it is the `kafka` user running the workload process in the container.
 
 ### Client authentication to Apache Kafka
 
@@ -115,12 +132,12 @@ Clients can authenticate to Apache Kafka using:
 2. client certificates or CA (mTLS)
 3. OAuth authentication through an identity provider
 
-The current [Canonical Identity Platform OAuth guide](how-to-enable-oauth)
-covers VM deployments only; K8s OAuth support is tracked separately.
+The current [Canonical Identity Platform OAuth guide](how-to-enable-oauth) covers VM deployments
+only; K8s OAuth support is tracked separately.
 
-When using SCRAM, the credentials are stored in three places: SCRAM **verifier
-material** (salt, iteration count, and derived keys — not the plaintext
-password) is stored in the KRaft controller metadata logs; the plaintext
-username and password appear in configuration files on the broker and
-controller units; and the credentials are also held in Juju secrets.
-When using mTLS, client certificates provided to the Apache Kafka cluster via Juju secrets by related charms are stored in password-protected JKS truststores.
+When using SCRAM, the credentials are stored in three places: SCRAM **verifier material** (salt,
+iteration count, and derived keys — not the plaintext password) is stored in the KRaft controller
+metadata logs; the plaintext username and password appear in configuration files on the broker and
+controller units; and the credentials are also held in Juju secrets. When using mTLS, client
+certificates provided to the Apache Kafka cluster via Juju secrets by related charms are stored in
+password-protected JKS truststores.

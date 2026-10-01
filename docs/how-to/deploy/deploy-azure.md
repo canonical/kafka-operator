@@ -1,21 +1,27 @@
 ---
 myst:
   html_meta:
-    description: "Deploy Charmed Apache Kafka on Microsoft Azure - installation, authentication, and managed identity configuration."
+    description: Deploy Charmed Apache Kafka on Microsoft Azure - installation, authentication, and managed identity configuration.
 ---
 
 (how-to-deploy-on-azure)=
+
 (how-to-deploy-on-aks)=
+
 # How to deploy on Azure
 
-[Azure](https://azure.com/) is the cloud computing platform developed by Microsoft. It has management, access and development of applications and services to individuals, companies, and governments through its global infrastructure. Access the Azure web console at [portal.azure.com](https://portal.azure.com/).
+[Azure](https://azure.com/) is the cloud computing platform developed by Microsoft. It has
+management, access and development of applications and services to individuals, companies, and
+governments through its global infrastructure. Access the Azure web console at
+[portal.azure.com](https://portal.azure.com/).
 
-Choose the target substrate. The VM procedure deploys machines through Juju's
-Azure cloud; the K8s procedure creates an Azure Kubernetes Service (AKS) cluster.
+Choose the target substrate. The VM procedure deploys machines through Juju's Azure cloud; the K8s
+procedure creates an Azure Kubernetes Service (AKS) cluster.
 
 `````{tab-set}
-:sync-group: substrate
-
+---
+sync-group: substrate
+---
 ````{tab-item} VM
 :sync: vm
 

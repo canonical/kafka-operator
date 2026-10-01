@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Set up your development environment for Charmed Apache Kafka using LXD, Juju, and command-line tools on Ubuntu."
+    description: Set up your development environment for Charmed Apache Kafka using LXD, Juju, and command-line tools on Ubuntu.
 ---
 
 <!-- test:spread
@@ -10,23 +10,27 @@ kill-timeout: 15m
 -->
 
 (tutorial-environment)=
+
 # 1. Set up the environment
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
-For this tutorial, we will need to set up the environment with two main components, and extra command-line tooling:
+For this tutorial, we will need to set up the environment with two main components, and extra
+command-line tooling:
 
-* A cloud provisioner -- [LXD](https://github.com/canonical/lxd) for the VM
-  substrate, or [MicroK8s](https://microk8s.io/) for the Kubernetes substrate
-* [Juju](https://github.com/juju/juju) - enables us to deploy and manage Charmed Apache Kafka and related applications
-* [yq](https://github.com/mikefarah/yq) - a command-line YAML processor
-* [jq](https://github.com/jqlang/jq) - a command-line JSON processor
+- A cloud provisioner -- [LXD](https://github.com/canonical/lxd) for the VM substrate, or
+  [MicroK8s](https://microk8s.io/) for the Kubernetes substrate
+- [Juju](https://github.com/juju/juju) - enables us to deploy and manage Charmed Apache Kafka and
+  related applications
+- [yq](https://github.com/mikefarah/yq) - a command-line YAML processor
+- [jq](https://github.com/jqlang/jq) - a command-line JSON processor
 
 ## Prepare the cloud
 
 `````{tab-set}
-:sync-group: substrate
-
+---
+sync-group: substrate
+---
 ````{tab-item} VM
 :sync: vm
 
@@ -100,9 +104,9 @@ sudo microk8s kubectl get pods -A
 
 ## Install and prepare Juju
 
-[Juju](https://juju.is/) is an Operator Lifecycle Manager (OLM) for clouds, bare metal,
-LXD or Kubernetes. We will be using it to deploy and manage Charmed Apache Kafka.
-As may be true for LXD, Juju is installed from a snap package:
+[Juju](https://juju.is/) is an Operator Lifecycle Manager (OLM) for clouds, bare metal, LXD or
+Kubernetes. We will be using it to deploy and manage Charmed Apache Kafka. As may be true for LXD,
+Juju is installed from a snap package:
 
 ```shell
 sudo snap install juju
@@ -120,16 +124,16 @@ Install `jq`, a JSON processor used in later steps:
 sudo snap install jq
 ```
 
-Juju already has built-in knowledge of LXD and MicroK8s and how they work, so
-there is no additional cloud setup or configuration needed. A Juju controller
-will be deployed, which will in turn manage the operations of Charmed Apache
-Kafka. All we need to do is bootstrap a Juju controller named `overlord`. This
-bootstrapping process can take several minutes depending on the resources
-available on your machine:
+Juju already has built-in knowledge of LXD and MicroK8s and how they work, so there is no additional
+cloud setup or configuration needed. A Juju controller will be deployed, which will in turn manage
+the operations of Charmed Apache Kafka. All we need to do is bootstrap a Juju controller named
+`overlord`. This bootstrapping process can take several minutes depending on the resources available
+on your machine:
 
 `````{tab-set}
-:sync-group: substrate
-
+---
+sync-group: substrate
+---
 ````{tab-item} VM
 :sync: vm
 
@@ -187,9 +191,8 @@ controller-0   3/3     Running   0          2m
 
 `````
 
-The controller can work with different models;
-models host applications such as Charmed Apache Kafka.
-Set up a specific model for Charmed Apache Kafka named `tutorial`:
+The controller can work with different models; models host applications such as Charmed Apache
+Kafka. Set up a specific model for Charmed Apache Kafka named `tutorial`:
 
 ```shell
 juju add-model tutorial
@@ -206,8 +209,9 @@ juju models | grep -q tutorial
 -->
 
 `````{tab-set}
-:sync-group: substrate
-
+---
+sync-group: substrate
+---
 ````{tab-item} VM
 :sync: vm
 

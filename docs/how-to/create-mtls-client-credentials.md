@@ -1,25 +1,30 @@
 ---
 myst:
   html_meta:
-    description: "Create mTLS client credentials for Charmed Apache Kafka - set up mutual TLS authentication with certificate generation and trust."
+    description: Create mTLS client credentials for Charmed Apache Kafka - set up mutual TLS authentication with certificate generation and trust.
 ---
 
 (how-to-create-mtls-client-credentials)=
+
 # Use mTLS for clients
 
 Requirements:
 
 - Charmed Apache Kafka cluster up and running
 - [Encryption enabled](how-to-tls-encryption)
-- [{spellexception}`Java Runtime Environment (JRE)`](https://ubuntu.com/tutorials/install-jre#1-overview) installed
+- [{spellexception}`Java Runtime Environment (JRE)`](https://ubuntu.com/tutorials/install-jre#1-overview)
+  installed
 - On VM, the [`charmed-kafka` snap](https://snapcraft.io/charmed-kafka) installed
 - [jq](https://snapcraft.io/jq) installed
 
-This guide includes step-by-step instructions on how to create mTLS credentials for a client application to be able to connect to a Charmed Apache Kafka cluster.
+This guide includes step-by-step instructions on how to create mTLS credentials for a client
+application to be able to connect to a Charmed Apache Kafka cluster.
 
 ## Create mTLS client credentials
 
-Each Apache Kafka mTLS client needs its own TLS certificate, which should be trusted by the Charmed Apache Kafka application. In a typical production environment, certificates are issued either by the organisation's PKI infrastructure, or trusted Certificate Authorities (CAs).
+Each Apache Kafka mTLS client needs its own TLS certificate, which should be trusted by the Charmed
+Apache Kafka application. In a typical production environment, certificates are issued either by the
+organisation's PKI infrastructure, or trusted Certificate Authorities (CAs).
 
 To generate a self-signed certificate in one prompt, use the following command:
 
@@ -29,11 +34,13 @@ openssl req -new -newkey rsa:4096 -days 365 -nodes -x509 -keyout client.key -out
 
 ## Create mutual trust relation: server -> client
 
-In order for the mTLS client to be able to communicate with the server (broker), the client should trust the broker's identity, and the broker should trust the client's identity. First, create the trust relation between the broker and the client.
+In order for the mTLS client to be able to communicate with the server (broker), the client should
+trust the broker's identity, and the broker should trust the client's identity. First, create the
+trust relation between the broker and the client.
 
-To trust client certificates, use the `certificate_transfer` relation interface
-through the `client-cas` endpoint. Deploy the `tls-certificates-operator`
-application and configure it to use the generated client certificate:
+To trust client certificates, use the `certificate_transfer` relation interface through the
+`client-cas` endpoint. Deploy the `tls-certificates-operator` application and configure it to use
+the generated client certificate:
 
 ```bash
 juju deploy tls-certificates-operator \
@@ -49,12 +56,14 @@ Next, integrate the operator application with the Charmed Apache Kafka applicati
 juju integrate kafka:client-cas mtls-app
 ```
 
-Alternatively, a charmed client supporting the `kafka_client` interface can
-provide its certificate directly in relation data through the `mtls-cert` field.
+Alternatively, a charmed client supporting the `kafka_client` interface can provide its certificate
+directly in relation data through the `mtls-cert` field.
 
 ## Retrieve broker's CA certificate
 
-The client needs to trust the broker's certificate. If you have followed the [Enable Encryption](how-to-tls-encryption) tutorial, you are using the `self-signed-certificates` charmed operator and can retrieve the root CA certificate executing the following command:
+The client needs to trust the broker's certificate. If you have followed the
+[Enable Encryption](how-to-tls-encryption) tutorial, you are using the `self-signed-certificates`
+charmed operator and can retrieve the root CA certificate executing the following command:
 
 ```bash
 juju run self-signed-certificates/0 get-ca-certificate
@@ -90,7 +99,8 @@ ca-certificate: |-
   -----END CERTIFICATE-----
 ```
 
-Copy the certificate content into a file named `server.pem` and save it. You can also do that using a single command:
+Copy the certificate content into a file named `server.pem` and save it. You can also do that using
+a single command:
 
 ```bash
 juju run self-signed-certificates/0 get-ca-certificate --format json | jq -r '."self-signed-certificates/0"."results"."ca-certificate"' > server.pem
@@ -98,11 +108,15 @@ juju run self-signed-certificates/0 get-ca-certificate --format json | jq -r '."
 
 ## Create mutual trust relation: client -> server
 
-Depending on the type of the client application, there might be different ways to trust. In this guide, we are using the console-based apps shipped with the `charmed-kafka` snap, which depend on Java keystore/truststores. Follow the steps below to create necessary Java keystore and truststore artefacts for the client application.
+Depending on the type of the client application, there might be different ways to trust. In this
+guide, we are using the console-based apps shipped with the `charmed-kafka` snap, which depend on
+Java keystore/truststores. Follow the steps below to create necessary Java keystore and truststore
+artefacts for the client application.
 
 ### Create client's keystore
 
-To create the client's keystore, first store the passwords used for the keystores in some environment variables:
+To create the client's keystore, first store the passwords used for the keystores in some
+environment variables:
 
 ```bash
 KAFKA_CLIENT_KEYSTORE_PASSWORD=changeme
@@ -148,23 +162,30 @@ keytool -list -keystore client.truststore.jks -storepass $KAFKA_CLIENT_TRUSTSTOR
 
 ## Define the client's credentials on the Apache Kafka cluster
 
-Since you are using TLS certificates for authentication, you need to provide a way to map the client's certificate to usernames defined on the Apache Kafka cluster.
+Since you are using TLS certificates for authentication, you need to provide a way to map the
+client's certificate to usernames defined on the Apache Kafka cluster.
 
-In Charmed Apache Kafka, this is done using the `ssl-principal-mapping-rules` configuration option, which defines how the certificate's common name is translated into a username, using a regex (see [Apache Kafka's official documentation](https://kafka.apache.org/41/security/encryption-and-authentication-using-ssl/) for more details on the syntax):
+In Charmed Apache Kafka, this is done using the `ssl-principal-mapping-rules` configuration option,
+which defines how the certificate's common name is translated into a username, using a regex (see
+[Apache Kafka's official documentation](https://kafka.apache.org/41/security/encryption-and-authentication-using-ssl/)
+for more details on the syntax):
 
 ```bash
 juju config kafka ssl-principal-mapping-rules='RULE:^.*[Cc][Nn]=([a-zA-Z0-9\.-]*).*$/$1/L,DEFAULT'
 ```
 
-This command will trigger a rolling restart of the charmed Apache Kafka application. Once the application settles to `active|idle` status, you can proceed to the next step.
+This command will trigger a rolling restart of the charmed Apache Kafka application. Once the
+application settles to `active|idle` status, you can proceed to the next step.
 
 ## Add authorisation rules via ACLs for the client
 
-To add authorisation rules for the mTLS client, first save the broker's connection information and configuration path into some environment variables:
+To add authorisation rules for the mTLS client, first save the broker's connection information and
+configuration path into some environment variables:
 
 `````{tab-set}
-:sync-group: substrate
-
+---
+sync-group: substrate
+---
 ````{tab-item} VM
 :sync: vm
 
@@ -191,19 +212,25 @@ KAFKA_CFG_PATH=/etc/kafka
 
 `````
 
-Next, create the `KAFKA_CLIENT_MTLS_CN` environment variable holding client's certificate common name, this should be all lower-case because of the L suffix in the `ssl-principal-mapping-rules` configured before:
+Next, create the `KAFKA_CLIENT_MTLS_CN` environment variable holding client's certificate common
+name, this should be all lower-case because of the L suffix in the `ssl-principal-mapping-rules`
+configured before:
 
 ```bash
 KAFKA_CLIENT_MTLS_CN=testclient
 ```
 
-`testclient` is what the actual Apache Kafka username will be, given the SSL principal mapping rules configured before. Those rules will map the common name of the certificate (i.e. `CN=TestClient`) to `testclient`.
+`testclient` is what the actual Apache Kafka username will be, given the SSL principal mapping rules
+configured before. Those rules will map the common name of the certificate (i.e. `CN=TestClient`) to
+`testclient`.
 
-Finally, grant read and write privileges to the mTLS client user over `--group`, `--topic` and `--transactional-id` resources:
+Finally, grant read and write privileges to the mTLS client user over `--group`, `--topic` and
+`--transactional-id` resources:
 
 `````{tab-set}
-:sync-group: substrate
-
+---
+sync-group: substrate
+---
 ````{tab-item} VM
 :sync: vm
 
@@ -253,8 +280,9 @@ juju ssh --container kafka kafka/leader "
 To test the client's access, first create a file called `client-mtls.properties`:
 
 `````{tab-set}
-:sync-group: substrate
-
+---
+sync-group: substrate
+---
 ````{tab-item} VM
 :sync: vm
 
@@ -336,4 +364,3 @@ juju ssh --container kafka kafka/0 \
 `````
 
 You should see: `Created topic TEST` in the output.
-

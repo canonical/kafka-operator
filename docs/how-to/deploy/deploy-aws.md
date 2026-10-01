@@ -1,21 +1,26 @@
 ---
 myst:
   html_meta:
-    description: "Deploy Charmed Apache Kafka on AWS EC2 - complete guide with Juju setup, authentication, and cluster deployment."
+    description: Deploy Charmed Apache Kafka on AWS EC2 - complete guide with Juju setup, authentication, and cluster deployment.
 ---
 
 (how-to-deploy-on-aws)=
+
 (how-to-deploy-on-eks)=
+
 # How to deploy on AWS
 
-[Amazon Web Services](https://aws.amazon.com/) is a popular subsidiary of Amazon that provides on-demand cloud computing platforms on a metered pay-as-you-go basis. Access the AWS web console at [{spellexception}`console.aws.amazon.com`](https://console.aws.amazon.com/).
+[Amazon Web Services](https://aws.amazon.com/) is a popular subsidiary of Amazon that provides
+on-demand cloud computing platforms on a metered pay-as-you-go basis. Access the AWS web console at
+[{spellexception}`console.aws.amazon.com`](https://console.aws.amazon.com/).
 
-Choose the target substrate. The VM procedure uses EC2 through Juju's AWS cloud;
-the K8s procedure creates an Amazon Elastic Kubernetes Service (EKS) cluster.
+Choose the target substrate. The VM procedure uses EC2 through Juju's AWS cloud; the K8s procedure
+creates an Amazon Elastic Kubernetes Service (EKS) cluster.
 
 `````{tab-set}
-:sync-group: substrate
-
+---
+sync-group: substrate
+---
 ````{tab-item} VM
 :sync: vm
 

@@ -1,18 +1,20 @@
 ---
 myst:
   html_meta:
-    description: "Charmed Apache Kafka file system paths reference - binary, configuration, logs, and data directory locations in Charmed Apache Kafka."
+    description: Charmed Apache Kafka file system paths reference - binary, configuration, logs, and data directory locations in Charmed Apache Kafka.
 ---
 
 (reference-file-system-paths)=
+
 # File system paths
 
-Paths differ because the VM charm installs the workload as a snap while the K8s
-charm runs it in an OCI workload container.
+Paths differ because the VM charm installs the workload as a snap while the K8s charm runs it in an
+OCI workload container.
 
 `````{tab-set}
-:sync-group: substrate
-
+---
+sync-group: substrate
+---
 ````{tab-item} VM
 :sync: vm
 
@@ -64,15 +66,21 @@ juju ssh --container kafka kafka/leader 'ls /var/log/kafka'
 
 ## Configuration
 
-- **`$CONF/server.properties`** - the full configuration file for the broker and KRaft controller services
-- **`$CONF/client.properties`** - a minimal configuration file for making client connections to brokers with SASL authentication and SSL encryption
+- **`$CONF/server.properties`** - the full configuration file for the broker and KRaft controller
+  services
+- **`$CONF/client.properties`** - a minimal configuration file for making client connections to
+  brokers with SASL authentication and SSL encryption
   - For internal administrator usage only
-    - `--command-config $CONF/client.properties` is often used as an argument when running Kafka CLI commands either directly, or via the snap commands
-- **`$CONF/kraft-client.properties`** - the minimal configuration file for making client connections to KRaft controllers with SASL authentication and SSL encryption
+    - `--command-config $CONF/client.properties` is often used as an argument when running Kafka CLI
+      commands either directly, or via the snap commands
+- **`$CONF/kraft-client.properties`** - the minimal configuration file for making client connections
+  to KRaft controllers with SASL authentication and SSL encryption
   - For internal administrator usage only
-- **`$CONF/peer-keystore.p12` + `$CONF/peer-truststore.jks`** - the Java keystore and truststore used for inter-broker and broker-controller SSL encryption
+- **`$CONF/peer-keystore.p12` + `$CONF/peer-truststore.jks`** - the Java keystore and truststore
+  used for inter-broker and broker-controller SSL encryption
   - Passwords to the keystore and truststore are stored in Juju secrets
-- **`$CONF/client-keystore.p12` + `$CONF/client-truststore.jks`** - the Java keystore and truststore used for client SSL encryption
+- **`$CONF/client-keystore.p12` + `$CONF/client-truststore.jks`** - the Java keystore and truststore
+  used for client SSL encryption
   - Passwords to the keystore and truststore are stored in Juju secrets
 - **`$CONF/cruisecontrol.properties`**, **`$CONF/cruise_control_jaas.conf`**, and
   **`$CONF/capacityJBOD.json`** contain the Cruise Control configuration.
@@ -88,14 +96,17 @@ juju ssh --container kafka kafka/leader 'ls /var/log/kafka'
 
 ## Apache Kafka binaries
 
-- **`$BIN/bin/*.sh`** - general bash scripts provided from upstream Apache Kafka, with utilities for managing and interacting with the cluster
-  - On VM, these are typically exposed as snap commands; for example,
-    `kafka-topics.sh` can be invoked with `charmed-kafka.topics`.
+- **`$BIN/bin/*.sh`** - general bash scripts provided from upstream Apache Kafka, with utilities for
+  managing and interacting with the cluster
+  - On VM, these are typically exposed as snap commands; for example, `kafka-topics.sh` can be
+    invoked with `charmed-kafka.topics`.
   - On K8s, run the scripts in the `kafka` workload container.
 
 ## Message data and cluster metadata
 
-- **`$DATA/data/*`** - the `data` storage directory where the raw Apache Kafka message data is persisted to disk
-  - Each Juju mounted JBOD storage directory will have an integer identifier matching a subdirectory in `$DATA/data/`
-  - Find these directories with `juju status --storage kafka | grep data/` on VM
-    or `juju status --storage kafka | grep data/` on K8s.
+- **`$DATA/data/*`** - the `data` storage directory where the raw Apache Kafka message data is
+  persisted to disk
+  - Each Juju mounted JBOD storage directory will have an integer identifier matching a subdirectory
+    in `$DATA/data/`
+  - Find these directories with `juju status --storage kafka | grep data/` on VM or
+    `juju status --storage kafka | grep data/` on K8s.

@@ -17,7 +17,6 @@ from .helpers import ACTIONS, CONFIG, METADATA, ConnectCharm
 @pytest.fixture(autouse=True)
 def workload(monkeypatch):
     """Workload with completely mocked functionality."""
-    monkeypatch.undo()
     monkeypatch.setattr(
         f"single_kernel_kafka.workload.ConnectWorkload{SUBSTRATE_CLS}.exec", Mock()
     )

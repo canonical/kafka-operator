@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Rebalance Charmed Apache Kafka partitions using Cruise Control - optimize resource distribution when scaling brokers."
+    description: Rebalance Charmed Apache Kafka partitions using Cruise Control - optimize resource distribution when scaling brokers.
 ---
 
 <!-- test:spread
@@ -10,21 +10,21 @@ kill-timeout: 90m
 -->
 
 (tutorial-rebalance-partitions)=
+
 # 7. Rebalance and reassign partitions
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
-By default, when adding more brokers to a Charmed Apache Kafka cluster, the current
-allocated partitions on the original brokers are not automatically redistributed across
-the new brokers. This can lead to inefficient resource usage and over-provisioning.
-On the other hand, when removing brokers to reduce capacity, partitions assigned
-to the removed brokers are also not redistributed, which can result in under-replicated data
-at best and permanent data loss at worst.
+By default, when adding more brokers to a Charmed Apache Kafka cluster, the current allocated
+partitions on the original brokers are not automatically redistributed across the new brokers. This
+can lead to inefficient resource usage and over-provisioning. On the other hand, when removing
+brokers to reduce capacity, partitions assigned to the removed brokers are also not redistributed,
+which can result in under-replicated data at best and permanent data loss at worst.
 
 To address this, we can make use of
-[LinkedIn's Cruise Control](https://github.com/linkedin/cruise-control), which is bundled as part
-of the Charmed Apache Kafka [snap](https://github.com/canonical/charmed-kafka-snap)
-and [rock](https://github.com/canonical/charmed-kafka-rock).
+[LinkedIn's Cruise Control](https://github.com/linkedin/cruise-control), which is bundled as part of
+the Charmed Apache Kafka [snap](https://github.com/canonical/charmed-kafka-snap) and
+[rock](https://github.com/canonical/charmed-kafka-rock).
 
 <!-- At a high level, Cruise Control is made up of the following five components:
 
@@ -34,16 +34,16 @@ and [rock](https://github.com/canonical/charmed-kafka-rock).
 - **Web server** - a REST API for user operations
 - **Executor** - issues re-allocation commands to Apache Kafka -->
 
-The Charmed Apache Kafka charm has a configuration option `roles`, which takes
-a list of possible values. Different roles can be configured to run on the same machine,
-or as separate Juju applications.
+The Charmed Apache Kafka charm has a configuration option `roles`, which takes a list of possible
+values. Different roles can be configured to run on the same machine, or as separate Juju
+applications.
 
-The `balancer` role is required to run the Cruise Control.
-We will need to add this role to one of the existing Juju applications:
-either `kafka` with the `broker` role, or `kraft` with the `controller` role.
+The `balancer` role is required to run the Cruise Control. We will need to add this role to one of
+the existing Juju applications: either `kafka` with the `broker` role, or `kraft` with the
+`controller` role.
 
-We recommend combining `controller` and `balancer` role together on the `kraft` application,
-due to higher performance demands of the `broker` role.
+We recommend combining `controller` and `balancer` role together on the `kraft` application, due to
+higher performance demands of the `broker` role.
 
 ## Setup
 
@@ -63,6 +63,7 @@ identical for VM and Kubernetes deployments.
 Wait for the status to become `active`/`idle`:
 
 <!-- test:skip -->
+
 ```shell
 watch juju status --color
 ```
@@ -72,8 +73,9 @@ watch juju status --color
 Let's scale-out the Charmed Apache Kafka application to four units (add one more):
 
 `````{tab-set}
-:sync-group: substrate
-
+---
+sync-group: substrate
+---
 ````{tab-item} VM
 :sync: vm
 
@@ -105,6 +107,7 @@ test "$(juju status --format json | jq '.applications.kafka.units | length')" -e
 Wait for the additional unit to be fully deployed and active:
 
 <!-- test:skip -->
+
 ```shell
 watch juju status --color
 ```
@@ -114,13 +117,13 @@ command: juju show-unit kafka/0 --format json | jq -r '."kafka/0"."public-addres
 KAFKA_UNIT_IP: unit-ip
 -->
 
-By default, no partitions are allocated for the new unit `3`,
-that should have broker id `103`.
+By default, no partitions are allocated for the new unit `3`, that should have broker id `103`.
 Check that via the log directory assignment:
 
 `````{tab-set}
-:sync-group: substrate
-
+---
+sync-group: substrate
+---
 ````{tab-item} VM
 :sync: vm
 
@@ -152,12 +155,13 @@ juju ssh --container kafka kafka/leader \
 
 `````
 
-This should produce output similar to the result seen below,
-with no partitions allocated by default:
+This should produce output similar to the result seen below, with no partitions allocated by
+default:
 
 `````{tab-set}
-:sync-group: substrate
-
+---
+sync-group: substrate
+---
 ````{tab-item} VM
 :sync: vm
 
@@ -196,15 +200,16 @@ with no partitions allocated by default:
 
 `````
 
-See [File system paths](reference-file-system-paths) for the full mapping of
-VM snap paths to container paths.
+See [File system paths](reference-file-system-paths) for the full mapping of VM snap paths to
+container paths.
 
-Now, let's run the `rebalance` action to allocate some existing partitions
-from other brokers (`0`, `1` and `2`) to broker `3`:
+Now, let's run the `rebalance` action to allocate some existing partitions from other brokers (`0`,
+`1` and `2`) to broker `3`:
 
 <!-- test:retry --timeout 2400 --interval 120 --description "Cruise Control readiness" -- juju run kraft/leader rebalance mode=add brokerid=103 --wait=2m -->
 
 <!-- test:skip -->
+
 ```shell
 juju run kraft/leader rebalance mode=add brokerid=103 --wait=2m
 ```
@@ -217,9 +222,9 @@ Cruise Control takes a long time (sometimes more than an hour) to collect suffic
 from an Apache Kafka cluster during a cold deployment.
 ```
 
-By default, the `rebalance` action runs as a "dryrun", where the returned result
-is what **would** happen were the partition rebalance actually executed.
-The action output has detailed information on the proposed allocation.
+By default, the `rebalance` action runs as a "dryrun", where the returned result is what **would**
+happen were the partition rebalance actually executed. The action output has detailed information on
+the proposed allocation.
 
 For example, the **summary** section might look similar to this:
 
@@ -241,8 +246,8 @@ summary:
   recentwindows: "1"
 ```
 
-If we are happy with this proposal, we can re-run the action,
-but this time instructing the charm to actually execute the proposal:
+If we are happy with this proposal, we can re-run the action, but this time instructing the charm to
+actually execute the proposal:
 
 ```shell
 juju run kraft/leader rebalance mode=add dryrun=false brokerid=103 --wait=10m
@@ -250,9 +255,8 @@ juju run kraft/leader rebalance mode=add dryrun=false brokerid=103 --wait=10m
 
 <!-- test:await-idle --timeout 1200 --allow-blocked opensearch -->
 
-Partition rebalancing can take significant time.
-To monitor the progress, in a separate terminal session, check the `juju debug-log` command output
-to see it in progress:
+Partition rebalancing can take significant time. To monitor the progress, in a separate terminal
+session, check the `juju debug-log` command output to see it in progress:
 
 ```text
 unit-kraft-0: 22:18:41 INFO unit.kraft/0.juju-log Waiting for task execution to finish for user_task_id='d3e426a3-6c2e-412e-804c-8a677f2678af'...
@@ -262,12 +266,13 @@ unit-kraft-0: 22:19:12 INFO unit.kraft/0.juju-log Waiting for task execution to 
 ...
 ```
 
-Once the action is complete, verify the partitions on the newly added unit
-using the same commands as before:
+Once the action is complete, verify the partitions on the newly added unit using the same commands
+as before:
 
 `````{tab-set}
-:sync-group: substrate
-
+---
+sync-group: substrate
+---
 ````{tab-item} VM
 :sync: vm
 
@@ -299,7 +304,8 @@ juju ssh --container kafka kafka/leader \
 
 `````
 
-This should produce an output similar to the result seen below, with broker `3` now having assigned partitions present, completing the adding of a new broker to the cluster:
+This should produce an output similar to the result seen below, with broker `3` now having assigned
+partitions present, completing the adding of a new broker to the cluster:
 
 ```json
 {
@@ -324,9 +330,9 @@ This should produce an output similar to the result seen below, with broker `3` 
 To safely scale-in an Apache Kafka cluster, we must make sure to carefully move any existing data
 from units about to be removed, to another unit that will persist.
 
-In practice, this means running a `rebalance` Juju action as seen above,
-**BEFORE** scaling down the application. This ensures that data is moved,
-prior to the unit becoming unreachable and permanently losing the data on it.
+In practice, this means running a `rebalance` Juju action as seen above, **BEFORE** scaling down the
+application. This ensures that data is moved, prior to the unit becoming unreachable and permanently
+losing the data on it.
 
 ```{note}
 As partition data is replicated across a finite number of units based on the value
@@ -335,10 +341,9 @@ it is imperative to remove only one broker at a time, to avoid losing all availa
 replicas for a given partition.
 ```
 
-To remove the most recent broker unit `3` from the previous example,
-re-run the `rebalance` action with `mode=remove`. Note that the `brokerid`
-parameter takes the **broker ID**, which is the unit ID offset by `100`
-(for example, unit `kafka/3` is broker `103`):
+To remove the most recent broker unit `3` from the previous example, re-run the `rebalance` action
+with `mode=remove`. Note that the `brokerid` parameter takes the **broker ID**, which is the unit ID
+offset by `100` (for example, unit `kafka/3` is broker `103`):
 
 ```shell
 juju run kraft/leader rebalance mode=remove dryrun=false brokerid=103 --wait=10m
@@ -346,14 +351,15 @@ juju run kraft/leader rebalance mode=remove dryrun=false brokerid=103 --wait=10m
 
 <!-- test:await-idle --timeout 1200 --allow-blocked opensearch -->
 
-This does not remove the unit, but moves the partitions from the broker on unit number `3`
-to other brokers within the cluster.
+This does not remove the unit, but moves the partitions from the broker on unit number `3` to other
+brokers within the cluster.
 
 Once the action has been completed, verify that broker `3` no longer has any assigned partitions:
 
 `````{tab-set}
-:sync-group: substrate
-
+---
+sync-group: substrate
+---
 ````{tab-item} VM
 :sync: vm
 
@@ -388,8 +394,9 @@ juju ssh --container kafka kafka/leader \
 Make sure that the broker has no partitions assigned, for example:
 
 `````{tab-set}
-:sync-group: substrate
-
+---
+sync-group: substrate
+---
 ````{tab-item} VM
 :sync: vm
 
@@ -431,8 +438,9 @@ Make sure that the broker has no partitions assigned, for example:
 Now, it is safe to scale-in the cluster by removing the broker number `3` completely:
 
 `````{tab-set}
-:sync-group: substrate
-
+---
+sync-group: substrate
+---
 ````{tab-item} VM
 :sync: vm
 
@@ -461,27 +469,27 @@ juju scale-application kafka 3
 ## Full cluster rebalancing
 
 Over time, an Apache Kafka cluster in production may develop an imbalance in partition allocation,
-with some brokers having greater/fewer allocated than others.
-This can occur as topic load fluctuates, partitions are added or removed due to reconfiguration,
-or new topics are created or deleted. Therefore, as part of regular cluster maintenance,
-administrators should periodically redistribute partitions across existing broker units
-to ensure optimal performance.
+with some brokers having greater/fewer allocated than others. This can occur as topic load
+fluctuates, partitions are added or removed due to reconfiguration, or new topics are created or
+deleted. Therefore, as part of regular cluster maintenance, administrators should periodically
+redistribute partitions across existing broker units to ensure optimal performance.
 
-Unlike `Adding new brokers` or `Removing old brokers`, this includes a full re-shuffle
-of partition allocation across all currently live broker units.
+Unlike `Adding new brokers` or `Removing old brokers`, this includes a full re-shuffle of partition
+allocation across all currently live broker units.
 
-To achieve this, re-run the `rebalance` action with the `mode=full`.
-You can do it in the "dryrun" mode (by default) for now:
+To achieve this, re-run the `rebalance` action with the `mode=full`. You can do it in the "dryrun"
+mode (by default) for now:
 
 <!-- test:retry --timeout 1200 --interval 120 --description "Cruise Control full rebalance" -- juju run kraft/leader rebalance mode=full --wait=3m -->
 
 <!-- test:skip -->
+
 ```shell
 juju run kraft/leader rebalance mode=full --wait=10m
 ```
 
-Looking at the bottom of the output, see the value of the `balancedness` score
-before and after the proposed 'full' rebalance:
+Looking at the bottom of the output, see the value of the `balancedness` score before and after the
+proposed 'full' rebalance:
 
 ```text
 summary:

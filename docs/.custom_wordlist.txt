@@ -198,6 +198,7 @@ gzip
 sysconfigs
 uncompacted
 zstd
+mdformat
 vendored
 Furo
 Furo.s

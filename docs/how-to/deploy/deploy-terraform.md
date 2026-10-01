@@ -1,32 +1,34 @@
 ---
 myst:
   html_meta:
-    description: "Deploy Charmed Apache Kafka using Terraform and the Juju Terraform provider."
+    description: Deploy Charmed Apache Kafka using Terraform and the Juju Terraform provider.
 ---
 
 (how-to-deploy-terraform)=
+
 # How to deploy via Terraform
 
-This guide describes how to deploy Charmed Apache Kafka using [Terraform](https://www.terraform.io/) and the [Juju Terraform provider](https://registry.terraform.io/providers/juju/juju/latest/docs).
+This guide describes how to deploy Charmed Apache Kafka using [Terraform](https://www.terraform.io/)
+and the [Juju Terraform provider](https://registry.terraform.io/providers/juju/juju/latest/docs).
 
 For Juju CLI-based deployment, see the [Juju CLI deployment guide](how-to-deploy-anywhere).
 
 ## Prerequisites
 
-* A Juju controller bootstrapped on the target VM or Kubernetes cloud (see
+- A Juju controller bootstrapped on the target VM or Kubernetes cloud (see
   [Juju CLI deployment guide](how-to-deploy-anywhere) for setup instructions)
-* A Juju model created on the controller
-* [Terraform](https://developer.hashicorp.com/terraform/install) (`>= 1.7.3`) installed
+- A Juju model created on the controller
+- [Terraform](https://developer.hashicorp.com/terraform/install) (`>= 1.7.3`) installed
 
 ## Terraform configuration
 
 Select the module matching the Juju model substrate. The
 [VM module](https://github.com/canonical/kafka-bundle/tree/main/terraform) and
-[K8s module](https://github.com/canonical/kafka-k8s-bundle/tree/main/terraform)
-have the same deployment profile structure; K8s additionally supports an ingress
-offer for Kafka UI.
+[K8s module](https://github.com/canonical/kafka-k8s-bundle/tree/main/terraform) have the same
+deployment profile structure; K8s additionally supports an ingress offer for Kafka UI.
 
-The same `main.tf` is used for both production and testing deployments — the deployment mode is controlled via a `kafka.auto.tfvars` file.
+The same `main.tf` is used for both production and testing deployments — the deployment mode is
+controlled via a `kafka.auto.tfvars` file.
 
 <details>
 
@@ -137,18 +139,23 @@ module "kafka" {
 
 </details>
 
-When `controller` includes `units > 0`, the module deploys separate broker and controller applications. When `controller` has `units = 0`, the broker co-locates both the broker and controller roles in a single application.
+When `controller` includes `units > 0`, the module deploys separate broker and controller
+applications. When `controller` has `units = 0`, the broker co-locates both the broker and
+controller roles in a single application.
 
 ## Deploy for production
 
-For production use, deploy separate `kafka` (broker) and `controller` (KRaft controller) applications and integrate them. To maintain high availability, 3+ broker units and 3 or 5 controller units are recommended.
+For production use, deploy separate `kafka` (broker) and `controller` (KRaft controller)
+applications and integrate them. To maintain high availability, 3+ broker units and 3 or 5
+controller units are recommended.
 
-Save the following as `kafka.auto.tfvars`. The application names are arbitrary;
-the examples use conventional names for each substrate:
+Save the following as `kafka.auto.tfvars`. The application names are arbitrary; the examples use
+conventional names for each substrate:
 
 `````{tab-set}
-:sync-group: substrate
-
+---
+sync-group: substrate
+---
 ````{tab-item} VM
 :sync: vm
 
@@ -197,13 +204,15 @@ controller = {
 
 ## (Alternative) Deploy for testing
 
-For non-production testing clusters, co-locate both KRaft controller and broker services in a single application to save resources.
+For non-production testing clusters, co-locate both KRaft controller and broker services in a single
+application to save resources.
 
 Save the following as `kafka.auto.tfvars`:
 
 `````{tab-set}
-:sync-group: substrate
-
+---
+sync-group: substrate
+---
 ````{tab-item} VM
 :sync: vm
 
@@ -244,8 +253,8 @@ controller = {
 
 `````
 
-With `controller.units = 0`, the controller role is co-located within the broker
-application. The `profile` defaults to `"testing"`.
+With `controller.units = 0`, the controller role is co-located within the broker application. The
+`profile` defaults to `"testing"`.
 
 ## Deploy
 
@@ -262,12 +271,11 @@ Review the plan output, then apply:
 terraform apply
 ```
 
-Terraform automatically loads the `.auto.tfvars` file in the working directory.
-See the profile reference for [VM](https://charmhub.io/kafka/configure?channel=4/stable#profile)
-or [K8s](https://charmhub.io/kafka-k8s/configurations?channel=4/stable#profile).
+Terraform automatically loads the `.auto.tfvars` file in the working directory. See the profile
+reference for [VM](https://charmhub.io/kafka/configure?channel=4/stable#profile) or
+[K8s](https://charmhub.io/kafka-k8s/configurations?channel=4/stable#profile).
 
-Wait for Terraform to finish.
-Then, monitor the Juju model status with:
+Wait for Terraform to finish. Then, monitor the Juju model status with:
 
 ```shell
 watch juju status --color
@@ -277,7 +285,8 @@ The deployment is complete once all units show `active` and `idle` status.
 
 ## (Optional) Create an external admin user
 
-After deployment, the Apache Kafka cluster does not expose any external listeners by default. To create an admin user, add the following `integrator` block to your `kafka.auto.tfvars` file:
+After deployment, the Apache Kafka cluster does not expose any external listeners by default. To
+create an admin user, add the following `integrator` block to your `kafka.auto.tfvars` file:
 
 ```hcl
 integrator = {
@@ -291,7 +300,8 @@ integrator = {
 }
 ```
 
-The Data Integrator is configured with `admin` role, granting `super.user` permissions on the cluster. The bundle automatically integrates it with the Kafka broker.
+The Data Integrator is configured with `admin` role, granting `super.user` permissions on the
+cluster. The bundle automatically integrates it with the Kafka broker.
 
 Apply the changes:
 
@@ -307,7 +317,10 @@ juju run data-integrator/leader get-credentials
 
 ## (Optional) Enable TLS encryption
 
-To encrypt client-facing traffic, pass a [cross-model offer](https://documentation.ubuntu.com/juju/latest/reference/relation/#cross-model-relation) URL from an existing TLS provider (e.g. `self-signed-certificates`) to the module. Add the following to your `kafka.auto.tfvars` file:
+To encrypt client-facing traffic, pass a
+[cross-model offer](https://documentation.ubuntu.com/juju/latest/reference/relation/#cross-model-relation)
+URL from an existing TLS provider (e.g. `self-signed-certificates`) to the module. Add the following
+to your `kafka.auto.tfvars` file:
 
 ```hcl
 tls_offer = "<controller>:<owner>/<model>.certificates"
@@ -323,13 +336,14 @@ When deploying Kafka UI on K8s, provide an ingress offer:
 ingress_offer = "<controller>:<owner>/<model>.ingress"
 ```
 
-Remove the comment marker from the `ingress_offer = var.ingress_offer` module
-argument in `main.tf`.
+Remove the comment marker from the `ingress_offer = var.ingress_offer` module argument in `main.tf`.
 The VM module does not accept or require this argument.
 
 ## (Optional) Enable observability with COS
 
-To connect the cluster to the [Canonical Observability Stack (COS)](https://documentation.ubuntu.com/observability/), provide the three required cross-model offer URLs. Add the following to your `kafka.auto.tfvars` file:
+To connect the cluster to the
+[Canonical Observability Stack (COS)](https://documentation.ubuntu.com/observability/), provide the
+three required cross-model offer URLs. Add the following to your `kafka.auto.tfvars` file:
 
 ```hcl
 cos_offers = {
@@ -339,8 +353,11 @@ cos_offers = {
 }
 ```
 
-All three fields must be set together — the module validates that either all or none are provided. The `metrics` offer must be the Prometheus `receive-remote-write` endpoint: the module deploys an `opentelemetry-collector` that scrapes Kafka metrics and forwards them to COS via remote write.
+All three fields must be set together — the module validates that either all or none are provided.
+The `metrics` offer must be the Prometheus `receive-remote-write` endpoint: the module deploys an
+`opentelemetry-collector` that scrapes Kafka metrics and forwards them to COS via remote write.
 
 ## Terraform module reference
 
-See the [Terraform module reference](reference-terraform) for the full list of input variables and outputs exposed by the Charmed Apache Kafka Terraform module.
+See the [Terraform module reference](reference-terraform) for the full list of input variables and
+outputs exposed by the Charmed Apache Kafka Terraform module.

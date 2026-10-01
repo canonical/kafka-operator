@@ -1,21 +1,26 @@
 ---
 myst:
   html_meta:
-    description: "Learn to deploy and manage Charmed Apache Kafka - automated operations from Day 0 to Day 2, including replication, SSL encryption, and Kafka Connect."
+    description: Learn to deploy and manage Charmed Apache Kafka - automated operations from Day 0 to Day 2, including replication, SSL encryption, and Kafka Connect.
 ---
 
 # Tutorial
+
 <!-- # Charmed Apache Kafka tutorial -->
 
-The Charmed Apache Kafka Operator delivers automated operations management from [Day 0 to Day 2](https://codilime.com/blog/day-0-day-1-day-2-the-software-lifecycle-in-the-cloud-age/) on the [Apache Kafka](https://kafka.apache.org/) event streaming platform.
-It is an open source, end-to-end, production-ready data platform [on top of Juju](https://juju.is/). As a first step this tutorial shows you how to get Charmed Apache Kafka up and running, but the tutorial does not stop there.
-Through this tutorial, you will learn a variety of operations, everything from adding replicas to advanced operations such as enabling SSL encryption, cross-cluster asynchronous replication and more.
+The Charmed Apache Kafka Operator delivers automated operations management from
+[Day 0 to Day 2](https://codilime.com/blog/day-0-day-1-day-2-the-software-lifecycle-in-the-cloud-age/)
+on the [Apache Kafka](https://kafka.apache.org/) event streaming platform. It is an open source,
+end-to-end, production-ready data platform [on top of Juju](https://juju.is/). As a first step this
+tutorial shows you how to get Charmed Apache Kafka up and running, but the tutorial does not stop
+there. Through this tutorial, you will learn a variety of operations, everything from adding
+replicas to advanced operations such as enabling SSL encryption, cross-cluster asynchronous
+replication and more.
 
-This tutorial covers both substrates: the **VM** charm `kafka` on a local LXD
-cloud, and the **K8s** charm `kafka-k8s` on a local MicroK8s cloud. Each page
-has `VM` and `K8s` tabs, and your selection is remembered as you move between
-pages. Both substrates deploy the application under the same `kafka` alias, so
-the commands are identical unless the substrates genuinely differ.
+This tutorial covers both substrates: the **VM** charm `kafka` on a local LXD cloud, and the **K8s**
+charm `kafka-k8s` on a local MicroK8s cloud. Each page has `VM` and `K8s` tabs, and your selection
+is remembered as you move between pages. Both substrates deploy the application under the same
+`kafka` alias, so the commands are identical unless the substrates genuinely differ.
 
 ```{note}
 The example outputs in this tutorial are captured from a VM deployment; the
@@ -34,7 +39,8 @@ In this tutorial, we will walk through how to:
 - Use Cruise Control for cluster rebalancing.
 - Use Apache Kafka Connect for moving data between data applications.
 
-While this tutorial intends to guide and teach you as you deploy Charmed Apache Kafka, it will be most beneficial if you already have a familiarity with:
+While this tutorial intends to guide and teach you as you deploy Charmed Apache Kafka, it will be
+most beneficial if you already have a familiarity with:
 
 - Basic Unix shell commands.
 - General data-intensive application concepts such as partitioning, replication and user management.

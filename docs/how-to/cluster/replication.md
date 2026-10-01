@@ -1,10 +1,11 @@
 ---
 myst:
   html_meta:
-    description: "Set up Charmed Apache Kafka cluster replication with MirrorMaker - active-passive replication using Kafka Connect."
+    description: Set up Charmed Apache Kafka cluster replication with MirrorMaker - active-passive replication using Kafka Connect.
 ---
 
 (how-to-cluster-replication)=
+
 # Set up replication between charmed clusters
 
 This How-To will cover how to set up cluster replication using MirrorMaker through
@@ -34,22 +35,22 @@ For guidance on how to set up Charmed Apache Kafka, please refer to the followin
 - The [How to deploy guide](how-to-deploy-anywhere) for Charmed Apache Kafka
 - The [Kafka Connect guide](how-to-use-kafka-connect-for-etl-workloads)
 
-The commands below use the application names `active`, `passive`, `kafka-a`
-and `kafka-b`. Deploy the charm for your substrate (`kafka` on VM, `kafka-k8s`
-on K8s) under these application names, as shown in the synchronized command
-tabs.
+The commands below use the application names `active`, `passive`, `kafka-a` and `kafka-b`. Deploy
+the charm for your substrate (`kafka` on VM, `kafka-k8s` on K8s) under these application names, as
+shown in the synchronized command tabs.
 
 ## Set up active-passive replication
 
-The [MirrorMaker integrator charm](https://charmhub.io/mirrormaker-connect-integrator)
-manages tasks on a Charmed Kafka Connect cluster that replicates data from an active
-Apache Kafka cluster to a passive cluster.
+The [MirrorMaker integrator charm](https://charmhub.io/mirrormaker-connect-integrator) manages tasks
+on a Charmed Kafka Connect cluster that replicates data from an active Apache Kafka cluster to a
+passive cluster.
 
 Check the status of deployed applications by running `juju status`:
 
 `````{tab-set}
-:sync-group: substrate
-
+---
+sync-group: substrate
+---
 ````{tab-item} VM
 :sync: vm
 
@@ -123,12 +124,12 @@ juju integrate mirrormaker:source active
 juju integrate mirrormaker:target passive
 ```
 
-After some time, the `mirrormaker` application should show up as `active/idle`
-in `juju status`:
+After some time, the `mirrormaker` application should show up as `active/idle` in `juju status`:
 
 `````{tab-set}
-:sync-group: substrate
-
+---
+sync-group: substrate
+---
 ````{tab-item} VM
 :sync: vm
 
@@ -181,19 +182,24 @@ If the active Kafka cluster is idle, this is expected.
 The task status will change to `RUNNING` once the replication tasks are created and started.
 ```
 
-With this, the deployment is complete. The Charmed Kafka Connect cluster will now start tasks to replicate data from the active cluster to the passive cluster.
+With this, the deployment is complete. The Charmed Kafka Connect cluster will now start tasks to
+replicate data from the active cluster to the passive cluster.
 
 ## Set up active-active replication
 
-MirrorMaker allows for a deployment where both clusters are active. This means that data can be replicated from both clusters to each other. This is done by creating a MirrorMaker connector for each cluster. Two flows are needed in this scenario, one from cluster A to cluster B and one from cluster B to cluster A.
+MirrorMaker allows for a deployment where both clusters are active. This means that data can be
+replicated from both clusters to each other. This is done by creating a MirrorMaker connector for
+each cluster. Two flows are needed in this scenario, one from cluster A to cluster B and one from
+cluster B to cluster A.
 
-In essence, it is equivalent to do two active-passive deployments, one for each direction. 
+In essence, it is equivalent to do two active-passive deployments, one for each direction.
 
 We recommend having two Kafka Connect deployments ready, one on each end of the replication.
 
 ### Deployment
 
-To ensure that the topics are prefixed with the cluster name and do not collide with each other, deploy two different MirrorMaker integrators with the configuration option `prefix_topics=true`:
+To ensure that the topics are prefixed with the cluster name and do not collide with each other,
+deploy two different MirrorMaker integrators with the configuration option `prefix_topics=true`:
 
 ```bash
 juju deploy mirrormaker-connect-integrator --config prefix_topics=true mirrormaker-a-b
@@ -203,8 +209,9 @@ juju deploy mirrormaker-connect-integrator --config prefix_topics=true mirrormak
 Check the status of deployed applications by running `juju status`:
 
 `````{tab-set}
-:sync-group: substrate
-
+---
+sync-group: substrate
+---
 ````{tab-item} VM
 :sync: vm
 
@@ -275,8 +282,7 @@ juju integrate mirrormaker-b-a:source kafka-b
 juju integrate mirrormaker-b-a:target kafka-a
 ```
 
-With this, the deployment is complete. There will be two bidirectional
-replication flows between the A and B applications (`kafka-a`/`kafka-b`). Topics
-are prefixed with the source application name so that they do not collide. For
-example, a `demo` topic created on application `kafka-a` is replicated to
-`kafka-b` as `kafka-a.replica.demo`, and vice versa.
+With this, the deployment is complete. There will be two bidirectional replication flows between the
+A and B applications (`kafka-a`/`kafka-b`). Topics are prefixed with the source application name so
+that they do not collide. For example, a `demo` topic created on application `kafka-a` is replicated
+to `kafka-b` as `kafka-a.replica.demo`, and vice versa.

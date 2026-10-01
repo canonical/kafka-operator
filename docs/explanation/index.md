@@ -1,40 +1,51 @@
 ---
 myst:
   html_meta:
-    description: "Understand Charmed Apache Kafka concepts - security, cryptography, backups, MirrorMaker replication, and architectural explanations."
+    description: Understand Charmed Apache Kafka concepts - security, cryptography, backups, MirrorMaker replication, and architectural explanations.
 ---
 
 (explanation-index)=
+
 # Explanation
 
-The pages in this section aim to provide additional context and deeper understanding of foundational topics and concepts relevant to Charmed Apache Kafka.
+The pages in this section aim to provide additional context and deeper understanding of foundational
+topics and concepts relevant to Charmed Apache Kafka.
 
 ## Components
 
-The [Components overview](explanation-components) page maps out the whole family of Charmed Apache Kafka components — core charms, Kafka Connect and its integrators, Karapace, Kafka UI, Data Integrator, and the Terraform modules — with links to Charmhub, GitHub, and the Snap Store.
+The [Components overview](explanation-components) page maps out the whole family of Charmed Apache
+Kafka components — core charms, Kafka Connect and its integrators, Karapace, Kafka UI, Data
+Integrator, and the Terraform modules — with links to Charmhub, GitHub, and the Snap Store.
 
 ## Security
 
-Secure deployments of Charmed Apache Kafka can be achieved through using recommended configurations, including setting up encryption and authentication.
-For more details, see [Security topic overview](explanation-security) and [Cryptography usage explanation](explanation-cryptography) pages.
+Secure deployments of Charmed Apache Kafka can be achieved through using recommended configurations,
+including setting up encryption and authentication. For more details, see
+[Security topic overview](explanation-security) and
+[Cryptography usage explanation](explanation-cryptography) pages.
 
 ## Cluster configuration
 
-Check the [MirrorMaker explanation](explanation-mirrormaker2-0) page for more context in to how MirrorMaker replicates and migrates Apache Kafka clusters.
+Check the [MirrorMaker explanation](explanation-mirrormaker2-0) page for more context in to how
+MirrorMaker replicates and migrates Apache Kafka clusters.
 
 ## Backups
 
-Read through [Backups explanation](explanation-backups) for information on what replication does and does not protect against, and why a backup and restore workflow is not provided with Charmed Apache Kafka.
+Read through [Backups explanation](explanation-backups) for information on what replication does and
+does not protect against, and why a backup and restore workflow is not provided with Charmed Apache
+Kafka.
 
 ## Other topics
 
-To read more about our usage of Apache Kafka and other relevant trademarks, see the [Trademarks](explanation-trademarks) explanation page.
+To read more about our usage of Apache Kafka and other relevant trademarks, see the
+[Trademarks](explanation-trademarks) explanation page.
 
 ```{toctree}
-:titlesonly:
-:maxdepth: 2
-:hidden:
-
+---
+titlesonly:
+maxdepth: 2
+hidden:
+---
 Components<components.md>
 Security<security.md>
 Cryptography<cryptography.md>

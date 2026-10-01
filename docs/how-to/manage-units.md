@@ -1,13 +1,15 @@
 ---
 myst:
   html_meta:
-    description: "Scale Charmed Apache Kafka clusters - add or remove broker units and reassign partitions for optimal resource utilization."
+    description: Scale Charmed Apache Kafka clusters - add or remove broker units and reassign partitions for optimal resource utilization.
 ---
 
 (how-to-manage-units)=
+
 # How to manage units
 
-For general Juju unit management process, see the [Juju documentation](https://canonical.com/juju/docs/juju-cli/3.6/howto/manage-units/).
+For general Juju unit management process, see the
+[Juju documentation](https://canonical.com/juju/docs/juju-cli/3.6/howto/manage-units/).
 
 ## Scaling
 
@@ -20,8 +22,9 @@ Scaling a Charmed Apache Kafka cluster does not automatically rebalance existing
 To scale-out Charmed Apache Kafka application, add more units:
 
 `````{tab-set}
-:sync-group: substrate
-
+---
+sync-group: substrate
+---
 ````{tab-item} VM
 :sync: vm
 
@@ -54,11 +57,13 @@ Make sure to reassign partitions and topics to use newly added units. See below 
 Reassign partitions **before** scaling in to ensure that decommissioned units do not hold any data. Failing to do so may lead to data loss.
 ```
 
-To decrease the number of Apache Kafka brokers, remove some existing units from the Charmed Apache Kafka application:
+To decrease the number of Apache Kafka brokers, remove some existing units from the Charmed Apache
+Kafka application:
 
 `````{tab-set}
-:sync-group: substrate
-
+---
+sync-group: substrate
+---
 ````{tab-item} VM
 :sync: vm
 
@@ -83,19 +88,22 @@ juju scale-application kafka <desired-units>
 
 ### Partition reassignment
 
-When brokers are added or removed, Apache Kafka does not automatically rebalance existing topics and partitions across the new set of brokers.
+When brokers are added or removed, Apache Kafka does not automatically rebalance existing topics and
+partitions across the new set of brokers.
 
 Without reassignment or rebalancing:
 
-* New storages and new brokers will be used only when new topics and new partitions are created. 
-* Removing a broker can result in permanent data loss if the partitions are not replicated on another broker.
+- New storages and new brokers will be used only when new topics and new partitions are created.
+- Removing a broker can result in permanent data loss if the partitions are not replicated on
+  another broker.
 
-Partition reassignment can still be done manually by the admin user with the
-Apache Kafka reassignment utility.
+Partition reassignment can still be done manually by the admin user with the Apache Kafka
+reassignment utility.
 
 `````{tab-set}
-:sync-group: substrate
-
+---
+sync-group: substrate
+---
 ````{tab-item} VM
 :sync: vm
 
@@ -113,28 +121,31 @@ container.
 
 `````
 
-For more information on the script usage, refer to [Apache Kafka documentation](https://kafka.apache.org/41/operations/basic-kafka-operations/). 
+For more information on the script usage, refer to
+[Apache Kafka documentation](https://kafka.apache.org/41/operations/basic-kafka-operations/).
 
-[LinkedIn’s Cruise Control](https://github.com/linkedin/cruise-control) can be
-used for semi-automatic rebalancing. The [partition rebalancing tutorial](tutorial-rebalance-partitions)
-demonstrates the workflow for VM deployments; use the same charm actions with
-the `kafka` application on Kubernetes.
+[LinkedIn’s Cruise Control](https://github.com/linkedin/cruise-control) can be used for
+semi-automatic rebalancing. The [partition rebalancing tutorial](tutorial-rebalance-partitions)
+demonstrates the workflow for VM deployments; use the same charm actions with the `kafka`
+application on Kubernetes.
 
 ## Admin utility scripts
 
 Apache Kafka ships with `bin/*.sh` commands to do various administrative tasks such as:
 
-* `bin/kafka-configs.sh` to update cluster configuration
-* `bin/kafka-topics.sh` for topic management
-* `bin/kafka-acls.sh` for management of ACLs of Apache Kafka users
+- `bin/kafka-configs.sh` to update cluster configuration
+- `bin/kafka-topics.sh` for topic management
+- `bin/kafka-acls.sh` for management of ACLs of Apache Kafka users
 
-Please refer to the upstream [Apache Kafka project](https://github.com/apache/kafka/tree/trunk/bin) and its [documentation](https://kafka.apache.org/41/operations/basic-kafka-operations/),
-for a full list of the bash commands available in Apache Kafka distributions.
-Additionally, you can use `--help` argument to print a short summary for a given bash command.
+Please refer to the upstream [Apache Kafka project](https://github.com/apache/kafka/tree/trunk/bin)
+and its [documentation](https://kafka.apache.org/41/operations/basic-kafka-operations/), for a full
+list of the bash commands available in Apache Kafka distributions. Additionally, you can use
+`--help` argument to print a short summary for a given bash command.
 
 `````{tab-set}
-:sync-group: substrate
-
+---
+sync-group: substrate
+---
 ````{tab-item} VM
 :sync: vm
 
@@ -160,8 +171,10 @@ Before running bash scripts, make sure that some listeners have been correctly
 opened by creating appropriate integrations. 
 ```
 
-For more information about how listeners are opened based on relations, see the [Listeners](reference-broker-listeners).
-For example, to open a SASL/SCRAM listener, integrate a client application using the data integrator, as described in the [How to manage client connections](how-to-client-connections) guide.
+For more information about how listeners are opened based on relations, see the
+[Listeners](reference-broker-listeners). For example, to open a SASL/SCRAM listener, integrate a
+client application using the data integrator, as described in the
+[How to manage client connections](how-to-client-connections) guide.
 
 To run most of the scripts, you need to provide:
 
@@ -170,12 +183,13 @@ To run most of the scripts, you need to provide:
 
 ### Endpoints and credentials
 
-For Juju admins of the Apache Kafka deployment, the bootstrap servers information can
-be obtained using:
+For Juju admins of the Apache Kafka deployment, the bootstrap servers information can be obtained
+using:
 
 `````{tab-set}
-:sync-group: substrate
-
+---
+sync-group: substrate
+---
 ````{tab-item} VM
 :sync: vm
 
@@ -225,21 +239,23 @@ file always targets the internal listener.
 
 `````
 
-This file can be provided to the Apache Kafka bin commands via the `--command-config`
-argument. Note that `client.properties` may also refer to other files (e.g. truststore and keystore for TLS-enabled connections).
-Those files also need to be accessible and correctly specified.
+This file can be provided to the Apache Kafka bin commands via the `--command-config` argument. Note
+that `client.properties` may also refer to other files (e.g. truststore and keystore for TLS-enabled
+connections). Those files also need to be accessible and correctly specified.
 
-Commands can also be run within an Apache Kafka broker, since both the authentication
-file (along with the truststore if needed) and the Apache Kafka utilities are
-already present. For example, see below.
+Commands can also be run within an Apache Kafka broker, since both the authentication file (along
+with the truststore if needed) and the Apache Kafka utilities are already present. For example, see
+below.
 
 #### List topics
 
-To list the current topics on the Apache Kafka cluster, using credentials from inside the cluster, run:
+To list the current topics on the Apache Kafka cluster, using credentials from inside the cluster,
+run:
 
 `````{tab-set}
-:sync-group: substrate
-
+---
+sync-group: substrate
+---
 ````{tab-item} VM
 :sync: vm
 
@@ -261,19 +277,21 @@ juju ssh --container kafka kafka/leader \
 
 `````
 
-The `BOOTSTRAP_SERVERS` variable contains the information we retrieved earlier in the previous section.
+The `BOOTSTRAP_SERVERS` variable contains the information we retrieved earlier in the previous
+section.
 
 ### Juju external users
 
-For external users managed by the [Data Integrator Charm](https://charmhub.io/data-integrator), the endpoints and credentials can be fetched using the dedicated action
+For external users managed by the [Data Integrator Charm](https://charmhub.io/data-integrator), the
+endpoints and credentials can be fetched using the dedicated action
 
 ```shell
 juju run data-integrator/leader get-credentials --format yaml
 ```
 
-Create a new `client.properties` file for the external user, rather than copying the
-one from the brokers: the broker file targets the internal listener and references
-internal TLS key material (peer keystore/truststore) that external clients must not use.
+Create a new `client.properties` file for the external user, rather than copying the one from the
+brokers: the broker file targets the internal listener and references internal TLS key material
+(peer keystore/truststore) that external clients must not use.
 
 Fetch the information using `juju` commands:
 
