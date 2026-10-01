@@ -138,3 +138,6 @@ jobs:
           name: ${{ steps.log-artifact.outputs.name }}
           path: logs/
           if-no-files-found: warn
+      - name: Setup tmate session
+        uses: canonical/action-tmate@main
+        if: ${{ failure() && steps.run-tests.outcome == 'failure' }}
