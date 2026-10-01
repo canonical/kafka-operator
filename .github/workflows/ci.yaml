@@ -318,7 +318,8 @@ jobs:
           - secrets
           - terraform
         kafka-version:
-          - "3"
+        # TODO: re-enable when ZK snap issue with kernel 6.14+ is fixed
+        #  - "3"
           - "4"
         exclude:
           # TF tests don't involve Kafka
