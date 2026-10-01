@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 
 
 SECRET_REGEX = re.compile("secret:[a-z0-9]{20}")
+# Standard Prometheus/OpenMetrics/Yammer naming rule for metric names
+METRIC_REGEX = re.compile(r"^[a-zA-Z0-9._=:,$-]+$")
 
 
 class LogLevel(str, Enum):
@@ -64,6 +66,8 @@ class CharmConfig(BaseConfigModel):
     cruisecontrol_capacity_threshold: float = Field(default=0.8, validate_default=False, le=1)
     system_users: str | None = None
     tls_private_key: str | None = None
+    client_metrics_list: list[str]
+    client_metrics_interval_ms: int
 
     @field_validator("*", mode="before")
     @classmethod
@@ -264,6 +268,20 @@ class CharmConfig(BaseConfigModel):
             )
 
         return value
+
+    @field_validator("client_metrics_list", mode="before")
+    @classmethod
+    def client_metrics_validator(cls, value: str) -> list[str]:
+        """Check validity of client metrics list and parse them as a list."""
+        if not value:
+            return []
+
+        raw_metrics = value.split(",")
+        for metric in raw_metrics:
+            if not METRIC_REGEX.match(metric):
+                raise ValueError(f'Provided metric "{metric}" name is invalid.')
+
+        return raw_metrics
 
 
 class ConnectCharmConfig(BaseConfigModel):

@@ -33,12 +33,14 @@ from ..core.literals import (
     GROUP,
     PEER,
     PROFILE_TESTING,
+    PYTHON_EXPORTER_PORT,
     USER_ID,
     Status,
 )
 from ..health import KafkaHealth
 from ..managers.auth import AuthManager
 from ..managers.balancer import BalancerManager
+from ..managers.client_metrics import ClientMetricsManager
 from ..managers.config import TESTING_OPTIONS, ConfigManager
 from ..managers.controller import ControllerManager
 from ..managers.k8s import K8sManager
@@ -114,6 +116,7 @@ class BrokerOperator(Object):
             pod_name=self.charm.state.unit_broker.pod_name, namespace=self.charm.model.name
         )
         self.balancer_manager = BalancerManager(self, self.workload)
+        self.client_metrics = ClientMetricsManager(state=self.charm.state, workload=self.workload)
 
         self.framework.observe(getattr(self.charm.on, "install"), self._on_install)
         self.framework.observe(getattr(self.charm.on, "start"), self._on_start)
@@ -304,6 +307,7 @@ class BrokerOperator(Object):
         self.charm.tls.handle_config_changed_tls_updates()
         self.update_brokers_state()
         self.reconcile_autobalance()
+        self.reconcile_client_metrics()
 
     def _on_update_status(self, _: UpdateStatusEvent) -> None:
         """Handler for `update-status` events."""
@@ -418,6 +422,44 @@ class BrokerOperator(Object):
                 app=self.charm.app,
                 unit=self.charm.unit,
             )
+
+    def reconcile_client_metrics(self) -> None:
+        """Reconcile client metrics collection services (KIP-714 reporter & Python exporter)."""
+        current_env = self.workload.read_env(self.workload.root / "etc" / "environment")
+        env_changed = (
+            current_env.get("BOOTSTRAP_SERVER") != self.charm.state.bootstrap_server_internal
+        )
+        if not self.charm.workload.ping(f"localhost:{PYTHON_EXPORTER_PORT}") or env_changed:
+            self.charm.workload.restart_python_exporter()
+
+        if not self.charm.unit.is_leader() or not self.workload.ping(
+            self.charm.state.bootstrap_server_internal
+        ):
+            # broker not up yet.
+            return
+
+        try:
+            current_subscriptions = self.client_metrics.current_subscriptions
+            current_metrics = {sub.metric_name for sub in current_subscriptions}
+            metrics_changed = set(self.charm.config.client_metrics_list) != current_metrics
+            interval_changed = any(
+                sub.interval_ms != self.charm.config.client_metrics_interval_ms
+                for sub in current_subscriptions
+            )
+
+            if not any([metrics_changed, interval_changed]):
+                return
+
+            removed = current_metrics - set(self.charm.config.client_metrics_list)
+            for sub in removed:
+                self.client_metrics.remove_subscription(sub)
+
+            for metric in self.charm.config.client_metrics_list:
+                self.client_metrics.add_subscription(
+                    metric_name=metric, interval=self.charm.config.client_metrics_interval_ms
+                )
+        except CalledProcessError | ExecError:
+            logger.error("Client metrics configuration update failed, details in logs.")
 
     def setup_internal_tls(self, event: EventBase) -> None:
         """Generates a self-signed certificate if required and writes all necessary TLS configuration for internal TLS."""
