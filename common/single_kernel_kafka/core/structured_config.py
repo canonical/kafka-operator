@@ -52,6 +52,7 @@ class CharmConfig(BaseConfigModel):
     ssl_cipher_suites: str | None
     ssl_principal_mapping_rules: str
     replication_quota_window_num: int
+    group_initial_rebalance_delay_ms: int
     # Charm configs
     roles: str
     profile: Literal["testing", "staging", "production"]
@@ -140,7 +141,7 @@ class CharmConfig(BaseConfigModel):
             raise ValueError("Value below 1 MB. Accepted value are greater or equal than 1 MB.")
         return value
 
-    @field_validator("message_max_bytes")
+    @field_validator("message_max_bytes", "group_initial_rebalance_delay_ms")
     @classmethod
     def greater_than_zero(cls, value: int) -> int | None:
         """Check value greater than zero."""
@@ -155,6 +156,7 @@ class CharmConfig(BaseConfigModel):
         "offsets_topic_num_partitions",
         "transaction_state_log_num_partitions",
         "replication_quota_window_num",
+        "group_initial_rebalance_delay_ms",
     )
     @classmethod
     def integer_value(cls, value: int) -> int | None:

@@ -66,6 +66,7 @@ def test_config_parsing_parameters_integer_values() -> None:
         "offsets-topic-num-partitions",
         "transaction-state-log-num-partitions",
         "replication-quota-window-num",
+        "group-initial-rebalance-delay-ms",
     ]
     erroneus_values = [2147483648, -2147483649]
     valid_values = [42, 1000, 1]
@@ -106,7 +107,7 @@ def test_values_gt_zero() -> None:
 
 def test_values_gteq_zero() -> None:
     """Check fields greater or equal than zero."""
-    gteq_zero_fields = ["message-max-bytes"]
+    gteq_zero_fields = ["message-max-bytes", "group-initial-rebalance-delay-ms"]
     erroneus_values = [-2147483649, -34]
     valid_values = [42, 1000, 1, 0]
     for field in gteq_zero_fields:
