@@ -1,4 +1,5 @@
 # Leave a blank line at the end of this file to support concatenation
+addons
 backend
 backends
 Charmcraft
@@ -79,6 +80,8 @@ IAAS
 IPs
 IPv
 Integrations
+Aiven
+Debezium
 JMX
 JRE
 JVMFLAGS
@@ -180,6 +183,7 @@ requirer
 spellexception
 stateful
 subdirectory
+subtree
 truststores
 unhandled
 Kafbat
@@ -194,3 +198,10 @@ gzip
 sysconfigs
 uncompacted
 zstd
+mdformat
+vendored
+Furo
+Furo.s
+dagre
+subgraph
+subgraphs

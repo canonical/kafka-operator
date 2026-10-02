@@ -25,3 +25,17 @@ jobs:
     - name: Lint markdown
       working-directory: "docs"
       run: make lint-md
+
+  mdformat-check:
+    name: mdformat check
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - name: Check markdown formatting
+      working-directory: "docs"
+      run: make mdformat-check

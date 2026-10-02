@@ -17,16 +17,46 @@ on:
   schedule:
     - cron: '53 0 * * *'  # Daily at 00:53 UTC
   workflow_dispatch:
+    inputs:
+      kafka-revision:
+        description: Test this Charmhub revision of `kafka` instead of building the charm
+        type: string
+        default: ''
+      kafka-k8s-revision:
+        description: Test this Charmhub revision of `kafka-k8s` instead of building the charm
+        type: string
+        default: ''
+      kafka-connect-revision:
+        description: Test this Charmhub revision of `kafka-connect` instead of building the charm
+        type: string
+        default: ''
+      kafka-connect-k8s-revision:
+        description: Test this Charmhub revision of `kafka-connect-k8s` instead of building the charm
+        type: string
+        default: ''
   # Triggered on push to branch "main" by .github/workflows/release.yaml
   workflow_call:
+    inputs:
+      kafka-revision:
+        description: Test this Charmhub revision of `kafka` instead of building the charm
+        type: string
+        default: ''
+      kafka-k8s-revision:
+        description: Test this Charmhub revision of `kafka-k8s` instead of building the charm
+        type: string
+        default: ''
+      kafka-connect-revision:
+        description: Test this Charmhub revision of `kafka-connect` instead of building the charm
+        type: string
+        default: ''
+      kafka-connect-k8s-revision:
+        description: Test this Charmhub revision of `kafka-connect-k8s` instead of building the charm
+        type: string
+        default: ''
     outputs:
       artifact-prefix:
         description: build_charm.yaml `artifact-prefix` output
-        value: ${{ jobs.build.outputs.artifact-prefix }}
-
-env:
-  JUJU_CHANNEL: "3.6/stable"
-  MICROK8S_CHANNEL: "1.28-strict/stable"
+        value: ${{ jobs.build-release.outputs.artifact-prefix || jobs.build-dev.outputs.artifact-prefix }}
 
 jobs:
   lint:
@@ -53,21 +83,48 @@ jobs:
       - name: Run tests
         run: tox run -e unit
 
+  build-matrix:
+    name: Collect charms to build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      paths: ${{ steps.collect.outputs.paths }}
+    steps:
+      # A charm pinned to a Charmhub revision is deployed from the store, so there
+      # is nothing to build for it.
+      - name: Drop charms pinned to a Charmhub revision
+        id: collect
+        env:
+          KAFKA_REVISION: ${{ inputs.kafka-revision }}
+          KAFKA_K8S_REVISION: ${{ inputs.kafka-k8s-revision }}
+          KAFKA_CONNECT_REVISION: ${{ inputs.kafka-connect-revision }}
+          KAFKA_CONNECT_K8S_REVISION: ${{ inputs.kafka-connect-k8s-revision }}
+        run: |
+          paths=()
+          if [ -z "$KAFKA_REVISION" ]; then paths+=("machine"); fi
+          if [ -z "$KAFKA_K8S_REVISION" ]; then paths+=("k8s"); fi
+          if [ -z "$KAFKA_CONNECT_REVISION" ]; then paths+=("connect_machine"); fi
+          if [ -z "$KAFKA_CONNECT_K8S_REVISION" ]; then paths+=("connect_k8s"); fi
+          # test charms are never published, so they are always built from the branch
+          paths+=(
+            "tests/integration/machine/app-charm"
+            "tests/integration/k8s/app-charm"
+            "tests/integration/connect_machine/sink-integrator-charm"
+            "tests/integration/connect_machine/source-integrator-charm"
+            "tests/integration/connect_k8s/app-charm"
+          )
+          json="$(printf '%s\n' "${paths[@]}" | jq -Rsc 'split("\n")[:-1]')"
+          echo "Charms to build: $json"
+          echo "paths=$json" >> "$GITHUB_OUTPUT"
+
   # FIXME: remove this once charmcraft monorepo feature is released.
   build-dev:
     if: ${{ github.ref_name != 'main' }}
+    needs:
+      - build-matrix
     strategy:
       matrix:
-        path:
-          - machine
-          - k8s
-          - connect_machine
-          - connect_k8s
-          - tests/integration/machine/app-charm
-          - tests/integration/k8s/app-charm
-          - tests/integration/connect_machine/sink-integrator-charm
-          - tests/integration/connect_machine/source-integrator-charm
-          - tests/integration/connect_k8s/app-charm
+        path: ${{ fromJSON(needs.build-matrix.outputs.paths) }}
     name: Build charm for testing | ${{ matrix.path }}
     uses: ./.github/workflows/_build_charm_dev.yaml
     with:
@@ -78,34 +135,29 @@ jobs:
 
   build-release:
     if: ${{ github.ref_name == 'main' }}
+    needs:
+      - build-matrix
     strategy:
       matrix:
-        path:
-          - machine
-          - k8s
-          - connect_machine
-          - connect_k8s
-          - tests/integration/machine/app-charm
-          - tests/integration/k8s/app-charm
-          - tests/integration/connect_machine/sink-integrator-charm
-          - tests/integration/connect_machine/source-integrator-charm
-          - tests/integration/connect_k8s/app-charm
+        path: ${{ fromJSON(needs.build-matrix.outputs.paths) }}
     name: Build charm for release | ${{ matrix.path }}
-    uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v32.2.2
+    # FIXME: update once monorepo feature reaches DPW
+    # uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v32.2.2
+    uses: ./.github/workflows/_build_charm_dev.yaml
     with:
       path-to-charm-directory: ${{ matrix.path }}
-      cache: false  # TODO: remove after re-added to ccc-hub
+      # FIXME: _build_charm_dev.yaml doesn't accept `cache`; restore alongside build_charm.yaml above
+      # cache: false  # TODO: remove after re-added to ccc-hub
     permissions:
       actions: read
       contents: read
 
   integration-kafka-machine-single:
-    permissions:
-      contents: read
+    name: Kafka | machine | ${{ matrix.tox-environment }} | single
     strategy:
       fail-fast: false
       matrix:
-        tox-environments:
+        tox-environment:
           - auto-balance
           - charm
           - provider
@@ -119,60 +171,30 @@ jobs:
           - ha
           - spaces
           - terraform
-        kraft-mode:
-          - single
-    name: "Kafka | machine | ${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}"
-    needs:
-      - lint
-      - unit-test
-      - build-dev
-      - build-release
+    needs: [lint, unit-test, build-dev, build-release]
     if: |
-      always() &&
       !cancelled() &&
+      needs.lint.result == 'success' &&
+      needs.unit-test.result == 'success' &&
       (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
-    runs-on: [self-hosted, linux, AMD64, X64, large, noble]
-    timeout-minutes: 120
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-      - name: Setup operator environment
-        uses: charmed-kubernetes/actions-operator@main
-        with:
-          provider: lxd
-          juju-channel: 3.6/stable
-      - name: Download packed charm(s)
-        uses: actions/download-artifact@v6
-        with:
-          pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
-          merge-multiple: true
-      - name: Setup terraform if needed
-        if: ${{ matrix.tox-environments == 'terraform' }}
-        run: |
-          sudo snap install --classic terraform
-      - name: Select tests
-        id: select-tests
-        run: |
-          if [ "${{ github.event_name }}" == "schedule" ]
-          then
-            echo Running unstable and stable tests
-            echo "mark_expression=" >> $GITHUB_OUTPUT
-          else
-            echo Skipping unstable tests
-            echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
-          fi
-      - name: Run integration tests
-        run: tox run -e integration-machine-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --kraft-mode ${{ matrix.kraft-mode }}
-        env:
-          CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
-
-  integration-kafka-machine-multi:
+    uses: ./.github/workflows/_integration_test.yaml
     permissions:
       contents: read
+    with:
+      substrate: lxd
+      tox-env: integration-machine-${{ matrix.tox-environment }}
+      runner-size: large
+      extra-tox-args: --kraft-mode single
+      charm-revision: ${{ inputs.kafka-revision }}
+      artifact-prefix: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}
+      packed-charms: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
+
+  integration-kafka-machine-multi:
+    name: Kafka | machine | ${{ matrix.tox-environment }} | multi
     strategy:
       fail-fast: false
       matrix:
-        tox-environments:
+        tox-environment:
           - auto-balance
           - charm
           - provider
@@ -189,91 +211,30 @@ jobs:
           - ha-controller
           - spaces
           - oauth
-        kraft-mode:
-          - multi
-    name: "Kafka | machine | ${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}"
-    needs:
-      - lint
-      - unit-test
-      - build-dev
-      - build-release
+    needs: [lint, unit-test, build-dev, build-release]
     if: |
-      always() &&
       !cancelled() &&
+      needs.lint.result == 'success' &&
+      needs.unit-test.result == 'success' &&
       (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
-    runs-on: [self-hosted, linux, AMD64, X64, xlarge, noble]
-    timeout-minutes: 120
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-      - name: Setup operator environment
-        uses: charmed-kubernetes/actions-operator@main
-        with:
-          provider: lxd
-          juju-channel: 3.6/stable
-      - name: Download packed charm(s)
-        uses: actions/download-artifact@v6
-        with:
-          pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
-          merge-multiple: true
-      - name: Setup terraform & microk8s controller (for OAuth tests)
-        if: ${{ matrix.tox-environments == 'oauth' }}
-        run: |
-          LXD_CONTROLLER=$(juju models --format json | jq -r '.models[0]."controller-name"')
-          sudo snap install --classic terraform
-
-          # calico has issues with strict confinements, so remove -strict
-          sudo snap install microk8s --channel 1.32 --classic
-
-          sudo usermod -a -G microk8s $USER
-          mkdir -p ~/.kube
-          chmod 0700 ~/.kube
-
-          sudo tee /var/snap/microk8s/current/args/certs.d/docker.io/hosts.toml << EOF
-          server = "$DOCKERHUB_MIRROR"
-          [host."${DOCKERHUB_MIRROR#'https://'}"]
-          capabilities = ["pull", "resolve"]
-          EOF
-
-          sudo microk8s stop
-          sudo microk8s start
-
-          # make juju work with microk8s --classic
-          sudo mkdir -p /var/snap/juju/current/microk8s/credentials
-          sudo microk8s config | sudo tee /var/snap/juju/current/microk8s/credentials/client.config
-          sudo chown -R $USER:$USER /var/snap/juju/current/microk8s/credentials
-
-          IP_ADDR=$(ip -4 -j route get 2.2.2.2 | jq -r '.[] | .prefsrc')
-          sudo microk8s enable dns
-          sudo microk8s enable hostpath-storage
-          sudo microk8s enable metallb:$IP_ADDR-$IP_ADDR
-
-          juju bootstrap microk8s
-          juju switch $LXD_CONTROLLER
-
-      - name: Select tests
-        id: select-tests
-        run: |
-          if [ "${{ github.event_name }}" == "schedule" ]
-          then
-            echo Running unstable and stable tests
-            echo "mark_expression=" >> $GITHUB_OUTPUT
-          else
-            echo Skipping unstable tests
-            echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
-          fi
-      - name: Run integration tests
-        run: tox run -e integration-machine-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kraft-mode ${{ matrix.kraft-mode }}
-        env:
-          CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
-
-  integration-kafka-k8s-single:
+    uses: ./.github/workflows/_integration_test.yaml
     permissions:
       contents: read
+    with:
+      substrate: lxd
+      tox-env: integration-machine-${{ matrix.tox-environment }}
+      runner-size: xlarge
+      extra-tox-args: --kraft-mode multi
+      charm-revision: ${{ inputs.kafka-revision }}
+      artifact-prefix: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}
+      packed-charms: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
+
+  integration-kafka-k8s-single:
+    name: Kafka | k8s | ${{ matrix.tox-environment }} | single
     strategy:
       fail-fast: false
       matrix:
-        tox-environments:
+        tox-environment:
           - auto-balance
           - charm
           - provider
@@ -285,69 +246,30 @@ jobs:
           - kraft-tls
           - ha
           - refresh
-        kraft-mode:
-          - single
-    name: "Kafka | k8s | ${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}"
-    needs:
-      - lint
-      - unit-test
-      - build-dev
-      - build-release
+    needs: [lint, unit-test, build-dev, build-release]
     if: |
-      always() &&
       !cancelled() &&
+      needs.lint.result == 'success' &&
+      needs.unit-test.result == 'success' &&
       (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
-    runs-on: [self-hosted, linux, AMD64, X64, large, noble]
-    timeout-minutes: 120
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-      - name: Setup operator environment
-        run: |
-          sudo snap install concierge --classic
-          sudo concierge prepare --trace --extra-debs pipx
-      - name: Install dependencies
-        run: |
-          pipx install tox poetry
-          pipx ensurepath
-      # FIXME: remove this step when the previously installed charmcraft snap supports monorepos.
-      - name: Install charmcraft with monorepo feature
-        run: |
-          sudo snap install --classic astral-uv
-          git clone https://github.com/canonical/charmcraft \
-            --branch work/CHARMCRAFT-710-prototype \
-            ~/charmcraft
-
-          pushd ~/charmcraft && uv run charmcraft --version && popd
-          echo "CHARMCRAFT_BIN=$(realpath ~/charmcraft/.venv/bin/charmcraft)" >> $GITHUB_ENV
-      - name: Download packed charm(s)
-        uses: actions/download-artifact@v6
-        with:
-          pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
-          merge-multiple: true
-      - name: Select tests
-        id: select-tests
-        run: |
-          if [ "${{ github.event_name }}" == "schedule" ]
-          then
-            echo Running unstable and stable tests
-            echo "mark_expression=" >> $GITHUB_OUTPUT
-          else
-            echo Skipping unstable tests
-            echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
-          fi
-      - name: Run integration tests
-        run: tox run -e integration-k8s-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kraft-mode ${{ matrix.kraft-mode }}
-        env:
-          CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
-
-  integration-kafka-k8s-multi:
+    uses: ./.github/workflows/_integration_test.yaml
     permissions:
       contents: read
+    with:
+      substrate: k8s
+      tox-env: integration-k8s-${{ matrix.tox-environment }}
+      runner-size: large
+      extra-tox-args: --kraft-mode single
+      charm-revision: ${{ inputs.kafka-k8s-revision }}
+      artifact-prefix: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}
+      packed-charms: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
+
+  integration-kafka-k8s-multi:
+    name: Kafka | k8s | ${{ matrix.tox-environment }} | multi
     strategy:
       fail-fast: false
       matrix:
-        tox-environments:
+        tox-environment:
           - auto-balance
           - charm
           - provider
@@ -362,69 +284,30 @@ jobs:
           - ha
           - ha-controller
           - refresh
-        kraft-mode:
-          - multi
-    name: "Kafka | k8s | ${{ matrix.tox-environments }} | ${{ matrix.kraft-mode }}"
-    needs:
-      - lint
-      - unit-test
-      - build-dev
-      - build-release
+    needs: [lint, unit-test, build-dev, build-release]
     if: |
-      always() &&
       !cancelled() &&
+      needs.lint.result == 'success' &&
+      needs.unit-test.result == 'success' &&
       (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
-    runs-on: [self-hosted, linux, AMD64, X64, xlarge, noble]
-    timeout-minutes: 120
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-      - name: Setup operator environment
-        run: |
-          sudo snap install concierge --classic
-          sudo concierge prepare --trace --extra-debs pipx
-      - name: Install dependencies
-        run: |
-          pipx install tox poetry
-          pipx ensurepath
-      # FIXME: remove this step when the previously installed charmcraft snap supports monorepos.
-      - name: Install charmcraft with monorepo feature
-        run: |
-          sudo snap install --classic astral-uv
-          git clone https://github.com/canonical/charmcraft \
-            --branch work/CHARMCRAFT-710-prototype \
-            ~/charmcraft
-
-          pushd ~/charmcraft && uv run charmcraft --version && popd
-          echo "CHARMCRAFT_BIN=$(realpath ~/charmcraft/.venv/bin/charmcraft)" >> $GITHUB_ENV
-      - name: Download packed charm(s)
-        uses: actions/download-artifact@v6
-        with:
-          pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
-          merge-multiple: true
-      - name: Select tests
-        id: select-tests
-        run: |
-          if [ "${{ github.event_name }}" == "schedule" ]
-          then
-            echo Running unstable and stable tests
-            echo "mark_expression=" >> $GITHUB_OUTPUT
-          else
-            echo Skipping unstable tests
-            echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
-          fi
-      - name: Run integration tests
-        run: tox run -e integration-k8s-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kraft-mode ${{ matrix.kraft-mode }}
-        env:
-          CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
-
-  integration-connect-machine:
+    uses: ./.github/workflows/_integration_test.yaml
     permissions:
       contents: read
+    with:
+      substrate: k8s
+      tox-env: integration-k8s-${{ matrix.tox-environment }}
+      runner-size: xlarge
+      extra-tox-args: --kraft-mode multi
+      charm-revision: ${{ inputs.kafka-k8s-revision }}
+      artifact-prefix: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}
+      packed-charms: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
+
+  integration-connect-machine:
+    name: Connect | machine | ${{ matrix.tox-environment }} | Kafka ${{ matrix.kafka-version }}
     strategy:
       fail-fast: false
       matrix:
-        tox-environments:
+        tox-environment:
           - charm
           - tls
           - plugins
@@ -435,62 +318,37 @@ jobs:
           - secrets
           - terraform
         kafka-version:
-          - "3"
+        # TODO: re-enable when ZK snap issue with kernel 6.14+ is fixed
+        #  - "3"
           - "4"
         exclude:
           # TF tests don't involve Kafka
-          - tox-environments: terraform
-            kafka-version: 3
-    name: Connect | machine | ${{ matrix.tox-environments }} | Kafka ${{ matrix.kafka-version }}
-    needs:
-      - lint
-      - unit-test
-      - build-dev
-      - build-release
+          - tox-environment: terraform
+            kafka-version: "3"
+    needs: [lint, unit-test, build-dev, build-release]
     if: |
-      always() &&
       !cancelled() &&
+      needs.lint.result == 'success' &&
+      needs.unit-test.result == 'success' &&
       (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
-    runs-on: [self-hosted, linux, AMD64, X64, large, noble]
-    timeout-minutes: 90
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-      - name: Setup operator environment
-        uses: charmed-kubernetes/actions-operator@main
-        with:
-          provider: lxd
-          juju-channel: 3.6/stable
-      - name: Download packed charm(s)
-        uses: actions/download-artifact@v6
-        with:
-          pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
-          merge-multiple: true
-      - name: Setup terraform if needed
-        if: ${{ matrix.tox-environments == 'terraform' }}
-        run: |
-          sudo snap install --classic terraform
-      - name: Select tests
-        id: select-tests
-        run: |
-          if [ "${{ github.event_name }}" == "schedule" ]
-          then
-            echo Running unstable and stable tests
-            echo "mark_expression=" >> $GITHUB_OUTPUT
-          else
-            echo Skipping unstable tests
-            echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
-          fi
-      - name: Run integration tests
-        run: tox run -e integration-connect-machine-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}' --keep-models --kafka ${{ matrix.kafka-version }}
-        env:
-          CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
+    uses: ./.github/workflows/_integration_test.yaml
+    permissions:
+      contents: read
+    with:
+      substrate: lxd
+      tox-env: integration-connect-machine-${{ matrix.tox-environment }}
+      runner-size: large
+      extra-tox-args: --kafka ${{ matrix.kafka-version }}
+      charm-revision: ${{ inputs.kafka-connect-revision }}
+      artifact-prefix: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}
+      packed-charms: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
 
   integration-connect-k8s:
+    name: Connect | k8s | ${{ matrix.tox-environment }}
     strategy:
       fail-fast: false
       matrix:
-        tox-environments:
+        tox-environment:
           - charm
           - tls
           - plugins
@@ -498,46 +356,19 @@ jobs:
           - scaling
           - secrets
           - upgrade
-    name: Connect | k8s | ${{ matrix.tox-environments }}
-    needs:
-      - lint
-      - unit-test
-      - build-dev
-      - build-release
+    needs: [lint, unit-test, build-dev, build-release]
     if: |
-      always() &&
       !cancelled() &&
+      needs.lint.result == 'success' &&
+      needs.unit-test.result == 'success' &&
       (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
-    runs-on: [self-hosted, linux, AMD64, X64, medium, noble]
-    timeout-minutes: 90
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-      - name: Setup operator environment
-        run: |
-          sudo snap install concierge --classic
-          sudo concierge prepare --trace --extra-debs pipx
-      - name: Install dependencies
-        run: |
-          pipx install tox
-          pipx ensurepath
-      - name: Download packed charm(s)
-        uses: actions/download-artifact@v6
-        with:
-          pattern: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}-*
-          merge-multiple: true
-      - name: Select tests
-        id: select-tests
-        run: |
-          if [ "${{ github.event_name }}" == "schedule" ]
-          then
-            echo Running unstable and stable tests
-            echo "mark_expression=" >> $GITHUB_OUTPUT
-          else
-            echo Skipping unstable tests
-            echo "mark_expression=not unstable" >> $GITHUB_OUTPUT
-          fi
-      - name: Run integration tests
-        run: tox run -e integration-connect-k8s-${{ matrix.tox-environments }} -- -m '${{ steps.select-tests.outputs.mark_expression }}'
-        env:
-          CI_PACKED_CHARMS: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
+    uses: ./.github/workflows/_integration_test.yaml
+    permissions:
+      contents: read
+    with:
+      substrate: k8s
+      tox-env: integration-connect-k8s-${{ matrix.tox-environment }}
+      runner-size: medium
+      charm-revision: ${{ inputs.kafka-connect-k8s-revision }}
+      artifact-prefix: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}
+      packed-charms: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}

@@ -62,6 +62,10 @@ class ConnectProvider(Object):
 
     def _on_integration_requested(self, event: IntegrationRequestedEvent) -> None:
         """Handle the `integration_requested` event, fired after an integrator relates, boots up and sets the `plugin-url`."""
+        if not self.workload.container_can_connect:
+            event.defer()
+            return
+
         client = self.context.clients.get(event.relation.id)
 
         if not self.context.peer_workers or client is None:
@@ -97,6 +101,10 @@ class ConnectProvider(Object):
 
     def _on_relation_changed(self, event: RelationChangedEvent) -> None:
         """Handler for `connect-client-relation-changed` event."""
+        if not self.workload.container_can_connect:
+            event.defer()
+            return
+
         client = self.context.clients.get(event.relation.id)
         if client is None or not client.password:
             # wait for leader to create the credentials
