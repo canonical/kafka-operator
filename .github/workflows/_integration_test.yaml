@@ -57,7 +57,7 @@ jobs:
     name: ${{ inputs.tox-env }} ${{ inputs.extra-tox-args }}
     permissions:
       contents: read
-    runs-on: ${{ fromJSON(format('["self-hosted","linux","AMD64","X64","{0}","noble"]', inputs.runner-size)) }}
+    runs-on: self-hosted-linux-amd64-noble-edge
     timeout-minutes: 120
     env:
       # Workspace-relative rather than `~/logs`: actions/upload-artifact globs

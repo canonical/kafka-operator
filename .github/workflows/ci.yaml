@@ -95,8 +95,8 @@ jobs:
       - name: Drop charms pinned to a Charmhub revision
         id: collect
         env:
-          KAFKA_REVISION: ${{ inputs.kafka-revision }}
-          KAFKA_K8S_REVISION: ${{ inputs.kafka-k8s-revision }}
+          KAFKA_REVISION: 265
+          KAFKA_K8S_REVISION: 120
           KAFKA_CONNECT_REVISION: ${{ inputs.kafka-connect-revision }}
           KAFKA_CONNECT_K8S_REVISION: ${{ inputs.kafka-connect-k8s-revision }}
         run: |
@@ -168,9 +168,7 @@ jobs:
           - secrets
           - terraform
         kafka-version:
-        # TODO: re-enable when ZK snap issue with kernel 6.14+ is fixed
-        #  - "3"
-          - "4"
+          - "3"
         exclude:
           # TF tests don't involve Kafka
           - tox-environment: terraform
@@ -190,5 +188,35 @@ jobs:
       runner-size: large
       extra-tox-args: --kafka ${{ matrix.kafka-version }}
       charm-revision: ${{ inputs.kafka-connect-revision }}
+      artifact-prefix: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}
+      packed-charms: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
+
+  integration-connect-k8s:
+    name: Connect | k8s | ${{ matrix.tox-environment }}
+    strategy:
+      fail-fast: false
+      matrix:
+        tox-environment:
+          - charm
+          - tls
+          - plugins
+          - provider
+          - scaling
+          - secrets
+          - upgrade
+    needs: [lint, unit-test, build-dev, build-release]
+    if: |
+      !cancelled() &&
+      needs.lint.result == 'success' &&
+      needs.unit-test.result == 'success' &&
+      (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
+    uses: ./.github/workflows/_integration_test.yaml
+    permissions:
+      contents: read
+    with:
+      substrate: k8s
+      tox-env: integration-connect-k8s-${{ matrix.tox-environment }}
+      runner-size: medium
+      charm-revision: ${{ inputs.kafka-connect-k8s-revision }}
       artifact-prefix: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}
       packed-charms: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
