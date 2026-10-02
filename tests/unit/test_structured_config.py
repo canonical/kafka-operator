@@ -75,6 +75,7 @@ def test_config_parsing_parameters_integer_values() -> None:
         "offsets_topic_num_partitions",
         "transaction_state_log_num_partitions",
         "replication_quota_window_num",
+        "group_initial_rebalance_delay_ms",
     ]
     erroneus_values = [2147483648, -2147483649]
     valid_values = [42, 1000, 1]
@@ -119,6 +120,7 @@ def test_values_gteq_zero() -> None:
         "replication_quota_window_num",
         "log_segment_bytes",
         "message_max_bytes",
+        "group_initial_rebalance_delay_ms",
     ]
     erroneus_values = [-2147483649, -34]
     valid_values = [42, 1000, 1, 0]
