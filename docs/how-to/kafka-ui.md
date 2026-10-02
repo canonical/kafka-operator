@@ -3,9 +3,9 @@
 # How to use Kafka UI
 
 Administration of a Charmed Apache Kafka cluster can be performed using the Juju CLI and the
-utilities included with the Apache Kafka snap. However, some administrators prefer to use a
-graphical user interface (GUI) to monitor the cluster and perform administrative tasks. To support
-this, the Charmed Apache Kafka solution includes a charmed operator for
+included Apache Kafka utilities. However, some administrators prefer to use a graphical user
+interface (GUI) to monitor the cluster and perform administrative tasks. To support this, the
+Charmed Apache Kafka solution includes a charmed operator for
 [Kafbat's Kafka UI](https://github.com/kafbat/kafka-ui), which enables users to:
 
 - View Apache Kafka cluster configuration, topics, ACLs, consumer groups and more
@@ -23,10 +23,21 @@ In this guide, you will:
 ## Prerequisites
 
 This guide assumes you already have an Apache Kafka cluster deployed with the Charmed Apache Kafka
-operator. If not, follow the [Deploy Apache Kafka](tutorial-deploy) tutorial first.
+operator. If not, follow the [deployment guide](how-to-deploy-anywhere) first.
+
+On K8s, Kafka UI also requires an ingress relation. Deploy the
+[Traefik K8s operator](https://charmhub.io/traefik-k8s) and make its ingress endpoint available in
+the Kafka model, directly or through a cross-model offer.
 
 For reference, a cluster with three brokers and three KRaft controllers produces `juju status`
 output similar to the following:
+
+`````{tab-set}
+---
+sync-group: substrate
+---
+````{tab-item} VM
+:sync: vm
 
 <details>
 <summary> Output example</summary>
@@ -58,13 +69,64 @@ Machine  State    Address         Inst id        Base          AZ  Message
 
 </details>
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+<details>
+<summary> Output example</summary>
+
+```text
+Model  Controller  Cloud/Region         Version  SLA          Timestamp
+ui     lxd         microk8s/localhost   3.6.9    unsupported  08:37:59+01:00
+
+App         Version  Status  Scale  Charm      Channel   Rev  Exposed  Message
+controller  4.1.1    active      3  kafka-k8s  4/stable  111  no
+kafka       4.1.1    active      3  kafka-k8s  4/stable  111  no
+
+Unit           Workload  Agent  Address        Ports      Message
+controller/0   active    idle   10.1.12.43     9098/tcp
+controller/1*  active    idle   10.1.12.30     9098/tcp
+controller/2   active    idle   10.1.12.64     9098/tcp
+kafka/0       active    idle   10.1.12.42     19093/tcp
+kafka/1       active    idle   10.1.12.90     19093/tcp
+kafka/2*      active    idle   10.1.12.114    19093/tcp
+```
+
+</details>
+
+````
+
+`````
+
 ## Deploy charmed Kafka UI
 
 To deploy the Kafka UI charmed operator:
 
+`````{tab-set}
+---
+sync-group: substrate
+---
+````{tab-item} VM
+:sync: vm
+
 ```bash
 juju deploy kafka-ui --channel stable
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju deploy kafka-ui-k8s --channel stable --trust
+```
+
+````
+
+`````
 
 Once the charmed Kafka UI operator is deployed, it will end up in `blocked` state, since it needs to
 be integrated with a charmed Apache Kafka cluster. The output of `juju status` command will be like
@@ -81,9 +143,30 @@ kafka-ui/0*    blocked   idle   6        10.160.219.25              application 
 To activate the Charmed Kafka UI application, integrate it with the Charmed Apache Kafka
 application:
 
+`````{tab-set}
+---
+sync-group: substrate
+---
+````{tab-item} VM
+:sync: vm
+
 ```bash
 juju integrate kafka-ui kafka
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju integrate kafka-ui-k8s kafka
+juju integrate kafka-ui-k8s <traefik-offer-or-application>
+```
+
+````
+
+`````
 
 After a few minutes, the charmed Kafka UI application should be in `active|idle` state.
 
@@ -109,6 +192,13 @@ secret:d4aph58sv8l31ign9590
 
 Then, grant access to the secret with:
 
+`````{tab-set}
+---
+sync-group: substrate
+---
+````{tab-item} VM
+:sync: vm
+
 ```bash
 juju grant-secret ui-secret kafka-ui
 ```
@@ -119,12 +209,32 @@ Finally, configure the UI application to use the provided secret:
 juju config kafka-ui system-users=secret:d4aph58sv8l31ign9590
 ```
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju grant-secret ui-secret kafka-ui-k8s
+juju config kafka-ui-k8s system-users=secret:d4aph58sv8l31ign9590
+```
+
+````
+
+`````
+
 ## Access the Kafka UI
 
-To access the UI, open a web browser and open `https://{KAFKA_UI_IP}:8080`.
+`````{tab-set}
+---
+sync-group: substrate
+---
+````{tab-item} VM
+:sync: vm
 
-Here, `KAFKA_UI_IP` is the IP address of the Kafka UI application. You can either copy it from the
-output of the `juju status` command or retrieve it with the following command:
+Open `https://{KAFKA_UI_IP}:8080` in a web browser.
+
+Here, `KAFKA_UI_IP` is the IP address of the Kafka UI application. You can either copy it from the output of the `juju status` command or retrieve it with the following command:
 
 ```bash
 KAFKA_UI_IP=$(juju status --format json | jq -r '.applications."kafka-ui".units.[]."public-address"')
@@ -136,6 +246,23 @@ By default, charmed Kafka UI uses a self-signed certificate to secure communicat
 - **Firefox** - [Set up Certificate Authorities (CAs) in Firefox](https://support.mozilla.org/en-US/kb/setting-certificate-authorities-firefox)
 - **Google Chrome** - [Set up TLS (or SSL) inspection on Chrome devices](https://support.google.com/chrome/a/answer/3505249?hl=en)
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+Retrieve the ingress URL with the Traefik `show-proxied-endpoints` action:
+
+```bash
+juju run -m <traefik-model> <traefik-app>/0 show-proxied-endpoints
+```
+
+Open the URL associated with `kafka-ui-k8s` in a browser.
+
+````
+
+`````
 
 You should see an authentication page prompting for username and password, in which you can use the
 `admin` username and the password configured before to log in.
@@ -156,16 +283,42 @@ use-cases, please refer to the
 If you have followed aforementioned guides, you can integrate the charmed Kafka Connect and charmed
 Karapace applications with the Kafka UI using:
 
+`````{tab-set}
+---
+sync-group: substrate
+---
+````{tab-item} VM
+:sync: vm
+
 ```bash
 juju integrate kafka-ui kafka-connect
 juju integrate kafka-ui karapace
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju integrate kafka-ui-k8s kafka-connect-k8s
+juju integrate kafka-ui-k8s karapace-k8s
+```
+
+````
+
+`````
 
 Once all applications settle to `active|idle` state, you will have access to the Kafka Connect and
 Karapace configuration and current state via the `Kafka Connect` and `Schema Registry` menus in the
 Kafka UI web interface respectively.
 
 ## Manage TLS certificates
+
+```{note}
+This section applies to the VM Kafka UI charm. On K8s, TLS termination and the
+public certificate are normally managed by the ingress provider.
+```
 
 While charmed Kafka UI uses a self-signed certificate to secure communications, this set-up is not
 recommended for production environments. To secure communications with the Kafka UI, it is advised

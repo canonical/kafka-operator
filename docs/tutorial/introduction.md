@@ -17,16 +17,26 @@ there. Through this tutorial, you will learn a variety of operations, everything
 replicas to advanced operations such as enabling SSL encryption, cross-cluster asynchronous
 replication and more.
 
+This tutorial covers both substrates: the **VM** charm `kafka` on a local LXD cloud, and the **K8s**
+charm `kafka-k8s` on a local MicroK8s cloud. Each page has `VM` and `K8s` tabs, and your selection
+is remembered as you move between pages. Both substrates deploy the application under the same
+`kafka` alias, so the commands are identical unless the substrates genuinely differ.
+
+```{note}
+The example outputs in this tutorial are captured from a VM deployment; the
+automated tutorial tests exercise this path end-to-end. Outputs on K8s may
+differ slightly (for example, pod addresses instead of machine addresses).
+```
+
 In this tutorial, we will walk through how to:
 
-- Set up your local environment using LXD and Juju.
+- Set up your local environment using LXD or MicroK8s, and Juju.
 - Deploy Charmed Apache Kafka using only a few commands.
 - Get the admin credentials directly.
 - Add high-availability with replication.
 - Change the admin password.
 - Automatically create Apache Kafka users via Juju relations.
 - Use Cruise Control for cluster rebalancing.
-- Use Karapace for schema management and message serialisation.
 - Use Apache Kafka Connect for moving data between data applications.
 
 While this tutorial intends to guide and teach you as you deploy Charmed Apache Kafka, it will be
@@ -44,3 +54,11 @@ Before we start, make sure your machine meets the following requirements:
 - `2` CPU cores.
 - At least `20` GB of available storage.
 - Access to the internet for downloading the required snaps and charms.
+
+```{note}
+The full tutorial deploys several applications (Apache Kafka, KRaft
+controllers, Kafka Connect, PostgreSQL and OpenSearch). If you plan to
+complete the ETL and rebalancing chapters, ensure at least 4 GB more RAM is
+available than the minimum above, and prefer the `testing` profile shown in
+the deployment steps.
+```
