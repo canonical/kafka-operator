@@ -71,6 +71,7 @@ class CharmConfig(BaseConfigModel):
     ssl_cipher_suites: str | None
     ssl_principal_mapping_rules: str
     replication_quota_window_num: int
+    group_initial_rebalance_delay_ms: int
     zookeeper_ssl_cipher_suites: str | None
     profile: str
     certificate_extra_sans: str | None
@@ -173,7 +174,12 @@ class CharmConfig(BaseConfigModel):
             raise ValueError("Value below 1. Accepted value are greater or equal than 1.")
         return int_value
 
-    @validator("replication_quota_window_num", "log_segment_bytes", "message_max_bytes")
+    @validator(
+        "replication_quota_window_num",
+        "log_segment_bytes",
+        "message_max_bytes",
+        "group_initial_rebalance_delay_ms",
+    )
     @classmethod
     def greater_than_zero(cls, value: int) -> int | None:
         """Check value greater than zero."""
@@ -200,6 +206,7 @@ class CharmConfig(BaseConfigModel):
         "offsets_topic_num_partitions",
         "transaction_state_log_num_partitions",
         "replication_quota_window_num",
+        "group_initial_rebalance_delay_ms",
     )
     @classmethod
     def integer_value(cls, value: int) -> int | None:
