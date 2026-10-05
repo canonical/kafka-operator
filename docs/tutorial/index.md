@@ -22,7 +22,7 @@ individual step:
 - [Integrate with client applications](tutorial-integrate-with-client-applications)
 - [Manage passwords](tutorial-manage-passwords)
 - [Enable encryption](tutorial-enable-encryption)
-- [Use Kafka Connect for ETL](tutorial-kafka-connect)
+- [Use Kafka Connect for ETL](tutorial-kafka-connect) (Machine only)
 - [Rebalance and Reassign Partitions](tutorial-rebalance-partitions)
 - [Cleanup your environment](tutorial-cleanup)
 

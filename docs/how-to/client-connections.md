@@ -40,7 +40,7 @@ juju deploy data-integrator
 juju config data-integrator topic-name=test-topic extra-user-roles=producer,consumer
 ```
 
-Relate the two applications with:
+Integrate the two applications with:
 
 ```shell
 juju integrate data-integrator kafka
@@ -52,17 +52,51 @@ To retrieve information, enter:
 juju run data-integrator/leader get-credentials
 ```
 
+```{note}
+On Kubernetes, the returned endpoints are cluster-internal DNS names. Clients
+outside the Kubernetes cluster need the NodePort setup described in
+[How to connect to Charmed Apache Kafka K8s externally](how-to-external-k8s-connection).
+```
+
 This should output something like:
+
+`````{tab-set}
+---
+sync-group: substrate
+---
+````{tab-item} VM
+:sync: vm
 
 ```yaml
 kafka:
   consumer-group-prefix: relation-27-
-  endpoints: 10.123.8.133:19092
+  endpoints: 10.123.8.133:9092
   password: ejMp4SblzxkMCF0yUXjaspneflXqcyXK
   tls: disabled
+  topic: test-topic
   username: relation-27
-ok: "True"
+  ok: "True"
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```yaml
+kafka:
+  consumer-group-prefix: relation-8-
+  endpoints: kafka-0.kafka-endpoints:9092,kafka-1.kafka-endpoints:9092,kafka-2.kafka-endpoints:9092
+  password: fm2E0oBidzcnpav1WSNfJXKn0vtgn44G
+  tls: disabled
+  topic: test-topic
+  username: relation-8
+  ok: "True"
+```
+
+````
+
+`````
 
 ## Password rotation
 
@@ -77,7 +111,7 @@ re-create the relation, the other one can be performed without any downtime.
 
 The easiest way to rotate user credentials of client applications is by removing and then
 re-relating the application (either a charm supporting the `kafka-client` interface or a
-`data-integrator`) with the `kafka` charm:
+`data-integrator`) with the Apache Kafka charm:
 
 ```shell
 juju remove-relation kafka <charm-or-data-integrator>
@@ -101,7 +135,7 @@ juju deploy data-integrator rotated-user \
   --config extra-user-roles=producer,consumer
 ```
 
-The `data-integrator` charm can then be related to the `kafka` charm to create a new user:
+The `data-integrator` charm can then be integrated with the Apache Kafka charm to create a new user:
 
 ```shell
 juju integrate kafka rotated-user

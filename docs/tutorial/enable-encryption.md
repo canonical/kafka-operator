@@ -47,6 +47,13 @@ juju deploy self-signed-certificates --config ca-common-name="Tutorial CA"
 
 Wait for the charm to settle into an `active`/`idle` state, as shown by the `juju status` command.
 
+`````{tab-set}
+---
+sync-group: substrate
+---
+````{tab-item} VM
+:sync: vm
+
 <details> <summary> Output example</summary>
 
 ```text
@@ -82,6 +89,40 @@ Machine  State    Address         Inst id        Base          AZ          Messa
 
 </details>
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+<details> <summary> Output example</summary>
+
+```text
+Model     Controller  Cloud/Region         Version  SLA          Timestamp
+tutorial  overlord    microk8s/localhost   3.6.20   unsupported  23:27:35Z
+
+App                       Version  Status   Scale  Charm                     Channel        Rev  Exposed  Message
+data-integrator                    blocked      1  data-integrator           latest/stable  362  no       Please relate the data-integrator with the desired product
+kafka                     4.1.1    active       3  kafka-k8s                 4/stable       111  no
+kraft                     4.1.1    active       3  kafka-k8s                 4/stable       111  no
+self-signed-certificates           active       1  self-signed-certificates  1/stable       317  no       
+
+Unit                         Workload  Agent  Address        Ports      Message
+data-integrator/0*           blocked   idle   10.233.204.111             Please relate the data-integrator with the desired product
+kafka/0*                     active    idle   10.233.204.241  19093/tcp
+kafka/1                      active    idle   10.233.204.196  19093/tcp
+kafka/2                      active    idle   10.233.204.148  19093/tcp
+kraft/0                      active    idle   10.233.204.125  9098/tcp   
+kraft/1*                     active    idle   10.233.204.36   9098/tcp   
+kraft/2                      active    idle   10.233.204.225  9098/tcp   
+self-signed-certificates/0*  active    idle   10.233.204.134             
+```
+
+</details>
+
+````
+
+`````
+
 To enable TLS on Charmed Apache Kafka, integrate with `self-signed-certificates` charm:
 
 ```shell
@@ -101,11 +142,12 @@ open/closed with `telnet`:
 <!-- test:skip -->
 
 ```shell
-telnet <Public IP address> 9092 
-telnet <Public IP address> 9093
+telnet <IP address> 9092 
+telnet <IP address> 9093
 ```
 
-where `Public IP address` is the IP of any Charmed Apache Kafka application units.
+where `IP address` is the address of any Charmed Apache Kafka unit, as shown in the `juju status`
+output above (the `Public address` column on VM, or the `Address` column on Kubernetes).
 
 Both commands will be **unable to connect** now, as our Apache Kafka cluster has no active listeners
 due to absence of integrated applications.
@@ -130,8 +172,8 @@ Now try connecting with `telnet` again:
 <!-- test:skip -->
 
 ```shell
-telnet <Public IP address> 9092 
-telnet <Public IP address> 9093
+telnet <IP address> 9092 
+telnet <IP address> 9093
 ```
 
 The `9092` port connection now should show a connection error, while the `9093` port should
@@ -167,7 +209,7 @@ the process here is the same as with the unencrypted workflow):
 juju config kafka-test-app topic_name=HOT-TOPIC role=producer num_messages=20
 ```
 
-Finally, relate with the `kafka` cluster:
+Finally, integrate with the Charmed Apache Kafka cluster:
 
 ```shell
 juju integrate kafka kafka-test-app
@@ -187,16 +229,18 @@ established with the encrypted port `9093`.
 
 ## Remove external TLS certificate
 
-To remove the external TLS and return to the locally generated one, remove relation with
-certificates provider:
+To remove the external TLS encryption for client connections, remove the `certificates` relation
+with the certificates provider:
 
 ```shell
-juju remove-relation kafka self-signed-certificates
+juju remove-relation kafka:certificates self-signed-certificates
 ```
 
 <!-- test:await-idle --timeout 600 -->
 
-The Charmed Apache Kafka application is not using TLS anymore for client connections.
+The Charmed Apache Kafka application is not using the external certificates anymore for client
+connections. Internal communication between brokers and controllers remains encrypted with the
+auto-generated self-signed certificates.
 
 ## Clean up
 

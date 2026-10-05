@@ -20,7 +20,7 @@ see the [MirrorMaker explanation](explanation-mirrormaker2-0) page.
 
 To set up cluster replication we need:
 
-- Two Charmed Apache Kafka clusters:
+- Two Charmed Apache Kafka clusters on a common substrate:
   - A source cluster to replicate from.
   - A target cluster to replicate to.
 - A Charmed Kafka Connect cluster to run the MirrorMaker connectors.
@@ -32,9 +32,12 @@ for example, in the same cloud region.
 
 For guidance on how to set up Charmed Apache Kafka, please refer to the following resources:
 
-- The [Charmed Apache Kafka Tutorial](tutorial-introduction)
 - The [How to deploy guide](how-to-deploy-anywhere) for Charmed Apache Kafka
-- The [Charmed Kafka Connect Tutorial](tutorial-kafka-connect)
+- The [Kafka Connect guide](how-to-use-kafka-connect-for-etl-workloads)
+
+The commands below use the application names `active`, `passive`, `kafka-a` and `kafka-b`. Deploy
+the charm for your substrate (`kafka` on VM, `kafka-k8s` on K8s) under these application names, as
+shown in the synchronized command tabs.
 
 ## Set up active-passive replication
 
@@ -42,16 +45,22 @@ The [MirrorMaker integrator charm](https://charmhub.io/mirrormaker-connect-integ
 on a Charmed Kafka Connect cluster that replicates data from an active Apache Kafka cluster to a
 passive cluster.
 
-Check the status of deployed applications by running `juju status` command. The result should be
-similar to:
+Check the status of deployed applications by running `juju status`:
+
+`````{tab-set}
+---
+sync-group: substrate
+---
+````{tab-item} VM
+:sync: vm
 
 ```text
 Model  Controller  Cloud/Region         Version  SLA          Timestamp
 k      vms         localhost/localhost  3.6.3    unsupported  10:45:37+02:00
 
 App            Version  Status  Scale  Charm          Channel       Rev  Exposed  Message
-active         3.9.0    active      1  kafka          3/stable      240  no
-passive        3.9.0    active      1  kafka          3/stable      240  no
+active         4.1.1    active      1  kafka          4/stable      111  no
+passive        4.1.1    active      1  kafka          4/stable      111  no
 kafka-connect           active      1  kafka-connect  latest/edge    20  no
 
 Unit              Workload  Agent  Machine  Public address  Ports           Message
@@ -59,6 +68,30 @@ active/0*         active    idle   0        10.86.75.171    19092/tcp
 passive/0*        active    idle   1        10.86.75.153    9092,19092/tcp
 kafka-connect/0*  active    idle   2        10.86.75.45     8083/tcp
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```text
+Model  Controller  Cloud/Region         Version  SLA          Timestamp
+k      vms         microk8s/localhost   3.6.3    unsupported  10:45:37+02:00
+
+App            Version  Status  Scale  Charm              Channel       Rev  Exposed  Message
+active         4.1.1    active      1  kafka-k8s          4/stable      111  no
+passive        4.1.1    active      1  kafka-k8s          4/stable      111  no
+kafka-connect           active      1  kafka-connect-k8s  latest/edge    20  no
+
+Unit              Workload  Agent  Address      Ports           Message
+active/0*         active    idle   10.1.75.171  19092/tcp
+passive/0*        active    idle   10.1.75.153  9092,19092/tcp
+kafka-connect/0*  active    idle   10.1.75.45   8083/tcp
+```
+
+````
+
+`````
 
 The `active` cluster serves as a source and `passive` as a target for replication.
 
@@ -91,17 +124,24 @@ juju integrate mirrormaker:source active
 juju integrate mirrormaker:target passive
 ```
 
-After some time, the `mirrormaker` application should show up as `active/idle` in the `juju status`:
+After some time, the `mirrormaker` application should show up as `active/idle` in `juju status`:
+
+`````{tab-set}
+---
+sync-group: substrate
+---
+````{tab-item} VM
+:sync: vm
 
 ```text
 Model  Controller  Cloud/Region         Version  SLA          Timestamp
 k      vms         localhost/localhost  3.6.3    unsupported  10:59:37+02:00
 
 App            Version  Status  Scale  Charm          Channel       Rev  Exposed  Message
-active         3.9.0    active      1  kafka          3/stable      240  no       
+active         4.1.1    active      1  kafka          4/stable      111  no       
 kafka-connect           active      1  kafka-connect  latest/edge    20  no       
 mirrormaker             active      1  mirrormaker                    0  no       Task Status: UNASSIGNED
-passive        3.9.0    active      1  kafka          3/stable      240  no       
+passive        4.1.1    active      1  kafka          4/stable      111  no       
 
 Unit              Workload  Agent  Machine  Public address  Ports           Message
 active/0*         active    idle   0        10.86.75.171    9092,19092/tcp  
@@ -109,6 +149,32 @@ kafka-connect/0*  active    idle   2        10.86.75.45     8083/tcp
 mirrormaker/0*    active    idle   3        10.86.75.189    8080/tcp        Task Status: UNASSIGNED
 passive/0*        active    idle   1        10.86.75.153    9092,19092/tcp  
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```text
+Model  Controller  Cloud/Region         Version  SLA          Timestamp
+k      vms         microk8s/localhost   3.6.3    unsupported  10:59:37+02:00
+
+App            Version  Status  Scale  Charm              Channel       Rev  Exposed  Message
+active         4.1.1    active      1  kafka-k8s          4/stable      111  no       
+kafka-connect           active      1  kafka-connect-k8s  latest/edge    20  no       
+mirrormaker             active      1  mirrormaker                    0  no       Task Status: UNASSIGNED
+passive        4.1.1    active      1  kafka-k8s          4/stable      111  no       
+
+Unit              Workload  Agent  Address      Ports           Message
+active/0*         active    idle   10.1.75.171  9092,19092/tcp  
+kafka-connect/0*  active    idle   10.1.75.45   8083/tcp        
+mirrormaker/0*    active    idle   10.1.75.189  8080/tcp        Task Status: UNASSIGNED
+passive/0*        active    idle   10.1.75.153  9092,19092/tcp  
+```
+
+````
+
+`````
 
 ```{note}
 Task status might show as UNASSIGNED since there are no replication tasks running yet. 
@@ -140,16 +206,22 @@ juju deploy mirrormaker-connect-integrator --config prefix_topics=true mirrormak
 juju deploy mirrormaker-connect-integrator --config prefix_topics=true mirrormaker-b-a
 ```
 
-Check the status of deployed applications by running `juju status` command. The result should be
-similar to:
+Check the status of deployed applications by running `juju status`:
+
+`````{tab-set}
+---
+sync-group: substrate
+---
+````{tab-item} VM
+:sync: vm
 
 ```text
 Model  Controller  Cloud/Region         Version  SLA          Timestamp
 k      vms         localhost/localhost  3.6.3    unsupported  10:59:37+02:00
 
 App              Version  Status  Scale  Charm          Channel       Rev  Exposed  Message
-kafka-a          3.9.0    active      1  kafka          3/stable      240  no       
-kafka-b          3.9.0    active      1  kafka          3/stable      240  no       
+kafka-a          4.1.1    active      1  kafka          4/stable      111  no       
+kafka-b          4.1.1    active      1  kafka          4/stable      111  no       
 kafka-connect-a           active      1  kafka-connect  latest/edge    20  no       
 kafka-connect-b           active      1  kafka-connect  latest/edge    20  no       
 mirrormaker-a-b           active      1  mirrormaker                   0  no       Task Status: UNASSIGNED
@@ -163,6 +235,36 @@ kafka-connect-b/0*  active    idle   2        10.86.75.46     8083/tcp
 mirrormaker-a-b/0*  active    idle   3        10.86.75.189    8080/tcp        Task Status: UNASSIGNED
 mirrormaker-b-a/0*  active    idle   3        10.86.75.190    8080/tcp        Task Status: UNASSIGNED
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```text
+Model  Controller  Cloud/Region         Version  SLA          Timestamp
+k      vms         microk8s/localhost   3.6.3    unsupported  10:59:37+02:00
+
+App              Version  Status  Scale  Charm              Channel       Rev  Exposed  Message
+kafka-a      4.1.1    active      1  kafka-k8s          4/stable      111  no       
+kafka-b      4.1.1    active      1  kafka-k8s          4/stable      111  no       
+kafka-connect-a           active      1  kafka-connect-k8s  latest/edge    20  no       
+kafka-connect-b           active      1  kafka-connect-k8s  latest/edge    20  no       
+mirrormaker-a-b           active      1  mirrormaker                   0  no       Task Status: UNASSIGNED
+mirrormaker-b-a           active      1  mirrormaker                   0  no       Task Status: UNASSIGNED
+
+Unit                Workload  Agent  Address      Ports           Message
+kafka-a/0*      active    idle   10.1.75.171  9092,19092/tcp  
+kafka-b/0*      active    idle   10.1.75.153  9092,19092/tcp  
+kafka-connect-a/0*  active    idle   10.1.75.45   8083/tcp        
+kafka-connect-b/0*  active    idle   10.1.75.46   8083/tcp        
+mirrormaker-a-b/0*  active    idle   10.1.75.189  8080/tcp        Task Status: UNASSIGNED
+mirrormaker-b-a/0*  active    idle   10.1.75.190  8080/tcp        Task Status: UNASSIGNED
+```
+
+````
+
+`````
 
 Then the integrations needed should be done like follows:
 
@@ -180,7 +282,7 @@ juju integrate mirrormaker-b-a:source kafka-b
 juju integrate mirrormaker-b-a:target kafka-a
 ```
 
-With this, the deployment is complete. There will be two bi-directional replication flows between
-`kafka-a` and `kafka-b`. The topics will be prefixed with the cluster name, so that they do not
-collide with each other. For example, a topic called `demo` created on `kafka-a` will be replicated
-as a new topic on `kafka-b` named `kafka-a.replica.demo`, and vice versa.
+With this, the deployment is complete. There will be two bidirectional replication flows between the
+A and B applications (`kafka-a`/`kafka-b`). Topics are prefixed with the source application name so
+that they do not collide. For example, a `demo` topic created on application `kafka-a` is replicated
+to `kafka-b` as `kafka-a.replica.demo`, and vice versa.

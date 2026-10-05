@@ -18,8 +18,8 @@ charm relation. Therefore, any charm implementing the Provider side could be use
 
 ## Prerequisites
 
-For this guide, we will need an active Charmed Apache Kafka application. Follow the
-[Deploy Apache Kafka](tutorial-deploy) tutorial to set up the environment.
+For this guide, you need an active Charmed Apache Kafka application. Follow the
+[deployment guide](how-to-deploy-anywhere) to set up the appropriate VM or K8s environment.
 
 ## Enable TLS encryption for client communication
 
@@ -61,6 +61,12 @@ application via the `peer-certificates` relation interface:
 juju integrate kafka:peer-certificates <TLS-provider-charm>
 ```
 
+If the KRaft controllers run in a separate application, integrate it as well:
+
+```bash
+juju integrate <controller-app>:peer-certificates <TLS-provider-charm>
+```
+
 The old self-signed certificates will be removed, and new certificates will be issued using the
 certificate authority in the provider application. See
 [Security with x.509 certificates](https://charmhub.io/topics/security-with-x-509-certificates)
@@ -90,6 +96,9 @@ Then, add these external private keys to a new Juju secret:
 juju add-secret external-kafka-pks kafka-0="$(cat kafka-0.key)" kafka-1="$(cat kafka-1.key)" kafka-2="$(cat kafka-2.key)"
 ```
 
+Take note of the `secret-id` in the response — it will be needed in the final configuration step
+below.
+
 ```{note}
 The Juju secret keys **MUST** follow the naming constraint of `<kafka-application-name>-<unit-id>`.
 ```
@@ -99,8 +108,6 @@ Grant the Charmed Apache Kafka application access to the new Juju secret:
 ```bash
 juju grant-secret external-kafka-pks kafka
 ```
-
-Take note of the `secret-id` in the response.
 
 <details> <summary> Output example</summary>
 
@@ -123,8 +130,16 @@ externally provided private key created earlier.
 
 ## Disable TLS encryption for client communication
 
-To disable TLS encryption, remove the relation with the `tls-certificates` provider application:
+To disable TLS encryption, remove the `certificates` relation with the `tls-certificates` provider
+application:
 
 ```bash
-juju remove-relation kafka <tls-certificates>
+juju remove-relation kafka:certificates <tls-certificates>
+```
+
+```{note}
+If the same TLS provider application also provides internal certificates via the
+`peer-certificates` relation, specify the endpoint explicitly as shown above.
+Removing the relation by application name alone (`juju remove-relation kafka
+<tls-certificates>`) is ambiguous in that case and may remove the wrong relation.
 ```

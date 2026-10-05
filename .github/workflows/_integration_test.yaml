@@ -53,6 +53,7 @@ env:
 
 jobs:
   integration-test:
+    # Some GH UI views only show this name, so set it to something readable.
     name: ${{ inputs.tox-env }} ${{ inputs.extra-tox-args }}
     permissions:
       contents: read

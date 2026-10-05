@@ -23,16 +23,57 @@ the environment. For this guide, we will need an active Charmed Apache Kafka app
 
 To deploy Karapace and integrate it with Apache Kafka, use the following commands:
 
+`````{tab-set}
+---
+sync-group: substrate
+---
+````{tab-item} VM
+:sync: vm
+
 ```bash
 juju deploy karapace --channel stable
 juju integrate karapace kafka
 ```
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju deploy karapace-k8s --channel stable
+juju integrate karapace-k8s kafka
+```
+
+````
+
+`````
+
 Once deployed, the password to access the Karapace REST API can be obtained:
+
+`````{tab-set}
+---
+sync-group: substrate
+---
+````{tab-item} VM
+:sync: vm
 
 ```bash
 juju run karapace/leader get-password username="operator"
 ```
+
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju run karapace-k8s/leader get-password username="operator"
+```
+
+````
+
+`````
 
 To check that Karapace works correctly, list all registered schemas using the password from the
 previous command's output:
@@ -80,7 +121,7 @@ schema with `<field2>` removed, run:
 
 ```bash
 curl -u operator:<password> -X POST -H "Content-Type: application/vnd.schemaregistry.v1+json" \
-     http://<karapace-unit-ip>:8081/subjects/<schema-name>/versions/latest \
+     http://<karapace-unit-ip>:8081/compatibility/subjects/<schema-name>/versions/latest \
     --data '{"schema": "{\"type\": \"record\", \"name\": \"Obj\", \"fields\":[{\"name\": \"<field1>\", \"type\": \"string\"}]}"}'
 ```
 

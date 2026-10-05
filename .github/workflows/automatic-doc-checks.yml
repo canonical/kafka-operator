@@ -6,7 +6,18 @@ on:
     branches: [ main ]
   pull_request:
     paths:
-      - 'docs/**'   # Only run on changes to the docs directory
+      # Run on changes to the docs directory and the charm source files
+      # used to auto-generate reference pages
+      - 'docs/**'
+      - 'machine/actions.yaml'
+      - 'machine/config.yaml'
+      - 'k8s/actions.yaml'
+      - 'k8s/config.yaml'
+      - 'connect_machine/actions.yaml'
+      - 'connect_machine/config.yaml'
+      - 'connect_k8s/actions.yaml'
+      - 'connect_k8s/config.yaml'
+      - 'common/single_kernel_kafka/core/literals.py'
 
   workflow_dispatch:
     # Manual trigger

@@ -31,9 +31,9 @@ MirrorMaker replicates and migrates Apache Kafka clusters.
 
 ## Backups
 
-Read through [Backups explanation](explanation-backups) for information on the why snapshots and
-backing up Apache Kafka's log data is typically not necessary, and is not supported with Charmed
-Apache Kafka.
+Read through [Backups explanation](explanation-backups) for information on what replication does and
+does not protect against, and why a backup and restore workflow is not provided with Charmed Apache
+Kafka.
 
 ## Other topics
 

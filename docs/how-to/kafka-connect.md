@@ -6,6 +6,8 @@ myst:
 
 (how-to-use-kafka-connect-for-etl-workloads)=
 
+(how-to-use-kafka-connect)=
+
 # How to use Kafka Connect for ETL workloads
 
 [Kafka Connect](https://kafka.apache.org/41/kafka-connect/overview/) is a framework for easy
@@ -15,10 +17,10 @@ through multiple jobs running on a distributed cluster of workers.
 The Kafka Connect charm delivers automated operations management from day 0 to day 2 on *Kafka
 Connect*, which hugely simplifies the deployment and administrative tasks on Kafka Connect clusters.
 
-This operator can be found on [Charmhub](https://charmhub.io/kafka-connect) and it comes with
-production-ready features such as automated and manual plugin management, replication and
-scalability, authentication, TLS support, and seamless integration with Charmed Apache Kafka set of
-operators.
+The operator is available for [VM](https://charmhub.io/kafka-connect) and
+[K8s](https://charmhub.io/kafka-connect-k8s). It comes with production-ready features such as
+automated and manual plugin management, replication and scalability, authentication, TLS support,
+and seamless integration with Charmed Apache Kafka.
 
 This How-to guide covers deploying Kafka Connect, integrating it with Charmed Apache Kafka, and
 running a connector—either manually or using an integrator charm.
@@ -34,9 +36,12 @@ To deploy [Kafka Connect charm](https://charmhub.io/kafka-connect) and integrate
 Apache Kafka, use the following commands:
 
 ```bash
-juju deploy kafka-connect --channel edge
+juju deploy <connect-charm> --channel 4/stable --trust
 juju integrate kafka-connect kafka
 ```
+
+where `<connect-charm>` is `kafka-connect` on VM and `kafka-connect-k8s` on K8s. The `--trust` flag
+grants the charm the permissions it needs on Kubernetes; it is accepted and harmless on VM.
 
 ## Use REST API
 
@@ -59,7 +64,7 @@ secret:cvh7kruupa1s46bqvuig
 
 Now, grant the secret to the Kafka Connect charm using `juju grant-secret` command:
 
-```
+```bash
 juju grant-secret mysecret kafka-connect
 ```
 
@@ -241,6 +246,6 @@ These charmed operators support use cases such as loading data to and from MySQL
 OpenSearch, S3-compatible storage services, and active/passive replication of Apache Kafka topics
 using MirrorMaker.
 
-To learn more about integrator charms, please refer to the tutorial
-[Use Kafka Connect for ETL](tutorial-kafka-connect) which covers a practical use-case of moving data
-from MySQL to OpenSearch using integrator charms.
+To learn more about integrator charms, see the tutorial for machine deployments,
+[Use Kafka Connect for ETL](tutorial-kafka-connect), which covers a practical use case of moving
+data from PostgreSQL to OpenSearch.
