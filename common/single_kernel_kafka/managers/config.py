@@ -597,9 +597,7 @@ class ConfigManager(CommonConfigManager):
     def client_listeners(self) -> list[Listener]:
         """Return a list of client listeners."""
         return [
-            Listener(
-                host=self.state.unit_broker.internal_address, auth_map=auth_map, scope="CLIENT"
-            )
+            Listener(host=self.state.unit_broker.client_address, auth_map=auth_map, scope="CLIENT")
             for auth_map in self.state.enabled_auth
         ]
 

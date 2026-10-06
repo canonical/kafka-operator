@@ -73,7 +73,7 @@ KRaftMode = Literal["single", "multi"]
 
 
 def load_acls(model_full_name: str | None) -> Set[Acl]:
-    bootstrap_server = f'{get_k8s_host_from_unit("kafka-k8s/0")}:19093'
+    bootstrap_server = f'{get_k8s_host_from_unit(model_full_name, "kafka-k8s/0")}:19093'
     container_command = f"{BROKER.paths['BIN']}/bin/kafka-acls.sh --command-config {BROKER.paths['CONF']}/client.properties --bootstrap-server {bootstrap_server} --list"
 
     result = check_output(
@@ -103,7 +103,7 @@ def load_super_users(model_full_name: str | None) -> List[str]:
 
 
 def check_user(model_full_name: str | None, username: str) -> None:
-    bootstrap_server = f'{get_k8s_host_from_unit("kafka-k8s/0")}:19093'
+    bootstrap_server = f'{get_k8s_host_from_unit(model_full_name, "kafka-k8s/0")}:19093'
     container_command = f"{BROKER.paths['BIN']}/bin/kafka-configs.sh --bootstrap-server {bootstrap_server} --describe --entity-type users --entity-name {username} --command-config {BROKER.paths['CONF']}/client.properties"
     result = check_output(
         f"JUJU_MODEL={model_full_name} juju ssh --container kafka kafka-k8s/0 '{container_command}'",
@@ -349,7 +349,7 @@ def check_logs(juju: jubilant.Juju, kafka_unit_name: str, topic: str) -> None:
 
 def run_client_properties(juju: jubilant.Juju) -> str:
     """Runs command requiring admin permissions, authenticated with bootstrap-server."""
-    bootstrap_server = f'{get_k8s_host_from_unit("kafka-k8s/0")}:19093'
+    bootstrap_server = f'{get_k8s_host_from_unit(juju.model, "kafka-k8s/0")}:19093'
     container_command = f"{BROKER.paths['BIN']}/bin/kafka-configs.sh --bootstrap-server {bootstrap_server} --describe --all --command-config {BROKER.paths['CONF']}/client.properties --entity-type users"
 
     result = check_output(
@@ -736,7 +736,7 @@ def check_external_access_non_tls(juju: jubilant.Juju, unit_name: str):
     )
     client.create_topic(topic=topic_config)
 
-    internal_bootstrap_server = f"{get_k8s_host_from_unit(unit_name=unit_name)}:19093"
+    internal_bootstrap_server = f"{get_k8s_host_from_unit(juju.model, unit_name=unit_name)}:19093"
     topics_list = check_output(
         f"JUJU_MODEL={juju.model} juju ssh --container kafka {unit_name} '/opt/kafka/bin/kafka-topics.sh --bootstrap-server {internal_bootstrap_server} --command-config /etc/kafka/client.properties --list'",
         stderr=PIPE,
