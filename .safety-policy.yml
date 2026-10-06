@@ -1,0 +1,5 @@
+security:
+    ignore-vulnerabilities:
+        67599:
+          reason: CVE-2018-20225 is disputed, and present in all pip versions by design.
+          # expires: "never"

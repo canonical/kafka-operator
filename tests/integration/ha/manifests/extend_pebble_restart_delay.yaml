@@ -1,0 +1,5 @@
+services:
+  kafka:
+    override: merge
+    backoff-delay: 60s
+    backoff-limit: 60s

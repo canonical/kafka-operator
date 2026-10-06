@@ -1,0 +1,13 @@
+venv/
+build/
+*.charm
+.tox/
+.coverage
+coverage.xml
+__pycache__/
+*.py[cod]
+.vscode
+.idea
+.python-version
+last_written_value
+*.srl
