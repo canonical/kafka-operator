@@ -65,6 +65,7 @@ class KafkaRefresh(charm_refresh.CharmSpecificCommon, abc.ABC):
 
         if self._charm.state.ready_to_start:
             broker = self._charm.broker
+            broker.workload.ensure_ownership()
             broker.config_manager.set_environment()
             broker.config_manager.set_server_properties()
             broker.config_manager.set_client_properties()

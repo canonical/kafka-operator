@@ -207,6 +207,7 @@ class BrokerOperator(Object):
             self.tls_manager.configure()
 
         # start kafka service
+        self.workload.ensure_ownership()
         self.workload.start()
         logger.info("Kafka service started")
 
