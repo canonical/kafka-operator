@@ -18,6 +18,7 @@ from lightkube.core.client import Client
 from lightkube.core.exceptions import ApiError
 from lightkube.resources.apps_v1 import StatefulSet
 from pydantic import BaseModel
+from single_kernel_kafka.core.literals import GROUP, USER_ID
 from typing_extensions import override
 
 if TYPE_CHECKING:
@@ -214,4 +215,8 @@ class ConnectUpgradeK8s(DataUpgrade):
     def apply_backwards_compatibility_fixes(self, _: EventBase) -> None:
         """A range of functions needed for backwards compatibility."""
         logger.info("Applying upgrade fixes")
-        return
+        # Change ownership of paths, in case the UID/GID has changed.
+        workload = self.charm.workload
+        for path in workload.connect_paths.K8S.values():
+            if workload.dir_exists(path):
+                workload.exec(["chown", "-R", f"{USER_ID}:{GROUP}", path])

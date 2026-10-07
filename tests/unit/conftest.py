@@ -127,6 +127,9 @@ def patched_workload(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(
         f"single_kernel_kafka.workload.Workload{SUBSTRATE_CLS}.ips", ["10.10.10.10"]
     )
+    monkeypatch.setattr(
+        f"single_kernel_kafka.workload.Workload{SUBSTRATE_CLS}.ensure_ownership", lambda _: None
+    )
 
 
 @pytest.fixture(autouse=True)
