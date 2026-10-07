@@ -1,0 +1,23 @@
+/*
+ * Visually hides the agent-facing llms.txt discovery directive rendered by
+ * '_templates/header.html'.
+ *
+ * The Agent-Friendly Docs spec (https://agentdocsspec.com/spec/) requires the
+ * directive to be present in the served HTML so agents can discover llms.txt
+ * and the Markdown variants of each page.  'display: none' would remove it from
+ * the accessibility tree and risk it being treated as cloaked content, so the
+ * standard clip-rect technique is used instead: the element stays in the DOM and
+ * in the accessibility tree, but occupies no visible space.
+ */
+.u-hide-agent-directive {
+    border: 0;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+}

@@ -1,0 +1,50 @@
+{# Actions reference page template. #}
+---
+myst:
+  html_meta:
+    description: "{{ description }}"
+---
+
+{{ autogen_notice }}
+
+(reference-actions)=
+# Actions
+
+The following actions can be run on the Charmed Apache Kafka charm using `juju run`.
+
+{% for action_name, spec in actions.items() %}
+## `{{ action_name }}`
+
+{% if spec.description %}
+{% for paragraph in spec.description.split("\n\n") %}
+{{ " ".join(paragraph.split()) }}
+
+{% endfor %}
+{% endif %}
+{% if spec.params %}
+### Parameters
+
+| Name | Type | Default | Required | Description |
+|---|---|---|---|---|
+{% for name, p in spec.params.items() %}
+| `{{ name }}` | `{{ p.type }}` | {{ p.default }} | {{ "yes" if name in spec.required else "" }} | {{ p.description }} |
+{% endfor %}
+{% if spec.constraints %}
+
+{% for c in spec.constraints %}
+- `{{ c.name }}` constraints:
+{% if c.enum %}  - Allowed values: {{ c.enum | map("tojson") | join(", ") | replace('"', '`') }}
+{% endif %}
+{% if c.minimum is not none %}  - Minimum: `{{ c.minimum }}`
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% endif %}
+{% if spec.additional_properties is false %}
+No additional parameters are accepted.
+
+{% endif %}
+{% endfor %}
+This page is generated at build time from [`machine/actions.yaml`](https://github.com/canonical/kafka-operator/blob/main/machine/actions.yaml).
+

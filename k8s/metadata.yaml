@@ -10,13 +10,13 @@ description: |
   Users can find out more at the [Apache Kafka project page](https://kafka.apache.org/).
 summary: Charmed Apache Kafka K8s Operator
 docs: https://discourse.charmhub.io/t/charmed-apache-kafka-k8s-v-4-x/19022
-source: https://github.com/canonical/kafka-k8s-operator
-issues: https://github.com/canonical/kafka-k8s-operator/issues
+source: https://github.com/canonical/kafka-operator
+issues: https://github.com/canonical/kafka-operator/issues
 website:
   - https://ubuntu.com/data/kafka
   - https://canonical.com/data/docs/kafka/k8s
   - https://charmhub.io/kafka-k8s
-  - https://github.com/canonical/kafka-k8s-operator
+  - https://github.com/canonical/kafka-operator
   - https://matrix.to/#/%23charmhub-data-platform%3Aubuntu.com
 maintainers:
   - Canonical Data Platform <data-platform@lists.launchpad.net>
@@ -34,7 +34,7 @@ resources:
   kafka-image:
     type: oci-image
     description: OCI Image for Apache Kafka
-    upstream-source: ghcr.io/canonical/charmed-kafka@sha256:3b25cb967c8ceb2d4b5045ace707cd95b955e0dd8c8c253d62693e25c796f510
+    upstream-source: ghcr.io/canonical/charmed-kafka@sha256:820b49e521ddc6b2118f6b599d77d8a201171f8b3f6240d441e5b7d56b0ac75d
 
 peers:
   cluster:
@@ -78,6 +78,10 @@ requires:
     optional: true
   oauth:
     interface: oauth
+    limit: 1
+    optional: true
+  charm-tracing:
+    interface: tracing
     limit: 1
     optional: true
 

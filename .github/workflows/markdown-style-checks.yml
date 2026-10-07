@@ -14,11 +14,28 @@ on:
 
 jobs:
   markdown-lint:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         fetch-depth: 0
-    - uses: DavidAnson/markdownlint-cli2-action@v16
+    - name: Create venv
+      working-directory: "docs"
+      run: make install
+    - name: Lint markdown
+      working-directory: "docs"
+      run: make lint-md
+
+  mdformat-check:
+    name: mdformat check
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v5
       with:
-        config: "docs/.sphinx/.markdownlint.json"
+        fetch-depth: 0
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - name: Check markdown formatting
+      working-directory: "docs"
+      run: make mdformat-check

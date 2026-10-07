@@ -9,6 +9,229 @@ make clean   # remove build artifacts and virtual environment
 make run     # install dependencies, build, and serve with live reload at http://127.0.0.1:8000
 ```
 
+## Auto-generated reference pages
+
+Three reference pages are generated at build time from charm source files, not hand-written:
+
+| Page                                     | Source file                                   | Generator                               |
+| ---------------------------------------- | --------------------------------------------- | --------------------------------------- |
+| `reference/_generated/actions.md`        | `machine/actions.yaml`                        | `docs/_dev/generate_charm_reference.py` |
+| `reference/_generated/configurations.md` | `machine/config.yaml`                         | `docs/_dev/generate_charm_reference.py` |
+| `reference/_generated/statuses.md`       | `common/single_kernel_kafka/core/literals.py` | `docs/_dev/generate_statuses.py`        |
+
+The `Status` enum in `literals.py` carries documentation prose (`expectations`, `actions`) as fields
+on each `StatusLevel`. These fields are not used at runtime — they exist solely to feed the statuses
+reference page generator, which imports the enum directly. Members with no `expectations` and no
+`actions` are automatically excluded from the generated table.
+
+Generated output lives in `docs/reference/_generated/` (gitignored). The `make generate` target
+(also run automatically by `make html`, `make run`, and `make pdf`) regenerates all pages.
+
+Both generators use Jinja2 templates from `docs/_dev/templates/` (`actions.md.j2`,
+`configurations.md.j2`, `statuses.md.j2`) to render the Markdown output. Edit the templates to
+change page layout; edit the source files (or `StatusLevel` fields) to change content.
+
+On Read the Docs, the `pre_build` job in `.readthedocs.yaml` runs the generators before Sphinx. PR
+builds are only cancelled when no changes affect `docs/`, `.readthedocs.yaml`, or the source files
+listed above.
+
+## Agent-friendly docs (llms.txt)
+
+The `sphinx-llm` extension generates `llms.txt`, `llms-full.txt`, and a Markdown variant of every
+page (`<page>/index.html.md`). Three pieces of configuration keep these discoverable and correct:
+
+1. **`html_baseurl` must include the Read the Docs version segment.** Published docs are served
+   under `https://canonical.com/data/kafka/docs/<version>/`. `conf.py` builds `html_baseurl` from
+   `slug` and `version_slug` (`READTHEDOCS_VERSION`, defaulting to `local`). A trailing slash is
+   required. Omitting either the version segment or the trailing slash makes every URL in
+   `sitemap.xml` and `llms.txt` return 404.
+2. **HTML directive** — `_templates/header.html` renders a visually-hidden
+   `<div data-agent-directive>` pointing at `llms.txt` and explaining the `.md` URL convention. It
+   is hidden with the clip-rect technique in `_static/agent-directive.css`, not `display: none`, so
+   it stays in the accessibility tree.
+3. **Markdown directive** — the `setup()` hook at the bottom of `conf.py` adds the same directive as
+   a quoted block at the top of every generated `.md` file. This runs as a `build-finished`
+   post-processing step (priority 900, after `sphinx-llm`) rather than via `source-read`, because
+   `sphinx-llm` derives each `llms.txt` entry's title and fallback description from the first
+   heading and paragraph of the generated Markdown — injecting into the sources would corrupt those
+   descriptions.
+
+To reproduce a production-like build locally:
+
+```bash
+READTHEDOCS=True READTHEDOCS_VERSION=4 READTHEDOCS_VERSION_TYPE=tag \
+  READTHEDOCS_PROJECT=kafka READTHEDOCS_LANGUAGE=en \
+  READTHEDOCS_GIT_IDENTIFIER=4 \
+  READTHEDOCS_CANONICAL_URL=https://canonical.com/data/kafka/docs/4/ \
+  make html
+```
+
+Audit the result with `npx afdocs check <url> --format scorecard`.
+
+**Not fixable in this repository:** content negotiation for `Accept: text/markdown` and cache-header
+lifetimes are handled by the Canonical web platform / CDN in front of Read the Docs, not by Sphinx.
+
+## Mermaid diagrams
+
+Diagrams use the `{mermaid}` directive and are rendered live in the browser by
+`sphinxcontrib-mermaid` (`raw` output mode).
+
+Styling comes from the [Canonical Mermaid brand kit](https://github.com/canonical/mermaid-brand-kit)
+(private), following its `docs/live-mermaid-in-sphinx.md` recipe, so design changes are picked up
+from upstream rather than maintained here.
+
+### Files
+
+| File                                    | Source                | Role                                             |
+| --------------------------------------- | --------------------- | ------------------------------------------------ |
+| `_static/brand-theme.light.config.json` | kit `dist/`, vendored | Light palette, loaded into `mermaid_init_config` |
+| `_static/brand-theme.sphinx-dark.css`   | kit `dist/`, vendored | Repaints diagrams for dark mode                  |
+| `_static/mermaid-brand-patch.css`       | local                 | Overrides the generated artifacts cannot express |
+
+The two vendored files are generated by the kit's `build-brand-theme-artifact.mjs` and **must not be
+edited by hand** — local edits would be lost on the next update and would silently diverge from the
+design tokens. To update, take a **complete** newer set of both (they are generated together from
+the same palette module and are not independently versioned), then re-verify as described below.
+
+Versions the vendored artifacts were validated against, from the kit's
+`dist/brand-theme.sphinx.json` receipt: Mermaid `11.15.0`, `@mermaid-js/layout-elk` `0.2.1`,
+`sphinxcontrib-mermaid` `2.1.1` (pinned exactly in `requirements.txt`, since the 1.x series lacks
+`mermaid_init_config`).
+
+`mermaid-brand-patch.css` is local and adapts the kit's assumed `#262626` page background to Furo's
+`#131416`. Keep it minimal; each rule documents the upstream limitation it works around, so it can
+be deleted once a newer kit release covers it.
+
+### Two upstream constraints
+
+Both are also recorded in `conf.py` at the point where they matter:
+
+- The brand config requests the **ELK** renderer, but ELK flowcharts emit
+  `aria-roledescription="flowchart-elk"` while the dark stylesheet only matches `flowchart-v2` and
+  `sequence`. Left alone, dark mode silently does not apply to any flowchart. `conf.py` forces the
+  dagre renderer as a workaround. This is a known upstream defect (blocker `B1` in the kit's own
+  `AGENT-INBOX.md`).
+- The dark stylesheet wins the cascade using `:is(#id, ...)` plus `:not(#guard)` to reach ID-level
+  specificity. Because `:is()` and `:not()` each take the specificity of their most specific
+  argument, that is **two** IDs. Local overrides must reproduce the idiom to outrank it —
+  `!important` alone loses, because the upstream declarations are important too and the more
+  specific selector then wins.
+- The dark stylesheet restyles edge-label *text* (`color`, `fill`) but never resets the
+  `background-color` that Mermaid paints on the `span` and `p` inside each label's
+  `<foreignObject>`. Without the patch, every edge label keeps a white box behind it in dark mode.
+
+### Authoring diagrams
+
+Do not put `theme`, `themeVariables`, `themeCSS`, `classDef`, `style`, or `linkStyle` in the Mermaid
+source — a per-diagram palette drifts from the site theme and breaks dark mode. Semantic structure
+(subgraphs, edge labels, `accTitle`/`accDescr`) is fine. The kit ships a lint for exactly this,
+runnable from a kit checkout:
+
+```bash
+node scripts/audit-sphinx-adaptive-sources.mjs <path-to>/docs
+```
+
+Do not set fonts or sizes in CSS either: Mermaid measures label text through the DOM to size its
+nodes, so changing metrics after render makes text overflow.
+
+### Verifying a change
+
+Build, serve over HTTP, and compare **computed styles** in both modes rather than trusting a
+screenshot. Setting only `body[data-theme]` leaves the page background stale, which makes a correct
+diagram look broken — set `data-theme` on both `body` and `html`, then measure:
+
+```bash
+make html && python3 -m http.server --directory _build 8000
+```
+
+| Surface                   | Light                 | Dark                  |
+| ------------------------- | --------------------- | --------------------- |
+| Node fill / stroke        | `#FFFFFF` / `#000000` | `#262626` / `#FFFFFF` |
+| Subgraph fill / stroke    | `#F3F3F3` / `#000000` | `#3A3A3A` / `#FFFFFF` |
+| Label ink                 | `#000000`             | `#FFFFFF`             |
+| Edge-label ink            | `#666666`             | `#B3B3B3`             |
+| Connectors and arrowheads | `#E95420`             | `#E95420`             |
+| Diagram canvas            | `#FFFFFF`             | transparent           |
+
+Checking a handful of named selectors is not enough: labels are HTML inside `<foreignObject>`, so a
+stray `background-color` can hide on a `span` or `p` that no palette rule mentions. Sweep the whole
+subtree for light backgrounds instead, which should return nothing in dark mode:
+
+```js
+[...document.querySelectorAll('.mermaid svg *')]
+  .filter(el => /^rgb\((2[0-9]{2}|19[0-9])/.test(getComputedStyle(el).backgroundColor))
+  .map(el => `${el.tagName}.${el.getAttribute('class') || ''}`);
+```
+
+## Porting this styling to another Sphinx Stack repository
+
+The steps below reproduce this setup in another Canonical documentation repository using the same
+Sphinx Stack (Canonical Sphinx theme on Furo). They assume its docs live in `docs/` with `_static/`
+and `requirements.txt`.
+
+**1. Pin the extension.** In `requirements.txt`:
+
+```text
+sphinxcontrib-mermaid==2.1.1
+```
+
+The `1.x` series has no `mermaid_init_config`, `mermaid_light_theme`, or `mermaid_dark_theme`, so
+the light palette cannot be applied at all. If the repository already pins `~=1.0`, this is a
+required change, not an optional one.
+
+**2. Copy three files** from this repository into the target's `docs/_static/`:
+
+```text
+brand-theme.light.config.json    # vendored from the brand kit
+brand-theme.sphinx-dark.css      # vendored from the brand kit
+mermaid-brand-patch.css          # local patch layer
+```
+
+Prefer taking the two vendored files from the
+[brand kit](https://github.com/canonical/mermaid-brand-kit) `dist/` directory directly, so the
+target starts on the current release rather than inheriting whatever version this repository happens
+to pin.
+
+**3. Register the extension and stylesheets** in `conf.py`:
+
+```python
+extensions = [
+    # ... existing extensions ...
+    "sphinxcontrib.mermaid",
+]
+
+html_css_files = [
+    # ... existing stylesheets ...
+    "brand-theme.sphinx-dark.css",
+    "mermaid-brand-patch.css",
+]
+```
+
+Order matters only in that the patch must come after the vendored stylesheet.
+
+**4. Copy the Mermaid configuration block** from this repository's `conf.py` verbatim, including its
+comments — they explain the ELK workaround, which is easy to remove by mistake. It needs `json` and
+`pathlib` imported at the top of the file.
+
+**5. Check the theme signal.** The vendored stylesheet keys off `body[data-theme="dark"]`, which is
+what Furo emits. Confirm with:
+
+```bash
+grep -o 'body\[data-theme=[a-z]*\]' <path-to-furo>/theme/furo/static/styles/furo.css | sort -u
+```
+
+If the target uses a different theme with another signal, do not hand-edit the vendored file.
+Generate a replacement from a kit checkout (`npm run build-sphinx-dark-overlay` with the appropriate
+selector options) and commit that alongside the site configuration.
+
+**6. Check the dark page background.** `mermaid-brand-patch.css` assumes Furo's `#131416` via
+`var(--color-background-primary)`. On a theme that does not define that custom property, replace it
+with the real background colour, or the edge-label plates will be transparent.
+
+**7. Verify** using the table in the previous section. If diagrams keep stock Mermaid colours
+(lavender nodes, yellow subgraphs), check step 1 first — that is the signature of the light config
+not being applied.
+
 ## Stack
 
 - **Sphinx** built and hosted on **Read the Docs**
@@ -17,17 +240,18 @@ make run     # install dependencies, build, and serve with live reload at http:/
 
 ## Documentation guidelines
 
-All documentation follows the [Diátaxis](https://diataxis.fr) framework.
-Place content in the correct directory:
+All documentation follows the [Diátaxis](https://diataxis.fr) framework. Place content in the
+correct directory:
 
-| Directory | Purpose | Audience goal |
-|-----------|---------|---------------|
-| `tutorial/` | Learning-oriented, step-by-step | Acquire skills |
-| `how-to/` | Task-oriented, goal-focused | Solve a specific problem |
-| `reference/` | Information-oriented, factual | Look something up |
-| `explanation/` | Understanding-oriented | Understand why |
+| Directory      | Purpose                         | Audience goal            |
+| -------------- | ------------------------------- | ------------------------ |
+| `tutorial/`    | Learning-oriented, step-by-step | Acquire skills           |
+| `how-to/`      | Task-oriented, goal-focused     | Solve a specific problem |
+| `reference/`   | Information-oriented, factual   | Look something up        |
+| `explanation/` | Understanding-oriented          | Understand why           |
 
 **Rules:**
+
 - Do not mix types — a how-to must not explain concepts; an explanation must not give instructions
 - Use second person ("you") in tutorials and how-tos
 - Reference pages must be accurate and complete; avoid prose padding
@@ -38,16 +262,25 @@ Place content in the correct directory:
 - Filenames: lowercase, hyphen-separated (e.g., `manage-units.md`)
 - Every page needs a unique reference label at the top: `(label-name)=`
 - MyST front matter (`---`) is used for SEO metadata (`html_meta.description`)
-- All documentation pages should be added to a toc-tree of a parent page to be included in the Nav Menu
+- All documentation pages should be added to a toc-tree of a parent page to be included in the Nav
+  Menu
+
+## Spellcheck vocabulary
+
+Vale spelling runs via `make spelling` in `docs/` (rules from the
+canonical/documentation-style-guide repository, fetched by `_dev/get_vale_conf.py`). Do **not** edit
+`_dev/styles/config/vocabularies/Canonical/accept.txt` — it is generated and overwritten. Add
+project-specific words to `docs/.custom_wordlist.txt` instead; the `vale`, `woke`, and `spelling`
+Make targets concatenate it into the vocabulary temporarily, then restore the upstream file (see
+`docs/Makefile` for the backup/restore pattern).
 
 ## Tutorial testing annotations
 
-Pages under `docs/tutorial/` are the single source of truth for both rendered
-documentation and automated end-to-end tests (see `tests/tutorial/TESTING.md`).
+Pages under `docs/tutorial/` are the single source of truth for both rendered documentation and
+automated end-to-end tests (see `tests/tutorial/TESTING.md`).
 
-Commands are extracted **only** from `` ```shell `` fenced blocks.
-Use `` ```bash `` for shell commands that should not be executed,
-and use `` ```text `` for output examples.
+Commands are extracted **only** from ```` ```shell ```` fenced blocks. Use ```` ```bash ```` for
+shell commands that should not be executed, and use ```` ```text ```` for output examples.
 
 Test metadata is embedded as HTML comments, invisible to readers:
 
@@ -59,5 +292,5 @@ Test metadata is embedded as HTML comments, invisible to readers:
 - `<!-- test:set-variables -->` — capture command output into shell variables
 - `<!-- test:spread -->` — Spread task metadata (`priority`, `kill-timeout`)
 
-**When editing tutorial pages:** preserve existing annotations, and use the
-correct fence language (`` ```shell `` vs `` ```bash ``) intentionally.
+**When editing tutorial pages:** preserve existing annotations, and use the correct fence language
+(```` ```shell ```` vs ```` ```bash ````) intentionally.

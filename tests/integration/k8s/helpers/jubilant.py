@@ -66,6 +66,7 @@ def deploy_cluster(
     app_name_broker: str = str(APP_NAME),
     app_name_controller: str = CONTROLLER_NAME,
     channel: str | None = None,
+    revision: int | None = None,
 ):
     """Deploys an Apache Kafka cluster using the Charmed Apache Kafka operator in KRaft mode."""
     logger.info(f"Deploying Kafka cluster in '{kraft_mode}' mode")
@@ -87,6 +88,7 @@ def deploy_cluster(
         resources=None if channel else {"kafka-image": KAFKA_CONTAINER},
         trust=True,
         channel=channel if channel else None,
+        revision=revision,
     )
 
     if kraft_mode == "multi":
@@ -100,9 +102,11 @@ def deploy_cluster(
                 "profile": "testing",
             }
             | config_controller,
-            resources={"kafka-image": KAFKA_CONTAINER},
+            # add `kafka-image` only for local charms.
+            resources=None if channel else {"kafka-image": KAFKA_CONTAINER},
             trust=True,
             channel=channel if channel else None,
+            revision=revision,
         )
 
     assert_status_func = jubilant.all_active if kraft_mode == "single" else jubilant.all_blocked
@@ -278,7 +282,7 @@ def kraft_quorum_status(
 
 
 def check_log_dirs(model: str | None):
-    bootstrap_server = f'{get_k8s_host_from_unit("kafka-k8s/0")}:19093'
+    bootstrap_server = f'{get_k8s_host_from_unit(model, "kafka-k8s/0")}:19093'
     container_command = f"{BROKER.paths['BIN']}/bin/kafka-log-dirs.sh --command-config {BROKER.paths['CONF']}/client.properties --bootstrap-server {bootstrap_server} --describe"
 
     result = check_output(

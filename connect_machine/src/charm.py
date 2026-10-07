@@ -115,6 +115,9 @@ class ConnectCharm(ConnectCharmBase):
             return
 
     def _on_start(self, _) -> None:
+        if self.context.peer_workers:
+            self.context.worker_unit.update_cluster_domain()
+
         if not self.context.kafka_client.relation:
             self._set_status(ConnectStatus.MISSING_KAFKA)
 

@@ -1,5 +1,9 @@
 # Security policy
 
+For security features overview, see the
+[security overview](https://canonical.com/data/kafka/docs/latest/explanation/security/)
+in the Charmed Apache Kafka documentation.
+
 ## What qualifies as a security issue
 
 Credentials leakage, outdated dependencies with known vulnerabilities, and
