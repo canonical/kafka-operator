@@ -120,16 +120,19 @@ class KafkaContext(Object):
         if self.substrate == "vm":
             return f"localhost:{CUSTOM_METRICS_OTLP_PORT}"
 
-        if not self.cos_relation.units:
+        if not self.otlp_dns_name:
             return None
 
-        unit = next(iter(self.cos_relation.units))
-        address = self.cos_relation.data[unit].get("ingress-address")
+        return f"{self.otlp_dns_name}:{CUSTOM_METRICS_OTLP_PORT}"
 
-        if not address:
-            return None
+    @property
+    def otlp_dns_name(self) -> str:
+        """Return the OTel Collector DNS name in K8s."""
+        return self.cluster.relation_data.get("otlp-dns", "")
 
-        return f"{address}:{CUSTOM_METRICS_OTLP_PORT}"
+    @otlp_dns_name.setter
+    def otlp_dns_name(self, value: str) -> None:
+        self.cluster.update({"otlp-dns": value})
 
     @property
     def peer_cluster_orchestrator(self) -> PeerCluster:

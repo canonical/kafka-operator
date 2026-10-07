@@ -132,6 +132,7 @@ class KafkaCharm(KafkaCharmBase):
             alert_rules_path=LOGS_RULES_DIR,
             relation_name="logging",
         )
+        self.loki_endpoints = self.loki_push.loki_endpoints
 
         if self.config.profile == "testing":
             self.tracing = Tracing(self, "charm-tracing")
