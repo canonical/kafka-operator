@@ -39,6 +39,7 @@ from .core.literals import (
     GROUP,
     JMX_CC_PORT,
     JMX_EXPORTER_PORT,
+    PATHS,
     PYTHON_EXPORTER_SERVICE,
     SECURITY_PROTOCOL_PORTS,
     SNAP_NAME,
@@ -298,6 +299,11 @@ class WorkloadMachine(WorkloadBase):
         bin_str = " ".join(bin_args)
         command = f"{opts_str} {SNAP_NAME}.{bin_keyword} {bin_str}"
         return self.exec(command)
+
+    @override
+    def ensure_ownership(self) -> None:
+        # Not needed on VM.
+        pass
 
 
 class KafkaWorkloadMachine(WorkloadMachine):
@@ -617,6 +623,18 @@ class WorkloadK8s(WorkloadBase):
             SnapError if error occurs or if no pid string found in most recent log
         """
         raise NotImplementedError
+
+    @override
+    def ensure_ownership(self) -> None:
+        # Change ownership of paths
+        for service in PATHS:
+            for path in PATHS[service].values():
+                if self.dir_exists(path):
+                    self.exec(["chown", "-R", f"{USER_NAME}:{GROUP}", path])
+        # Change ownership of the mounted data directories
+        for dir_ in self.ls(self.paths.data_path):
+            path = f"{self.paths.data_path}/{dir_.name}"
+            self.exec(["chown", "-R", f"{USER_NAME}:{GROUP}", path])
 
 
 class KafkaWorkloadK8s(WorkloadK8s):

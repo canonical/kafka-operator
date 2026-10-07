@@ -352,6 +352,11 @@ class WorkloadBase(ABC):
     def set_environment(self, env_vars: Iterable[str]) -> None:
         """Updates the environment variables with provided iterable of key=value `env_vars`."""
 
+    @abstractmethod
+    def ensure_ownership(self) -> None:
+        """Ensure the workload user owns the paths it relies on."""
+        ...
+
     @property
     @abstractmethod
     def installed(self) -> bool:

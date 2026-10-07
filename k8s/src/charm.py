@@ -247,6 +247,7 @@ class KafkaCharm(KafkaCharmBase):
             self.broker.config_manager.set_server_properties()
             self.broker.config_manager.set_client_properties()
             self.broker.tls_manager.configure()
+            self.workload.ensure_ownership()
 
             # start kafka service
             self.broker.workload.start()
