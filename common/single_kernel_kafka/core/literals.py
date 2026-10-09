@@ -47,6 +47,7 @@ else:
 PEER = "cluster"
 REL_NAME = "kafka-client"
 OAUTH_REL_NAME = "oauth"
+COS_RELATION = "cos-agent" if SUBSTRATE == "vm" else "logging"
 
 TLS_RELATION = "certificates"
 INTERNAL_TLS_RELATION = "peer-certificates"
@@ -113,6 +114,10 @@ CONTROLLER_USER = "controller"
 BALANCER_WEBSERVER_USER = "balancer"
 INTERNAL_USERS = [INTER_BROKER_USER, ADMIN_USER]
 BALANCER_WEBSERVER_PORT = 9090
+CUSTOM_METRICS_OTLP_PORT = 4318
+PYTHON_EXPORTER_PORT = 9110
+PYTHON_EXPORTER_SERVICE = "python-exporter"
+
 
 SECRETS_APP = [
     f"{user}-password" for user in INTERNAL_USERS + [BALANCER_WEBSERVER_USER, CONTROLLER_USER]
@@ -578,6 +583,6 @@ CONNECT_DEPENDENCIES = {
         "dependencies": {},  # do not need to check Kafka, backwards compatible since 0.10
         "name": "connect",
         "upgrade_supported": ">=3.9",
-        "version": "4.2.0",
+        "version": "4.3.0",
     },
 }

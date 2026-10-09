@@ -32,6 +32,7 @@ from single_kernel_kafka.core.literals import (
     JMX_EXPORTER_PORT,
     LOGS_RULES_DIR,
     METRICS_RULES_DIR,
+    PYTHON_EXPORTER_PORT,
     SUBSTRATE,
     DebugLevel,
     Status,
@@ -111,7 +112,17 @@ class KafkaCharm(KafkaCharmBase):
         self.metrics_endpoint = MetricsEndpointProvider(
             self,
             jobs=[
-                {"static_configs": [{"targets": [f"*:{JMX_EXPORTER_PORT}", f"*:{JMX_CC_PORT}"]}]}
+                {
+                    "static_configs": [
+                        {
+                            "targets": [
+                                f"*:{JMX_EXPORTER_PORT}",
+                                f"*:{JMX_CC_PORT}",
+                                f"*:{PYTHON_EXPORTER_PORT}",
+                            ]
+                        }
+                    ]
+                }
             ],
             alert_rules_path=METRICS_RULES_DIR,
         )
@@ -121,6 +132,7 @@ class KafkaCharm(KafkaCharmBase):
             alert_rules_path=LOGS_RULES_DIR,
             relation_name="logging",
         )
+        self.loki_endpoints = self.loki_push.loki_endpoints
 
         if self.config.profile == "testing":
             self.tracing = Tracing(self, "charm-tracing")
@@ -235,6 +247,7 @@ class KafkaCharm(KafkaCharmBase):
             self.broker.config_manager.set_server_properties()
             self.broker.config_manager.set_client_properties()
             self.broker.tls_manager.configure()
+            self.workload.ensure_ownership()
 
             # start kafka service
             self.broker.workload.start()

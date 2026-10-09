@@ -259,6 +259,11 @@ class WorkloadBase(ABC):
         ...
 
     @abstractmethod
+    def restart_python_exporter(self) -> None:
+        """Restart the custom Python exporter service."""
+        ...
+
+    @abstractmethod
     def read(self, path: str) -> list[str]:
         """Reads a file from the workload.
 
@@ -347,6 +352,11 @@ class WorkloadBase(ABC):
     def set_environment(self, env_vars: Iterable[str]) -> None:
         """Updates the environment variables with provided iterable of key=value `env_vars`."""
 
+    @abstractmethod
+    def ensure_ownership(self) -> None:
+        """Ensure the workload user owns the paths it relies on."""
+        ...
+
     @property
     @abstractmethod
     def installed(self) -> bool:
@@ -404,6 +414,19 @@ class WorkloadBase(ABC):
                 # only check for keys, as we can have an empty value for a variable
                 map_env[key] = value
         return map_env
+
+    def read_env(self, env_file: pathops.PathProtocol) -> dict[str, str]:
+        """Read environment variables from the specified env_file and parse them as dict."""
+        if not env_file.exists():
+            return {}
+
+        lines = [
+            line.strip()
+            for line in env_file.read_text().split("\n")
+            if not line.strip().startswith("#")
+        ]
+
+        return self.map_env(lines)
 
     @staticmethod
     def ping(bootstrap_nodes: str) -> bool:

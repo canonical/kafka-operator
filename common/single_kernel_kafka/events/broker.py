@@ -9,6 +9,7 @@ import logging
 import time
 from subprocess import CalledProcessError
 from typing import TYPE_CHECKING
+from urllib.parse import urlparse
 
 from charms.operator_libs_linux.v2.snap import SnapError
 from ops import (
@@ -30,15 +31,18 @@ from ..core.literals import (
     BROKER,
     CONTAINER,
     CONTROLLER,
+    CUSTOM_METRICS_OTLP_PORT,
     GROUP,
     PEER,
     PROFILE_TESTING,
+    PYTHON_EXPORTER_PORT,
     USER_ID,
     Status,
 )
 from ..health import KafkaHealth
 from ..managers.auth import AuthManager
 from ..managers.balancer import BalancerManager
+from ..managers.client_metrics import ClientMetricsManager
 from ..managers.config import TESTING_OPTIONS, ConfigManager
 from ..managers.controller import ControllerManager
 from ..managers.k8s import K8sManager
@@ -114,6 +118,7 @@ class BrokerOperator(Object):
             pod_name=self.charm.state.unit_broker.pod_name, namespace=self.charm.model.name
         )
         self.balancer_manager = BalancerManager(self, self.workload)
+        self.client_metrics = ClientMetricsManager(state=self.charm.state, workload=self.workload)
 
         self.framework.observe(getattr(self.charm.on, "install"), self._on_install)
         self.framework.observe(getattr(self.charm.on, "start"), self._on_start)
@@ -207,6 +212,7 @@ class BrokerOperator(Object):
             self.tls_manager.configure()
 
         # start kafka service
+        self.workload.ensure_ownership()
         self.workload.start()
         logger.info("Kafka service started")
 
@@ -265,6 +271,9 @@ class BrokerOperator(Object):
         # Update IP addresses based on current network bindings.
         self.update_ip_addresses()
 
+        # Update OTLP service name if needed
+        self.update_otlp_service()
+
         # The order is important here, first update the credentials cache,
         # then the client relation data.
         self.update_credentials_cache()
@@ -305,6 +314,7 @@ class BrokerOperator(Object):
         self.charm.tls.handle_config_changed_tls_updates()
         self.update_brokers_state()
         self.reconcile_autobalance()
+        self.reconcile_client_metrics()
 
     def _on_update_status(self, _: UpdateStatusEvent) -> None:
         """Handler for `update-status` events."""
@@ -419,6 +429,44 @@ class BrokerOperator(Object):
                 app=self.charm.app,
                 unit=self.charm.unit,
             )
+
+    def reconcile_client_metrics(self) -> None:
+        """Reconcile client metrics collection services (KIP-714 reporter & Python exporter)."""
+        current_env = self.workload.read_env(self.workload.root / "etc" / "environment")
+        env_changed = (
+            current_env.get("BOOTSTRAP_SERVER") != self.charm.state.bootstrap_server_internal
+        )
+        if not self.charm.workload.ping(f"localhost:{PYTHON_EXPORTER_PORT}") or env_changed:
+            self.charm.workload.restart_python_exporter()
+
+        if not self.charm.unit.is_leader() or not self.workload.ping(
+            self.charm.state.bootstrap_server_internal
+        ):
+            # broker not up yet.
+            return
+
+        try:
+            current_subscriptions = self.client_metrics.current_subscriptions
+            current_metrics = {sub.metric_name for sub in current_subscriptions}
+            metrics_changed = set(self.charm.config.client_metrics_list) != current_metrics
+            interval_changed = any(
+                sub.interval_ms != self.charm.config.client_metrics_interval_ms
+                for sub in current_subscriptions
+            )
+
+            if not any([metrics_changed, interval_changed]):
+                return
+
+            removed = current_metrics - set(self.charm.config.client_metrics_list)
+            for sub in removed:
+                self.client_metrics.remove_subscription(sub)
+
+            for metric in self.charm.config.client_metrics_list:
+                self.client_metrics.add_subscription(
+                    metric_name=metric, interval=self.charm.config.client_metrics_interval_ms
+                )
+        except (CalledProcessError, ExecError):
+            logger.error("Client metrics configuration update failed, details in logs.")
 
     def setup_internal_tls(self, event: EventBase) -> None:
         """Generates a self-signed certificate if required and writes all necessary TLS configuration for internal TLS."""
@@ -587,3 +635,31 @@ class BrokerOperator(Object):
         for broker_id in removed_brokers:
             if broker_id not in self.charm.state.active_brokers_on_relation:
                 self.charm.state.cluster.remove_broker(broker_id)
+
+    def update_otlp_service(self) -> None:
+        """Update the state of OTLP service name (K8s-only)."""
+        if not all(
+            [
+                self.charm.substrate == "k8s",
+                self.charm.state.cos_relation,
+                self.charm.unit.is_leader(),
+            ]
+        ):
+            return
+
+        if self.charm.state.otlp_dns_name and self.workload.ping(
+            f"{self.charm.state.otlp_dns_name}:{CUSTOM_METRICS_OTLP_PORT}"
+        ):
+            # Service is defined and reachable, nothing left to do.
+            return
+
+        if not (loki_endpoints := self.charm.loki_endpoints):
+            return
+
+        if not (loki_url := loki_endpoints[0].get("url")):
+            return
+
+        parsed = urlparse(loki_url)
+        # ParseResult(scheme='http', netloc='ot-0.ot-endpoints.kafka.svc.cluster.local:3500',
+        #   path='/loki/api/v1/push', params='', query='', fragment='')
+        self.charm.state.otlp_dns_name = parsed.netloc.split(":")[0]
