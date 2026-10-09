@@ -38,7 +38,7 @@ IMAGE_RESOURCE_KEY = "kafka-image"
 IMAGE_URI = METADATA["resources"]["kafka-image"]["upstream-source"]
 PASSWORDS_PATH = f"{CONFIG_DIR}/connect.password"
 KAFKA_APP = "kafka-k8s"
-KAFKA_CHANNEL = "3/edge"
+KAFKA_CHANNEL = "4/edge"
 MYSQL_APP = "mysql-k8s"
 MYSQL_CHANNEL = "8.0/stable"
 
