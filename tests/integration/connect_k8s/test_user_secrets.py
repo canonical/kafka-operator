@@ -8,8 +8,6 @@ from single_kernel_kafka.core.connect_models import PeerWorkersContext
 from integration.connect_k8s.helpers import (
     APP_NAME,
     DEFAULT_CONSTRAINTS,
-    IMAGE_RESOURCE_KEY,
-    IMAGE_URI,
     KAFKA_APP,
     KAFKA_CHANNEL,
     charm_resources,
