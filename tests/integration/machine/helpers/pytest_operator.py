@@ -63,9 +63,12 @@ async def deploy_cluster(
     storage_broker: dict = {},
     app_name_broker: str = str(APP_NAME),
     app_name_controller: str = CONTROLLER_NAME,
+    revision: int | None = None,
+    channel: str | None = None,
 ):
     """Deploys an Apache Kafka cluster using the Charmed Apache Kafka operator in KRaft mode."""
     logger.info(f"Deploying Kafka cluster in '{kraft_mode}' mode")
+    pinned_kwargs = {"channel": channel, "revision": revision} if channel and revision else {}
 
     await ops_test.model.deploy(
         charm,
@@ -80,6 +83,7 @@ async def deploy_cluster(
         | config_broker,
         trust=True,
         constraints=DEFAULT_CONSTRAINTS,
+        **pinned_kwargs,
     )
 
     if kraft_mode == "multi":
@@ -95,6 +99,7 @@ async def deploy_cluster(
             | config_controller,
             trust=True,
             constraints=DEFAULT_CONSTRAINTS,
+            **pinned_kwargs,
         )
 
     status = "active" if kraft_mode == "single" else "blocked"

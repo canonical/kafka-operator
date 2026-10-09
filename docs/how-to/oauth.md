@@ -2,8 +2,14 @@
 
 # Enable OAuth through Canonical Identity Platform
 
-Charmed Apache Kafka can integrate with charmed OAuth providers through the `oauth` interface.
-In this guide, you will integrate Charmed Apache Kafka with Canonical Identity Platform.
+```{note}
+This guide currently covers **VM deployments only**. The Canonical
+Identity Platform runs on Kubernetes, but the Kafka workflow below deploys
+Charmed Apache Kafka on a VM (LXD) cloud.
+```
+
+Charmed Apache Kafka can integrate with charmed OAuth providers through the `oauth` interface. In
+this guide, you will integrate Charmed Apache Kafka with Canonical Identity Platform.
 
 To follow this guide, you need the following snaps installed:
 
@@ -14,14 +20,14 @@ To follow this guide, you need the following snaps installed:
 - jq `latest/stable`
 - Charmed Apache Kafka `4/stable`
 
-Moreover, it is assumed that you have Juju bootstrapped on both LXD and MicroK8s.
-The environment variables `LXD_CONTROLLER` and `MICROK8S_CONTROLLER` in this guide
-refer to the LXD and MicroK8s Juju controllers respectively.
+Moreover, it is assumed that you have Juju bootstrapped on both LXD and MicroK8s. The environment
+variables `LXD_CONTROLLER` and `MICROK8S_CONTROLLER` in this guide refer to the LXD and MicroK8s
+Juju controllers respectively.
 
 ## Deploy Canonical Identity Platform
 
-Switch to the MicroK8s controller using `juju switch $MICROK8S_CONTROLLER` command and
-follow the [Canonical Identity Platform's deployment tutorial](https://charmhub.io/topics/canonical-identity-platform/tutorials/e2e-tutorial)
+Switch to the MicroK8s controller using `juju switch $MICROK8S_CONTROLLER` command and follow the
+[Canonical Identity Platform's deployment tutorial](https://charmhub.io/topics/canonical-identity-platform/tutorials/e2e-tutorial)
 to deploy and activate the necessary charmed operators and integrations:
 
 ```bash
@@ -33,8 +39,8 @@ terraform -chdir=examples/tutorial apply -auto-approve
 
 ## Deploy and integrate Charmed Apache Kafka
 
-Switch to the LXD controller using `juju switch $LXD_CONTROLLER` command and
-deploy Charmed Apache Kafka following the [Deploy Apache Kafka tutorial](tutorial-deploy):
+Switch to the LXD controller using `juju switch $LXD_CONTROLLER` command and deploy Charmed Apache
+Kafka following the [Deploy Apache Kafka tutorial](tutorial-deploy):
 
 ```bash
 juju add-model kafka-oauth
@@ -61,8 +67,8 @@ And wait a couple of minutes for the applications to settle to `active|idle` sta
 
 ## Test OAuth on Apache Kafka
 
-To test the OAuth setup, we will use the CLI client shipped with the Charmed Apache Kafka snap.
-You need to install the Charmed Apache Kafka 4 snap on your system:
+To test the OAuth setup, we will use the CLI client shipped with the Charmed Apache Kafka snap. You
+need to install the Charmed Apache Kafka 4 snap on your system:
 
 ```bash
 snap install charmed-kafka --channel 4/stable
@@ -83,8 +89,9 @@ CLIENT_CREDS=$(juju run \
 )
 ```
 
-The `CLIENT_CREDS` variable contains OAuth client credentials, including `client-id` and `client-secret`
-required for [OAuth 2.0 Client Credentials authorisation flow](https://datatracker.ietf.org/doc/html/rfc6749#section-4.4).
+The `CLIENT_CREDS` variable contains OAuth client credentials, including `client-id` and
+`client-secret` required for
+[OAuth 2.0 Client Credentials authorisation flow](https://datatracker.ietf.org/doc/html/rfc6749#section-4.4).
 Extract these into separate environment variables:
 
 ```bash
@@ -107,9 +114,9 @@ BASE_URI=$(juju run \
 TOKEN_URI="$BASE_URI/oauth2/token"
 ```
 
-Next, you need to create a truststore for the client, and import the Apache Kafka and OAuth provider's
-CA certificate into it. First, you need to retrieve the CA. If you are following this guide and using the
-Canonical Identity Platform's Terraform bundle, this could be achieved using:
+Next, you need to create a truststore for the client, and import the Apache Kafka and OAuth
+provider's CA certificate into it. First, you need to retrieve the CA. If you are following this
+guide and using the Canonical Identity Platform's Terraform bundle, this could be achieved using:
 
 ```bash
 juju run -m $MICROK8S_CONTROLLER:core \
@@ -156,7 +163,12 @@ EOF
 sudo mv oauth-client.properties /var/snap/charmed-kafka/current/etc/kafka/
 ```
 
-Now try to create a topic using the CLI client:
+Now try to create a topic using the CLI client. First, set the `KAFKA_BROKER_IP` environment
+variable to the address of one of the Kafka broker units (e.g. from `juju status`):
+
+```bash
+KAFKA_BROKER_IP=$(juju status --format json | jq -r '.applications.kafka.units."kafka/0"."public-address"')
+```
 
 ```bash
 sudo charmed-kafka.topics \
@@ -169,10 +181,10 @@ sudo charmed-kafka.topics \
 The OAuth user should be able to authenticate, but you will see an `Authorization failed` error
 since the user does not have the necessary permissions to create a topic.
 
-To resolve the authorisation issue, you can use the `charmed-kafka.acls` command
-to create the necessary ACLs for the OAuth user.
-In this scenario, the username is identified by the value in `$CLIENT_ID` variable.
-For more information on how to manage authorisation in Apache Kafka clusters, please consult the
+To resolve the authorisation issue, you can use the `charmed-kafka.acls` command to create the
+necessary ACLs for the OAuth user. In this scenario, the username is identified by the value in
+`$CLIENT_ID` variable. For more information on how to manage authorisation in Apache Kafka clusters,
+please consult the
 [official documentation](https://kafka.apache.org/41/security/authorization-and-acls/).
 
 Sample command to add ACLs for the OAuth user:

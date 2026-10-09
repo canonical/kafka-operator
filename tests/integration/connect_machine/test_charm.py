@@ -19,7 +19,13 @@ from integration.connect_machine.helpers import (
 logger = logging.getLogger(__name__)
 
 
-def test_deploy_charms(juju: JujuFixture, kafka_version: int, kafka_connect_charm):
+def test_deploy_charms(
+    juju: JujuFixture,
+    kafka_version: int,
+    kafka_connect_charm,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
+):
     """Deploys kafka-connect charm along kafka (in KRaft mode)."""
     # deploy kafka & kafka-connect
     gather(
@@ -30,6 +36,8 @@ def test_deploy_charms(juju: JujuFixture, kafka_version: int, kafka_connect_char
             series="noble",
             config={"profile": "testing"},
             constraints=DEFAULT_CONSTRAINTS,
+            revision=test_charm_revision,
+            channel=test_charm_channel,
         ),
         deploy_kafka(juju, kafka_version),
     )

@@ -1,7 +1,7 @@
 ---
 myst:
   html_meta:
-    description: "Deploy Charmed Apache Kafka clusters with KRaft controllers using Juju - complete guide for broker and controller deployment."
+    description: Deploy Charmed Apache Kafka clusters with KRaft controllers using Juju - complete guide for broker and controller deployment.
 ---
 
 <!-- test:spread
@@ -10,25 +10,61 @@ kill-timeout: 30m
 -->
 
 (tutorial-deploy)=
+
 # 2. Deploy Apache Kafka
 
 This is a part of the [Charmed Apache Kafka Tutorial](index.md).
 
-To deploy Charmed Apache Kafka, all you need to do is run the following commands, which will automatically fetch [Apache Kafka](https://charmhub.io/kafka?channel=4/stable) from [Charmhub](https://charmhub.io/) and deploy it to your model.
+To deploy Charmed Apache Kafka, all you need to do is run the following commands, which will
+automatically fetch [Apache Kafka](https://charmhub.io/kafka?channel=4/stable) from
+[Charmhub](https://charmhub.io/) and deploy it to your model.
 
-Charmed Apache Kafka can run both with `roles=broker` and/or `roles=controller`. With this configuration option, the charm can be deployed either as a single application running both Apache Kafka brokers and KRaft controllers, or as multiple applications with a separate controller cluster and broker cluster.
+Charmed Apache Kafka can run both with `roles=broker` and/or `roles=controller`. With this
+configuration option, the charm can be deployed either as a single application running both Apache
+Kafka brokers and KRaft controllers, or as multiple applications with a separate controller cluster
+and broker cluster.
 
-For this tutorial, we will deploy brokers separately.
-To deploy a cluster of three Apache Kafka brokers:
+For this tutorial, we will deploy brokers separately. To deploy a cluster of three Apache Kafka
+brokers:
+
+`````{tab-set}
+---
+sync-group: substrate
+---
+````{tab-item} VM
+:sync: vm
 
 ```shell
-juju deploy kafka -n 3 --channel 4/stable --config roles=broker
+juju deploy kafka -n 3 --channel 4/stable --trust --config roles=broker
 ```
 
-Juju will now fetch Charmed Apache Kafka and begin deploying it to the LXD cloud.
-Now check the Juju model status:
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju deploy kafka-k8s -n 3 --channel 4/stable --trust --config roles=broker kafka
+```
+
+The trailing `kafka` assigns the same application name as on VM, so the rest
+of the tutorial uses `kafka` on both substrates.
+
+````
+
+`````
+
+```{note}
+The `--trust` flag grants the charm permission to manage the Kubernetes
+resources (Services, StatefulSets) it needs on K8s; it is accepted and
+harmless on VM.
+```
+
+Juju will now fetch Charmed Apache Kafka and begin deploying it to your cloud. Now check the Juju
+model status:
 
 <!-- test:skip -->
+
 ```shell
 juju status
 ```
@@ -36,21 +72,40 @@ juju status
 Wait for the `blocked` status with the message
 `application needs to be related with a KRaft controller`.
 
-Apache Kafka uses the KRaft consensus protocol for coordinating broker information,
-topic + partition metadata and Access Control Lists (ACLs), ran as a quorum of
-controller nodes using the Raft consensus algorithm. KRaft replaces the dependency on
-Apache ZooKeeper for metadata management. For more information on the differences
-between the two solutions, please refer to the
+Apache Kafka uses the KRaft consensus protocol for coordinating broker information, topic +
+partition metadata and Access Control Lists (ACLs), ran as a quorum of controller nodes using the
+Raft consensus algorithm. KRaft replaces the dependency on Apache ZooKeeper for metadata management.
+For more information on the differences between the two solutions, please refer to the
 [upstream Apache Kafka documentation](https://kafka.apache.org/41/getting-started/zk2kraft/).
 
 To deploy a cluster of three KRaft controllers, run:
 
+`````{tab-set}
+---
+sync-group: substrate
+---
+````{tab-item} VM
+:sync: vm
+
 ```shell
-juju deploy kafka -n 3 --channel 4/stable --config roles=controller kraft
+juju deploy kafka -n 3 --channel 4/stable --trust --config roles=controller kraft
 ```
 
-After this, it is necessary to connect the two deployed applications,
-taking care to specify which cluster is the orchestrator by selecting the specific relation types:
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```bash
+juju deploy kafka-k8s -n 3 --channel 4/stable --trust --config roles=controller kraft
+```
+
+````
+
+`````
+
+After this, it is necessary to connect the two deployed applications, taking care to specify which
+cluster is the orchestrator by selecting the specific relation types:
 
 ```shell
 juju integrate kafka:peer-cluster-orchestrator kraft:peer-cluster
@@ -67,22 +122,30 @@ test "$(juju status --format json | jq '.applications.kafka.units | length')" -e
 test "$(juju status --format json | jq '.applications.kraft.units | length')" -eq 3
 -->
 
-Juju will now connect applications to exchange access credentials and machine endpoints.
-This process can take several minutes depending on the resources available on your machine.
-You can track the progress by running:
+Juju will now connect applications to exchange access credentials and machine endpoints. This
+process can take several minutes depending on the resources available on your machine. You can track
+the progress by running:
 
 <!-- test:skip -->
+
 ```shell
 watch juju status --color
 ```
 
-This command is useful for checking the status of both Charmed Apache Kafka applications,
-and for gathering information about the machines hosting the two applications.
-Some of the helpful information it displays includes IP addresses, ports, status etc.
-The command updates the status of the cluster every two seconds and as the application starts
-you can watch the status and messages both applications change.
+This command is useful for checking the status of both Charmed Apache Kafka applications, and for
+gathering information about the machines hosting the two applications. Some of the helpful
+information it displays includes IP addresses, ports, status etc. The command updates the status of
+the cluster every two seconds and as the application starts you can watch the status and messages
+both applications change.
 
 Wait until the applications are `active` and all units show `active`/`idle` status:
+
+`````{tab-set}
+---
+sync-group: substrate
+---
+````{tab-item} VM
+:sync: vm
 
 <!-- test:skip -->
 ```shell
@@ -110,25 +173,60 @@ Machine  State    Address         Inst id        Base          AZ          Messa
 5        started  10.157.174.24   juju-29b29f-5  ubuntu@24.04  kafka-test  Running
 ```
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+```text
+Model     Controller  Cloud/Region         Version  SLA          Timestamp
+tutorial  overlord    microk8s/localhost   3.6.20   unsupported  17:30:56Z
+
+App    Version  Status  Scale  Charm      Channel   Rev  Exposed  Message
+kafka  4.1.1    active      3  kafka-k8s  4/stable  111  no       
+kraft  4.1.1    active      3  kafka-k8s  4/stable  111  no       
+
+Unit      Workload  Agent  Address       Ports      Message
+kafka/0*  active    idle   10.1.188.228  19093/tcp  
+kafka/1   active    idle   10.1.188.227  19093/tcp  
+kafka/2   active    idle   10.1.188.231  19093/tcp  
+kraft/0*  active    idle   10.1.188.230  9098/tcp   
+kraft/1   active    idle   10.1.188.229  9098/tcp   
+kraft/2   active    idle   10.1.188.232  9098/tcp   
+```
+
+````
+
+`````
+
 To exit the screen, push `Ctrl+C`.
 
 ## Access Apache Kafka brokers
 
 Once all the units are shown as `active`/`idle`, the credentials can be retrieved.
 
-All sensitive configuration data used by Charmed Apache Kafka,
-such as passwords and SSL certificates, is stored in Juju secrets.
-See the [Juju secrets documentation](https://canonical.com/juju/docs/juju-cli/3.6/reference/secret/)
-for more information.
+All sensitive configuration data used by Charmed Apache Kafka, such as passwords and SSL
+certificates, is stored in Juju secrets. See the
+[Juju secrets documentation](https://canonical.com/juju/docs/juju-cli/3.6/reference/secret/) for
+more information.
 
-To reveal the contents of the Juju secret containing sensitive cluster data
-for the Charmed Apache Kafka application, you can run:
+To reveal the contents of the Juju secret containing sensitive cluster data for the Charmed Apache
+Kafka application, you can run:
 
 ```shell
 juju show-secret --reveal cluster.kafka.app
 ```
 
+The secret label follows the pattern `cluster.<application-name>.app`.
+
 The output of the previous command will look something like this:
+
+`````{tab-set}
+---
+sync-group: substrate
+---
+````{tab-item} VM
+:sync: vm
 
 <!-- test:skip -->
 ```shell
@@ -152,11 +250,42 @@ d5ipahpdormt02antvpg:
     replication-password: tatsvzFV3de4Ce2NEL2HVQWAlSpx7gyv
 ```
 
-The important line here for accessing the Apache Kafka cluster itself is `operator-password`,
-which tells us that `username=operator` and `password=0g7010iwtBrChk00Ad1pznzaZW0i2Pdt`.
-These are the credentials to use to successfully authenticate to the cluster.
+````
 
-For simplicity, the password can also be directly retrieved by parsing the YAML response from the previous command directly using `yq`:
+````{tab-item} K8s
+:sync: k8s
+
+```text
+d5ipahpdormt02antvpg:
+  revision: 1
+  checksum: f84bf383e76ddda391543d57a8b76dbef4e95813b820a466fb4815b098bda3b2
+  owner: kafka
+  label: cluster.kafka.app
+  created: 2026-01-13T00:43:58Z
+  updated: 2026-01-13T00:43:58Z
+  content:
+    internal-ca: |-
+      -----BEGIN CERTIFICATE-----
+        ...
+      -----END CERTIFICATE-----
+    internal-ca-key: |-
+      -----BEGIN RSA PRIVATE KEY-----
+        ...
+      -----END RSA PRIVATE KEY-----
+    operator-password: 0g7010iwtBrChk00Ad1pznzaZW0i2Pdt
+    replication-password: tatsvzFV3de4Ce2NEL2HVQWAlSpx7gyv
+```
+
+````
+
+`````
+
+The important line here for accessing the Apache Kafka cluster itself is `operator-password`, which
+tells us that `username=operator` and `password=0g7010iwtBrChk00Ad1pznzaZW0i2Pdt`. These are the
+credentials to use to successfully authenticate to the cluster.
+
+For simplicity, the password can also be directly retrieved by parsing the YAML response from the
+previous command directly using `yq`:
 
 ```shell
 juju show-secret --reveal cluster.kafka.app | yq -r '.[].content["operator-password"]'
@@ -169,11 +298,18 @@ thus preventing any external incoming connection.
 ```
 
 We will also need a bootstrap server Apache Kafka broker address and port to initially connect to.
-When any application connects for the first time to a `bootstrap-server`,
-the client will automatically make a metadata request that returns the full set of
-Apache Kafka brokers with their addresses and ports.
+When any application connects for the first time to a `bootstrap-server`, the client will
+automatically make a metadata request that returns the full set of Apache Kafka brokers with their
+addresses and ports.
 
-To use `kafka/0` as the `bootstrap-server`, retrieve its IP address and add a port with:
+To use the first broker unit as the `bootstrap-server`, retrieve its address and add a port with:
+
+`````{tab-set}
+---
+sync-group: substrate
+---
+````{tab-item} VM
+:sync: vm
 
 ```shell
 bootstrap_address=$(juju show-unit kafka/0 | yq '.. | ."public-address"? // ""' | tr -d '"' | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
@@ -181,15 +317,38 @@ bootstrap_address=$(juju show-unit kafka/0 | yq '.. | ."public-address"? // ""' 
 export BOOTSTRAP_SERVER="${bootstrap_address}:19093"
 ```
 
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+On Kubernetes, `juju show-unit` reports the pod address in the `address` field:
+
+```bash
+bootstrap_address=$(juju show-unit kafka/0 --format json | jq -r '."kafka/0".address')
+
+export BOOTSTRAP_SERVER="${bootstrap_address}:19093"
+```
+
+````
+
+`````
+
 where `19093` refers to the available open internal port on the broker unit.
 
-It is always possible to run a command from within the Apache Kafka cluster using
-the internal listeners and ports in place of the external ones.
-For an explanation of Charmed Apache Kafka listeners, please refer to
-[Apache Kafka listeners](reference-broker-listeners).
+It is always possible to run a command from within the Apache Kafka cluster using the internal
+listeners and ports in place of the external ones. For an explanation of Charmed Apache Kafka
+listeners, please refer to [Apache Kafka listeners](reference-broker-listeners).
 
-To jump in to a running Charmed Apache Kafka unit and run a command,
-for example listing files in a directory, you can do the following:
+To jump in to a running Charmed Apache Kafka unit and run a command, for example listing files in a
+directory, you can do the following:
+
+`````{tab-set}
+---
+sync-group: substrate
+---
+````{tab-item} VM
+:sync: vm
 
 ```shell
 juju ssh kafka/leader sudo -i "ls \$BIN/bin"
@@ -205,7 +364,41 @@ referencing various file-system directories relevant to the workload,
 [File system paths](reference-file-system-paths).
 ```
 
-When the unit has started, the Charmed Apache Kafka Operator installs the
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+On Kubernetes the workload runs in the `kafka` container of each pod, so
+select that container and use absolute paths:
+
+```bash
+juju ssh --container kafka kafka/leader ls /opt/kafka/bin
+```
+
+```{note}
+Unlike on VM, the `$BIN`, `$LOGS`, `$CONF` and `$DATA` variables are not
+exported inside the container. Use the literal paths instead --
+`/opt/kafka`, `/var/log/kafka`, `/etc/kafka` and `/var/lib/kafka`. See
+[File system paths](reference-file-system-paths).
+```
+
+````
+
+`````
+
+When the unit has started, the charm makes the Apache Kafka administrative commands available on the
+unit, along with a `client.properties` file that already provides the relevant settings to connect
+to the cluster using the CLI.
+
+`````{tab-set}
+---
+sync-group: substrate
+---
+````{tab-item} VM
+:sync: vm
+
+The Charmed Apache Kafka Operator installs the
 [`charmed-kafka`](https://snapcraft.io/charmed-kafka) snap in the unit that provides a number
 of snap commands (that corresponds to the shell-script `bin/kafka-*.sh` commands
 in the Apache Kafka distribution) for performing various administrative and operational tasks.
@@ -247,13 +440,60 @@ juju ssh kafka/0 sudo -i \
         --command-config \$CONF/client.properties"
 ```
 
-For a full list of the available Charmed Kafka command-line tools, please refer to
-[snap commands](reference-snap-commands) reference.
+````
+
+````{tab-item} K8s
+:sync: k8s
+
+On Kubernetes, the upstream `bin/kafka-*.sh` scripts are available in
+`/opt/kafka/bin` inside the `kafka` workload container, and the charm writes
+`/etc/kafka/client.properties`.
+
+For example, in order to create a topic, you can run:
+
+```bash
+juju ssh --container kafka kafka/0 \
+    "/opt/kafka/bin/kafka-topics.sh \
+        --create \
+        --topic test-topic \
+        --bootstrap-server $BOOTSTRAP_SERVER \
+        --command-config /etc/kafka/client.properties"
+```
+
+You can similarly then list the topic, using:
+
+```bash
+juju ssh --container kafka kafka/0 \
+    "/opt/kafka/bin/kafka-topics.sh \
+        --list \
+        --bootstrap-server $BOOTSTRAP_SERVER \
+        --command-config /etc/kafka/client.properties"
+```
+
+making sure the topic was successfully created.
+
+You can finally delete the topic, using:
+
+```bash
+juju ssh --container kafka kafka/0 \
+    "/opt/kafka/bin/kafka-topics.sh \
+        --delete \
+        --topic test-topic \
+        --bootstrap-server $BOOTSTRAP_SERVER \
+        --command-config /etc/kafka/client.properties"
+```
+
+````
+
+`````
+
+For a full list of the available Charmed Kafka command-line tools and the mapping between snap
+commands and container executables, please refer to
+[command-line utilities](reference-cli-utilities) reference.
 
 ## What's next?
 
-Although the commands above can run within the cluster, it is generally recommended
-during operations to enable external listeners and use these for running the admin commands
-from outside the cluster.
-To do so, as we will see in the next section, we will deploy a
+Although the commands above can run within the cluster, it is generally recommended during
+operations to enable external listeners and use these for running the admin commands from outside
+the cluster. To do so, as we will see in the next section, we will deploy a
 [data-integrator](https://charmhub.io/data-integrator) charm and relate it to Charmed Apache Kafka.

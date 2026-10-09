@@ -282,7 +282,7 @@ def add_k8s_hosts(juju: jubilant.Juju):
     """Adds a the pod dns hostnames to the local /etc/hosts file."""
     address_map = get_unit_address_map(model=f"{juju.model}")
     dns_pod_map = [
-        f"{pod_ip} {get_k8s_host_from_unit(unit_name)}"
+        f"{pod_ip} {get_k8s_host_from_unit(juju.model, unit_name)}"
         for unit_name, pod_ip in address_map.items()
     ]
 
@@ -297,7 +297,7 @@ def remove_k8s_hosts(juju: jubilant.Juju):
     address_map = get_unit_address_map(model=f"{juju.model}")
 
     for unit_name in address_map.keys():
-        cmd = f"sudo sed -i -e '/.*{get_k8s_host_from_unit(unit_name)}$/d' /etc/hosts"
+        cmd = f"sudo sed -i -e '/.*{get_k8s_host_from_unit(juju.model, unit_name)}$/d' /etc/hosts"
         check_output(cmd, stderr=PIPE, shell=True, universal_newlines=True)
         logger.info(f"Removed {unit_name} from /etc/hosts")
 

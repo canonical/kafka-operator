@@ -17,11 +17,13 @@ from common.single_kernel_kafka.core.literals import (
     PEER,
 )
 from ops import BoundEvent
-from ops.testing import Container, Context, PeerRelation, Secret, State
+from ops.testing import Container, Context, Model, PeerRelation, Secret, State
 from tests.unit.helpers import (
     ACTIONS,
+    CLUSTER_DOMAIN,
     CONFIG,
     METADATA,
+    MODEL_NAME,
     SUBSTRATE,
     KafkaCharm,
     generate_tls_artifacts,
@@ -43,7 +45,11 @@ def ca() -> CA:
 @pytest.fixture()
 def base_state():
     if SUBSTRATE == "k8s":
-        state = State(leader=True, containers=[Container(name=CONTAINER, can_connect=True)])
+        state = State(
+            leader=True,
+            containers=[Container(name=CONTAINER, can_connect=True)],
+            model=Model(name=MODEL_NAME),
+        )
 
     else:
         state = State(leader=True)
@@ -207,7 +213,7 @@ def test_sans(charm_configuration: dict, base_state: State, patched_node_ip, mon
     cluster_peer = PeerRelation(
         PEER,
         PEER,
-        local_unit_data={"private-address": "treebeard"},
+        local_unit_data={"private-address": "treebeard", "cluster-domain": CLUSTER_DOMAIN},
     )
     monkeypatch.setattr("single_kernel_kafka.workload.WorkloadMachine.ips", ["treebeard"])
     state_in = dataclasses.replace(base_state, relations=[cluster_peer])

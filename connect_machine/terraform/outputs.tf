@@ -16,8 +16,7 @@ output "provides_endpoints" {
   description = "Relation endpoints this charm provides"
   value = [
     "connect-client",
-    "cos-agent",
-    "certificates"
+    "cos-agent"
   ]
 }
 

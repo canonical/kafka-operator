@@ -31,7 +31,13 @@ TEST_DB_NAME = "testdb"
 TEST_TASK_NAME = "test_task"
 
 
-def test_build_and_deploy(juju: JujuFixture, kafka_version: int, kafka_connect_charm):
+def test_build_and_deploy(
+    juju: JujuFixture,
+    kafka_version: int,
+    kafka_connect_charm,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
+):
     """Deploys kafka-connect charm along kafka (in KRaft mode) & MySQL."""
     gather(
         juju.ext.model.deploy(
@@ -44,6 +50,8 @@ def test_build_and_deploy(juju: JujuFixture, kafka_version: int, kafka_connect_c
             series="noble",
             config={"profile": "testing"},
             constraints=DEFAULT_CONSTRAINTS,
+            revision=test_charm_revision,
+            channel=test_charm_channel,
         ),
         deploy_kafka(juju, kafka_version),
         juju.ext.model.deploy(

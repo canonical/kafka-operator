@@ -1,28 +1,35 @@
 ---
-relatedlinks: "[GitHub](https://github.com/canonical/kafka-operator), [Charmhub](https://charmhub.io/kafka), [Charmhub&#32;(K8s)](https://charmhub.io/kafka-k8s)"
+relatedlinks: '[GitHub](https://github.com/canonical/kafka-operator), [Charmhub](https://charmhub.io/kafka), [Charmhub&#32;(K8s)](https://charmhub.io/kafka-k8s)'
 myst:
   html_meta:
-    description: "Complete documentation for Charmed Apache Kafka operator - deploy, manage, and scale Charmed Apache Kafka clusters on VMs, AWS, Azure, and OpenStack."
+    description: Complete documentation for Charmed Apache Kafka operators - deploy, manage, and scale Apache Kafka clusters on VMs and Kubernetes.
 ---
 
 (index)=
+
 # Charmed Apache Kafka documentation
 
 Charmed Apache Kafka is an open-source operator, packaged as a
-[Juju charm](https://documentation.ubuntu.com/juju/3.6/reference/charm/),
-that simplifies the deployment, scaling, and management of
-[Apache Kafka](https://kafka.apache.org) clusters on physical hardware, VMs,
-and cloud environments including AWS, Azure, OpenStack, and VMware.
+[Juju charm](https://documentation.ubuntu.com/juju/3.6/reference/charm/), that simplifies the
+deployment, scaling, and management of [Apache Kafka](https://kafka.apache.org) clusters on physical
+hardware, VMs, and Kubernetes, including deployments on AWS, Azure, OpenStack, and VMware.
+
+This documentation covers both the [VM charm](https://charmhub.io/kafka) and the
+[Kubernetes charm](https://charmhub.io/kafka-k8s). Select the VM or K8s tab in the guides; the
+selection is synchronized across each page.
 
 ```{note}
-This is an **IAAS/VM** charmed operator.
-To deploy on Kubernetes, see [Charmed Apache Kafka K8s operator](https://documentation.ubuntu.com/charmed-kafka-k8s/4/).
+**Terminology:** the docs use *VM* as shorthand for *machine* charm
+deployments (Juju's [machine
+charms](https://canonical.com/juju/docs/juju-cli/3.6/reference/charm/#machine-charm)
+run directly on virtual machines or bare-metal hosts), and *K8s* as shorthand
+for *Kubernetes*. The two terms refer to the same substrate in each case.
 ```
 
 The charm automates Apache Kafka operations from
 [Day 0 to Day 2](https://codilime.com/blog/day-0-day-1-day-2-the-software-lifecycle-in-the-cloud-age/)
-with capabilities such as replication, TLS encryption, password rotation,
-application integration, and monitoring.
+with capabilities such as replication, TLS encryption, password rotation, application integration,
+and monitoring.
 
 ## In this documentation
 
@@ -48,6 +55,7 @@ New to Charmed Apache Kafka? Start with the step-by-step Tutorial to learn the e
 {doc}`AWS </how-to/deploy/deploy-aws>`
 {doc}`Azure </how-to/deploy/deploy-azure>`
 {doc}`Juju Spaces </how-to/deploy/deploy-spaces>`
+{doc}`External connections (Kubernetes) </how-to/external-k8s-connection>`
 {doc}`Requirements </reference/requirements>`
 ```
 
@@ -68,9 +76,9 @@ New to Charmed Apache Kafka? Start with the step-by-step Tutorial to learn the e
 ```
 
 ```{slice} Internals
-{doc}`Snap commands </reference/snap-commands>`
+{doc}`Command-line utilities </reference/cli-utilities>`
 {doc}`File paths </reference/file-system-paths>`
-{doc}`Performance tuning </reference/performance-tuning>`
+{doc}`Performance tuning (VM) </reference/performance-tuning>`
 {doc}`Terraform module </reference/terraform>`
 {doc}`Release notes </reference/release-notes/index>`
 ```
@@ -81,38 +89,46 @@ New to Charmed Apache Kafka? Start with the step-by-step Tutorial to learn the e
 ````{domain} Features
 
 ```{slice} Security
-{doc}`Overview </explanation/security>` slice
+{doc}`Overview </explanation/security>`
 {doc}`Enable encryption </how-to/tls-encryption>`
 {doc}`mTLS </how-to/create-mtls-client-credentials>`
-{doc}`OAuth </how-to/oauth>`
+{doc}`OAuth (VM) </how-to/oauth>`
 {doc}`Cryptography </explanation/cryptography>`
 ```
 
 ```{slice} Extensions
+{doc}`Components </explanation/components>`
 {doc}`Kafka Connect </how-to/kafka-connect>`
 {doc}`Schema registry </how-to/schemas-serialisation>`
 {doc}`Kafka UI </how-to/kafka-ui>`
 ```
 ````
 
+|                  |                                  |
+| ---------------- | -------------------------------- |
+| **Contributing** | [Contribute](contributing-guide) |
 
 ## How the documentation is organised
 
 This documentation uses the [Diátaxis documentation structure](https://diataxis.fr/):
 
-- The [Tutorial](tutorial-introduction) walks you through deploying your first Charmed Apache Kafka cluster from scratch, step by step.
-- [How-to guides](how-to-index) help you solve specific operational tasks such as enabling TLS, connecting clients, or scaling brokers.
-- [Reference](reference-index) lets you look up configuration options, status codes, file paths, and system requirements.
-- [Explanation](explanation-index) helps you understand the design decisions behind security, replication, and integration architecture.
+- The [tutorial](tutorial-introduction) walks you through deploying your first Charmed Apache Kafka
+  cluster from scratch, step by step, on either substrate.
+- [How-to guides](how-to-index) help you solve specific operational tasks such as enabling TLS,
+  connecting clients, or scaling brokers.
+- [Reference](reference-index) lets you look up configuration options, status codes, file paths, and
+  system requirements.
+- [Explanation](explanation-index) helps you understand the design decisions behind security,
+  replication, and integration architecture.
 
 ## Project and community
 
-Charmed Apache Kafka is part of the [Juju](https://juju.is/) ecosystem of open-source,
-self-driving deployment tools. It can be integrated with multiple other Juju charms,
-also available on [Charmhub](https://charmhub.io/).
+Charmed Apache Kafka is part of the [Juju](https://juju.is/) ecosystem of open-source, self-driving
+deployment tools. It can be integrated with multiple other Juju charms, also available on
+[Charmhub](https://charmhub.io/).
 
-It’s an open-source project developed and supported by [Canonical](https://canonical.com/)
-that welcomes community contributions, suggestions, fixes and constructive feedback.
+It’s an open-source project developed and supported by [Canonical](https://canonical.com/) that
+welcomes community contributions, suggestions, fixes and constructive feedback.
 
 ### Get involved
 
@@ -125,25 +141,27 @@ that welcomes community contributions, suggestions, fixes and constructive feedb
 ### Governance and policies
 
 - [Read our Code of Conduct](https://ubuntu.com/community/code-of-conduct)
-- [Report a security issue](https://wiki.ubuntu.com/DebuggingSecurity#How_to_File) — please do not use GitHub issues for security topics
+- [Report a security issue](https://wiki.ubuntu.com/DebuggingSecurity#How_to_File) — please do not
+  use GitHub issues for security topics
 - [Canonical Contributor Agreement](https://ubuntu.com/legal/contributors)
 
 ## License and trademarks
 
-[Apache Kafka](https://kafka.apache.org) is a free, open-source software project
-by the Apache Software Foundation.
-Apache®, Apache Kafka, Kafka®, and the Apache Kafka logo are either registered trademarks
-or trademarks of the Apache Software Foundation in the United States and/or other countries.
+[Apache Kafka](https://kafka.apache.org) is a free, open-source software project by the Apache
+Software Foundation. Apache®, Apache Kafka, Kafka®, and the Apache Kafka logo are either registered
+trademarks or trademarks of the Apache Software Foundation in the United States and/or other
+countries.
 
 The Charmed Apache Kafka Operator is free software, distributed under the Apache Software License,
-version 2.0.
-See [LICENSE](https://github.com/canonical/kafka-operator/blob/main/LICENSE) for more information.
+version 2.0. See [LICENSE](https://github.com/canonical/kafka-operator/blob/main/LICENSE) for more
+information.
 
 ```{toctree}
-:titlesonly:
-:maxdepth: 2
-:hidden:
-
+---
+titlesonly:
+maxdepth: 2
+hidden:
+---
 Home <self>
 tutorial/index
 how-to/index

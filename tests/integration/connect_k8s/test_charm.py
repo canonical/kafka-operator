@@ -13,6 +13,7 @@ from integration.connect_k8s.helpers import (
     IMAGE_URI,
     KAFKA_APP,
     KAFKA_CHANNEL,
+    charm_resources,
     check_connect_endpoints_status,
     make_connect_api_request,
 )
@@ -20,7 +21,12 @@ from integration.connect_k8s.helpers import (
 logger = logging.getLogger(__name__)
 
 
-def test_deploy_charms(juju: JujuFixture, kafka_connect_charm):
+def test_deploy_charms(
+    juju: JujuFixture,
+    kafka_connect_charm,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
+):
     """Deploys kafka-connect charm along kafka (in KRaft mode)."""
     # deploy kafka & kafka-connect
     gather(
@@ -28,8 +34,10 @@ def test_deploy_charms(juju: JujuFixture, kafka_connect_charm):
             kafka_connect_charm,
             application_name=APP_NAME,
             num_units=1,
-            resources={IMAGE_RESOURCE_KEY: IMAGE_URI},
             constraints=DEFAULT_CONSTRAINTS,
+            resources=charm_resources(test_charm_channel),
+            revision=test_charm_revision,
+            channel=test_charm_channel,
         ),
         juju.ext.model.deploy(
             KAFKA_APP,
@@ -41,9 +49,8 @@ def test_deploy_charms(juju: JujuFixture, kafka_connect_charm):
         ),
     )
 
-    juju.ext.model.wait_for_idle(apps=[APP_NAME, KAFKA_APP], timeout=3000)
-
-    assert juju.ext.model.applications[APP_NAME].status == "blocked"
+    juju.ext.model.wait_for_idle(apps=[APP_NAME], timeout=1000, status="blocked")
+    juju.ext.model.wait_for_idle(apps=[KAFKA_APP], timeout=1000, status="active")
 
     juju.ext.model.add_relation(APP_NAME, KAFKA_APP)
 

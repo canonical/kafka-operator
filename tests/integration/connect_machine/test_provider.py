@@ -27,7 +27,12 @@ PASSWORD_CACHE_KEY = "integrator-password"
 
 
 def test_deploy_app_and_integrator(
-    juju: JujuFixture, kafka_version: int, kafka_connect_charm, source_integrator_charm
+    juju: JujuFixture,
+    kafka_version: int,
+    kafka_connect_charm,
+    source_integrator_charm,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
 ):
 
     # download JDBC connector plugin and deploy the integrator charm with it.
@@ -53,6 +58,8 @@ def test_deploy_app_and_integrator(
             series="noble",
             config={"profile": "testing"},
             constraints=DEFAULT_CONSTRAINTS,
+            revision=test_charm_revision,
+            channel=test_charm_channel,
         ),
         deploy_kafka(juju, kafka_version),
     )

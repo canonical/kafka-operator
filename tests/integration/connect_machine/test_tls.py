@@ -27,7 +27,13 @@ MANUAL_TLS_NAME = "manual-tls-certificates"
 MANUAL_TLS_CHANNEL = "1/stable"
 
 
-def test_deploy_tls(juju: JujuFixture, kafka_version: int, kafka_connect_charm):
+def test_deploy_tls(
+    juju: JujuFixture,
+    kafka_version: int,
+    kafka_connect_charm,
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
+):
 
     gather(
         juju.ext.model.deploy(
@@ -42,6 +48,8 @@ def test_deploy_tls(juju: JujuFixture, kafka_version: int, kafka_connect_charm):
             series="noble",
             config={"profile": "testing"},
             constraints=DEFAULT_CONSTRAINTS,
+            revision=test_charm_revision,
+            channel=test_charm_channel,
         ),
         deploy_kafka(juju, kafka_version),
     )

@@ -1,33 +1,37 @@
 ---
 myst:
   html_meta:
-    description: "Step-by-step tutorial for deploying and managing Charmed Apache Kafka - from environment setup to encryption, ETL, and cluster rebalancing."
+    description: Step-by-step tutorial for deploying and managing Charmed Apache Kafka - from environment setup to encryption, ETL, and cluster rebalancing.
 ---
 
 (tutorial-introduction)=
+
 ```{include} introduction.md
 
 ```
 
 (tutorial-index)=
+
 ## Step-by-step guide
 
-Here’s an overview of the steps required with links to our separate tutorials that deal with each individual step:
+Here’s an overview of the steps required with links to our separate tutorials that deal with each
+individual step:
 
 - [Set up the environment](tutorial-environment)
 - [Deploy Charmed Apache Kafka](tutorial-deploy)
 - [Integrate with client applications](tutorial-integrate-with-client-applications)
 - [Manage passwords](tutorial-manage-passwords)
 - [Enable encryption](tutorial-enable-encryption)
-- [Use Kafka Connect for ETL](tutorial-kafka-connect)
+- [Use Kafka Connect for ETL](tutorial-kafka-connect) (Machine only)
 - [Rebalance and Reassign Partitions](tutorial-rebalance-partitions)
 - [Cleanup your environment](tutorial-cleanup)
 
 ```{toctree}
-:titlesonly:
-:maxdepth: 2
-:hidden:
-
+---
+titlesonly:
+maxdepth: 2
+hidden:
+---
 1. Set up the environment<environment.md>
 2. Deploy Apache Kafka<deploy.md>
 3. Integrate with client apps<integrate-with-client-applications.md>

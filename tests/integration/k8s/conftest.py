@@ -51,8 +51,15 @@ def usernames():
 
 
 @pytest.fixture(scope="module")
-def kafka_charm():
-    """Kafka charm used for integration testing."""
+def kafka_charm(test_charm_revision: int | None):
+    """Kafka charm used for integration testing.
+
+    Either a locally built .charm file, or the Charmhub charm name when a
+    revision is pinned with `--revision`.
+    """
+    if test_charm_revision:
+        return APP_NAME
+
     charms = glob.glob(f"./k8s/*{ARCHITECTURE}.charm")
     if not charms:
         raise RuntimeError("Can not find Kafka charm, did you run charmcraft pack?")
@@ -85,7 +92,7 @@ def juju(request: pytest.FixtureRequest):
 
             log = juju.debug_log(limit=1000)
     else:
-        juju = jubilant.Juju(model=model)
+        juju = jubilant.Juju(model=model, wait_timeout=600)
         yield juju
         log = juju.debug_log(limit=1000)
 

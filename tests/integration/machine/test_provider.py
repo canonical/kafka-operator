@@ -40,7 +40,14 @@ NON_REL_USERS = set(INTERNAL_USERS + [CONTROLLER_USER])
 @pytest.mark.abort_on_fail
 @pytest.mark.skip_if_deployed
 async def test_deploy_charms_relate_active(
-    ops_test: OpsTest, kraft_mode, kafka_charm, app_charm, kafka_apps, usernames: set[str]
+    ops_test: OpsTest,
+    kraft_mode,
+    kafka_charm,
+    app_charm,
+    kafka_apps,
+    usernames: set[str],
+    test_charm_revision: int | None,
+    test_charm_channel: str | None,
 ):
     """Test deploy and relate operations."""
     await asyncio.gather(
@@ -48,6 +55,8 @@ async def test_deploy_charms_relate_active(
             ops_test=ops_test,
             charm=kafka_charm,
             kraft_mode=kraft_mode,
+            revision=test_charm_revision,
+            channel=test_charm_channel,
         ),
         ops_test.model.deploy(
             app_charm,
