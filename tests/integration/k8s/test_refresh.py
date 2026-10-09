@@ -165,7 +165,7 @@ def test_in_place_refresh(
     assert leader_unit
 
     logger.info("Calling pre-refresh-check...")
-    juju.run(leader_unit, "pre-refresh-check")
+    juju.run(leader_unit, "pre-refresh-check", wait=180.0)
     juju.wait(
         lambda status: all_active_idle(status, APP_NAME),
         delay=3,
