@@ -39,6 +39,8 @@ IMAGE_URI = METADATA["resources"]["kafka-image"]["upstream-source"]
 PASSWORDS_PATH = f"{CONFIG_DIR}/connect.password"
 KAFKA_APP = "kafka-k8s"
 KAFKA_CHANNEL = "4/edge"
+KAFKA_METADATA = yaml.safe_load(Path("k8s/metadata.yaml").read_text())
+KAFKA_IMAGE_URI = KAFKA_METADATA["resources"]["kafka-image"]["upstream-source"]
 MYSQL_APP = "mysql-k8s"
 MYSQL_CHANNEL = "8.0/stable"
 
@@ -65,6 +67,15 @@ class DatabaseFixtureParams:
     db_name: str
     no_tables: int = 1
     no_records: int = 1000
+
+
+@dataclass
+class KafkaCharm:
+    """Deployment parameters of the Kafka charm used alongside Kafka Connect."""
+
+    charm: str
+    channel: str | None = None
+    resources: dict[str, str] | None = None
 
 
 def charm_resources(channel: str | None, plugin_path: str | None = None) -> dict[str, str] | None:

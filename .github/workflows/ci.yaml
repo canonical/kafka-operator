@@ -396,9 +396,9 @@ jobs:
       contents: read
     with:
       substrate: lxd
-      tox-env: integration-connect-k8s-${{ matrix.tox-environment }}
+      tox-env: integration-${{ matrix.tox-environment }}
       runner-size: large
-      runner-arch: ARM64
+      runner-arch: arm64
       charm-revision: ${{ inputs.kafka-connect-k8s-revision }}
       artifact-prefix: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}
       packed-charms: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
@@ -426,9 +426,9 @@ jobs:
       contents: read
     with:
       substrate: k8s
-      tox-env: integration-connect-k8s-${{ matrix.tox-environment }}
+      tox-env: integration-${{ matrix.tox-environment }}
       runner-size: large
-      runner-arch: ARM64
+      runner-arch: arm64
       charm-revision: ${{ inputs.kafka-connect-k8s-revision }}
       artifact-prefix: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}
       packed-charms: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}

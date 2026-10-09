@@ -2,6 +2,7 @@
 # Copyright 2025 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import glob
 import os
 import random
 import string
@@ -9,8 +10,17 @@ from typing import cast
 
 import pytest
 from jubilant_adapters import JujuFixture, temp_model_fixture
+from single_kernel_kafka.core.literals import ARCHITECTURE
 
-from integration.connect_k8s.helpers import APP_NAME, DatabaseFixtureParams
+from integration.connect_k8s.helpers import (
+    APP_NAME,
+    IMAGE_RESOURCE_KEY,
+    KAFKA_APP,
+    KAFKA_CHANNEL,
+    KAFKA_IMAGE_URI,
+    DatabaseFixtureParams,
+    KafkaCharm,
+)
 
 
 def pytest_addoption(parser):
@@ -66,6 +76,22 @@ def kafka_connect_charm(juju: JujuFixture, test_charm_revision: int | None):
     charm_path = "connect_k8s"
     charm = juju.ext.build_charm(charm_path, use_cache=bool(os.environ.get("CI")))
     return charm
+
+
+@pytest.fixture(scope="module")
+def kafka_charm() -> KafkaCharm:
+    """Kafka charm used for integration testing.
+
+    The Charmhub charm on `KAFKA_CHANNEL` for amd64, or the locally built .charm file
+    for arm64, since there is no arm64 release of the Kafka charm on Charmhub yet.
+    """
+    if ARCHITECTURE == "amd64":
+        return KafkaCharm(charm=KAFKA_APP, channel=KAFKA_CHANNEL)
+
+    if not (match := glob.glob(f"k8s/*-{ARCHITECTURE}.charm")):
+        raise RuntimeError("Can't find the Kafka charm, did you run charmcraft pack?")
+
+    return KafkaCharm(charm=f"./{match[0]}", resources={IMAGE_RESOURCE_KEY: KAFKA_IMAGE_URI})
 
 
 @pytest.fixture(scope="module")

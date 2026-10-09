@@ -10,11 +10,11 @@ from integration.connect_k8s.helpers import (
     DEFAULT_CONSTRAINTS,
     JDBC_CONNECTOR_DOWNLOAD_LINK,
     KAFKA_APP,
-    KAFKA_CHANNEL,
     MYSQL_APP,
     MYSQL_CHANNEL,
     PLUGIN_RESOURCE_KEY,
     DatabaseFixtureParams,
+    KafkaCharm,
     charm_resources,
     destroy_active_workers,
     download_file,
@@ -31,6 +31,7 @@ INTEGRATOR = "integrator"
 def test_build_and_deploy(
     juju: JujuFixture,
     kafka_connect_charm,
+    kafka_charm: KafkaCharm,
     test_charm_revision: int | None,
     test_charm_channel: str | None,
 ):
@@ -49,8 +50,9 @@ def test_build_and_deploy(
             channel=test_charm_channel,
         ),
         juju.ext.model.deploy(
-            KAFKA_APP,
-            channel=KAFKA_CHANNEL,
+            kafka_charm.charm,
+            channel=kafka_charm.channel,
+            resources=kafka_charm.resources,
             application_name=KAFKA_APP,
             num_units=1,
             config={"roles": "broker,controller"},

@@ -14,7 +14,7 @@ from integration.connect_k8s.helpers import (
     IMAGE_RESOURCE_KEY,
     IMAGE_URI,
     KAFKA_APP,
-    KAFKA_CHANNEL,
+    KafkaCharm,
     check_connect_endpoints_status,
 )
 
@@ -28,6 +28,7 @@ CHANNEL = "4/stable"
 def test_in_place_upgrade(
     juju: JujuFixture,
     kafka_connect_charm,
+    kafka_charm: KafkaCharm,
     test_charm_channel: str | None,
     test_charm_revision: int | None,
 ):
@@ -42,8 +43,9 @@ def test_in_place_upgrade(
             constraints=DEFAULT_CONSTRAINTS,
         ),
         juju.ext.model.deploy(
-            KAFKA_APP,
-            channel=KAFKA_CHANNEL,
+            kafka_charm.charm,
+            channel=kafka_charm.channel,
+            resources=kafka_charm.resources,
             application_name=KAFKA_APP,
             num_units=1,
             config={"roles": "broker,controller"},

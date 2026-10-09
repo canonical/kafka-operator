@@ -10,7 +10,7 @@ from integration.connect_k8s.helpers import (
     DEFAULT_API_PORT,
     DEFAULT_CONSTRAINTS,
     KAFKA_APP,
-    KAFKA_CHANNEL,
+    KafkaCharm,
     charm_resources,
     check_connect_endpoints_status,
     make_connect_api_request,
@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 def test_deploy_charms(
     juju: JujuFixture,
     kafka_connect_charm,
+    kafka_charm: KafkaCharm,
     test_charm_revision: int | None,
     test_charm_channel: str | None,
 ):
@@ -38,8 +39,9 @@ def test_deploy_charms(
             channel=test_charm_channel,
         ),
         juju.ext.model.deploy(
-            KAFKA_APP,
-            channel=KAFKA_CHANNEL,
+            kafka_charm.charm,
+            channel=kafka_charm.channel,
+            resources=kafka_charm.resources,
             application_name=KAFKA_APP,
             num_units=1,
             config={"roles": "broker,controller"},

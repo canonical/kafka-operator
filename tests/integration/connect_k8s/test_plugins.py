@@ -11,12 +11,12 @@ from integration.connect_k8s.helpers import (
     JDBC_SINK_CONNECTOR_CLASS,
     JDBC_SOURCE_CONNECTOR_CLASS,
     KAFKA_APP,
-    KAFKA_CHANNEL,
     MYSQL_APP,
     MYSQL_CHANNEL,
     PLUGIN_RESOURCE_KEY,
     S3_CONNECTOR_CLASS,
     S3_CONNECTOR_LINK,
+    KafkaCharm,
     build_mysql_db_init_queries,
     charm_resources,
     download_file,
@@ -36,6 +36,7 @@ TEST_TASK_NAME = "test_task"
 def test_build_and_deploy(
     juju: JujuFixture,
     kafka_connect_charm,
+    kafka_charm: KafkaCharm,
     test_charm_revision: int | None,
     test_charm_channel: str | None,
 ):
@@ -54,8 +55,9 @@ def test_build_and_deploy(
             channel=test_charm_channel,
         ),
         juju.ext.model.deploy(
-            KAFKA_APP,
-            channel=KAFKA_CHANNEL,
+            kafka_charm.charm,
+            channel=kafka_charm.channel,
+            resources=kafka_charm.resources,
             application_name=KAFKA_APP,
             num_units=1,
             config={"roles": "broker,controller"},

@@ -9,7 +9,7 @@ from integration.connect_k8s.helpers import (
     APP_NAME,
     DEFAULT_CONSTRAINTS,
     KAFKA_APP,
-    KAFKA_CHANNEL,
+    KafkaCharm,
     charm_resources,
     make_connect_api_request,
 )
@@ -25,6 +25,7 @@ CUSTOM_AUTH = {INTERNAL_USER: "adminpass", "user1": "user1pass", "user2": "user2
 def test_build_and_deploy(
     juju: JujuFixture,
     kafka_connect_charm,
+    kafka_charm: KafkaCharm,
     test_charm_revision: int | None,
     test_charm_channel: str | None,
 ):
@@ -44,8 +45,9 @@ def test_build_and_deploy(
             channel=test_charm_channel,
         ),
         juju.ext.model.deploy(
-            KAFKA_APP,
-            channel=KAFKA_CHANNEL,
+            kafka_charm.charm,
+            channel=kafka_charm.channel,
+            resources=kafka_charm.resources,
             application_name=KAFKA_APP,
             num_units=1,
             config={"roles": "broker,controller"},
