@@ -372,3 +372,63 @@ jobs:
       charm-revision: ${{ inputs.kafka-connect-k8s-revision }}
       artifact-prefix: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}
       packed-charms: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
+
+  integration-arm-machine-smoke:
+    name: ARM | machine | smoke | ${{ matrix.tox-environment }}
+    strategy:
+      fail-fast: false
+      matrix:
+        tox-environment:
+          - machine-charm
+          - machine-kraft
+          - machine-tls
+          - machine-balancer-controller
+          - connect-machine-plugins
+          - connect-machine-requirer
+    needs: [lint, unit-test, build-dev, build-release]
+    if: |
+      !cancelled() &&
+      needs.lint.result == 'success' &&
+      needs.unit-test.result == 'success' &&
+      (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
+    uses: ./.github/workflows/_integration_test.yaml
+    permissions:
+      contents: read
+    with:
+      substrate: lxd
+      tox-env: integration-connect-k8s-${{ matrix.tox-environment }}
+      runner-size: large
+      runner-arch: ARM64
+      charm-revision: ${{ inputs.kafka-connect-k8s-revision }}
+      artifact-prefix: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}
+      packed-charms: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
+
+  integration-arm-k8s-smoke:
+    name: ARM | k8s | smoke | ${{ matrix.tox-environment }}
+    strategy:
+      fail-fast: false
+      matrix:
+        tox-environment:
+          - k8s-charm
+          - k8s-kraft
+          - k8s-tls
+          - k8s-balancer-controller
+          - connect-k8s-plugins
+          - connect-k8s-requirer
+    needs: [lint, unit-test, build-dev, build-release]
+    if: |
+      !cancelled() &&
+      needs.lint.result == 'success' &&
+      needs.unit-test.result == 'success' &&
+      (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
+    uses: ./.github/workflows/_integration_test.yaml
+    permissions:
+      contents: read
+    with:
+      substrate: k8s
+      tox-env: integration-connect-k8s-${{ matrix.tox-environment }}
+      runner-size: large
+      runner-arch: ARM64
+      charm-revision: ${{ inputs.kafka-connect-k8s-revision }}
+      artifact-prefix: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}
+      packed-charms: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}

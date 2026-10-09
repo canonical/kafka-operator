@@ -43,6 +43,11 @@ on:
         required: false
         default: large
         type: string
+      runner-arch:
+        description: Architecture to use for the runners, defaults to AMD64.
+        required: false
+        default: AMD64
+        type: string
 
 env:
   # Nightly runs exercise unstable tests too; everything else skips them.
@@ -57,7 +62,7 @@ jobs:
     name: ${{ inputs.tox-env }} ${{ inputs.extra-tox-args }}
     permissions:
       contents: read
-    runs-on: ${{ fromJSON(format('["self-hosted","linux","AMD64","X64","{0}","noble"]', inputs.runner-size)) }}
+    runs-on: ${{ fromJSON(format('["self-hosted","linux","{0}","X64","{1}","noble"]', inputs.runner-arch, inputs.runner-size)) }}
     timeout-minutes: 120
     env:
       # Workspace-relative rather than `~/logs`: actions/upload-artifact globs
