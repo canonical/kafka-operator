@@ -111,7 +111,7 @@ jobs:
           if [ -n "$VAR_REVISION" ]; then
             args+=(--revision "$VAR_REVISION")
           fi
-          tox run -e "$VAR_TOX_ENV" -- --model testing --keep-models "${args[@]}"
+          ~/.local/bin/tox run -e "$VAR_TOX_ENV" -- --model testing --keep-models "${args[@]}"
       - name: juju status
         timeout-minutes: 1
         if: ${{ success() || (failure() && steps.run-tests.outcome == 'failure') }}
