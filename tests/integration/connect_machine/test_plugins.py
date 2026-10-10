@@ -67,8 +67,15 @@ def test_build_and_deploy(
     juju.ext.model.add_relation(APP_NAME, KAFKA_APP)
     with juju.ext.fast_forward(fast_interval="60s"):
         juju.ext.model.wait_for_idle(
-            apps=[APP_NAME, KAFKA_APP, MYSQL_APP], idle_period=30, timeout=1800, status="active"
+            apps=[APP_NAME, KAFKA_APP], idle_period=30, timeout=1800, status="active"
         )
+
+    # MySQL agent gets stuck in executing with a fast update-status interval.
+    juju.ext.model.block_until(
+        lambda: juju.ext.model.applications[MYSQL_APP].status == "active",
+        timeout=600,
+        wait_period=15,
+    )
 
 
 def test_add_plugin(juju: JujuFixture):
