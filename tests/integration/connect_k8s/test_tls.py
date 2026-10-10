@@ -56,6 +56,7 @@ def test_deploy_tls(
             num_units=1,
             config={"roles": "broker,controller"},
             constraints=DEFAULT_CONSTRAINTS,
+            trust=True,
         ),
     )
 

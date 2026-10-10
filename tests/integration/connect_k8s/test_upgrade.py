@@ -49,6 +49,7 @@ def test_in_place_upgrade(
             application_name=KAFKA_APP,
             num_units=1,
             config={"roles": "broker,controller"},
+            trust=True,
             constraints=DEFAULT_CONSTRAINTS,
         ),
     )

@@ -56,6 +56,7 @@ def test_build_and_deploy(
             application_name=KAFKA_APP,
             num_units=1,
             config={"roles": "broker,controller"},
+            trust=True,
             constraints=DEFAULT_CONSTRAINTS,
         ),
         juju.ext.model.deploy(
