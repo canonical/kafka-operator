@@ -30,6 +30,7 @@ from integration.machine.helpers import (
 )
 from integration.machine.helpers.ha import assert_continuous_writes_consistency
 from integration.machine.helpers.pytest_operator import (
+    DEFAULT_CONSTRAINTS,
     KRaftMode,
     check_socket,
     create_test_topic,
@@ -121,6 +122,7 @@ class TestKRaft:
                     "profile": "testing",
                 },
                 trust=True,
+                constraints=DEFAULT_CONSTRAINTS,
                 revision=test_charm_revision,
                 channel=test_charm_channel,
             ),
@@ -130,6 +132,7 @@ class TestKRaft:
                 series=SERIES,
                 num_units=1,
                 trust=True,
+                constraints=DEFAULT_CONSTRAINTS,
             ),
         )
 
@@ -144,6 +147,7 @@ class TestKRaft:
                     "profile": "testing",
                 },
                 trust=True,
+                constraints=DEFAULT_CONSTRAINTS,
                 revision=test_charm_revision,
                 channel=test_charm_channel,
             )
@@ -325,7 +329,12 @@ class TestKRaft:
         c_writes = ContinuousWrites(model=ops_test.model_full_name, app=DUMMY_NAME, produce_rate=2)
         c_writes.start()
 
-        await ops_test.model.deploy(TLS_NAME, application_name=TLS_NAME, channel=TLS_CHANNEL)
+        await ops_test.model.deploy(
+            TLS_NAME,
+            application_name=TLS_NAME,
+            channel=TLS_CHANNEL,
+            constraints=DEFAULT_CONSTRAINTS,
+        )
         await ops_test.model.wait_for_idle(
             apps=[TLS_NAME], idle_period=30, timeout=600, status="active"
         )

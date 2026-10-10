@@ -7,13 +7,14 @@ from jubilant_adapters import JujuFixture, gather
 
 from integration.connect_k8s.helpers import (
     APP_NAME,
+    DEFAULT_CONSTRAINTS,
     JDBC_CONNECTOR_DOWNLOAD_LINK,
     KAFKA_APP,
-    KAFKA_CHANNEL,
     MYSQL_APP,
     MYSQL_CHANNEL,
     PLUGIN_RESOURCE_KEY,
     DatabaseFixtureParams,
+    KafkaCharm,
     charm_resources,
     destroy_active_workers,
     download_file,
@@ -30,6 +31,7 @@ INTEGRATOR = "integrator"
 def test_build_and_deploy(
     juju: JujuFixture,
     kafka_connect_charm,
+    kafka_charm: KafkaCharm,
     test_charm_revision: int | None,
     test_charm_channel: str | None,
 ):
@@ -43,15 +45,19 @@ def test_build_and_deploy(
                 plugin_path="./tests/integration/connect_k8s/resources/FakeResource.tar",
             ),
             num_units=1,
+            constraints=DEFAULT_CONSTRAINTS,
             revision=test_charm_revision,
             channel=test_charm_channel,
         ),
         juju.ext.model.deploy(
-            KAFKA_APP,
-            channel=KAFKA_CHANNEL,
+            kafka_charm.charm,
+            channel=kafka_charm.channel,
+            resources=kafka_charm.resources,
             application_name=KAFKA_APP,
             num_units=1,
             config={"roles": "broker,controller"},
+            trust=True,
+            constraints=DEFAULT_CONSTRAINTS,
         ),
         juju.ext.model.deploy(
             MYSQL_APP,
@@ -59,6 +65,7 @@ def test_build_and_deploy(
             application_name=MYSQL_APP,
             num_units=1,
             trust=True,
+            constraints=DEFAULT_CONSTRAINTS,
         ),
     )
 
@@ -87,6 +94,7 @@ def test_deploy_integrator(juju: JujuFixture, integrator_charm):
             application_name=INTEGRATOR,
             resources={PLUGIN_RESOURCE_KEY: plugin_path},
             config={"mode": "source"},
+            constraints=DEFAULT_CONSTRAINTS,
         )
 
     juju.ext.model.add_relation(INTEGRATOR, MYSQL_APP)

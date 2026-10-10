@@ -7,6 +7,7 @@ from requests.exceptions import ConnectionError, SSLError
 from integration.connect_machine.helpers import (
     APP_NAME,
     CONFIG_DIR,
+    DEFAULT_CONSTRAINTS,
     KAFKA_APP,
     deploy_kafka,
     extract_sans,
@@ -39,12 +40,14 @@ def test_deploy_tls(
             TLS_APP,
             channel=TLS_CHANNEL,
             config=TLS_CONFIG,
+            constraints=DEFAULT_CONSTRAINTS,
         ),
         juju.ext.model.deploy(
             kafka_connect_charm,
             application_name=APP_NAME,
             series="noble",
             config={"profile": "testing"},
+            constraints=DEFAULT_CONSTRAINTS,
             revision=test_charm_revision,
             channel=test_charm_channel,
         ),
@@ -118,7 +121,9 @@ def test_tls_broken(juju: JujuFixture):
 
 
 def test_manual_tls_with_no_chain(juju: JujuFixture, tmp_path):
-    juju.ext.model.deploy(MANUAL_TLS_NAME, channel=MANUAL_TLS_CHANNEL)
+    juju.ext.model.deploy(
+        MANUAL_TLS_NAME, channel=MANUAL_TLS_CHANNEL, constraints=DEFAULT_CONSTRAINTS
+    )
 
     juju.ext.model.add_relation(APP_NAME, MANUAL_TLS_NAME)
 

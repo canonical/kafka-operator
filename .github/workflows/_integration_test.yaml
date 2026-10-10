@@ -43,6 +43,11 @@ on:
         required: false
         default: large
         type: string
+      runner-arch:
+        description: Architecture to use for the runners, defaults to AMD64.
+        required: false
+        default: amd64
+        type: string
 
 env:
   # Nightly runs exercise unstable tests too; everything else skips them.
@@ -57,7 +62,7 @@ jobs:
     name: ${{ inputs.tox-env }} ${{ inputs.extra-tox-args }}
     permissions:
       contents: read
-    runs-on: ${{ fromJSON(format('["self-hosted","linux","AMD64","X64","{0}","noble"]', inputs.runner-size)) }}
+    runs-on: ${{ format('self-hosted-linux-{0}-noble-{1}', inputs.runner-arch, inputs.runner-size) }}
     timeout-minutes: 120
     env:
       # Workspace-relative rather than `~/logs`: actions/upload-artifact globs
@@ -106,7 +111,7 @@ jobs:
           if [ -n "$VAR_REVISION" ]; then
             args+=(--revision "$VAR_REVISION")
           fi
-          tox run -e "$VAR_TOX_ENV" -- --model testing --keep-models "${args[@]}"
+          ~/.local/bin/tox run -e "$VAR_TOX_ENV" -- --model testing --keep-models "${args[@]}"
       - name: juju status
         timeout-minutes: 1
         if: ${{ success() || (failure() && steps.run-tests.outcome == 'failure') }}

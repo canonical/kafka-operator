@@ -18,7 +18,7 @@ from single_kernel_kafka.core.literals import (
     TLS_RELATION,
 )
 
-from integration.k8s.helpers import sign_manual_certs
+from integration.k8s.helpers import DEFAULT_CONSTRAINTS, sign_manual_certs
 from integration.k8s.helpers.jubilant import all_active_idle, deploy_cluster, fast_forward
 from integration.k8s.helpers.legacy import (
     APP_NAME,
@@ -54,7 +54,13 @@ def test_deploy_tls(
 ):
     tls_config = {"ca-common-name": "kafka"}
 
-    juju.deploy(TLS_NAME, channel="1/stable", config=tls_config, trust=True)
+    juju.deploy(
+        TLS_NAME,
+        channel="1/stable",
+        config=tls_config,
+        trust=True,
+        constraints=DEFAULT_CONSTRAINTS,
+    )
     deploy_cluster(
         juju=juju,
         charm=kafka_charm,
@@ -100,7 +106,14 @@ def test_kafka_tls(juju: jubilant.Juju, app_charm, kafka_apps):
         ip=kafka_address, port=SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].client
     )
 
-    juju.deploy(app_charm, app=DUMMY_NAME, num_units=1, base="ubuntu@22.04", trust=True)
+    juju.deploy(
+        app_charm,
+        app=DUMMY_NAME,
+        num_units=1,
+        base="ubuntu@22.04",
+        trust=True,
+        constraints=DEFAULT_CONSTRAINTS,
+    )
     juju.wait(
         lambda status: jubilant.all_agents_idle(status, *kafka_apps, DUMMY_NAME),
         delay=3,
@@ -245,8 +258,15 @@ def test_certificate_transfer(juju: jubilant.Juju, kafka_apps):
         TLS_NAME,
         channel="1/stable",
         app="other-ca",
+        constraints=DEFAULT_CONSTRAINTS,
     )
-    juju.deploy(TLS_REQUIRER, channel="stable", app="other-req", revision=102)
+    juju.deploy(
+        TLS_REQUIRER,
+        channel="stable",
+        app="other-req",
+        revision=102,
+        constraints=DEFAULT_CONSTRAINTS,
+    )
 
     juju.integrate("other-ca", "other-req")
 
@@ -416,7 +436,7 @@ def test_pod_reschedule_tls(juju: jubilant.Juju, kafka_apps):
 
 def test_manual_tls_chain(juju: jubilant.Juju, kafka_apps):
     assert juju.model
-    juju.deploy(MANUAL_TLS_NAME)
+    juju.deploy(MANUAL_TLS_NAME, constraints=DEFAULT_CONSTRAINTS)
 
     juju.integrate(f"{APP_NAME}:{TLS_RELATION}", MANUAL_TLS_NAME)
 

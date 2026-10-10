@@ -7,6 +7,7 @@ from jubilant_adapters import JujuFixture, gather
 
 from integration.connect_machine.helpers import (
     APP_NAME,
+    DEFAULT_CONSTRAINTS,
     JDBC_CONNECTOR_DOWNLOAD_LINK,
     KAFKA_APP,
     MYSQL_APP,
@@ -45,6 +46,7 @@ def test_build_and_deploy(
             application_name=APP_NAME,
             series="noble",
             config={"profile": "testing"},
+            constraints=DEFAULT_CONSTRAINTS,
             revision=test_charm_revision,
             channel=test_charm_channel,
         ),
@@ -55,6 +57,7 @@ def test_build_and_deploy(
             application_name=MYSQL_APP,
             num_units=1,
             series="jammy",
+            constraints=DEFAULT_CONSTRAINTS,
         ),
         juju.ext.model.deploy(
             POSTGRES_APP,
@@ -62,6 +65,7 @@ def test_build_and_deploy(
             application_name=POSTGRES_APP,
             num_units=1,
             series="jammy",
+            constraints=DEFAULT_CONSTRAINTS,
         ),
     )
 
@@ -88,6 +92,7 @@ def test_deploy_source_integrator(juju: JujuFixture, source_integrator_charm):
             application_name=MYSQL_INTEGRATOR,
             resources={PLUGIN_RESOURCE_KEY: plugin_path},
             config={"mode": "source"},
+            constraints=DEFAULT_CONSTRAINTS,
         )
 
     with juju.ext.fast_forward(fast_interval="60s"):
@@ -149,6 +154,7 @@ def test_deploy_postgres_sink_integrator(juju: JujuFixture, sink_integrator_char
             application_name=POSTGRES_INTEGRATOR,
             resources={PLUGIN_RESOURCE_KEY: plugin_path},
             config={"mode": "sink", "topics_regex": "test_.+"},
+            constraints=DEFAULT_CONSTRAINTS,
         )
 
     with juju.ext.fast_forward(fast_interval="60s"):

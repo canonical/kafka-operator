@@ -11,7 +11,7 @@ import jubilant
 import pytest
 from single_kernel_kafka.core.literals import TLS_RELATION
 
-from integration.k8s.helpers import TLS_CHANNEL, TLS_NAME
+from integration.k8s.helpers import DEFAULT_CONSTRAINTS, TLS_CHANNEL, TLS_NAME
 from integration.k8s.helpers.jubilant import all_active_idle, deploy_cluster, fast_forward
 from integration.k8s.helpers.legacy import (
     APP_NAME,
@@ -53,7 +53,9 @@ def test_deploy_charms_relate_active(
         revision=test_charm_revision,
         channel=test_charm_channel,
     )
-    juju.deploy(app_charm, app=DUMMY_NAME_1, num_units=1, trust=True)
+    juju.deploy(
+        app_charm, app=DUMMY_NAME_1, num_units=1, trust=True, constraints=DEFAULT_CONSTRAINTS
+    )
     juju.integrate(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_CONSUMER}")
 
     with fast_forward(juju, fast_interval="60s"):
@@ -86,7 +88,9 @@ def test_deploy_multiple_charms_same_topic_relate_active(
     juju: jubilant.Juju, app_charm: PosixPath, usernames: Set[str], kafka_apps
 ):
     """Test relation with multiple applications."""
-    juju.deploy(app_charm, app=DUMMY_NAME_2, num_units=1, trust=True)
+    juju.deploy(
+        app_charm, app=DUMMY_NAME_2, num_units=1, trust=True, constraints=DEFAULT_CONSTRAINTS
+    )
     juju.integrate(APP_NAME, f"{DUMMY_NAME_2}:{REL_NAME_CONSUMER}")
 
     with fast_forward(juju, fast_interval="60s"):
@@ -153,6 +157,7 @@ def test_deploy_producer_same_topic(
         app=DUMMY_NAME_1,
         num_units=1,
         trust=True,
+        constraints=DEFAULT_CONSTRAINTS,
     )
     juju.integrate(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_PRODUCER}")
 
@@ -198,6 +203,7 @@ def test_admin_added_to_super_users(juju: jubilant.Juju, app_charm, kafka_apps):
         app=DUMMY_NAME_1,
         num_units=1,
         trust=True,
+        constraints=DEFAULT_CONSTRAINTS,
     )
     juju.integrate(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_ADMIN}")
     juju.wait(
@@ -241,7 +247,9 @@ def test_admin_removed_from_super_users(juju: jubilant.Juju, kafka_apps):
 def test_connection_updated_on_tls_enabled(juju: jubilant.Juju, app_charm: PosixPath, kafka_apps):
     """Test relation when TLS is enabled."""
     # adding new app unit to validate
-    juju.deploy(app_charm, app=DUMMY_NAME_1, num_units=1, trust=True)
+    juju.deploy(
+        app_charm, app=DUMMY_NAME_1, num_units=1, trust=True, constraints=DEFAULT_CONSTRAINTS
+    )
     juju.integrate(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_CONSUMER}")
     juju.wait(
         lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME_1),
@@ -253,7 +261,13 @@ def test_connection_updated_on_tls_enabled(juju: jubilant.Juju, app_charm: Posix
     # deploying tls
     tls_config = {"ca-common-name": "kafka"}
     # FIXME (certs): Unpin the revision once the charm is fixed
-    juju.deploy(TLS_NAME, channel=TLS_CHANNEL, config=tls_config, trust=True)
+    juju.deploy(
+        TLS_NAME,
+        channel=TLS_CHANNEL,
+        config=tls_config,
+        trust=True,
+        constraints=DEFAULT_CONSTRAINTS,
+    )
     juju.wait(all_active_idle, timeout=1800, delay=3, successes=10)
 
     # relating tls with kafka

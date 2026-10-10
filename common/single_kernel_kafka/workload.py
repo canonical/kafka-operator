@@ -32,6 +32,7 @@ from tenacity import (
 from typing_extensions import override
 
 from .core.literals import (
+    ARCHITECTURE,
     BALANCER,
     BROKER,
     CHARM_KEY,
@@ -644,7 +645,7 @@ class KafkaWorkloadK8s(WorkloadK8s):
                     "environment": {
                         "KAFKA_OPTS": " ".join(extra_opts),
                         # FIXME https://github.com/canonical/kafka-k8s-operator/issues/80
-                        "JAVA_HOME": "/usr/lib/jvm/java-21-openjdk-amd64",
+                        "JAVA_HOME": f"/usr/lib/jvm/java-21-openjdk-{ARCHITECTURE}",
                         "LOG_DIR": self.paths.logs_path,
                     },
                 }
@@ -750,7 +751,7 @@ class BalancerWorkloadK8s(WorkloadK8s):
                     "environment": {
                         "KAFKA_OPTS": " ".join(extra_opts),
                         # FIXME https://github.com/canonical/kafka-k8s-operator/issues/80
-                        "JAVA_HOME": "/usr/lib/jvm/java-21-openjdk-amd64",
+                        "JAVA_HOME": f"/usr/lib/jvm/java-21-openjdk-{ARCHITECTURE}",
                         "LOG_DIR": self.paths.logs_path,
                     },
                 }
@@ -795,7 +796,7 @@ class ConnectWorkloadK8s(WorkloadK8s):
                     "group": GROUP,
                     "environment": {
                         "KAFKA_OPTS": " ".join(extra_opts),
-                        "JAVA_HOME": "/usr/lib/jvm/java-21-openjdk-amd64",
+                        "JAVA_HOME": f"/usr/lib/jvm/java-21-openjdk-{ARCHITECTURE}",
                         "LOG_DIR": self.connect_paths.logs_dir,
                     },
                 }

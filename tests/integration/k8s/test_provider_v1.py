@@ -5,12 +5,13 @@
 import json
 import logging
 
+import flaky
 import jubilant
 import pytest
 from single_kernel_kafka.core.literals import REL_NAME, TLS_RELATION
 from single_kernel_kafka.managers.auth import Acl
 
-from integration.k8s.helpers import TLS_CHANNEL, TLS_NAME
+from integration.k8s.helpers import DEFAULT_CONSTRAINTS, TLS_CHANNEL, TLS_NAME
 from integration.k8s.helpers.jubilant import (
     all_active_idle,
     deploy_cluster,
@@ -142,8 +143,9 @@ def test_deploy_and_relate(
         app=DUMMY_NAME_1,
         num_units=1,
         base=BASE,
+        constraints=DEFAULT_CONSTRAINTS,
     )
-    juju.deploy(TLS_NAME, channel=TLS_CHANNEL)
+    juju.deploy(TLS_NAME, channel=TLS_CHANNEL, constraints=DEFAULT_CONSTRAINTS)
 
     juju.integrate(APP_NAME, f"{DUMMY_NAME_1}:{REL_NAME_V1}")
 
@@ -155,7 +157,17 @@ def test_deploy_and_relate(
     )
 
 
-def test_relation_data_set_correctly_before_tls(juju: jubilant.Juju):
+# The relation setup might take a while before kafka goes into restart mode,
+# and the previous wait might successfully pass.
+# this check can be safely done multiple times with waits in between.
+@flaky.flaky(max_runs=3, min_passes=1)
+def test_relation_data_set_correctly_before_tls(juju: jubilant.Juju, kafka_apps):
+    juju.wait(
+        lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME_1),
+        delay=3,
+        successes=20,
+        timeout=900,
+    )
     _assert_relation_data_integrity(juju)
     _assert_acl_integrity(juju)
 
