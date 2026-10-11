@@ -9,6 +9,7 @@ of the libraries in this repository.
 """
 
 import logging
+import platform
 import subprocess
 from socket import getfqdn
 
@@ -28,6 +29,7 @@ from utils import safe_write_to_file
 logger = logging.getLogger(__name__)
 
 
+ARCHITECTURE = "arm64" if platform.processor() == "aarch64" else "amd64"
 CHARM_KEY = "app"
 PEER = "cluster"
 REL_NAME_CONSUMER = "kafka-client-consumer"
@@ -283,7 +285,7 @@ class ApplicationCharm(CharmBase):
                 stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
-                env={"JAVA_HOME": "/usr/lib/jvm/java-21-openjdk-amd64"},
+                env={"JAVA_HOME": f"/usr/lib/jvm/java-21-openjdk-{ARCHITECTURE}"},
             )
         except subprocess.CalledProcessError as e:
             logger.exception(e.stdout)
@@ -297,7 +299,7 @@ class ApplicationCharm(CharmBase):
                 stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
-                env={"JAVA_HOME": "/usr/lib/jvm/java-21-openjdk-amd64"},
+                env={"JAVA_HOME": f"/usr/lib/jvm/java-21-openjdk-{ARCHITECTURE}"},
             )
         except subprocess.CalledProcessError as e:
             logger.exception(e.stdout)
@@ -359,7 +361,7 @@ class ApplicationCharm(CharmBase):
                 stderr=subprocess.STDOUT,
                 shell=True,
                 universal_newlines=True,
-                env={"JAVA_HOME": "/usr/lib/jvm/java-21-openjdk-amd64"},
+                env={"JAVA_HOME": f"/usr/lib/jvm/java-21-openjdk-{ARCHITECTURE}"},
             )
             event.set_results({"output": output})
         except subprocess.CalledProcessError as e:

@@ -264,7 +264,6 @@ def test_certificate_transfer(juju: jubilant.Juju, kafka_apps):
         TLS_REQUIRER,
         channel="stable",
         app="other-req",
-        revision=102,
         constraints=DEFAULT_CONSTRAINTS,
     )
 
@@ -436,7 +435,7 @@ def test_pod_reschedule_tls(juju: jubilant.Juju, kafka_apps):
 
 def test_manual_tls_chain(juju: jubilant.Juju, kafka_apps):
     assert juju.model
-    juju.deploy(MANUAL_TLS_NAME, constraints=DEFAULT_CONSTRAINTS)
+    juju.deploy(MANUAL_TLS_NAME, channel="1/stable", constraints=DEFAULT_CONSTRAINTS)
 
     juju.integrate(f"{APP_NAME}:{TLS_RELATION}", MANUAL_TLS_NAME)
 
