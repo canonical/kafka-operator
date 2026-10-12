@@ -63,7 +63,7 @@ jobs:
     permissions:
       contents: read
     runs-on: ${{ format('self-hosted-linux-{0}-noble-{1}', inputs.runner-arch, inputs.runner-size) }}
-    timeout-minutes: 120
+    timeout-minutes: 150
     env:
       # Workspace-relative rather than `~/logs`: actions/upload-artifact globs
       # its `path` and does not expand `~`.
@@ -72,6 +72,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
       - name: Setup operator environment
+        timeout-minutes: 15
         run: |
           sudo snap install concierge --classic
           sudo concierge prepare --trace --extra-debs pipx
