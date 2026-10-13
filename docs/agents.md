@@ -238,6 +238,22 @@ not being applied.
 - **MyST** Markdown (`.md`) is the default syntax — use MyST directives, not reStructuredText
 - **Canonical Sphinx extension** provides branding and custom roles; see `conf.py` for configuration
 
+### Sphinx Stack baseline
+
+The released baseline in `_dev/version` is `2.0`. Stack configuration and support files were
+synchronized with upstream `canonical/sphinx-stack` main commit
+`cfc887196ebfd8aed0a0ed69515e524a133a4308` (5 October 2026). Upstream main still records `2.0`, so
+`make update` alone cannot detect its unreleased changes; compare against the upstream commit as
+well.
+
+Keep project-specific generators, formatter tooling, templates, reuse files, Mermaid styling, and
+agent-facing output when updating Stack files. Build directories matching `_build*` are excluded
+from Sphinx, Vale, and Markdown linting, including generated Markdown output.
+
+The removed-URL workflow builds the pull request and its base branch, then checks their HTML URLs
+using `_dev/check_removed_urls.py`. Add source-path redirects to `redirects.txt` when moving or
+removing a published page.
+
 ## Documentation guidelines
 
 All documentation follows the [Diátaxis](https://diataxis.fr) framework. Place content in the

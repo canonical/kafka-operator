@@ -167,6 +167,9 @@ templates_path = [
 
 rediraffe_redirects = "redirects.txt"
 
+# Strips '/index.html' from destination URLs when building with 'dirhtml'.
+rediraffe_dir_only = True
+
 
 ############################
 # sphinx-llm configuration #
@@ -224,13 +227,14 @@ linkcheck_retries = 3
 # Custom Sphinx extensions; see
 # https://www.sphinx-doc.org/en/master/usage/extensions/index.html
 extensions = [
+    # Upstream Sphinx Stack extensions.
     "canonical_sphinx",
     "notfound.extension",
     "sphinx_design",
     "sphinx_rerediraffe",
+    "sphinx_reredirects",
     "sphinx_tabs.tabs",
     "sphinxcontrib.jquery",
-    "sphinxcontrib.mermaid",
     "sphinxext.opengraph",
     "sphinx_config_options",
     "sphinx_contributor_listing",
@@ -238,7 +242,6 @@ extensions = [
     "sphinx_llm.txt",
     "sphinx_related_links",
     "sphinx_roles",
-    "sphinx_structured_toc",
     "sphinx_terminal",
     "sphinx_ubuntu_images",
     "sphinx_youtube_links",
@@ -246,6 +249,9 @@ extensions = [
     "sphinx_last_updated_by_git",
     "sphinx.ext.intersphinx",
     "sphinx_sitemap",
+    # Project-specific extensions.
+    "sphinxcontrib.mermaid",
+    "sphinx_structured_toc",
 ]
 
 # Excludes files or directories from processing
@@ -254,6 +260,7 @@ exclude_patterns = [
     "agents.md",
     ".venv*",
     "_dev",
+    "_build*",
 ]
 
 # Adds custom CSS files, located under 'html_static_path'
