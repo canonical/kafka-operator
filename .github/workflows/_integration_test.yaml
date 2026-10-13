@@ -58,7 +58,7 @@ jobs:
     permissions:
       contents: read
     runs-on: ${{ fromJSON(format('["self-hosted","linux","AMD64","X64","{0}","noble"]', inputs.runner-size)) }}
-    timeout-minutes: 120
+    timeout-minutes: 150
     env:
       # Workspace-relative rather than `~/logs`: actions/upload-artifact globs
       # its `path` and does not expand `~`.
@@ -70,6 +70,7 @@ jobs:
         run: |
           sudo snap install concierge --classic
           sudo concierge prepare --trace --extra-debs pipx
+        timeout-minutes: 15
       - name: Pre-seed LXD base image with the workload snap
         if: ${{ inputs.substrate == 'lxd' }}
         uses: ./.github/actions/preseed-lxd-image

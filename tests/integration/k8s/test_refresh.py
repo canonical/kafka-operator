@@ -5,6 +5,7 @@
 import logging
 import os
 import subprocess
+import time
 import zipfile
 from pathlib import Path
 
@@ -158,7 +159,7 @@ def test_in_place_refresh(
     assert leader_unit
 
     logger.info("Calling pre-refresh-check...")
-    juju.run(leader_unit, "pre-refresh-check")
+    juju.run(leader_unit, "pre-refresh-check", wait=180.0)
     juju.wait(
         lambda status: all_active_idle(status, APP_NAME),
         delay=3,
@@ -184,10 +185,13 @@ def test_in_place_refresh(
             resources={"kafka-image": KAFKA_CONTAINER},
         )
 
+    # To avoid instantly passing the wait test
+    time.sleep(60)
+
     juju.wait(
         lambda status: jubilant.all_agents_idle(status, APP_NAME),
         delay=3,
-        successes=10,
+        successes=40,
         timeout=1000,
     )
 

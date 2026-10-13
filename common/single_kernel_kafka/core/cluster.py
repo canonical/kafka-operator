@@ -30,6 +30,8 @@ from .literals import (
     CERTIFICATE_TRANSFER_RELATION,
     CONTROLLER,
     CONTROLLER_USER,
+    COS_RELATION,
+    CUSTOM_METRICS_OTLP_PORT,
     INTERNAL_TLS_RELATION,
     INTERNAL_USERS,
     KRAFT_NODE_ID_OFFSET,
@@ -103,6 +105,34 @@ class KafkaContext(Object):
     def peer_cluster_relation(self) -> Relation | None:
         """The `peer-cluster` relation that this charm is requiring."""
         return self.model.get_relation(PEER_CLUSTER_RELATION)
+
+    @property
+    def cos_relation(self) -> Relation | None:
+        """The OTel-collector charm relation, conditional on substrate."""
+        return self.model.get_relation(COS_RELATION)
+
+    @property
+    def otlp_endpoint(self) -> str | None:
+        """Return the OTLP endpoint to push metrics."""
+        if not self.cos_relation:
+            return None
+
+        if self.substrate == "vm":
+            return f"localhost:{CUSTOM_METRICS_OTLP_PORT}"
+
+        if not self.otlp_dns_name:
+            return None
+
+        return f"{self.otlp_dns_name}:{CUSTOM_METRICS_OTLP_PORT}"
+
+    @property
+    def otlp_dns_name(self) -> str:
+        """Return the OTel Collector DNS name in K8s."""
+        return self.cluster.relation_data.get("otlp-dns", "")
+
+    @otlp_dns_name.setter
+    def otlp_dns_name(self, value: str) -> None:
+        self.cluster.update({"otlp-dns": value})
 
     @property
     def peer_cluster_orchestrator(self) -> PeerCluster:
