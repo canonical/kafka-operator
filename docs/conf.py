@@ -238,8 +238,10 @@ myst_enable_extensions = {"substitution", "deflist", "linkify"}
 # Custom Sphinx extensions; see
 # https://www.sphinx-doc.org/en/master/usage/extensions/index.html
 extensions = [
-    # Manual theme trial with explicitly enabled parser and copy buttons.
+    # Manual theme trial: Ulwazi must precede the PDF extension so its branding
+    # defaults are available when sphinx-modern-pdf-style configures LaTeX.
     "ulwazi",
+    "sphinx_modern_pdf_style",
     "myst_parser",
     "sphinx_copybutton",
     # Existing Sphinx Stack extensions.
@@ -267,6 +269,10 @@ extensions = [
     "sphinxcontrib.mermaid",
     "sphinx_structured_toc",
 ]
+
+# Enable the documented modern PDF setup (XeLaTeX and Canonical logo).
+set_modern_pdf_config = True
+# The PDF style appends 'Ltd.' itself; use Ulwazi's 'Canonical' default.
 
 # Excludes files or directories from processing
 exclude_patterns = [

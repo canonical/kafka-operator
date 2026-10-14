@@ -240,8 +240,13 @@ not being applied.
 
 ### Manual theme trial
 
-This branch pins `ulwazi==1.0.0` directly, without relying on Sphinx Stack theme support or
-`canonical-sphinx-config`.
+This branch pins `ulwazi==1.0.0` and `sphinx-modern-pdf-style==0.1.3` directly, without relying on
+Sphinx Stack theme support or `canonical-sphinx-config`. In `conf.py`, list `ulwazi` before
+`sphinx_modern_pdf_style` and enable `set_modern_pdf_config` for the modern PDF design.
+
+PDF compilation also needs the existing system prerequisites listed by `make pdf-prep`. Rendering
+Mermaid into PDF requires a separate Mermaid CLI (`mmdc`); without it, the PDF builds with a warning
+and omits the diagram. Browser-rendered HTML diagrams do not require that CLI.
 
 MyST syntax and copy buttons are explicitly enabled.
 

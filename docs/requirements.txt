@@ -1,5 +1,6 @@
 # Manual Ulwazi trial (independent of the Sphinx Stack theme defaults)
 ulwazi==1.0.0
+sphinx-modern-pdf-style==0.1.3
 
 # Explicit parser and extensions previously auto-loaded by canonical-sphinx
 myst-parser[linkify]~=4.0    # v5.0.0 causes version conflicts
