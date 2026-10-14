@@ -204,4 +204,7 @@ Furo
 Furo.s
 dagre
 subgraph
+Ulwazi
+Ulwazi.s
 subgraphs
+

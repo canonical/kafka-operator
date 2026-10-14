@@ -1,8 +1,9 @@
-# Canonical theme (still needed for Furo theme and custom templates)
-canonical-sphinx~=0.6
+# Manual Ulwazi trial (independent of the Sphinx Stack theme defaults)
+ulwazi==1.0.0
 
-# Extensions previously auto-loaded by canonical-sphinx
-myst-parser~=4.0    # v5.0.0 causes version conflicts
+# Explicit parser and extensions previously auto-loaded by canonical-sphinx
+myst-parser[linkify]~=4.0    # v5.0.0 causes version conflicts
+sphinx-copybutton~=0.5
 sphinx-autobuild
 sphinx-design==0.6.1
 sphinx-notfound-page~=1.1

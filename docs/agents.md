@@ -236,7 +236,20 @@ not being applied.
 
 - **Sphinx** built and hosted on **Read the Docs**
 - **MyST** Markdown (`.md`) is the default syntax — use MyST directives, not reStructuredText
-- **Canonical Sphinx extension** provides branding and custom roles; see `conf.py` for configuration
+- **Ulwazi 1.0.0** provides the theme; standalone extensions provide custom roles
+
+### Manual theme trial
+
+This branch pins `ulwazi==1.0.0` directly, without relying on Sphinx Stack theme support or
+`canonical-sphinx-config`.
+
+MyST syntax and copy buttons are explicitly enabled.
+
+The old `_templates/header.html` and `_templates/footer.html` remain unchanged for rollback but are
+not loaded by Ulwazi. This is a native-theme trial: previous/next navigation, related-link panels,
+and visible update dates from the old templates are not ported. Their settings and source metadata
+remain intact. To return to Furo, restore the previous requirements and `conf.py`, reinstall
+dependencies, and rebuild from a clean output directory.
 
 ### Sphinx Stack baseline
 

@@ -17,9 +17,8 @@ import yaml
 # A complete list of built-in Sphinx configuration values:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 #
-# The Sphinx Stack uses the Canonical Sphinx theme to keep all
-# documentation consistent and on brand:
-# https://github.com/canonical/canonical-sphinx
+# This branch trials the released Ulwazi theme independently of Sphinx Stack:
+# https://documentation.ubuntu.com/ulwazi/content/configuration/
 
 
 #######################
@@ -82,6 +81,7 @@ html_context = {
     "github_url": "https://github.com/canonical/kafka-operator",
     # Docs branch in the repo; used in links for viewing the source files
     "repo_default_branch": "main",
+    "repo_branch": "main",
     # Docs location in the repo; used in links for viewing the source files
     "repo_folder": "/docs/",
     # To enable or disable the Previous / Next buttons at the bottom of pages
@@ -91,8 +91,11 @@ html_context = {
     "display_contributors": False,
     # Required for feedback button
     "github_issues": "enabled",
+    "feedback": True,
+    "default_source_extension": ".md",
     # Passes the top-level 'author' value to the theme
     "author": author,
+    "project": project,
     # Absolute URL of llms.txt; used by '_templates/header.html' to render the
     # agent-facing discovery directive on every page
     "llms_txt_url": f"https://canonical.com/{slug}/{version_slug}/llms.txt",
@@ -101,17 +104,28 @@ html_context = {
         "name": "CC-BY-SA",
         "url": "https://creativecommons.org/licenses/by-sa/4.0/",
     },
+    # Native Ulwazi branding and the existing analytics container.
+    "company": "Canonical",
+    "logo_link_URL": "https://canonical.com/data/kafka",
+    "logo_img_URL": "https://assets.ubuntu.com/v1/82818827-CoF_white.svg",
+    "logo_title": "Canonical",
+    "tag_id": "GTM-KNX3CJC",
+    "footer": {
+        "product": True,
+        "license": True,
+        "entries": [
+            '<a class="js-revoke-cookie-manager" href="#tracker-settings">'
+            "Manage your tracker settings</a>",
+        ],
+    },
 }
 
-# To enable the edit button on pages, uncomment and change the link to a
-# public repository on GitHub or Launchpad. Any of the following link domains
-# are accepted:
-# - https://github.com/example-org/example"
-# - https://launchpad.net/example
-# - https://git.launchpad.net/example
-html_theme_options = {
-    "source_edit_link": "https://github.com/canonical/kafka-operator",
-}
+# Ulwazi uses github_url/repo_branch/repo_folder for native edit/view buttons.
+# The previous Furo setting is retained here only as a rollback reference:
+# html_theme_options = {"source_edit_link": "https://github.com/canonical/kafka-operator"}
+html_theme = "ulwazi"
+html_copy_source = False
+html_show_sourcelink = False
 
 #######################
 # Sitemap configuration: https://sphinx-sitemap.readthedocs.io/
@@ -218,17 +232,17 @@ linkcheck_retries = 3
 
 # Custom MyST syntax extensions; see
 # https://myst-parser.readthedocs.io/en/latest/syntax/optional.html
-# NOTE: By default, the following MyST extensions are enabled:
-#   - substitution
-#   - deflist
-#   - linkify
-# myst_enable_extensions = set()
+# Preserve the syntax features previously enabled by canonical-sphinx.
+myst_enable_extensions = {"substitution", "deflist", "linkify"}
 
 # Custom Sphinx extensions; see
 # https://www.sphinx-doc.org/en/master/usage/extensions/index.html
 extensions = [
-    # Upstream Sphinx Stack extensions.
-    "canonical_sphinx",
+    # Manual theme trial with explicitly enabled parser and copy buttons.
+    "ulwazi",
+    "myst_parser",
+    "sphinx_copybutton",
+    # Existing Sphinx Stack extensions.
     "notfound.extension",
     "sphinx_design",
     "sphinx_rerediraffe",
