@@ -58,8 +58,8 @@ ogp_site_name = project
 ogp_image = "https://assets.ubuntu.com/v1/cc828679-docs_illustration.svg"
 
 # Product favicon; shown in bookmarks, browser tabs, etc.
-# TODO: To customise the favicon, uncomment and update as needed.
-# html_favicon = "_static/favicon.png"
+# Preserve the favicon formerly supplied by canonical-sphinx.
+html_favicon = "_static/favicon.png"
 
 # Dictionary of values to pass into the Sphinx context for all pages:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_context
@@ -96,7 +96,7 @@ html_context = {
     # Passes the top-level 'author' value to the theme
     "author": author,
     "project": project,
-    # Absolute URL of llms.txt; used by '_templates/header.html' to render the
+    # Absolute URL of llms.txt; used by '_templates/page.html' to render the
     # agent-facing discovery directive on every page
     "llms_txt_url": f"https://canonical.com/{slug}/{version_slug}/llms.txt",
     # Documentation license information
@@ -406,7 +406,7 @@ if os.path.exists("./reuse/substitutions.yaml"):
 
 # The Agent-Friendly Docs spec (https://agentdocsspec.com/spec/) requires an
 # llms.txt pointer in *both* the HTML and the Markdown representation of every
-# page.  The HTML side is handled by '_templates/header.html'; this hook handles
+# page.  The HTML side is handled by '_templates/page.html'; this hook handles
 # the Markdown side.
 #
 # The directive is injected as a post-processing step on the finished build
@@ -444,8 +444,15 @@ def _inject_agent_directive(app, exception):
         md_file.write_text(f"{_AGENT_DIRECTIVE}\n{content}", encoding="utf-8")
 
 
+def _ulwazi_page_context(app, pagename, _templatename, context, _doctree):
+    """Preserve canonical directory URLs previously corrected by Furo."""
+    if app.builder.name == "dirhtml" and app.config.html_baseurl:
+        context["pageurl"] = app.config.html_baseurl + app.builder.get_target_uri(pagename)
+
+
 def setup(app):
     """Register local Sphinx hooks."""
+    app.connect("html-page-context", _ulwazi_page_context, priority=900)
     # Priority 900 ensures this runs after sphinx-llm's 'combine_builds'
     # (priority 101), which is what creates the .md files in the output dir.
     app.connect("build-finished", _inject_agent_directive, priority=900)

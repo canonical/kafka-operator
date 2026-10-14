@@ -45,7 +45,7 @@ page (`<page>/index.html.md`). Three pieces of configuration keep these discover
    `slug` and `version_slug` (`READTHEDOCS_VERSION`, defaulting to `local`). A trailing slash is
    required. Omitting either the version segment or the trailing slash makes every URL in
    `sitemap.xml` and `llms.txt` return 404.
-2. **HTML directive** — `_templates/header.html` renders a visually-hidden
+2. **HTML directive** — `_templates/page.html` renders a visually-hidden
    `<div data-agent-directive>` pointing at `llms.txt` and explaining the `.md` URL convention. It
    is hidden with the clip-rect technique in `_static/agent-directive.css`, not `display: none`, so
    it stays in the accessibility tree.
@@ -248,13 +248,14 @@ PDF compilation also needs the existing system prerequisites listed by `make pdf
 Mermaid into PDF requires a separate Mermaid CLI (`mmdc`); without it, the PDF builds with a warning
 and omits the diagram. Browser-rendered HTML diagrams do not require that CLI.
 
-MyST syntax and copy buttons are explicitly enabled.
+MyST syntax and copy buttons are explicitly enabled. The local page wrapper preserves accessible
+agent discovery, and a page-context hook corrects canonical URLs for the directory HTML builder.
 
 The old `_templates/header.html` and `_templates/footer.html` remain unchanged for rollback but are
 not loaded by Ulwazi. This is a native-theme trial: previous/next navigation, related-link panels,
 and visible update dates from the old templates are not ported. Their settings and source metadata
-remain intact. To return to Furo, restore the previous requirements and `conf.py`, reinstall
-dependencies, and rebuild from a clean output directory.
+remain intact. To return to Furo, restore the previous requirements and `conf.py`, remove the local
+`page.html` wrapper, reinstall dependencies, and rebuild from a clean output directory.
 
 ### Sphinx Stack baseline
 
