@@ -41,6 +41,7 @@ from .core.literals import (
     JMX_CC_PORT,
     JMX_EXPORTER_PORT,
     PATHS,
+    PYTHON_EXPORTER_SERVICE,
     SECURITY_PROTOCOL_PORTS,
     SNAP_NAME,
     USER_NAME,
@@ -98,6 +99,10 @@ class WorkloadMachine(WorkloadBase):
             self.kafka.restart(services=[self.service])
         except snap.SnapError as e:
             logger.exception(str(e))
+
+    @override
+    def restart_python_exporter(self) -> None:
+        self.kafka.restart(services=[PYTHON_EXPORTER_SERVICE])
 
     @override
     def read(self, path: str) -> list[str]:
@@ -476,6 +481,10 @@ class WorkloadK8s(WorkloadBase):
         self.start()
 
     @override
+    def restart_python_exporter(self) -> None:
+        self.container.restart(PYTHON_EXPORTER_SERVICE)
+
+    @override
     def read(self, path: str) -> list[str]:
         return (
             [] if not (self.root / path).exists() else (self.root / path).read_text().split("\n")
@@ -648,7 +657,13 @@ class KafkaWorkloadK8s(WorkloadK8s):
         command = (
             f"{self.paths.binaries_path}/bin/kafka-server-start.sh {self.paths.server_properties}"
         )
-
+        extra_env = {
+            k: v
+            for k, v in self.read_env(self.root / "etc" / "environment").items()
+            if k in ["OTEL_EXPORTER_OTLP_METRICS_ENDPOINT", "BOOTSTRAP_SERVER"]
+        }
+        bootstrap_server = extra_env.get("BOOTSTRAP_SERVER")
+        bootstrap_server_env = {"BOOTSTRAP_SERVER": bootstrap_server} if bootstrap_server else {}
         layer_config: pebble.LayerDict = {
             "summary": "kafka layer",
             "description": "Pebble config layer for kafka",
@@ -665,8 +680,21 @@ class KafkaWorkloadK8s(WorkloadK8s):
                         # FIXME https://github.com/canonical/kafka-k8s-operator/issues/80
                         "JAVA_HOME": f"/usr/lib/jvm/java-21-openjdk-{ARCHITECTURE}",
                         "LOG_DIR": self.paths.logs_path,
-                    },
-                }
+                    }
+                    | extra_env,
+                },
+                PYTHON_EXPORTER_SERVICE: {
+                    "override": "merge",
+                    "summary": "Python exporter service",
+                    "command": "python3 -c 'import ckp; ckp.main()'",
+                    "startup": "enabled",
+                    "environment": {
+                        "PYTHONPATH": "/opt/python-exporter/lib/python3.12/site-packages/",
+                        "SUBSTRATE": "k8s",
+                        "CONFIG_FILE": self.paths.client_properties,
+                    }
+                    | bootstrap_server_env,
+                },
             },
         }
         return pebble.Layer(layer_config)
