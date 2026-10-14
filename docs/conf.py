@@ -453,6 +453,8 @@ def _ulwazi_page_context(app, pagename, _templatename, context, _doctree):
 def setup(app):
     """Register local Sphinx hooks."""
     app.connect("html-page-context", _ulwazi_page_context, priority=900)
+    # Run the theme bridge before extensions resolve their light/dark state.
+    app.add_js_file("ulwazi-compat.js", priority=400)
     # Priority 900 ensures this runs after sphinx-llm's 'combine_builds'
     # (priority 101), which is what creates the .md files in the output dir.
     app.connect("build-finished", _inject_agent_directive, priority=900)

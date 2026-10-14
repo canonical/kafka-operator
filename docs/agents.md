@@ -98,9 +98,10 @@ Versions the vendored artifacts were validated against, from the kit's
 `sphinxcontrib-mermaid` `2.1.1` (pinned exactly in `requirements.txt`, since the 1.x series lacks
 `mermaid_init_config`).
 
-`mermaid-brand-patch.css` is local and adapts the kit's assumed `#262626` page background to Furo's
-`#131416`. Keep it minimal; each rule documents the upstream limitation it works around, so it can
-be deleted once a newer kit release covers it.
+`mermaid-brand-patch.css` is local and adapts the kit's assumed `#262626` page background to the
+active theme, using Vanilla's background variable with a Furo fallback. Keep it minimal; each rule
+documents the upstream limitation it works around, so it can be deleted once a newer kit release
+covers it.
 
 ### Two upstream constraints
 
@@ -137,8 +138,8 @@ nodes, so changing metrics after render makes text overflow.
 ### Verifying a change
 
 Build, serve over HTTP, and compare **computed styles** in both modes rather than trusting a
-screenshot. Setting only `body[data-theme]` leaves the page background stale, which makes a correct
-diagram look broken — set `data-theme` on both `body` and `html`, then measure:
+screenshot. Use Ulwazi's theme toggle so its `is-light`/`is-dark` classes update on both `body` and
+`html`. `_static/ulwazi-compat.js` mirrors them into `data-theme` for Mermaid and the overlay.
 
 ```bash
 make html && python3 -m http.server --directory _build 8000
@@ -249,7 +250,8 @@ Mermaid into PDF requires a separate Mermaid CLI (`mmdc`); without it, the PDF b
 and omits the diagram. Browser-rendered HTML diagrams do not require that CLI.
 
 MyST syntax and copy buttons are explicitly enabled. The local page wrapper preserves accessible
-agent discovery, and a page-context hook corrects canonical URLs for the directory HTML builder.
+agent discovery, and a page-context hook corrects canonical URLs for the directory HTML builder. The
+Mermaid bridge preserves the vendored styling with Ulwazi's native light/dark toggle.
 
 The old `_templates/header.html` and `_templates/footer.html` remain unchanged for rollback but are
 not loaded by Ulwazi. This is a native-theme trial: previous/next navigation, related-link panels,

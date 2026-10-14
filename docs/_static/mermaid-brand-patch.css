@@ -29,7 +29,7 @@
 
 /*
  * The brand kit assumes a '#262626' page background and paints that colour onto
- * the diagram canvas. Furo's dark background is '#131416', so the diagram would
+ * the diagram canvas. The page background can differ, so the diagram would
  * otherwise appear as a lighter grey plate floating on the page. Node and
  * subgraph fills keep their brand values; only the canvas becomes transparent.
  *
@@ -48,14 +48,14 @@
 
 /*
  * Edge-label plates are painted '#262626' upstream to match that same assumed
- * background. Re-point them at Furo's real page background, so a label sitting
+ * background. Re-point them at the theme's real page background, so a label sitting
  * on top of a connector does not show a lighter box behind its text.
  */
 :is(#_mermaid_patch_a, body[data-theme="dark"]):not(#_mermaid_patch_b):not(#_mermaid_patch_c)
   .mermaid
   svg[aria-roledescription] :is(.edgeLabel rect, .edgeLabel .labelBkg) {
-  fill: var(--color-background-primary) !important;
-  background: var(--color-background-primary) !important;
+  fill: var(--vf-color-background-default, var(--color-background-primary)) !important;
+  background: var(--vf-color-background-default, var(--color-background-primary)) !important;
 }
 
 /*
@@ -97,8 +97,8 @@
   :is(#_mermaid_patch_a, body[data-theme="auto"]):not(#_mermaid_patch_b):not(#_mermaid_patch_c)
     .mermaid
     svg[aria-roledescription] :is(.edgeLabel rect, .edgeLabel .labelBkg) {
-    fill: var(--color-background-primary) !important;
-    background: var(--color-background-primary) !important;
+    fill: var(--vf-color-background-default, var(--color-background-primary)) !important;
+    background: var(--vf-color-background-default, var(--color-background-primary)) !important;
   }
 
   :is(#_mermaid_patch_a, body[data-theme="auto"]):not(#_mermaid_patch_b):not(#_mermaid_patch_c)
