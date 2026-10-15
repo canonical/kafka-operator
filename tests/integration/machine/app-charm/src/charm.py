@@ -168,7 +168,7 @@ class ApplicationCharm(CharmBase):
         cache = snap.SnapCache()
         kafka = cache["charmed-kafka"]
 
-        kafka.ensure(snap.SnapState.Latest, channel="4/edge", revision=61)
+        kafka.ensure(snap.SnapState.Latest, channel="4/edge")
 
     @staticmethod
     def set_snap_ownership(path: str) -> None:

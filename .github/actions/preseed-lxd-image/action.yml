@@ -8,11 +8,18 @@ description: >
 runs:
   using: composite
   steps:
+    - name: Install common lib
+      shell: bash
+      run: |
+        python3 -m venv venv
+        source venv/bin/activate
+        pip install ./common
     - name: Pre-seed LXD base image with the workload snap
       shell: bash
       run: |
-        revision="$(sed -nE 's/^[[:space:]]*x86_64[[:space:]]*=[[:space:]]*"([0-9]+)".*/\1/p' refresh_versions.toml)"
-        echo "Pre-seeding charmed-kafka revision ${revision} into juju/noble/amd64"
+        arch=$(venv/bin/python3 -c 'from single_kernel_kafka.core.literals import ARCHITECTURE; print(ARCHITECTURE)')
+        revision=$(venv/bin/python3 -c 'from single_kernel_kafka.core.literals import CHARMED_KAFKA_SNAP_REVISION; print(CHARMED_KAFKA_SNAP_REVISION)')
+        echo "Pre-seeding charmed-kafka revision ${revision} into juju/noble/${arch}"
         lxc launch ubuntu:24.04 kafka-image-builder
         lxc exec kafka-image-builder -- cloud-init status --wait
         lxc exec kafka-image-builder -- snap wait system seed.loaded
@@ -21,6 +28,6 @@ runs:
         lxc exec kafka-image-builder -- cloud-init clean --logs
         lxc stop kafka-image-builder
         # replace juju's cached base image so every unit launches pre-seeded
-        lxc image alias delete juju/noble/amd64 || true
-        lxc publish kafka-image-builder --alias juju/noble/amd64
+        lxc image alias delete juju/noble/"$arch" || true
+        lxc publish kafka-image-builder --alias juju/noble/"$arch"
         lxc delete kafka-image-builder

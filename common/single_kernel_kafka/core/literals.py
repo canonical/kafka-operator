@@ -5,6 +5,7 @@
 """Collection of globals common to the KafkaCharm."""
 
 import os
+import platform
 from dataclasses import dataclass
 from enum import Enum
 from typing import Literal, NamedTuple
@@ -22,6 +23,9 @@ CHARM_KEY = "kafka" if SUBSTRATE == "vm" else "kafka-k8s"
 CONTAINER = "kafka"
 STORAGE = "data"
 
+_ARCH = platform.processor()
+ARCHITECTURE = "arm64" if _ARCH == "aarch64" else "amd64"
+
 SNAP_NAME = "charmed-kafka"
 if SUBSTRATE == "vm":
     # '584792' refers to _daemon_, which do not exists on the storage-attached hook prior to the
@@ -36,7 +40,7 @@ if SUBSTRATE == "vm":
             data = toml.load(f)
 
         SNAP_NAME = data["snap"]["name"]
-        CHARMED_KAFKA_SNAP_REVISION = data["snap"]["revisions"]["x86_64"]
+        CHARMED_KAFKA_SNAP_REVISION = data["snap"]["revisions"][_ARCH]
 else:
     CHARMED_KAFKA_SNAP_REVISION = "-1"  # not used on K8s
     USER_ID = "kafka"

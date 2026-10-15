@@ -6,11 +6,12 @@ from jubilant_adapters import JujuFixture, gather
 
 from integration.connect_k8s.helpers import (
     APP_NAME,
+    DEFAULT_CONSTRAINTS,
     JDBC_CONNECTOR_DOWNLOAD_LINK,
     JDBC_SOURCE_CONNECTOR_CLASS,
     KAFKA_APP,
-    KAFKA_CHANNEL,
     PLUGIN_RESOURCE_KEY,
+    KafkaCharm,
     charm_resources,
     download_file,
     make_api_request,
@@ -29,6 +30,7 @@ PASSWORD_CACHE_KEY = "integrator-password"
 def test_deploy_app_and_integrator(
     juju: JujuFixture,
     kafka_connect_charm,
+    kafka_charm: KafkaCharm,
     integrator_charm,
     test_charm_revision: int | None,
     test_charm_channel: str | None,
@@ -45,6 +47,7 @@ def test_deploy_app_and_integrator(
             integrator_charm,
             application_name=INTEGRATOR_APP,
             resources={PLUGIN_RESOURCE_KEY: plugin_path},
+            constraints=DEFAULT_CONSTRAINTS,
         )
 
     # deploy kafka & kafka connect
@@ -52,16 +55,20 @@ def test_deploy_app_and_integrator(
         juju.ext.model.deploy(
             kafka_connect_charm,
             application_name=APP_NAME,
+            constraints=DEFAULT_CONSTRAINTS,
             resources=charm_resources(test_charm_channel),
             revision=test_charm_revision,
             channel=test_charm_channel,
         ),
         juju.ext.model.deploy(
-            KAFKA_APP,
-            channel=KAFKA_CHANNEL,
+            kafka_charm.charm,
+            channel=kafka_charm.channel,
+            resources=kafka_charm.resources,
             application_name=KAFKA_APP,
             num_units=1,
             config={"roles": "broker,controller"},
+            constraints=DEFAULT_CONSTRAINTS,
+            trust=True,
         ),
     )
 

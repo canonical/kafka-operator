@@ -10,10 +10,11 @@ from jubilant_adapters import JujuFixture, gather
 from integration.connect_k8s.helpers import (
     APP_NAME,
     DEFAULT_API_PORT,
+    DEFAULT_CONSTRAINTS,
     IMAGE_RESOURCE_KEY,
     IMAGE_URI,
     KAFKA_APP,
-    KAFKA_CHANNEL,
+    KafkaCharm,
     check_connect_endpoints_status,
 )
 
@@ -27,6 +28,7 @@ CHANNEL = "4/stable"
 def test_in_place_upgrade(
     juju: JujuFixture,
     kafka_connect_charm,
+    kafka_charm: KafkaCharm,
     test_charm_channel: str | None,
     test_charm_revision: int | None,
 ):
@@ -38,13 +40,17 @@ def test_in_place_upgrade(
             application_name=APP_NAME,
             num_units=3,
             trust=True,
+            constraints=DEFAULT_CONSTRAINTS,
         ),
         juju.ext.model.deploy(
-            KAFKA_APP,
-            channel=KAFKA_CHANNEL,
+            kafka_charm.charm,
+            channel=kafka_charm.channel,
+            resources=kafka_charm.resources,
             application_name=KAFKA_APP,
             num_units=1,
             config={"roles": "broker,controller"},
+            trust=True,
+            constraints=DEFAULT_CONSTRAINTS,
         ),
     )
 

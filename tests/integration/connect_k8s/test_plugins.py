@@ -6,16 +6,17 @@ from jubilant_adapters import JujuFixture, gather
 
 from integration.connect_k8s.helpers import (
     APP_NAME,
+    DEFAULT_CONSTRAINTS,
     JDBC_CONNECTOR_DOWNLOAD_LINK,
     JDBC_SINK_CONNECTOR_CLASS,
     JDBC_SOURCE_CONNECTOR_CLASS,
     KAFKA_APP,
-    KAFKA_CHANNEL,
     MYSQL_APP,
     MYSQL_CHANNEL,
     PLUGIN_RESOURCE_KEY,
     S3_CONNECTOR_CLASS,
     S3_CONNECTOR_LINK,
+    KafkaCharm,
     build_mysql_db_init_queries,
     charm_resources,
     download_file,
@@ -35,6 +36,7 @@ TEST_TASK_NAME = "test_task"
 def test_build_and_deploy(
     juju: JujuFixture,
     kafka_connect_charm,
+    kafka_charm: KafkaCharm,
     test_charm_revision: int | None,
     test_charm_channel: str | None,
 ):
@@ -48,15 +50,19 @@ def test_build_and_deploy(
                 plugin_path="./tests/integration/connect_k8s/resources/FakeResource.tar",
             ),
             num_units=1,
+            constraints=DEFAULT_CONSTRAINTS,
             revision=test_charm_revision,
             channel=test_charm_channel,
         ),
         juju.ext.model.deploy(
-            KAFKA_APP,
-            channel=KAFKA_CHANNEL,
+            kafka_charm.charm,
+            channel=kafka_charm.channel,
+            resources=kafka_charm.resources,
             application_name=KAFKA_APP,
             num_units=1,
             config={"roles": "broker,controller"},
+            trust=True,
+            constraints=DEFAULT_CONSTRAINTS,
         ),
         juju.ext.model.deploy(
             MYSQL_APP,
@@ -64,6 +70,7 @@ def test_build_and_deploy(
             application_name=MYSQL_APP,
             num_units=1,
             trust=True,
+            constraints=DEFAULT_CONSTRAINTS,
         ),
     )
 
@@ -71,12 +78,19 @@ def test_build_and_deploy(
     with juju.ext.fast_forward(fast_interval="60s"):
         # mysql-k8s errors out on update-status if pebble not available, hence the raise_on_error=False.
         juju.ext.model.wait_for_idle(
-            apps=[APP_NAME, KAFKA_APP, MYSQL_APP],
+            apps=[APP_NAME, KAFKA_APP],
             idle_period=30,
             timeout=1800,
             status="active",
             raise_on_error=False,
         )
+
+    # MySQL agent gets stuck in executing with a fast update-status interval.
+    juju.ext.model.block_until(
+        lambda: juju.ext.model.applications[MYSQL_APP].status == "active",
+        timeout=600,
+        wait_period=15,
+    )
 
 
 def test_add_plugin(juju: JujuFixture):

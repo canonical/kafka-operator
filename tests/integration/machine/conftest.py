@@ -12,7 +12,12 @@ import jubilant
 import pytest
 from pytest_operator.plugin import OpsTest
 
-from integration.machine.helpers.pytest_operator import APP_NAME, CONTROLLER_NAME, KRaftMode
+from integration.machine.helpers.pytest_operator import (
+    APP_NAME,
+    CONTROLLER_NAME,
+    DEFAULT_CONSTRAINTS,
+    KRaftMode,
+)
 
 
 def _locate_charm(charm_path: typing.Union[str, os.PathLike]) -> pathlib.Path:
@@ -48,6 +53,12 @@ def pytest_addoption(parser):
     parser.addoption(
         "--kraft-mode", action="store", help="KRaft mode to run the tests", default="single"
     )
+
+
+@pytest.fixture(scope="module", autouse=True)
+async def set_model_constraints(ops_test: OpsTest) -> None:
+    if DEFAULT_CONSTRAINTS:
+        await ops_test.juju("set-model-constraints", DEFAULT_CONSTRAINTS)
 
 
 @pytest.fixture(scope="module")

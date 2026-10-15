@@ -17,6 +17,7 @@ from single_kernel_kafka.core.literals import (
     SECURITY_PROTOCOL_PORTS,
 )
 
+from integration.k8s.helpers import DEFAULT_CONSTRAINTS
 from integration.k8s.helpers.jubilant import all_active_idle, deploy_cluster, fast_forward
 from integration.k8s.helpers.legacy import (
     APP_NAME,
@@ -104,7 +105,14 @@ def test_listeners(juju: jubilant.Juju, app_charm, kafka_apps):
     assert not netcat(address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client)
 
     # Add relation with dummy app
-    juju.deploy(app_charm, app=DUMMY_NAME, num_units=1, base="ubuntu@22.04", trust=True)
+    juju.deploy(
+        app_charm,
+        app=DUMMY_NAME,
+        num_units=1,
+        base="ubuntu@22.04",
+        trust=True,
+        constraints=DEFAULT_CONSTRAINTS,
+    )
     juju.integrate(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
 
     with fast_forward(juju, fast_interval="120s"):

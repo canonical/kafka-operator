@@ -18,6 +18,7 @@ from charms.tls_certificates_interface.v4.tls_certificates import PrivateKey
 from kafka.admin import NewTopic
 from pytest_operator.plugin import OpsTest
 from single_kernel_kafka.core.literals import (
+    ARCHITECTURE,
     BALANCER_WEBSERVER_USER,
     JMX_CC_PORT,
     PATHS,
@@ -48,7 +49,7 @@ AUTH_SECRET_CONFIG_KEY = "system-users"
 
 TLS_SECRET_NAME = "tls-pk"
 TLS_SECRET_CONFIG_KEY = "tls-private-key"
-
+DEFAULT_CONSTRAINTS = None if ARCHITECTURE == "amd64" else f"arch={ARCHITECTURE}"
 
 KRaftMode = Literal["single", "multi"]
 
@@ -86,6 +87,7 @@ async def deploy_cluster(
         }
         | config_broker,
         trust=True,
+        constraints=DEFAULT_CONSTRAINTS,
         **pinned_kwargs,
     )
 
@@ -101,6 +103,7 @@ async def deploy_cluster(
             }
             | config_controller,
             trust=True,
+            constraints=DEFAULT_CONSTRAINTS,
             **pinned_kwargs,
         )
 

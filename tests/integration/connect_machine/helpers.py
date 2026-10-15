@@ -2,6 +2,7 @@
 # Copyright 2025 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import glob
 import json
 import logging
 import re
@@ -25,13 +26,14 @@ from jubilant_adapters import JujuFixture, gather
 from jubilant_adapters.adapters import UnitAdapter
 from requests.auth import HTTPBasicAuth
 from single_kernel_kafka.core.connect_models import PeerWorkersContext
-from single_kernel_kafka.core.literals import ConnectLiterals
+from single_kernel_kafka.core.literals import ARCHITECTURE, ConnectLiterals
 
 logger = logging.getLogger(__name__)
 
 
 METADATA = yaml.safe_load(Path("connect_machine/metadata.yaml").read_text())
 APP_NAME = METADATA["name"]
+DEFAULT_CONSTRAINTS = {"arch": ARCHITECTURE}
 DEFAULT_API_PORT = ConnectLiterals.DEFAULT_API_PORT
 PLUGIN_RESOURCE_KEY = ConnectLiterals.PLUGIN_RESOURCE_KEY
 CONFIG_DIR = "/var/snap/charmed-kafka/current/etc/connect"
@@ -86,12 +88,14 @@ def deploy_kafka(juju: JujuFixture, kafka_version: int):
                 channel=ZOOKEEPER_CHANNEL,
                 application_name=ZOOKEEPER_APP,
                 num_units=1,
+                constraints=DEFAULT_CONSTRAINTS,
             ),
             juju.ext.model.deploy(
                 KAFKA_APP,
                 channel=determine_kafka_channel(kafka_version=kafka_version),
                 application_name=KAFKA_APP,
                 num_units=1,
+                constraints=DEFAULT_CONSTRAINTS,
             ),
         )
 
@@ -105,12 +109,16 @@ def deploy_kafka(juju: JujuFixture, kafka_version: int):
             apps=[KAFKA_APP, ZOOKEEPER_APP], status="active", timeout=1000, idle_period=30
         )
     elif kafka_version == 4:
+        if not (match := glob.glob(f"machine/*-{ARCHITECTURE}.charm")):
+            raise RuntimeError("Can't find the Kafka 4 charm.")
+
         juju.ext.model.deploy(
-            KAFKA_APP,
-            channel=KAFKA_4_CHANNEL,
+            f"./{match[0]}",
+            # channel=KAFKA_4_CHANNEL,
             application_name=KAFKA_APP,
             num_units=1,
             config={"roles": "broker,controller"},
+            constraints=DEFAULT_CONSTRAINTS,
         )
 
         juju.ext.model.wait_for_idle(

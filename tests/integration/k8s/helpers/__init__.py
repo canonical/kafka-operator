@@ -12,12 +12,18 @@ from subprocess import PIPE, CalledProcessError, check_output
 from typing import Literal
 
 import yaml
-from single_kernel_kafka.core.literals import CONTROLLER_USER, INTERNAL_USERS, KRAFT_NODE_ID_OFFSET
+from single_kernel_kafka.core.literals import (
+    ARCHITECTURE,
+    CONTROLLER_USER,
+    INTERNAL_USERS,
+    KRAFT_NODE_ID_OFFSET,
+)
 
 METADATA = yaml.safe_load(Path("./k8s/metadata.yaml").read_text())
 KAFKA_CONTAINER = METADATA["resources"]["kafka-image"]["upstream-source"]
 APP_NAME = METADATA["name"]
 CONTROLLER_NAME = "controller"
+DEFAULT_CONSTRAINTS = {"arch": ARCHITECTURE}
 DUMMY_NAME = "app"
 REL_NAME_ADMIN = "kafka-client-admin"
 REL_NAME_PRODUCER = "kafka-client-producer"

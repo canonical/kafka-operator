@@ -17,6 +17,7 @@ from single_kernel_kafka.core.literals import TLS_RELATION
 from integration.k8s.helpers import (
     APP_NAME,
     CONTROLLER_NAME,
+    DEFAULT_CONSTRAINTS,
     DUMMY_NAME,
     KAFKA_CONTAINER,
     REL_NAME_ADMIN,
@@ -123,7 +124,13 @@ def test_in_place_refresh(
         channel=CHANNEL,
     )
 
-    juju.deploy(TLS_NAME, channel="1/stable", config=tls_config, trust=True)
+    juju.deploy(
+        TLS_NAME,
+        channel="1/stable",
+        config=tls_config,
+        trust=True,
+        constraints=DEFAULT_CONSTRAINTS,
+    )
 
     juju.wait(
         lambda status: all_active_idle(status, *kafka_apps, TLS_NAME),
@@ -233,7 +240,7 @@ def test_in_place_refresh_consistency(
         num_controller=1,
     )
 
-    juju.deploy(app_charm, app=DUMMY_NAME, trust=True)
+    juju.deploy(app_charm, app=DUMMY_NAME, trust=True, constraints=DEFAULT_CONSTRAINTS)
 
     juju.wait(
         lambda status: all_active_idle(status, *kafka_apps, DUMMY_NAME),
