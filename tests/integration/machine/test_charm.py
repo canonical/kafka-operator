@@ -236,7 +236,11 @@ async def test_client_metrics(ops_test: OpsTest, kafka_apps):
     await ops_test.model.wait_for_idle(
         apps=kafka_apps, status="active", timeout=1000, idle_period=30
     )
-    await assert_broker_is_running(ops_test=ops_test, apps=kafka_apps)
+    await assert_broker_is_running(
+        ops_test=ops_test,
+        apps=kafka_apps,
+        port=SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].internal,
+    )
 
     subscriptions = get_client_metrics_subscriptions(ops_test)
     metrics = {sub.metric_name for sub in subscriptions}
