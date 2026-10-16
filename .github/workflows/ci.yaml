@@ -19,38 +19,38 @@ on:
   workflow_dispatch:
     inputs:
       kafka-revision:
-        description: Test this Charmhub revision of `kafka` instead of building the charm
+        description: Test this Charmhub amd64 revision of `kafka` instead of building the charm
         type: string
         default: ''
       kafka-k8s-revision:
-        description: Test this Charmhub revision of `kafka-k8s` instead of building the charm
+        description: Test this Charmhub amd64 revision of `kafka-k8s` instead of building the charm
         type: string
         default: ''
       kafka-connect-revision:
-        description: Test this Charmhub revision of `kafka-connect` instead of building the charm
+        description: Test this Charmhub amd64 revision of `kafka-connect` instead of building the charm
         type: string
         default: ''
       kafka-connect-k8s-revision:
-        description: Test this Charmhub revision of `kafka-connect-k8s` instead of building the charm
+        description: Test this Charmhub amd64 revision of `kafka-connect-k8s` instead of building the charm
         type: string
         default: ''
   # Triggered on push to branch "main" by .github/workflows/release.yaml
   workflow_call:
     inputs:
       kafka-revision:
-        description: Test this Charmhub revision of `kafka` instead of building the charm
+        description: Test this Charmhub amd64 revision of `kafka` instead of building the charm
         type: string
         default: ''
       kafka-k8s-revision:
-        description: Test this Charmhub revision of `kafka-k8s` instead of building the charm
+        description: Test this Charmhub amd64 revision of `kafka-k8s` instead of building the charm
         type: string
         default: ''
       kafka-connect-revision:
-        description: Test this Charmhub revision of `kafka-connect` instead of building the charm
+        description: Test this Charmhub amd64 revision of `kafka-connect` instead of building the charm
         type: string
         default: ''
       kafka-connect-k8s-revision:
-        description: Test this Charmhub revision of `kafka-connect-k8s` instead of building the charm
+        description: Test this Charmhub amd64 revision of `kafka-connect-k8s` instead of building the charm
         type: string
         default: ''
     outputs:
@@ -101,12 +101,18 @@ jobs:
           KAFKA_CONNECT_K8S_REVISION: ${{ inputs.kafka-connect-k8s-revision }}
         run: |
           paths=()
-          if [ -z "$KAFKA_REVISION" ]; then paths+=("machine"); fi
-          if [ -z "$KAFKA_K8S_REVISION" ]; then paths+=("k8s"); fi
-          if [ -z "$KAFKA_CONNECT_REVISION" ]; then paths+=("connect_machine"); fi
-          if [ -z "$KAFKA_CONNECT_K8S_REVISION" ]; then paths+=("connect_k8s"); fi
+          # Even in case of revisions being provided, the ARM charms should still be built.
+          # TODO: we should switch to platform-to-revision mapping to generalize this logic
+          # if [ -z "$KAFKA_REVISION" ]; then paths+=("machine"); fi
+          # if [ -z "$KAFKA_K8S_REVISION" ]; then paths+=("k8s"); fi
+          # if [ -z "$KAFKA_CONNECT_REVISION" ]; then paths+=("connect_machine"); fi
+          # if [ -z "$KAFKA_CONNECT_K8S_REVISION" ]; then paths+=("connect_k8s"); fi
           # test charms are never published, so they are always built from the branch
           paths+=(
+            "machine"
+            "k8s"
+            "connect_machine"
+            "connect_k8s"
             "tests/integration/machine/app-charm"
             "tests/integration/k8s/app-charm"
             "tests/integration/connect_machine/sink-integrator-charm"
@@ -399,7 +405,6 @@ jobs:
       tox-env: integration-${{ matrix.tox-environment }}
       runner-size: large
       runner-arch: arm64
-      charm-revision: ${{ inputs.kafka-connect-k8s-revision }}
       artifact-prefix: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}
       packed-charms: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
 
@@ -429,6 +434,5 @@ jobs:
       tox-env: integration-${{ matrix.tox-environment }}
       runner-size: large
       runner-arch: arm64
-      charm-revision: ${{ inputs.kafka-connect-k8s-revision }}
       artifact-prefix: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}
       packed-charms: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}

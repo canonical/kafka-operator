@@ -178,9 +178,9 @@ async def test_set_tls_private_key(ops_test: OpsTest):
     # 3. Now test the removal of the PK secret config entirely
     await remove_tls_private_key(ops_test)
 
-    async with ops_test.fast_forward(fast_interval="60s"):
+    async with ops_test.fast_forward(fast_interval="120s"):
         await ops_test.model.wait_for_idle(
-            apps=[APP_NAME, DUMMY_NAME, TLS_NAME], idle_period=30, status="active"
+            apps=[APP_NAME, DUMMY_NAME, TLS_NAME], idle_period=60, status="active"
         )
 
     post_removed_pks = set()

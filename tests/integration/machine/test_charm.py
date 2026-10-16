@@ -198,7 +198,10 @@ async def test_client_properties_makes_admin_connection(ops_test: OpsTest, kafka
     await ops_test.model.wait_for_idle(apps=kafka_apps, idle_period=60)
 
 
+# TODO: this test fails %50 of times in CI.
+# Either the test logic should be improved, or some retry mechanism must be implemented.
 @pytest.mark.abort_on_fail
+@pytest.mark.unstable
 async def test_logs_write_to_storage(ops_test: OpsTest, kafka_apps):
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
     await ops_test.model.wait_for_idle(

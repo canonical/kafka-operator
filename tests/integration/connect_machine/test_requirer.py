@@ -175,7 +175,7 @@ def test_activate_sink_integrator(juju: JujuFixture):
     juju.ext.model.add_relation(f"{POSTGRES_INTEGRATOR}:data", POSTGRES_APP)
     with juju.ext.fast_forward(fast_interval="60s"):
         juju.ext.model.wait_for_idle(
-            apps=[MYSQL_INTEGRATOR, MYSQL_APP], idle_period=30, timeout=600
+            apps=[POSTGRES_INTEGRATOR, POSTGRES_APP], idle_period=30, timeout=600
         )
 
     assert juju.ext.model.applications[POSTGRES_INTEGRATOR].status == "active"
