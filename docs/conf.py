@@ -17,9 +17,8 @@ import yaml
 # A complete list of built-in Sphinx configuration values:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 #
-# The Sphinx Stack uses the Canonical Sphinx theme to keep all
-# documentation consistent and on brand:
-# https://github.com/canonical/canonical-sphinx
+# This branch trials the released Ulwazi theme independently of Sphinx Stack:
+# https://documentation.ubuntu.com/ulwazi/content/configuration/
 
 
 #######################
@@ -59,8 +58,8 @@ ogp_site_name = project
 ogp_image = "https://assets.ubuntu.com/v1/cc828679-docs_illustration.svg"
 
 # Product favicon; shown in bookmarks, browser tabs, etc.
-# TODO: To customise the favicon, uncomment and update as needed.
-# html_favicon = "_static/favicon.png"
+# Preserve the favicon formerly supplied by canonical-sphinx.
+html_favicon = "_static/favicon.png"
 
 # Dictionary of values to pass into the Sphinx context for all pages:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_context
@@ -82,6 +81,7 @@ html_context = {
     "github_url": "https://github.com/canonical/kafka-operator",
     # Docs branch in the repo; used in links for viewing the source files
     "repo_default_branch": "main",
+    "repo_branch": "main",
     # Docs location in the repo; used in links for viewing the source files
     "repo_folder": "/docs/",
     # To enable or disable the Previous / Next buttons at the bottom of pages
@@ -91,9 +91,12 @@ html_context = {
     "display_contributors": False,
     # Required for feedback button
     "github_issues": "enabled",
+    "feedback": True,
+    "default_source_extension": ".md",
     # Passes the top-level 'author' value to the theme
     "author": author,
-    # Absolute URL of llms.txt; used by '_templates/header.html' to render the
+    "project": project,
+    # Absolute URL of llms.txt; used by '_templates/page.html' to render the
     # agent-facing discovery directive on every page
     "llms_txt_url": f"https://canonical.com/{slug}/{version_slug}/llms.txt",
     # Documentation license information
@@ -101,17 +104,28 @@ html_context = {
         "name": "CC-BY-SA",
         "url": "https://creativecommons.org/licenses/by-sa/4.0/",
     },
+    # Native Ulwazi branding and the existing analytics container.
+    "company": "Canonical",
+    "logo_link_URL": "https://canonical.com/data/kafka",
+    "logo_img_URL": "https://assets.ubuntu.com/v1/82818827-CoF_white.svg",
+    "logo_title": "Canonical",
+    "tag_id": "GTM-KNX3CJC",
+    "footer": {
+        "product": True,
+        "license": True,
+        "entries": [
+            '<a class="js-revoke-cookie-manager" href="#tracker-settings">'
+            "Manage your tracker settings</a>",
+        ],
+    },
 }
 
-# To enable the edit button on pages, uncomment and change the link to a
-# public repository on GitHub or Launchpad. Any of the following link domains
-# are accepted:
-# - https://github.com/example-org/example"
-# - https://launchpad.net/example
-# - https://git.launchpad.net/example
-html_theme_options = {
-    "source_edit_link": "https://github.com/canonical/kafka-operator",
-}
+# Ulwazi uses github_url/repo_branch/repo_folder for native edit/view buttons.
+# The previous Furo setting is retained here only as a rollback reference:
+# html_theme_options = {"source_edit_link": "https://github.com/canonical/kafka-operator"}
+html_theme = "ulwazi"
+html_copy_source = False
+html_show_sourcelink = False
 
 #######################
 # Sitemap configuration: https://sphinx-sitemap.readthedocs.io/
@@ -167,6 +181,9 @@ templates_path = [
 
 rediraffe_redirects = "redirects.txt"
 
+# Strips '/index.html' from destination URLs when building with 'dirhtml'.
+rediraffe_dir_only = True
+
 
 ############################
 # sphinx-llm configuration #
@@ -215,22 +232,25 @@ linkcheck_retries = 3
 
 # Custom MyST syntax extensions; see
 # https://myst-parser.readthedocs.io/en/latest/syntax/optional.html
-# NOTE: By default, the following MyST extensions are enabled:
-#   - substitution
-#   - deflist
-#   - linkify
-# myst_enable_extensions = set()
+# Preserve the syntax features previously enabled by canonical-sphinx.
+myst_enable_extensions = {"substitution", "deflist", "linkify"}
 
 # Custom Sphinx extensions; see
 # https://www.sphinx-doc.org/en/master/usage/extensions/index.html
 extensions = [
-    "canonical_sphinx",
+    # Manual theme trial: Ulwazi must precede the PDF extension so its branding
+    # defaults are available when sphinx-modern-pdf-style configures LaTeX.
+    "ulwazi",
+    "sphinx_modern_pdf_style",
+    "myst_parser",
+    "sphinx_copybutton",
+    # Existing Sphinx Stack extensions.
     "notfound.extension",
     "sphinx_design",
     "sphinx_rerediraffe",
+    "sphinx_reredirects",
     "sphinx_tabs.tabs",
     "sphinxcontrib.jquery",
-    "sphinxcontrib.mermaid",
     "sphinxext.opengraph",
     "sphinx_config_options",
     "sphinx_contributor_listing",
@@ -238,7 +258,6 @@ extensions = [
     "sphinx_llm.txt",
     "sphinx_related_links",
     "sphinx_roles",
-    "sphinx_structured_toc",
     "sphinx_terminal",
     "sphinx_ubuntu_images",
     "sphinx_youtube_links",
@@ -246,7 +265,14 @@ extensions = [
     "sphinx_last_updated_by_git",
     "sphinx.ext.intersphinx",
     "sphinx_sitemap",
+    # Project-specific extensions.
+    "sphinxcontrib.mermaid",
+    "sphinx_structured_toc",
 ]
+
+# Enable the documented modern PDF setup (XeLaTeX and Canonical logo).
+set_modern_pdf_config = True
+# The PDF style appends 'Ltd.' itself; use Ulwazi's 'Canonical' default.
 
 # Excludes files or directories from processing
 exclude_patterns = [
@@ -254,6 +280,7 @@ exclude_patterns = [
     "agents.md",
     ".venv*",
     "_dev",
+    "_build*",
 ]
 
 # Adds custom CSS files, located under 'html_static_path'
@@ -379,7 +406,7 @@ if os.path.exists("./reuse/substitutions.yaml"):
 
 # The Agent-Friendly Docs spec (https://agentdocsspec.com/spec/) requires an
 # llms.txt pointer in *both* the HTML and the Markdown representation of every
-# page.  The HTML side is handled by '_templates/header.html'; this hook handles
+# page.  The HTML side is handled by '_templates/page.html'; this hook handles
 # the Markdown side.
 #
 # The directive is injected as a post-processing step on the finished build
@@ -417,8 +444,17 @@ def _inject_agent_directive(app, exception):
         md_file.write_text(f"{_AGENT_DIRECTIVE}\n{content}", encoding="utf-8")
 
 
+def _ulwazi_page_context(app, pagename, _templatename, context, _doctree):
+    """Preserve canonical directory URLs previously corrected by Furo."""
+    if app.builder.name == "dirhtml" and app.config.html_baseurl:
+        context["pageurl"] = app.config.html_baseurl + app.builder.get_target_uri(pagename)
+
+
 def setup(app):
     """Register local Sphinx hooks."""
+    app.connect("html-page-context", _ulwazi_page_context, priority=900)
+    # Run the theme bridge before extensions resolve their light/dark state.
+    app.add_js_file("ulwazi-compat.js", priority=400)
     # Priority 900 ensures this runs after sphinx-llm's 'combine_builds'
     # (priority 101), which is what creates the .md files in the output dir.
     app.connect("build-finished", _inject_agent_directive, priority=900)

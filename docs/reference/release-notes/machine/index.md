@@ -13,7 +13,6 @@ Release notes for Charmed Apache Kafka deployed on machines and virtual machines
 ```{toctree}
 ---
 titlesonly:
-maxdepth: 1
 ---
 Revision 248<revision-248.md>
 ```

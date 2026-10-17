@@ -26,7 +26,6 @@ cloud platforms. Synchronized tabs retain the selected substrate across guides.
 ```{toctree}
 ---
 titlesonly:
-maxdepth: 2
 hidden:
 ---
 via Juju CLI<deploy-anywhere.md>
