@@ -198,7 +198,10 @@ async def test_client_properties_makes_admin_connection(ops_test: OpsTest, kafka
     await ops_test.model.wait_for_idle(apps=kafka_apps, idle_period=60)
 
 
+# TODO: this test fails %50 of times in CI.
+# Either the test logic should be improved, or some retry mechanism must be implemented.
 @pytest.mark.abort_on_fail
+@pytest.mark.unstable
 async def test_logs_write_to_storage(ops_test: OpsTest, kafka_apps):
     await ops_test.model.add_relation(APP_NAME, f"{DUMMY_NAME}:{REL_NAME_ADMIN}")
     await ops_test.model.wait_for_idle(
@@ -233,7 +236,11 @@ async def test_client_metrics(ops_test: OpsTest, kafka_apps):
     await ops_test.model.wait_for_idle(
         apps=kafka_apps, status="active", timeout=1000, idle_period=30
     )
-    await assert_broker_is_running(ops_test=ops_test, apps=kafka_apps)
+    await assert_broker_is_running(
+        ops_test=ops_test,
+        apps=kafka_apps,
+        port=SECURITY_PROTOCOL_PORTS["SASL_SSL", "SCRAM-SHA-512"].internal,
+    )
 
     subscriptions = get_client_metrics_subscriptions(ops_test)
     metrics = {sub.metric_name for sub in subscriptions}

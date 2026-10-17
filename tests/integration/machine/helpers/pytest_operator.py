@@ -781,15 +781,17 @@ async def list_truststore_aliases(
     return trusted_aliases
 
 
-async def assert_broker_is_running(ops_test: OpsTest, apps: list[str]):
+async def assert_broker_is_running(
+    ops_test: OpsTest,
+    apps: list[str],
+    port: int = SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client,
+):
     """Wait for the broker listeners to come up after a potential restart."""
     address = await get_address(ops_test=ops_test)
     for attempt in Retrying(stop=stop_after_attempt(6), wait=wait_fixed(15), reraise=True):
         with attempt:
             await ops_test.model.wait_for_idle(apps=apps, idle_period=30, status="active")
-            assert check_socket(
-                address, SECURITY_PROTOCOL_PORTS["SASL_PLAINTEXT", "SCRAM-SHA-512"].client
-            )
+            assert check_socket(address, port)
 
 
 def get_client_metrics_subscriptions(ops_test: OpsTest) -> list[ClientMetricsSubscription]:

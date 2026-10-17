@@ -113,8 +113,15 @@ def test_activate_source_integrator(juju: JujuFixture):
     juju.ext.model.add_relation(f"{MYSQL_INTEGRATOR}:data", MYSQL_APP)
     with juju.ext.fast_forward(fast_interval="60s"):
         juju.ext.model.wait_for_idle(
-            apps=[MYSQL_INTEGRATOR, MYSQL_APP], idle_period=30, timeout=600
+            apps=[MYSQL_INTEGRATOR], idle_period=30, timeout=600
         )
+
+    # MySQL agent gets stuck in executing with a fast update-status interval.
+    juju.ext.model.block_until(
+        lambda: juju.ext.model.applications[MYSQL_APP].status == "active",
+        timeout=600,
+        wait_period=15,
+    )
 
     assert juju.ext.model.applications[MYSQL_INTEGRATOR].status == "active"
     assert "UNKNOWN" in juju.ext.model.applications[MYSQL_INTEGRATOR].status_message
@@ -175,7 +182,7 @@ def test_activate_sink_integrator(juju: JujuFixture):
     juju.ext.model.add_relation(f"{POSTGRES_INTEGRATOR}:data", POSTGRES_APP)
     with juju.ext.fast_forward(fast_interval="60s"):
         juju.ext.model.wait_for_idle(
-            apps=[MYSQL_INTEGRATOR, MYSQL_APP], idle_period=30, timeout=600
+            apps=[POSTGRES_INTEGRATOR, POSTGRES_APP], idle_period=30, timeout=600
         )
 
     assert juju.ext.model.applications[POSTGRES_INTEGRATOR].status == "active"
