@@ -1,0 +1,27 @@
+receivers:
+  otlp/kafka:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:OTLP_PORT
+
+processors:
+  batch:
+
+exporters:
+  prometheus/kafka:
+    metric_expiration: 2160h
+    endpoint: "0.0.0.0:PROMETHEUS_PORT"
+    namespace: "kafka"
+    const_labels:
+      juju_application: JUJU_APPLICATION
+      juju_charm: kafka
+      juju_model: JUJU_MODEL
+      juju_model_uuid: JUJU_MODEL_UUID
+      juju_unit: JUJU_UNIT
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp/kafka]
+      processors: [batch]
+      exporters: [prometheus/kafka]
