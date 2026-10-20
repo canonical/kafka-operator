@@ -22,6 +22,14 @@ options:
       The secret could be defined using `juju add-secret <secret-name> <user>=<admin-password>` command, where `<user>` is one of the internal users defined by the charm: `sync` or `admin`.
       The `juju add-secret` command will output the secret ID, which can then be granted to the charm and configured using `juju config` command.
     type: string
+  roles-mapping:
+    type: string
+    default: "{}"
+    description: |
+      Mapping between IAM user ids and data-integrator created roles. The mapping
+      will be a JSON with the following format: `{"<oauth-id>": "<data-integrator-username>", ...}`
+      This option will always represent a complete state of expected assignments,
+      passing an empty JSON will reset all previously set users.
   compression-type:
     description: Specify the final compression type for a given topic. This configuration accepts the standard compression codecs ('gzip', 'snappy', 'lz4', 'zstd'). It additionally accepts 'uncompressed' which is equivalent to no compression; and 'producer' which means retain the original compression codec set by the producer.
     type: string
