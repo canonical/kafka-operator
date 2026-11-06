@@ -15,6 +15,7 @@ resource "juju_application" "kafka" {
   constraints = var.constraints
   config      = var.config
 
+  endpoint_bindings  = var.endpoint_bindings
   storage_directives = var.storage
 
 }
