@@ -43,7 +43,6 @@ To read more about our usage of Apache Kafka and other relevant trademarks, see 
 ```{toctree}
 ---
 titlesonly:
-maxdepth: 2
 hidden:
 ---
 Components<components.md>

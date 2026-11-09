@@ -1,0 +1,80 @@
+name: Check for removed URLs
+
+on:
+  workflow_call:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - '.readthedocs.yaml'
+      - '.github/workflows/check-removed-urls.yml'
+      - 'machine/actions.yaml'
+      - 'machine/config.yaml'
+      - 'k8s/actions.yaml'
+      - 'k8s/config.yaml'
+      - 'connect_machine/actions.yaml'
+      - 'connect_machine/config.yaml'
+      - 'connect_k8s/actions.yaml'
+      - 'connect_k8s/config.yaml'
+      - 'common/single_kernel_kafka/core/literals.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require pull request context
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [[ -z "${PR_NUMBER}" ]]; then
+            echo "This workflow must be called from a pull request event."
+            exit 1
+          fi
+      - name: Checkout PR branch
+        uses: actions/checkout@v5
+        with:
+          # Keep the implicit PR checkout, which also works with private forks.
+          fetch-depth: 0
+          path: compare
+      - name: Checkout base branch
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          repository: ${{ github.event.pull_request.base.repo.full_name }}
+          fetch-depth: 0
+          path: base
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Build docs
+        run: |
+          for dir in compare base; do
+            pushd "${dir}/docs"
+            make html
+            popd
+          done
+      - name: Generate current URLs list
+        run: |
+          for dir in compare base; do
+            build_dir="${dir}/docs/_build"
+            urls_file="${dir}/docs/urls.txt"
+
+            if [[ ! -d "${build_dir}" ]]; then
+              echo "Expected docs build directory not found: ${build_dir}"
+              exit 1
+            fi
+
+            find "${build_dir}" -name '*.html' \
+              | sed "s|^${build_dir}||;s|^/html||;s|/index.html$|/|;s|.html$||" \
+              | sort > "${urls_file}"
+          done
+      - name: Compare URLs
+        # Use the reviewed, vendored checker rather than downloading mutable main.
+        run: python3 compare/docs/_dev/check_removed_urls.py

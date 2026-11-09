@@ -16,7 +16,6 @@ This section covers using MirrorMaker 2 for cluster operations:
 ```{toctree}
 ---
 titlesonly:
-maxdepth: 2
 hidden:
 ---
 Migration<migrate.md>

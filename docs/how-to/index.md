@@ -72,7 +72,6 @@ Advanced features of Charmed Apache Kafka include:
 ```{toctree}
 ---
 titlesonly:
-maxdepth: 2
 hidden:
 ---
 Deploy<deploy/index.md>

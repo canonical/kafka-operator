@@ -45,7 +45,7 @@ page (`<page>/index.html.md`). Three pieces of configuration keep these discover
    `slug` and `version_slug` (`READTHEDOCS_VERSION`, defaulting to `local`). A trailing slash is
    required. Omitting either the version segment or the trailing slash makes every URL in
    `sitemap.xml` and `llms.txt` return 404.
-2. **HTML directive** — `_templates/header.html` renders a visually-hidden
+2. **HTML directive** — `_templates/page.html` renders a visually-hidden
    `<div data-agent-directive>` pointing at `llms.txt` and explaining the `.md` URL convention. It
    is hidden with the clip-rect technique in `_static/agent-directive.css`, not `display: none`, so
    it stays in the accessibility tree.
@@ -98,9 +98,10 @@ Versions the vendored artifacts were validated against, from the kit's
 `sphinxcontrib-mermaid` `2.1.1` (pinned exactly in `requirements.txt`, since the 1.x series lacks
 `mermaid_init_config`).
 
-`mermaid-brand-patch.css` is local and adapts the kit's assumed `#262626` page background to Furo's
-`#131416`. Keep it minimal; each rule documents the upstream limitation it works around, so it can
-be deleted once a newer kit release covers it.
+`mermaid-brand-patch.css` is local and adapts the kit's assumed `#262626` page background to the
+active theme, using Vanilla's background variable with a Furo fallback. Keep it minimal; each rule
+documents the upstream limitation it works around, so it can be deleted once a newer kit release
+covers it.
 
 ### Two upstream constraints
 
@@ -137,8 +138,8 @@ nodes, so changing metrics after render makes text overflow.
 ### Verifying a change
 
 Build, serve over HTTP, and compare **computed styles** in both modes rather than trusting a
-screenshot. Setting only `body[data-theme]` leaves the page background stale, which makes a correct
-diagram look broken — set `data-theme` on both `body` and `html`, then measure:
+screenshot. Use Ulwazi's theme toggle so its `is-light`/`is-dark` classes update on both `body` and
+`html`. `_static/ulwazi-compat.js` mirrors them into `data-theme` for Mermaid and the overlay.
 
 ```bash
 make html && python3 -m http.server --directory _build 8000
@@ -236,7 +237,43 @@ not being applied.
 
 - **Sphinx** built and hosted on **Read the Docs**
 - **MyST** Markdown (`.md`) is the default syntax — use MyST directives, not reStructuredText
-- **Canonical Sphinx extension** provides branding and custom roles; see `conf.py` for configuration
+- **Ulwazi 1.0.0** provides the theme; standalone extensions provide custom roles
+
+### Manual theme trial
+
+This branch pins `ulwazi==1.0.0` and `sphinx-modern-pdf-style==0.1.3` directly, without relying on
+Sphinx Stack theme support or `canonical-sphinx-config`. In `conf.py`, list `ulwazi` before
+`sphinx_modern_pdf_style` and enable `set_modern_pdf_config` for the modern PDF design.
+
+PDF compilation also needs the existing system prerequisites listed by `make pdf-prep`. Rendering
+Mermaid into PDF requires a separate Mermaid CLI (`mmdc`); without it, the PDF builds with a warning
+and omits the diagram. Browser-rendered HTML diagrams do not require that CLI.
+
+MyST syntax and copy buttons are explicitly enabled. The local page wrapper preserves accessible
+agent discovery, and a page-context hook corrects canonical URLs for the directory HTML builder. The
+Mermaid bridge preserves the vendored styling with Ulwazi's native light/dark toggle.
+
+The old `_templates/header.html` and `_templates/footer.html` remain unchanged for rollback but are
+not loaded by Ulwazi. This is a native-theme trial: previous/next navigation, related-link panels,
+and visible update dates from the old templates are not ported. Their settings and source metadata
+remain intact. To return to Furo, restore the previous requirements and `conf.py`, remove the local
+`page.html` wrapper, reinstall dependencies, and rebuild from a clean output directory.
+
+### Sphinx Stack baseline
+
+The released baseline in `_dev/version` is `2.0`. Stack configuration and support files were
+synchronized with upstream `canonical/sphinx-stack` main commit
+`cfc887196ebfd8aed0a0ed69515e524a133a4308` (5 October 2026). Upstream main still records `2.0`, so
+`make update` alone cannot detect its unreleased changes; compare against the upstream commit as
+well.
+
+Keep project-specific generators, formatter tooling, templates, reuse files, Mermaid styling, and
+agent-facing output when updating Stack files. Build directories matching `_build*` are excluded
+from Sphinx, Vale, and Markdown linting, including generated Markdown output.
+
+The removed-URL workflow builds the pull request and its base branch, then checks their HTML URLs
+using `_dev/check_removed_urls.py`. Add source-path redirects to `redirects.txt` when moving or
+removing a published page.
 
 ## Documentation guidelines
 

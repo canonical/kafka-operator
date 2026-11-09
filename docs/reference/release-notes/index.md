@@ -20,7 +20,6 @@ See all [Kubernetes releases](reference-release-notes-k8s-index).
 ```{toctree}
 ---
 titlesonly:
-maxdepth: 2
 hidden:
 ---
 Machine<machine/index.md>

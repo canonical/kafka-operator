@@ -4,6 +4,7 @@
 
 # You can set these variables from the command line, and also
 # from the environment for the first two.
+
 DEV_DIR          ?= _dev
 SPHINX_OPTS      ?= -c . -d $(DEV_DIR)/.doctrees -j auto
 SPHINX_BUILD     ?= $(DOCS_VENVDIR)/bin/sphinx-build
@@ -12,6 +13,7 @@ SPHINX_PORT      ?= 8000
 SPHINX_AUTOBUILD_OPTS ?= -D llms_txt_enabled=0
 DOCS_VENVDIR     ?= .venv
 DOCS_VENV        ?= $(DOCS_VENVDIR)/bin/activate
+DOCS_INSTALL_STAMP ?= $(DOCS_VENVDIR)/.requirements-installed
 DOCS_SOURCEDIR   ?= .
 DOCS_BUILDDIR    ?= _build
 DOCS_PDFPACKAGES ?= latexmk fonts-freefont-otf texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended texlive-font-utils texlive-lang-cjk texlive-xetex plantuml xindy tex-gyre dvipng
@@ -23,7 +25,8 @@ MDFORMAT_VENVDIR ?= $(MDFORMAT_DIR)/.venv
 MDFORMAT_CMD     ?= $(MDFORMAT_VENVDIR)/bin/mdformat
 PA11Y_CMD        ?= $(DEV_DIR)/node_modules/pa11y/bin/pa11y.js --config $(DEV_DIR)/pa11y.json
 CONFIRM_SUDO     ?= N
-CHECK_PATH       ?= $(filter-out $(DOCS_VENVDIR) $(DOCS_BUILDDIR) $(DEV_DIR),$(wildcard *))
+# Generated Markdown in any build directory is not documentation source.
+CHECK_PATH       ?= $(filter-out $(DOCS_VENVDIR) $(DOCS_BUILDDIR) $(DEV_DIR) _build%,$(wildcard *))
 
 # Put it first so that "make" without argument is like "make help".
 help:
@@ -51,15 +54,18 @@ help:
 .PHONY: help full-help html epub pdf linkcheck spelling spellcheck woke \
         vale pa11y run serve install pa11y-install \
         vale-install pdf-prep pdf-prep-force clean clean-doc \
-        update lint-md mdformat mdformat-check mdformat-install mdformat-lock
+	update lint-md generate mdformat mdformat-check mdformat-install mdformat-lock
 
 full-help: $(DOCS_VENVDIR)
 	@. $(DOCS_VENV); $(SPHINX_BUILD) -M help "$(DOCS_SOURCEDIR)" "$(DOCS_BUILDDIR)" $(SPHINX_OPTS) $(O)
 	@echo "\n\033[1;31mNOTE: This help texts shows unsupported targets!\033[0m"
 	@echo "Run 'make help' to see supported targets."
 
-# If requirements are updated, venv should be rebuilt and timestamped.
-$(DOCS_VENVDIR):
+# Record only successful installs, not the directory created before pip runs.
+$(DOCS_VENVDIR): $(DOCS_INSTALL_STAMP)
+	@touch $(DOCS_VENVDIR)
+
+$(DOCS_INSTALL_STAMP): requirements.txt
 	@echo "... setting up virtualenv"
 	python3 -m venv $(DOCS_VENVDIR) || { echo "You must install python3-venv before you can build the documentation."; exit 1; }
 	. $(DOCS_VENV); pip install $(PIPOPTS) --require-virtualenv \
@@ -68,10 +74,10 @@ $(DOCS_VENVDIR):
 	@test ! -f $(DOCS_VENVDIR)/pip_list.txt || \
             mv $(DOCS_VENVDIR)/pip_list.txt $(DOCS_VENVDIR)/pip_list.txt.bak
 	@. $(DOCS_VENV); pip list --local --format=freeze > $(DOCS_VENVDIR)/pip_list.txt
-	@touch $(DOCS_VENVDIR)
+	@touch $(DOCS_INSTALL_STAMP)
 
 pa11y-install:
-	@command -v $(PA11Y_CMD) >/dev/null || { \
+	@test -x $(firstword $(PA11Y_CMD)) >/dev/null || { \
 			echo "Installing \"pa11y\" from npm..."; echo; \
 			mkdir -p $(DEV_DIR)/node_modules/ ; \
 			npm install --prefix $(DEV_DIR) pa11y; \
@@ -92,7 +98,7 @@ generate: install
 run: install generate
 	. $(DOCS_VENV); $(DOCS_VENVDIR)/bin/sphinx-autobuild -b dirhtml --host $(SPHINX_HOST) --port $(SPHINX_PORT) "$(DOCS_SOURCEDIR)" "$(DOCS_BUILDDIR)" $(SPHINX_OPTS) $(SPHINX_AUTOBUILD_OPTS)
 
-# Doesn't depend on $(DOCS_BUILDDIR) to rebuild properly at every run.
+# Does not depend on $(DOCS_BUILDDIR) to rebuild properly at every run.
 html: install generate
 	. $(DOCS_VENV); $(SPHINX_BUILD) --fail-on-warning --keep-going -b dirhtml "$(DOCS_SOURCEDIR)" "$(DOCS_BUILDDIR)" -w $(DEV_DIR)/warnings.txt $(SPHINX_OPTS)
 
@@ -128,12 +134,7 @@ lint-md: pymarkdownlnt-install
 	@. $(DOCS_VENV); pymarkdownlnt \
 		--config $(DEV_DIR)/.pymarkdown.json \
 		--return-code-scheme explicit \
-		scan \
-			--recurse \
-			--exclude=$(DEV_DIR)/** \
-			--exclude=$(DOCS_VENVDIR)/** \
-			--exclude=$(DOCS_BUILDDIR)/** \
-			$(DOCS_SOURCEDIR); \
+		scan --recurse $(CHECK_PATH); \
 	status=$$?; \
 	if [ $$status -eq 1 ]; then \
 		echo "No Markdown files selected for linting"; \
@@ -191,26 +192,19 @@ vale-install: install
 	@echo '.Name=="Canonical.000-US-spellcheck"' > $(DEV_DIR)/styles/spelling.filter
 	@. $(DOCS_VENV); find $(VALE_DIR)/vale_bin -size 195c -exec vale --version \;
 
-woke: vale-install
-	@cat $(DOCS_VOCAB)/accept.txt > $(DOCS_VOCAB)/accept_backup.txt
-	@cat $(DOCS_SOURCEDIR)/.custom_wordlist.txt >> $(DOCS_VOCAB)/accept.txt
-	@echo "Running Vale acceptable term check against $(CHECK_PATH). To change target set CHECK_PATH= with make command"
-	@. $(DOCS_VENV); vale --config="$(VALE_CONFIG)" --filter='$(DEV_DIR)/styles/woke.filter' --glob='*.{md,rst}' $(CHECK_PATH)
-	@cat $(DOCS_VOCAB)/accept_backup.txt > $(DOCS_VOCAB)/accept.txt && rm $(DOCS_VOCAB)/accept_backup.txt
+woke: VALE_FILTER = woke
+vale: VALE_FILTER = error
+spelling: VALE_FILTER = spelling
 
-vale: vale-install
-	@cat $(DOCS_VOCAB)/accept.txt > $(DOCS_VOCAB)/accept_backup.txt
-	@cat $(DOCS_SOURCEDIR)/.custom_wordlist.txt >> $(DOCS_VOCAB)/accept.txt
-	@echo "Running Vale against $(CHECK_PATH). To change target set CHECK_PATH= with make command"
-	@. $(DOCS_VENV); vale --config="$(VALE_CONFIG)" --filter='$(DEV_DIR)/styles/error.filter' --glob='*.{md,rst}' $(CHECK_PATH)
-	@cat $(DOCS_VOCAB)/accept_backup.txt > $(DOCS_VOCAB)/accept.txt && rm $(DOCS_VOCAB)/accept_backup.txt
-
-spelling: vale-install
-	@cat $(DOCS_VOCAB)/accept.txt > $(DOCS_VOCAB)/accept_backup.txt
-	@cat $(DOCS_SOURCEDIR)/.custom_wordlist.txt >> $(DOCS_VOCAB)/accept.txt
-	@echo "Running Vale against $(CHECK_PATH). To change target set CHECK_PATH= with make command"
-	@. $(DOCS_VENV); vale --config="$(VALE_CONFIG)" --filter='$(DEV_DIR)/styles/spelling.filter' --glob='*.{md,rst}' $(CHECK_PATH)
-	@cat $(DOCS_VOCAB)/accept_backup.txt > $(DOCS_VOCAB)/accept.txt && rm $(DOCS_VOCAB)/accept_backup.txt
+# Restore the upstream vocabulary even when a check fails.
+woke vale spelling: vale-install
+	@set -e; \
+	cat $(DOCS_VOCAB)/accept.txt > $(DOCS_VOCAB)/accept_backup.txt; \
+	trap 'cat $(DOCS_VOCAB)/accept_backup.txt > $(DOCS_VOCAB)/accept.txt; rm $(DOCS_VOCAB)/accept_backup.txt' EXIT; \
+	trap 'exit 1' HUP INT TERM; \
+	cat $(DOCS_SOURCEDIR)/.custom_wordlist.txt >> $(DOCS_VOCAB)/accept.txt; \
+	echo "Running Vale $(VALE_FILTER) check against $(CHECK_PATH). To change target set CHECK_PATH= with make command"; \
+	. $(DOCS_VENV); vale --config="$(VALE_CONFIG)" --filter='$(DEV_DIR)/styles/$(VALE_FILTER).filter' --glob='*.{md,rst}' $(CHECK_PATH)
 
 spellcheck: spelling
 	@echo "Please note that the \`make spellcheck\` command is being deprecated in favor of \`make spelling\`"
@@ -224,7 +218,6 @@ pdf-prep: install
 
 pdf-prep-force:
 	apt-get update
-	apt-get upgrade -y
 	apt-get install --no-install-recommends -y $(DOCS_PDFPACKAGES) \
 
 pdf: pdf-prep generate

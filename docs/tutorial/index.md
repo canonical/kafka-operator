@@ -29,7 +29,6 @@ individual step:
 ```{toctree}
 ---
 titlesonly:
-maxdepth: 2
 hidden:
 ---
 1. Set up the environment<environment.md>

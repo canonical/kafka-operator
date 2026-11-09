@@ -33,7 +33,6 @@ General useful references:
 ```{toctree}
 ---
 titlesonly:
-maxdepth: 2
 hidden:
 ---
 release-notes/index.md

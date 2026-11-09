@@ -159,7 +159,6 @@ information.
 ```{toctree}
 ---
 titlesonly:
-maxdepth: 2
 hidden:
 ---
 Home <self>

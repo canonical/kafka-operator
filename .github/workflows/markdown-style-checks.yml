@@ -1,16 +1,19 @@
 name: Markdown style checks
 
 on:
+  workflow_call:
   push:
     branches:
     - main
     paths:
     - 'docs/**'   # Only run on changes to the docs directory
+    - '.github/workflows/markdown-style-checks.yml'
   pull_request:
     branches:
     - '*'
     paths:
     - 'docs/**'   # Only run on changes to the docs directory
+    - '.github/workflows/markdown-style-checks.yml'
 
 jobs:
   markdown-lint:

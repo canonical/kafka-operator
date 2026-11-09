@@ -4,11 +4,26 @@ name: Automatic doc checks
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'docs/**'
+      - '.readthedocs.yaml'
+      - '.github/workflows/automatic-doc-checks.yml'
+      - 'machine/actions.yaml'
+      - 'machine/config.yaml'
+      - 'k8s/actions.yaml'
+      - 'k8s/config.yaml'
+      - 'connect_machine/actions.yaml'
+      - 'connect_machine/config.yaml'
+      - 'connect_k8s/actions.yaml'
+      - 'connect_k8s/config.yaml'
+      - 'common/single_kernel_kafka/core/literals.py'
   pull_request:
     paths:
       # Run on changes to the docs directory and the charm source files
       # used to auto-generate reference pages
       - 'docs/**'
+      - '.readthedocs.yaml'
+      - '.github/workflows/automatic-doc-checks.yml'
       - 'machine/actions.yaml'
       - 'machine/config.yaml'
       - 'k8s/actions.yaml'
@@ -21,7 +36,6 @@ on:
 
   workflow_dispatch:
     # Manual trigger
-
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

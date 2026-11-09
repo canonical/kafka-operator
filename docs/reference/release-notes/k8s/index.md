@@ -20,7 +20,6 @@ released K8s charm revisions and their compatibility matrix, see the
 ```{toctree}
 ---
 titlesonly:
-maxdepth: 1
 ---
 Revision 82<revision-82.md>
 Revision 56/51<revision-56-51.md>
