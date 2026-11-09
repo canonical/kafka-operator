@@ -4,6 +4,7 @@
 
 """Structured configuration for the Kafka charm."""
 
+import json
 import logging
 import re
 from enum import Enum
@@ -67,6 +68,7 @@ class CharmConfig(BaseConfigModel):
     cruisecontrol_capacity_threshold: float = Field(default=0.8, validate_default=False, le=1)
     system_users: str | None = None
     tls_private_key: str | None = None
+    roles_mapping: dict[str, str] = {}
     client_metrics_list: list[str]
     client_metrics_interval_ms: int
 
@@ -284,6 +286,23 @@ class CharmConfig(BaseConfigModel):
                 raise ValueError(f'Provided metric "{metric}" name is invalid.')
 
         return raw_metrics
+
+    @field_validator("roles_mapping", mode="before")
+    @classmethod
+    def roles_mapping_validator(cls, value: str) -> dict:
+        """Check validity of roles-mapping and parse it as a dict."""
+        if not value:
+            return {}
+
+        try:
+            mapping = json.loads(value)
+        except json.JSONDecodeError as e:
+            raise ValueError("roles-mapping is not a valid JSON dictionary") from e
+
+        if not isinstance(mapping, dict):
+            raise ValueError("roles-mapping is not a valid JSON dictionary")
+
+        return mapping
 
 
 class ConnectCharmConfig(BaseConfigModel):

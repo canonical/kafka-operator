@@ -87,6 +87,7 @@ SERVER_PROPERTIES_BLACKLIST = [
     "expose_external",
     "system_users",
     "tls_private_key",
+    "roles_mapping",
 ]
 
 
