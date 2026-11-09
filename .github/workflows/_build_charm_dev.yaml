@@ -104,8 +104,7 @@ jobs:
       - name: Pack charm
         id: pack
         working-directory: ${{ inputs.path-to-charm-directory }}
-        run: |
-          sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- charmcraft pack -v --platform="${VAR_PLATFORM}"
+        run: charmcraft pack -v --platform="${VAR_PLATFORM}"
         env:
           CHARMCRAFT_EXPERIMENTAL_MONOREPO: "true"
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
