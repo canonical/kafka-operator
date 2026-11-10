@@ -1,8 +1,5 @@
 # Charmed Kafka Connect Operator
 
-[![Release](https://github.com/canonical/kafka-connect-operator/actions/workflows/release.yaml/badge.svg)](https://github.com/canonical/kafka-connect-operator/actions/workflows/release.yaml)
-[![Tests](https://github.com/canonical/kafka-connect-operator/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/canonical/kafka-connect-operator/actions/workflows/ci.yaml?query=branch%3Amain)
-
 The Charmed Kafka Connect Operator delivers automated operations management from day 0 to day 2 on [Kafka Connect](https://kafka.apache.org/documentation/#connect).
 
 This operator can be found on [Charmhub](https://charmhub.io/kafka-connect) and it comes with production-ready features such as:
@@ -16,20 +13,20 @@ This operator can be found on [Charmhub](https://charmhub.io/kafka-connect) and 
 
 The Charmed Kafka Connect Operator uses the latest [`charmed-kafka` snap](https://github.com/canonical/charmed-kafka-snap) containing Apache Kafka distributed by Canonical.
 
-Since Kafka Connect requires a running Apache Kafka cluster, this charmed operator makes use of the [Charmed Apache Kafka](https://github.com/canonical/kafka-operator) in order to function.
+Since Kafka Connect requires a running Apache Kafka cluster, this charmed operator makes use of the [Charmed Apache Kafka](https://charmhub.io/kafka) in order to function.
 
 ## Usage
 
 Before using Charmed Kafka Connect, an Apache Kafka cluster needs to be deployed. The Charmed Apache Kafka operator can be deployed as follows:
 
 ```bash
-juju deploy kafka --channel 3/edge -n 3 --config roles="broker,controller"
+juju deploy kafka --channel 4/stable -n 3 --config roles="broker,controller"
 ```
 
 To deploy the Charmed Kafka Connect operator and relate it with the Apache Kafka cluster, use the following commands:
 
 ```bash
-juju deploy kafka-connect --channel latest/edge
+juju deploy kafka-connect --channel 4/edge
 juju integrate kafka-connect kafka
 ```
 
@@ -96,17 +93,17 @@ You should get a response like below:
   {
     "class": "org.apache.kafka.connect.mirror.MirrorCheckpointConnector",
     "type": "source",
-    "version": "3.9.0-ubuntu1"
+    "version": "4.3.0-ubuntu1"
   },
   {
     "class": "org.apache.kafka.connect.mirror.MirrorHeartbeatConnector",
     "type": "source",
-    "version": "3.9.0-ubuntu1"
+    "version": "4.3.0-ubuntu1"
   },
   {
     "class": "org.apache.kafka.connect.mirror.MirrorSourceConnector",
     "type": "source",
-    "version": "3.9.0-ubuntu1"
+    "version": "4.3.0-ubuntu1"
   }
 ]
 ```
@@ -180,7 +177,7 @@ After this is complete, Grafana will have the `Kafka Connect Cluster` dashboard 
 
 ## Contributing
 
-Please see the [Juju SDK docs](https://juju.is/docs/sdk) for guidelines on enhancements to this charm following best practice guidelines, and [CONTRIBUTING.md](https://github.com/canonical/kafka-connect-operator/blob/main/CONTRIBUTING.md) for developer guidance.
+Please see the [Juju SDK docs](https://juju.is/docs/sdk) for guidelines on enhancements to this charm following best practice guidelines, and [CONTRIBUTING.md](https://github.com/canonical/kafka-operator/blob/main/CONTRIBUTING.md) for developer guidance.
 
 ### We are Hiring!
 
@@ -188,4 +185,4 @@ Also, if you truly enjoy working on open-source projects like this one and you w
 
 ## License
 
-The Charmed Kafka Connect Operator is free software, distributed under the Apache Software License, version 2.0. See [LICENSE](https://github.com/canonical/kafka-connect-operator/blob/main/LICENSE) for more information.
+The Charmed Kafka Connect Operator is free software, distributed under the Apache Software License, version 2.0. See [LICENSE](https://github.com/canonical/kafka-operator/blob/main/LICENSE) for more information.
