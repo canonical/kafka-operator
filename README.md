@@ -28,7 +28,7 @@ The following are some of the most important planned features and their implemen
 - [x] TLS/SSL encrypted connections
 - [x] mTLS
 - [ ] Multi-application clusters
-- [ ] Partition rebalancing during broker scaling
+- [x] Partition rebalancing during broker scaling
 
 ## Requirements
 
@@ -132,7 +132,7 @@ juju config kafka system-users=secret:cvh7kruupa1s46bqvuig
 ### Storage support
 
 Currently, the Charmed Apache Kafka Operator supports 1 or more storage volumes. A 10G storage volume will be installed by default for `log.dirs`.
-This is used for logs storage, mounted on `/var/snap/kafka/common`
+This is used for logs storage, mounted on `/var/snap/charmed-kafka/common`
 
 When storage is added or removed, the Apache Kafka service will restart to ensure it uses the new volumes. Additionally, logs and charm status messages will prompt users to manually reassign partitions so that the new storage volumes are populated. By default, Apache Kafka will not assign partitions to new directories/units until existing topic partitions are assigned to it, or a new topic is created.
 
@@ -186,58 +186,27 @@ unit-data-integrator-0:
 
 #### The tls-certificates interface
 
-The `tls-certificates` interface is used with the `tls-certificates-operator` charm.
+The `tls-certificates` interface is used with the `self-signed-certificates` charm.
 
 To enable TLS, deploy the TLS charm first:
 
 ```bash
-juju deploy tls-certificates-operator
+juju deploy self-signed-certificates --channel 1/stable
 ```
 
-Then, add the necessary configurations:
+And enable TLS by relating the application to the `self-signed-certificates` charm:
 
 ```bash
-juju config tls-certificates-operator generate-self-signed-certificates="true" ca-common-name="Test CA"
-```
-
-And enable TLS by relating the two applications to the `tls-certificates` charm:
-
-```bash
-juju integrate tls-certificates-operator kafka:certificates
-```
-
-Updates to private keys for certificate signing requests (CSR) can be made via the `set-tls-private-key` action:
-
-```bash
-# Updates can be done with auto-generated keys with
-juju run kafka/0 set-tls-private-key --wait
-juju run kafka/1 set-tls-private-key --wait
-juju run kafka/2 set-tls-private-key --wait
-```
-
-Now you can generate shared internal key:
-
-```bash
-openssl genrsa -out internal-key.pem 3072
-```
-
-Passing keys to external/internal keys should *only be done with* `base64 -w0` *not* `cat`.
-
-Apply keys on each Charmed Apache Kafka unit:
-
-```bash
-juju run kafka/0 set-tls-private-key "internal-key=$(base64 -w0 internal-key.pem)" --wait
-juju run kafka/1 set-tls-private-key "internal-key=$(base64 -w0 internal-key.pem)" --wait
-juju run kafka/2 set-tls-private-key "internal-key=$(base64 -w0 internal-key.pem)" --wait
+juju integrate self-signed-certificates kafka:certificates
 ```
 
 To disable TLS remove the relation:
 
 ```bash
-juju remove-relation kafka tls-certificates-operator
+juju remove-relation kafka self-signed-certificates
 ```
 
-> **Note**: The TLS settings here are for self-signed-certificates which are not recommended for production clusters, the `tls-certificates-operator` charm offers a variety of configurations, read more on the TLS charm in the [documentation](https://charmhub.io/tls-certificates-operator).
+> **Note**: The TLS settings here are for self-signed certificates which are not recommended for production clusters, the `tls-certificates-operator` charm offers a variety of configurations, read more on the TLS charm in the [documentation](https://charmhub.io/tls-certificates-operator).
 
 ## Monitoring
 
@@ -262,7 +231,7 @@ Now, integrate Apache Kafka with the Opentelemetry collector:
 juju integrate kafka opentelemetry-collector
 ```
 
-After this is complete, Grafana will show two new dashboards: `Kafka Metrics` and `Node Exporter Kafka`.
+After this is complete, Grafana will show a new dashboards titled `Kafka`.
 
 ## Security
 
