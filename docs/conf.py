@@ -198,6 +198,7 @@ linkcheck_ignore = [
     "https://archive.apache.org/*",
     r"http://worker-\d+\.domain\.com.*",
     "https://canonical.com/data/kafka#get-in-touch",
+    r"https://portal\.azure\.com/#create/.*",
 ]
 
 # A regex list of URLs where anchors are ignored by 'make linkcheck'
@@ -254,6 +255,7 @@ exclude_patterns = [
     "agents.md",
     ".venv*",
     "_dev",
+    "_build*",
 ]
 
 # Adds custom CSS files, located under 'html_static_path'

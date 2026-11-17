@@ -10,6 +10,12 @@ myst:
 
 # How to deploy on Azure
 
+```{tip}
+This guide covers a self-managed deployment that you operate yourself. To have Canonical deploy and
+operate Charmed Apache Kafka in your Azure subscription, see
+[How to deploy Managed Apache Kafka on Azure](how-to-deploy-azure-managed).
+```
+
 [Azure](https://azure.com/) is the cloud computing platform developed by Microsoft. It has
 management, access and development of applications and services to individuals, companies, and
 governments through its global infrastructure. Access the Azure web console at

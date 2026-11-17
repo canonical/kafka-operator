@@ -54,6 +54,7 @@ New to Charmed Apache Kafka? Start with the step-by-step Tutorial to learn the e
 {doc}`Terraform </how-to/deploy/deploy-terraform>`
 {doc}`AWS </how-to/deploy/deploy-aws>`
 {doc}`Azure </how-to/deploy/deploy-azure>`
+{doc}`Azure (managed) </how-to/deploy/deploy-azure-managed>`
 {doc}`Juju Spaces </how-to/deploy/deploy-spaces>`
 {doc}`External connections (Kubernetes) </how-to/external-k8s-connection>`
 {doc}`Requirements </reference/requirements>`
