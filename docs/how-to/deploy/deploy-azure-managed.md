@@ -20,7 +20,9 @@ Kafka on Azure yourself, see [How to deploy on Azure](how-to-deploy-on-azure) in
 
 - An Azure subscription where you can create resource groups and managed applications.
 - Enough vCPU quota in the target region for the VM sizes and counts you plan to select.
-- Optional: an existing Azure virtual network (VNet) to peer with your client applications.
+- Optional: an existing Azure virtual network (VNet) and subnet to peer with your client
+  applications. Its address range must not overlap with the range that the deployment reserves in
+  the managed resource group. The **Network** step of the wizard shows this range.
 - Optional: an existing control plane from the Canonical Managed Juju deployment offering, in the
   same subscription.
 
@@ -103,15 +105,15 @@ If you keep the `Ephemeral` disk type for a production deployment, select
 
 ### Step 4: Network
 
-% TODO: confirm the label of the peering option.
-
 In **Network connectivity**, select how client applications reach the brokers and Kafka UI. For a
 comparison of the options, see [Network connectivity](explanation-azure-managed-network).
 
-- To peer with an existing Azure virtual network, select the peering option and choose the VNet of
-  your client applications.
-- To use public IP addresses, select **Public IPs**. Then, in **Allowed IPv4 CIDR sources for Kafka
-  brokers and UI**, replace `0.0.0.0/0` with the CIDR ranges of your client applications.
+- To peer with an existing Azure virtual network, select **Network peering**. Then select the
+  existing VNet and subnet of your client applications. The wizard doesn't create them, so they must
+  exist before you deploy. Make sure that their address range doesn't overlap with the range shown
+  in the warning on this step, which the deployment uses for the managed resource group.
+- To use public IP addresses, select **Public IPs**. Then, in **Allowed IPv4 CIDR sources for Apache
+  Kafka brokers and UI**, replace `0.0.0.0/0` with the CIDR ranges of your client applications.
 
 ### Step 5: Access
 

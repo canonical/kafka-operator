@@ -135,7 +135,9 @@ Client applications reach the brokers and Kafka UI in one of two ways:
 
 - **Virtual network peering.** The deployment peers with an existing Azure virtual network (VNet) in
   which your applications run. Traffic stays on private addresses. The automation does not create
-  new virtual networks for you. This is the recommended option.
+  new virtual networks for you, so the VNet and subnet must exist before you deploy. Their address
+  range must not overlap with the range that the deployment reserves in the managed resource group.
+  This is the recommended option.
 - **Public IP addresses.** The brokers and Kafka UI get public IP addresses. Inbound access is open
   to any source (`0.0.0.0/0`) unless you restrict it to a list of IPv4 CIDR ranges at deployment
   time.
