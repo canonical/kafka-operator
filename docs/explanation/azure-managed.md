@@ -107,7 +107,7 @@ brokers. The diagram shows them as optional components:
 
 - KRaft controllers, if you choose to run them outside the brokers.
 - Kafka UI, based on Kafbat, to inspect the deployed components from a web interface.
-- Karapace for a schema registry and a REST proxy.
+- Karapace for a schema registry.
 - Kafka Connect to stream data between Apache Kafka and other systems.
 
 The controller VMs are only created if you enable at least one of these components. For more
