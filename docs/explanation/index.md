@@ -17,6 +17,12 @@ The [Components overview](explanation-components) page maps out the whole family
 Kafka components — core charms, Kafka Connect and its integrators, Karapace, Kafka UI, Data
 Integrator, and the Terraform modules — with links to Charmhub, GitHub, and the Snap Store.
 
+## Managed service
+
+The [Managed Apache Kafka on Azure](explanation-azure-managed) page describes the architecture,
+access control, and shared responsibility model of the Canonical Managed Apache Kafka offering on
+Azure Marketplace.
+
 ## Security
 
 Secure deployments of Charmed Apache Kafka can be achieved through using recommended configurations,
@@ -47,6 +53,7 @@ maxdepth: 2
 hidden:
 ---
 Components<components.md>
+Azure managed deployment<azure-managed.md>
 Security<security.md>
 Cryptography<cryptography.md>
 Backups<backups.md>

@@ -23,6 +23,7 @@ shown in synchronized tabs.
 - Specific deployment guides:
   - [AWS](how-to-deploy-on-aws)
   - [Azure](how-to-deploy-on-azure)
+  - [Azure (managed)](how-to-deploy-azure-managed)
   - [External connections (Kubernetes)](how-to-external-k8s-connection)
   - [Juju Spaces (Machine)](how-to-deploy-spaces)
 

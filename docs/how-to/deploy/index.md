@@ -20,6 +20,7 @@ cloud platforms. Synchronized tabs retain the selected substrate across guides.
 
 - [AWS](how-to-deploy-on-aws)
 - [Azure](how-to-deploy-on-azure)
+- [Azure (managed)](how-to-deploy-azure-managed)
 - [Juju Spaces (Machine)](how-to-deploy-spaces)
 - [External connections (Kubernetes)](how-to-external-k8s-connection)
 
@@ -33,6 +34,7 @@ via Juju CLI<deploy-anywhere.md>
 via Terraform<deploy-terraform.md>
 AWS<deploy-aws.md>
 Azure<deploy-azure.md>
+Azure (managed)<deploy-azure-managed.md>
 Spaces<deploy-spaces.md>
 External K8s connections<../external-k8s-connection.md>
 ```
