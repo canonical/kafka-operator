@@ -1339,8 +1339,9 @@ class KafkaClient(RelationStateV1):
     def extra_user_roles(self) -> str:
         """The client defined roles for their application.
 
-        Can be any comma-delimited selection of `producer`, `consumer` and `admin`.
+        Can be any comma-delimited selection of `producer`, `consumer`, `manager` and `admin`.
         When `admin` is set, the Kafka charm interprets this as a new super.user.
+        When `manager` is set, the user is granted ALL on every topic, group and transactional ID.
         """
         return self.request.extra_user_roles or ""
 

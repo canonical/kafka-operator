@@ -19,6 +19,14 @@ from ..core.workload import WorkloadBase
 
 logger = logging.getLogger(__name__)
 
+CLUSTER_RESOURCE_NAME = "kafka-cluster"
+# Kafka resource types (as reported by `kafka-acls --list`) mapped to their CLI flag
+RESOURCE_TYPE_FLAGS = {
+    "TOPIC": "topic",
+    "GROUP": "group",
+    "TRANSACTIONAL_ID": "transactional-id",
+}
+
 
 @dataclass(unsafe_hash=True)
 class Acl:
@@ -143,6 +151,71 @@ class AuthManager:
 
         return consumer_acls
 
+    @staticmethod
+    def _generate_manager_acls(username: str) -> set[Acl]:
+        """Generates expected set of `Acl`s for a `manager` client application, e.g Kafka UI."""
+        manager_acls = set()
+        for resource_type in ("TOPIC", "GROUP", "TRANSACTIONAL_ID"):
+            manager_acls.add(
+                Acl(
+                    resource_type=resource_type,
+                    resource_name="*",
+                    username=username,
+                    operation="ALL",
+                )
+            )
+
+        for operation in ("DESCRIBE", "DESCRIBE_CONFIGS"):
+            manager_acls.add(
+                Acl(
+                    resource_type="CLUSTER",
+                    resource_name=CLUSTER_RESOURCE_NAME,
+                    username=username,
+                    operation=operation,
+                )
+            )
+
+        return manager_acls
+
+    @staticmethod
+    def _acl_args(operation: str, resource_type: str, resource_name: str) -> list[str]:
+        """Builds the `kafka-acls` CLI args for a given operation and resource.
+
+        Args:
+            operation: the ACL operation as reported by Kafka, e.g `READ`, `DESCRIBE_CONFIGS`
+            resource_type: the resource type as reported by Kafka,
+                e.g `TOPIC`, `GROUP`, `TRANSACTIONAL_ID`, `CLUSTER`
+            resource_name: the name of the resource
+
+        Raises:
+            ValueError: if the resource type is not supported
+        """
+        # CLI expects PascalCase operations, e.g DESCRIBE_CONFIGS -> DescribeConfigs
+        cli_operation = "".join(part.capitalize() for part in operation.split("_"))
+        args = [f"--operation={cli_operation}"]
+
+        if resource_type == "CLUSTER":
+            return args + ["--cluster"]
+
+        if resource_type not in RESOURCE_TYPE_FLAGS:
+            raise ValueError(f"Unsupported ACL resource type: {resource_type}")
+
+        if resource_name == "*":
+            # wildcard resource, only valid with LITERAL pattern
+            pattern = "LITERAL"
+        elif resource_type == "GROUP":
+            pattern = "PREFIXED"
+        elif len(resource_name) > 3 and resource_name.endswith("*"):
+            pattern = "PREFIXED"
+            resource_name = resource_name[:-1]
+        else:
+            pattern = "LITERAL"
+
+        return args + [
+            f"--{RESOURCE_TYPE_FLAGS[resource_type]}={resource_name}",
+            f"--resource-pattern-type={pattern}",
+        ]
+
     def add_user(self, username: str, password: str) -> None:
         """Adds new user credentials to cluster.
 
@@ -204,9 +277,9 @@ class AuthManager:
         Args:
             username: the user name to add ACLs for
             operation: the operation to grant
-                e.g `READ`, `WRITE`, `DESCRIBE`
+                e.g `READ`, `WRITE`, `DESCRIBE`, `ALL`
             resource_type: the resource type to grant ACLs for
-                e.g `GROUP`, `TOPIC`
+                e.g `GROUP`, `TOPIC`, `TRANSACTIONAL_ID`, `CLUSTER`
             resource_name: the name of the resource to grant ACLs for
 
         Raises:
@@ -217,23 +290,8 @@ class AuthManager:
             f"--command-config={self.workload.paths.client_properties}",
             "--add",
             f"--allow-principal=User:{username}",
-            f"--operation={operation}",
-        ]
+        ] + self._acl_args(operation, resource_type, resource_name)
 
-        if resource_type == "TOPIC":
-            if len(resource_name) > 3 and resource_name.endswith("*"):
-                pattern = "PREFIXED"
-                resource_name = resource_name[:-1]
-            else:
-                pattern = "LITERAL"
-
-            command += [f"--topic={resource_name}", f"--resource-pattern-type={pattern}"]
-
-        if resource_type == "GROUP":
-            command += [
-                f"--group={resource_name}",
-                "--resource-pattern-type=PREFIXED",
-            ]
         logger.info(f"CREATE ACL - {command}")
         self.workload.run_bin_command(bin_keyword="acls", bin_args=command, opts=[self.log4j_opts])
 
@@ -245,9 +303,9 @@ class AuthManager:
         Args:
             username: the user name to remove ACLs for
             operation: the operation to remove
-                e.g `READ`, `WRITE`, `DESCRIBE`
+                e.g `READ`, `WRITE`, `DESCRIBE`, `ALL`
             resource_type: the resource type to remove ACLs for
-                e.g `GROUP`, `TOPIC`
+                e.g `GROUP`, `TOPIC`, `TRANSACTIONAL_ID`, `CLUSTER`
             resource_name: the name of the resource to remove ACLs for
 
         Raises:
@@ -258,24 +316,8 @@ class AuthManager:
             f"--command-config={self.workload.paths.client_properties}",
             "--remove",
             f"--allow-principal=User:{username}",
-            f"--operation={operation}",
             "--force",
-        ]
-
-        if resource_type == "TOPIC":
-            if len(resource_name) > 3 and resource_name.endswith("*"):
-                pattern = "PREFIXED"
-                resource_name = resource_name[:-1]
-            else:
-                pattern = "LITERAL"
-
-            command += [f"--topic={resource_name}", f"--resource-pattern-type={pattern}"]
-
-        if resource_type == "GROUP":
-            command += [
-                f"--group={resource_name}",
-                "--resource-pattern-type=PREFIXED",
-            ]
+        ] + self._acl_args(operation, resource_type, resource_name)
 
         self.workload.run_bin_command(bin_keyword="acls", bin_args=command, opts=[self.log4j_opts])
 
@@ -307,6 +349,8 @@ class AuthManager:
         `producer`s are granted READ, DESCRIBE and WRITE access for a given topic
         `consumer`s are granted READ, DESCRIBE access for a given topic, and READ access for a
             generated consumer group
+        `manager`s are granted ALL access on every topic, group and transactional ID, and
+            DESCRIBE, DESCRIBE_CONFIGS access on the cluster
 
         If new ACLs provided do not match existing ACLs set for the cluster, existing ACLs will
             be revoked
@@ -328,6 +372,8 @@ class AuthManager:
             computed_user_acls.update(
                 self._generate_consumer_acls(topic=topic, username=username, group=group)
             )
+        if "manager" in {role.strip() for role in extra_user_roles.split(",")}:
+            computed_user_acls.update(self._generate_manager_acls(username=username))
         if permissions:
             for permission in permissions:
                 for operation in permission.privileges:
