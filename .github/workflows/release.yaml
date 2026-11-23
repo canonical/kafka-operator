@@ -28,7 +28,7 @@ jobs:
     secrets: inherit
     permissions:
       contents: read
-      actions: read # Needed by build-dev workflow
+      actions: read # Needed by build_charm.yaml workflow
 
   # NOTE: a matrix job has a single set of outputs, so the
   # four `charm-revisions` values would overwrite each other. One job per charm

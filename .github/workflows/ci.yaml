@@ -56,7 +56,7 @@ on:
     outputs:
       artifact-prefix:
         description: build_charm.yaml `artifact-prefix` output
-        value: ${{ jobs.build-release.outputs.artifact-prefix || jobs.build-dev.outputs.artifact-prefix }}
+        value: ${{ jobs.build.outputs.artifact-prefix }}
 
 jobs:
   lint:
@@ -123,37 +123,17 @@ jobs:
           echo "Charms to build: $json"
           echo "paths=$json" >> "$GITHUB_OUTPUT"
 
-  # FIXME: remove this once charmcraft monorepo feature is released.
-  build-dev:
-    if: ${{ github.ref_name != 'main' }}
+  build:
     needs:
       - build-matrix
     strategy:
       matrix:
         path: ${{ fromJSON(needs.build-matrix.outputs.paths) }}
-    name: Build charm for testing | ${{ matrix.path }}
-    uses: ./.github/workflows/_build_charm_dev.yaml
+    name: Build charm | ${{ matrix.path }}
+    uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v56
     with:
       path-to-charm-directory: ${{ matrix.path }}
-    permissions:
-      actions: read
-      contents: read
-
-  build-release:
-    if: ${{ github.ref_name == 'main' }}
-    needs:
-      - build-matrix
-    strategy:
-      matrix:
-        path: ${{ fromJSON(needs.build-matrix.outputs.paths) }}
-    name: Build charm for release | ${{ matrix.path }}
-    # FIXME: update once monorepo feature reaches DPW
-    # uses: canonical/data-platform-workflows/.github/workflows/build_charm.yaml@v32.2.2
-    uses: ./.github/workflows/_build_charm_dev.yaml
-    with:
-      path-to-charm-directory: ${{ matrix.path }}
-      # FIXME: _build_charm_dev.yaml doesn't accept `cache`; restore alongside build_charm.yaml above
-      # cache: false  # TODO: remove after re-added to ccc-hub
+      cache: false
     permissions:
       actions: read
       contents: read
@@ -177,12 +157,12 @@ jobs:
           - ha
           - spaces
           - terraform
-    needs: [lint, unit-test, build-dev, build-release]
+    needs: [lint, unit-test, build]
     if: |
       !cancelled() &&
       needs.lint.result == 'success' &&
       needs.unit-test.result == 'success' &&
-      (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
+      needs.build.result == 'success'
     uses: ./.github/workflows/_integration_test.yaml
     permissions:
       contents: read
@@ -192,8 +172,8 @@ jobs:
       runner-size: large
       extra-tox-args: --kraft-mode single
       charm-revision: ${{ inputs.kafka-revision }}
-      artifact-prefix: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}
-      packed-charms: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
+      artifact-prefix: ${{ needs.build.outputs.artifact-prefix }}
+      packed-charms: ${{ needs.build.outputs.charms }}
 
   integration-kafka-machine-multi:
     name: Kafka | machine | ${{ matrix.tox-environment }} | multi
@@ -217,12 +197,12 @@ jobs:
           - ha-controller
           - spaces
           - oauth
-    needs: [lint, unit-test, build-dev, build-release]
+    needs: [lint, unit-test, build]
     if: |
       !cancelled() &&
       needs.lint.result == 'success' &&
       needs.unit-test.result == 'success' &&
-      (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
+      needs.build.result == 'success'
     uses: ./.github/workflows/_integration_test.yaml
     permissions:
       contents: read
@@ -232,8 +212,8 @@ jobs:
       runner-size: xlarge
       extra-tox-args: --kraft-mode multi
       charm-revision: ${{ inputs.kafka-revision }}
-      artifact-prefix: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}
-      packed-charms: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
+      artifact-prefix: ${{ needs.build.outputs.artifact-prefix }}
+      packed-charms: ${{ needs.build.outputs.charms }}
 
   integration-kafka-k8s-single:
     name: Kafka | k8s | ${{ matrix.tox-environment }} | single
@@ -252,12 +232,12 @@ jobs:
           - kraft-tls
           - ha
           - refresh
-    needs: [lint, unit-test, build-dev, build-release]
+    needs: [lint, unit-test, build]
     if: |
       !cancelled() &&
       needs.lint.result == 'success' &&
       needs.unit-test.result == 'success' &&
-      (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
+      needs.build.result == 'success'
     uses: ./.github/workflows/_integration_test.yaml
     permissions:
       contents: read
@@ -267,8 +247,8 @@ jobs:
       runner-size: large
       extra-tox-args: --kraft-mode single
       charm-revision: ${{ inputs.kafka-k8s-revision }}
-      artifact-prefix: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}
-      packed-charms: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
+      artifact-prefix: ${{ needs.build.outputs.artifact-prefix }}
+      packed-charms: ${{ needs.build.outputs.charms }}
 
   integration-kafka-k8s-multi:
     name: Kafka | k8s | ${{ matrix.tox-environment }} | multi
@@ -290,12 +270,12 @@ jobs:
           - ha
           - ha-controller
           - refresh
-    needs: [lint, unit-test, build-dev, build-release]
+    needs: [lint, unit-test, build]
     if: |
       !cancelled() &&
       needs.lint.result == 'success' &&
       needs.unit-test.result == 'success' &&
-      (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
+      needs.build.result == 'success'
     uses: ./.github/workflows/_integration_test.yaml
     permissions:
       contents: read
@@ -305,8 +285,8 @@ jobs:
       runner-size: xlarge
       extra-tox-args: --kraft-mode multi
       charm-revision: ${{ inputs.kafka-k8s-revision }}
-      artifact-prefix: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}
-      packed-charms: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
+      artifact-prefix: ${{ needs.build.outputs.artifact-prefix }}
+      packed-charms: ${{ needs.build.outputs.charms }}
 
   integration-connect-machine:
     name: Connect | machine | ${{ matrix.tox-environment }} | Kafka ${{ matrix.kafka-version }}
@@ -331,12 +311,12 @@ jobs:
           # TF tests don't involve Kafka
           - tox-environment: terraform
             kafka-version: "3"
-    needs: [lint, unit-test, build-dev, build-release]
+    needs: [lint, unit-test, build]
     if: |
       !cancelled() &&
       needs.lint.result == 'success' &&
       needs.unit-test.result == 'success' &&
-      (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
+      needs.build.result == 'success'
     uses: ./.github/workflows/_integration_test.yaml
     permissions:
       contents: read
@@ -346,8 +326,8 @@ jobs:
       runner-size: large
       extra-tox-args: --kafka ${{ matrix.kafka-version }}
       charm-revision: ${{ inputs.kafka-connect-revision }}
-      artifact-prefix: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}
-      packed-charms: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
+      artifact-prefix: ${{ needs.build.outputs.artifact-prefix }}
+      packed-charms: ${{ needs.build.outputs.charms }}
 
   integration-connect-k8s:
     name: Connect | k8s | ${{ matrix.tox-environment }}
@@ -362,12 +342,12 @@ jobs:
           - scaling
           - secrets
           - upgrade
-    needs: [lint, unit-test, build-dev, build-release]
+    needs: [lint, unit-test, build]
     if: |
       !cancelled() &&
       needs.lint.result == 'success' &&
       needs.unit-test.result == 'success' &&
-      (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
+      needs.build.result == 'success'
     uses: ./.github/workflows/_integration_test.yaml
     permissions:
       contents: read
@@ -376,8 +356,8 @@ jobs:
       tox-env: integration-connect-k8s-${{ matrix.tox-environment }}
       runner-size: medium
       charm-revision: ${{ inputs.kafka-connect-k8s-revision }}
-      artifact-prefix: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}
-      packed-charms: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
+      artifact-prefix: ${{ needs.build.outputs.artifact-prefix }}
+      packed-charms: ${{ needs.build.outputs.charms }}
 
   integration-arm-machine-smoke:
     name: ARM | machine | smoke | ${{ matrix.tox-environment }}
@@ -391,12 +371,12 @@ jobs:
           - machine-balancer-controller
           - connect-machine-plugins
           - connect-machine-requirer
-    needs: [lint, unit-test, build-dev, build-release]
+    needs: [lint, unit-test, build]
     if: |
       !cancelled() &&
       needs.lint.result == 'success' &&
       needs.unit-test.result == 'success' &&
-      (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
+      needs.build.result == 'success'
     uses: ./.github/workflows/_integration_test.yaml
     permissions:
       contents: read
@@ -405,8 +385,8 @@ jobs:
       tox-env: integration-${{ matrix.tox-environment }}
       runner-size: large
       runner-arch: arm64
-      artifact-prefix: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}
-      packed-charms: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
+      artifact-prefix: ${{ needs.build.outputs.artifact-prefix }}
+      packed-charms: ${{ needs.build.outputs.charms }}
 
   integration-arm-k8s-smoke:
     name: ARM | k8s | smoke | ${{ matrix.tox-environment }}
@@ -420,12 +400,12 @@ jobs:
           - k8s-balancer-controller
           - connect-k8s-plugins
           - connect-k8s-provider
-    needs: [lint, unit-test, build-dev, build-release]
+    needs: [lint, unit-test, build]
     if: |
       !cancelled() &&
       needs.lint.result == 'success' &&
       needs.unit-test.result == 'success' &&
-      (needs.build-dev.result == 'success' || needs.build-release.result == 'success')
+      needs.build.result == 'success'
     uses: ./.github/workflows/_integration_test.yaml
     permissions:
       contents: read
@@ -434,5 +414,5 @@ jobs:
       tox-env: integration-${{ matrix.tox-environment }}
       runner-size: large
       runner-arch: arm64
-      artifact-prefix: ${{ needs.build-dev.outputs.artifact-prefix || needs.build-release.outputs.artifact-prefix }}
-      packed-charms: ${{ needs.build-dev.outputs.charms || needs.build-release.outputs.charms }}
+      artifact-prefix: ${{ needs.build.outputs.artifact-prefix }}
+      packed-charms: ${{ needs.build.outputs.charms }}
