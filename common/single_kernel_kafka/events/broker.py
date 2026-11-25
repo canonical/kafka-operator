@@ -261,9 +261,13 @@ class BrokerOperator(Object):
                     internal_user_credentials=self.charm.state.cluster.internal_user_credentials,
                     initial_controllers=f"{self.charm.state.peer_cluster.bootstrap_unit_id}@{self.charm.state.peer_cluster.bootstrap_controller}:{self.charm.state.peer_cluster.bootstrap_replica_id}",
                 )
-                self.charm.on[f"{self.charm.restart.name}"].acquire_lock.emit(
-                    callback_override="_disable_enable_restart_broker"
+                # disable/enable is only needed for snaps
+                restart_kwargs = (
+                    {"callback_override": "_disable_enable_restart_broker"}
+                    if self.workload.substrate == "vm"
+                    else {}
                 )
+                self.charm.on[f"{self.charm.restart.name}"].acquire_lock.emit(**restart_kwargs)
             else:
                 self.charm.on[f"{self.charm.restart.name}"].acquire_lock.emit()
 
