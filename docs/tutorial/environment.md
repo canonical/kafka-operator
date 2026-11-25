@@ -112,16 +112,10 @@ Juju is installed from a snap package:
 sudo snap install juju
 ```
 
-Install `yq`, a YAML processor used to parse Juju output in later steps:
+Install the YAML and JSON processors used to parse command output in later steps:
 
 ```shell
-sudo snap install yq
-```
-
-Install `jq`, a JSON processor used in later steps:
-
-```shell
-sudo snap install jq
+sudo snap install yq jq
 ```
 
 Juju already has built-in knowledge of LXD and MicroK8s and how they work, so there is no additional
