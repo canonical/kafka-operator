@@ -112,9 +112,7 @@ def test_activate_source_integrator(juju: JujuFixture):
     # our source mysql integrator need a mysql_client relation to unblock:
     juju.ext.model.add_relation(f"{MYSQL_INTEGRATOR}:data", MYSQL_APP)
     with juju.ext.fast_forward(fast_interval="60s"):
-        juju.ext.model.wait_for_idle(
-            apps=[MYSQL_INTEGRATOR], idle_period=30, timeout=600
-        )
+        juju.ext.model.wait_for_idle(apps=[MYSQL_INTEGRATOR], idle_period=30, timeout=600)
 
     # MySQL agent gets stuck in executing with a fast update-status interval.
     juju.ext.model.block_until(

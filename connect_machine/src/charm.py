@@ -200,14 +200,20 @@ class ConnectCharm(ConnectCharmBase):
 
         current_config = set(self.workload.read(self.workload.connect_paths.worker_properties))
         diff = set(self.config_manager.properties) ^ current_config
+        ready = self.context.ready
 
         if diff:
+            self.context.worker_unit.should_restart = True
+
+        if ready and not self.connect_manager.healthy:
+            # Service has stopped, should restart.
+            # See https://github.com/canonical/kafka-operator/issues/616
             self.context.worker_unit.should_restart = True
 
         if not self.context.worker_unit.should_restart:
             return
 
-        if not self.context.ready:
+        if not ready:
             self._set_status(self.context.status)
             return
 
