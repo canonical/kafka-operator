@@ -241,7 +241,20 @@ class BrokerOperator(Object):
             )
             self.config_manager.set_server_properties()
 
-        if any([properties_changed, self.charm.state.tls_rotate, self.charm.tls.certs_updated]):
+        # This is a guardrail against missed restarts due to race conditions,
+        # Juju bugs, rolling ops lib issues, etc.
+        propeties_modified = self.workload.last_restart <= self.workload.modify_time(
+            self.workload.paths.server_properties
+        )
+
+        if any(
+            [
+                properties_changed,
+                propeties_modified,
+                self.charm.state.tls_rotate,
+                self.charm.tls.certs_updated,
+            ]
+        ):
             if isinstance(event, StorageEvent):  # to get new storages
                 self.controller_manager.format_storages(
                     uuid=self.charm.state.peer_cluster.cluster_uuid,

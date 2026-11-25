@@ -430,11 +430,17 @@ class KafkaContext(Object):
                 logger.debug(e)
                 return ""
 
+        # Only include units which have populated the relation IP address field.
+        active_broker_ips = []
+        for broker in self.brokers:
+            if relation_ip := broker.relation_ip_address(client_relation):
+                active_broker_ips.append(relation_ip)
+
         return ",".join(
             sorted(
                 [
-                    f"{broker.relation_ip_address(client_relation)}:{SECURITY_PROTOCOL_PORTS[self.default_auth].client}"
-                    for broker in self.brokers
+                    f"{broker_ip}:{SECURITY_PROTOCOL_PORTS[self.default_auth].client}"
+                    for broker_ip in active_broker_ips
                 ]
             )
         )

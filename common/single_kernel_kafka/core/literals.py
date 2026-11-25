@@ -23,7 +23,9 @@ CHARM_KEY = "kafka" if SUBSTRATE == "vm" else "kafka-k8s"
 CONTAINER = "kafka"
 STORAGE = "data"
 
-_ARCH = platform.processor()
+# On some 26.04 machines, platform.processor() returns an empty string,
+# Revert to uname().machine in those cases
+_ARCH = platform.processor() or platform.uname().machine
 ARCHITECTURE = "arm64" if _ARCH == "aarch64" else "amd64"
 
 SNAP_NAME = "charmed-kafka"
