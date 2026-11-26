@@ -19,7 +19,7 @@ rebalance:
       type: boolean
       default: true
     brokerid:
-      description: Broker ID newly added to the cluster or to be removed. The broker ID is the unit number, e.g. kafka/0 is broker 0.
+      description: Broker ID newly added to the cluster or to be removed. The broker ID is the unit number offset by 100, e.g. kafka/0 is broker 100.
       type: integer
       minimum: 0
   required: [mode]
