@@ -161,8 +161,10 @@ Then, activate the Kafka Connect application by integrating it with the Apache K
 juju integrate kafka kafka-connect
 ```
 
-Finally, since we will be using TLS on the Kafka Connect interface, integrate the Kafka Connect
-application with the TLS operator:
+<!-- test:wait --seconds 10 -->
+
+Wait 10 seconds for the `kafka-connect` application to settle. Then, since we will be using TLS on
+the Kafka Connect interface, integrate the Kafka Connect application with the TLS operator:
 
 ```shell
 juju integrate kafka-connect self-signed-certificates
@@ -383,6 +385,14 @@ juju wait-for unit postgresql-connect-integrator/0 --query='workload-status == "
 
 ```shell
 juju integrate postgresql-connect-integrator postgresql
+```
+
+<!-- test:wait --seconds 10 -->
+
+Wait 10 seconds for the `postgresql-connect-integrator` application to settle, then integrate it
+with Kafka Connect:
+
+```shell
 juju integrate postgresql-connect-integrator kafka-connect
 ```
 
@@ -426,6 +436,14 @@ juju wait-for unit opensearch-connect-integrator/0 --query='workload-status == "
 
 ```shell
 juju integrate opensearch-connect-integrator opensearch
+```
+
+<!-- test:wait --seconds 10 -->
+
+Wait 10 seconds for the `opensearch-connect-integrator` application to settle, then integrate it
+with Kafka Connect:
+
+```shell
 juju integrate opensearch-connect-integrator kafka-connect
 ```
 
