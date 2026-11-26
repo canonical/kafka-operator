@@ -407,6 +407,12 @@ postgresql-connect-integrator           active      1  postgresql-connect-integr
 ...
 ```
 
+```{note}
+Before the status changes to `Task Status: RUNNING`, the `postgresql-connect-integrator` might
+show `Task Status: UNASSIGNED` for a few minutes. This is expected while Kafka Connect assigns
+the task to a worker. Wait a few more minutes and check `juju status` again.
+```
+
 This means that the integrator application is actively copying data from the source database (named
 `tutorial`) into Apache Kafka topics prefixed with `etl_`. For example, rows in the `posts` table
 will be published into the Apache Kafka topic named `etl_posts`.
