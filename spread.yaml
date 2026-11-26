@@ -25,7 +25,7 @@ backends:
         systemctl restart ssh
       "
 
-      ip=$(multipass info --format csv "$instance_name" | tail -1 | cut -d, -f3)
+      ip=$(multipass info "$instance_name" | awk '/^IPv4:/ {print $2}')
       ADDRESS "$ip"
 
     discard: |
