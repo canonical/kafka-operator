@@ -24,7 +24,7 @@ from ops.charm import (
     SecretChangedEvent,
     UpdateStatusEvent,
 )
-from ops.framework import Object
+from ops.framework import EventBase, Object
 
 from ..core.literals import (
     BALANCER,
@@ -72,8 +72,35 @@ class PeerClusterEventsHandler(Object):
             getattr(self.charm.on, "update_status"), self._on_peer_cluster_orchestrator_changed
         )
 
+        # ensures roles changes are propagated
+        for event in [
+            self.charm.on.config_changed,
+            self.charm.on.leader_elected,
+            getattr(self.charm.on, "update_status"),
+        ]:
+            self.framework.observe(event, self._sync_peer_cluster_roles)
+
     def _on_secret_changed_event(self, _: SecretChangedEvent) -> None:
         pass
+
+    def _sync_peer_cluster_roles(self, _: EventBase) -> None:
+        """Updates `roles` in the `peer-cluster` relation app databag if they have changed.
+
+        The `peer-cluster-orchestrator` application relies on these roles, e.g. to enable
+        the Cruise Control metrics reporter on brokers when a `balancer` role is added.
+        """
+        if not self.charm.unit.is_leader():
+            return
+
+        if not (relation := self.charm.state.peer_cluster_relation):
+            return
+
+        local_data = relation.data[self.charm.state.cluster.app]
+        if local_data.get("roles") == self.charm.state.roles:
+            return
+
+        logger.info(f"Updating peer-cluster roles to {self.charm.state.roles}")
+        local_data.update({"roles": self.charm.state.roles})
 
     def _on_peer_cluster_created(self, event: RelationCreatedEvent) -> None:
         """Generic handler for peer-cluster `relation-created` events."""

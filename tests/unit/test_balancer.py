@@ -15,11 +15,12 @@ from common.single_kernel_kafka.core.literals import (
     BALANCER_WEBSERVER_USER,
     CONTAINER,
     PEER,
+    PEER_CLUSTER_RELATION,
     Status,
 )
 from common.single_kernel_kafka.managers.balancer import CruiseControlClient
 from ops import ActiveStatus
-from ops.testing import ActionFailed, Container, Context, PeerRelation, State
+from ops.testing import ActionFailed, Container, Context, PeerRelation, Relation, State
 from tests.unit.helpers import (
     ACTIONS,
     CONFIG,
@@ -549,6 +550,64 @@ def test_rebalance_broker_id_not_found(
 
         with pytest.raises(ActionFailed):
             ctx.run(ctx.on.action("rebalance", params=payload), state_in)
+
+
+@pytest.mark.parametrize("mode", ["add", "remove"])
+@pytest.mark.parametrize("brokerid,valid", [(103, True), (3, False)])
+def test_rebalance_broker_id_balancer_only(
+    ctx_balancer_only: Context,
+    base_state: State,
+    proposal: dict,
+    mode: str,
+    brokerid: int,
+    valid: bool,
+) -> None:
+    """Without the broker role, `brokerid` is validated against the related brokers' node IDs."""
+    # Given
+    ctx = ctx_balancer_only
+    cluster_peer = PeerRelation(PEER, PEER)
+    peer_cluster = Relation(
+        PEER_CLUSTER_RELATION,
+        "peer_cluster",
+        remote_units_data={i: {} for i in range(4)},  # kafka/0-3, i.e. broker IDs 100-103
+    )
+    state_in = dataclasses.replace(base_state, relations=[cluster_peer, peer_cluster])
+    payload = {"mode": mode, "dryrun": True, "brokerid": brokerid}
+
+    # When
+    with (
+        patch(
+            "single_kernel_kafka.managers.balancer.CruiseControlClient.monitoring",
+            new_callable=PropertyMock,
+            return_value=True,
+        ),
+        patch(
+            "single_kernel_kafka.managers.balancer.CruiseControlClient.executing",
+            new_callable=PropertyMock,
+            return_value=False,
+        ),
+        patch(
+            "single_kernel_kafka.managers.balancer.CruiseControlClient.ready",
+            new_callable=PropertyMock,
+            return_value=True,
+        ),
+        patch(
+            "single_kernel_kafka.managers.balancer.BalancerManager.rebalance",
+            return_value=(MockResponse(content=proposal, status_code=200), "foo"),
+        ) as patched_rebalance,
+        patch("single_kernel_kafka.managers.balancer.BalancerManager.wait_for_task"),
+    ):
+        if valid:
+            ctx.run(ctx.on.action("rebalance", params=payload), state_in)
+        else:
+            with pytest.raises(ActionFailed, match="invalid brokerid"):
+                ctx.run(ctx.on.action("rebalance", params=payload), state_in)
+
+    # Then
+    if valid:
+        patched_rebalance.assert_called_once_with(mode=mode, brokerid=brokerid, dryrun=True)
+    else:
+        patched_rebalance.assert_not_called()
 
 
 def test_balancer_manager_clean_results(

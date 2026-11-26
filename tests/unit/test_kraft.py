@@ -292,3 +292,36 @@ def test_leader_change(charm_configuration, base_state: State):
         state_out.get_relations(PEER)[0].local_app_data["bootstrap-controller"]
         != previous_controller
     )
+
+
+@pytest.mark.parametrize("leader", [True, False])
+def test_peer_cluster_roles_updated_on_roles_change(
+    charm_configuration, base_state: State, leader: bool
+):
+    """Adding a role to a related controller app must be propagated to the `peer-cluster` databag."""
+    # Given
+    charm_configuration["options"]["roles"]["default"] = "controller,balancer"
+    ctx = Context(
+        KafkaCharm,
+        meta=METADATA,
+        config=charm_configuration,
+        actions=ACTIONS,
+    )
+    cluster_peer = PeerRelation(PEER, PEER)
+    peer_cluster = Relation(
+        PEER_CLUSTER_RELATION,
+        "peer_cluster",
+        local_app_data={"roles": "controller"},  # as written on relation-created
+    )
+    state_in = dataclasses.replace(
+        base_state, relations=[cluster_peer, peer_cluster], leader=leader
+    )
+
+    # When
+    state_out = ctx.run(ctx.on.update_status(), state_in)
+
+    # Then
+    expected_roles = "balancer,controller" if leader else "controller"
+    assert (
+        state_out.get_relations(PEER_CLUSTER_RELATION)[0].local_app_data["roles"] == expected_roles
+    )
