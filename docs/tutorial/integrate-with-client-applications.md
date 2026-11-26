@@ -234,19 +234,22 @@ Wait for the charm to become `active`/`idle`, and log into the container:
 juju ssh kafka-test-app/0 /bin/bash
 ```
 
-Make sure that the Python virtual environment libraries are visible:
+The charm ships the `client.py` script together with a Python virtual environment that contains the
+script's dependencies. Save the path to the charm and make its libraries visible to Python:
 
 ```bash
-export PYTHONPATH="/var/lib/juju/agents/unit-kafka-test-app-0/charm/venv:/var/lib/juju/agents/unit-kafka-test-app-0/charm/lib"
+CHARM_DIR=/var/lib/juju/agents/unit-kafka-test-app-0/charm
+export PYTHONPATH="$CHARM_DIR/lib"
 ```
 
 Once this is set up, you can use the `client.py` script that exposes some functionality to produce
-and consume messages.
+and consume messages. Always run it with the Python interpreter from the charm's virtual
+environment, `$CHARM_DIR/venv/bin/python`.
 
 Let's try that script runs:
 
 ```bash
-python3 -m charms.kafka.v0.client --help
+$CHARM_DIR/venv/bin/python -m charms.kafka.v0.client --help
 ```
 
 <details> <summary> Output example</summary>
@@ -294,7 +297,7 @@ Change the values of `username`, `password` and `endpoints` to the ones obtained
 `data-integrator` application in the previous section and run the script to produce message:
 
 ```bash
-python3 -m charms.kafka.v0.client \
+$CHARM_DIR/venv/bin/python -m charms.kafka.v0.client \
   -u <username> \
   -p <password> \
   -t test-topic \
@@ -310,7 +313,7 @@ Let this run for a few seconds, then halt the process by pushing `Ctrl+C`.
 Now, consume them with:
 
 ```bash
-python3 -m charms.kafka.v0.client \
+$CHARM_DIR/venv/bin/python -m charms.kafka.v0.client \
   -u <username> \
   -p <password> \
   -t test-topic \
