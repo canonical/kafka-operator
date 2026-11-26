@@ -135,7 +135,13 @@ Deploy the PostgreSQL, OpenSearch, and Kafka Connect charms:
 ```shell
 juju deploy kafka-connect --channel edge
 juju deploy postgresql --channel 14/stable
-juju deploy opensearch --channel 2/stable --config profile=testing
+juju deploy opensearch -n 2 --channel 2/stable --config profile=testing
+```
+
+```{note}
+With a single unit, the OpenSearch application can remain in the `blocked` state until it is
+scaled up. This tutorial deploys two units to keep resource consumption low. For production
+deployments, use at least three OpenSearch units.
 ```
 
 <!-- test:await-idle --timeout 1200 --allow-blocked opensearch,kafka-connect -->
@@ -161,8 +167,10 @@ Then, activate the Kafka Connect application by integrating it with the Apache K
 juju integrate kafka kafka-connect
 ```
 
-Finally, since we will be using TLS on the Kafka Connect interface, integrate the Kafka Connect
-application with the TLS operator:
+<!-- test:wait --seconds 10 -->
+
+Wait 10 seconds for the `kafka-connect` application to settle. Then, since we will be using TLS on
+the Kafka Connect interface, integrate the Kafka Connect application with the TLS operator:
 
 ```shell
 juju integrate kafka-connect self-signed-certificates
@@ -184,7 +192,7 @@ data-integrator                    active      1  data-integrator           late
 kafka                     4.1.1    active      3  kafka                     4/stable       248  no       
 kafka-connect                      active      1  kafka-connect             latest/edge     30  no       
 kraft                     4.1.1    active      3  kafka                     4/stable       248  no       
-opensearch                         active      1  opensearch                2/stable       314  no       
+opensearch                         active      2  opensearch                2/stable       314  no       
 postgresql                14.20    active      1  postgresql                14/stable      987  no       
 self-signed-certificates           active      1  self-signed-certificates  1/stable       317  no       
 
@@ -198,6 +206,7 @@ kraft/0*                     active    idle   3        10.157.174.228  9098/tcp
 kraft/1                      active    idle   4        10.157.174.127  9098/tcp        
 kraft/2                      active    idle   5        10.157.174.24   9098/tcp        
 opensearch/0*                active    idle   12       10.157.174.204  9200/tcp        
+opensearch/1                 active    idle   13       10.157.174.135  9200/tcp        
 postgresql/0*                active    idle   11       10.157.174.208  5432/tcp        Primary
 self-signed-certificates/0*  active    idle   8        10.157.174.248                  
 
@@ -213,6 +222,7 @@ Machine  State    Address         Inst id         Base          AZ          Mess
 10       started  10.157.174.69   juju-29b29f-10  ubuntu@22.04  kafka-test  Running
 11       started  10.157.174.208  juju-29b29f-11  ubuntu@22.04  kafka-test  Running
 12       started  10.157.174.204  juju-29b29f-12  ubuntu@24.04  kafka-test  Running
+13       started  10.157.174.135  juju-29b29f-13  ubuntu@24.04  kafka-test  Running
 ```
 
 </details>
@@ -383,6 +393,14 @@ juju wait-for unit postgresql-connect-integrator/0 --query='workload-status == "
 
 ```shell
 juju integrate postgresql-connect-integrator postgresql
+```
+
+<!-- test:wait --seconds 10 -->
+
+Wait 10 seconds for the `postgresql-connect-integrator` application to settle, then integrate it
+with Kafka Connect:
+
+```shell
 juju integrate postgresql-connect-integrator kafka-connect
 ```
 
@@ -395,6 +413,12 @@ After a couple of minutes, `juju status` command should show the `postgresql-con
 ...
 postgresql-connect-integrator           active      1  postgresql-connect-integrator  latest/edge     13  no       Task Status: RUNNING
 ...
+```
+
+```{note}
+Before the status changes to `Task Status: RUNNING`, the `postgresql-connect-integrator` might
+show `Task Status: UNASSIGNED` for a few minutes. This is expected while Kafka Connect assigns
+the task to a worker. Wait a few more minutes and check `juju status` again.
 ```
 
 This means that the integrator application is actively copying data from the source database (named
@@ -426,6 +450,14 @@ juju wait-for unit opensearch-connect-integrator/0 --query='workload-status == "
 
 ```shell
 juju integrate opensearch-connect-integrator opensearch
+```
+
+<!-- test:wait --seconds 10 -->
+
+Wait 10 seconds for the `opensearch-connect-integrator` application to settle, then integrate it
+with Kafka Connect:
+
+```shell
 juju integrate opensearch-connect-integrator kafka-connect
 ```
 
@@ -437,8 +469,8 @@ indicating that the ETL task is running:
 
 ```text
 ...
-opensearch-connect-integrator/0*  active    idle   14       10.157.174.70   8080/tcp        Task Status: RUNNING    
-postgresql-connect-integrator/0*  active    idle   13       10.157.174.173  8080/tcp        Task Status: RUNNING
+opensearch-connect-integrator/0*  active    idle   15       10.157.174.70   8080/tcp        Task Status: RUNNING    
+postgresql-connect-integrator/0*  active    idle   14       10.157.174.173  8080/tcp        Task Status: RUNNING
 ...
 ```
 

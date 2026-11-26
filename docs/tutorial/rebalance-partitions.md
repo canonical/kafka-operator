@@ -38,34 +38,30 @@ The Charmed Apache Kafka charm has a configuration option `roles`, which takes a
 values. Different roles can be configured to run on the same machine, or as separate Juju
 applications.
 
-The `balancer` role is required to run the Cruise Control. We will need to add this role to one of
-the existing Juju applications: either `kafka` with the `broker` role, or `kraft` with the
-`controller` role.
+The `balancer` role is required to run Cruise Control. It can be added to either of the Juju
+applications: `kafka` with the `broker` role, or `kraft` with the `controller` role.
 
-We recommend combining `controller` and `balancer` role together on the `kraft` application, due to
+We recommend combining `controller` and `balancer` roles together on the `kraft` application, due to
 higher performance demands of the `broker` role.
 
 ## Setup
 
-Let's add the role `balancer` to the existing `kraft` Juju application:
+We already deployed the `kraft` application with `roles=controller,balancer` in the
+[Deploy](tutorial-deploy) part of this tutorial, so Cruise Control has been collecting metrics from
+the brokers since then. Check the current roles of the `kraft` application:
 
 ```shell
-juju config kraft roles=balancer,controller
+juju config kraft roles
 ```
 
-```{note}
-The `kraft` application name is the same on both substrates, so this command is
-identical for VM and Kubernetes deployments.
-```
+<!-- test:assert
+juju config kraft roles | grep -qw balancer
+-->
 
-<!-- test:await-idle --timeout 1200 --allow-blocked opensearch -->
+The output should list both roles:
 
-Wait for the status to become `active`/`idle`:
-
-<!-- test:skip -->
-
-```shell
-watch juju status --color
+```text
+controller,balancer
 ```
 
 ## Adding new brokers
@@ -218,8 +214,8 @@ juju run kraft/leader rebalance mode=add brokerid=103 --wait=2m
 If this action fails with a message similar to
 `Cruise Control balancer service has not yet collected enough data to provide a partition
 reallocation proposal`, wait for at least 20 minutes and try again.
-Cruise Control takes a long time (sometimes more than an hour) to collect sufficient metrics
-from an Apache Kafka cluster during a cold deployment.
+Cruise Control needs some time to collect sufficient metrics from an Apache Kafka cluster after
+the `balancer` role is enabled.
 ```
 
 By default, the `rebalance` action runs as a "dryrun", where the returned result is what **would**

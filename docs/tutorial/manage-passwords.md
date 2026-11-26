@@ -53,8 +53,8 @@ Note the generated secret ID that you see as a response. It will look something 
 `secret:d5nc29hlshbc45lnf07g`.
 
 <!-- test:set-variables
-command: juju add-secret internal-kafka-users operator=mynewpassword | awk '{print "secret-uri: " $0}'
-SECRET_URI: secret-uri
+command: juju add-secret internal-kafka-users operator=mynewpassword | awk '{print "secret-id: " $0}'
+SECRET_ID: secret-id
 -->
 
 Now, grant Charmed Apache Kafka access to the new secret:
@@ -67,7 +67,7 @@ Finally, inform Charmed Apache Kafka of the new secret to use for its internal s
 the secret ID saved earlier:
 
 ```shell
-juju config kafka system-users=<secret-uri>
+juju config kafka system-users=<secret-id>
 ```
 
 <!-- test:wait --seconds 60 -->

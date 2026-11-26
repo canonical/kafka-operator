@@ -234,19 +234,22 @@ Wait for the charm to become `active`/`idle`, and log into the container:
 juju ssh kafka-test-app/0 /bin/bash
 ```
 
-Make sure that the Python virtual environment libraries are visible:
+The charm ships the `client.py` script together with a Python virtual environment that contains the
+script's dependencies. Save the path to the charm and make its libraries visible to Python:
 
 ```bash
-export PYTHONPATH="/var/lib/juju/agents/unit-kafka-test-app-0/charm/venv:/var/lib/juju/agents/unit-kafka-test-app-0/charm/lib"
+CHARM_DIR=/var/lib/juju/agents/unit-kafka-test-app-0/charm
+export PYTHONPATH="$CHARM_DIR/lib"
 ```
 
 Once this is set up, you can use the `client.py` script that exposes some functionality to produce
-and consume messages.
+and consume messages. Always run it with the Python interpreter from the charm's virtual
+environment, `$CHARM_DIR/venv/bin/python`.
 
 Let's try that script runs:
 
 ```bash
-python3 -m charms.kafka.v0.client --help
+$CHARM_DIR/venv/bin/python -m charms.kafka.v0.client --help
 ```
 
 <details> <summary> Output example</summary>
@@ -288,13 +291,17 @@ options:
 
 </details>
 
+<!-- test:assert
+juju exec --unit kafka-test-app/0 -- "PYTHONPATH=/var/lib/juju/agents/unit-kafka-test-app-0/charm/lib /var/lib/juju/agents/unit-kafka-test-app-0/charm/venv/bin/python -m charms.kafka.v0.client --help" | grep "usage: client.py"
+-->
+
 Now let's try producing and then consuming some messages.
 
 Change the values of `username`, `password` and `endpoints` to the ones obtained from the
 `data-integrator` application in the previous section and run the script to produce message:
 
 ```bash
-python3 -m charms.kafka.v0.client \
+$CHARM_DIR/venv/bin/python -m charms.kafka.v0.client \
   -u <username> \
   -p <password> \
   -t test-topic \
@@ -310,7 +317,7 @@ Let this run for a few seconds, then halt the process by pushing `Ctrl+C`.
 Now, consume them with:
 
 ```bash
-python3 -m charms.kafka.v0.client \
+$CHARM_DIR/venv/bin/python -m charms.kafka.v0.client \
   -u <username> \
   -p <password> \
   -t test-topic \
@@ -449,6 +456,8 @@ kafka-test-app/0*   active    idle   10.1.36.88                     Topic TOP-PI
 
 To make sure that the process has started, check the logs of the process:
 
+<!-- test:wait --seconds 30 -->
+
 ```shell
 juju exec --application kafka-test-app "tail /tmp/*.log"
 ```
@@ -458,6 +467,10 @@ Make sure to see the following messages:
 ```text
 INFO [__main__] (MainThread) (produce_message) Message published to topic=TOP-PICK, message content: {"timestamp": 1768919219.744478, "_id": "9f4da8c1df2547f18c4d3365f7fb1c54", "origin": "juju-29b29f-7 (10.157.174.242)", "content": "Message #11"}
 ```
+
+<!-- test:assert
+juju exec --unit kafka-test-app/0 -- "cat /tmp/*_producer.log" | grep "Message published to topic=TOP-PICK"
+-->
 
 To stop the process (although it is very likely that the process has already stopped given the low
 number of messages that were provided) and remove the user, you can just remove the relation:
