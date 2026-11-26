@@ -290,16 +290,8 @@ class BalancerOperator(Object):
         dryrun: bool = True,
     ) -> Response:
         """Perform a rebalance using Cruise Control."""
-        if self.charm.state.runs_broker:
-            available_brokers = [broker.broker_id for broker in self.charm.state.brokers]
-        else:
-            brokers = (
-                [broker.name for broker in self.charm.state.peer_cluster.relation.units]
-                if self.charm.state.peer_cluster.relation
-                else []
-            )
-            # FIXME: wrong broker id
-            available_brokers = [int(broker.split("/")[1]) for broker in brokers]
+        # KRaft broker node IDs (unit number + offset), from this app or the related broker app
+        available_brokers = self.charm.state.active_brokers_on_relation
 
         failure_conditions = [
             (
