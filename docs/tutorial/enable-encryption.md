@@ -135,9 +135,10 @@ juju integrate kafka:certificates self-signed-certificates
 juju status --format json | jq -e '.applications["self-signed-certificates"]["application-status"].current == "active"'
 -->
 
-After the charms settle into `active`/`idle` states, the Apache Kafka listeners should now have been
-swapped to the default encrypted port `9093`. This can be tested by testing whether the ports are
-open/closed with `telnet`:
+After `kafka`, `kraft`, and `self-signed-certificates` settle into `active`/`idle` states
+(`data-integrator` remains `blocked` until we integrate it again later in this part), the Apache
+Kafka listeners should now have been swapped to the default encrypted port `9093`. This can be
+tested by testing whether the ports are open/closed with `telnet`:
 
 <!-- test:skip -->
 
