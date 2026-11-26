@@ -133,6 +133,25 @@ Resource defaults (override with env vars):
 | `SPREAD_VM_MEM`   | `16G`   | Multipass VM RAM       |
 | `SPREAD_VM_DISK`  | `50G`   | Multipass VM disk      |
 
+## Memory report
+
+The suite measures the RAM used by the whole test VM (the Juju controller,
+the LXD containers and all units) as `MemTotal - MemAvailable`, every 10
+seconds. `tests/tutorial/memory-monitor.sh` runs as a systemd unit inside the
+VM and keeps the peak for each stage (Spread task) and for the whole run.
+
+The full report is printed at the end of the run, just before the Spread
+summary. It lists the peak for every stage, the overall peak with its stage
+and time, and the VM memory size. When a stage fails, the debug output also
+shows the peaks recorded so far.
+
+Notes:
+
+- Spikes shorter than the sampling interval may be missed.
+- If the peak reaches 95% of the VM memory, the report warns that the VM size
+  capped the result. Raise `SPREAD_VM_MEM` and re-run to measure the real
+  requirement.
+
 ## CI
 
 Tutorial tests run automatically in GitHub Actions via

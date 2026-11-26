@@ -30,6 +30,7 @@ backends:
 
     discard: |
       instance_name="kafka-tutorial-vm"
+      multipass exec "$instance_name" -- sudo cat /var/tmp/tutorial-memory/report.txt 2>/dev/null || true
       multipass delete --purge "$instance_name"
 
     systems:
@@ -45,8 +46,15 @@ suites:
       # Spread SSHs in as root but does not always set HOME=/root.
       export HOME=/root
       mkdir -p /root/.local/share/juju
+      bash "$SPREAD_PATH/tests/tutorial/memory-monitor.sh" start
+    prepare-each: |
+      bash "$SPREAD_PATH/tests/tutorial/memory-monitor.sh" mark "$SPREAD_TASK"
+    restore: |
+      bash "$SPREAD_PATH/tests/tutorial/memory-monitor.sh" stop
+      bash "$SPREAD_PATH/tests/tutorial/memory-monitor.sh" report
     debug-each: |
       export HOME=/root
+      bash "$SPREAD_PATH/tests/tutorial/memory-monitor.sh" report || true
       free -m
       df -h /
       dmesg | grep -i -E "out of memory|oom-kill" | tail -n 20 || true
