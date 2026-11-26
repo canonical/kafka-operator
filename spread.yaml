@@ -45,3 +45,9 @@ suites:
       # Spread SSHs in as root but does not always set HOME=/root.
       export HOME=/root
       mkdir -p /root/.local/share/juju
+    debug-each: |
+      export HOME=/root
+      free -m
+      df -h /
+      dmesg | grep -i -E "out of memory|oom-kill" | tail -n 20 || true
+      juju status --relations || true
