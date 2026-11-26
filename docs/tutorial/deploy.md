@@ -88,7 +88,7 @@ sync-group: substrate
 :sync: vm
 
 ```shell
-juju deploy kafka -n 3 --channel 4/stable --trust --config roles=controller kraft
+juju deploy kafka -n 3 --channel 4/stable --trust --config roles=controller,balancer kraft
 ```
 
 ````
@@ -97,12 +97,17 @@ juju deploy kafka -n 3 --channel 4/stable --trust --config roles=controller kraf
 :sync: k8s
 
 ```bash
-juju deploy kafka-k8s -n 3 --channel 4/stable --trust --config roles=controller kraft
+juju deploy kafka-k8s -n 3 --channel 4/stable --trust --config roles=controller,balancer kraft
 ```
 
 ````
 
 `````
+
+The additional `balancer` role runs [Cruise Control](https://github.com/linkedin/cruise-control)
+alongside the controllers. We will use it later in the tutorial to
+[rebalance partitions](tutorial-rebalance-partitions) across brokers. Enabling it now gives Cruise
+Control time to collect the cluster metrics it needs.
 
 After this, it is necessary to connect the two deployed applications, taking care to specify which
 cluster is the orchestrator by selecting the specific relation types:
