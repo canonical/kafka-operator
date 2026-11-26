@@ -456,6 +456,8 @@ kafka-test-app/0*   active    idle   10.1.36.88                     Topic TOP-PI
 
 To make sure that the process has started, check the logs of the process:
 
+<!-- test:wait --seconds 30 -->
+
 ```shell
 juju exec --application kafka-test-app "tail /tmp/*.log"
 ```
@@ -465,6 +467,10 @@ Make sure to see the following messages:
 ```text
 INFO [__main__] (MainThread) (produce_message) Message published to topic=TOP-PICK, message content: {"timestamp": 1768919219.744478, "_id": "9f4da8c1df2547f18c4d3365f7fb1c54", "origin": "juju-29b29f-7 (10.157.174.242)", "content": "Message #11"}
 ```
+
+<!-- test:assert
+juju exec --unit kafka-test-app/0 -- "cat /tmp/*_producer.log" | grep "Message published to topic=TOP-PICK"
+-->
 
 To stop the process (although it is very likely that the process has already stopped given the low
 number of messages that were provided) and remove the user, you can just remove the relation:
