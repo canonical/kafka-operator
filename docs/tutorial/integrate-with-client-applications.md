@@ -291,6 +291,10 @@ options:
 
 </details>
 
+<!-- test:assert
+juju exec --unit kafka-test-app/0 -- "PYTHONPATH=/var/lib/juju/agents/unit-kafka-test-app-0/charm/lib /var/lib/juju/agents/unit-kafka-test-app-0/charm/venv/bin/python -m charms.kafka.v0.client --help" | grep "usage: client.py"
+-->
+
 Now let's try producing and then consuming some messages.
 
 Change the values of `username`, `password` and `endpoints` to the ones obtained from the
