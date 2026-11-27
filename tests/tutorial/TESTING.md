@@ -76,12 +76,14 @@ failure — more useful during local development.
 | `tox -e tutorial` / `make … test-continue` | `-vv`               | Run all stages even if earlier ones fail (CI default)         |
 | `tox -e tutorial-extract` / `make … extract` | —                 | Generate scripts only (no Spread run)                         |
 | `make … test`                              | `-abend -vv`        | Abort on first failure, tear down VM                          |
-| `make … test-debug`                        | `-abend -vv -debug` | Abort on first failure, drop into an interactive VM shell     |
+| `make … test-debug`                        | `-vv -debug`        | Drop into an interactive VM shell on failure                  |
 
 **`test-debug`** is the most useful mode during development. When a step fails,
 Spread pauses and prints SSH credentials for the VM. You can SSH in, inspect
 `juju status`, read logs, re-run commands by hand, then type `exit` (or
-`Ctrl+D`) to let Spread clean up. Example:
+`Ctrl+D`) to let Spread continue. Spread does not accept `-abend` together
+with `-debug`, so after you exit the shell it runs the remaining stages and
+then tears down the VM. Example:
 
 ```bash
 make -f tests/tutorial/Makefile test-debug
@@ -90,7 +92,7 @@ make -f tests/tutorial/Makefile test-debug
 On failure you'll see output like:
 
 ```
-2026-04-11 20:13:23 Debug shell on multipass:ubuntu-24.04-64 for multipass:ubuntu-24.04-64:tests/tutorial/03_client
+2026-04-11 20:13:23 Debug shell on multipass:ubuntu-24.04-64 for multipass:ubuntu-24.04-64:tests/tutorial/integrate-with-client-applications
 2026-04-11 20:13:23   Address: 10.189.154.39:22
 2026-04-11 20:13:23   User:    root
 2026-04-11 20:13:23   Password: 6d11d3739e023950
@@ -102,10 +104,13 @@ Use those credentials to SSH in:
 ssh root@10.189.154.39     # password from the output above
 cd /charmed-kafka
 juju status                 # inspect the model
-bash tests/tutorial/03_client.sh   # re-run the failing script
+bash tests/tutorial/integrate-with-client-applications.sh   # re-run the failing script
 ```
 
-When done, exit the shell and Spread will tear down the VM.
+When done, exit the shell. Spread runs the remaining stages and tears down
+the VM. To keep the VM after the run, add `-reuse`, for example
+`make -f tests/tutorial/Makefile SPREAD="spread -reuse" test-debug`, and
+remove it later by running `spread -discard` from the project root.
 
 ### Running directly with `spread`
 
@@ -118,11 +123,11 @@ spread -abend -vv multipass:ubuntu-24.04-64:tests/tutorial/
 # Run all stages regardless of failures:
 spread -vv multipass:ubuntu-24.04-64:tests/tutorial/
 
-# Debug mode — interactive shell on failure:
-spread -abend -vv -debug multipass:ubuntu-24.04-64:tests/tutorial/
+# Debug mode — interactive shell on failure (cannot be combined with -abend):
+spread -vv -debug multipass:ubuntu-24.04-64:tests/tutorial/
 
 # Run a single stage:
-spread -abend -vv -debug multipass:ubuntu-24.04-64:tests/tutorial/02_deploy
+spread -abend -vv multipass:ubuntu-24.04-64:tests/tutorial/deploy
 ```
 
 Resource defaults (override with env vars):
