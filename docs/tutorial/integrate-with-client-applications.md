@@ -329,6 +329,11 @@ After a few seconds, all previously produced messaged will be consumed, showed i
 the script will continue indefinitely waiting for more. Since we know that no more messages will be
 produced now, we can stop the script with `Ctrl+C`.
 
+<!-- test:assert
+juju exec --unit kafka-test-app/0 -- "PYTHONPATH=/var/lib/juju/agents/unit-kafka-test-app-0/charm/lib /var/lib/juju/agents/unit-kafka-test-app-0/charm/venv/bin/python -m charms.kafka.v0.client -u ${KAFKA_USERNAME} -p ${KAFKA_PASSWORD} -t test-topic -s ${KAFKA_ENDPOINTS} -n 10 -r 3 --num-partitions 1 --producer 2>&1 || true" | grep "Message published to topic=test-topic"
+juju exec --unit kafka-test-app/0 -- "PYTHONPATH=/var/lib/juju/agents/unit-kafka-test-app-0/charm/lib timeout 45 /var/lib/juju/agents/unit-kafka-test-app-0/charm/venv/bin/python -m charms.kafka.v0.client -u ${KAFKA_USERNAME} -p ${KAFKA_PASSWORD} -t test-topic -s ${KAFKA_ENDPOINTS} --consumer 2>&1 || true" | grep "ConsumerRecord(topic='test-topic'"
+-->
+
 Now you know how to use credentials provided by related charms to successfully read/write data from
 Charmed Apache Kafka!
 
