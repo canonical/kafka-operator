@@ -72,7 +72,7 @@ than 36 GB of RAM in total.
 
 For testing or learning purposes only, you can add `--config profile=testing`
 to both `juju deploy` commands in this chapter. This reduces the heap to 1 GB
-per unit, so the whole tutorial fits on a machine with 12 GB of RAM. Do not
+per unit, so the whole tutorial fits on a machine with 16 GB of RAM. Do not
 use the `testing` profile in production.
 ```
 
