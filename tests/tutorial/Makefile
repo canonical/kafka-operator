@@ -150,8 +150,8 @@ test-continue: extract
 	$(SPREAD) -vv $(SPREAD_JOB)
 
 # ---------------------------------------------------------------------------
-# Target: test-debug  (abort on first failure, drop into VM shell)
+# Target: test-debug  (drop into VM shell on failure)
 # ---------------------------------------------------------------------------
 .PHONY: test-debug
 test-debug: extract
-	$(SPREAD) -abend -vv -debug $(SPREAD_JOB)
+	$(SPREAD) -vv -debug $(SPREAD_JOB)

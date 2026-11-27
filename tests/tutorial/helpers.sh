@@ -154,3 +154,44 @@ retry_until_success() {
     echo "ERROR: ${description} did not succeed within ${timeout}s"
     return 1
 }
+
+# ---------------------------------------------------------------------------
+# run_action – run a Juju action and fail unless it completes.
+#
+# Usage:
+#   run_action UNIT ACTION [PARAM=VALUE ...] [--wait=DURATION]
+#
+# `juju run` exits with 0 even when the action itself fails, so this checks
+# the status reported in its JSON output instead.  Use it as the command of
+# a `test:retry` annotation to retry an action until it succeeds.
+# ---------------------------------------------------------------------------
+run_action() {
+    local output
+    output=$(juju run "$@" --format json) || return 1
+    echo "$output" | jq '.[] | {status, message, results}'
+    echo "$output" | jq -e 'all(.[]; .status == "completed")' > /dev/null
+}
+
+# ---------------------------------------------------------------------------
+# broker_has_partitions – succeed if a broker hosts at least one partition.
+#
+# Usage:
+#   broker_has_partitions BROKER_ID
+#
+# Reads the log directory assignment through the `kafka` leader and prints
+# the number of partitions on the broker.
+# ---------------------------------------------------------------------------
+broker_has_partitions() {
+    local broker_id="$1" ip count
+    ip=$(juju show-unit kafka/0 --format json | jq -r '."kafka/0"."public-address"')
+    count=$(
+        juju ssh kafka/leader sudo -i charmed-kafka.log-dirs --describe \
+            --bootstrap-server "${ip}:19093" \
+            --command-config '$CONF/client.properties' 2>/dev/null \
+            | sed -n '/^{/p' \
+            | jq --argjson id "$broker_id" \
+                '[.brokers[] | select(.broker == $id) | .logDirs[].partitions[]] | length'
+    )
+    echo "Broker ${broker_id} hosts ${count:-0} partitions."
+    [[ "${count:-0}" -gt 0 ]]
+}

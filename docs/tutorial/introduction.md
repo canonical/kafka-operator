@@ -58,7 +58,11 @@ Before we start, make sure your machine meets the following requirements:
 ```{note}
 The full tutorial deploys several applications (Apache Kafka, KRaft
 controllers, Kafka Connect, PostgreSQL and OpenSearch). If you plan to
-complete the ETL and rebalancing chapters, ensure at least 4 GB more RAM is
-available than the minimum above, and prefer the `testing` profile shown in
-the deployment steps.
+complete the ETL and rebalancing chapters, ensure at least 8 GB more RAM is
+available than the minimum above.
+
+These requirements assume the `testing` profile, which is suitable for
+learning purposes only. The default `production` profile needs more than
+36 GB of RAM for the Apache Kafka deployment alone. See
+[Deploy Apache Kafka](tutorial-deploy) for details.
 ```

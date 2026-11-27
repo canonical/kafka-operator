@@ -135,13 +135,7 @@ Deploy the PostgreSQL, OpenSearch, and Kafka Connect charms:
 ```shell
 juju deploy kafka-connect --channel edge
 juju deploy postgresql --channel 14/stable
-juju deploy opensearch -n 2 --channel 2/stable --config profile=testing
-```
-
-```{note}
-With a single unit, the OpenSearch application can remain in the `blocked` state until it is
-scaled up. This tutorial deploys two units to keep resource consumption low. For production
-deployments, use at least three OpenSearch units.
+juju deploy opensearch --channel 2/stable --config profile=testing
 ```
 
 <!-- test:await-idle --timeout 1200 --allow-blocked opensearch,kafka-connect -->
@@ -192,7 +186,7 @@ data-integrator                    active      1  data-integrator           late
 kafka                     4.1.1    active      3  kafka                     4/stable       248  no       
 kafka-connect                      active      1  kafka-connect             latest/edge     30  no       
 kraft                     4.1.1    active      3  kafka                     4/stable       248  no       
-opensearch                         active      2  opensearch                2/stable       314  no       
+opensearch                         active      1  opensearch                2/stable       314  no       
 postgresql                14.20    active      1  postgresql                14/stable      987  no       
 self-signed-certificates           active      1  self-signed-certificates  1/stable       317  no       
 
@@ -206,7 +200,6 @@ kraft/0*                     active    idle   3        10.157.174.228  9098/tcp
 kraft/1                      active    idle   4        10.157.174.127  9098/tcp        
 kraft/2                      active    idle   5        10.157.174.24   9098/tcp        
 opensearch/0*                active    idle   12       10.157.174.204  9200/tcp        
-opensearch/1                 active    idle   13       10.157.174.135  9200/tcp        
 postgresql/0*                active    idle   11       10.157.174.208  5432/tcp        Primary
 self-signed-certificates/0*  active    idle   8        10.157.174.248                  
 
@@ -222,7 +215,6 @@ Machine  State    Address         Inst id         Base          AZ          Mess
 10       started  10.157.174.69   juju-29b29f-10  ubuntu@22.04  kafka-test  Running
 11       started  10.157.174.208  juju-29b29f-11  ubuntu@22.04  kafka-test  Running
 12       started  10.157.174.204  juju-29b29f-12  ubuntu@24.04  kafka-test  Running
-13       started  10.157.174.135  juju-29b29f-13  ubuntu@24.04  kafka-test  Running
 ```
 
 </details>
@@ -463,15 +455,31 @@ juju integrate opensearch-connect-integrator kafka-connect
 
 <!-- test:await-idle --timeout 1200 --allow-blocked opensearch -->
 
+<!-- test:run
+retry_until_success --timeout 600 --interval 30 --description "Kafka Connect ETL tasks RUNNING" -- \
+  bash -c 'juju status --format json | jq -e "[.applications[\"opensearch-connect-integrator\",\"postgresql-connect-integrator\"].units[][\"workload-status\"].message] | all(test(\"RUNNING\"))" > /dev/null'
+-->
+
 Wait a couple of minutes and run `juju status`, now both `opensearch-connect-integrator` and
 `postgresql-connect-integrator` applications should be in `active`/`idle` state, showing a message
 indicating that the ETL task is running:
 
 ```text
 ...
-opensearch-connect-integrator/0*  active    idle   15       10.157.174.70   8080/tcp        Task Status: RUNNING    
-postgresql-connect-integrator/0*  active    idle   14       10.157.174.173  8080/tcp        Task Status: RUNNING
+opensearch                              blocked      1  opensearch                     2/stable        344  no       1 or more 'replica' shards are not assigned, please scale your application up.
 ...
+opensearch-connect-integrator/0*  active    idle   14       10.157.174.70   8080/tcp        Task Status: RUNNING    
+postgresql-connect-integrator/0*  active    idle   13       10.157.174.173  8080/tcp        Task Status: RUNNING
+...
+```
+
+```{note}
+The `opensearch` application is now `blocked` with the message
+`1 or more 'replica' shards are not assigned, please scale your application up.`
+By default, OpenSearch stores a replica of every index shard on a different unit from the
+original. With a single unit, it can't place these replicas after the integrator creates its
+index. The data is still written and can be searched, so this status is expected in this
+tutorial. For production deployments, use at least three OpenSearch units.
 ```
 
 ## Verify data transfer
@@ -529,6 +537,10 @@ curl -u admin:${OS_PASSWORD} -k -sS "https://${OPENSEARCH_IP}:9200/etl_posts/_se
 
 <!-- test:assert
 curl -u admin:${OS_PASSWORD} -k -sS "https://${OPENSEARCH_IP}:9200/etl_posts/_search" | jq -e '.hits.total.value >= 5'
+-->
+
+<!-- test:assert
+juju status opensearch --format json | jq -e '.applications.opensearch["application-status"] | .current == "active" or (.current == "blocked" and (.message | test("replica. shards are not assigned")))'
 -->
 
 As a result you get a JSON response containing the search results, which should have five documents.
@@ -592,8 +604,6 @@ Log out from the PostgreSQL unit using `exit` command or the `Ctrl+D` keyboard s
 juju ssh postgresql/leader "PGPASSWORD=${PG_PASSWORD} psql --host \$(hostname -i) --username operator --dbname tutorial -c \"INSERT INTO posts (content, likes) VALUES ('my new post', 1)\""
 -->
 
-<!-- test:wait --seconds 30 -->
-
 Then, check that the data is automatically copied to the OpenSearch index:
 
 <!-- test:skip -->
@@ -603,7 +613,13 @@ curl -u admin:<admin-password> -k -sS "https://${OPENSEARCH_IP}:9200/etl_posts/_
 ```
 
 <!-- test:run
+retry_until_success --timeout 300 --interval 15 --description "New post in OpenSearch" -- \
+  bash -c 'curl -u admin:${OS_PASSWORD} -k -sS "https://${OPENSEARCH_IP}:9200/etl_posts/_search" 2>/dev/null | jq -e ".hits.total.value >= 6" > /dev/null 2>&1'
 curl -u admin:${OS_PASSWORD} -k -sS "https://${OPENSEARCH_IP}:9200/etl_posts/_search?pretty=true"
+-->
+
+<!-- test:assert
+curl -u admin:${OS_PASSWORD} -k -sS "https://${OPENSEARCH_IP}:9200/etl_posts/_search" | jq -e '.hits.total.value >= 6'
 -->
 
 Which now should have six hits (output is truncated):

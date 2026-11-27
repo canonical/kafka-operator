@@ -76,12 +76,14 @@ failure — more useful during local development.
 | `tox -e tutorial` / `make … test-continue` | `-vv`               | Run all stages even if earlier ones fail (CI default)         |
 | `tox -e tutorial-extract` / `make … extract` | —                 | Generate scripts only (no Spread run)                         |
 | `make … test`                              | `-abend -vv`        | Abort on first failure, tear down VM                          |
-| `make … test-debug`                        | `-abend -vv -debug` | Abort on first failure, drop into an interactive VM shell     |
+| `make … test-debug`                        | `-vv -debug`        | Drop into an interactive VM shell on failure                  |
 
 **`test-debug`** is the most useful mode during development. When a step fails,
 Spread pauses and prints SSH credentials for the VM. You can SSH in, inspect
 `juju status`, read logs, re-run commands by hand, then type `exit` (or
-`Ctrl+D`) to let Spread clean up. Example:
+`Ctrl+D`) to let Spread continue. Spread does not accept `-abend` together
+with `-debug`, so after you exit the shell it runs the remaining stages and
+then tears down the VM. Example:
 
 ```bash
 make -f tests/tutorial/Makefile test-debug
@@ -90,7 +92,7 @@ make -f tests/tutorial/Makefile test-debug
 On failure you'll see output like:
 
 ```
-2026-04-11 20:13:23 Debug shell on multipass:ubuntu-24.04-64 for multipass:ubuntu-24.04-64:tests/tutorial/03_client
+2026-04-11 20:13:23 Debug shell on multipass:ubuntu-24.04-64 for multipass:ubuntu-24.04-64:tests/tutorial/integrate-with-client-applications
 2026-04-11 20:13:23   Address: 10.189.154.39:22
 2026-04-11 20:13:23   User:    root
 2026-04-11 20:13:23   Password: 6d11d3739e023950
@@ -102,10 +104,13 @@ Use those credentials to SSH in:
 ssh root@10.189.154.39     # password from the output above
 cd /charmed-kafka
 juju status                 # inspect the model
-bash tests/tutorial/03_client.sh   # re-run the failing script
+bash tests/tutorial/integrate-with-client-applications.sh   # re-run the failing script
 ```
 
-When done, exit the shell and Spread will tear down the VM.
+When done, exit the shell. Spread runs the remaining stages and tears down
+the VM. To keep the VM after the run, add `-reuse`, for example
+`make -f tests/tutorial/Makefile SPREAD="spread -reuse" test-debug`, and
+remove it later by running `spread -discard` from the project root.
 
 ### Running directly with `spread`
 
@@ -118,11 +123,11 @@ spread -abend -vv multipass:ubuntu-24.04-64:tests/tutorial/
 # Run all stages regardless of failures:
 spread -vv multipass:ubuntu-24.04-64:tests/tutorial/
 
-# Debug mode — interactive shell on failure:
-spread -abend -vv -debug multipass:ubuntu-24.04-64:tests/tutorial/
+# Debug mode — interactive shell on failure (cannot be combined with -abend):
+spread -vv -debug multipass:ubuntu-24.04-64:tests/tutorial/
 
 # Run a single stage:
-spread -abend -vv -debug multipass:ubuntu-24.04-64:tests/tutorial/02_deploy
+spread -abend -vv multipass:ubuntu-24.04-64:tests/tutorial/deploy
 ```
 
 Resource defaults (override with env vars):
@@ -132,6 +137,25 @@ Resource defaults (override with env vars):
 | `SPREAD_VM_CPUS`  | `8`     | Multipass VM CPU count |
 | `SPREAD_VM_MEM`   | `16G`   | Multipass VM RAM       |
 | `SPREAD_VM_DISK`  | `50G`   | Multipass VM disk      |
+
+## Memory report
+
+The suite measures the RAM used by the whole test VM (the Juju controller,
+the LXD containers and all units) as `MemTotal - MemAvailable`, every 10
+seconds. `tests/tutorial/memory-monitor.sh` runs as a systemd unit inside the
+VM and keeps the peak for each stage (Spread task) and for the whole run.
+
+The full report is printed at the end of the run, just before the Spread
+summary. It lists the peak for every stage, the overall peak with its stage
+and time, and the VM memory size. When a stage fails, the debug output also
+shows the peaks recorded so far.
+
+Notes:
+
+- Spikes shorter than the sampling interval may be missed.
+- If the peak reaches 95% of the VM memory, the report warns that the VM size
+  capped the result. Raise `SPREAD_VM_MEM` and re-run to measure the real
+  requirement.
 
 ## CI
 
@@ -174,6 +198,7 @@ Available annotations:
 - [`<!-- test:skip -->`](#-test-skip-) — skip the next shell block
 - [`<!-- test:wait -->`](#-test-wait---seconds-n-) — emit a sleep
 - [`<!-- test:await-idle -->`](#-test-await-idle---timeout-s---allow-blocked-app1app2-) — wait for all units to be active/idle
+- [`<!-- test:retry -->`](#-test-retry---timeout-s---interval-s---description-text----command-) — retry a command until it succeeds
 - [`<!-- test:run-with-timeout -->`](#-test-run-with-timeout---seconds-n-) — run next block with a timeout
 - [`<!-- test:set-variables -->`](#-test-set-variables--) — capture command output into variables
 - [`<!-- test:run -->`](#-test-run--) — hidden commands (not rendered)
@@ -194,6 +219,18 @@ Emit a `wait_idle` call (from `helpers.sh`) that polls `juju status` until all
 units are `active/idle`. `--timeout` is in seconds (default: 1200).
 `--allow-blocked` lists apps permitted to be in `blocked` state
 (comma-separated).
+
+### `<!-- test:retry --timeout S --interval S --description TEXT -- COMMAND -->`
+
+Emit a `retry_until_success` call (from `helpers.sh`) that runs `COMMAND`
+every `--interval` seconds until it exits with 0, or fails after `--timeout`
+seconds. `COMMAND` can be a helper function from `helpers.sh`:
+
+- `run_action UNIT ACTION [PARAM=VALUE ...]` runs a Juju action and fails
+  unless its status is `completed`. Use it instead of `juju run`, which exits
+  with 0 even when the action fails.
+- `broker_has_partitions BROKER_ID` fails unless the broker hosts at least one
+  partition.
 
 ### `<!-- test:run-with-timeout --seconds N -->`
 

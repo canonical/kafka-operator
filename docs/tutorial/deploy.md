@@ -34,6 +34,7 @@ sync-group: substrate
 ````{tab-item} VM
 :sync: vm
 
+<!-- test:skip -->
 ```shell
 juju deploy kafka -n 3 --channel 4/stable --trust --config roles=broker
 ```
@@ -54,10 +55,25 @@ of the tutorial uses `kafka` on both substrates.
 
 `````
 
+<!-- test:run
+juju deploy kafka -n 3 --channel 4/stable --trust --config roles=broker --config profile=testing
+-->
+
 ```{note}
 The `--trust` flag grants the charm permission to manage the Kubernetes
 resources (Services, StatefulSets) it needs on K8s; it is accepted and
 harmless on VM.
+```
+
+```{note}
+By default, the charm uses the `production` profile, which reserves a 6 GB
+Java heap for every unit. The six units deployed in this chapter need more
+than 36 GB of RAM in total.
+
+For testing or learning purposes only, you can add `--config profile=testing`
+to both `juju deploy` commands in this chapter. This reduces the heap to 1 GB
+per unit, so the whole tutorial fits on a machine with 16 GB of RAM. Do not
+use the `testing` profile in production.
 ```
 
 Juju will now fetch Charmed Apache Kafka and begin deploying it to your cloud. Now check the Juju
@@ -87,6 +103,7 @@ sync-group: substrate
 ````{tab-item} VM
 :sync: vm
 
+<!-- test:skip -->
 ```shell
 juju deploy kafka -n 3 --channel 4/stable --trust --config roles=controller,balancer kraft
 ```
@@ -103,6 +120,10 @@ juju deploy kafka-k8s -n 3 --channel 4/stable --trust --config roles=controller,
 ````
 
 `````
+
+<!-- test:run
+juju deploy kafka -n 3 --channel 4/stable --trust --config roles=controller,balancer --config profile=testing kraft
+-->
 
 The additional `balancer` role runs [Cruise Control](https://github.com/linkedin/cruise-control)
 alongside the controllers. We will use it later in the tutorial to
