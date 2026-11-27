@@ -198,6 +198,7 @@ Available annotations:
 - [`<!-- test:skip -->`](#-test-skip-) — skip the next shell block
 - [`<!-- test:wait -->`](#-test-wait---seconds-n-) — emit a sleep
 - [`<!-- test:await-idle -->`](#-test-await-idle---timeout-s---allow-blocked-app1app2-) — wait for all units to be active/idle
+- [`<!-- test:retry -->`](#-test-retry---timeout-s---interval-s---description-text----command-) — retry a command until it succeeds
 - [`<!-- test:run-with-timeout -->`](#-test-run-with-timeout---seconds-n-) — run next block with a timeout
 - [`<!-- test:set-variables -->`](#-test-set-variables--) — capture command output into variables
 - [`<!-- test:run -->`](#-test-run--) — hidden commands (not rendered)
@@ -218,6 +219,18 @@ Emit a `wait_idle` call (from `helpers.sh`) that polls `juju status` until all
 units are `active/idle`. `--timeout` is in seconds (default: 1200).
 `--allow-blocked` lists apps permitted to be in `blocked` state
 (comma-separated).
+
+### `<!-- test:retry --timeout S --interval S --description TEXT -- COMMAND -->`
+
+Emit a `retry_until_success` call (from `helpers.sh`) that runs `COMMAND`
+every `--interval` seconds until it exits with 0, or fails after `--timeout`
+seconds. `COMMAND` can be a helper function from `helpers.sh`:
+
+- `run_action UNIT ACTION [PARAM=VALUE ...]` runs a Juju action and fails
+  unless its status is `completed`. Use it instead of `juju run`, which exits
+  with 0 even when the action fails.
+- `broker_has_partitions BROKER_ID` fails unless the broker hosts at least one
+  partition.
 
 ### `<!-- test:run-with-timeout --seconds N -->`
 

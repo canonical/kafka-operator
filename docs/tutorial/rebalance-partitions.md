@@ -202,7 +202,7 @@ container paths.
 Now, let's run the `rebalance` action to allocate some existing partitions from other brokers (`0`,
 `1` and `2`) to broker `3`:
 
-<!-- test:retry --timeout 2400 --interval 120 --description "Cruise Control readiness" -- juju run kraft/leader rebalance mode=add brokerid=103 --wait=2m -->
+<!-- test:retry --timeout 2400 --interval 120 --description "Cruise Control readiness" -- run_action kraft/leader rebalance mode=add brokerid=103 --wait=2m -->
 
 <!-- test:skip -->
 
@@ -476,7 +476,7 @@ allocation across all currently live broker units.
 To achieve this, re-run the `rebalance` action with the `mode=full`. You can do it in the "dryrun"
 mode (by default) for now:
 
-<!-- test:retry --timeout 1200 --interval 120 --description "Cruise Control full rebalance" -- juju run kraft/leader rebalance mode=full --wait=3m -->
+<!-- test:retry --timeout 1200 --interval 120 --description "Cruise Control full rebalance" -- run_action kraft/leader rebalance mode=full --wait=3m -->
 
 <!-- test:skip -->
 
@@ -496,6 +496,10 @@ summary:
 ```
 
 To implement the proposed changes, run the same command but with `dryrun=false`:
+
+<!-- test:retry --timeout 1200 --interval 120 --description "Full rebalance" -- run_action kraft/leader rebalance mode=full dryrun=false --wait=10m -->
+
+<!-- test:skip -->
 
 ```shell
 juju run kraft/leader rebalance mode=full dryrun=false --wait=10m
