@@ -9,6 +9,7 @@ from jubilant_adapters import JujuFixture, gather
 
 from integration.connect_k8s.helpers import (
     APP_NAME,
+    ARCHITECTURE,
     DEFAULT_API_PORT,
     DEFAULT_CONSTRAINTS,
     IMAGE_RESOURCE_KEY,
@@ -22,7 +23,8 @@ logger = logging.getLogger(__name__)
 
 pytestmark = pytest.mark.broker
 
-CHANNEL = "4/stable"
+# FIXME: change non-amd64 channel to 4/stable when there is a stable release
+CHANNEL = "4/stable" if ARCHITECTURE == "amd64" else "4/edge"
 
 
 def test_in_place_upgrade(

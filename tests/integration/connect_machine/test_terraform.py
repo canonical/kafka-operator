@@ -11,7 +11,7 @@ import random
 
 from helpers import APP_NAME
 from jubilant_adapters import JujuFixture
-from single_kernel_kafka.core.literals import ConnectStatus as Status
+from single_kernel_kafka.core.literals import ConnectStatus as Status, ARCHITECTURE
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 TFVARS_DEFAULTS = {
     "app_name": APP_NAME,
     "units": 3,
+    "constraints": f"arch={ARCHITECTURE}",
 }
 TFVARS_FILENAME = "test.tfvars.json"
 

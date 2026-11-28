@@ -12,6 +12,7 @@ from pathlib import Path
 import jubilant
 import pytest
 import tomlkit
+from single_kernel_kafka.core.literals import ARCHITECTURE
 
 from integration.machine.helpers import (
     APP_NAME,
@@ -29,7 +30,8 @@ from integration.machine.helpers.jubilant import (
 logger = logging.getLogger(__name__)
 
 pytestmark = pytest.mark.broker
-CHANNEL = "4/stable"
+# FIXME: change non-amd64 channel to 4/stable when there is a stable release
+CHANNEL = "4/stable" if ARCHITECTURE == "amd64" else "arm64"
 
 
 def test_repack_charm(

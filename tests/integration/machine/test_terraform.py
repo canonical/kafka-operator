@@ -11,6 +11,7 @@ import random
 
 import pytest
 from jubilant import Juju
+from single_kernel_kafka.core.literals import ARCHITECTURE
 
 from integration.machine.helpers.jubilant import APP_NAME, all_active_idle
 
@@ -21,6 +22,7 @@ TFVARS_DEFAULTS = {
     "app_name": APP_NAME,
     "config": {"roles": "broker,controller"},
     "units": 3,
+    "constraints": f"arch={ARCHITECTURE}",
 }
 TFVARS_FILENAME = "test.tfvars.json"
 
