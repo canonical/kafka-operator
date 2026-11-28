@@ -11,7 +11,8 @@ import random
 
 from helpers import APP_NAME
 from jubilant_adapters import JujuFixture
-from single_kernel_kafka.core.literals import ConnectStatus as Status, ARCHITECTURE
+from single_kernel_kafka.core.literals import ARCHITECTURE
+from single_kernel_kafka.core.literals import ConnectStatus as Status
 
 logger = logging.getLogger(__name__)
 
