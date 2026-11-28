@@ -2,6 +2,10 @@
 # See LICENSE file for licensing details.
 name: Tests
 
+# Full-suite runs say which architecture they cover; otherwise fall back to the
+# PR title, or the workflow name for non-PR runs.
+run-name: ${{ (inputs.suite == 'full-arm64' || inputs.suite == 'full-amd64') && format('Tests | {0}', inputs.suite) || github.event.pull_request.title || github.workflow }}
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
