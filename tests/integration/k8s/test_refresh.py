@@ -16,6 +16,7 @@ from single_kernel_kafka.core.literals import TLS_RELATION
 
 from integration.k8s.helpers import (
     APP_NAME,
+    ARCHITECTURE,
     CONTROLLER_NAME,
     DEFAULT_CONSTRAINTS,
     DUMMY_NAME,
@@ -28,7 +29,8 @@ from integration.k8s.helpers.jubilant import all_active_idle, check_logs, deploy
 
 logger = logging.getLogger(__name__)
 
-CHANNEL = "4/stable"
+# FIXME: change non-amd64 channel to 4/stable when there is a stable release
+CHANNEL = "4/stable" if ARCHITECTURE == "amd64" else "arm64"
 CHARMCRAFT = os.environ.get("CHARMCRAFT_BIN", "charmcraft")
 
 

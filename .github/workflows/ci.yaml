@@ -2,6 +2,10 @@
 # See LICENSE file for licensing details.
 name: Tests
 
+# Full-suite runs say which architecture they cover; otherwise fall back to the
+# PR title, or the workflow name for non-PR runs.
+run-name: ${{ (inputs.suite == 'full-arm64' || inputs.suite == 'full-amd64') && format('Tests | {0}', inputs.suite) || github.event.pull_request.title || github.workflow }}
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -18,6 +22,16 @@ on:
     - cron: '53 0 * * *'  # Daily at 00:53 UTC
   workflow_dispatch:
     inputs:
+      suite:
+        description: |
+          Test suite to run: `pr` (default) runs the amd64 tests plus the arm64 smoke tests,
+          `full-arm64` and `full-amd64` run the full suite on that architecture, skipping the smoke tests.
+        type: choice
+        options:
+          - pr
+          - full-arm64
+          - full-amd64
+        default: pr
       kafka-revision:
         description: Test this Charmhub amd64 revision of `kafka` instead of building the charm
         type: string
@@ -37,6 +51,12 @@ on:
   # Triggered on push to branch "main" by .github/workflows/release.yaml
   workflow_call:
     inputs:
+      suite:
+        description: |
+          Test suite to run: `pr` (default) runs the amd64 tests plus the arm64 smoke tests,
+          `full-arm64` and `full-amd64` run the full suite on that architecture, skipping the smoke tests.
+        type: string
+        default: pr
       kafka-revision:
         description: Test this Charmhub amd64 revision of `kafka` instead of building the charm
         type: string
@@ -170,8 +190,9 @@ jobs:
       substrate: lxd
       tox-env: integration-machine-${{ matrix.tox-environment }}
       runner-size: large
+      runner-arch: ${{ inputs.suite == 'full-arm64' && 'arm64' || 'amd64' }}
       extra-tox-args: --kraft-mode single
-      charm-revision: ${{ inputs.kafka-revision }}
+      charm-revision: ${{ inputs.suite != 'full-arm64' && inputs.kafka-revision || '' }}
       artifact-prefix: ${{ needs.build.outputs.artifact-prefix }}
       packed-charms: ${{ needs.build.outputs.charms }}
 
@@ -210,8 +231,9 @@ jobs:
       substrate: lxd
       tox-env: integration-machine-${{ matrix.tox-environment }}
       runner-size: xlarge
+      runner-arch: ${{ inputs.suite == 'full-arm64' && 'arm64' || 'amd64' }}
       extra-tox-args: --kraft-mode multi
-      charm-revision: ${{ inputs.kafka-revision }}
+      charm-revision: ${{ inputs.suite != 'full-arm64' && inputs.kafka-revision || '' }}
       artifact-prefix: ${{ needs.build.outputs.artifact-prefix }}
       packed-charms: ${{ needs.build.outputs.charms }}
 
@@ -245,8 +267,9 @@ jobs:
       substrate: k8s
       tox-env: integration-k8s-${{ matrix.tox-environment }}
       runner-size: large
+      runner-arch: ${{ inputs.suite == 'full-arm64' && 'arm64' || 'amd64' }}
       extra-tox-args: --kraft-mode single
-      charm-revision: ${{ inputs.kafka-k8s-revision }}
+      charm-revision: ${{ inputs.suite != 'full-arm64' && inputs.kafka-k8s-revision || '' }}
       artifact-prefix: ${{ needs.build.outputs.artifact-prefix }}
       packed-charms: ${{ needs.build.outputs.charms }}
 
@@ -283,8 +306,9 @@ jobs:
       substrate: k8s
       tox-env: integration-k8s-${{ matrix.tox-environment }}
       runner-size: xlarge
+      runner-arch: ${{ inputs.suite == 'full-arm64' && 'arm64' || 'amd64' }}
       extra-tox-args: --kraft-mode multi
-      charm-revision: ${{ inputs.kafka-k8s-revision }}
+      charm-revision: ${{ inputs.suite != 'full-arm64' && inputs.kafka-k8s-revision || '' }}
       artifact-prefix: ${{ needs.build.outputs.artifact-prefix }}
       packed-charms: ${{ needs.build.outputs.charms }}
 
@@ -324,8 +348,9 @@ jobs:
       substrate: lxd
       tox-env: integration-connect-machine-${{ matrix.tox-environment }}
       runner-size: large
+      runner-arch: ${{ inputs.suite == 'full-arm64' && 'arm64' || 'amd64' }}
       extra-tox-args: --kafka ${{ matrix.kafka-version }}
-      charm-revision: ${{ inputs.kafka-connect-revision }}
+      charm-revision: ${{ inputs.suite != 'full-arm64' && inputs.kafka-connect-revision || '' }}
       artifact-prefix: ${{ needs.build.outputs.artifact-prefix }}
       packed-charms: ${{ needs.build.outputs.charms }}
 
@@ -355,7 +380,8 @@ jobs:
       substrate: k8s
       tox-env: integration-connect-k8s-${{ matrix.tox-environment }}
       runner-size: medium
-      charm-revision: ${{ inputs.kafka-connect-k8s-revision }}
+      runner-arch: ${{ inputs.suite == 'full-arm64' && 'arm64' || 'amd64' }}
+      charm-revision: ${{ inputs.suite != 'full-arm64' && inputs.kafka-connect-k8s-revision || '' }}
       artifact-prefix: ${{ needs.build.outputs.artifact-prefix }}
       packed-charms: ${{ needs.build.outputs.charms }}
 
@@ -376,7 +402,8 @@ jobs:
       !cancelled() &&
       needs.lint.result == 'success' &&
       needs.unit-test.result == 'success' &&
-      needs.build.result == 'success'
+      needs.build.result == 'success' &&
+      (inputs.suite == '' || inputs.suite == 'pr')
     uses: ./.github/workflows/_integration_test.yaml
     permissions:
       contents: read
@@ -405,7 +432,8 @@ jobs:
       !cancelled() &&
       needs.lint.result == 'success' &&
       needs.unit-test.result == 'success' &&
-      needs.build.result == 'success'
+      needs.build.result == 'success' &&
+      (inputs.suite == '' || inputs.suite == 'pr')
     uses: ./.github/workflows/_integration_test.yaml
     permissions:
       contents: read
